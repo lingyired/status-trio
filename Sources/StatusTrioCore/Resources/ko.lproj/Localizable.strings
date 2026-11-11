@@ -1125,3 +1125,31 @@
 "hardware.monitor.settings.metrics" = "항목";
 "hardware.monitor.settings.metrics.description" = "표시할 항목을 선택하고 드래그하여 순서를 바꿉니다. 마지막 항목은 끌 수 없습니다.";
 "hardware.monitor.battery" = "배터리";
+
+// MARK: - Hardware monitor ring (system monitoring)
+"settings.ringContent.hardwareMonitor" = "시스템 모니터";
+"settings.hardwareRing.group.arc" = "호";
+"settings.hardwareRing.layout" = "레이아웃";
+"settings.hardwareRing.layout.single" = "단일 호";
+"settings.hardwareRing.layout.dual" = "좌우 두 호";
+"settings.hardwareRing.primaryMetric" = "왼쪽/기본 지표";
+"settings.hardwareRing.secondaryMetric" = "오른쪽 지표";
+"settings.hardwareRing.group.top" = "상단 표시";
+"settings.hardwareRing.topContent" = "상단 표시";
+"settings.hardwareRing.top.automatic" = "자동";
+"settings.hardwareRing.top.symbol" = "지표 아이콘";
+"settings.hardwareRing.top.value" = "지표 값";
+"settings.hardwareRing.top.hidden" = "숨김";
+"settings.hardwareRing.top.metric" = "상단 지표";
+"settings.hardwareRing.group.color" = "색상";
+"settings.hardwareRing.colorMode" = "색상 모드";
+"settings.hardwareRing.color.status" = "상태 색상";
+"settings.hardwareRing.color.fixed" = "고정 색상";
+"settings.hardwareRing.color.monochrome" = "시스템 단색";
+"settings.hardwareRing.leftColor" = "왼쪽 색상";
+"settings.hardwareRing.rightColor" = "오른쪽 색상";
+"settings.hardwareRing.group.advanced" = "고급 설정";
+"settings.hardwareRing.warning" = "경고 임계값";
+"settings.hardwareRing.critical" = "위험 임계값";
+"settings.hardwareRing.range" = "표시 범위";
+"settings.hardwareRing.reset" = "기본값으로 재설정";

@@ -126,9 +126,35 @@ enum IconPreviewInputBuilder {
                 availability: availability,
                 airPodsBattery: samples.airPods.batterySnapshot(now: now),
                 connectedBluetoothDeviceSymbol: connectedSymbol,
-                connectedBluetoothDeviceIsAudio: target.isSpecifiedAudioTarget(sample: samples.bluetoothTarget)
+                connectedBluetoothDeviceIsAudio: target.isSpecifiedAudioTarget(sample: samples.bluetoothTarget),
+                hardwareMetrics: hardwareSnapshot(samples.hardwareMonitor, now: now)
             )
         )
+    }
+
+    private static func hardwareSnapshot(_ sample: HardwareMonitorPreviewSample, now: Date) -> HardwareMetricsSnapshot {
+        func measured(_ value: Double, unit: HardwareMetricUnit, source: HardwareMetricSource,
+                      maximum: Double? = nil) -> HardwareMetricSample {
+            HardwareMetricSample(
+                value: sample.isAvailable ? value : nil,
+                unit: unit,
+                sampledAt: now,
+                source: source,
+                availability: sample.isAvailable ? .measured : .temporarilyUnavailable,
+                metadata: .init(maximum: maximum)
+            )
+        }
+        var snapshot = HardwareMetricsSnapshot()
+        snapshot.samples = [
+            .cpuUsage: measured(sample.cpuUsage, unit: .percent, source: .mach),
+            .gpuUsage: measured(sample.gpuUsage, unit: .percent, source: .ioAccelerator),
+            .memoryUsage: measured(sample.memoryUsage, unit: .percent, source: .mach),
+            .cpuTemperature: measured(sample.cpuTemperature, unit: .celsius, source: .smc),
+            .batteryTemperature: measured(sample.batteryTemperature, unit: .celsius, source: .smc),
+            .fanRPM(index: 0): measured(sample.fanRPM, unit: .rpm, source: .smc, maximum: sample.fanMaximumRPM)
+        ]
+        snapshot.fanCount = 1
+        return snapshot
     }
 
     private static func networkState(for kind: IconPreviewNetworkKind) -> (WiFiState, NetworkConnection) {

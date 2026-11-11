@@ -1124,3 +1124,31 @@
 "hardware.monitor.settings.metrics" = "Metrics";
 "hardware.monitor.settings.metrics.description" = "Choose which metrics to show and drag to reorder. The last enabled metric can’t be turned off.";
 "hardware.monitor.battery" = "Battery";
+
+// MARK: - Hardware monitor ring (system monitoring)
+"settings.ringContent.hardwareMonitor" = "System Monitoring";
+"settings.hardwareRing.group.arc" = "Arc";
+"settings.hardwareRing.layout" = "Layout";
+"settings.hardwareRing.layout.single" = "Single arc";
+"settings.hardwareRing.layout.dual" = "Two arcs";
+"settings.hardwareRing.primaryMetric" = "Left / primary metric";
+"settings.hardwareRing.secondaryMetric" = "Right metric";
+"settings.hardwareRing.group.top" = "Top marker";
+"settings.hardwareRing.topContent" = "Top marker";
+"settings.hardwareRing.top.automatic" = "Automatic";
+"settings.hardwareRing.top.symbol" = "Metric icon";
+"settings.hardwareRing.top.value" = "Metric value";
+"settings.hardwareRing.top.hidden" = "Hidden";
+"settings.hardwareRing.top.metric" = "Top metric";
+"settings.hardwareRing.group.color" = "Colour";
+"settings.hardwareRing.colorMode" = "Colour mode";
+"settings.hardwareRing.color.status" = "Status colours";
+"settings.hardwareRing.color.fixed" = "Fixed colour";
+"settings.hardwareRing.color.monochrome" = "System monochrome";
+"settings.hardwareRing.leftColor" = "Left colour";
+"settings.hardwareRing.rightColor" = "Right colour";
+"settings.hardwareRing.group.advanced" = "Advanced";
+"settings.hardwareRing.warning" = "Warning threshold";
+"settings.hardwareRing.critical" = "Critical threshold";
+"settings.hardwareRing.range" = "Display range";
+"settings.hardwareRing.reset" = "Reset to defaults";

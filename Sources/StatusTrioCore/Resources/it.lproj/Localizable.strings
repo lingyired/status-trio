@@ -1125,3 +1125,31 @@
 "hardware.monitor.settings.metrics" = "Metriche";
 "hardware.monitor.settings.metrics.description" = "Scegli le metriche e trascina per riordinarle. L’ultima non può essere disattivata.";
 "hardware.monitor.battery" = "Batteria";
+
+// MARK: - Hardware monitor ring (system monitoring)
+"settings.ringContent.hardwareMonitor" = "Monitoraggio sistema";
+"settings.hardwareRing.group.arc" = "Arco";
+"settings.hardwareRing.layout" = "Disposizione";
+"settings.hardwareRing.layout.single" = "Arco singolo";
+"settings.hardwareRing.layout.dual" = "Due archi";
+"settings.hardwareRing.primaryMetric" = "Metrica sinistra/principale";
+"settings.hardwareRing.secondaryMetric" = "Metrica destra";
+"settings.hardwareRing.group.top" = "Indicatore superiore";
+"settings.hardwareRing.topContent" = "Indicatore superiore";
+"settings.hardwareRing.top.automatic" = "Automatico";
+"settings.hardwareRing.top.symbol" = "Icona metrica";
+"settings.hardwareRing.top.value" = "Valore metrica";
+"settings.hardwareRing.top.hidden" = "Nascosto";
+"settings.hardwareRing.top.metric" = "Metrica superiore";
+"settings.hardwareRing.group.color" = "Colore";
+"settings.hardwareRing.colorMode" = "Modalità colore";
+"settings.hardwareRing.color.status" = "Colori di stato";
+"settings.hardwareRing.color.fixed" = "Colore fisso";
+"settings.hardwareRing.color.monochrome" = "Monocromatico di sistema";
+"settings.hardwareRing.leftColor" = "Colore sinistro";
+"settings.hardwareRing.rightColor" = "Colore destro";
+"settings.hardwareRing.group.advanced" = "Avanzate";
+"settings.hardwareRing.warning" = "Soglia di avviso";
+"settings.hardwareRing.critical" = "Soglia critica";
+"settings.hardwareRing.range" = "Intervallo di visualizzazione";
+"settings.hardwareRing.reset" = "Ripristina predefiniti";

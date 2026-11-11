@@ -10,6 +10,10 @@ enum OuterRingContent: String, CaseIterable, Identifiable, Sendable {
     case systemBattery
     /// The selected AirPods' left/right battery rings.
     case airPodsBattery
+    /// System monitoring: CPU/GPU/memory/temperature/fan arcs. Internally
+    /// configured (single/dual arc, top marker, colours, thresholds) rather than
+    /// exposed as several top-level sources.
+    case hardwareMonitor
 
     var id: Self { self }
 }

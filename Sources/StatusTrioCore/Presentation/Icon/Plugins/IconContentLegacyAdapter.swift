@@ -5,6 +5,7 @@ enum IconContentLegacyAdapter {
         switch source {
         case .systemBattery: .init(pluginID: "builtin.system-battery", presentationID: "ring")
         case .airPodsBattery: .init(pluginID: "builtin.airpods-battery", presentationID: "ring")
+        case .hardwareMonitor: .init(pluginID: "builtin.hardware-monitor", presentationID: "ring")
         case .automaticLegacy: .init(pluginID: "builtin.legacy", presentationID: "ring")
         case .none: nil
         }

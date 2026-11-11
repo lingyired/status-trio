@@ -1125,3 +1125,31 @@
 "hardware.monitor.settings.metrics" = "Метрики";
 "hardware.monitor.settings.metrics.description" = "Выберите метрики и перетащите для сортировки. Последнюю нельзя отключить.";
 "hardware.monitor.battery" = "Батарея";
+
+// MARK: - Hardware monitor ring (system monitoring)
+"settings.ringContent.hardwareMonitor" = "Мониторинг системы";
+"settings.hardwareRing.group.arc" = "Дуга";
+"settings.hardwareRing.layout" = "Макет";
+"settings.hardwareRing.layout.single" = "Одна дуга";
+"settings.hardwareRing.layout.dual" = "Две дуги";
+"settings.hardwareRing.primaryMetric" = "Левая/основная метрика";
+"settings.hardwareRing.secondaryMetric" = "Правая метрика";
+"settings.hardwareRing.group.top" = "Верхний маркер";
+"settings.hardwareRing.topContent" = "Верхний маркер";
+"settings.hardwareRing.top.automatic" = "Автоматически";
+"settings.hardwareRing.top.symbol" = "Значок метрики";
+"settings.hardwareRing.top.value" = "Значение метрики";
+"settings.hardwareRing.top.hidden" = "Скрыто";
+"settings.hardwareRing.top.metric" = "Верхняя метрика";
+"settings.hardwareRing.group.color" = "Цвет";
+"settings.hardwareRing.colorMode" = "Режим цвета";
+"settings.hardwareRing.color.status" = "Цвета состояния";
+"settings.hardwareRing.color.fixed" = "Фиксированный цвет";
+"settings.hardwareRing.color.monochrome" = "Системный монохром";
+"settings.hardwareRing.leftColor" = "Цвет левой дуги";
+"settings.hardwareRing.rightColor" = "Цвет правой дуги";
+"settings.hardwareRing.group.advanced" = "Дополнительно";
+"settings.hardwareRing.warning" = "Порог предупреждения";
+"settings.hardwareRing.critical" = "Критический порог";
+"settings.hardwareRing.range" = "Диапазон отображения";
+"settings.hardwareRing.reset" = "Сбросить настройки";

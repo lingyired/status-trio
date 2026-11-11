@@ -170,6 +170,7 @@ final class SettingsStore: ObservableObject {
     static let airPodsRingUsesDualRingDefaultsKey = "airPodsRingUsesDualRing"
     static let showsAirPodsTopSymbolInRingDefaultsKey = "showsAirPodsTopSymbolInRing"
     static let airPodsRingFallsBackToBatteryDefaultsKey = "airPodsRingFallsBackToBattery"
+    static let hardwareRingConfigurationDefaultsKey = "hardwareRingConfigurationV1"
     static let defaultVolumeDisplayStyle: VolumeDisplayStyle = .dots
     static let volumeDisplayStyleDefaultsKey = "volumeDisplayStyle"
     static let defaultRingStrokeStyle: RingStrokeStyle = .regular
@@ -1079,6 +1080,17 @@ final class SettingsStore: ObservableObject {
     /// (the "battery as fallback" choice, like the centre's network fallback).
     @Published var airPodsRingFallsBackToBattery: Bool = true {
         didSet { defaults.set(airPodsRingFallsBackToBattery, forKey: Self.airPodsRingFallsBackToBatteryDefaultsKey) }
+    }
+
+    /// Internal configuration of the "System Monitoring" (`hardwareMonitor`)
+    /// ring source. Persisted as JSON; projected into `behaviors.hardwareRing`.
+    @Published var hardwareRingConfiguration: HardwareRingConfiguration = .default {
+        didSet {
+            guard !isSyncingIconConfiguration else { return }
+            if let data = try? JSONEncoder().encode(hardwareRingConfiguration.normalized()) {
+                defaults.set(data, forKey: Self.hardwareRingConfigurationDefaultsKey)
+            }
+        }
     }
 
     @Published var bluetoothAudioIconChoiceRawValue: String {
@@ -2651,6 +2663,12 @@ final class SettingsStore: ObservableObject {
         self.airPodsRingFallsBackToBattery = defaults.object(
             forKey: Self.airPodsRingFallsBackToBatteryDefaultsKey
         ) as? Bool ?? true
+        if let data = defaults.data(forKey: Self.hardwareRingConfigurationDefaultsKey),
+           let decoded = try? JSONDecoder().decode(HardwareRingConfiguration.self, from: data) {
+            self.hardwareRingConfiguration = decoded.normalized()
+        } else {
+            self.hardwareRingConfiguration = .default
+        }
         bootstrapIconConfiguration()
     }
 

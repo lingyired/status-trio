@@ -1125,3 +1125,31 @@
 "hardware.monitor.settings.metrics" = "項目";
 "hardware.monitor.settings.metrics.description" = "表示する項目を選択し、ドラッグで並べ替えます。最後の1つはオフにできません。";
 "hardware.monitor.battery" = "バッテリー";
+
+// MARK: - Hardware monitor ring (system monitoring)
+"settings.ringContent.hardwareMonitor" = "システムモニター";
+"settings.hardwareRing.group.arc" = "アーク";
+"settings.hardwareRing.layout" = "レイアウト";
+"settings.hardwareRing.layout.single" = "単一アーク";
+"settings.hardwareRing.layout.dual" = "左右2アーク";
+"settings.hardwareRing.primaryMetric" = "左／主指標";
+"settings.hardwareRing.secondaryMetric" = "右指標";
+"settings.hardwareRing.group.top" = "上部マーカー";
+"settings.hardwareRing.topContent" = "上部マーカー";
+"settings.hardwareRing.top.automatic" = "自動";
+"settings.hardwareRing.top.symbol" = "指標アイコン";
+"settings.hardwareRing.top.value" = "指標の値";
+"settings.hardwareRing.top.hidden" = "非表示";
+"settings.hardwareRing.top.metric" = "上部指標";
+"settings.hardwareRing.group.color" = "カラー";
+"settings.hardwareRing.colorMode" = "カラーモード";
+"settings.hardwareRing.color.status" = "状態カラー";
+"settings.hardwareRing.color.fixed" = "固定カラー";
+"settings.hardwareRing.color.monochrome" = "システムモノクロ";
+"settings.hardwareRing.leftColor" = "左の色";
+"settings.hardwareRing.rightColor" = "右の色";
+"settings.hardwareRing.group.advanced" = "詳細設定";
+"settings.hardwareRing.warning" = "警告しきい値";
+"settings.hardwareRing.critical" = "危険しきい値";
+"settings.hardwareRing.range" = "表示範囲";
+"settings.hardwareRing.reset" = "デフォルトに戻す";

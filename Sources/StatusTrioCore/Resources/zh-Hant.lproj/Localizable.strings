@@ -1125,3 +1125,31 @@
 "hardware.monitor.settings.metrics" = "指標";
 "hardware.monitor.settings.metrics.description" = "選擇要顯示的指標，拖曳可排序；最後一項不能關閉。";
 "hardware.monitor.battery" = "電池溫度";
+
+// MARK: - Hardware monitor ring (system monitoring)
+"settings.ringContent.hardwareMonitor" = "系統監控";
+"settings.hardwareRing.group.arc" = "圓弧";
+"settings.hardwareRing.layout" = "佈局";
+"settings.hardwareRing.layout.single" = "單圓弧";
+"settings.hardwareRing.layout.dual" = "左右雙圓弧";
+"settings.hardwareRing.primaryMetric" = "左/主指標";
+"settings.hardwareRing.secondaryMetric" = "右指標";
+"settings.hardwareRing.group.top" = "頂部標識";
+"settings.hardwareRing.topContent" = "頂部標識";
+"settings.hardwareRing.top.automatic" = "自動";
+"settings.hardwareRing.top.symbol" = "指標圖示";
+"settings.hardwareRing.top.value" = "指標數值";
+"settings.hardwareRing.top.hidden" = "隱藏";
+"settings.hardwareRing.top.metric" = "頂部指標";
+"settings.hardwareRing.group.color" = "顏色";
+"settings.hardwareRing.colorMode" = "顏色模式";
+"settings.hardwareRing.color.status" = "狀態色";
+"settings.hardwareRing.color.fixed" = "固定色";
+"settings.hardwareRing.color.monochrome" = "系統單色";
+"settings.hardwareRing.leftColor" = "左弧顏色";
+"settings.hardwareRing.rightColor" = "右弧顏色";
+"settings.hardwareRing.group.advanced" = "進階設定";
+"settings.hardwareRing.warning" = "警告閾值";
+"settings.hardwareRing.critical" = "嚴重閾值";
+"settings.hardwareRing.range" = "顯示範圍";
+"settings.hardwareRing.reset" = "回復預設";

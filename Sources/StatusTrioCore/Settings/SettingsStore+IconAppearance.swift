@@ -48,12 +48,16 @@ extension SettingsStore {
                 $showsAirPodsTopSymbolInRing,
                 $airPodsRingFallsBackToBattery
             )
+            .combineLatest($hardwareRingConfiguration) { ring, hardwareRing in
+                (ring.0, ring.1, ring.2, ring.3, hardwareRing)
+            }
         ) { triple, ring in
             var appearance = triple.0.appearance(ringStrokeScale: triple.1, centerScale: triple.2)
             appearance.outerRingContent = ring.0
             appearance.airPodsRingUsesDualRing = ring.1
             appearance.showsAirPodsTopSymbolInRing = ring.2
             appearance.airPodsRingFallsBackToBattery = ring.3
+            appearance.hardwareRingConfiguration = ring.4
             return appearance
         }
         .removeDuplicates()

@@ -56,6 +56,14 @@ enum IconCompositionResolver {
                                              now: now, registry: registry)
         let center = CenterResolver.resolve(inputs: inputs, configuration: configuration, legacy: legacy, now: now, registry: registry)
         let footer = FooterResolver.resolve(inputs: inputs, configuration: configuration, legacy: legacy, now: now, registry: registry)
+        // The hardware-monitor ring computes its own per-segment colours (metric
+        // base / status / monochrome). The battery ring's colour style must not
+        // silently override them; Mac battery and AirPods keep the historical
+        // appearance applied bit-for-bit.
+        var sceneAppearance = configuration.appearance
+        if ring.trace.selectedSourceID == RingSource.hardwareMonitor.rawValue {
+            sceneAppearance.outerRing.color = .automatic
+        }
         return IconResolutionOutput(
             scene: IconPaletteResolver.apply(
                 IconSceneState(
@@ -65,7 +73,7 @@ enum IconCompositionResolver {
                     statusColors: configuration.appearance.batteryStatusColors.colors,
                     bluetoothIconColor: configuration.appearance.bluetoothIconColor.selection
                 ),
-                appearance: configuration.appearance,
+                appearance: sceneAppearance,
                 centerSource: center.source
             ),
             trace: IconResolutionTrace(

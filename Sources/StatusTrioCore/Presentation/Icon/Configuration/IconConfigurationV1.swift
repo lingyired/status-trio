@@ -42,6 +42,7 @@ struct IconConfigurationV1: Codable, Equatable, Sendable {
         copy.appearance.outerRing = copy.appearance.outerRing.normalized()
         copy.appearance.center = copy.appearance.center.normalized()
         copy.appearance.footer = copy.appearance.footer.normalized()
+        copy.behaviors.hardwareRing = copy.behaviors.hardwareRing.normalized()
 
         if (copy.wifiScaleMigrationVersion ?? 0) < 1 {
             // Center appearance is shared by primary and fallback sources. Fold

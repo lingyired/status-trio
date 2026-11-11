@@ -73,6 +73,9 @@ final class IconPresentationViewModel: ObservableObject {
     private let inputSources: AnyPublisher<InputSourceDescriptor?, Never>
     private let systemPowers: AnyPublisher<SystemPowerSample?, Never>
     private let highPowerModes: AnyPublisher<Bool, Never>
+    /// Hardware-metric ticks repaint the icon only while a hardware ring is on
+    /// screen; `resolveInputs` reads the live snapshot from the store.
+    private let hardwareMetrics: AnyPublisher<HardwareMetricsSnapshot, Never>
     private let resolveInputs: @MainActor (StatusSnapshot) -> IconPresentationInputs
     private let mapScene: IconSceneMapper
     private let snapshotScheduler: any IconPresentationScheduling
@@ -81,6 +84,7 @@ final class IconPresentationViewModel: ObservableObject {
     private var inputSourcesSubscription: AnyCancellable?
     private var systemPowersSubscription: AnyCancellable?
     private var highPowerModesSubscription: AnyCancellable?
+    private var hardwareMetricsSubscription: AnyCancellable?
     private var latestSnapshot: StatusSnapshot
     private var latestSettings: IconPresentationSettings
     private var latestInputSource: InputSourceDescriptor?
@@ -99,6 +103,7 @@ final class IconPresentationViewModel: ObservableObject {
         inputSources: AnyPublisher<InputSourceDescriptor?, Never> = Empty<InputSourceDescriptor?, Never>().eraseToAnyPublisher(),
         systemPowers: AnyPublisher<SystemPowerSample?, Never> = Empty<SystemPowerSample?, Never>().eraseToAnyPublisher(),
         highPowerModes: AnyPublisher<Bool, Never> = Empty<Bool, Never>().eraseToAnyPublisher(),
+        hardwareMetrics: AnyPublisher<HardwareMetricsSnapshot, Never> = Empty<HardwareMetricsSnapshot, Never>().eraseToAnyPublisher(),
         resolveInputs: @escaping @MainActor (StatusSnapshot) -> IconPresentationInputs,
         mapScene: @escaping IconSceneMapper = { inputs, configuration, _ in
             IconPresentationMapper.scene(inputs: inputs, configuration: configuration)
@@ -110,6 +115,7 @@ final class IconPresentationViewModel: ObservableObject {
         self.inputSources = inputSources
         self.systemPowers = systemPowers
         self.highPowerModes = highPowerModes
+        self.hardwareMetrics = hardwareMetrics
         self.resolveInputs = resolveInputs
         self.mapScene = mapScene
         self.snapshotScheduler = snapshotScheduler
@@ -158,6 +164,11 @@ final class IconPresentationViewModel: ObservableObject {
                 self?.receive(highPowerMode: isHighPowerMode)
             }
         }
+        hardwareMetricsSubscription = hardwareMetrics.sink { [weak self] snapshot in
+            MainActor.assumeIsolated {
+                self?.receive(hardwareMetrics: snapshot)
+            }
+        }
     }
 
     func stop() {
@@ -167,11 +178,13 @@ final class IconPresentationViewModel: ObservableObject {
         inputSourcesSubscription?.cancel()
         systemPowersSubscription?.cancel()
         highPowerModesSubscription?.cancel()
+        hardwareMetricsSubscription?.cancel()
         snapshotSubscription = nil
         preferencesSubscription = nil
         inputSourcesSubscription = nil
         systemPowersSubscription = nil
         highPowerModesSubscription = nil
+        hardwareMetricsSubscription = nil
         receivedSnapshotForStart = false
         receivedSettingsForStart = false
         receivedInputSourceForStart = false
@@ -242,6 +255,16 @@ final class IconPresentationViewModel: ObservableObject {
     /// Power Mode control and the icon colour is the feedback.
     private func receive(highPowerMode: Bool) {
         latestHighPowerMode = highPowerMode
+        guard synchronizedStart else { return }
+        snapshotScheduler.cancel()
+        publishLatestOutput()
+    }
+
+    /// A hardware-metric tick only affects the icon while a hardware ring is on
+    /// screen; when it is not, the resolved scene is unchanged and `output`
+    /// equality short-circuits the publish, so this is cheap for battery/AirPods
+    /// users. Sampling itself is demand-driven elsewhere.
+    private func receive(hardwareMetrics: HardwareMetricsSnapshot) {
         guard synchronizedStart else { return }
         snapshotScheduler.cancel()
         publishLatestOutput()

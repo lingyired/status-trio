@@ -3,7 +3,8 @@ enum BuiltinIconPlugins {
         do {
             return try IconContentPluginRegistry(plugins: [
                 InputSourceIconPlugin(), NetworkIconPlugin(), BluetoothDeviceIconPlugin(),
-                SystemBatteryIconPlugin(), AirPodsBatteryIconPlugin(), SystemVolumeIconPlugin(), LegacyIconPlugin()
+                SystemBatteryIconPlugin(), AirPodsBatteryIconPlugin(),
+                HardwareMonitorIconPlugin(), SystemVolumeIconPlugin(), LegacyIconPlugin()
             ])
         } catch {
             preconditionFailure("Invalid compiled icon plugin catalogue: \(error)")

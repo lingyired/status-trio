@@ -59,8 +59,12 @@ extension SettingsStore {
 
         // Outer ring: the Mac battery by default, or the AirPods battery with the
         // Mac battery as an optional fallback when no AirPods are connected
-        // (mirroring the centre's network fallback).
-        if appearance.outerRingContent == .airPodsBattery {
+        // (mirroring the centre's network fallback), or system monitoring.
+        if appearance.outerRingContent == .hardwareMonitor {
+            configuration.composition.outerRing = SlotSelection(primary: .hardwareMonitor)
+            configuration.behaviors.airPodsRing = .single
+            configuration.behaviors.showsAirPodsTopSymbol = false
+        } else if appearance.outerRingContent == .airPodsBattery {
             configuration.composition.outerRing = SlotSelection(
                 primary: .airPodsBattery,
                 fallback: appearance.airPodsRingFallsBackToBattery ? .systemBattery : nil
@@ -72,6 +76,9 @@ extension SettingsStore {
             configuration.behaviors.airPodsRing = .single
             configuration.behaviors.showsAirPodsTopSymbol = false
         }
+        // Carry the hardware-ring configuration regardless of the current
+        // selection so switching sources preserves the user's setup.
+        configuration.behaviors.hardwareRing = appearance.hardwareRingConfiguration.normalized()
 
         configuration.behaviors.systemBatteryRing = SystemBatteryRingBehavior(
             showsPercentage: battery.showsPercentage,
@@ -228,6 +235,10 @@ extension SettingsStore {
     /// individual settings so the UI and runtime see the same values.
     func updateIconConfiguration(_ update: (inout IconConfigurationV1) -> Void) {
         var configuration = iconConfiguration
+        // Keep the persisted V1 payload in step with the individual hardware-ring
+        // setting (the runtime source of truth) before applying an editor write,
+        // so an unrelated edit never resets the user's system-monitoring setup.
+        configuration.behaviors.hardwareRing = hardwareRingConfiguration.normalized()
         update(&configuration)
         configuration = configuration.normalized()
         guard configuration != iconConfiguration else { return }

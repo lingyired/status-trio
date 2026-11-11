@@ -1238,8 +1238,27 @@ extension StatusIconRenderer {
 
         if ring.layout == .leftRight {
             drawAirPodsRing(ring, in: context, foreground: foreground, statusPalette: statusPalette, regions: regions)
-            if regions.contains(.ringAccessory), case let .symbol(symbol)? = ring.accessory {
-                drawAirPodsTopSymbol(symbol, foreground: foreground, statusPalette: statusPalette, in: context)
+            if regions.contains(.ringAccessory), let accessory = ring.accessory {
+                context.saveGState()
+                context.setShadow(
+                    offset: CGSize(width: 0, height: 0.75),
+                    blur: 0.75,
+                    color: CGColor(gray: 0, alpha: 0.38)
+                )
+                switch accessory {
+                case let .symbol(symbol):
+                    drawAirPodsTopSymbol(symbol, foreground: foreground, statusPalette: statusPalette, in: context)
+                case let .text(text):
+                    let fontSize = batteryValueFontSize(scale: text.scale)
+                    drawSceneText(
+                        text.text,
+                        color: sceneColor(for: text.color, foreground: foreground, statusPalette: statusPalette),
+                        fontSize: fontSize,
+                        baseline: StatusIconGeometry.batteryValueBaseline(fontSize: fontSize),
+                        in: context
+                    )
+                }
+                context.restoreGState()
             }
             return
         }

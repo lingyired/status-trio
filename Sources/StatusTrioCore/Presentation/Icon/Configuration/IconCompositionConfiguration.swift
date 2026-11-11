@@ -10,6 +10,9 @@ enum RingSource: String, Codable, CaseIterable, Sendable {
     case automaticLegacy
     case systemBattery
     case airPodsBattery
+    /// System monitoring (CPU/GPU/memory/temperature/fan). One top-level source;
+    /// its single/dual layout is an internal setting, not a ring-level choice.
+    case hardwareMonitor
     case none
 }
 

@@ -1,6 +1,16 @@
 import AppKit
 import SwiftUI
 
+/// The four top-marker choices exposed in the settings pane. Mapped to/from
+/// `HardwareRingTopContent`, which carries the metric for the symbol/value cases.
+private enum HardwareTopMode: String, CaseIterable, Identifiable {
+    case automatic
+    case symbol
+    case value
+    case hidden
+    var id: Self { self }
+}
+
 /// The "Ring" leaf under **App Icon**: how the battery arc / ring is drawn.
 ///
 /// These controls used to sit in the Battery category, but they only describe
@@ -32,6 +42,8 @@ struct AppIconRingView: View {
         outerRingContentGroup
         if store.outerRingContent == .airPodsBattery {
             airPodsRingGroup
+        } else if store.outerRingContent == .hardwareMonitor {
+            hardwareRingGroups
         } else {
             // #309: every battery ring control stays visible without a battery.
             // The settings are kept; the ring colour still follows connected
@@ -97,6 +109,7 @@ struct AppIconRingView: View {
         switch content {
         case .systemBattery: return localization.string(.settingsRingContentSystemBattery)
         case .airPodsBattery: return localization.string(.settingsRingContentAirPodsBattery)
+        case .hardwareMonitor: return localization.string(.settingsRingContentHardwareMonitor)
         }
     }
 
@@ -130,11 +143,391 @@ struct AppIconRingView: View {
         }
     }
 
+    // MARK: System monitoring (hardware ring)
+
+    /// Internal settings for the `hardwareMonitor` source: arc layout, metrics,
+    /// top marker, colour strategy and per-metric thresholds. These are grouped
+    /// exactly like the other icon pickers — no bespoke control style is
+    /// introduced; they reuse `SettingsGroup` / `SettingsMenuRow` / `SettingsRow`.
+    @ViewBuilder
+    private var hardwareRingGroups: some View {
+        hardwareArcGroup
+        hardwareTopGroup
+        hardwareColorGroup
+        hardwareAdvancedGroup
+    }
+
+    private var hardwareSecondaryMetric: HardwareMonitorMetric {
+        store.hardwareRingConfiguration.normalizedSecondaryMetric ?? .gpuUsage
+    }
+
+    private var hardwareArcGroup: some View {
+        SettingsGroup(localization.string(.settingsHardwareRingGroupArc)) {
+            SettingsMenuRow(
+                symbol: "circle.dashed",
+                tint: .blue,
+                title: localization.string(.settingsHardwareRingLayout),
+                selection: Binding(
+                    get: { store.hardwareRingConfiguration.layout },
+                    set: { setHardwareLayout($0) }
+                ),
+                options: HardwareRingLayout.allCases,
+                label: { layoutLabel($0) }
+            )
+            SettingsDivider()
+            SettingsMenuRow(
+                symbol: store.hardwareRingConfiguration.primaryMetric.systemImage,
+                tint: .green,
+                title: localization.string(.settingsHardwareRingPrimaryMetric),
+                selection: Binding(
+                    get: { store.hardwareRingConfiguration.primaryMetric },
+                    set: { setPrimaryMetric($0) }
+                ),
+                options: HardwareMonitorMetric.allCases,
+                label: { metricLabel($0) }
+            )
+            if store.hardwareRingConfiguration.layout == .dual {
+                SettingsDivider()
+                SettingsMenuRow(
+                    symbol: hardwareSecondaryMetric.systemImage,
+                    tint: .blue,
+                    title: localization.string(.settingsHardwareRingSecondaryMetric),
+                    selection: Binding(
+                        get: { hardwareSecondaryMetric },
+                        set: { setSecondaryMetric($0) }
+                    ),
+                    options: HardwareMonitorMetric.allCases,
+                    label: { metricLabel($0) }
+                )
+            }
+        }
+    }
+
+    private var hardwareTopGroup: some View {
+        SettingsGroup(localization.string(.settingsHardwareRingGroupTop)) {
+            SettingsMenuRow(
+                symbol: "textformat",
+                tint: .gray,
+                title: localization.string(.settingsHardwareRingTopContent),
+                selection: Binding(
+                    get: { hardwareTopMode },
+                    set: { setTopMode($0) }
+                ),
+                options: HardwareTopMode.allCases,
+                label: { topModeLabel($0) }
+            )
+            if hardwareTopMode == .symbol || hardwareTopMode == .value {
+                SettingsDivider()
+                SettingsMenuRow(
+                    symbol: hardwareTopMetric.systemImage,
+                    tint: .gray,
+                    title: localization.string(.settingsHardwareRingTopMetric),
+                    selection: Binding(
+                        get: { hardwareTopMetric },
+                        set: { setTopMetric($0) }
+                    ),
+                    options: HardwareMonitorMetric.allCases,
+                    label: { metricLabel($0) }
+                )
+            }
+        }
+    }
+
+    private var hardwareColorGroup: some View {
+        SettingsGroup(localization.string(.settingsHardwareRingGroupColor)) {
+            SettingsMenuRow(
+                symbol: "paintpalette",
+                tint: .purple,
+                title: localization.string(.settingsHardwareRingColorMode),
+                selection: Binding(
+                    get: { store.hardwareRingConfiguration.color.mode },
+                    set: { setColorMode($0) }
+                ),
+                options: HardwareRingColorMode.allCases,
+                label: { colorModeLabel($0) }
+            )
+            if store.hardwareRingConfiguration.color.mode != .monochrome {
+                SettingsDivider()
+                hardwareColorRow(
+                    title: .settingsHardwareRingLeftColor,
+                    metric: store.hardwareRingConfiguration.primaryMetric,
+                    isRight: false
+                )
+                if store.hardwareRingConfiguration.layout == .dual {
+                    SettingsDivider()
+                    hardwareColorRow(
+                        title: .settingsHardwareRingRightColor,
+                        metric: hardwareSecondaryMetric,
+                        isRight: true
+                    )
+                }
+            }
+        }
+    }
+
+    private var hardwareAdvancedGroup: some View {
+        SettingsGroup(localization.string(.settingsHardwareRingGroupAdvanced)) {
+            ForEach(Array(store.hardwareRingConfiguration.referencedMetrics.enumerated()), id: \.element) { index, metric in
+                if index > 0 { SettingsDivider() }
+                hardwareAdvancedRow(for: metric)
+            }
+            SettingsDivider()
+            SettingsRow(
+                title: localization.string(.settingsHardwareRingReset),
+                subtitle: nil,
+                leading: { SettingsIcon(symbol: "arrow.counterclockwise", tint: .gray) },
+                trailing: {
+                    Button(localization.string(.settingsHardwareRingReset)) {
+                        resetHardwareMetricOptions()
+                    }
+                    .controlSize(.small)
+                }
+            )
+        }
+    }
+
+    @ViewBuilder
+    private func hardwareAdvancedRow(for metric: HardwareMonitorMetric) -> some View {
+        let options = store.hardwareRingConfiguration.options(for: metric)
+        SettingsRow(
+            title: metricLabel(metric),
+            subtitle: hardwareRangeSubtitle(metric: metric, options: options),
+            leading: { SettingsIcon(symbol: metric.systemImage, tint: .orange) },
+            trailing: {
+                VStack(alignment: .trailing, spacing: 6) {
+                    hardwareStepper(
+                        label: localization.string(.settingsHardwareRingWarning),
+                        value: hardwareOptionBinding(metric, \HardwareMetricRingOptions.warningThreshold),
+                        range: hardwareStepperRange(metric),
+                        step: metric == .fan ? 100 : 1
+                    )
+                    hardwareStepper(
+                        label: localization.string(.settingsHardwareRingCritical),
+                        value: hardwareOptionBinding(metric, \HardwareMetricRingOptions.criticalThreshold),
+                        range: hardwareStepperRange(metric),
+                        step: metric == .fan ? 100 : 1
+                    )
+                    if !metric.isPercentageMetric && metric != .fan {
+                        hardwareStepper(
+                            label: "\(localization.string(.settingsHardwareRingRange)) ↓",
+                            value: hardwareOptionBinding(metric, \HardwareMetricRingOptions.displayMinimum),
+                            range: -50...150,
+                            step: 1
+                        )
+                        hardwareStepper(
+                            label: "\(localization.string(.settingsHardwareRingRange)) ↑",
+                            value: hardwareOptionBinding(metric, \HardwareMetricRingOptions.displayMaximum),
+                            range: -50...150,
+                            step: 1
+                        )
+                    }
+                }
+            }
+        )
+    }
+
+    private func hardwareStepper(
+        label: String,
+        value: Binding<Double>,
+        range: ClosedRange<Double>,
+        step: Double
+    ) -> some View {
+        HStack(spacing: 6) {
+            Text(label)
+                .font(.system(size: 11))
+                .foregroundStyle(.secondary)
+            Stepper(value: value, in: range, step: step) {
+                Text("\(Int(value.wrappedValue.rounded()))")
+                    .font(.system(size: 12, design: .monospaced))
+                    .frame(width: 44, alignment: .trailing)
+            }
+            .controlSize(.small)
+        }
+    }
+
+    private func hardwareColorRow(
+        title: LocalizationKey,
+        metric: HardwareMonitorMetric,
+        isRight: Bool
+    ) -> some View {
+        SettingsRow(
+            title: localization.string(title),
+            subtitle: nil,
+            leading: { SettingsIcon(symbol: metric.systemImage, tint: .purple) },
+            trailing: {
+                IconDesignerColorWell(
+                    selection: hardwareColorBinding(isRight: isRight, metric: metric),
+                    onEditingChanged: { _ in }
+                )
+                .frame(width: 44, height: 22)
+            }
+        )
+    }
+
+    // MARK: Hardware ring bindings & labels
+
+    private var hardwareTopMode: HardwareTopMode {
+        switch store.hardwareRingConfiguration.topContent {
+        case .automatic: return .automatic
+        case .hidden: return .hidden
+        case .symbol: return .symbol
+        case .value: return .value
+        }
+    }
+
+    private var hardwareTopMetric: HardwareMonitorMetric {
+        store.hardwareRingConfiguration.topContent.referencedMetric
+            ?? store.hardwareRingConfiguration.primaryMetric
+    }
+
+    private func setHardwareLayout(_ layout: HardwareRingLayout) {
+        var configuration = store.hardwareRingConfiguration
+        configuration.layout = layout
+        if layout == .dual, configuration.secondaryMetric == nil {
+            configuration.secondaryMetric = HardwareRingConfiguration.default.secondaryMetric
+        }
+        store.hardwareRingConfiguration = configuration
+    }
+
+    private func setPrimaryMetric(_ metric: HardwareMonitorMetric) {
+        var configuration = store.hardwareRingConfiguration
+        if configuration.secondaryMetric == metric {
+            configuration.secondaryMetric = configuration.primaryMetric
+        }
+        configuration.primaryMetric = metric
+        if configuration.layout == .single { configuration.secondaryMetric = nil }
+        store.hardwareRingConfiguration = configuration
+    }
+
+    private func setSecondaryMetric(_ metric: HardwareMonitorMetric) {
+        var configuration = store.hardwareRingConfiguration
+        if metric == configuration.primaryMetric {
+            configuration.primaryMetric = configuration.normalizedSecondaryMetric ?? .gpuUsage
+        }
+        configuration.secondaryMetric = metric
+        store.hardwareRingConfiguration = configuration
+    }
+
+    private func setTopMode(_ mode: HardwareTopMode) {
+        var configuration = store.hardwareRingConfiguration
+        let metric = hardwareTopMetric
+        switch mode {
+        case .automatic: configuration.topContent = .automatic
+        case .hidden: configuration.topContent = .hidden
+        case .symbol: configuration.topContent = .symbol(metric)
+        case .value: configuration.topContent = .value(metric)
+        }
+        store.hardwareRingConfiguration = configuration
+    }
+
+    private func setTopMetric(_ metric: HardwareMonitorMetric) {
+        var configuration = store.hardwareRingConfiguration
+        switch hardwareTopMode {
+        case .symbol: configuration.topContent = .symbol(metric)
+        case .value: configuration.topContent = .value(metric)
+        case .automatic, .hidden: break
+        }
+        store.hardwareRingConfiguration = configuration
+    }
+
+    private func setColorMode(_ mode: HardwareRingColorMode) {
+        var configuration = store.hardwareRingConfiguration
+        configuration.color.mode = mode
+        store.hardwareRingConfiguration = configuration
+    }
+
+    private func hardwareColorBinding(isRight: Bool, metric: HardwareMonitorMetric) -> Binding<Color> {
+        Binding(
+            get: {
+                let base = isRight
+                    ? store.hardwareRingConfiguration.color.rightBaseColor
+                    : store.hardwareRingConfiguration.color.leftBaseColor
+                return IconAppearanceColorConversion.color(
+                    from: base ?? HardwareRingColorConfiguration.recommendedBaseColor(for: metric))
+            },
+            set: { color in
+                var configuration = store.hardwareRingConfiguration
+                let rgba = IconAppearanceColorConversion.iconRGBA(from: color)
+                if isRight {
+                    configuration.color.rightBaseColor = rgba
+                } else {
+                    configuration.color.leftBaseColor = rgba
+                }
+                store.hardwareRingConfiguration = configuration
+            }
+        )
+    }
+
+    private func hardwareOptionBinding(
+        _ metric: HardwareMonitorMetric,
+        _ keyPath: WritableKeyPath<HardwareMetricRingOptions, Double>
+    ) -> Binding<Double> {
+        Binding(
+            get: { store.hardwareRingConfiguration.options(for: metric)[keyPath: keyPath] },
+            set: { newValue in
+                var configuration = store.hardwareRingConfiguration
+                var options = configuration.options(for: metric)
+                options[keyPath: keyPath] = newValue
+                configuration.overrides[metric] = options.normalized(for: metric)
+                store.hardwareRingConfiguration = configuration
+            }
+        )
+    }
+
+    private func resetHardwareMetricOptions() {
+        var configuration = store.hardwareRingConfiguration
+        for metric in configuration.referencedMetrics {
+            configuration.overrides[metric] = nil
+        }
+        store.hardwareRingConfiguration = configuration
+    }
+
+    private func hardwareStepperRange(_ metric: HardwareMonitorMetric) -> ClosedRange<Double> {
+        switch metric {
+        case .cpuUsage, .gpuUsage, .memoryUsage: return 0...100
+        case .cpuTemperature: return 30...120
+        case .batteryTemperature: return 20...80
+        case .fan: return 0...10_000
+        }
+    }
+
+    private func hardwareRangeSubtitle(metric: HardwareMonitorMetric, options: HardwareMetricRingOptions) -> String? {
+        guard !metric.isPercentageMetric, metric != .fan else { return nil }
+        return "\(localization.string(.settingsHardwareRingRange)): \(Int(options.displayMinimum))–\(Int(options.displayMaximum))°C"
+    }
+
+    private func layoutLabel(_ layout: HardwareRingLayout) -> String {
+        switch layout {
+        case .single: return localization.string(.settingsHardwareRingLayoutSingle)
+        case .dual: return localization.string(.settingsHardwareRingLayoutDual)
+        }
+    }
+
+    private func metricLabel(_ metric: HardwareMonitorMetric) -> String {
+        localization.string(metric.titleKey)
+    }
+
+    private func colorModeLabel(_ mode: HardwareRingColorMode) -> String {
+        switch mode {
+        case .status: return localization.string(.settingsHardwareRingColorStatus)
+        case .fixed: return localization.string(.settingsHardwareRingColorFixed)
+        case .monochrome: return localization.string(.settingsHardwareRingColorMonochrome)
+        }
+    }
+
+    private func topModeLabel(_ mode: HardwareTopMode) -> String {
+        switch mode {
+        case .automatic: return localization.string(.settingsHardwareRingTopAutomatic)
+        case .symbol: return localization.string(.settingsHardwareRingTopSymbol)
+        case .value: return localization.string(.settingsHardwareRingTopValue)
+        case .hidden: return localization.string(.settingsHardwareRingTopHidden)
+        }
+    }
+
     /// Explains what still applies on a battery-less Mac (ring colour follows
     /// connected power and Low/High Power Mode) and what does not (percentage,
     /// charging marker), so the kept controls are not misleading.
-    private var noBatteryHintGroup: some View {
-        SettingsGroup {
+    private var noBatteryHintGroup: some View {        SettingsGroup {
             SettingsHintRow(text: localization.string(.settingsBatteryNoBatteryHiddenOptions))
         }
     }
@@ -530,6 +923,8 @@ enum RingContentPreviewScene {
             configuration.composition.outerRing = SlotSelection(primary: .systemBattery)
         case .airPodsBattery:
             configuration.composition.outerRing = SlotSelection(primary: .airPodsBattery)
+        case .hardwareMonitor:
+            configuration.composition.outerRing = SlotSelection(primary: .hardwareMonitor)
         }
         // The derived configuration only carries the AirPods ring behaviour when
         // the stored selection is already AirPods; the tile must preview the real

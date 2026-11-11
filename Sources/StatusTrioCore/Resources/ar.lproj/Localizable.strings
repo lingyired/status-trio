@@ -1125,3 +1125,31 @@
 "hardware.monitor.settings.metrics" = "المؤشرات";
 "hardware.monitor.settings.metrics.description" = "اختر المؤشرات واسحب لإعادة الترتيب. لا يمكن إيقاف الأخير.";
 "hardware.monitor.battery" = "البطارية";
+
+// MARK: - Hardware monitor ring (system monitoring)
+"settings.ringContent.hardwareMonitor" = "مراقبة النظام";
+"settings.hardwareRing.group.arc" = "القوس";
+"settings.hardwareRing.layout" = "التخطيط";
+"settings.hardwareRing.layout.single" = "قوس واحد";
+"settings.hardwareRing.layout.dual" = "قوسان";
+"settings.hardwareRing.primaryMetric" = "المقياس الأيسر/الرئيسي";
+"settings.hardwareRing.secondaryMetric" = "المقياس الأيمن";
+"settings.hardwareRing.group.top" = "علامة علوية";
+"settings.hardwareRing.topContent" = "علامة علوية";
+"settings.hardwareRing.top.automatic" = "تلقائي";
+"settings.hardwareRing.top.symbol" = "رمز المقياس";
+"settings.hardwareRing.top.value" = "قيمة المقياس";
+"settings.hardwareRing.top.hidden" = "مخفي";
+"settings.hardwareRing.top.metric" = "المقياس العلوي";
+"settings.hardwareRing.group.color" = "اللون";
+"settings.hardwareRing.colorMode" = "وضع اللون";
+"settings.hardwareRing.color.status" = "ألوان الحالة";
+"settings.hardwareRing.color.fixed" = "لون ثابت";
+"settings.hardwareRing.color.monochrome" = "أحادي اللون للنظام";
+"settings.hardwareRing.leftColor" = "لون اليسار";
+"settings.hardwareRing.rightColor" = "لون اليمين";
+"settings.hardwareRing.group.advanced" = "متقدم";
+"settings.hardwareRing.warning" = "حد التحذير";
+"settings.hardwareRing.critical" = "الحد الحرج";
+"settings.hardwareRing.range" = "نطاق العرض";
+"settings.hardwareRing.reset" = "إعادة التعيين إلى الافتراضي";

@@ -12,6 +12,7 @@ enum IconPreviewSampleSource: Hashable, Sendable {
     case bluetoothTarget
     case systemVolume
     case inputSource
+    case hardwareMonitor
 }
 
 enum IconPreviewEar: Sendable {
@@ -68,6 +69,18 @@ struct InputSourcePreviewSample: Equatable, Sendable {
     var shortLabel = "A"
 }
 
+/// Deterministic hardware metrics for the ring preview.
+struct HardwareMonitorPreviewSample: Equatable, Sendable {
+    var isAvailable = true
+    var cpuUsage = 45.0
+    var gpuUsage = 30.0
+    var memoryUsage = 62.0
+    var cpuTemperature = 55.0
+    var batteryTemperature = 32.0
+    var fanRPM = 1200.0
+    var fanMaximumRPM: Double? = 6000
+}
+
 struct IconPreviewSampleValues: Equatable, Sendable {
     var macBattery = MacBatteryPreviewSample()
     var airPods = CustomAirPodsPreviewSample()
@@ -75,6 +88,7 @@ struct IconPreviewSampleValues: Equatable, Sendable {
     var bluetoothTarget = BluetoothTargetPreviewSample()
     var systemVolume = VolumePreviewSample()
     var inputSource = InputSourcePreviewSample()
+    var hardwareMonitor = HardwareMonitorPreviewSample()
 }
 
 

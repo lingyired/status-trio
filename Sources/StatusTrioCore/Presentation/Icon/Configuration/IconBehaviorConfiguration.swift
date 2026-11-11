@@ -12,10 +12,12 @@ struct IconBehaviorConfiguration: Codable, Equatable, Sendable {
     var batteryMarkers: BatteryMarkerBehavior
     /// Whether a top gap with content splits the visible arc across it (#205).
     var splitGapProgress: Bool
+    /// Internal configuration of the `hardwareMonitor` outer-ring source.
+    var hardwareRing: HardwareRingConfiguration
 
     enum CodingKeys: String, CodingKey {
         case systemBatteryRing, networkCenter, bluetoothAudioCenter, systemVolumeFooter, airPodsRing, showsAirPodsTopSymbol
-        case batteryMarkers, splitGapProgress
+        case batteryMarkers, splitGapProgress, hardwareRing
     }
 
     init(
@@ -26,7 +28,8 @@ struct IconBehaviorConfiguration: Codable, Equatable, Sendable {
         airPodsRing: AirPodsRingBehavior = .single,
         showsAirPodsTopSymbol: Bool = false,
         batteryMarkers: BatteryMarkerBehavior = .classic,
-        splitGapProgress: Bool = false
+        splitGapProgress: Bool = false,
+        hardwareRing: HardwareRingConfiguration = .default
     ) {
         self.systemBatteryRing = systemBatteryRing
         self.networkCenter = networkCenter
@@ -36,6 +39,7 @@ struct IconBehaviorConfiguration: Codable, Equatable, Sendable {
         self.showsAirPodsTopSymbol = showsAirPodsTopSymbol
         self.batteryMarkers = batteryMarkers
         self.splitGapProgress = splitGapProgress
+        self.hardwareRing = hardwareRing
     }
 
     init(from decoder: Decoder) throws {
@@ -48,6 +52,7 @@ struct IconBehaviorConfiguration: Codable, Equatable, Sendable {
         showsAirPodsTopSymbol = try container.decodeIfPresent(Bool.self, forKey: .showsAirPodsTopSymbol) ?? false
         batteryMarkers = try container.decodeIfPresent(BatteryMarkerBehavior.self, forKey: .batteryMarkers) ?? .classic
         splitGapProgress = try container.decodeIfPresent(Bool.self, forKey: .splitGapProgress) ?? false
+        hardwareRing = try container.decodeIfPresent(HardwareRingConfiguration.self, forKey: .hardwareRing) ?? .default
     }
 
     func encode(to encoder: Encoder) throws {
@@ -60,6 +65,7 @@ struct IconBehaviorConfiguration: Codable, Equatable, Sendable {
         try container.encode(showsAirPodsTopSymbol, forKey: .showsAirPodsTopSymbol)
         try container.encode(batteryMarkers, forKey: .batteryMarkers)
         try container.encode(splitGapProgress, forKey: .splitGapProgress)
+        try container.encode(hardwareRing, forKey: .hardwareRing)
     }
 
     static let classic = Self(

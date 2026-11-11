@@ -17,6 +17,8 @@ struct StatusIconAppearance: Equatable, Sendable {
     var airPodsRingUsesDualRing: Bool
     var showsAirPodsTopSymbolInRing: Bool
     var airPodsRingFallsBackToBattery: Bool
+    /// Internal configuration of the `hardwareMonitor` ring source.
+    var hardwareRingConfiguration: HardwareRingConfiguration
 
     init(
         iconSize: Double,
@@ -27,7 +29,8 @@ struct StatusIconAppearance: Equatable, Sendable {
         outerRingContent: OuterRingContent = .systemBattery,
         airPodsRingUsesDualRing: Bool = true,
         showsAirPodsTopSymbolInRing: Bool = true,
-        airPodsRingFallsBackToBattery: Bool = true
+        airPodsRingFallsBackToBattery: Bool = true,
+        hardwareRingConfiguration: HardwareRingConfiguration = .default
     ) {
         self.iconSize = iconSize
         self.batteryOptions = batteryOptions
@@ -38,6 +41,7 @@ struct StatusIconAppearance: Equatable, Sendable {
         self.airPodsRingUsesDualRing = airPodsRingUsesDualRing
         self.showsAirPodsTopSymbolInRing = showsAirPodsTopSymbolInRing
         self.airPodsRingFallsBackToBattery = airPodsRingFallsBackToBattery
+        self.hardwareRingConfiguration = hardwareRingConfiguration
     }
 
     /// Reads every icon input straight from the store. Main-actor isolated
@@ -53,7 +57,8 @@ struct StatusIconAppearance: Equatable, Sendable {
             outerRingContent: settings.outerRingContent,
             airPodsRingUsesDualRing: settings.airPodsRingUsesDualRing,
             showsAirPodsTopSymbolInRing: settings.showsAirPodsTopSymbolInRing,
-            airPodsRingFallsBackToBattery: settings.airPodsRingFallsBackToBattery
+            airPodsRingFallsBackToBattery: settings.airPodsRingFallsBackToBattery,
+            hardwareRingConfiguration: settings.hardwareRingConfiguration
         )
     }
 }

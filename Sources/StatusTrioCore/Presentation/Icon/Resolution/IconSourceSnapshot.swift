@@ -8,6 +8,10 @@ struct IconSourceSnapshot: Equatable, Sendable {
     /// output device; nil preserves the legacy unknown/default behavior.
     var connectedBluetoothDeviceIsAudio: Bool? = nil
     var holdingSourceIDs: Set<String> = []
+    /// The latest hardware-metric samples, read-only for the hardware ring.
+    var hardwareMetrics: HardwareMetricsSnapshot = .empty
+    /// Debounced warning/critical levels per metric (status colour mode).
+    var hardwareRingLevels: [HardwareMonitorMetric: HardwareLoadLevel] = [:]
 
     static let empty = Self(availability: [:])
 

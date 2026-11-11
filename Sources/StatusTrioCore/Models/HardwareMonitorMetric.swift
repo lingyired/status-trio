@@ -5,7 +5,7 @@ import Foundation
 /// Kept separate from `HardwareMetricID` (which carries a fan index) so the
 /// stored preference is a stable, human-readable string and unknown future
 /// values can be filtered safely on downgrade.
-enum HardwareMonitorMetric: String, CaseIterable, Identifiable, Sendable {
+enum HardwareMonitorMetric: String, Codable, CaseIterable, Identifiable, Sendable {
     case cpuUsage
     case gpuUsage
     case memoryUsage
