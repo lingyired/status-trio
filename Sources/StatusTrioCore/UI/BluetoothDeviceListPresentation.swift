@@ -409,6 +409,42 @@ enum BluetoothDeviceListPresentation {
         devices.filter { !$0.isUnpairedGhost && !isDeviceHidden($0, options: options) }
     }
 
+    /// Whether the panel should paint the last successful read's rows as a
+    /// placeholder while a fresh one is still in flight.
+    ///
+    /// The placeholder exists so reopening the panel shows last-known names
+    /// instantly instead of waiting on the OS read (PR #232's height stability).
+    /// It may only stand in for a read that can still land: once the read has
+    /// failed, last-known rows must not keep rendering as if the radio were
+    /// available — that is how a device removed in System Settings lingered
+    /// (#330). Power-off, denied permission and an already-loaded read are
+    /// excluded the same way.
+    static func showsCachedDevices(
+        availability: BluetoothAvailability,
+        isRadioOff: Bool,
+        showsList: Bool,
+        hasLoadedDevices: Bool,
+        devices: [BluetoothDevice],
+        cachedDevices: [BluetoothDevice]
+    ) -> Bool {
+        guard !isRadioOff,
+              showsList,
+              !hasLoadedDevices,
+              devices.isEmpty,
+              !cachedDevices.isEmpty else {
+            return false
+        }
+        switch availability {
+        case .idle, .initializing, .available:
+            // A read is still expected to overwrite these rows.
+            return true
+        case .authorizationNotDetermined, .authorizationDenied, .authorizationRestricted,
+             .poweredOff, .unavailable, .failed:
+            // No read will replace the placeholder, so it would be stale live data.
+            return false
+        }
+    }
+
     /// Whether the panel drops `device` under the user's manual-hide setting.
     static func isDeviceHidden(
         _ device: BluetoothDevice,

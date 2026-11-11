@@ -1144,6 +1144,93 @@ final class BluetoothDeviceListPresentationTests: XCTestCase {
     }
 
     /// A row a reading created, in the shape the merge builds it.
+    // MARK: - Issue #330: cached rows must not outlive a failed read
+
+    func testCachedDevicesAreShownWhileAReadCanStillLand() {
+        let cached = [makeDevice(address: "AA:BB:CC:DD:EE:01", name: "Old", isConnected: true)]
+        for availability in [BluetoothAvailability.idle, .initializing, .available] {
+            XCTAssertTrue(
+                BluetoothDeviceListPresentation.showsCachedDevices(
+                    availability: availability,
+                    isRadioOff: false,
+                    showsList: true,
+                    hasLoadedDevices: false,
+                    devices: [],
+                    cachedDevices: cached
+                ),
+                "a pending read may stand in cached rows for \(availability)"
+            )
+        }
+    }
+
+    func testCachedDevicesAreHiddenAfterAFailedRead() {
+        let cached = [makeDevice(address: "AA:BB:CC:DD:EE:02", name: "Removed", isConnected: true)]
+        // A device removed in System Settings must not keep rendering from the
+        // reopen cache once the replacing read failed: nothing will overwrite it.
+        for availability in [
+            BluetoothAvailability.failed, .poweredOff, .unavailable,
+            .authorizationNotDetermined, .authorizationDenied, .authorizationRestricted
+        ] {
+            XCTAssertFalse(
+                BluetoothDeviceListPresentation.showsCachedDevices(
+                    availability: availability,
+                    isRadioOff: false,
+                    showsList: true,
+                    hasLoadedDevices: false,
+                    devices: [],
+                    cachedDevices: cached
+                ),
+                "no cached row may stand in for \(availability)"
+            )
+        }
+    }
+
+    func testCachedDevicesRequireAnEmptyLiveListAndAnUnloadedRead() {
+        let cached = [makeDevice(address: "AA:BB:CC:DD:EE:03", name: "Old", isConnected: true)]
+        let fresh = [makeDevice(address: "AA:BB:CC:DD:EE:04", name: "New", isConnected: true)]
+
+        func shows(
+            isRadioOff: Bool = false,
+            showsList: Bool = true,
+            hasLoadedDevices: Bool = false,
+            devices: [BluetoothDevice] = [],
+            cachedDevices: [BluetoothDevice]
+        ) -> Bool {
+            BluetoothDeviceListPresentation.showsCachedDevices(
+                availability: .available,
+                isRadioOff: isRadioOff,
+                showsList: showsList,
+                hasLoadedDevices: hasLoadedDevices,
+                devices: devices,
+                cachedDevices: cachedDevices
+            )
+        }
+
+        XCTAssertFalse(shows(isRadioOff: true, cachedDevices: cached))
+        XCTAssertFalse(shows(showsList: false, cachedDevices: cached))
+        XCTAssertFalse(shows(hasLoadedDevices: true, cachedDevices: cached))
+        XCTAssertFalse(shows(devices: fresh, cachedDevices: cached))
+        XCTAssertFalse(shows(cachedDevices: []))
+    }
+
+    /// On `.failed` the panel hides the list and reports the read failure, even
+    /// if a stale device list is still held in memory — the deleted device must
+    /// never be painted as a live connected row.
+    func testAFailedReadHidesTheListAndReportsTheFailure() {
+        let stale = [makeDevice(address: "AA:BB:CC:DD:EE:05", name: "Removed", isConnected: true)]
+        XCTAssertFalse(
+            BluetoothPanelListVisibility.showsList(
+                availability: .failed,
+                devices: stale,
+                options: .standard
+            )
+        )
+        XCTAssertEqual(
+            BluetoothSummary.presentation(availability: .failed, devices: stale, batteryLevels: [:]),
+            .readFailed
+        )
+    }
+
     private func makeReadingDevice(address: String, name: String) -> BluetoothDevice {
         BluetoothDevice(
             id: address,

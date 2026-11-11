@@ -111,13 +111,18 @@ struct BluetoothStatusView: View {
 
     /// Whether the previous read's devices are standing in for the incoming one.
     /// This shows real names at once while the OS read runs; the list keeps the
-    /// cached rows until the fresh result lands.
+    /// cached rows until the fresh result lands. The decision lives in
+    /// `BluetoothDeviceListPresentation` so it can be unit-tested, including the
+    /// rule that a failed read must not paint stale rows as live (#330).
     private var isShowingCachedDevices: Bool {
-        guard !isRadioOff else { return false }
-        return listOptions.showsList
-            && !controller.hasLoadedDevices
-            && controller.devices.isEmpty
-            && !controller.cachedDevices.isEmpty
+        BluetoothDeviceListPresentation.showsCachedDevices(
+            availability: controller.availability,
+            isRadioOff: isRadioOff,
+            showsList: listOptions.showsList,
+            hasLoadedDevices: controller.hasLoadedDevices,
+            devices: controller.devices,
+            cachedDevices: controller.cachedDevices
+        )
     }
 
     private var displayedDevices: [BluetoothDevice] {
