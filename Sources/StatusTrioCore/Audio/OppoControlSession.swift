@@ -216,21 +216,16 @@ final class OppoControlSession: NSObject, IOBluetoothRFCOMMChannelDelegate, @unc
 
     /// Opens the vendor SPP channel.
     ///
-    /// SDP is tried first because it is the documented path (`0x1107`), but the
-    /// reference implementations disagree on whether the record is always
-    /// published — one of them probes channels `12 → 15 → 1…30` because it never
-    /// does an SDP query at all. Falling back to the documented fixed channel `15`
-    /// keeps a device that hides its record usable; anything else fails closed.
+    /// The service is resolved by the device's own SDP answer first — the `0x1107`
+    /// record where a model publishes one, the `ELNK` service name where it does
+    /// not (an Enco X3 publishes only the latter, on channel 15). A device that
+    /// answers neither falls back to the documented fixed channel `15`, which is
+    /// where every reference implementation ends up too.
     private func resolveChannelID() async throws -> BluetoothRFCOMMChannelID {
-        if let cached = device.cachedControlService(), let id = device.rfcommChannelID(for: cached) {
-            return id
-        }
+        if let cached = device.vendorControlChannelID() { return cached }
         if device.queryForControlService() {
             for _ in 0..<24 {
-                if let record = device.cachedControlService(),
-                   let id = device.rfcommChannelID(for: record) {
-                    return id
-                }
+                if let id = device.vendorControlChannelID() { return id }
                 try await Task.sleep(nanoseconds: 50_000_000)
             }
         }

@@ -455,6 +455,108 @@ final class OppoControllerTests: XCTestCase {
     }
 }
 
+// MARK: - Captured hardware exchange
+
+/// A replay of an exchange captured on an OPPO Enco X3 (2026-11-11, service
+/// `ELNK`, RFCOMM channel 15).
+///
+/// These are the device's own bytes, not values invented for the test: the frame
+/// decoder has to accept them, the engine has to resolve the profile from the
+/// cycle answer, and the reported sub-index (4, not the top-level 1) has to
+/// highlight the cancellation capsule. That is the one thing a review cannot
+/// check by reading the protocol document, so it is pinned here.
+final class OppoCapturedEncoX3Tests: XCTestCase {
+
+    private let handshakeAnswer: [UInt8] = [
+        0xAA, 0x10, 0x00, 0x00, 0x00, 0x81, 0x00, 0x09, 0x00,
+        0x00, 0xFF, 0x77, 0x7A, 0xEE, 0xE6, 0x8F, 0x8E, 0x04,
+    ]
+    private let productIDAnswer: [UInt8] = [
+        0xAA, 0x0B, 0x00, 0x00, 0x03, 0x81, 0x01, 0x04, 0x00, 0x00, 0x10, 0x74, 0x06,
+    ]
+    private let cycleAnswer: [UInt8] = [
+        0xAA, 0x0C, 0x00, 0x00, 0x0C, 0x81, 0x02, 0x05, 0x00, 0x00, 0x02, 0x01, 0x06, 0x00,
+    ]
+    private let currentModeAnswer: [UInt8] = [
+        0xAA, 0x0C, 0x00, 0x00, 0x0C, 0x81, 0x04, 0x05, 0x00, 0x00, 0x01, 0x01, 0x10, 0x00,
+    ]
+    /// The push the buds sent after the mode changed: event `03`, then the mask.
+    private let modeEventPush: [UInt8] = [
+        0xAA, 0x0C, 0x00, 0x00, 0x04, 0x02, 0x21, 0x05, 0x00, 0x03, 0x01, 0x01, 0x10, 0x00,
+    ]
+
+    func testCapturedFramesDecodeToTheExpectedCommands() {
+        var decoder = OppoFrameDecoder()
+        let frames = decoder.append(
+            handshakeAnswer + productIDAnswer + cycleAnswer + currentModeAnswer + modeEventPush
+        )
+        XCTAssertEqual(frames.map(\.command), [0x8100, 0x8103, 0x810C, 0x810C, 0x0204])
+        XCTAssertEqual(frames[0].payload, [0x00, 0xFF, 0x77, 0x7A, 0xEE, 0xE6, 0x8F, 0x8E, 0x04])
+        XCTAssertEqual(frames[1].payload, [0x00, 0x10, 0x74, 0x06])
+        XCTAssertEqual(frames[2].payload, [0x00, 0x02, 0x01, 0x06, 0x00])
+        XCTAssertEqual(frames[3].payload, [0x00, 0x01, 0x01, 0x10, 0x00])
+        XCTAssertEqual(frames[4].payload, [0x03, 0x01, 0x01, 0x10, 0x00])
+    }
+
+    func testCapturedExchangeResolvesTheProfileAndTheCurrentMode() {
+        var engine = OppoSessionEngine()
+        _ = engine.handshake()
+
+        var decoder = OppoFrameDecoder()
+        for frame in decoder.append(
+            handshakeAnswer + productIDAnswer + cycleAnswer + currentModeAnswer
+        ) {
+            _ = engine.receive(frame)
+        }
+
+        XCTAssertEqual(engine.productID, 0x067410)
+        XCTAssertEqual(engine.cycleMask, 0x0006)
+        XCTAssertEqual(engine.profile?.isMeasured, true)
+        // Index 4 is the depth sub-index the buds report; the UI must still say
+        // "Noise Cancellation".
+        XCTAssertEqual(engine.currentMode, .noiseCancellation)
+        XCTAssertEqual(engine.profile?.selectableModes, [.noiseCancellation, .transparency, .off])
+    }
+
+    func testCapturedEventPushMovesTheMode() {
+        var engine = OppoSessionEngine()
+        _ = engine.handshake()
+        var decoder = OppoFrameDecoder()
+        for frame in decoder.append(handshakeAnswer + productIDAnswer + cycleAnswer + currentModeAnswer) {
+            _ = engine.receive(frame)
+        }
+
+        for frame in decoder.append(modeEventPush) {
+            _ = engine.receive(frame)
+        }
+        XCTAssertEqual(engine.currentMode, .noiseCancellation)
+    }
+
+    func testTheOutgoingFramesMatchWhatTheDeviceAnswered() {
+        // The probe's outgoing bytes, reconstructed here so a change to the codec
+        // cannot silently stop matching what the hardware accepted.
+        XCTAssertEqual(
+            OppoFrame(command: OppoCommand.handshake, sequence: 0, payload: [0x01]).bytes,
+            [0xAA, 0x08, 0x00, 0x00, 0x00, 0x01, 0x00, 0x01, 0x00, 0x01]
+        )
+        XCTAssertEqual(
+            OppoFrame(command: OppoCommand.productID, sequence: 1, payload: [0x01]).bytes,
+            [0xAA, 0x08, 0x00, 0x00, 0x03, 0x01, 0x01, 0x01, 0x00, 0x01]
+        )
+        XCTAssertEqual(
+            OppoFrame(command: OppoCommand.noiseQuery, sequence: 2, payload: [0x02, 0x01]).bytes,
+            [0xAA, 0x09, 0x00, 0x00, 0x0C, 0x01, 0x02, 0x02, 0x00, 0x02, 0x01]
+        )
+    }
+
+    func testMeasuredProfileIsFoundByItsProductID() {
+        let profile = OppoNoiseProfiles.profile(productID: 0x067410, cycleMask: nil)
+        XCTAssertEqual(profile?.isMeasured, true)
+        XCTAssertEqual(profile?.mode(reportedIndex: 4), .noiseCancellation)
+        XCTAssertEqual(profile?.setPayload(for: .noiseCancellation), [0x01, 0x01, 0x02])
+    }
+}
+
 /// A fixed-seed generator so the malformed-stream test is reproducible.
 private struct SeededGenerator: RandomNumberGenerator {
     private var state: UInt64

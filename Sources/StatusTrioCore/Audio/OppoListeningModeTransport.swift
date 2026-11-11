@@ -23,6 +23,9 @@ protocol OppoBluetoothDevice: AnyObject, Sendable {
     ) -> IOReturn
     /// The RFCOMM channel id a service record maps to, or `nil`.
     func rfcommChannelID(for record: IOBluetoothSDPServiceRecord) -> BluetoothRFCOMMChannelID?
+    /// The vendor control service's channel, resolved from whatever the device
+    /// publishes. `nil` means the caller has to run its own SDP query.
+    func vendorControlChannelID() -> BluetoothRFCOMMChannelID?
 }
 
 extension OppoBluetoothDevice {
@@ -31,12 +34,20 @@ extension OppoBluetoothDevice {
         guard record.getRFCOMMChannelID(&id) == kIOReturnSuccess, id > 0 else { return nil }
         return id
     }
+
+    /// Default: no resolution, so a test fake needs no SDP plumbing.
+    func vendorControlChannelID() -> BluetoothRFCOMMChannelID? { nil }
 }
 
 /// `IOBluetoothDevice` bound to the OPPO control flow.
 final class IOBluetoothOppoDevice: OppoBluetoothDevice, @unchecked Sendable {
     /// The vendor SPP service the HeyMelody family publishes.
     static let controlServiceUUID16: BluetoothSDPUUID16 = 0x1107
+
+    /// The same service's published name when a model omits the UUID record.
+    /// Measured on an Enco X3, which lists `ELNK` on RFCOMM channel 15 and no
+    /// `0x1107` record at all.
+    static let controlServiceName = "elnk"
 
     private let device: IOBluetoothDevice
 
@@ -51,6 +62,28 @@ final class IOBluetoothOppoDevice: OppoBluetoothDevice, @unchecked Sendable {
     func cachedControlService() -> IOBluetoothSDPServiceRecord? {
         guard let uuid = IOBluetoothSDPUUID(uuid16: Self.controlServiceUUID16) else { return nil }
         return device.getServiceRecord(for: uuid)
+    }
+
+    /// The vendor control service's channel.
+    ///
+    /// Two models, two answers: a device may publish the `0x1107` record, or it may
+    /// publish the same service under the name **ELNK** with no `0x1107` entry at
+    /// all — which is what an Enco X3 does, on RFCOMM channel 15. Both speak the
+    /// identical frame layout, so the name is matched when the UUID is absent
+    /// rather than paying for an SDP round trip that cannot succeed.
+    func vendorControlChannelID() -> BluetoothRFCOMMChannelID? {
+        if let record = cachedControlService(), let id = rfcommChannelID(for: record) {
+            return id
+        }
+        for item in device.services ?? [] {
+            guard let record = item as? IOBluetoothSDPServiceRecord,
+                  let name = record.getServiceName()?.lowercased(),
+                  name.contains(Self.controlServiceName) else {
+                continue
+            }
+            if let id = rfcommChannelID(for: record) { return id }
+        }
+        return nil
     }
 
     func queryForControlService() -> Bool {

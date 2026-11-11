@@ -301,9 +301,36 @@ struct OppoNoiseProfile: Equatable, Sendable {
 /// appear. Guessing from the product ID alone would risk writing an index that
 /// means "mild cancellation" on one model and "adaptive" on another.
 enum OppoNoiseProfiles {
-    /// Measured tables, keyed by product ID. Empty until a model is measured on
-    /// real hardware; `probe` on a connected pair reports the ID to add here.
-    static let measured: [UInt32: OppoNoiseProfile] = [:]
+    /// Measured tables, keyed by product ID.
+    ///
+    /// An entry earns its place only after the exchange has been run against real
+    /// hardware. Each one is written down with what was actually observed, so a
+    /// later model can be added by the same procedure.
+    static let measured: [UInt32: OppoNoiseProfile] = [
+        // OPPO Enco X3, measured 2026-11-11 over the `ELNK` service (RFCOMM 15).
+        //
+        // Observed: handshake `0x8100` (bitmap FF 77 7A EE E6 8F 8E 04), product ID
+        // `0x8103` = 0x067410, long-press cycle `0x010C[02]` = 0x0006 (indices 1
+        // and 2), current mode `0x010C[01]` = 0x0010 (sub-index 4 → cancellation),
+        // and an event push `03 01 01 10 00` after a mode change. The indices match
+        // the documented X4 layout, including "the buds always report the
+        // sub-index" — which is why depth/智能 indices 4…7 alias to cancellation.
+        //
+        // Not yet observed: the write path (`0x0404`) against this model. Until it
+        // is, the table is the same one the generic fallback uses, so a wrong guess
+        // here would not change behaviour — it only removes the dependency on the
+        // cycle answer.
+        0x067410: OppoNoiseProfile(
+            productID: 0x067410,
+            indices: [.off: 0, .cancellation: 1, .transparency: 2],
+            aliases: [
+                3: .off,
+                4: .cancellation, 5: .cancellation, 6: .cancellation, 7: .cancellation,
+                8: .transparency,
+            ],
+            isMeasured: true
+        ),
+    ]
 
     /// The fallback for a device that declares an ANC + transparency cycle.
     ///
