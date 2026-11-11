@@ -46,6 +46,49 @@ enum PanelLevelSliderMetrics {
     }
 }
 
+/// Frozen track geometry for one live pointer/keyboard gesture.
+///
+/// `NSSliderCell` recomputes the tracked value from its `trackRect` on every
+/// event, and this control's `trackRect` is the whole control bounds. If SwiftUI
+/// re-lays the row out while the mouse is down, the live width can briefly
+/// collapse; the native mapping then divides by ~0, and Swift's
+/// `min(1, max(0, NaN))` yields `0` (while `+inf` yields `1`), so the control
+/// wrote alternating 0/1 brightness values to the display (#331). Snapshotting
+/// the rect when the gesture starts keeps the mapping stable for the whole
+/// gesture; outside a gesture the live bounds still drive hit-testing as before.
+struct PanelLevelSliderTrackingGeometry: Equatable {
+    private(set) var isTracking = false
+    private var lockedRect: NSRect?
+    private(set) var liveRect: NSRect
+
+    init(liveRect: NSRect = .zero) {
+        self.liveRect = liveRect
+    }
+
+    /// The rect `NSSliderCell` should map pointer positions against.
+    var trackRect: NSRect {
+        if isTracking, let lockedRect { return lockedRect }
+        return liveRect
+    }
+
+    mutating func updateLiveRect(_ rect: NSRect) {
+        liveRect = rect
+    }
+
+    /// Starts a gesture, freezing the current geometry when it is usable. A
+    /// degenerate live rect is not frozen; it keeps following the live bounds
+    /// until they become valid (a pointer gesture cannot normally start there).
+    mutating func begin() {
+        isTracking = true
+        lockedRect = (liveRect.width > 1 && liveRect.height > 1) ? liveRect : nil
+    }
+
+    mutating func end() {
+        isTracking = false
+        lockedRect = nil
+    }
+}
+
 /// Pure layout for the optional inline label: it lives inside the capsule and
 /// parks on whichever side of the thumb keeps it fully readable.
 enum PanelLevelSliderLabelLayout {
@@ -313,6 +356,60 @@ final class PanelLevelSliderView: NSSlider {
     /// super call always pair, including for keyboard navigation.
     private var isGestureActive = false
 
+    /// Frozen track geometry for the current gesture (see
+    /// `PanelLevelSliderTrackingGeometry`). Outside a gesture it mirrors the
+    /// live bounds, so the value mapping and hit-testing stay unchanged.
+    private var trackingGeometry = PanelLevelSliderTrackingGeometry()
+    private var currentGestureID = "idle"
+
+    /// The rect `NSSliderCell` maps pointer positions against. While a gesture
+    /// is live this is the geometry frozen at gesture start, so a mid-gesture
+    /// layout change cannot drag the value. It falls back to the live bounds
+    /// when the frozen/live rect is still degenerate.
+    var effectiveTrackRect: NSRect {
+        let rect = trackingGeometry.trackRect
+        if rect.width > 1, rect.height > 1 { return rect }
+        if bounds.width > 1, bounds.height > 1 {
+            return NSRect(origin: .zero, size: bounds.size)
+        }
+        return rect
+    }
+
+    var effectiveTrackWidth: CGFloat { max(0, effectiveTrackRect.width) }
+
+    func knobCenter(forWidth width: CGFloat) -> NSPoint {
+        let x = PanelLevelSliderMetrics.thumbCenterX(for: clampedDoubleValue, width: width)
+        return NSPoint(x: x, y: bounds.midY)
+    }
+
+    /// Freezes the track geometry when a pointer/keyboard gesture starts.
+    /// Internal (not private) so deterministic tests can drive the freeze
+    /// without a live AppKit event loop.
+    func startGestureTracking() {
+        trackingGeometry.updateLiveRect(bounds)
+        trackingGeometry.begin()
+        currentGestureID = String(UUID().uuidString.prefix(8))
+        PanelBrightnessDiagnostics.event(
+            "NSSlider",
+            currentGestureID,
+            "gestureStart bounds=\(formatSize(bounds.size)) track=\(formatSize(effectiveTrackRect.size)) value=\(clampedDoubleValue)"
+        )
+    }
+
+    private func endGestureTracking() {
+        PanelBrightnessDiagnostics.event(
+            "NSSlider",
+            currentGestureID,
+            "gestureEnd bounds=\(formatSize(bounds.size)) value=\(clampedDoubleValue)"
+        )
+        trackingGeometry.end()
+        currentGestureID = "idle"
+    }
+
+    private func formatSize(_ size: NSSize) -> String {
+        String(format: "%.1fx%.1f", Double(size.width), Double(size.height))
+    }
+
     init() {
         super.init(frame: .zero)
         cell = PanelLevelSliderCell()
@@ -334,6 +431,15 @@ final class PanelLevelSliderView: NSSlider {
         if newWindow == nil {
             stopLabelAnimationTimer()
             stopValueAnimationTimer()
+            // If the control is torn down mid-gesture (row rebuilt, panel
+            // closed), end the gesture cleanly instead of leaving the panel
+            // stuck in an editing state or holding frozen geometry.
+            if isGestureActive {
+                pendingReportedValue = nil
+                isGestureActive = false
+                onEditingChanged?(false)
+                endGestureTracking()
+            }
         }
     }
 
@@ -439,6 +545,7 @@ final class PanelLevelSliderView: NSSlider {
 
     override func layout() {
         super.layout()
+        trackingGeometry.updateLiveRect(bounds)
         refreshLabel(animated: false)
     }
 
@@ -484,6 +591,7 @@ final class PanelLevelSliderView: NSSlider {
     /// this — the pointer owns the position while `isTracking` — so only wheel
     /// and system-echo updates glide.
     func animateValue(to target: Double) {
+        guard target.isFinite else { return }
         let target = min(1, max(0, target))
         if let animation = valueAnimation,
            abs(animation.toValue - target) < 0.000_1 {
@@ -579,18 +687,35 @@ final class PanelLevelSliderView: NSSlider {
 
     @objc func valueDidChange(_ sender: Any?) {
         refreshLabel(animated: true)
+        let value = clampedDoubleValue
+        guard value.isFinite else {
+            // A degenerate track can push NaN/inf through the native mapping;
+            // never let it reach the label, the report path, or the hardware.
+            PanelBrightnessDiagnostics.event(
+                "NSSlider", currentGestureID, "ignoreNonFinite raw=\(doubleValue)"
+            )
+            return
+        }
         guard isGestureActive else {
-            onValueChanged?(clampedDoubleValue)
+            PanelBrightnessDiagnostics.event(
+                "NSSlider", currentGestureID, "valueDidChange value=\(value)"
+            )
+            onValueChanged?(value)
             return
         }
         let now = ProcessInfo.processInfo.systemUptime
         if let lastReportedAt, now - lastReportedAt < Self.minimumReportInterval {
-            pendingReportedValue = clampedDoubleValue
+            pendingReportedValue = value
             return
         }
         lastReportedAt = now
         pendingReportedValue = nil
-        onValueChanged?(clampedDoubleValue)
+        PanelBrightnessDiagnostics.event(
+            "NSSlider",
+            currentGestureID,
+            "report value=\(value) bounds=\(formatSize(bounds.size)) track=\(formatSize(effectiveTrackRect.size))"
+        )
+        onValueChanged?(value)
     }
 
     private func flushPendingReport() {
@@ -735,6 +860,17 @@ final class PanelLevelSliderView: NSSlider {
 
     override func setFrameSize(_ newSize: NSSize) {
         super.setFrameSize(newSize)
+        trackingGeometry.updateLiveRect(bounds)
+        if isGestureActive {
+            // A layout change during a live gesture is the trigger #331 needs
+            // proof of. The frozen track keeps the value stable; log both so a
+            // diagnostic run can confirm whether (and when) the width moves.
+            PanelBrightnessDiagnostics.event(
+                "NSSlider",
+                currentGestureID,
+                "boundsChangedDuringGesture bounds=\(formatSize(newSize)) frozenTrack=\(formatSize(effectiveTrackRect.size)) value=\(clampedDoubleValue)"
+            )
+        }
         invalidateRaster()
     }
 
@@ -838,11 +974,10 @@ final class PanelLevelSliderView: NSSlider {
         guard !isGestureActive else { return }
         cancelValueAnimation()
         isGestureActive = true
+        startGestureTracking()
         onEditingChanged?(true)
         super.mouseDown(with: event)
-        flushPendingReport()
-        onEditingChanged?(false)
-        isGestureActive = false
+        finishActiveGesture()
     }
 
     /// Keys that move the native slider value. Only these open an editing
@@ -869,11 +1004,20 @@ final class PanelLevelSliderView: NSSlider {
         }
         cancelValueAnimation()
         isGestureActive = true
+        startGestureTracking()
         onEditingChanged?(true)
         super.keyDown(with: event)
+        finishActiveGesture()
+    }
+
+    /// Ends the live pointer/keyboard gesture exactly once: flush the throttled
+    /// final report, close the editing session, and release the frozen geometry.
+    private func finishActiveGesture() {
+        guard isGestureActive else { return }
         flushPendingReport()
         onEditingChanged?(false)
         isGestureActive = false
+        endGestureTracking()
     }
 }
 
@@ -885,14 +1029,17 @@ final class PanelLevelSliderCell: NSSliderCell {
     override func drawKnob(_ rect: NSRect) {}
 
     override var trackRect: NSRect {
-        controlView?.bounds ?? super.trackRect
+        guard let slider = controlView as? PanelLevelSliderView else { return super.trackRect }
+        return slider.effectiveTrackRect
     }
 
     override func knobRect(flipped: Bool) -> NSRect {
         guard let slider = controlView as? PanelLevelSliderView else {
             return super.knobRect(flipped: flipped)
         }
-        let center = slider.knobCenter(in: slider.bounds)
+        // Use the same frozen/live width `trackRect` reports so the cell's
+        // value mapping and the drawn thumb cannot disagree mid-gesture.
+        let center = slider.knobCenter(forWidth: slider.effectiveTrackWidth)
         let radius = PanelLevelSliderMetrics.thumbRadius
         return NSRect(
             x: center.x - radius,
