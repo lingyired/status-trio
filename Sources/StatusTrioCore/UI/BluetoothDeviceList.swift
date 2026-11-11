@@ -257,7 +257,7 @@ struct BluetoothDeviceList: View {
                 charging: localization.string(.mobileBatteryCharging)
             ) != nil
         } ?? false
-        let modeHeight: CGFloat = (device.isHuaweiAudio || device.isRedmiAudio)
+        let modeHeight: CGFloat = (device.isHuaweiAudio || device.isRedmiAudio || device.isOppoAudio)
             && listeningModePresentations[address]?.isControllable == true ? 23 : 0
         return modeHeight + BluetoothDeviceRowMetrics.estimatedHeight(
             for: device,

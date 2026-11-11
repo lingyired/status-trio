@@ -516,6 +516,26 @@ struct BluetoothDevice: Identifiable, Equatable, Sendable {
             || lowered.contains("xiaomi")
             || lowered.contains("buds 8")
     }
+
+    /// Whether the device speaks the OPO v1 vendor SPP noise-control protocol
+    /// (the one the HeyMelody app drives, shared by OPPO, OnePlus and realme).
+    ///
+    /// Name evidence only: the same company ID is shared by OPPO's phones, watches
+    /// and earbuds, so it cannot separate an audio device from a handset the way
+    /// Xiaomi's does. Name matching is therefore the first gate, and the protocol
+    /// is the real one — a device that does not answer the handshake, or answers
+    /// without declaring a noise-control cycle, shows no control at all. Requiring
+    /// `buds` alongside the phone brand is what keeps a OnePlus handset named
+    /// "OnePlus 13" out of this branch.
+    var isOppoAudio: Bool {
+        guard kind.isAudio else { return false }
+        let lowered = name.lowercased()
+        if lowered.contains("oppo") || lowered.contains("enco") { return true }
+        let isSiblingBrand = lowered.contains("oneplus")
+            || lowered.contains("one plus")
+            || lowered.contains("realme")
+        return isSiblingBrand && lowered.contains("buds")
+    }
 }
 
 /// What tapping the Bluetooth row does. The Wi-Fi row has the same shape — its
