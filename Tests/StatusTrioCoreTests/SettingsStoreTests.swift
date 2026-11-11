@@ -1686,11 +1686,11 @@ final class SettingsStoreTests: XCTestCase {
 
         XCTAssertEqual(
             store.enabledPopupSections,
-            Set([.battery, .network, .vpn, .volume])
+            Set([.battery, .network, .volume])
         )
         XCTAssertEqual(
             store.visiblePopupSections,
-            [.battery, .network, .vpn, .volume]
+            [.battery, .network, .volume]
         )
     }
 
@@ -1708,13 +1708,13 @@ final class SettingsStoreTests: XCTestCase {
         )
         XCTAssertEqual(
             first.visiblePopupSections,
-            [.battery, .vpn, .bluetooth, .volume]
+            [.battery, .bluetooth, .volume]
         )
 
         let second = SettingsStore(defaults: suite.defaults)
         XCTAssertEqual(
             second.enabledPopupSections,
-            Set([.battery, .vpn, .bluetooth, .volume])
+            Set([.battery, .bluetooth, .volume])
         )
     }
 
@@ -1763,14 +1763,6 @@ final class SettingsStoreTests: XCTestCase {
             ["network", "unknown", "network"],
             forKey: SettingsStore.enabledPopupSectionsDefaultsKey
         )
-        // The one-shot VPN migration is covered by `VPNRowSettingsTests`; this
-        // test is about unknown raw values, so the marker is set to keep the
-        // stored list the only input.
-        suite.defaults.set(
-            true,
-            forKey: SettingsStore.vpnPopupSectionIntroducedDefaultsKey
-        )
-
         let store = SettingsStore(defaults: suite.defaults)
 
         XCTAssertEqual(store.enabledPopupSections, Set([.network]))

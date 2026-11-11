@@ -91,12 +91,19 @@ private let vpnDynamicStoreCallback: SCDynamicStoreCallBack = { _, _, info in
 ///
 /// The lifecycle moves between `idle` and `running`; `stop()` pauses the
 /// observer and leaves the stream available for the next popover opening.
-/// `recover()` re-subscribes while running after a wake. Reads happen on the
-/// main actor because a full read is a `getifaddrs` pass plus two
-/// `SystemConfiguration` lookups, measured in single-digit milliseconds on
-/// macOS 26.6.1. The store reads on popover opening and on network-change
-/// notifications; moving the read off the main actor would buy little and add
-/// a sequence guard for out-of-order results.
+/// `recover()` re-subscribes while running after a wake.
+///
+/// The read is **not** done on the main actor. A full read is a `getifaddrs`
+/// pass plus several `SystemConfiguration` lookups, including
+/// `SCNetworkConnectionGetStatus` per configured service — a synchronous
+/// round-trip to `configd`. While a tunnel is connecting or disconnecting, or
+/// `configd` is wedged, that call can block for seconds, and the store reads it
+/// on every popover opening. It therefore runs on a dedicated utility queue so
+/// opening the panel can never stall on it. Results are published back on the
+/// main actor behind a token guard so a slow read cannot overwrite a newer one,
+/// a read that never returns is abandoned by `ReadWatchdog` and retried with
+/// backoff (on a fresh queue, so the retry is not stuck behind the abandoned
+/// block), and bursts collapse to one in-flight read plus one follow-up.
 @MainActor
 final class VPNMonitor: VPNMonitoring {
     private enum Lifecycle {
@@ -109,18 +116,35 @@ final class VPNMonitor: VPNMonitoring {
     nonisolated(unsafe) private let reader: any VPNReading
     nonisolated(unsafe) private let observer: any NetworkChangeObserving
     private let queue = DispatchQueue(label: "StatusTrio.VPN")
+    /// Synchronous IPC must run off both the main actor and the cooperative
+    /// executor. A read that never returns would block every later read behind
+    /// it on this serial queue, so it is replaced when a read is abandoned.
+    private var readQueue = DispatchQueue(label: "StatusTrio.VPN.read", qos: .utility)
+    private let readWatchdog: ReadWatchdog
     private var continuation: AsyncStream<VPNStatus>.Continuation
     private var lifecycle = Lifecycle.idle
+    private var readInFlight = false
+    private var refreshPending = false
+    private var readToken: UInt64 = 0
     /// The last value handed to the stream, so a notification that changed
     /// nothing does not wake the store.
     private var lastPublished: VPNStatus?
 
     init(
         reader: any VPNReading = SystemVPNReader(),
-        observer: any NetworkChangeObserving = SystemNetworkChangeObserver()
+        observer: any NetworkChangeObserving = SystemNetworkChangeObserver(),
+        readTimeout: Duration = .seconds(2),
+        readTimeoutSleep: @escaping @Sendable (Duration) async throws -> Void = {
+            try await Task.sleep(for: $0)
+        }
     ) {
         self.reader = reader
         self.observer = observer
+        readWatchdog = ReadWatchdog(
+            baseTimeout: readTimeout,
+            maxTimeout: .seconds(60),
+            sleep: readTimeoutSleep
+        )
         (updates, continuation) = MonitorStream.make(of: VPNStatus.self)
     }
 
@@ -138,7 +162,50 @@ final class VPNMonitor: VPNMonitoring {
 
     func refresh() {
         guard lifecycle == .running else { return }
-        publish(VPNStatusResolver.resolve(reader.read()))
+        // Coalesce event bursts and polling while a slow service replies. At
+        // most one read and one follow-up are retained, regardless of latency.
+        guard !readInFlight else {
+            refreshPending = true
+            return
+        }
+        readInFlight = true
+        readToken &+= 1
+        let token = readToken
+        let readQueue = self.readQueue
+        readWatchdog.arm { [weak self] in
+            self?.abandonTimedOutRead(token: token)
+        }
+        readQueue.async { [weak self] in
+            guard let self else { return }
+            let status = VPNStatusResolver.resolve(self.reader.read())
+            Task { @MainActor [weak self] in
+                // A completion that arrives after the read was declared stuck,
+                // or after a later trigger superseded it, belongs to a retired
+                // token: it must not release the latch of the read that
+                // replaced it, nor publish over it.
+                guard let self, token == self.readToken else { return }
+                self.readWatchdog.cancel()
+                guard self.lifecycle == .running else { return }
+                self.readWatchdog.recordSuccess()
+                self.readInFlight = false
+                self.publish(status)
+                if self.refreshPending {
+                    self.refreshPending = false
+                    self.refresh()
+                }
+            }
+        }
+    }
+
+    /// The read hit its watchdog deadline. Retire the stuck serial queue (its
+    /// block may never return) and retry on a fresh one; the abandoned
+    /// completion is ignored by the token guard.
+    private func abandonTimedOutRead(token: UInt64) {
+        guard token == readToken else { return }
+        readToken &+= 1
+        readInFlight = false
+        readQueue = DispatchQueue(label: "StatusTrio.VPN.read", qos: .utility)
+        refresh()
     }
 
     /// Re-subscribes and reads again. The old subscription is cancelled first,
@@ -155,6 +222,11 @@ final class VPNMonitor: VPNMonitoring {
     func stop() {
         guard lifecycle == .running else { return }
         lifecycle = .idle
+        readWatchdog.cancel()
+        // Retire the token so a read still in flight cannot publish after stop.
+        readToken &+= 1
+        readInFlight = false
+        refreshPending = false
         observer.cancel()
         // Reopening must publish even when the status matches the last value
         // from the previous visible session.

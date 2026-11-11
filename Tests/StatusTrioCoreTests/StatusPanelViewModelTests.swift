@@ -777,6 +777,8 @@ final class StatusPanelViewModelTests: XCTestCase {
 
     func testVPNUpdatesItsPanelWithoutPublishingAnIconSnapshot() async {
         let fixture = PanelStoreFixture()
+        // The VPN row is opt-in, so enable it explicitly for this test.
+        fixture.settings.setPopupSection(.vpn, enabled: true)
         let panel = fixture.makePanel()
         panel.start()
         fixture.store.start()
@@ -964,7 +966,7 @@ struct AirPodsDiscoveryTriggerTests {
         fixture.settings.setPopupSection(.volume, enabled: false)
         #expect(
             fixture.settings.visiblePopupSections
-                == [.battery, .network, .vpn, .bluetooth]
+                == [.battery, .network, .bluetooth]
         )
         let panel = fixture.makePanel()
         panel.start()
