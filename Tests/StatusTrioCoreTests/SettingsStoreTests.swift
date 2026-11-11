@@ -1494,7 +1494,7 @@ final class SettingsStoreTests: XCTestCase {
 
         XCTAssertEqual(
             store.popupSectionOrder,
-            [.battery, .network, .vpn, .bluetooth, .volume, .audioInput, .brightness, .inputSource]
+            [.battery, .network, .vpn, .bluetooth, .volume, .audioInput, .brightness, .inputSource, .hardwareMonitor]
         )
     }
 
@@ -1625,13 +1625,56 @@ final class SettingsStoreTests: XCTestCase {
         let store = SettingsStore(defaults: suite.defaults)
         XCTAssertEqual(
             store.popupSectionOrder,
-            [.volume, .battery, .network, .vpn, .bluetooth, .audioInput, .brightness, .inputSource]
+            [.volume, .battery, .network, .vpn, .bluetooth, .audioInput, .brightness, .inputSource, .hardwareMonitor]
         )
         XCTAssertFalse(store.enabledPopupSections.contains(.audioInput))
         store.setPopupSection(.audioInput, enabled: true)
         XCTAssertTrue(
             SettingsStore(defaults: suite.defaults).visiblePopupSections.contains(.audioInput)
         )
+    }
+
+    func testHardwareMonitorDefaultsOffAndMigrationPersistsWithoutChangingUserChoices() {
+        let suite = makeSuite()
+        defer { clear(suite) }
+        suite.defaults.set(
+            ["inputSource", "volume", "unknown", "volume", "battery"],
+            forKey: SettingsStore.popupSectionOrderDefaultsKey
+        )
+        suite.defaults.set(["volume"], forKey: SettingsStore.enabledPopupSectionsDefaultsKey)
+        suite.defaults.set(true, forKey: SettingsStore.vpnPopupSectionIntroducedDefaultsKey)
+
+        let first = SettingsStore(defaults: suite.defaults)
+        let expectedOrder: [PopupSection] = [
+            .inputSource, .volume, .battery, .network, .vpn, .bluetooth, .audioInput,
+            .brightness, .hardwareMonitor
+        ]
+        XCTAssertEqual(first.popupSectionOrder, expectedOrder)
+        XCTAssertEqual(first.enabledPopupSections, [.volume])
+        XCTAssertEqual(
+            suite.defaults.stringArray(forKey: SettingsStore.popupSectionOrderDefaultsKey),
+            expectedOrder.map(\.rawValue)
+        )
+        let second = SettingsStore(defaults: suite.defaults)
+        XCTAssertEqual(second.popupSectionOrder, expectedOrder)
+        XCTAssertFalse(second.enabledPopupSections.contains(.hardwareMonitor))
+
+        second.setPopupSection(.hardwareMonitor, enabled: true)
+        let enabled = SettingsStore(defaults: suite.defaults)
+        XCTAssertTrue(enabled.enabledPopupSections.contains(.hardwareMonitor))
+        enabled.setPopupSection(.hardwareMonitor, enabled: false)
+        XCTAssertFalse(SettingsStore(defaults: suite.defaults).enabledPopupSections.contains(.hardwareMonitor))
+    }
+
+    func testHardwareMonitorIsLastAndDisabledOnFreshInstall() {
+        let suite = makeSuite()
+        defer { clear(suite) }
+        let store = SettingsStore(defaults: suite.defaults)
+        XCTAssertEqual(store.popupSectionOrder.last, .hardwareMonitor)
+        XCTAssertFalse(store.enabledPopupSections.contains(.hardwareMonitor))
+        // A fresh install must not freeze today's default order on disk, or
+        // sections added in later releases could never reach this user.
+        XCTAssertNil(suite.defaults.stringArray(forKey: SettingsStore.popupSectionOrderDefaultsKey))
     }
 
     func testPopupSectionVisibilityDefaultsToEverythingExceptBluetooth() {
@@ -1657,7 +1700,7 @@ final class SettingsStoreTests: XCTestCase {
 
         XCTAssertEqual(
             first.popupSectionOrder,
-            [.battery, .network, .vpn, .bluetooth, .volume, .audioInput, .brightness, .inputSource]
+            [.battery, .network, .vpn, .bluetooth, .volume, .audioInput, .brightness, .inputSource, .hardwareMonitor]
         )
         XCTAssertEqual(
             first.visiblePopupSections,
@@ -1683,11 +1726,11 @@ final class SettingsStoreTests: XCTestCase {
 
         XCTAssertEqual(
             store.popupSectionOrder,
-            [.volume, .battery, .network, .vpn, .bluetooth, .audioInput, .brightness, .inputSource]
+            [.volume, .battery, .network, .vpn, .bluetooth, .audioInput, .brightness, .inputSource, .hardwareMonitor]
         )
         XCTAssertEqual(
             SettingsStore(defaults: suite.defaults).popupSectionOrder,
-            [.volume, .battery, .network, .vpn, .bluetooth, .audioInput, .brightness, .inputSource]
+            [.volume, .battery, .network, .vpn, .bluetooth, .audioInput, .brightness, .inputSource, .hardwareMonitor]
         )
     }
 
@@ -1704,7 +1747,7 @@ final class SettingsStoreTests: XCTestCase {
 
         XCTAssertEqual(
             store.popupSectionOrder,
-            [.volume, .network, .battery, .vpn, .bluetooth, .audioInput, .brightness, .inputSource]
+            [.volume, .network, .battery, .vpn, .bluetooth, .audioInput, .brightness, .inputSource, .hardwareMonitor]
         )
     }
 

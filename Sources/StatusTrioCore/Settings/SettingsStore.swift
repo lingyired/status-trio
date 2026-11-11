@@ -221,12 +221,18 @@ final class SettingsStore: ObservableObject {
     static let hiddenBrightnessDisplayIDsDefaultsKey = "hiddenBrightnessDisplayIDs"
     static let popupSectionOrderDefaultsKey = "popupSectionOrder"
     static let enabledPopupSectionsDefaultsKey = "enabledPopupSections"
+    static let hardwareMonitorMetricOrderDefaultsKey = "hardwareMonitorMetricOrder"
+    static let enabledHardwareMonitorMetricsDefaultsKey = "enabledHardwareMonitorMetrics"
     /// Default order of the status-panel sections. Display brightness sits below
     /// the audio-input row so the two device-level controls stay together.
     static let defaultPopupSectionOrder: [PopupSection] = [
-        .battery, .network, .vpn, .bluetooth, .volume, .audioInput, .brightness, .inputSource
+        .battery, .network, .vpn, .bluetooth, .volume, .audioInput, .brightness, .inputSource,
+        .hardwareMonitor
     ]
     static let defaultEnabledPopupSections: Set<PopupSection> = [.battery, .network, .vpn, .volume]
+    /// Metrics shown by the hardware-monitor card, in display order.
+    static let defaultHardwareMonitorMetricOrder: [HardwareMonitorMetric] = HardwareMonitorMetric.allCases
+    static let defaultEnabledHardwareMonitorMetrics: Set<HardwareMonitorMetric> = Set(HardwareMonitorMetric.allCases)
     /// Set once the VPN row has been offered to a stored section list.
     ///
     /// `defaultEnabledPopupSections` only reaches a user who has never saved
@@ -1362,6 +1368,29 @@ final class SettingsStore: ObservableObject {
         }
     }
 
+    @Published private(set) var hardwareMonitorMetricOrder: [HardwareMonitorMetric] {
+        didSet {
+            defaults.set(
+                hardwareMonitorMetricOrder.map(\.rawValue),
+                forKey: Self.hardwareMonitorMetricOrderDefaultsKey
+            )
+        }
+    }
+
+    @Published private(set) var enabledHardwareMonitorMetrics: Set<HardwareMonitorMetric> {
+        didSet {
+            defaults.set(
+                enabledHardwareMonitorMetrics.map(\.rawValue).sorted(),
+                forKey: Self.enabledHardwareMonitorMetricsDefaultsKey
+            )
+        }
+    }
+
+    /// Card metrics in display order, filtered to the enabled ones.
+    var visibleHardwareMetrics: [HardwareMonitorMetric] {
+        hardwareMonitorMetricOrder.filter { enabledHardwareMonitorMetrics.contains($0) }
+    }
+
     @Published var popupScrollAdjustsVolume: Bool {
         didSet {
             defaults.set(
@@ -1791,6 +1820,30 @@ final class SettingsStore: ObservableObject {
         }
     }
 
+    func moveHardwareMonitorMetrics(fromOffsets source: IndexSet, toOffset destination: Int) {
+        guard !source.isEmpty,
+              source.allSatisfy({ hardwareMonitorMetricOrder.indices.contains($0) }),
+              (0...hardwareMonitorMetricOrder.count).contains(destination) else { return }
+        let moved = source.map { hardwareMonitorMetricOrder[$0] }
+        let remaining = hardwareMonitorMetricOrder.enumerated()
+            .filter { !source.contains($0.offset) }
+            .map(\.element)
+        let insertionOffset = destination - source.filter { $0 < destination }.count
+        var reordered = remaining
+        reordered.insert(contentsOf: moved, at: min(insertionOffset, reordered.count))
+        hardwareMonitorMetricOrder = reordered
+    }
+
+    /// Enabling/disabling one tile. The last enabled tile cannot be turned off,
+    /// so an enabled card always has something to draw.
+    func setHardwareMonitorMetric(_ metric: HardwareMonitorMetric, enabled: Bool) {
+        if enabled {
+            enabledHardwareMonitorMetrics.insert(metric)
+        } else if enabledHardwareMonitorMetrics.count > 1 {
+            enabledHardwareMonitorMetrics.remove(metric)
+        }
+    }
+
     var isBatterySymbolSizeEnabled: Bool {
         [batteryOnBatteryMarker, batteryChargingMarker, batteryConnectedMarker, batteryNoBatteryMarker]
             .contains { $0 != .hidden }
@@ -2090,9 +2143,15 @@ final class SettingsStore: ObservableObject {
         )
         let storedPopupSectionOrder = defaults.stringArray(
             forKey: Self.popupSectionOrderDefaultsKey
-        ) ?? []
+        )
         let storedEnabledPopupSections = defaults.stringArray(
             forKey: Self.enabledPopupSectionsDefaultsKey
+        )
+        let storedHardwareMetricOrder = defaults.stringArray(
+            forKey: Self.hardwareMonitorMetricOrderDefaultsKey
+        )
+        let storedEnabledHardwareMetrics = defaults.stringArray(
+            forKey: Self.enabledHardwareMonitorMetricsDefaultsKey
         )
         let storedPopupVolumeScrollScope = defaults.string(
             forKey: Self.popupVolumeScrollScopeDefaultsKey
@@ -2519,9 +2578,16 @@ final class SettingsStore: ObservableObject {
         self.hiddenBrightnessDisplayIDs = storedHiddenBrightnessDisplayIDs
         self.externalVolumeConfigurations = storedExternalVolumeConfigurations
         self.externalBrightnessConfigurations = storedExternalBrightnessConfigurations
-        self.popupSectionOrder = Self.sanitizedPopupSectionOrder(
-            storedPopupSectionOrder
-        )
+        let migratedPopupSectionOrder = Self.sanitizedPopupSectionOrder(storedPopupSectionOrder ?? [])
+        self.popupSectionOrder = migratedPopupSectionOrder
+        // Initializer assignments do not invoke didSet. Only a list the user
+        // already saved is completed on disk: persisting the defaults for a
+        // fresh install would freeze today's default order and hide sections
+        // added in later releases.
+        let migratedOrderRawValues = migratedPopupSectionOrder.map(\.rawValue)
+        if let storedPopupSectionOrder, storedPopupSectionOrder != migratedOrderRawValues {
+            defaults.set(migratedOrderRawValues, forKey: Self.popupSectionOrderDefaultsKey)
+        }
         let hasIntroducedVPN = defaults.bool(
             forKey: Self.vpnPopupSectionIntroducedDefaultsKey
         )
@@ -2530,6 +2596,15 @@ final class SettingsStore: ObservableObject {
             hasIntroducedVPN: hasIntroducedVPN
         )
         self.enabledPopupSections = migratedEnabledPopupSections
+        let migratedHardwareMetricOrder = Self.sanitizedHardwareMonitorMetricOrder(storedHardwareMetricOrder ?? [])
+        self.hardwareMonitorMetricOrder = migratedHardwareMetricOrder
+        let migratedOrderRaw = migratedHardwareMetricOrder.map(\.rawValue)
+        if let storedHardwareMetricOrder, storedHardwareMetricOrder != migratedOrderRaw {
+            defaults.set(migratedOrderRaw, forKey: Self.hardwareMonitorMetricOrderDefaultsKey)
+        }
+        self.enabledHardwareMonitorMetrics = Self.sanitizedEnabledHardwareMonitorMetrics(
+            storedEnabledHardwareMetrics
+        )
         if !hasIntroducedVPN {
             // The migration has to be written back by hand: `didSet` does not run
             // for an assignment made inside `init`, so a migrated list that was
@@ -2800,6 +2875,22 @@ final class SettingsStore: ObservableObject {
 
     static func clampedBluetoothDeviceLimit(_ value: Int) -> Int {
         min(bluetoothDeviceLimitRange.upperBound, max(bluetoothDeviceLimitRange.lowerBound, value))
+    }
+
+    static func sanitizedHardwareMonitorMetricOrder(_ rawValues: [String]) -> [HardwareMonitorMetric] {
+        var seen: Set<HardwareMonitorMetric> = []
+        let stored = rawValues
+            .compactMap(HardwareMonitorMetric.init(rawValue:))
+            .filter { seen.insert($0).inserted }
+        return stored + Self.defaultHardwareMonitorMetricOrder.filter { !seen.contains($0) }
+    }
+
+    static func sanitizedEnabledHardwareMonitorMetrics(_ rawValues: [String]?) -> Set<HardwareMonitorMetric> {
+        guard let rawValues else { return Self.defaultEnabledHardwareMonitorMetrics }
+        let parsed = Set(rawValues.compactMap(HardwareMonitorMetric.init(rawValue:)))
+        // An empty/corrupt stored set would leave an enabled card with nothing to
+        // draw; fall back to the defaults instead of an empty section.
+        return parsed.isEmpty ? Self.defaultEnabledHardwareMonitorMetrics : parsed
     }
 
     static func sanitizedPopupSectionOrder(_ rawValues: [String]) -> [PopupSection] {

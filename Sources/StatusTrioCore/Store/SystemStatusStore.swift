@@ -134,6 +134,10 @@ final class SystemStatusStore: ObservableObject {
     /// The single owner of periodic whole-machine power reads shared by the
     /// icon centre slot, the panel summary and the details page.
     let powerSampling: PowerSamplingService
+    /// The single owner of periodic hardware metrics (CPU/GPU usage, CPU
+    /// temperature, fan RPM). Consumers register a demand; with no consumer it
+    /// does no work at all.
+    let hardwareMetrics: HardwareMetricsService
     let wifiNetworks: WiFiNetworkController
     /// The wired link's address configuration. Read while the popover is open on
     /// an Ethernet connection and dropped when either stops being true, so the
@@ -318,6 +322,7 @@ final class SystemStatusStore: ObservableObject {
         wakeNotificationCenter: NotificationCenter = NSWorkspace.shared.notificationCenter,
         batteryDetails: BatteryDetailsController = BatteryDetailsController(),
         powerSampling: PowerSamplingService = PowerSamplingService(),
+        hardwareMetrics: HardwareMetricsService = HardwareMetricsService(),
         wifiNetworks: WiFiNetworkController = WiFiNetworkController(),
         primaryLink: PrimaryLinkController = PrimaryLinkController(),
         localIP: LocalIPController = LocalIPController(),
@@ -351,6 +356,7 @@ final class SystemStatusStore: ObservableObject {
         self.wakeNotificationCenter = wakeNotificationCenter
         self.batteryDetails = batteryDetails
         self.powerSampling = powerSampling
+        self.hardwareMetrics = hardwareMetrics
         batteryDetails.powerSampling = powerSampling
         self.wifiNetworks = wifiNetworks
         self.primaryLink = primaryLink
@@ -429,6 +435,9 @@ final class SystemStatusStore: ObservableObject {
                 // over-polling is the safe direction, permanent staleness is
                 // not.
                 self.isDisplayAsleep = false
+                // Rebuild the CPU tick baseline and refresh hardware metrics once
+                // a card consumer exists again.
+                self.hardwareMetrics.wake()
                 // Unlike the icon fallback poll, an energy scan must stay
                 // paused through a dark wake while the display is still off.
                 self.isApplicationEnergySystemAsleep = false
@@ -458,6 +467,9 @@ final class SystemStatusStore: ObservableObject {
                 // not strand the scanner behind a stale display flag.
                 self?.bluetoothDevices.setSystemSleeping(true)
                 self?.reconcileBluetoothDemand()
+                // Stop hardware sampling and discard any in-flight read while
+                // the machine is asleep.
+                self?.hardwareMetrics.sleep()
             }
         }
 

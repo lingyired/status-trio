@@ -158,6 +158,13 @@ final class StatusPanelViewModel: ObservableObject {
     private var sourceDemandCancellables: Set<AnyCancellable> = []
     private var subscribedSourceDemand: SourceDemand?
     @Published private var bluetoothPresentationRevision = 0
+    /// The card's fine-grained metrics source. Deliberately not part of the
+    /// panel's @Published snapshot: a 2-second tick must not re-render other
+    /// sections or the icon.
+    var hardwareMonitor: HardwareMonitorObservable { store.hardwareMetrics.observable }
+    /// Card tiles in the user's chosen order, filtered to enabled metrics.
+    @Published private(set) var hardwareMonitorMetrics: [HardwareMonitorMetric]
+
     private var isStarted = false
     private var bluetoothIsExpanded = false
     /// Whether the volume section has published a real, non-empty device list
@@ -207,6 +214,7 @@ final class StatusPanelViewModel: ObservableObject {
         self.updateScheduler = updateScheduler
         self.actions = actions
         visiblePopupSections = settings.visiblePopupSections
+        hardwareMonitorMetrics = settings.visibleHardwareMetrics
         battery = PanelPresentationMapper.battery(
             store.popupSnapshot.battery,
             powerSample: store.powerSampling.systemPower,
@@ -287,11 +295,14 @@ final class StatusPanelViewModel: ObservableObject {
         panelSettingsCheckScheduled = false
         let sections = settings.visiblePopupSections
         if visiblePopupSections != sections { visiblePopupSections = sections }
+        let metrics = settings.visibleHardwareMetrics
+        if hardwareMonitorMetrics != metrics { hardwareMonitorMetrics = metrics }
         subscribeToPopupPresentationSources()
         subscribeToChargeToFullNow()
         reconcileSourceSubscriptions()
         refreshAll()
         updatePowerSamplingDemand()
+        updateHardwareMetricsDemand()
 
         // A no-battery Mac gets its panel title from the shared whole-machine
         // reading, and the provisional info bar shows the other rails; refresh
@@ -330,8 +341,9 @@ final class StatusPanelViewModel: ObservableObject {
 
         store.$isPopoverVisible
             .dropFirst()
-            .sink { [weak self] _ in
+            .sink { [weak self] visible in
                 self?.coalesceControllerUpdate([.bluetooth, .volume])
+                self?.updateHardwareMetricsDemand(popoverVisible: visible)
             }
             .store(in: &cancellables)
 
@@ -342,6 +354,19 @@ final class StatusPanelViewModel: ObservableObject {
             .dropFirst()
             .sink { [weak self] order, enabled in
                 self?.settingsSectionsChanged(order: order, enabled: enabled)
+            }
+            .store(in: &cancellables)
+
+        Publishers.CombineLatest(
+            settings.$hardwareMonitorMetricOrder,
+            settings.$enabledHardwareMonitorMetrics
+        )
+            .removeDuplicates { $0.0 == $1.0 && $0.1 == $1.1 }
+            .sink { [weak self] _, _ in
+                guard let self else { return }
+                let metrics = self.settings.visibleHardwareMetrics
+                if self.hardwareMonitorMetrics != metrics { self.hardwareMonitorMetrics = metrics }
+                self.updateHardwareMetricsDemand()
             }
             .store(in: &cancellables)
         // Non-section settings are delivered from `willSet`; only queue the
@@ -380,6 +405,7 @@ final class StatusPanelViewModel: ObservableObject {
         summaryChargeToFullNowPresentation = .hidden
         store.powerSampling.end(.panel)
         store.powerSampling.end(.powerInfoBar)
+        store.hardwareMetrics.end(.panel)
         cancellables.removeAll()
     }
 
@@ -794,6 +820,24 @@ final class StatusPanelViewModel: ObservableObject {
     /// The panel summary and a no-battery page need the shared sampler only
     /// while the customer can see them. The details page registers its own
     /// demand, so closing the panel never cuts a sample it is still using.
+    /// The hardware card samples only while it is actually on screen: the
+    /// panel is open, the route is the summary, and the section is visible.
+    /// Switching pages, hiding the module or closing the panel ends the demand
+    /// immediately, so a closed panel never keeps a hardware timer alive.
+    private func updateHardwareMetricsDemand(popoverVisible: Bool? = nil) {
+        // `@Published` publishes in willSet, so a subscriber must pass the new
+        // value in rather than read `store.isPopoverVisible` (still the old one).
+        let visible = isStarted
+            && (popoverVisible ?? store.isPopoverVisible)
+            && route == .summary
+            && visiblePopupSections.contains(.hardwareMonitor)
+        if visible {
+            store.hardwareMetrics.begin(.panel, metrics: Set(hardwareMonitorMetrics.map(\.metricID)))
+        } else {
+            store.hardwareMetrics.end(.panel)
+        }
+    }
+
     private func updatePowerSamplingDemand(showsPowerInfoBar: Bool? = nil) {
         let panelVisible = isStarted && visiblePopupSections.contains(.battery)
         if panelVisible {
@@ -1011,6 +1055,7 @@ final class StatusPanelViewModel: ObservableObject {
         if visiblePopupSections != sections { visiblePopupSections = sections }
         reconcileSourceSubscriptions(deliveredSections: sections)
         updatePowerSamplingDemand()
+        updateHardwareMetricsDemand()
         if !isRouteAvailable(route) { closeCurrentPage() }
         coalesceControllerUpdate(.all)
     }
@@ -1119,6 +1164,7 @@ final class StatusPanelViewModel: ObservableObject {
         guard route != next else { return }
         if route != .summary { closeCurrentPage() }
         route = next
+        updateHardwareMetricsDemand()
     }
 
     private func closeCurrentPage() {
@@ -1136,6 +1182,7 @@ final class StatusPanelViewModel: ObservableObject {
             return
         }
         route = .summary
+        updateHardwareMetricsDemand()
     }
 
     private func isRouteAvailable(_ route: StatusPanelRoute) -> Bool {

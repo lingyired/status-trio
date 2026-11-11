@@ -60,6 +60,7 @@ symbol:
 | Newer symbol | Introduced | Ventura behaviour |
 | --- | --- | --- |
 | `battery.100percent` | 14.0 | `battery.100` |
+| `gauge.with.dots.needle.bottom.50percent` | 15.0 | `gauge` |
 | `battery.75percent` | 14.0 | `battery.75` |
 | `beats.fitpro` | 14.0 | `beats.headphones` -> `headphones` |
 | `flask.fill` | 14.0 | `testtube.2` |

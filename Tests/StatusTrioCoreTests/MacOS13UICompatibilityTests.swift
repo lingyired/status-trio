@@ -7,6 +7,7 @@ final class MacOS13UICompatibilityTests: XCTestCase {
             "Sources/StatusTrioCore/UI/AudioInputControlsView.swift",
             "Sources/StatusTrioCore/UI/BluetoothDeviceList.swift",
             "Sources/StatusTrioCore/UI/BluetoothStatusView.swift",
+            "Sources/StatusTrioCore/UI/HardwareMonitorCardView.swift",
             "Sources/StatusTrioCore/UI/IconGuideView.swift",
             "Sources/StatusTrioCore/UI/Settings/StatusIconPreviewCard.swift",
             "Sources/StatusTrioCore/UI/VolumeControlsView.swift"
@@ -186,6 +187,7 @@ final class MacOS13UICompatibilityTests: XCTestCase {
         "beats.solobuds",
         "beats.studiobuds.plus",
         "flask.fill",
+        "gauge.with.dots.needle.bottom.50percent",
         "headphones.over.ear",
         "headset",
         "homepod.mini",
