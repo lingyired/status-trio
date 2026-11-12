@@ -48,6 +48,7 @@ final class BottomIndicatorSourceTests: XCTestCase {
         source: BottomIndicatorSource,
         style: VolumeDisplayStyle = .dots,
         snapshot: StatusSnapshot? = nil,
+        batteryOptions: BatteryIconOptions = .standard,
         bluetoothOptions: BluetoothAudioIconOptions = .standard
     ) -> IconSceneState {
         IconPresentationMapper.scene(
@@ -57,7 +58,7 @@ final class BottomIndicatorSourceTests: XCTestCase {
                 bottomIndicatorSource: source
             ),
             configuration: IconPresentationConfiguration(
-                battery: .standard,
+                battery: batteryOptions,
                 connection: .standard,
                 volume: VolumeIconOptions(displayStyle: style),
                 bluetooth: bluetoothOptions
@@ -235,6 +236,62 @@ final class BottomIndicatorSourceTests: XCTestCase {
 
     func testBatterySourceWithoutBatteryHidesFooter() {
         XCTAssertNil(scene(source: .battery, snapshot: snapshot(battery: .absent)).footer)
+    }
+
+    private func batteryStatus(
+        _ percentage: Int,
+        charging: Bool = false,
+        lowPower: Bool = false,
+        connectedToPower: Bool = false
+    ) -> BatteryStatus {
+        BatteryStatus(
+            rawPercentage: percentage,
+            isPresent: true,
+            isCharging: charging,
+            isLowPowerMode: lowPower,
+            isConnectedToPower: connectedToPower
+        )
+    }
+
+    private func batteryFooterColor(
+        _ battery: BatteryStatus,
+        options: BatteryIconOptions = .standard
+    ) -> IconColorRole? {
+        let scene = scene(source: .battery, snapshot: snapshot(battery: battery), batteryOptions: options)
+        guard case let .dots(dots)? = scene.footer else { return nil }
+        return dots.color
+    }
+
+    func testBatteryFooterUsesTheSharedStatusColour() {
+        // Same status → same colour as the top ring: critical, low power, and
+        // the charging / connected colour all come through the shared field.
+        XCTAssertEqual(batteryFooterColor(batteryStatus(10)), .critical)
+        XCTAssertEqual(batteryFooterColor(batteryStatus(50, lowPower: true)), .lowPower)
+        XCTAssertEqual(batteryFooterColor(batteryStatus(50, charging: true)), .powered)
+        XCTAssertEqual(batteryFooterColor(batteryStatus(50, connectedToPower: true)), .powered)
+        XCTAssertEqual(batteryFooterColor(batteryStatus(50)), .primary)
+    }
+
+    func testBatteryFooterColourIsOffWhenStatusColoursAreOff() {
+        let monochrome = BatteryIconOptions(usesStatusColors: false)
+        XCTAssertEqual(batteryFooterColor(batteryStatus(10), options: monochrome), .primary)
+        XCTAssertEqual(batteryFooterColor(batteryStatus(50, charging: true), options: monochrome), .primary)
+    }
+
+    func testBatteryFooterColourMatchesTheTopRingForEveryStatus() {
+        let states: [BatteryStatus] = [
+            batteryStatus(10),
+            batteryStatus(50),
+            batteryStatus(50, charging: true),
+            batteryStatus(50, connectedToPower: true),
+            batteryStatus(50, lowPower: true)
+        ]
+        for battery in states {
+            let scene = scene(source: .battery, style: .arc, snapshot: snapshot(battery: battery))
+            guard case let .arc(arc)? = scene.footer else { return XCTFail("expected arc footer") }
+            let ringColor = scene.outerRing?.segments.first?.color
+            XCTAssertEqual(arc.color, ringColor, "The bottom battery must use the top ring's colour.")
+        }
     }
 
     // MARK: Hidden
