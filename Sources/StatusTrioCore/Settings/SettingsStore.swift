@@ -174,6 +174,8 @@ final class SettingsStore: ObservableObject {
     static let hardwareMonitorMetricColorsDefaultsKey = "hardwareMonitorMetricColorsV1"
     static let defaultVolumeDisplayStyle: VolumeDisplayStyle = .dots
     static let volumeDisplayStyleDefaultsKey = "volumeDisplayStyle"
+    static let defaultBottomIndicatorSource: BottomIndicatorSource = .volume
+    static let bottomIndicatorSourceDefaultsKey = "bottomIndicatorSource"
     static let defaultRingStrokeStyle: RingStrokeStyle = .regular
     static let ringStrokeStyleDefaultsKey = "ringStrokeStyle"
 
@@ -1154,6 +1156,16 @@ final class SettingsStore: ObservableObject {
     @Published var volumeDisplayStyle: VolumeDisplayStyle {
         didSet {
             defaults.set(volumeDisplayStyle.rawValue, forKey: Self.volumeDisplayStyleDefaultsKey)
+        }
+    }
+
+    /// Which quantity the bottom indicator shows. Independent of
+    /// `volumeDisplayStyle`, which only chooses the dots/arc artwork. Kept as a
+    /// separate persisted key so an upgrade keeps the stored volume style and
+    /// the indicator still defaults to volume.
+    @Published var bottomIndicatorSource: BottomIndicatorSource {
+        didSet {
+            defaults.set(bottomIndicatorSource.rawValue, forKey: Self.bottomIndicatorSourceDefaultsKey)
         }
     }
 
@@ -2162,6 +2174,7 @@ final class SettingsStore: ObservableObject {
         ) as? NSNumber)?.doubleValue
         let storedWifiSymbolScale = (defaults.object(forKey: Self.wifiSymbolScaleDefaultsKey) as? NSNumber)?.doubleValue
         let storedVolumeDisplayStyle = defaults.string(forKey: Self.volumeDisplayStyleDefaultsKey)
+        let storedBottomIndicatorSource = defaults.string(forKey: Self.bottomIndicatorSourceDefaultsKey)
         let storedRingStrokeStyle = defaults.string(forKey: Self.ringStrokeStyleDefaultsKey)
         let storedOutputDeviceOrder = defaults.stringArray(forKey: Self.outputDeviceOrderDefaultsKey) ?? []
         let storedHiddenOutputDeviceUIDs = Set(
@@ -2547,6 +2560,9 @@ final class SettingsStore: ObservableObject {
         self.volumeDisplayStyle = storedVolumeDisplayStyle
             .flatMap(VolumeDisplayStyle.init(rawValue:))
             ?? Self.defaultVolumeDisplayStyle
+        self.bottomIndicatorSource = storedBottomIndicatorSource
+            .flatMap(BottomIndicatorSource.init(rawValue:))
+            ?? Self.defaultBottomIndicatorSource
         self.ringStrokeStyle = storedRingStrokeStyle
             .flatMap(RingStrokeStyle.init(rawValue:))
             ?? Self.defaultRingStrokeStyle

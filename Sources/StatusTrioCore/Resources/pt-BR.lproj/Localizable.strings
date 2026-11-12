@@ -562,6 +562,13 @@
 "settings.audio.indicatorStyleDescription" = "Escolha se o volume é exibido como quatro pontos ou um arco contínuo.";
 "settings.audio.indicatorStyle.dots" = "Pontos";
 "settings.audio.indicatorStyle.arc" = "Arco";
+"settings.audio.bottomIndicatorTitle" = "Indicador inferior";
+"settings.audio.bottomIndicatorDescription" = "Escolha o que a barra sob o ícone mostra. O estilo de quatro pontos ou arco permanece o mesmo.";
+"settings.audio.bottomIndicatorSource" = "Origem do indicador inferior";
+"settings.audio.bottomIndicatorSource.volume" = "Volume";
+"settings.audio.bottomIndicatorSource.wifi" = "Wi-Fi";
+"settings.audio.bottomIndicatorSource.battery" = "Bateria";
+"settings.audio.bottomIndicatorSource.hidden" = "Oculto";
 "settings.audio.airPodsInlineControlsTitle" = "Controles de fones";
 "settings.audio.airPodsInlineControls" = "Mostrar controles de AirPods no painel de volume";
 "settings.audio.airPodsInlineControlsDescription" = "Mostra controles de percepção de conversa, áudio espacial e adaptativo ao lado da sua saída de AirPods. Desative para ocultar esses controles baseados em APIs privadas.";

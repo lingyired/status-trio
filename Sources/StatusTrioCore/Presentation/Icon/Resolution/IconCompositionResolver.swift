@@ -71,7 +71,8 @@ enum IconCompositionResolver {
                     center: center.state,
                     footer: footer.state,
                     statusColors: configuration.appearance.batteryStatusColors.colors,
-                    bluetoothIconColor: configuration.appearance.bluetoothIconColor.selection
+                    bluetoothIconColor: configuration.appearance.bluetoothIconColor.selection,
+                    bottomIndicatorSource: inputs.system.bottomIndicatorSource
                 ),
                 appearance: sceneAppearance,
                 centerSource: center.source

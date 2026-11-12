@@ -363,7 +363,9 @@ final class IconPresentationViewModel: ObservableObject {
             runtimeOptions: settingsRuntimeOptions ?? inputs.runtimeOptions,
             systemPower: systemPower,
             isHighPowerMode: isHighPowerMode,
-            sources: inputs.sources
+            sources: inputs.sources,
+            bottomIndicatorSource: settingsRuntimeOptions?.bottomIndicatorSource
+                ?? inputs.bottomIndicatorSource
         )
     }
 }

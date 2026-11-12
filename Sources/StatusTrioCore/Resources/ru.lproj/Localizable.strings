@@ -562,6 +562,13 @@
 "settings.audio.indicatorStyleDescription" = "Выберите отображение громкости четырьмя точками или сплошной дугой.";
 "settings.audio.indicatorStyle.dots" = "Точки";
 "settings.audio.indicatorStyle.arc" = "Дуга";
+"settings.audio.bottomIndicatorTitle" = "Нижний индикатор";
+"settings.audio.bottomIndicatorDescription" = "Выберите, что показывает полоса под значком. Стиль из четырёх точек или дуги не меняется.";
+"settings.audio.bottomIndicatorSource" = "Источник нижнего индикатора";
+"settings.audio.bottomIndicatorSource.volume" = "Громкость";
+"settings.audio.bottomIndicatorSource.wifi" = "Wi-Fi";
+"settings.audio.bottomIndicatorSource.battery" = "Батарея";
+"settings.audio.bottomIndicatorSource.hidden" = "Скрыто";
 "settings.audio.airPodsInlineControlsTitle" = "Управление наушниками";
 "settings.audio.airPodsInlineControls" = "Показывать элементы управления AirPods на панели громкости";
 "settings.audio.airPodsInlineControlsDescription" = "Показывает элементы управления распознаванием разговора, пространственным и адаптивным звуком рядом с вашим выводом AirPods. Отключите, чтобы скрыть эти элементы на основе приватных API.";

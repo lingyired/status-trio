@@ -10,19 +10,25 @@ struct IconSceneState: Equatable, Hashable, Sendable {
     /// The middle Bluetooth glyph colour (#275). It rides the scene so both
     /// surfaces and every render cache agree on the same colour.
     let bluetoothIconColor: BluetoothIconColorSelection
+    /// Which quantity the footer reports. It rides the scene so
+    /// `isVolumeValueChange` can tell a genuine volume change from a Wi-Fi or
+    /// battery update, and so a source change invalidates the Dock cache.
+    let bottomIndicatorSource: BottomIndicatorSource
 
     init(
         outerRing: OuterRingState? = nil,
         center: CenterState? = nil,
         footer: FooterState? = nil,
         statusColors: BatteryStatusColors = .standard,
-        bluetoothIconColor: BluetoothIconColorSelection = .default
+        bluetoothIconColor: BluetoothIconColorSelection = .default,
+        bottomIndicatorSource: BottomIndicatorSource = .volume
     ) {
         self.outerRing = outerRing
         self.center = center
         self.footer = footer
         self.statusColors = statusColors
         self.bluetoothIconColor = bluetoothIconColor
+        self.bottomIndicatorSource = bottomIndicatorSource
     }
 }
 
@@ -43,7 +49,8 @@ extension IconSceneState {
             center: center,
             footer: footer,
             statusColors: statusColors,
-            bluetoothIconColor: bluetoothIconColor
+            bluetoothIconColor: bluetoothIconColor,
+            bottomIndicatorSource: bottomIndicatorSource
         )
     }
 
@@ -154,12 +161,16 @@ extension IconSceneState {
     /// change. The Dock uses this to coalesce continuous volume adjustment
     /// without delaying settings or non-volume scene updates.
     ///
-    /// It is a value change only when the ring, centre and per-role colours are
-    /// untouched and the footer kept its kind, colour and stroke: a dots↔arc
-    /// switch, a stroke change, a colour change, or any ring/centre change is
-    /// a settings or device change and stays on the immediate path.
+    /// It is a value change only when the source is volume on both scenes, the
+    /// ring, centre and per-role colours are untouched, and the footer kept its
+    /// kind, colour and stroke: a dots↔arc switch, a stroke change, a colour
+    /// change, a source switch, or any ring/centre change is a settings or
+    /// device change and stays on the immediate path. A Wi-Fi or battery footer
+    /// update is never a volume change, so it must not be rate-limited as one.
     func isVolumeValueChange(from previous: IconSceneState) -> Bool {
-        guard outerRing == previous.outerRing,
+        guard bottomIndicatorSource == .volume,
+              previous.bottomIndicatorSource == .volume,
+              outerRing == previous.outerRing,
               center == previous.center,
               statusColors == previous.statusColors,
               footer != previous.footer else {

@@ -562,6 +562,13 @@
 "settings.audio.indicatorStyleDescription" = "Choisissez d'afficher le volume sous forme de quatre points ou d'un arc continu.";
 "settings.audio.indicatorStyle.dots" = "Points";
 "settings.audio.indicatorStyle.arc" = "Arc";
+"settings.audio.bottomIndicatorTitle" = "Indicateur inférieur";
+"settings.audio.bottomIndicatorDescription" = "Choisissez ce que la barre sous l’icône affiche. Le style à quatre points ou en arc reste inchangé.";
+"settings.audio.bottomIndicatorSource" = "Source de l’indicateur inférieur";
+"settings.audio.bottomIndicatorSource.volume" = "Volume";
+"settings.audio.bottomIndicatorSource.wifi" = "Wi-Fi";
+"settings.audio.bottomIndicatorSource.battery" = "Batterie";
+"settings.audio.bottomIndicatorSource.hidden" = "Masqué";
 "settings.audio.airPodsInlineControlsTitle" = "Commandes du casque";
 "settings.audio.airPodsInlineControls" = "Afficher les commandes AirPods dans le panneau du volume";
 "settings.audio.airPodsInlineControlsDescription" = "Affiche les commandes de perception des conversations, de l'audio spatial et de l'adaptatif à côté de votre sortie AirPods. Désactivez pour masquer ces commandes basées sur des API privées.";

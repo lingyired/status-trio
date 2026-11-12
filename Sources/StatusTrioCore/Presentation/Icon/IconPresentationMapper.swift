@@ -34,11 +34,11 @@ enum IconPresentationMapper {
                 chargingStatusCenter: chargingStatusCenter
             ),
             center: centerState(inputs: inputs, configuration: configuration, now: now),
-            footer: footerState(inputs.snapshot.volume, options: configuration.volume,
-                                bluetoothOptions: configuration.bluetooth),
+            footer: footerState(inputs: inputs, configuration: configuration),
             statusColors: configuration.battery.usesStatusColors
                 ? configuration.battery.batteryStatusColors : .standard,
-            bluetoothIconColor: configuration.bluetooth.iconColor
+            bluetoothIconColor: configuration.bluetooth.iconColor,
+            bottomIndicatorSource: inputs.bottomIndicatorSource
         )
     }
 
@@ -374,7 +374,44 @@ enum IconPresentationMapper {
         ))
     }
 
+    /// Builds the bottom indicator for the selected data source.
+    ///
+    /// The appearance (four dots or arc) is shared by every source; only the
+    /// quantity and its progress differ. `hidden` returns no footer at all.
     private static func footerState(
+        inputs: IconPresentationInputs,
+        configuration: IconPresentationConfiguration
+    ) -> FooterState? {
+        let options = configuration.volume
+        switch inputs.bottomIndicatorSource {
+        case .hidden:
+            return nil
+        case .volume:
+            return volumeFooter(
+                inputs.snapshot.volume,
+                options: options,
+                bluetoothOptions: configuration.bluetooth
+            )
+        case .wifi:
+            guard let bars = wifiFooterBars(inputs.snapshot.wifi) else { return nil }
+            return progressFooter(
+                dotSteps: bars,
+                arcProgress: Double(bars) / 3.0,
+                options: options
+            )
+        case .battery:
+            let battery = inputs.snapshot.battery
+            guard battery.isPresent else { return nil }
+            let progress = Double(battery.percentage) / 100.0
+            return progressFooter(
+                dotSteps: StatusMappings.volumeSteps(scalar: progress, isMuted: false) ?? 0,
+                arcProgress: progress,
+                options: options
+            )
+        }
+    }
+
+    private static func volumeFooter(
         _ volume: VolumeStatus,
         options: VolumeIconOptions,
         bluetoothOptions: BluetoothAudioIconOptions
@@ -392,6 +429,41 @@ enum IconPresentationMapper {
             let effectiveProgress = volume.isMuted ? 0 : (finiteScalar ?? 0)
             let color: IconColorRole = mayUseBluetoothColor && effectiveProgress > 0 ? .bluetooth : .primary
             return .arc(ArcState(progress: effectiveProgress, color: color,
+                                 strokeScale: options.ringStrokeScale))
+        }
+    }
+
+    /// Wi-Fi bar count (0...3) for the bottom indicator, reusing the icon's
+    /// existing signal-level mapping.
+    ///
+    /// Returns `nil` when there is no usable reading — off, not associated,
+    /// unavailable, or an associated interface whose RSSI is missing or
+    /// invalid. `nil` hides the footer instead of drawing a misleading empty
+    /// ("no signal") bar; a valid but very weak reading still returns 0 and is
+    /// drawn as no active dots.
+    private static func wifiFooterBars(_ wifi: WiFiStatus) -> Int? {
+        switch wifi.state {
+        case .connected, .noInternet, .hotspot, .temporary, .shared:
+            guard let rssi = wifi.rssi, rssi < 0 else { return nil }
+            return StatusMappings.wifiBars(rssi: rssi)
+        case .notAssociated, .off, .unavailable:
+            return nil
+        }
+    }
+
+    /// Shared dot/arc construction for the Wi-Fi and battery sources, which
+    /// have no per-device colour of their own.
+    private static func progressFooter(
+        dotSteps: Int,
+        arcProgress: Double,
+        options: VolumeIconOptions
+    ) -> FooterState {
+        switch options.displayStyle {
+        case .dots:
+            return .dots(DotsState(count: 4, activeCount: dotSteps, color: .primary,
+                                   strokeScale: options.ringStrokeScale))
+        case .arc:
+            return .arc(ArcState(progress: arcProgress, color: .primary,
                                  strokeScale: options.ringStrokeScale))
         }
     }

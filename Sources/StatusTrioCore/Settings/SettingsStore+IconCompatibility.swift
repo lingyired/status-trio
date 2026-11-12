@@ -149,7 +149,8 @@ extension SettingsStore {
             connectionCenterSource: connectionIconOptions.centerSource,
             prioritizesNetworkErrorsOverInputSource: connectionIconOptions.prioritizesNetworkErrors,
             batteryFullThreshold: batteryIconOptions.fullThreshold,
-            bluetoothAudioIconChoice: bluetoothAudioIconOptions.iconChoice
+            bluetoothAudioIconChoice: bluetoothAudioIconOptions.iconChoice,
+            bottomIndicatorSource: bottomIndicatorSource
         )
     }
 

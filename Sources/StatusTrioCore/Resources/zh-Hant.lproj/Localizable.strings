@@ -562,6 +562,13 @@
 "settings.audio.indicatorStyleDescription" = "選擇在狀態環底部顯示為四個離散點或連續圓弧條。";
 "settings.audio.indicatorStyle.dots" = "四個點";
 "settings.audio.indicatorStyle.arc" = "圓弧條";
+"settings.audio.bottomIndicatorTitle" = "底部指示器";
+"settings.audio.bottomIndicatorDescription" = "選擇圖示下方指示條顯示的內容，四點或圓弧樣式不變。";
+"settings.audio.bottomIndicatorSource" = "底部指示器資料來源";
+"settings.audio.bottomIndicatorSource.volume" = "音量";
+"settings.audio.bottomIndicatorSource.wifi" = "Wi-Fi";
+"settings.audio.bottomIndicatorSource.battery" = "電池";
+"settings.audio.bottomIndicatorSource.hidden" = "隱藏";
 "settings.audio.airPodsInlineControlsTitle" = "耳機控制";
 "settings.audio.airPodsInlineControls" = "在音量面板中顯示 AirPods 控制";
 "settings.audio.airPodsInlineControlsDescription" = "在你的 AirPods 輸出旁顯示對話感知、空間音訊和自適應控制。關閉可隱藏這些基於私有 API 的控制。";
@@ -606,8 +613,8 @@
 "guide.example" = "範例使用目前的圖示設定。選擇一個部分了解含義。";
 "guide.battery" = "外側電池弧線表示電量。可在設定中調整百分比和充電符號。";
 "guide.network" = "中間表示網路狀態。符號會隨連線類型及你的設定變化。";
-"guide.volumeDots" = "下方圓點表示音量，不是行動網路訊號。填滿越多，音量越大。可在音訊設定中切換樣式。";
-"guide.volumeArc" = "下方弧線表示音量，不是行動網路訊號。弧線越長，音量越大。可在音訊設定中切換樣式。";
+"guide.volumeDots" = "下方圓點表示底部指示器（預設為音量，也可顯示 Wi-Fi 訊號或電池電量），不是行動網路訊號。填滿越多，讀數越高。可在音訊設定中選擇資料來源和樣式。";
+"guide.volumeArc" = "下方弧線表示底部指示器（預設為音量，也可顯示 Wi-Fi 訊號或電池電量），不是行動網路訊號。弧線越長，讀數越高。可在音訊設定中選擇資料來源和樣式。";
 "guide.next" = "下一頁";
 "guide.anatomy.title" = "一個圖示，三種資訊";
 "guide.anatomy.description" = "選擇任一部位，選單列和 Dock 預覽會同時突顯對應區域。";

@@ -562,6 +562,13 @@
 "settings.audio.indicatorStyleDescription" = "ステータスリング下部に4つのドットまたは連続する円弧バーのいずれで表示するかを選択します。";
 "settings.audio.indicatorStyle.dots" = "4つのドット";
 "settings.audio.indicatorStyle.arc" = "円弧バー";
+"settings.audio.bottomIndicatorTitle" = "下部インジケーター";
+"settings.audio.bottomIndicatorDescription" = "アイコン下のバーに表示する内容を選択します。4 ドットまたは円弧のスタイルは変わりません。";
+"settings.audio.bottomIndicatorSource" = "下部インジケーターのソース";
+"settings.audio.bottomIndicatorSource.volume" = "音量";
+"settings.audio.bottomIndicatorSource.wifi" = "Wi-Fi";
+"settings.audio.bottomIndicatorSource.battery" = "バッテリー";
+"settings.audio.bottomIndicatorSource.hidden" = "非表示";
 "settings.audio.airPodsInlineControlsTitle" = "ヘッドフォンコントロール";
 "settings.audio.airPodsInlineControls" = "音量パネルに AirPods コントロールを表示";
 "settings.audio.airPodsInlineControlsDescription" = "AirPods 出力の横に会話認識・空間オーディオ・アダプティブのコントロールを表示します。私的 API ベースのこれらのコントロールを隠すにはオフにします。";

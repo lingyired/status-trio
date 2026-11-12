@@ -20,6 +20,10 @@ struct IconPresentationRuntimeOptions: Equatable, Sendable {
     let prioritizesNetworkErrorsOverInputSource: Bool
     let batteryFullThreshold: Int
     let bluetoothAudioIconChoice: BluetoothAudioIconChoice
+    /// Which quantity fills the bottom indicator. Runtime-only (no V1 schema
+    /// field), carried alongside the other opaque settings so the live scene
+    /// and the settings previews read the same value.
+    var bottomIndicatorSource: BottomIndicatorSource = .volume
 
     func applying(to configuration: IconPresentationConfiguration) -> IconPresentationConfiguration {
         let battery = configuration.battery
@@ -88,6 +92,10 @@ struct IconPresentationInputs: Equatable, Sendable {
     /// V1 resolver/plugin layer. `.empty` keeps the legacy projection inputs
     /// usable without BT data.
     var sources: IconSourceSnapshot = .empty
+    /// Which quantity fills the bottom indicator. Part of the input value (not
+    /// the V1 schema) so the mapper reads the same source for the live scene,
+    /// the settings previews and the empty-battery simulation.
+    var bottomIndicatorSource: BottomIndicatorSource = .volume
 
     init(
         snapshot: StatusSnapshot,
@@ -96,7 +104,8 @@ struct IconPresentationInputs: Equatable, Sendable {
         runtimeOptions: IconPresentationRuntimeOptions? = nil,
         systemPower: SystemPowerSample? = nil,
         isHighPowerMode: Bool = false,
-        sources: IconSourceSnapshot = .empty
+        sources: IconSourceSnapshot = .empty,
+        bottomIndicatorSource: BottomIndicatorSource = .volume
     ) {
         self.snapshot = snapshot
         self.audioIcon = audioIcon
@@ -105,5 +114,6 @@ struct IconPresentationInputs: Equatable, Sendable {
         self.systemPower = systemPower
         self.isHighPowerMode = isHighPowerMode
         self.sources = sources
+        self.bottomIndicatorSource = bottomIndicatorSource
     }
 }

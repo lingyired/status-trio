@@ -111,7 +111,8 @@ enum IconPaletteResolver {
             center: center,
             footer: footer,
             statusColors: scene.statusColors,
-            bluetoothIconColor: scene.bluetoothIconColor
+            bluetoothIconColor: scene.bluetoothIconColor,
+            bottomIndicatorSource: scene.bottomIndicatorSource
         )
     }
 }
