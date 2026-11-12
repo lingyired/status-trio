@@ -58,7 +58,7 @@ final class SettingsStore: ObservableObject {
     static let chargeToFullRestoreLimitRange: ClosedRange<Double> = 80...95
     static let defaultChargeToFullRestoreLimit: Double = 95
     static let chargeToFullRestoreLimitDefaultsKey = "chargeToFullRestoreLimit"
-    static let batterySymbolScaleRange: ClosedRange<Double> = 0.6...1.6
+    static let batterySymbolScaleRange: ClosedRange<Double> = 0.9...1.2
     static let defaultBatterySymbolScale: Double = 1
     static let showsBatteryPercentageDefaultsKey = "showsBatteryPercentage"
     static let showsBatteryPowerFlowDefaultsKey = "showsBatteryPowerFlow"

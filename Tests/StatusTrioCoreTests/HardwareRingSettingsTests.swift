@@ -167,12 +167,12 @@ final class HardwareRingSettingsTests: XCTestCase {
 
     func testSharedTopMarkerScaleProjectsToBatteryAndHardware() throws {
         let (store, _, _) = try makeStore()
-        store.batterySymbolScale = 1.3
+        store.batterySymbolScale = 1.15
         store.outerRingContent = .hardwareMonitor
         let derived = store.derivedIconConfigurationFromSettings()
         XCTAssertEqual(derived.behaviors.systemBatteryRing.textScale,
-                       1.3 * BatteryIconOptions.defaultTextScale, accuracy: 0.001)
-        XCTAssertEqual(derived.behaviors.hardwareRing.topMarkerScale, 1.3, accuracy: 0.001)
+                       1.15 * BatteryIconOptions.defaultTextScale, accuracy: 0.001)
+        XCTAssertEqual(derived.behaviors.hardwareRing.topMarkerScale, 1.15, accuracy: 0.001)
     }
 
     func testAirPodsTopSymbolUsesSharedScale() {
