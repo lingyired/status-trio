@@ -54,6 +54,12 @@ struct IconPresentationSettings: Equatable, Sendable {
     /// `resolveInputs`) avoids the `@Published` willSet race that made a live
     /// change publish the *previous* value one step late.
     var runtimeOptions: IconPresentationRuntimeOptions? = nil
+    /// Delivered with the settings snapshot so colour/cap edits are read from the
+    /// value that produced this publication, not from the live store during
+    /// `@Published` willSet (which lags one edit).
+    var hardwareMetricColors: [HardwareMonitorMetric: IconRGBA] = [:]
+    var hardwareDownloadCapMbps: Double = 1000
+    var hardwareUploadCapMbps: Double = 100
 }
 
 struct IconPresentationOutput: Equatable, Sendable {
@@ -266,6 +272,13 @@ final class IconPresentationViewModel: ObservableObject {
     /// users. Sampling itself is demand-driven elsewhere.
     private func receive(hardwareMetrics: HardwareMetricsSnapshot) {
         guard synchronizedStart else { return }
+        // Only re-resolve when the hardware ring is actually selected (primary or
+        // fallback). Panel/card hardware ticks must not re-parse an icon that is
+        // drawing the Mac battery, AirPods or another source.
+        let composition = latestSettings.iconConfiguration.composition.outerRing
+        guard composition.primary == .hardwareMonitor || composition.fallback == .hardwareMonitor else {
+            return
+        }
         snapshotScheduler.cancel()
         publishLatestOutput()
     }
@@ -307,6 +320,9 @@ final class IconPresentationViewModel: ObservableObject {
                 systemPower: systemPower,
                 isHighPowerMode: isHighPowerMode,
                 settingsRuntimeOptions: settings.runtimeOptions,
+                hardwareMetricColors: settings.hardwareMetricColors,
+                hardwareDownloadCapMbps: settings.hardwareDownloadCapMbps,
+                hardwareUploadCapMbps: settings.hardwareUploadCapMbps,
                 resolveInputs: resolveInputs
             ),
             settings.configuration,
@@ -322,6 +338,9 @@ final class IconPresentationViewModel: ObservableObject {
                     systemPower: systemPower,
                     isHighPowerMode: isHighPowerMode,
                     settingsRuntimeOptions: settings.runtimeOptions,
+                    hardwareMetricColors: settings.hardwareMetricColors,
+                    hardwareDownloadCapMbps: settings.hardwareDownloadCapMbps,
+                    hardwareUploadCapMbps: settings.hardwareUploadCapMbps,
                     resolveInputs: resolveInputs
                 ),
                 settings.configuration,
@@ -349,13 +368,21 @@ final class IconPresentationViewModel: ObservableObject {
         systemPower: SystemPowerSample?,
         isHighPowerMode: Bool,
         settingsRuntimeOptions: IconPresentationRuntimeOptions?,
+        hardwareMetricColors: [HardwareMonitorMetric: IconRGBA],
+        hardwareDownloadCapMbps: Double,
+        hardwareUploadCapMbps: Double,
         resolveInputs: @MainActor (StatusSnapshot) -> IconPresentationInputs
     ) -> IconPresentationInputs {
-        let inputs = resolveInputs(snapshot)
-        // Carry every field the resolver needs. `runtimeOptions` comes from the
-        // published settings snapshot when present: reading them live here would
+        var inputs = resolveInputs(snapshot)
+        // Carry every field the resolver needs. Colours, caps and runtime options
+        // come from the published settings snapshot: reading them live here would
         // read the pre-change value during `@Published`'s willSet emission and lag
         // one edit behind.
+        inputs.sources.hardwareMetricColors = hardwareMetricColors
+        inputs.sources.hardwareSpeedCapsMbps = [
+            .downloadSpeed: hardwareDownloadCapMbps,
+            .uploadSpeed: hardwareUploadCapMbps
+        ]
         return IconPresentationInputs(
             snapshot: inputs.snapshot,
             audioIcon: inputs.audioIcon,

@@ -136,25 +136,24 @@ enum HardwareRingMapper {
         guard sample.availability == .measured, sample.isFresh(at: now) else { return nil }
         guard let value = sample.value, value.isFinite else { return nil }
 
+        // Share the base progress math with the panel card; the ring only adds
+        // its configured display range / RPM cap on top.
         if metric.isPercentageMetric {
-            return clamp(value / 100.0)
+            return MetricProgressMapper.percent(sample)
         }
         if metric.isSpeedMetric {
             guard let capMbps, capMbps > 0, capMbps.isFinite else { return nil }
-            return clamp((value * 8.0 / 1_000_000.0) / capMbps)
+            return MetricProgressMapper.speed(sample, capMbps: capMbps)
         }
         if metric == .fan {
-            let upper = options.displayMaximum > options.displayMinimum
+            let maximum = options.displayMaximum > options.displayMinimum
                 ? options.displayMaximum
-                : (sample.metadata.maximum ?? 0)
-            let lower = options.displayMinimum
-            guard upper > lower, upper > 0 else { return nil }
-            return clamp((value - lower) / (upper - lower))
+                : sample.metadata.maximum
+            return MetricProgressMapper.rpm(sample, maximum: maximum)
         }
-        // Temperature: honour the configured display range.
-        let span = options.displayMaximum - options.displayMinimum
-        guard span > 0 else { return nil }
-        return clamp((value - options.displayMinimum) / span)
+        let range = options.displayMinimum...options.displayMaximum
+        guard options.displayMaximum > options.displayMinimum else { return nil }
+        return MetricProgressMapper.temperature(sample, range: range)
     }
 
     private static func clamp(_ value: Double) -> Double {
@@ -185,12 +184,17 @@ enum HardwareRingMapper {
             let base = configuration.layout == .single ? Self.singleTopSymbolScale : Self.topSymbolScale
             return .symbol(symbolState(name: metric.systemImage, scale: base * configuration.topMarkerScale))
         case let .value(metric):
+            // Geometry is decided by the configuration, not by data availability:
+            // a temporarily missing value must keep the top gap (and thus the ring
+            // shape) stable and show a placeholder instead of collapsing the gap.
             let sample = sample(for: metric, in: snapshot)
-            guard sample.availability == .measured, sample.isFresh(at: now),
-                  let value = sample.value, value.isFinite else { return nil }
-            let text = formattedValue(value, unit: sample.unit)
-            return .text(IconTextState(text: text, color: .primary,
-                                       scale: topValueTextScale(for: sample.unit) * configuration.topMarkerScale))
+            let scale = topValueTextScale(for: sample.unit) * configuration.topMarkerScale
+            if sample.availability == .measured, sample.isFresh(at: now),
+               let value = sample.value, value.isFinite {
+                return .text(IconTextState(text: formattedValue(value, unit: sample.unit),
+                                           color: .primary, scale: scale))
+            }
+            return .text(IconTextState(text: "--", color: .primary, scale: scale))
         }
     }
 

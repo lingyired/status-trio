@@ -179,7 +179,7 @@ struct HardwareRingColorConfiguration: Codable, Equatable, Hashable, Sendable {
     var monochrome: Bool
     var thresholdColors: Bool
 
-    init(monochrome: Bool = false, thresholdColors: Bool = true) {
+    init(monochrome: Bool = false, thresholdColors: Bool = false) {
         self.monochrome = monochrome
         self.thresholdColors = thresholdColors
     }

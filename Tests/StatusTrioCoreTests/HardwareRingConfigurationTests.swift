@@ -39,7 +39,7 @@ final class HardwareRingConfigurationTests: XCTestCase {
         XCTAssertEqual(decoded.primaryMetric, .fan)
         XCTAssertEqual(decoded.topContent, .automatic)
         XCTAssertFalse(decoded.color.monochrome)
-        XCTAssertTrue(decoded.color.thresholdColors)
+        XCTAssertFalse(decoded.color.thresholdColors)
         XCTAssertTrue(decoded.overrides.isEmpty)
     }
 

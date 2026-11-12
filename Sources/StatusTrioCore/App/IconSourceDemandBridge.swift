@@ -60,6 +60,28 @@ enum IconSourceDemandPolicy {
         IconContentDependencyResolver.dependencies(configuration: configuration, targetIsAudio: false).requiresBluetoothMonitor
     }
 
+    struct HardwareRingDemands: Equatable {
+        var menuBar: Set<HardwareMetricID>?
+        var dock: Set<HardwareMetricID>?
+
+        static let none = HardwareRingDemands(menuBar: nil, dock: nil)
+    }
+
+    /// Which hardware-metric demands the System Monitoring ring needs on each
+    /// surface. `nil` means "release that surface's demand". Driven purely by the
+    /// composition, the fallback source, and the icon placement.
+    static func hardwareRingDemands(configuration: IconConfigurationV1,
+                                    placement: AppIconPlacement) -> HardwareRingDemands {
+        let composition = configuration.composition.outerRing
+        let usesHardware = composition.primary == .hardwareMonitor || composition.fallback == .hardwareMonitor
+        guard usesHardware else { return .none }
+        let metricIDs = Set(configuration.behaviors.hardwareRing.referencedMetrics.map(\.metricID))
+        return HardwareRingDemands(
+            menuBar: placement.showsMenuBarIcon ? metricIDs : nil,
+            dock: placement.showsDockIcon ? metricIDs : nil
+        )
+    }
+
     static func shouldReadAirPodsBattery(
         configuration: IconConfigurationV1,
         userOptedIn: Bool,

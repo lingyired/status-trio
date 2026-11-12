@@ -24,9 +24,14 @@ enum MetricProgressMapper {
     }
 
     static func rpm(_ sample: HardwareMetricSample) -> Double? {
+        rpm(sample, maximum: sample.metadata.maximum)
+    }
+
+    /// RPM fraction against an explicit trusted maximum (the ring may override
+    /// the sample's own controller maximum from its options).
+    static func rpm(_ sample: HardwareMetricSample, maximum: Double?) -> Double? {
         guard let value = displayableValue(sample),
-              let maximum = sample.metadata.maximum,
-              maximum > 0, maximum.isFinite else { return nil }
+              let maximum, maximum > 0, maximum.isFinite else { return nil }
         return clamp(value / maximum)
     }
 

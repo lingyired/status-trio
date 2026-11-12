@@ -196,25 +196,27 @@ final class AppEnvironment {
     /// selected outer-ring source. This keeps the low-power contract: battery /
     /// AirPods users never start the metric sampling loop.
     private func startHardwareRingDemand() {
-        hardwareRingDemandCancellable = settings.iconPresentationPublisher
-            .map(\.iconConfiguration)
-            .removeDuplicates()
-            .sink { [weak self] configuration in
-                self?.reconcileHardwareRingDemand(configuration)
-            }
+        hardwareRingDemandCancellable = Publishers.CombineLatest(
+            settings.iconPresentationPublisher.map(\.iconConfiguration),
+            settings.$appIconPlacement
+        )
+        .removeDuplicates { $0.0 == $1.0 && $0.1 == $1.1 }
+        .sink { [weak self] configuration, placement in
+            self?.reconcileHardwareRingDemand(configuration, placement: placement)
+        }
     }
 
-    private func reconcileHardwareRingDemand(_ configuration: IconConfigurationV1) {
-        let usesHardwareRing = configuration.composition.outerRing.primary == .hardwareMonitor
-            || configuration.composition.outerRing.fallback == .hardwareMonitor
-        guard usesHardwareRing else {
-            store.hardwareMetrics.end(.menuBarArc)
-            store.hardwareMetrics.end(.dock)
-            return
-        }
-        let metricIDs = Set(configuration.behaviors.hardwareRing.referencedMetrics.map(\.metricID))
-        store.hardwareMetrics.begin(.menuBarArc, metrics: metricIDs)
-        store.hardwareMetrics.begin(.dock, metrics: metricIDs)
+    /// Demand the hardware metrics only on the surfaces that actually show the
+    /// System Monitoring ring, and only while that source is selected (or is the
+    /// fallback so a switch does not start from cold). Panel demand stays owned by
+    /// the panel view model.
+    private func reconcileHardwareRingDemand(_ configuration: IconConfigurationV1,
+                                             placement: AppIconPlacement) {
+        let demands = IconSourceDemandPolicy.hardwareRingDemands(configuration: configuration, placement: placement)
+        if let menuBar = demands.menuBar { store.hardwareMetrics.begin(.menuBarArc, metrics: menuBar) }
+        else { store.hardwareMetrics.end(.menuBarArc) }
+        if let dock = demands.dock { store.hardwareMetrics.begin(.dock, metrics: dock) }
+        else { store.hardwareMetrics.end(.dock) }
     }
 
     private func startPreviewResourceLifecycleIfNeeded() {
@@ -514,8 +516,7 @@ final class AppEnvironment {
             highPowerModes: store.highPowerMode.$isHighPowerMode
                 .removeDuplicates()
                 .eraseToAnyPublisher(),
-            hardwareMetrics: store.hardwareMetrics.observable.$snapshot
-                .eraseToAnyPublisher(),
+            hardwareMetrics: store.hardwareMetrics.observable.snapshotPublisher,
             resolveInputs: { [store, settings, hardwareRingTracker] snapshot in
                 var inputs = IconPresentationResourceResolver.inputs(
                     snapshot: snapshot,

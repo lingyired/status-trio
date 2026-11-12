@@ -233,12 +233,16 @@ final class HardwareRingMapperTests: XCTestCase {
         XCTAssertEqual(state.gap, .closed)
     }
 
-    func testTopValueHiddenWhenMetricUnavailable() {
+    func testTopValueShowsPlaceholderWhenMetricUnavailable() {
+        // Geometry is configuration-driven: an unavailable value keeps the gap
+        // and shows a placeholder rather than collapsing the ring.
         let snap = snapshot([.cpuUsage: sample(nil, unit: .percent, availability: .temporarilyUnavailable)])
         let config = HardwareRingConfiguration(layout: .single, primaryMetric: .cpuUsage,
                                                topContent: .value(.cpuUsage))
         let state = HardwareRingMapper.resolve(snapshot: snap, configuration: config, now: now)
-        XCTAssertNil(state.accessory)
+        guard case let .text(text)? = state.accessory else { return XCTFail("placeholder expected") }
+        XCTAssertEqual(text.text, "--")
+        XCTAssertEqual(state.gap, .value)
     }
 
     func testTopMarkerScaleMultipliesSymbolAndValueScale() {

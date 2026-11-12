@@ -19,6 +19,11 @@ struct StatusIconAppearance: Equatable, Sendable {
     var airPodsRingFallsBackToBattery: Bool
     /// Internal configuration of the `hardwareMonitor` ring source.
     var hardwareRingConfiguration: HardwareRingConfiguration
+    /// Shared per-metric identity colours (also used by the panel bars).
+    var hardwareMetricColors: [HardwareMonitorMetric: IconRGBA]
+    /// Broadband caps (Mbps) for network-speed ring progress.
+    var hardwareDownloadCapMbps: Double
+    var hardwareUploadCapMbps: Double
 
     init(
         iconSize: Double,
@@ -30,7 +35,10 @@ struct StatusIconAppearance: Equatable, Sendable {
         airPodsRingUsesDualRing: Bool = true,
         showsAirPodsTopSymbolInRing: Bool = true,
         airPodsRingFallsBackToBattery: Bool = true,
-        hardwareRingConfiguration: HardwareRingConfiguration = .default
+        hardwareRingConfiguration: HardwareRingConfiguration = .default,
+        hardwareMetricColors: [HardwareMonitorMetric: IconRGBA] = [:],
+        hardwareDownloadCapMbps: Double = 1000,
+        hardwareUploadCapMbps: Double = 100
     ) {
         self.iconSize = iconSize
         self.batteryOptions = batteryOptions
@@ -42,6 +50,9 @@ struct StatusIconAppearance: Equatable, Sendable {
         self.showsAirPodsTopSymbolInRing = showsAirPodsTopSymbolInRing
         self.airPodsRingFallsBackToBattery = airPodsRingFallsBackToBattery
         self.hardwareRingConfiguration = hardwareRingConfiguration
+        self.hardwareMetricColors = hardwareMetricColors
+        self.hardwareDownloadCapMbps = hardwareDownloadCapMbps
+        self.hardwareUploadCapMbps = hardwareUploadCapMbps
     }
 
     /// Reads every icon input straight from the store. Main-actor isolated
@@ -58,7 +69,10 @@ struct StatusIconAppearance: Equatable, Sendable {
             airPodsRingUsesDualRing: settings.airPodsRingUsesDualRing,
             showsAirPodsTopSymbolInRing: settings.showsAirPodsTopSymbolInRing,
             airPodsRingFallsBackToBattery: settings.airPodsRingFallsBackToBattery,
-            hardwareRingConfiguration: settings.hardwareRingConfiguration
+            hardwareRingConfiguration: settings.hardwareRingConfiguration,
+            hardwareMetricColors: settings.hardwareMonitorMetricColors,
+            hardwareDownloadCapMbps: settings.hardwareDownloadCapMbps,
+            hardwareUploadCapMbps: settings.hardwareUploadCapMbps
         )
     }
 }

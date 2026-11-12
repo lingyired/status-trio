@@ -35,7 +35,10 @@ extension SettingsStore {
                     prioritizesNetworkErrorsOverInputSource: appearance.connectionOptions.prioritizesNetworkErrors,
                     batteryFullThreshold: appearance.batteryOptions.fullThreshold,
                     bluetoothAudioIconChoice: appearance.bluetoothAudioOptions.iconChoice
-                )
+                ),
+                hardwareMetricColors: appearance.hardwareMetricColors,
+                hardwareDownloadCapMbps: appearance.hardwareDownloadCapMbps,
+                hardwareUploadCapMbps: appearance.hardwareUploadCapMbps
             )
         }
         .removeDuplicates()

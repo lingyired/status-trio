@@ -4,25 +4,47 @@ import Foundation
 /// A leaf observer: metric updates never enter the broad panel/icon snapshots.
 @MainActor
 final class HardwareMonitorObservable: ObservableObject {
-    @Published private(set) var snapshot: HardwareMetricsSnapshot
+    /// Backing store. Deliberately NOT `@Published`: `@Published` fires its
+    /// projected publisher in `willSet`, so a synchronous subscriber that reads
+    /// `snapshot` gets the *previous* value — which made the icon lag one sample
+    /// behind. We publish through `snapshotPublisher` *after* the stored value is
+    /// updated, so subscribers always read the value they were just handed.
+    private var stored: HardwareMetricsSnapshot
+    private let snapshotSubject = PassthroughSubject<HardwareMetricsSnapshot, Never>()
 
-    init(snapshot: HardwareMetricsSnapshot = .empty) { self.snapshot = snapshot }
+    init(snapshot: HardwareMetricsSnapshot = .empty) { self.stored = snapshot }
+
+    var snapshot: HardwareMetricsSnapshot { stored }
+
+    /// Emits the new snapshot after it has been stored.
+    var snapshotPublisher: AnyPublisher<HardwareMetricsSnapshot, Never> {
+        snapshotSubject.eraseToAnyPublisher()
+    }
 
     func update(_ snapshot: HardwareMetricsSnapshot, now: Date = Date()) {
         let next = snapshot.expiring(at: now)
-        if self.snapshot != next { self.snapshot = next }
+        guard next != stored else { return }
+        objectWillChange.send()
+        stored = next
+        snapshotSubject.send(next)
     }
 
     /// Keep the last frame as cached, non-fresh values instead of blanking it,
     /// so reopening the panel shows the previous readings (dimmed) until the
     /// first fresh sample lands.
     func markStale(now: Date = Date()) {
-        let next = snapshot.expiring(at: now)
-        if snapshot != next { snapshot = next }
+        let next = stored.expiring(at: now)
+        guard next != stored else { return }
+        objectWillChange.send()
+        stored = next
+        snapshotSubject.send(next)
     }
 
     func clear() {
-        if snapshot != .empty { snapshot = .empty }
+        guard stored != .empty else { return }
+        objectWillChange.send()
+        stored = .empty
+        snapshotSubject.send(stored)
     }
 }
 
