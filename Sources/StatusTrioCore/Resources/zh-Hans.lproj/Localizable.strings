@@ -1164,3 +1164,10 @@
 "settings.hardwareRing.monochrome.description" = "整环使用菜单栏前景色，不显示各指标颜色。";
 "settings.hardwareRing.thresholdColors" = "阈值颜色";
 "settings.hardwareRing.thresholdColors.description" = "达到警告阈值整段变橙、严重阈值整段变红；关闭则始终使用指标颜色。";
+"hardware.monitor.download" = "下载";
+"hardware.monitor.upload" = "上传";
+"hardware.monitor.downloadCap" = "下载上限";
+"hardware.monitor.uploadCap" = "上传上限";
+"hardware.monitor.speed.capDescription" = "圆弧进度按你的宽带上限（Mbps）换算。";
+"hardware.monitor.kbps" = "KB/s";
+"hardware.monitor.mbps" = "MB/s";

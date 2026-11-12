@@ -21,12 +21,15 @@ struct HardwareMonitorCardView: View {
     let metrics: [HardwareMonitorMetric]
     /// Shared per-metric colours (same field as the hardware ring arc).
     var metricColors: [HardwareMonitorMetric: IconRGBA] = [:]
+    /// Broadband caps (Mbps) for the network-speed tiles.
+    var speedCapsMbps: [HardwareMonitorMetric: Double] = [:]
     @EnvironmentObject private var localization: Localization
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
 
     var body: some View {
         let tiles = HardwareMetricTilePresentation.tiles(metrics: metrics, snapshot: model.snapshot,
-                                                          localization: localization, colors: metricColors)
+                                                          localization: localization, colors: metricColors,
+                                                          speedCapsMbps: speedCapsMbps)
         VStack(spacing: 12) {
             ForEach(Array(stride(from: 0, to: max(tiles.count, 1), by: 2)), id: \.self) { index in
                 HStack(spacing: 14) {
@@ -54,7 +57,7 @@ struct HardwareMonitorCardView: View {
 }
 
 enum HardwareMonitorTile: CaseIterable, Equatable {
-    case cpu, gpu, memory, temperature, batteryTemperature, fan
+    case cpu, gpu, memory, temperature, batteryTemperature, fan, download, upload
 
     var labelKey: LocalizationKey {
         switch self {
@@ -64,6 +67,8 @@ enum HardwareMonitorTile: CaseIterable, Equatable {
         case .temperature: .hardwareMonitorTemperature
         case .batteryTemperature: .hardwareMonitorBattery
         case .fan: .hardwareMonitorFan
+        case .download: .hardwareMonitorDownload
+        case .upload: .hardwareMonitorUpload
         }
     }
 
@@ -75,6 +80,8 @@ enum HardwareMonitorTile: CaseIterable, Equatable {
         case .temperature: "thermometer.medium"
         case .batteryTemperature: SymbolFallback.name("battery.100percent", "battery.100")
         case .fan: "fanblades"
+        case .download: "arrow.down"
+        case .upload: "arrow.up"
         }
     }
 }
@@ -98,13 +105,14 @@ struct HardwareMetricTilePresentation: Equatable {
 
     @MainActor
     static func tiles(snapshot: HardwareMetricsSnapshot, localization: Localization) -> [Self] {
-        tiles(metrics: HardwareMonitorMetric.allCases, snapshot: snapshot, localization: localization)
+        tiles(metrics: HardwareMonitorMetric.defaultCardMetrics, snapshot: snapshot, localization: localization)
     }
 
     @MainActor
     static func tiles(metrics: [HardwareMonitorMetric], snapshot: HardwareMetricsSnapshot,
                       localization: Localization,
-                      colors: [HardwareMonitorMetric: IconRGBA] = [:]) -> [Self] {
+                      colors: [HardwareMonitorMetric: IconRGBA] = [:],
+                      speedCapsMbps: [HardwareMonitorMetric: Double] = [:]) -> [Self] {
         metrics.map { metric in
             let tint = colors[metric] ?? HardwareRingColorConfiguration.recommendedBaseColor(for: metric)
             switch metric {
@@ -121,13 +129,19 @@ struct HardwareMetricTilePresentation: Equatable {
                             localization: localization, tint: tint)
             case .fan:
                 return make(metric: .fan, sample: snapshot.fanSummarySample, localization: localization, tint: tint)
+            case .downloadSpeed:
+                return make(metric: .download, sample: snapshot.networkDownload, localization: localization,
+                            tint: tint, capMbps: speedCapsMbps[.downloadSpeed])
+            case .uploadSpeed:
+                return make(metric: .upload, sample: snapshot.networkUpload, localization: localization,
+                            tint: tint, capMbps: speedCapsMbps[.uploadSpeed])
             }
         }
     }
 
     @MainActor
     static func make(metric: HardwareMonitorTile, sample: HardwareMetricSample, localization: Localization,
-                     tint: IconRGBA = .white) -> Self {
+                     tint: IconRGBA = .white, capMbps: Double? = nil) -> Self {
         let isStale = sample.availability == .stale
         // A stale sample keeps its last value as a cached reading: show it dimmed
         // rather than flashing "—" until the next fresh sample arrives.
@@ -160,6 +174,10 @@ struct HardwareMetricTilePresentation: Equatable {
                 valueText = number
                 accessibilityValue = localization.format(.hardwareMonitorRPM, number)
                 progress = MetricProgressMapper.rpm(sample)
+            case .download, .upload:
+                valueText = NetworkSpeedFormatter.display(bytesPerSecond: value)
+                accessibilityValue = valueText
+                progress = MetricProgressMapper.speed(sample, capMbps: capMbps ?? 0)
             }
             if isStale {
                 accessibilityValue += ", " + localization.string(.hardwareMonitorStale)
@@ -186,6 +204,7 @@ struct HardwareMetricTilePresentation: Equatable {
         case .batteryTemperature: explanation = localization.string(.hardwareMonitorBatteryTemperatureHelp)
         case .fan: explanation = localization.string(.hardwareMonitorFanHelp)
         case .cpu, .gpu, .memory: explanation = ""
+        case .download, .upload: explanation = ""
         }
         let help = ["\(label): \(accessibilityValue)", explanation].filter { !$0.isEmpty }.joined(separator: "\n")
         return Self(metric: metric, label: label, valueText: valueText,

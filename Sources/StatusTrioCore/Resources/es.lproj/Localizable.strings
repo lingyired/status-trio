@@ -1164,3 +1164,10 @@
 "settings.hardwareRing.monochrome.description" = "Dibuja todo el anillo con el color de primer plano de la barra de menús, sin colores de métrica.";
 "settings.hardwareRing.thresholdColors" = "Colores de umbral";
 "settings.hardwareRing.thresholdColors.description" = "Recolorea el arco lleno en naranja al umbral de advertencia y rojo al crítico; desactivado mantiene el color de la métrica.";
+"hardware.monitor.download" = "Descarga";
+"hardware.monitor.upload" = "Subida";
+"hardware.monitor.downloadCap" = "Límite de descarga";
+"hardware.monitor.uploadCap" = "Límite de subida";
+"hardware.monitor.speed.capDescription" = "El anillo se escala según tu límite de banda ancha (Mbps).";
+"hardware.monitor.kbps" = "KB/s";
+"hardware.monitor.mbps" = "MB/s";

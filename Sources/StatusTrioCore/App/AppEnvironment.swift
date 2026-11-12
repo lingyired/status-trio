@@ -532,6 +532,10 @@ final class AppEnvironment {
                 let hardwareSnapshot = store.hardwareMetrics.observable.snapshot
                 inputs.sources.hardwareMetrics = hardwareSnapshot
                 inputs.sources.hardwareMetricColors = settings.hardwareMonitorMetricColors
+                inputs.sources.hardwareSpeedCapsMbps = [
+                    .downloadSpeed: settings.hardwareDownloadCapMbps,
+                    .uploadSpeed: settings.hardwareUploadCapMbps
+                ]
                 inputs.sources.hardwareRingLevels = hardwareRingTracker.levels(
                     snapshot: hardwareSnapshot,
                     configuration: settings.hardwareRingConfiguration,

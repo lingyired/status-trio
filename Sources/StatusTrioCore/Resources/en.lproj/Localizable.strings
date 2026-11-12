@@ -1163,3 +1163,10 @@
 "settings.hardwareRing.monochrome.description" = "Draws the whole ring in the menu-bar foreground colour, ignoring metric colours.";
 "settings.hardwareRing.thresholdColors" = "Threshold colours";
 "settings.hardwareRing.thresholdColors.description" = "Recolours the whole filled arc orange at the warning threshold and red at the critical threshold; off keeps the metric colour.";
+"hardware.monitor.download" = "Download";
+"hardware.monitor.upload" = "Upload";
+"hardware.monitor.downloadCap" = "Download cap";
+"hardware.monitor.uploadCap" = "Upload cap";
+"hardware.monitor.speed.capDescription" = "Ring fill is scaled to your broadband cap (Mbps).";
+"hardware.monitor.kbps" = "KB/s";
+"hardware.monitor.mbps" = "MB/s";

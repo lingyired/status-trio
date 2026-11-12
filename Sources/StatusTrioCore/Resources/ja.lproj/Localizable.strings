@@ -1164,3 +1164,10 @@
 "settings.hardwareRing.monochrome.description" = "リング全体をメニューバーの前景色で描画し、指標の色は使いません。";
 "settings.hardwareRing.thresholdColors" = "しきい値カラー";
 "settings.hardwareRing.thresholdColors.description" = "警告しきい値でオレンジ、危険しきい値で赤に変化。オフなら常に指標の色。";
+"hardware.monitor.download" = "ダウンロード";
+"hardware.monitor.upload" = "アップロード";
+"hardware.monitor.downloadCap" = "ダウンロード上限";
+"hardware.monitor.uploadCap" = "アップロード上限";
+"hardware.monitor.speed.capDescription" = "リングは回線上限（Mbps）を基準に描画します。";
+"hardware.monitor.kbps" = "KB/s";
+"hardware.monitor.mbps" = "MB/s";

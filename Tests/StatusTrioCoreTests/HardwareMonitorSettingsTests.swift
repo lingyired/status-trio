@@ -13,8 +13,9 @@ final class HardwareMonitorSettingsTests: XCTestCase {
         defer { defaults.removePersistentDomain(forName: name) }
         let store = SettingsStore(defaults: defaults)
         XCTAssertEqual(store.hardwareMonitorMetricOrder, HardwareMonitorMetric.allCases)
-        XCTAssertEqual(store.enabledHardwareMonitorMetrics, Set(HardwareMonitorMetric.allCases))
-        XCTAssertEqual(store.visibleHardwareMetrics, HardwareMonitorMetric.allCases)
+        XCTAssertEqual(store.enabledHardwareMonitorMetrics, SettingsStore.defaultEnabledHardwareMonitorMetrics)
+        XCTAssertEqual(store.visibleHardwareMetrics,
+                       HardwareMonitorMetric.allCases.filter { store.enabledHardwareMonitorMetrics.contains($0) })
     }
 
     func testDisablingAndReorderingPersistAndFilterVisibleMetrics() {
@@ -30,9 +31,9 @@ final class HardwareMonitorSettingsTests: XCTestCase {
         let reopened = SettingsStore(defaults: defaults)
         XCTAssertEqual(reopened.hardwareMonitorMetricOrder.first, .fan)
         XCTAssertEqual(reopened.enabledHardwareMonitorMetrics,
-                       Set(HardwareMonitorMetric.allCases).subtracting([.gpuUsage]))
+                       SettingsStore.defaultEnabledHardwareMonitorMetrics.subtracting([.gpuUsage]))
         XCTAssertEqual(reopened.visibleHardwareMetrics,
-                       reopened.hardwareMonitorMetricOrder.filter { $0 != .gpuUsage })
+                       reopened.hardwareMonitorMetricOrder.filter { reopened.enabledHardwareMonitorMetrics.contains($0) })
     }
 
     func testLastEnabledMetricCannotBeDisabled() {

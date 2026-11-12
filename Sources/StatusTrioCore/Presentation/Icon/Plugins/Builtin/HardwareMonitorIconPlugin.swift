@@ -14,6 +14,7 @@ struct HardwareMonitorIconPlugin: IconContentPlugin {
             configuration: context.configuration.behaviors.hardwareRing,
             levels: context.inputs.sources.hardwareRingLevels,
             metricColors: context.inputs.sources.hardwareMetricColors,
+            speedCapsMbps: context.inputs.sources.hardwareSpeedCapsMbps,
             now: context.now
         )
         return .available(.outerRing(state))

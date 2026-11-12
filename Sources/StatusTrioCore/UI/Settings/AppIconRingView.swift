@@ -359,6 +359,21 @@ struct AppIconRingView: View {
 
     @ViewBuilder
     private func hardwareAdvancedRow(for metric: HardwareMonitorMetric) -> some View {
+        if metric.isSpeedMetric {
+            SettingsRow(
+                title: metricLabel(metric),
+                subtitle: localization.string(.hardwareMonitorSpeedCapDescription),
+                leading: { SettingsIcon(symbol: metric.systemImage, tint: .orange) },
+                trailing: {
+                    hardwareStepper(
+                        label: "Mbps",
+                        value: speedCapBinding(metric),
+                        range: SettingsStore.hardwareSpeedCapRange,
+                        step: 50
+                    )
+                }
+            )
+        } else {
         let options = store.hardwareRingConfiguration.options(for: metric)
         // Threshold colours are only used when the ring is coloured and the
         // "threshold colours" switch is on; otherwise the steppers are inert.
@@ -401,6 +416,15 @@ struct AppIconRingView: View {
                 }
             }
         )
+        }
+    }
+
+    private func speedCapBinding(_ metric: HardwareMonitorMetric) -> Binding<Double> {
+        metric == .downloadSpeed
+            ? Binding(get: { store.hardwareDownloadCapMbps },
+                      set: { store.hardwareDownloadCapMbps = ($0).rounded() })
+            : Binding(get: { store.hardwareUploadCapMbps },
+                      set: { store.hardwareUploadCapMbps = ($0).rounded() })
     }
 
     private func hardwareStepper(
@@ -560,11 +584,12 @@ struct AppIconRingView: View {
         case .cpuTemperature: return 30...120
         case .batteryTemperature: return 20...80
         case .fan: return 0...10_000
+        case .downloadSpeed, .uploadSpeed: return SettingsStore.hardwareSpeedCapRange
         }
     }
 
     private func hardwareRangeSubtitle(metric: HardwareMonitorMetric, options: HardwareMetricRingOptions) -> String? {
-        guard !metric.isPercentageMetric, metric != .fan else { return nil }
+        guard !metric.isPercentageMetric, !metric.isSpeedMetric, metric != .fan else { return nil }
         return "\(localization.string(.settingsHardwareRingRange)): \(Int(options.displayMinimum))–\(Int(options.displayMaximum))°C"
     }
 
@@ -977,7 +1002,11 @@ enum RingContentPreviewScene {
             configuration: configuration,
             target: .currentAudioOutput,
             now: sampleDate,
-            hardwareMetricColors: store.hardwareMonitorMetricColors
+            hardwareMetricColors: store.hardwareMonitorMetricColors,
+            hardwareSpeedCapsMbps: [
+                .downloadSpeed: store.hardwareDownloadCapMbps,
+                .uploadSpeed: store.hardwareUploadCapMbps
+            ]
         )
         let scene = IconCompositionResolver.resolve(
             inputs: inputs,

@@ -33,7 +33,7 @@
   - 卡片/tooltip 文案：< 1 MB/s 显示 `KB/s`（取整），≥ 1 MB/s 显示 `MB/s`（1 位小数）。
   - 外环顶部数值空间有限：用紧凑串 `456K` / `12.3M`（不带单位后缀）。
 - **上限存储**：`SettingsStore` 两个 `@Published` Double（`hardwareDownloadCapMbps`、`hardwareUploadCapMbps`，默认 1000 / 100，范围 1…100000，持久化 + 传设置导入需评估）。
-- **默认启用**：两个新指标加入 `HardwareMonitorMetric.allCases` 与「监控」tab 的开关/排序（默认开启，用户可关）。卡片因此可能到 8 个 tile（4 行）——沿用现有 `height(for:)` 自适应。
+- **默认启用**：两个新指标加入 `HardwareMonitorMetric.allCases` 与「监控」tab 的开关/排序（默认关闭（在「监控」tab 手动开启），避免默认卡片变长与无谓采样）。卡片因此可能到 8 个 tile（4 行）——沿用现有 `height(for:)` 自适应。
 
 ## 考虑过的做法
 

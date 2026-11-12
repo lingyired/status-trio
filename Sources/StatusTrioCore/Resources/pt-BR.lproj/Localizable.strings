@@ -1164,3 +1164,10 @@
 "settings.hardwareRing.monochrome.description" = "Desenha todo o anel na cor de primeiro plano da barra de menus, sem cores das métricas.";
 "settings.hardwareRing.thresholdColors" = "Cores de limite";
 "settings.hardwareRing.thresholdColors.description" = "Recolore o arco preenchido de laranja no limite de aviso e vermelho no crítico; desligado mantém a cor da métrica.";
+"hardware.monitor.download" = "Download";
+"hardware.monitor.upload" = "Upload";
+"hardware.monitor.downloadCap" = "Limite de download";
+"hardware.monitor.uploadCap" = "Limite de upload";
+"hardware.monitor.speed.capDescription" = "O anel é proporcional ao limite da sua conexão (Mbps).";
+"hardware.monitor.kbps" = "KB/s";
+"hardware.monitor.mbps" = "MB/s";

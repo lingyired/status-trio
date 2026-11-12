@@ -1164,3 +1164,10 @@
 "settings.hardwareRing.monochrome.description" = "يرسم الحلقة كاملة بلون واجهة شريط القوائم دون ألوان المقاييس.";
 "settings.hardwareRing.thresholdColors" = "ألوان الحدود";
 "settings.hardwareRing.thresholdColors.description" = "يعيد تلوين القوس الممتلئ برتقالي عند حد التحذير وأحمر عند الحد الحرج؛ الإيقاف يحافظ على لون المقياس.";
+"hardware.monitor.download" = "التنزيل";
+"hardware.monitor.upload" = "الرفع";
+"hardware.monitor.downloadCap" = "حد التنزيل";
+"hardware.monitor.uploadCap" = "حد الرفع";
+"hardware.monitor.speed.capDescription" = "يُحسب القوس بالنسبة إلى حد النطاق (Mbps).";
+"hardware.monitor.kbps" = "KB/s";
+"hardware.monitor.mbps" = "MB/s";

@@ -1164,3 +1164,10 @@
 "settings.hardwareRing.monochrome.description" = "Рисует всё кольцо цветом переднего плана строки меню, без цветов метрик.";
 "settings.hardwareRing.thresholdColors" = "Цвета порогов";
 "settings.hardwareRing.thresholdColors.description" = "Перекрашивает заливку в оранжевый на пороге предупреждения и красный на критическом; выкл. сохраняет цвет метрики.";
+"hardware.monitor.download" = "Загрузка";
+"hardware.monitor.upload" = "Отдача";
+"hardware.monitor.downloadCap" = "Лимит загрузки";
+"hardware.monitor.uploadCap" = "Лимит отдачи";
+"hardware.monitor.speed.capDescription" = "Кольцо масштабируется по пределу канала (Мбит/с).";
+"hardware.monitor.kbps" = "КБ/с";
+"hardware.monitor.mbps" = "МБ/с";

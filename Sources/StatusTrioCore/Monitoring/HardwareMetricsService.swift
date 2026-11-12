@@ -270,6 +270,7 @@ final class HardwareMetricsService: ObservableObject {
         switch id {
         case .cpuUsage, .gpuUsage, .memoryUsage: 2
         case .cpuTemperature, .gpuTemperature, .batteryTemperature, .fanRPM: 4
+        case .networkDownload, .networkUpload: 1
         }
     }
 

@@ -37,7 +37,17 @@ enum MetricProgressMapper {
         case .batteryTemperature: temperature(sample, range: 20...60)
         case .gpuTemperature: nil
         case .fanRPM: rpm(sample)
+        // Network needs a configured cap, so it is mapped via `speed(capMbps:)`.
+        case .networkDownload, .networkUpload: nil
         }
+    }
+
+    /// Draws a throughput sample as a fraction of the configured broadband cap.
+    /// `capMbps <= 0` (unset) yields `nil` so the UI shows the value only.
+    static func speed(_ sample: HardwareMetricSample, capMbps: Double) -> Double? {
+        guard capMbps > 0, capMbps.isFinite, let value = displayableValue(sample), value >= 0 else { return nil }
+        let megabitsPerSecond = value * 8.0 / 1_000_000.0
+        return clamp(megabitsPerSecond / capMbps)
     }
 
     /// Value eligible for display: a measured, fresh number, or the cached

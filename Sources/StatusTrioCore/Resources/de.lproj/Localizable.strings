@@ -1164,3 +1164,10 @@
 "settings.hardwareRing.monochrome.description" = "Zeichnet den ganzen Ring in der Menüleisten-Vordergrundfarbe, ohne Metrikfarben.";
 "settings.hardwareRing.thresholdColors" = "Schwellenfarben";
 "settings.hardwareRing.thresholdColors.description" = "Färbt den gefüllten Bogen ab Warnschwelle orange, ab kritischer Schwelle rot; aus behält die Metrikfarbe.";
+"hardware.monitor.download" = "Download";
+"hardware.monitor.upload" = "Upload";
+"hardware.monitor.downloadCap" = "Download-Obergrenze";
+"hardware.monitor.uploadCap" = "Upload-Obergrenze";
+"hardware.monitor.speed.capDescription" = "Der Ring füllt sich relativ zur Verbindungsobergrenze (Mbps).";
+"hardware.monitor.kbps" = "KB/s";
+"hardware.monitor.mbps" = "MB/s";

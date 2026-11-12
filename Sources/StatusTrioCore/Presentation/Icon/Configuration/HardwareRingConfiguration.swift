@@ -108,6 +108,10 @@ struct HardwareMetricRingOptions: Codable, Equatable, Hashable, Sendable {
             // `displayMaximum == displayMinimum` means "use the sample's trusted
             // maximum RPM"; without one the arc stays an unfilled track.
             return .init(displayMinimum: 0, displayMaximum: 0, warningThreshold: 3000, criticalThreshold: 5000)
+        case .downloadSpeed:
+            return .init(displayMinimum: 0, displayMaximum: 1000, warningThreshold: 0, criticalThreshold: 0)
+        case .uploadSpeed:
+            return .init(displayMinimum: 0, displayMaximum: 100, warningThreshold: 0, criticalThreshold: 0)
         }
     }
 
@@ -130,6 +134,14 @@ struct HardwareMetricRingOptions: Codable, Equatable, Hashable, Sendable {
                 // Keep the dynamic-limit sentinel (0...0) or repair a bogus range.
                 min = 0
                 max = 0
+            }
+        } else if metric.isSpeedMetric {
+            // Range is a broadband cap in Mbps; keep it ordered and sane.
+            min = 0
+            max = Swift.min(100000, Swift.max(1, max))
+            if max <= min {
+                min = fallback.displayMinimum
+                max = fallback.displayMaximum
             }
         } else {
             // Temperature: keep range sane and ordered.
@@ -224,6 +236,10 @@ struct HardwareRingColorConfiguration: Codable, Equatable, Hashable, Sendable {
             return IconRGBA(red: 0.16, green: 0.66, blue: 0.62, alpha: 1)
         case .fan:
             return IconRGBA(red: 0.45, green: 0.55, blue: 0.68, alpha: 1)
+        case .downloadSpeed:
+            return IconRGBA(red: 0.20, green: 0.70, blue: 0.45, alpha: 1)
+        case .uploadSpeed:
+            return IconRGBA(red: 0.95, green: 0.60, blue: 0.20, alpha: 1)
         }
     }
 
@@ -361,6 +377,7 @@ extension HardwareMonitorMetric {
         switch self {
         case .cpuUsage, .gpuUsage, .memoryUsage: return true
         case .cpuTemperature, .batteryTemperature, .fan: return false
+        case .downloadSpeed, .uploadSpeed: return false
         }
     }
 }

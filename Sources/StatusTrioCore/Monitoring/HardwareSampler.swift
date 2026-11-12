@@ -8,6 +8,7 @@ final class HardwareSampler: @unchecked Sendable {
     private let gpuReader = GPUReader()
     private let memoryReader = MemoryReader()
     private let sensorReader = SensorSMCReader()
+    private let networkReader = NetworkThroughputReader()
     private var hasAttemptedCPURead = false
 
     func reset() async {
@@ -33,7 +34,8 @@ final class HardwareSampler: @unchecked Sendable {
                                            includeGPUTemperature: gpuTemperature,
                                            includeBatteryTemperature: batteryTemperature,
                                            includeFans: fans, at: date)
-                })
+                },
+                                            networkProvider: { self.networkReader.read(at: $0) })
                 if ids.contains(.cpuUsage) { self.hasAttemptedCPURead = true }
                 continuation.resume(returning: snapshot)
             }
@@ -46,7 +48,8 @@ final class HardwareSampler: @unchecked Sendable {
                         cpuProvider: (Date) -> CPUReading?,
                         gpuProvider: (Date) -> GPUReading?,
                         memoryProvider: (Date) -> MemoryReader.Reading?,
-                        sensorProvider: (Bool, Bool, Bool, Bool, Date) -> SensorReading) -> HardwareMetricsSnapshot {
+                        sensorProvider: (Bool, Bool, Bool, Bool, Date) -> SensorReading,
+                        networkProvider: (Date) -> NetworkThroughputReading? = { _ in nil }) -> HardwareMetricsSnapshot {
         let temperature = ids.contains(.cpuTemperature)
         let gpuTemperature = ids.contains(.gpuTemperature)
         let batteryTemperature = ids.contains(.batteryTemperature)
@@ -54,9 +57,11 @@ final class HardwareSampler: @unchecked Sendable {
         let cpu = ids.contains(.cpuUsage) ? cpuProvider(date) : nil
         let gpu = ids.contains(.gpuUsage) ? gpuProvider(date) : nil
         let memory = ids.contains(.memoryUsage) ? memoryProvider(date) : nil
+        let needsNetwork = ids.contains(.networkDownload) || ids.contains(.networkUpload)
         let sensors = temperature || gpuTemperature || batteryTemperature || fans
             ? sensorProvider(temperature, gpuTemperature, batteryTemperature, fans, date) : nil
-        return map(ids: ids, cpu: cpu, gpu: gpu, memory: memory, sensors: sensors,
+        let network = needsNetwork ? networkProvider(date) : nil
+        return map(ids: ids, cpu: cpu, gpu: gpu, memory: memory, sensors: sensors, network: network,
                    isFirstCPURead: isFirstCPURead, at: date)
     }
 
@@ -66,6 +71,7 @@ final class HardwareSampler: @unchecked Sendable {
     /// fanless. Fan-family demand includes all per-fan values and limits.
     static func map(ids: Set<HardwareMetricID>, cpu: CPUReading?, gpu: GPUReading?,
                     memory: MemoryReader.Reading? = nil, sensors: SensorReading?,
+                    network: NetworkThroughputReading? = nil,
                     isFirstCPURead: Bool, at date: Date) -> HardwareMetricsSnapshot {
         var snapshot = HardwareMetricsSnapshot.empty
         for id in ids {
@@ -104,6 +110,15 @@ final class HardwareSampler: @unchecked Sendable {
                 snapshot.samples[id] = HardwareMetricSample(
                     unit: .rpm, sampledAt: sensors?.sampledAt ?? date, source: .smc,
                     availability: .temporarilyUnavailable)
+            case .networkDownload, .networkUpload:
+                let value: Double? = network.map { reading in
+                    id == .networkDownload
+                        ? max(0, reading.downloadBytesPerSecond)
+                        : max(0, reading.uploadBytesPerSecond)
+                }
+                snapshot.samples[id] = HardwareMetricSample(
+                    value: value, unit: .bytesPerSecond, sampledAt: network?.sampledAt ?? date,
+                    source: .network, availability: value != nil ? .measured : .collecting)
             }
         }
         let requestedFans = ids.compactMap { id -> Int? in

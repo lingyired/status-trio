@@ -166,6 +166,8 @@ final class StatusPanelViewModel: ObservableObject {
     @Published private(set) var hardwareMonitorMetrics: [HardwareMonitorMetric]
     /// Shared per-metric colours shown on the card bars (same field as the ring).
     @Published private(set) var hardwareMonitorMetricColors: [HardwareMonitorMetric: IconRGBA]
+    /// Broadband caps (Mbps) for the network-speed tiles.
+    @Published private(set) var hardwareSpeedCapsMbps: [HardwareMonitorMetric: Double]
 
     private var isStarted = false
     private var bluetoothIsExpanded = false
@@ -218,6 +220,10 @@ final class StatusPanelViewModel: ObservableObject {
         visiblePopupSections = settings.visiblePopupSections
         hardwareMonitorMetrics = settings.visibleHardwareMetrics
         hardwareMonitorMetricColors = settings.hardwareMonitorMetricColors
+        hardwareSpeedCapsMbps = [
+            .downloadSpeed: settings.hardwareDownloadCapMbps,
+            .uploadSpeed: settings.hardwareUploadCapMbps
+        ]
         battery = PanelPresentationMapper.battery(
             store.popupSnapshot.battery,
             powerSample: store.powerSampling.systemPower,
@@ -303,6 +309,11 @@ final class StatusPanelViewModel: ObservableObject {
         if hardwareMonitorMetricColors != settings.hardwareMonitorMetricColors {
             hardwareMonitorMetricColors = settings.hardwareMonitorMetricColors
         }
+        let caps: [HardwareMonitorMetric: Double] = [
+            .downloadSpeed: settings.hardwareDownloadCapMbps,
+            .uploadSpeed: settings.hardwareUploadCapMbps
+        ]
+        if hardwareSpeedCapsMbps != caps { hardwareSpeedCapsMbps = caps }
         subscribeToPopupPresentationSources()
         subscribeToChargeToFullNow()
         reconcileSourceSubscriptions()
@@ -381,6 +392,15 @@ final class StatusPanelViewModel: ObservableObject {
             .sink { [weak self] colors in
                 guard let self else { return }
                 if self.hardwareMonitorMetricColors != colors { self.hardwareMonitorMetricColors = colors }
+            }
+            .store(in: &cancellables)
+
+        Publishers.CombineLatest(settings.$hardwareDownloadCapMbps, settings.$hardwareUploadCapMbps)
+            .removeDuplicates { $0.0 == $1.0 && $0.1 == $1.1 }
+            .sink { [weak self] download, upload in
+                guard let self else { return }
+                let caps: [HardwareMonitorMetric: Double] = [.downloadSpeed: download, .uploadSpeed: upload]
+                if self.hardwareSpeedCapsMbps != caps { self.hardwareSpeedCapsMbps = caps }
             }
             .store(in: &cancellables)
         // Non-section settings are delivered from `willSet`; only queue the

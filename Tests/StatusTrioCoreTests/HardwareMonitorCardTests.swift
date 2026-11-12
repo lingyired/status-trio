@@ -3,6 +3,14 @@ import SwiftUI
 import Testing
 @testable import StatusTrioCore
 
+/// Default card metrics (network speed is opt-in, so not part of the default 6).
+private enum HardwareMonitorCardTestMetrics {
+    static let defaults: [HardwareMonitorMetric] = [
+        .cpuUsage, .gpuUsage, .memoryUsage, .cpuTemperature, .batteryTemperature, .fan
+    ]
+}
+
+
 @MainActor
 struct HardwareMonitorPresentationTests {
     @Test func unavailableMetricsKeepAllFourSlotsWithoutOldValuesOrProgress() {
@@ -176,7 +184,7 @@ struct HardwareMonitorPresentationTests {
         let fixture = HardwareMonitorTestFixture()
         defer { fixture.cleanup() }
         let keys = LocalizationKey.allCases.filter { $0.rawValue.hasPrefix("hardware.monitor.") }
-        #expect(keys.count == 21)
+        #expect(keys.count == 28)
         for language in AppLanguage.allCases {
             let bundle = try #require(Localization.resourceBundle(for: language))
             for key in keys {
@@ -211,7 +219,7 @@ struct HardwareMonitorCardLayoutTests {
         let fixture = HardwareMonitorTestFixture()
         defer { fixture.cleanup() }
         let model = HardwareMonitorObservable(snapshot: .init(fanCount: 0))
-        let host = NSHostingView(rootView: HardwareMonitorCardView(model: model, metrics: HardwareMonitorMetric.allCases)
+        let host = NSHostingView(rootView: HardwareMonitorCardView(model: model, metrics: HardwareMonitorCardTestMetrics.defaults)
             .environmentObject(fixture.localization)
             .frame(width: 302))
         host.layoutSubtreeIfNeeded()
@@ -253,8 +261,8 @@ struct HardwareMonitorCardLayoutTests {
     @Test func subsetMetricsUseTheirOwnFixedHeight() {
         let fixture = HardwareMonitorTestFixture()
         defer { fixture.cleanup() }
-        for count in 1...HardwareMonitorMetric.allCases.count {
-            let metrics = Array(HardwareMonitorMetric.allCases.prefix(count))
+        for count in 1...HardwareMonitorCardTestMetrics.defaults.count {
+            let metrics = Array(HardwareMonitorCardTestMetrics.defaults.prefix(count))
             let model = HardwareMonitorObservable()
             let host = NSHostingView(rootView: HardwareMonitorCardView(model: model, metrics: metrics)
                 .environmentObject(fixture.localization)
@@ -300,7 +308,7 @@ struct HardwareMonitorCardLayoutTests {
         dark: Bool
     ) -> NSHostingView<AnyView> {
         let model = HardwareMonitorObservable(snapshot: snapshot)
-        let host = NSHostingView(rootView: AnyView(HardwareMonitorCardView(model: model, metrics: HardwareMonitorMetric.allCases)
+        let host = NSHostingView(rootView: AnyView(HardwareMonitorCardView(model: model, metrics: HardwareMonitorCardTestMetrics.defaults)
             .environmentObject(fixture.localization)
             .environment(\.locale, fixture.localization.resolvedLanguage.locale)
             .environment(\.layoutDirection, fixture.localization.resolvedLanguage.layoutDirection)

@@ -9,6 +9,10 @@ enum HardwareMetricID: Hashable, Sendable {
     case gpuTemperature
     case batteryTemperature
     case fanRPM(index: Int)
+    /// Aggregate download throughput across physical interfaces (bytes/second).
+    case networkDownload
+    /// Aggregate upload throughput across physical interfaces (bytes/second).
+    case networkUpload
 }
 
 /// How a metric sample may be presented. Distinct from a mere missing value so
@@ -31,6 +35,8 @@ enum HardwareMetricUnit: Equatable, Sendable {
     case percent
     case celsius
     case rpm
+    /// Bytes per second (network throughput); formatters pick KB/s or MB/s.
+    case bytesPerSecond
     case none
 }
 
@@ -40,6 +46,7 @@ enum HardwareMetricSource: Equatable, Sendable {
     case smc
     case ioAccelerator
     case powerIO
+    case network
 }
 
 /// Optional sample metadata (fan limits, temperature sample statistics).
@@ -142,6 +149,8 @@ struct HardwareMetricsSnapshot: Equatable, Sendable {
     var cpuTemperature: HardwareMetricSample { self[.cpuTemperature] }
     var gpuTemperature: HardwareMetricSample { self[.gpuTemperature] }
     var batteryTemperature: HardwareMetricSample { self[.batteryTemperature] }
+    var networkDownload: HardwareMetricSample { self[.networkDownload] }
+    var networkUpload: HardwareMetricSample { self[.networkUpload] }
 
     /// Per-fan samples sorted by index, for a future details expansion.
     var fanSamples: [HardwareMetricSample] {
@@ -207,6 +216,7 @@ struct HardwareMetricsSnapshot: Equatable, Sendable {
         case .cpuUsage, .gpuUsage, .memoryUsage: .percent
         case .cpuTemperature, .gpuTemperature, .batteryTemperature: .celsius
         case .fanRPM: .rpm
+        case .networkDownload, .networkUpload: .bytesPerSecond
         }
     }
 }
@@ -217,6 +227,7 @@ enum HardwareMetricFamily: Hashable, Sendable, CaseIterable {
     case usage
     case temperature
     case fan
+    case network
 
     static func requested(from ids: Set<HardwareMetricID>) -> Set<HardwareMetricFamily> {
         var result: Set<HardwareMetricFamily> = []
@@ -225,6 +236,7 @@ enum HardwareMetricFamily: Hashable, Sendable, CaseIterable {
             case .cpuUsage, .gpuUsage, .memoryUsage: result.insert(.usage)
             case .cpuTemperature, .gpuTemperature, .batteryTemperature: result.insert(.temperature)
             case .fanRPM: result.insert(.fan)
+            case .networkDownload, .networkUpload: result.insert(.network)
             }
         }
         return result

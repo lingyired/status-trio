@@ -1164,3 +1164,10 @@
 "settings.hardwareRing.monochrome.description" = "Dessine tout l’anneau dans la couleur de premier plan de la barre des menus, sans couleurs de métrique.";
 "settings.hardwareRing.thresholdColors" = "Couleurs de seuil";
 "settings.hardwareRing.thresholdColors.description" = "Recolore l’arc rempli en orange au seuil d’avertissement et en rouge au seuil critique ; désactivé, garde la couleur de métrique.";
+"hardware.monitor.download" = "Téléchargement";
+"hardware.monitor.upload" = "Téléversement";
+"hardware.monitor.downloadCap" = "Limite de téléchargement";
+"hardware.monitor.uploadCap" = "Limite de téléversement";
+"hardware.monitor.speed.capDescription" = "L’anneau est proportionnel à votre débit maximal (Mbps).";
+"hardware.monitor.kbps" = "Ko/s";
+"hardware.monitor.mbps" = "Mo/s";

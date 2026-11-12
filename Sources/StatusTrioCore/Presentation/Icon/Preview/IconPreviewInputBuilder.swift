@@ -9,7 +9,8 @@ enum IconPreviewInputBuilder {
         target: IconDesignerBluetoothTarget,
         now: Date,
         runtimeOptions: IconPresentationRuntimeOptions? = nil,
-        hardwareMetricColors: [HardwareMonitorMetric: IconRGBA] = [:]
+        hardwareMetricColors: [HardwareMonitorMetric: IconRGBA] = [:],
+        hardwareSpeedCapsMbps: [HardwareMonitorMetric: Double] = [:]
     ) -> IconResolutionInputs {
         let batteryPercentage = min(100, max(0, samples.macBattery.percentage))
         let battery = BatteryStatus(
@@ -129,7 +130,8 @@ enum IconPreviewInputBuilder {
                 connectedBluetoothDeviceSymbol: connectedSymbol,
                 connectedBluetoothDeviceIsAudio: target.isSpecifiedAudioTarget(sample: samples.bluetoothTarget),
                 hardwareMetrics: hardwareSnapshot(samples.hardwareMonitor, now: now),
-                hardwareMetricColors: hardwareMetricColors
+                hardwareMetricColors: hardwareMetricColors,
+                hardwareSpeedCapsMbps: hardwareSpeedCapsMbps
             )
         )
     }

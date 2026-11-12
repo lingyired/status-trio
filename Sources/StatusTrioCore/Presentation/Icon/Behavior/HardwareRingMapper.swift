@@ -20,6 +20,7 @@ enum HardwareRingMapper {
         case .percent: return 1.8
         case .celsius: return 1.4
         case .rpm: return 1.2
+        case .bytesPerSecond: return 1.2
         case .none: return 1.4
         }
     }
@@ -40,6 +41,7 @@ enum HardwareRingMapper {
         configuration rawConfiguration: HardwareRingConfiguration,
         levels: [HardwareMonitorMetric: HardwareLoadLevel] = [:],
         metricColors: [HardwareMonitorMetric: IconRGBA] = [:],
+        speedCapsMbps: [HardwareMonitorMetric: Double] = [:],
         now: Date = .now
     ) -> OuterRingState {
         let configuration = rawConfiguration.normalized()
@@ -50,7 +52,7 @@ enum HardwareRingMapper {
             let metric = configuration.primaryMetric
             let segment = segment(metric: metric, position: nil, snapshot: snapshot,
                                   configuration: configuration, levels: levels,
-                                  metricColors: metricColors, now: now)
+                                  metricColors: metricColors, speedCapsMbps: speedCapsMbps, now: now)
             return OuterRingState(
                 segments: [segment],
                 gap: singleGapStyle(for: accessory),
@@ -63,10 +65,10 @@ enum HardwareRingMapper {
                 ?? HardwareMonitorMetric.allCases.first { $0 != left } ?? .gpuUsage
             let leftSegment = segment(metric: left, position: .left, snapshot: snapshot,
                                       configuration: configuration, levels: levels,
-                                      metricColors: metricColors, now: now)
+                                      metricColors: metricColors, speedCapsMbps: speedCapsMbps, now: now)
             let rightSegment = segment(metric: right, position: .right, snapshot: snapshot,
                                        configuration: configuration, levels: levels,
-                                       metricColors: metricColors, now: now)
+                                       metricColors: metricColors, speedCapsMbps: speedCapsMbps, now: now)
             return OuterRingState(
                 segments: [leftSegment, rightSegment],
                 gap: .closed,
@@ -85,11 +87,13 @@ enum HardwareRingMapper {
         configuration: HardwareRingConfiguration,
         levels: [HardwareMonitorMetric: HardwareLoadLevel],
         metricColors: [HardwareMonitorMetric: IconRGBA],
+        speedCapsMbps: [HardwareMonitorMetric: Double],
         now: Date
     ) -> RingSegmentState {
         let options = configuration.options(for: metric)
         let sample = sample(for: metric, in: snapshot)
-        guard let progress = progress(metric: metric, sample: sample, options: options, now: now) else {
+        let capMbps = speedCapsMbps[metric]
+        guard let progress = progress(metric: metric, sample: sample, options: options, capMbps: capMbps, now: now) else {
             return RingSegmentState(progress: 0, color: .inactive, position: position)
         }
         let level = levels[metric] ?? HardwareRingThresholdEngine.immediateLevel(value: sample.value ?? 0, options: options)
@@ -126,6 +130,7 @@ enum HardwareRingMapper {
         metric: HardwareMonitorMetric,
         sample: HardwareMetricSample,
         options: HardwareMetricRingOptions,
+        capMbps: Double? = nil,
         now: Date
     ) -> Double? {
         guard sample.availability == .measured, sample.isFresh(at: now) else { return nil }
@@ -133,6 +138,10 @@ enum HardwareRingMapper {
 
         if metric.isPercentageMetric {
             return clamp(value / 100.0)
+        }
+        if metric.isSpeedMetric {
+            guard let capMbps, capMbps > 0, capMbps.isFinite else { return nil }
+            return clamp((value * 8.0 / 1_000_000.0) / capMbps)
         }
         if metric == .fan {
             let upper = options.displayMaximum > options.displayMinimum
@@ -224,6 +233,8 @@ enum HardwareRingMapper {
                 return String(format: "%.1fk", value / 1000)
             }
             return "\(Int(value.rounded()))"
+        case .bytesPerSecond:
+            return NetworkSpeedFormatter.compact(bytesPerSecond: value)
         case .none:
             return "\(Int(value.rounded()))"
         }

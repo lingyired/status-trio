@@ -14,6 +14,9 @@ struct IconSourceSnapshot: Equatable, Sendable {
     var hardwareRingLevels: [HardwareMonitorMetric: HardwareLoadLevel] = [:]
     /// The shared per-metric base colours (same field as the status-panel bars).
     var hardwareMetricColors: [HardwareMonitorMetric: IconRGBA] = [:]
+    /// Broadband caps (Mbps) for the network-speed metrics, so the ring can turn
+    /// a throughput sample into a filled fraction.
+    var hardwareSpeedCapsMbps: [HardwareMonitorMetric: Double] = [:]
 
     static let empty = Self(availability: [:])
 

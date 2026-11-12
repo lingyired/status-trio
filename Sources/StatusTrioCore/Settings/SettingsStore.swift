@@ -172,6 +172,15 @@ final class SettingsStore: ObservableObject {
     static let airPodsRingFallsBackToBatteryDefaultsKey = "airPodsRingFallsBackToBattery"
     static let hardwareRingConfigurationDefaultsKey = "hardwareRingConfigurationV1"
     static let hardwareMonitorMetricColorsDefaultsKey = "hardwareMonitorMetricColorsV1"
+    static let hardwareDownloadCapMbpsDefaultsKey = "hardwareDownloadCapMbps"
+    static let hardwareUploadCapMbpsDefaultsKey = "hardwareUploadCapMbps"
+    static let hardwareSpeedCapRange: ClosedRange<Double> = 1...100000
+    static let defaultHardwareDownloadCapMbps: Double = 1000
+    static let defaultHardwareUploadCapMbps: Double = 100
+
+    static func clampedHardwareSpeedCap(_ value: Double, fallback: Double) -> Double {
+        value.isFinite ? min(hardwareSpeedCapRange.upperBound, max(hardwareSpeedCapRange.lowerBound, value)) : fallback
+    }
     static let defaultVolumeDisplayStyle: VolumeDisplayStyle = .dots
     static let volumeDisplayStyleDefaultsKey = "volumeDisplayStyle"
     static let defaultRingStrokeStyle: RingStrokeStyle = .regular
@@ -234,7 +243,8 @@ final class SettingsStore: ObservableObject {
     static let defaultEnabledPopupSections: Set<PopupSection> = [.battery, .network, .vpn, .volume]
     /// Metrics shown by the hardware-monitor card, in display order.
     static let defaultHardwareMonitorMetricOrder: [HardwareMonitorMetric] = HardwareMonitorMetric.allCases
-    static let defaultEnabledHardwareMonitorMetrics: Set<HardwareMonitorMetric> = Set(HardwareMonitorMetric.allCases)
+    static let defaultEnabledHardwareMonitorMetrics: Set<HardwareMonitorMetric> =
+        HardwareMonitorMetric.defaultEnabledMetrics
     /// Set once the VPN row has been offered to a stored section list.
     ///
     /// `defaultEnabledPopupSections` only reaches a user who has never saved
@@ -1118,6 +1128,23 @@ final class SettingsStore: ObservableObject {
         var copy = hardwareMonitorMetricColors
         copy[metric] = color.normalized()
         hardwareMonitorMetricColors = copy
+    }
+
+    /// Broadband caps used to turn network throughput into a ring fraction.
+    @Published var hardwareDownloadCapMbps: Double = SettingsStore.defaultHardwareDownloadCapMbps {
+        didSet {
+            let clamped = Self.clampedHardwareSpeedCap(hardwareDownloadCapMbps, fallback: Self.defaultHardwareDownloadCapMbps)
+            guard clamped == hardwareDownloadCapMbps else { hardwareDownloadCapMbps = clamped; return }
+            defaults.set(clamped, forKey: Self.hardwareDownloadCapMbpsDefaultsKey)
+        }
+    }
+
+    @Published var hardwareUploadCapMbps: Double = SettingsStore.defaultHardwareUploadCapMbps {
+        didSet {
+            let clamped = Self.clampedHardwareSpeedCap(hardwareUploadCapMbps, fallback: Self.defaultHardwareUploadCapMbps)
+            guard clamped == hardwareUploadCapMbps else { hardwareUploadCapMbps = clamped; return }
+            defaults.set(clamped, forKey: Self.hardwareUploadCapMbpsDefaultsKey)
+        }
     }
 
     @Published var bluetoothAudioIconChoiceRawValue: String {
@@ -2702,6 +2729,12 @@ final class SettingsStore: ObservableObject {
         } else {
             self.hardwareMonitorMetricColors = [:]
         }
+        self.hardwareDownloadCapMbps = Self.clampedHardwareSpeedCap(
+            defaults.object(forKey: Self.hardwareDownloadCapMbpsDefaultsKey) as? Double ?? Self.defaultHardwareDownloadCapMbps,
+            fallback: Self.defaultHardwareDownloadCapMbps)
+        self.hardwareUploadCapMbps = Self.clampedHardwareSpeedCap(
+            defaults.object(forKey: Self.hardwareUploadCapMbpsDefaultsKey) as? Double ?? Self.defaultHardwareUploadCapMbps,
+            fallback: Self.defaultHardwareUploadCapMbps)
         bootstrapIconConfiguration()
     }
 

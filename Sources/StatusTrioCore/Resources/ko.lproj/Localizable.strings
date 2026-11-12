@@ -1164,3 +1164,10 @@
 "settings.hardwareRing.monochrome.description" = "링 전체를 메뉴 막대 전경색으로 그리며 지표 색상을 사용하지 않습니다.";
 "settings.hardwareRing.thresholdColors" = "임계값 색상";
 "settings.hardwareRing.thresholdColors.description" = "경고 임계값에서 주황, 위험 임계값에서 빨강으로 표시. 끄면 항상 지표 색상.";
+"hardware.monitor.download" = "다운로드";
+"hardware.monitor.upload" = "업로드";
+"hardware.monitor.downloadCap" = "다운로드 상한";
+"hardware.monitor.uploadCap" = "업로드 상한";
+"hardware.monitor.speed.capDescription" = "링은 회선 상한(Mbps) 기준으로 표시됩니다.";
+"hardware.monitor.kbps" = "KB/s";
+"hardware.monitor.mbps" = "MB/s";
