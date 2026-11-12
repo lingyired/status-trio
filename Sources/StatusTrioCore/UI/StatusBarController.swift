@@ -1932,7 +1932,30 @@ final class StatusBarController: NSObject {
         }
     }
 
-    private func showMenu() {
+    /// Pops the right-click context menu below the status item (#302).
+    ///
+    /// The anchor is the button's local bounds, but those bounds can be briefly
+    /// wrong during status-item/menu-bar lifecycle churn, which is what pushed
+    /// the menu away from the icon every so often. Validate the same screen rect
+    /// the panel path uses and, when it is unusable, retry on the next run-loop
+    /// turn instead of popping at the stale position.
+    private func showMenu(attempt: Int = 0) {
+        let screens = NSScreen.screens.map {
+            StatusPanelShortcutScreen(frame: $0.frame, visibleFrame: $0.visibleFrame)
+        }
+        let decision = StatusMenuPresentationPolicy.decision(
+            menuBarRect: visibleMenuBarAnchor()?.screenRect,
+            isStatusItemVisible: isStatusItemVisible,
+            screens: screens,
+            attempt: attempt
+        )
+        guard decision == .present else {
+            DispatchQueue.main.async { [weak self] in
+                self?.showMenu(attempt: attempt + 1)
+            }
+            return
+        }
+
         let menu = StatusMenuBuilder.makeMenu(
             version: Self.appVersion,
             settingsTarget: self,
