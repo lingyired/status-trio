@@ -177,7 +177,7 @@ struct HardwareMetricTilePresentation: Equatable {
                 accessibilityValue = localization.format(.hardwareMonitorRPM, number)
                 progress = MetricProgressMapper.rpm(sample)
             case .download, .upload:
-                valueText = NetworkSpeedFormatter.displayWithBits(bytesPerSecond: value)
+                valueText = NetworkSpeedFormatter.display(bytesPerSecond: value)
                 accessibilityValue = valueText
                 progress = MetricProgressMapper.speed(sample, capMbps: capMbps ?? 0)
             }
@@ -242,8 +242,8 @@ private struct HardwareMonitorTileView: View {
                     .font(.system(size: presentation.metric.isSpeed ? 10 : 11, weight: .medium))
                     .monospacedDigit()
                     .lineLimit(1)
-                    .minimumScaleFactor(presentation.metric.isSpeed ? 0.5 : 0.8)
-                    .frame(width: presentation.metric.isSpeed ? 118 : 52, alignment: .trailing)
+                    .minimumScaleFactor(presentation.metric.isSpeed ? 0.6 : 0.8)
+                    .frame(width: presentation.metric.isSpeed ? 76 : 52, alignment: .trailing)
                     .opacity(presentation.isStale ? 0.6 : 1)
             }
             .transaction { transaction in

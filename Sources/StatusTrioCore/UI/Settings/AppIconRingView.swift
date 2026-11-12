@@ -1050,6 +1050,10 @@ private struct HardwareCapField: View {
             Text("Mbps")
                 .font(.system(size: 11))
                 .foregroundStyle(.secondary)
+            Text("≈ \(String(format: "%.1f", value / 8)) MB/s")
+                .font(.system(size: 10))
+                .foregroundStyle(.tertiary)
+                .frame(width: 74, alignment: .leading)
         }
     }
 
