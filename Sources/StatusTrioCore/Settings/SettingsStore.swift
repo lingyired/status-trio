@@ -200,18 +200,17 @@ final class SettingsStore: ObservableObject {
     static let defaultPopupSectionOrder: [PopupSection] = [
         .battery, .network, .vpn, .bluetooth, .volume, .audioInput, .brightness, .inputSource
     ]
-    static let defaultEnabledPopupSections: Set<PopupSection> = [.battery, .network, .vpn, .volume]
-    /// Set once the VPN row has been offered to a stored section list.
-    ///
-    /// `defaultEnabledPopupSections` only reaches a user who has never saved
-    /// the list, so the row is added to an existing list exactly once instead —
-    /// after that, a stored list without `.vpn` means the user switched the row
-    /// off, and that choice has to survive every later launch.
-    static let vpnPopupSectionIntroducedDefaultsKey = "vpnPopupSectionIntroduced.v1"
-    static let popupScrollAdjustsVolumeDefaultsKey = "popupScrollAdjustsVolume"
-    static let defaultPopupScrollAdjustsVolume = true
-    static let popupVolumeScrollScopeDefaultsKey = "popupVolumeScrollScope"
-    static let defaultPopupVolumeScrollScope: PopupVolumeScrollScope = .panel
+    /// Sections enabled for a fresh install. The VPN row is opt-in now: it is a
+    /// regular section but is not part of this default set, so a new install
+    /// starts with it switched off. An existing stored selection is honoured
+    /// as-is, so a user who already has the row keeps it.
+    static let defaultEnabledPopupSections: Set<PopupSection> = [.battery, .network, .volume]
+    /// Legacy keys kept only as migration sources for the single panel-scroll
+    /// option this change introduces. They are never written again.
+    static let legacyPopupScrollAdjustsVolumeDefaultsKey = "popupScrollAdjustsVolume"
+    static let legacyPopupVolumeScrollScopeDefaultsKey = "popupVolumeScrollScope"
+    static let popupPanelScrollAdjustsVolumeDefaultsKey = "popupPanelScrollAdjustsVolume"
+    static let defaultPopupPanelScrollAdjustsVolume = false
     static let popupVolumeScrollDirectionDefaultsKey = "popupVolumeScrollDirection"
     static let defaultPopupVolumeScrollDirection: PopupVolumeScrollDirection = .up
     static let popupVolumeNaturalScrollingDefaultsKey = "popupVolumeNaturalScrolling"
@@ -1325,11 +1324,11 @@ final class SettingsStore: ObservableObject {
         }
     }
 
-    @Published var popupScrollAdjustsVolume: Bool {
+    @Published var popupPanelScrollAdjustsVolume: Bool {
         didSet {
             defaults.set(
-                popupScrollAdjustsVolume,
-                forKey: Self.popupScrollAdjustsVolumeDefaultsKey
+                popupPanelScrollAdjustsVolume,
+                forKey: Self.popupPanelScrollAdjustsVolumeDefaultsKey
             )
         }
     }
@@ -1339,15 +1338,6 @@ final class SettingsStore: ObservableObject {
             defaults.set(
                 returnsToSummaryOnOpen,
                 forKey: Self.returnsToSummaryOnOpenDefaultsKey
-            )
-        }
-    }
-
-    @Published var popupVolumeScrollScope: PopupVolumeScrollScope {
-        didSet {
-            defaults.set(
-                popupVolumeScrollScope.rawValue,
-                forKey: Self.popupVolumeScrollScopeDefaultsKey
             )
         }
     }
@@ -2112,9 +2102,12 @@ final class SettingsStore: ObservableObject {
         let storedEnabledPopupSections = defaults.stringArray(
             forKey: Self.enabledPopupSectionsDefaultsKey
         )
-        let storedPopupVolumeScrollScope = defaults.string(
-            forKey: Self.popupVolumeScrollScopeDefaultsKey
+        let storedLegacyPopupScrollScope = defaults.string(
+            forKey: Self.legacyPopupVolumeScrollScopeDefaultsKey
         )
+        let storedLegacyPopupScrollMaster = defaults.object(
+            forKey: Self.legacyPopupScrollAdjustsVolumeDefaultsKey
+        ) as? Bool
         let storedPopupVolumeScrollDirection = defaults.string(
             forKey: Self.popupVolumeScrollDirectionDefaultsKey
         )
@@ -2546,36 +2539,28 @@ final class SettingsStore: ObservableObject {
         self.popupSectionOrder = Self.sanitizedPopupSectionOrder(
             storedPopupSectionOrder
         )
-        let hasIntroducedVPN = defaults.bool(
-            forKey: Self.vpnPopupSectionIntroducedDefaultsKey
+        self.enabledPopupSections = Self.sanitizedEnabledPopupSections(
+            storedEnabledPopupSections
         )
-        let migratedEnabledPopupSections = Self.sanitizedEnabledPopupSections(
-            storedEnabledPopupSections,
-            hasIntroducedVPN: hasIntroducedVPN
+        let storedPanelScrollAdjustsVolume = defaults.object(
+            forKey: Self.popupPanelScrollAdjustsVolumeDefaultsKey
+        ) as? Bool
+        let resolvedPanelScrollAdjustsVolume = Self.resolvedPanelScrollAdjustsVolume(
+            storedValue: storedPanelScrollAdjustsVolume,
+            legacyMaster: storedLegacyPopupScrollMaster,
+            legacyScopeRaw: storedLegacyPopupScrollScope,
+            hasExistingInstallation: hadLegacyInstallMarker
         )
-        self.enabledPopupSections = migratedEnabledPopupSections
-        if !hasIntroducedVPN {
-            // The migration has to be written back by hand: `didSet` does not run
-            // for an assignment made inside `init`, so a migrated list that was
-            // left only in memory would be rebuilt from the stored list — which
-            // lacks `.vpn` — on the next launch, and the row would vanish again.
-            if storedEnabledPopupSections != nil {
-                defaults.set(
-                    migratedEnabledPopupSections.map(\.rawValue).sorted(),
-                    forKey: Self.enabledPopupSectionsDefaultsKey
-                )
-            }
-            defaults.set(true, forKey: Self.vpnPopupSectionIntroducedDefaultsKey)
+        self.popupPanelScrollAdjustsVolume = resolvedPanelScrollAdjustsVolume
+        if storedPanelScrollAdjustsVolume == nil {
+            defaults.set(
+                resolvedPanelScrollAdjustsVolume,
+                forKey: Self.popupPanelScrollAdjustsVolumeDefaultsKey
+            )
         }
-        self.popupScrollAdjustsVolume = defaults.object(
-            forKey: Self.popupScrollAdjustsVolumeDefaultsKey
-        ) as? Bool ?? Self.defaultPopupScrollAdjustsVolume
         self.returnsToSummaryOnOpen = defaults.object(
             forKey: Self.returnsToSummaryOnOpenDefaultsKey
         ) as? Bool ?? false
-        self.popupVolumeScrollScope = storedPopupVolumeScrollScope
-            .flatMap(PopupVolumeScrollScope.init(rawValue:))
-            ?? Self.defaultPopupVolumeScrollScope
         self.popupVolumeScrollDirection = storedPopupVolumeScrollDirection
             .flatMap(PopupVolumeScrollDirection.init(rawValue:))
             ?? Self.defaultPopupVolumeScrollDirection
@@ -2585,6 +2570,38 @@ final class SettingsStore: ObservableObject {
         self.popupVolumeScrollFeedbackOverride = defaults.object(
             forKey: Self.popupVolumeScrollFeedbackDefaultsKey
         ) as? Bool
+    }
+
+    /// Legacy raw values of the removed `PopupVolumeScrollScope` picker, read
+    /// only to migrate an existing install to the single option.
+    private enum LegacyPopupVolumeScrollScope: String {
+        case panel
+        case volumeControl
+    }
+
+    /// Resolve the single panel-scroll option.
+    ///
+    /// A stored value for the new key always wins. Otherwise an existing install
+    /// keeps its prior preference: panel scrolling stays on unless the user had
+    /// turned the old master switch off or picked slider-only. A fresh install
+    /// gets the new default (off). `hasExistingInstallation` distinguishes "an
+    /// old install that never touched the defaults" from "a brand-new install".
+    static func resolvedPanelScrollAdjustsVolume(
+        storedValue: Bool?,
+        legacyMaster: Bool?,
+        legacyScopeRaw: String?,
+        hasExistingInstallation: Bool
+    ) -> Bool {
+        if let storedValue { return storedValue }
+        let existingInstallation = hasExistingInstallation
+            || legacyMaster != nil
+            || legacyScopeRaw != nil
+        guard existingInstallation else {
+            return Self.defaultPopupPanelScrollAdjustsVolume
+        }
+        let master = legacyMaster ?? true
+        let scope = legacyScopeRaw.flatMap(LegacyPopupVolumeScrollScope.init(rawValue:)) ?? .panel
+        return master && scope == .panel
     }
 
     private static func decodedNearbyBLESelections(_ data: Data?) -> [NearbyBLEDeviceSelection] {
@@ -2818,24 +2835,17 @@ final class SettingsStore: ObservableObject {
         return storedSections + Self.defaultPopupSectionOrder.filter { !seen.contains($0) }
     }
 
-    /// Adds `.vpn` to a list that predates the row, once.
+    /// Returns the stored selection, or the defaults when nothing is stored.
     ///
-    /// A stored list is the user's own selection, so the default set cannot
-    /// reach it and an upgrade would otherwise leave the new row switched off
-    /// for everyone who already had a list. `hasIntroducedVPN` makes the pass
-    /// one-shot: after it has run, a stored list without `.vpn` means the user
-    /// turned the row off, and that choice is what gets returned.
+    /// A stored list is the user's own choice and is never rewritten. Because
+    /// the VPN row is opt-in, a stored list without `.vpn` simply means the row
+    /// is off; nothing is added automatically.
     static func sanitizedEnabledPopupSections(
-        _ rawValues: [String]?,
-        hasIntroducedVPN: Bool
+        _ rawValues: [String]?
     ) -> Set<PopupSection> {
         guard let rawValues else {
             return defaultEnabledPopupSections
         }
-        var sections = Set(rawValues.compactMap(PopupSection.init(rawValue:)))
-        if !hasIntroducedVPN {
-            sections.insert(.vpn)
-        }
-        return sections
+        return Set(rawValues.compactMap(PopupSection.init(rawValue:)))
     }
 }

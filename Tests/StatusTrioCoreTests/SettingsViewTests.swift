@@ -11,6 +11,27 @@ final class SettingsViewTests: XCTestCase {
         XCTAssertEqual(SettingsView.sidebarWidth, 196)
         XCTAssertEqual(SettingsView.width, 720)
         XCTAssertEqual(SettingsView.height, 530)
+        // #304: the window is resizable, so the minimums must sit below the
+        // default size and still leave room for the fixed sidebar.
+        XCTAssertEqual(SettingsView.minimumWidth, 640)
+        XCTAssertEqual(SettingsView.minimumHeight, 460)
+        XCTAssertLessThan(SettingsView.minimumWidth, SettingsView.width)
+        XCTAssertLessThan(SettingsView.minimumHeight, SettingsView.height)
+        XCTAssertGreaterThan(
+            SettingsView.minimumWidth - SettingsView.sidebarWidth,
+            320,
+            "The detail column needs room for its widest 180pt control plus a label."
+        )
+    }
+
+    func testMenuBarPreviewFollowsSystemAppearanceUntilManuallyOverridden() {
+        // #290: the top live preview used to open dark regardless of the real
+        // menu bar. With no manual override it must mirror the system appearance.
+        XCTAssertFalse(SettingsView.previewIsDark(override: nil, systemColorScheme: .light))
+        XCTAssertTrue(SettingsView.previewIsDark(override: nil, systemColorScheme: .dark))
+        // A tap on the card's toggle wins over the system appearance.
+        XCTAssertTrue(SettingsView.previewIsDark(override: true, systemColorScheme: .light))
+        XCTAssertFalse(SettingsView.previewIsDark(override: false, systemColorScheme: .dark))
     }
 
     func testSidebarListsEveryStatusElementBeforeTheAppWidePanes() {
@@ -695,9 +716,8 @@ final class SettingsViewTests: XCTestCase {
 
         XCTAssertTrue(audio.contains("volumeScrollGroup"))
         XCTAssertTrue(audio.contains("settingsAudioVolumeScrollGroup"))
-        XCTAssertTrue(audio.contains("scrollScopeLabel"))
-        XCTAssertTrue(audio.contains("popupScrollAdjustsVolume"))
-        XCTAssertTrue(audio.contains("popupVolumeScrollScope"))
+        XCTAssertTrue(audio.contains("popupPanelScrollAdjustsVolume"))
+        XCTAssertTrue(audio.contains("settingsPopupPanelScroll"))
         XCTAssertFalse(audio.contains("popupVolumeNaturalScrolling"))
         XCTAssertFalse(audio.contains("settingsPopupVolumeScrollNatural"))
 
@@ -717,11 +737,9 @@ final class SettingsViewTests: XCTestCase {
         XCTAssertTrue(audioBody.contains("inputDeviceOrderGroup"))
         XCTAssertTrue(audioBody.contains("externalVolumeGroup"))
         XCTAssertFalse(
-            popover.contains("popupScrollAdjustsVolume"),
+            popover.contains("popupPanelScrollAdjustsVolume"),
             "the panel pane must not own the volume-scroll switch"
         )
-        XCTAssertFalse(popover.contains("popupVolumeScrollScope"))
-        XCTAssertFalse(popover.contains("scrollScopeLabel"))
     }
 
     /// The compatibility note tells users whose display DDC Status Trio cannot

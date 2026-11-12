@@ -311,6 +311,87 @@ struct StatusPanelPlacementTests {
         )
     }
 
+    // MARK: - Side-Dock full-height budget and vertical clamp (#321)
+
+    // Side screen: 1440x900, visible 875 high with a 64pt left Dock strip.
+    private let sideDockScreen = StatusPanelScreen(
+        frame: NSRect(x: 0, y: 0, width: 1440, height: 900),
+        visibleFrame: NSRect(x: 64, y: 0, width: 1376, height: 875)
+    )
+
+    @Test func sideDockViewModelBudgetSpansTheWholeVisibleHeight() {
+        // The full available height minus the two 8pt margins on either side.
+        let expected = 875 - StatusPanelPlacement.edgeMargin * 2
+        for preferredEdge: NSRectEdge in [.minX, .maxX] {
+            // Click point near the top of the screen, where the old symmetric
+            // budget would have capped at roughly 2x the top inset.
+            let nearTop = StatusPanelAnchor(
+                screenRect: NSRect(x: 64, y: 850, width: 18, height: 24),
+                preferredEdge: preferredEdge
+            )
+            #expect(
+                StatusPanelPlacement.maximumPanelHeight(
+                    anchor: nearTop,
+                    screens: [sideDockScreen]
+                ) == expected
+            )
+            // ... and near the bottom, where the old budget would be ~2x the
+            // bottom inset.
+            let nearBottom = StatusPanelAnchor(
+                screenRect: NSRect(x: 64, y: 20, width: 18, height: 24),
+                preferredEdge: preferredEdge
+            )
+            #expect(
+                StatusPanelPlacement.maximumPanelHeight(
+                    anchor: nearBottom,
+                    screens: [sideDockScreen]
+                ) == expected
+            )
+        }
+    }
+
+    @Test func sideDockTallPanelTranslatesUpAndStaysInScreen() {
+        // visibleFrame 875 tall; vertical travel bounds are 8pt inset each side.
+        let bounds = StatusPanelPlacement.verticalTravelBounds(
+            visibleFrame: sideDockScreen.visibleFrame,
+            dockInset: DockReveal.noInset
+        )
+        #expect(bounds.lowerBound == StatusPanelPlacement.edgeMargin)
+        #expect(
+            bounds.upperBound
+                == 875 - StatusPanelPlacement.edgeMargin
+        )
+
+        // A click near the top with a panel nearly as tall as the screen: the
+        // centred origin would start above the screen; it must clamp down to
+        // the top edge (keep maxY inside).
+        let topClamped = StatusPanelPlacement.clampedVerticalOrigin(
+            center: 862,
+            height: 850,
+            bounds: bounds
+        )
+        #expect(topClamped + 850 <= bounds.upperBound + 0.001)
+        #expect(topClamped >= bounds.lowerBound - 0.001)
+
+        // A click near the bottom: the centred origin would poke below the
+        // screen; it must clamp up so minY stays above the bottom edge.
+        let bottomClamped = StatusPanelPlacement.clampedVerticalOrigin(
+            center: 15,
+            height: 850,
+            bounds: bounds
+        )
+        #expect(bottomClamped >= bounds.lowerBound - 0.001)
+        #expect(bottomClamped + 850 <= bounds.upperBound + 0.001)
+
+        // A small panel centred on a mid-screen click keeps its exact centre.
+        let midClamped = StatusPanelPlacement.clampedVerticalOrigin(
+            center: 437,
+            height: 200,
+            bounds: bounds
+        )
+        #expect(midClamped == 337)
+    }
+
     @Test func contentTallerThanTheScreenIsCappedAndThePanelStaysVisible() {
         let anchor = StatusPanelAnchor(
             screenRect: NSRect(x: 708, y: 880, width: 24, height: 18),

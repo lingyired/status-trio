@@ -52,10 +52,12 @@ struct OutputDeviceRow: View {
             && state.listeningMode?.selectedMode == .adaptive
     }
 
-    /// Rows that start their model as soon as the panel is visible rather than on
-    /// an explicit expansion: the inline single group and the adaptive bar.
+    /// Rows that start their model as soon as the panel is visible: only the
+    /// inline single group. The Adaptive bar is deliberately excluded — showing
+    /// it eagerly used to open the AACP Bluetooth channel on every panel open,
+    /// which dropped the headset's audio route (#323). It now loads on expansion.
     private var wantsInlineModel: Bool {
-        showsInlineExtraGroup || showsAdaptiveBar
+        showsInlineExtraGroup
     }
 
     var body: some View {
@@ -94,9 +96,10 @@ struct OutputDeviceRow: View {
             if !supported { resetControls() }
         }
         .onChange(of: state.listeningMode?.selectedMode) { mode in
-            // The Adaptive bar needs the model (strength read/write) as soon as
-            // Adaptive becomes the selected mode, even before any expansion.
-            if mode == .adaptive, isPresented {
+            // Switching to Adaptive only reveals the strength bar. The AACP
+            // channel that the bar needs is opened by the bar's own drag, never
+            // from here, so the panel never touches it passively (#323).
+            if expanded, isPresented, mode == .adaptive {
                 ensureControlsStarted()
             } else if !expanded, !showsInlineExtraGroup {
                 controls?.stop()
@@ -124,7 +127,8 @@ struct OutputDeviceRow: View {
         .onReceive(panelVisibility) { visible in
             isPresented = visible
             if visible {
-                if wantsInlineModel || expanded { ensureControlsStarted() }
+                if expanded { ensureControlsStarted() }
+                else if wantsInlineModel { ensureControlsStarted() }
                 updateDisclosureTarget()
             } else {
                 controls?.stop()
@@ -202,9 +206,9 @@ struct OutputDeviceRow: View {
         .accessibilityValue(expanded ? localization.string(.commonExpanded) : localization.string(.commonCollapsed))
     }
 
-    private func ensureControlsStarted() {
+    private func ensureControlsStarted(includeAdaptive: Bool = false) {
         if controls == nil { controls = makeControls() }
-        controls?.start()
+        controls?.start(includeAdaptive: includeAdaptive)
     }
 
     private func toggle() {

@@ -11,7 +11,7 @@ final class AirPodsInlineControlsTests: XCTestCase {
                                          spatial: [.init(title: "Fixed", selected: true)],
                                          conversationLoaded: true, spatialLoaded: true)
         var finish: CheckedContinuation<Void, Never>?
-        model.refresh { publish in
+        model.refresh { _, publish in
             publish(ready)
             await withCheckedContinuation { finish = $0 }
             var late = ready

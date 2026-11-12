@@ -248,12 +248,16 @@ struct BluetoothBatteryLevelFallbackTests {
         #expect(merged.values.first?.summary == "L 93% · R 91%")
     }
 
-    @Test("An unresolvable second identifier disables the whole fallback")
-    func unidentifiedOwnerPreventsMultiAccessoryFallback() {
-        #expect(BluetoothBatteryLevelFallback.merged(
+    @Test("An accessory that matches no device cannot suppress a readable one")
+    func unresolvableAccessoryDoesNotSuppressAnotherDevice() {
+        // The second accessory names no device; it adds nothing, but it also
+        // gives no reason to withhold the level the first one resolves to.
+        let target = device()
+        let merged = BluetoothBatteryLevelFallback.merged(
             levels: [:], accessories: [accessory(identifier: "first"),
-                                      accessory(identifier: "second", name: "Unknown")], devices: [device()]
-        ).isEmpty)
+                                      accessory(identifier: "second", name: "Unknown")], devices: [target]
+        )
+        #expect(merged[BluetoothBatteryReader.normalizedAddress(target.id)]?.main == 93)
     }
 
     @Test("A shared identifier cannot lend one matching part's identity to a conflicting part")
@@ -278,6 +282,53 @@ struct BluetoothBatteryLevelFallbackTests {
         let neighbour = device(address: "11:22:33:44:55:66", vendorID: 1133, productID: 45915)
         let readings = [accessory(part: .left), accessory(vendorID: 76, productID: 8207, part: .right)]
         #expect(BluetoothBatteryLevelFallback.merged(levels: [:], accessories: readings, devices: [target, neighbour]).isEmpty)
+    }
+
+    @Test("An ambiguous accessory costs only its own device, not unrelated devices")
+    func ambiguityIsScopedToTheAffectedDevice() {
+        // Issue #328: a set of AirPods reports its case and combined level under
+        // two identifiers, both naming the same (here disconnected) AirPods. That
+        // ambiguity must not hide a mouse and keyboard whose readings resolve
+        // uniquely — the regression that dropped the whole fallback round.
+        let airPods = device(address: "AA:BB:CC:DD:EE:01", name: "AirPods",
+                             isConnected: false, vendorID: 76, productID: 8231)
+        let mouse = device(address: "AA:BB:CC:DD:EE:02", name: "Rapoo BT Mouse",
+                           vendorID: 9390, productID: 13330)
+        let keyboard = device(address: "AA:BB:CC:DD:EE:03", name: "Keychron K10 Max",
+                              vendorID: 13364, productID: 2720)
+        let readings = [
+            accessory(identifier: "case", name: "AirPods", vendorID: 76, productID: 8231,
+                      part: .caseLevel, percentage: 69),
+            accessory(identifier: "headset", name: "AirPods", vendorID: 76, productID: 8231,
+                      percentage: 80),
+            accessory(identifier: "mouse", name: "Rapoo BT Mouse", vendorID: 9390, productID: 13330,
+                      percentage: 81),
+            accessory(identifier: "keyboard", name: "Keychron K10 Max", vendorID: 13364, productID: 2720,
+                      percentage: 65)
+        ]
+        let merged = BluetoothBatteryLevelFallback.merged(
+            levels: [:], accessories: readings, devices: [airPods, mouse, keyboard]
+        )
+        #expect(merged[BluetoothBatteryReader.normalizedAddress(mouse.id)]?.main == 81)
+        #expect(merged[BluetoothBatteryReader.normalizedAddress(keyboard.id)]?.main == 65)
+        // The ambiguous AirPods are left without a level, never given a guess.
+        #expect(merged[BluetoothBatteryReader.normalizedAddress(airPods.id)] == nil)
+    }
+
+    @Test("A device named by two identifiers is dropped while a neighbour keeps its own")
+    func twoIdentifiersDropOnlyTheirDevice() {
+        let target = device(vendorID: 76, productID: 8207)
+        let neighbour = device(address: "11:22:33:44:55:66", name: "MX Keys", vendorID: 1133, productID: 45915)
+        let readings = [
+            accessory(identifier: "a", vendorID: 76, productID: 8207, part: .left, percentage: 93),
+            accessory(identifier: "b", vendorID: 76, productID: 8207, part: .right, percentage: 91),
+            accessory(identifier: "c", name: "MX Keys", vendorID: 1133, productID: 45915, percentage: 42)
+        ]
+        let merged = BluetoothBatteryLevelFallback.merged(
+            levels: [:], accessories: readings, devices: [target, neighbour]
+        )
+        #expect(merged[BluetoothBatteryReader.normalizedAddress(target.id)] == nil)
+        #expect(merged[BluetoothBatteryReader.normalizedAddress(neighbour.id)]?.main == 42)
     }
 
     // MARK: - Matching

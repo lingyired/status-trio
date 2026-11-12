@@ -242,4 +242,69 @@ final class PanelLevelSliderTests: XCTestCase {
         XCTAssertFalse(slider.isEnabled)
         XCTAssertFalse(slider.acceptsFirstResponder)
     }
+
+    // MARK: Issue #331 – frozen gesture geometry (regression guard)
+
+    func testTrackingGeometryFreezesTheTrackRectForTheWholeGesture() {
+        var geometry = PanelLevelSliderTrackingGeometry(
+            liveRect: NSRect(x: 0, y: 0, width: controlWidth, height: 30)
+        )
+        geometry.begin()
+        XCTAssertEqual(geometry.trackRect.width, controlWidth, accuracy: 0.001)
+
+        // A relayout collapses the live width mid-gesture.
+        geometry.updateLiveRect(NSRect(x: 0, y: 0, width: 0, height: 30))
+        XCTAssertEqual(
+            geometry.trackRect.width,
+            controlWidth,
+            accuracy: 0.001,
+            "the tracked width must stay frozen while the pointer owns the gesture"
+        )
+
+        geometry.end()
+        XCTAssertEqual(
+            geometry.trackRect.width,
+            0,
+            accuracy: 0.001,
+            "outside a gesture the live bounds drive hit-testing again"
+        )
+    }
+
+    func testTrackingGeometryDoesNotFreezeADegenerateStart() {
+        var geometry = PanelLevelSliderTrackingGeometry(
+            liveRect: NSRect(x: 0, y: 0, width: 0, height: 30)
+        )
+        geometry.begin()
+        XCTAssertEqual(geometry.trackRect.width, 0, accuracy: 0.001)
+        geometry.updateLiveRect(NSRect(x: 0, y: 0, width: controlWidth, height: 30))
+        XCTAssertEqual(geometry.trackRect.width, controlWidth, accuracy: 0.001)
+    }
+
+    func testCellTrackRectFreezesWhenGestureStartsAndCollapsesMidDrag() {
+        let slider = PanelLevelSliderView()
+        slider.frame = NSRect(x: 0, y: 0, width: controlWidth, height: 30)
+        let cell = slider.cell as? PanelLevelSliderCell
+
+        XCTAssertEqual(cell?.trackRect.width ?? 0, controlWidth, accuracy: 0.001)
+
+        slider.startGestureTracking()
+        XCTAssertEqual(cell?.trackRect.width ?? 0, controlWidth, accuracy: 0.001)
+
+        // A SwiftUI relayout collapses the control while the mouse is still down.
+        slider.setFrameSize(NSSize(width: 0, height: 30))
+        XCTAssertEqual(
+            cell?.trackRect.width ?? 0,
+            controlWidth,
+            accuracy: 0.001,
+            "a mid-gesture width collapse must not change the mapping rect (#331)"
+        )
+    }
+
+    func testThumbCenterStaysFiniteForNonFiniteValue() {
+        let x = PanelLevelSliderMetrics.thumbCenterX(for: .nan, width: controlWidth)
+        XCTAssertTrue(x.isFinite)
+        XCTAssertEqual(x, PanelLevelSliderMetrics.horizontalInset, accuracy: 0.001)
+        let infinite = PanelLevelSliderMetrics.thumbCenterX(for: .infinity, width: controlWidth)
+        XCTAssertTrue(infinite.isFinite)
+    }
 }

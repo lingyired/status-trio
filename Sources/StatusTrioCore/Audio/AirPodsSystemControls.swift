@@ -186,7 +186,15 @@ final class AirPodsSystemControls: NSObject, IOBluetoothL2CAPChannelDelegate {
         guard status == kIOReturnSuccess else { throw AirPodsSystemControlError.unavailable }
     }
 
-    func read(onUpdate: (AirPodsSystemSnapshot) -> Void = { _ in }) async throws -> AirPodsSystemSnapshot {
+    /// `includeAdaptive` gates the Bluetooth AACP L2CAP channel. A passive read —
+    /// merely opening the panel — must never open that channel: on macOS opening
+    /// a second AACP channel while the headset is streaming audio makes it drop
+    /// and re-enumerate, bouncing playback to the built-in speakers, and can
+    /// wedge `bluetoothd` (#323). The panel never sets this from a passive or
+    /// expand read; only an explicit Adaptive read would. Writes go through
+    /// `setAdaptive`, which opens the channel on the user's drag.
+    func read(includeAdaptive: Bool = false,
+              onUpdate: (AirPodsSystemSnapshot) -> Void = { _ in }) async throws -> AirPodsSystemSnapshot {
         _ = try device()
         var snapshot = AirPodsSystemSnapshot()
         let modelUID = CoreAudioOutputController().outputDevices().first { $0.id == target.id }?.modelUID
@@ -205,6 +213,13 @@ final class AirPodsSystemControls: NSObject, IOBluetoothL2CAPChannelDelegate {
         snapshot.conversation = conversationOptions()
         snapshot.conversationLoaded = true
         onUpdate(snapshot)
+        snapshot.loaded = true
+        guard includeAdaptive else {
+            // Passive read: no AACP channel, so no Adaptive strength yet. Leave
+            // `snapshot.adaptive` nil; the panel only shows that bar once the
+            // disclosure is expanded and this read runs again with the flag.
+            return snapshot
+        }
         // The helper and Bluetooth are independent capabilities. A refused AACP
         // connection must not discard a verified Conversation Awareness read.
         do {
@@ -217,7 +232,6 @@ final class AirPodsSystemControls: NSObject, IOBluetoothL2CAPChannelDelegate {
             }
         } catch is CancellationError { throw CancellationError() }
         catch { _ = try device() }
-        snapshot.loaded = true
         snapshot.adaptive = values[0x2e].map(Int.init)
         snapshot.conversation = conversationOptions()
         return snapshot
@@ -272,6 +286,18 @@ final class AirPodsSystemControls: NSObject, IOBluetoothL2CAPChannelDelegate {
 
     func setAdaptive(_ value: Int) async throws -> Int {
         guard (0...100).contains(value), value.isMultiple(of: 10) else { throw AirPodsSystemControlError.unavailable }
+        // The panel never pre-opens the AACP channel (#323). The user dragging
+        // the strength bar is the only place that needs it, so open it here and
+        // read a baseline value before writing.
+        if values[0x2e] == nil {
+            try await connect()
+            let token = generation
+            for _ in 0..<40 {
+                try checkpoint(token)
+                if values[0x2e] != nil { break }
+                try await Task.sleep(for: .milliseconds(50))
+            }
+        }
         return Int(try await write(0x2e, value: UInt8(value)))
     }
 

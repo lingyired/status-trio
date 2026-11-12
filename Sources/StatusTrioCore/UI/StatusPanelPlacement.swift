@@ -281,4 +281,33 @@ enum StatusPanelPlacement {
     ) -> Bool {
         origin.x >= visibleFrame.minX && origin.x + size.width <= visibleFrame.maxX
     }
+
+    /// The vertical travel bounds for an anchored panel on one screen.
+    ///
+    /// A side-Dock panel needs the *entire* visible height as its budget so it
+    /// can grow to the content's natural height and translate instead of being
+    /// squeezed around the click point (#321). The Dock clearance (#229) is a
+    /// horizontal-side inset for side Docks, so it does not reduce the height
+    /// here; top/bottom Docks apply it through their own edges.
+    static func verticalTravelBounds(
+        visibleFrame: NSRect,
+        dockInset: NSEdgeInsets
+    ) -> ClosedRange<CGFloat> {
+        let upper = visibleFrame.maxY - max(0, dockInset.top) - edgeMargin
+        let lower = visibleFrame.minY + max(0, dockInset.bottom) + edgeMargin
+        return lower...max(lower, upper)
+    }
+
+    /// The y-origin that keeps a panel vertically on screen for a given height,
+    /// grown around a horizontal anchor. The panel translates vertically instead
+    /// of being compressed; it never leaves the screen or overlaps the revealed
+    /// Dock on its side (#321).
+    static func clampedVerticalOrigin(
+        center: CGFloat,
+        height: CGFloat,
+        bounds: ClosedRange<CGFloat>
+    ) -> CGFloat {
+        let proposed = center - height / 2
+        return min(max(proposed, bounds.lowerBound), max(bounds.lowerBound, bounds.upperBound - height))
+    }
 }

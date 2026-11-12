@@ -27,7 +27,14 @@ final class SettingsWindowControllerTests: VisibleUITestCase {
         defer { window.close() }
 
         XCTAssertEqual(window.title, "设置")
-        XCTAssertFalse(window.styleMask.contains(.resizable))
+        // #304: the Settings window is user-resizable and supports the standard
+        // green-button zoom/full-screen behaviour.
+        XCTAssertTrue(window.styleMask.contains(.resizable))
+        XCTAssertTrue(window.collectionBehavior.contains(.fullScreenPrimary))
+        XCTAssertEqual(
+            window.contentMinSize,
+            NSSize(width: SettingsView.minimumWidth, height: SettingsView.minimumHeight)
+        )
         XCTAssertTrue(window.isVisible)
         XCTAssertEqual(activationApplication.policies, [.regular])
 
@@ -37,6 +44,53 @@ final class SettingsWindowControllerTests: VisibleUITestCase {
         controller.show()
         XCTAssertTrue(controller.window === window)
         XCTAssertEqual(activationApplication.policies, [.regular])
+    }
+
+    func testShowRestoresSavedFrameInsteadOfDefaultSize() throws {
+        // #304: after the user resizes/moves the window, reopening it must reuse
+        // the saved frame rather than snapping back to the default 720×530 and
+        // re-centring (the old always-on `setContentSize`/`center` path).
+        let suiteName = "StatusTrioCoreTests.SettingsWindowFrame.\(UUID().uuidString)"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suiteName))
+        let autosaveKey = "NSWindow Frame \(SettingsWindowController.frameAutosaveName)"
+        let standard = UserDefaults.standard
+        let previousSavedFrame = standard.object(forKey: autosaveKey)
+        defer {
+            if let previousSavedFrame {
+                standard.set(previousSavedFrame, forKey: autosaveKey)
+            } else {
+                standard.removeObject(forKey: autosaveKey)
+            }
+            defaults.removeTestSuite(named: suiteName)
+        }
+
+        let savedContentRect = NSRect(x: 140, y: 160, width: 800, height: 620)
+        let scratch = NSWindow(
+            contentRect: savedContentRect,
+            styleMask: [.titled, .resizable],
+            backing: .buffered,
+            defer: false
+        )
+        scratch.saveFrame(usingName: SettingsWindowController.frameAutosaveName)
+        // `saveFrame` records the whole frame, so compare against it rather than
+        // the content rect used to build the scratch window.
+        let expectedFrame = scratch.frame
+
+        let controller = SettingsWindowController(
+            store: SettingsStore(defaults: defaults),
+            statusStore: makeStatusStore(),
+            localization: Localization(defaults: defaults, preferredLanguages: ["en"]),
+            activationPolicy: AppActivationPolicy(application: SettingsActivationPolicyApplicationSpy()),
+            showIconGuide: {}
+        )
+        controller.show()
+        let window = try XCTUnwrap(controller.window)
+        defer { window.close() }
+
+        XCTAssertEqual(window.frame.size.width, expectedFrame.size.width, accuracy: 1)
+        XCTAssertEqual(window.frame.size.height, expectedFrame.size.height, accuracy: 1)
+        XCTAssertEqual(window.frame.origin.x, expectedFrame.origin.x, accuracy: 1)
+        XCTAssertEqual(window.frame.origin.y, expectedFrame.origin.y, accuracy: 1)
     }
 
     func testClosingWindowReleasesContentForNextPresentation() throws {

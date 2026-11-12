@@ -440,12 +440,8 @@
 "settings.panel.returnsToSummaryOnOpen.description" = "Когда включено, панель состояния всегда открывается на странице обзора; в противном случае запоминается последняя просмотренная страница.";
 "settings.popup.volumeScroll.group" = "Прокрутка панели";
 "settings.audio.volumeScroll.group" = "Прокрутка громкости";
-"settings.popup.volumeScroll" = "Регулировка прокруткой";
-"settings.popup.volumeScroll.description" = "Прокручивайте внутри панели состояния, чтобы менять громкость вывода. На ползунке прокрутка меняет этот ползунок (громкость, яркость или усиление входа).";
-"settings.popup.volumeScroll.scope" = "Область";
-"settings.popup.volumeScroll.scope.description" = "Выберите, должна ли прокрутка над пустыми областями панели менять громкость вывода.";
-"settings.popup.volumeScroll.scope.panel" = "Вся панель";
-"settings.popup.volumeScroll.scope.volumeControl" = "Только на ползунках";
+"settings.popup.panelScroll" = "Прокрутка панели для изменения громкости";
+"settings.popup.panelScroll.description" = "Прокрутка над пустыми областями страницы обзора меняет громкость вывода. Ползунки всегда регулируются прокруткой.";
 "settings.popup.volumeScroll.natural" = "Естественная прокрутка";
 "settings.popup.volumeScroll.natural.description" = "Если включено, прокрутка вверх увеличивает значение под указателем (громкость, яркость или усиление входа); если выключено, используется направление прокрутки системы. Если значение всё равно уменьшается при прокрутке вверх после включения этой опции, исключите Status Trio в MOS, Scroll Reverser, LinearMouse или похожем приложении, обычно через список исключений/игнорирования.";
 "settings.audio.volumeFeedbackTitle" = "Обратная связь громкости";
@@ -896,3 +892,31 @@
 "settings.audio.priority.failed" = "Не удалось переключить устройство. Приоритеты будут применены при следующем изменении устройств или правил.";
 
 "settings.audio.priority.inputManual" = "Приоритет входа отменяет изменения системы. Выберите микрофон в Status Trio, чтобы сохранить ручной выбор до изменения подключений или правил приоритета.";
+
+"settings.transfer.title" = "Перенос настроек";
+"settings.transfer.description" = "Сохраните переносимые настройки в читаемом формате JSON или просмотрите файл настроек перед импортом.";
+"settings.transfer.exclusions" = "Объекты входа, установка Helper, разрешения конфиденциальности, согласие на аналитику и глобальные сочетания клавиш никогда не переносятся. Настройте их вручную после импорта.";
+"settings.transfer.export" = "Экспортировать…";
+"settings.transfer.import" = "Импортировать…";
+"settings.transfer.previewTitle" = "Проверка импорта";
+"settings.transfer.previewDescription" = "До подтверждения ничего не изменится. Отсутствующие настройки сохранятся; для недопустимых значений будут использованы значения по умолчанию. Перед применением будет сохранена резервная копия.";
+"settings.transfer.preferenceCount" = "Настройки для применения: %d";
+"settings.transfer.source" = "Версия %@ · Экспортировано %@";
+"settings.transfer.warnings" = "Предупреждения (неизвестные, недопустимые или несовпадающие поля)";
+"settings.transfer.confirm" = "Применить импорт";
+"settings.transfer.cancel" = "Отмена";
+"settings.transfer.undo" = "Отменить последний импорт";
+"settings.transfer.backup" = "Резервная копия до импорта";
+"settings.transfer.exported" = "Настройки экспортированы.";
+"settings.transfer.imported" = "Настройки импортированы. Последний импорт можно отменить, пока это окно настроек остаётся открытым.";
+"settings.transfer.undone" = "Предыдущие настройки восстановлены.";
+"settings.transfer.errorTitle" = "Не удалось перенести настройки";
+"settings.transfer.error.malformedFile" = "Это недопустимый файл настроек.";
+"settings.transfer.error.unsupportedVersion" = "Версия %d файла настроек не поддерживается.";
+"settings.transfer.error.fileTooLarge" = "Выберите файл настроек размером не более 2 МБ.";
+"settings.transfer.error.noPendingImport" = "Выберите файл настроек и проверьте его перед импортом.";
+"settings.transfer.error.backupFailed" = "Не удалось сохранить резервную копию. Настройки не были изменены.";
+"settings.transfer.error.undoUnavailable" = "Нет импорта, который можно отменить.";
+"settings.transfer.error.fileAccess" = "Не удалось прочитать или сохранить файл. Проверьте его расположение и права доступа.";
+"settings.transfer.done" = "Готово";
+"settings.transfer.warningCount" = "Всего предупреждений: %d (показано не более 50).";

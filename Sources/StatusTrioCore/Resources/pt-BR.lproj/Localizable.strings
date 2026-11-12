@@ -440,12 +440,8 @@
 "settings.panel.returnsToSummaryOnOpen.description" = "Quando ativado, o painel de status sempre abre na página de resumo; caso contrário, ele lembra a última página visualizada.";
 "settings.popup.volumeScroll.group" = "Rolagem do painel";
 "settings.audio.volumeScroll.group" = "Rolagem do volume";
-"settings.popup.volumeScroll" = "Ajustar rolando";
-"settings.popup.volumeScroll.description" = "Role dentro do painel de status para alterar o volume de saída. Sobre um controle, a rolagem ajusta esse controle (volume, brilho ou ganho de entrada).";
-"settings.popup.volumeScroll.scope" = "Área";
-"settings.popup.volumeScroll.scope.description" = "Escolha se a rolagem sobre áreas vazias do painel ajusta o volume de saída.";
-"settings.popup.volumeScroll.scope.panel" = "Painel inteiro";
-"settings.popup.volumeScroll.scope.volumeControl" = "Somente nos controles";
+"settings.popup.panelScroll" = "Rolar o painel para ajustar o volume";
+"settings.popup.panelScroll.description" = "Rolar sobre as áreas vazias da página de resumo altera o volume de saída. Os controles deslizantes sempre se ajustam ao rolar.";
 "settings.popup.volumeScroll.natural" = "Rolagem natural";
 "settings.popup.volumeScroll.natural.description" = "Quando ativado, rolar para cima aumenta o valor sob o ponteiro (volume, brilho ou ganho de entrada); quando desativado, segue a direção de rolagem do sistema. Se o valor continuar diminuindo ao rolar para cima depois de ativar esta opção, exclua o Status Trio no MOS, Scroll Reverser, LinearMouse ou app semelhante, normalmente por meio de uma lista de exceções/ignorados.";
 "settings.audio.volumeFeedbackTitle" = "Feedback de volume";
@@ -896,3 +892,31 @@
 "settings.audio.priority.failed" = "Não foi possível alternar dispositivos. As prioridades serão reaplicadas na próxima mudança de dispositivo ou regra.";
 
 "settings.audio.priority.inputManual" = "A prioridade de entrada corrige mudanças do sistema. Selecione um microfone no Status Trio para substituí-la até que conexões ou prioridades mudem.";
+
+"settings.transfer.title" = "Transferência de ajustes";
+"settings.transfer.description" = "Salve as preferências transferíveis como JSON legível ou visualize um arquivo de ajustes antes de importá-lo.";
+"settings.transfer.exclusions" = "Itens de início de sessão, instalação do Helper, permissões de privacidade, consentimento para análise e atalhos globais nunca são transferidos. Configure-os manualmente após a importação.";
+"settings.transfer.export" = "Exportar…";
+"settings.transfer.import" = "Importar…";
+"settings.transfer.previewTitle" = "Revisar importação";
+"settings.transfer.previewDescription" = "Nada muda até você confirmar. As preferências ausentes permanecem inalteradas; valores inválidos usam os padrões. Um backup é salvo antes de aplicar as alterações.";
+"settings.transfer.preferenceCount" = "Preferências a aplicar: %d";
+"settings.transfer.source" = "Versão %@ · Exportado em %@";
+"settings.transfer.warnings" = "Avisos (campos desconhecidos, inválidos ou sem correspondência)";
+"settings.transfer.confirm" = "Aplicar importação";
+"settings.transfer.cancel" = "Cancelar";
+"settings.transfer.undo" = "Desfazer última importação";
+"settings.transfer.backup" = "Backup anterior à importação";
+"settings.transfer.exported" = "Ajustes exportados.";
+"settings.transfer.imported" = "Ajustes importados. Você pode desfazer a última importação enquanto esta janela de Ajustes permanecer aberta.";
+"settings.transfer.undone" = "Ajustes anteriores restaurados.";
+"settings.transfer.errorTitle" = "Falha na transferência de ajustes";
+"settings.transfer.error.malformedFile" = "Este não é um arquivo de ajustes válido.";
+"settings.transfer.error.unsupportedVersion" = "A versão %d do arquivo de ajustes não é compatível.";
+"settings.transfer.error.fileTooLarge" = "Escolha um arquivo de ajustes de no máximo 2 MB.";
+"settings.transfer.error.noPendingImport" = "Escolha um arquivo de ajustes e revise-o antes de importar.";
+"settings.transfer.error.backupFailed" = "Não foi possível salvar o backup. Nenhum ajuste foi alterado.";
+"settings.transfer.error.undoUnavailable" = "Não há nenhuma importação para desfazer.";
+"settings.transfer.error.fileAccess" = "Não foi possível ler ou salvar o arquivo. Verifique sua localização e permissões.";
+"settings.transfer.done" = "Concluído";
+"settings.transfer.warningCount" = "Total de avisos: %d (exibindo até 50).";

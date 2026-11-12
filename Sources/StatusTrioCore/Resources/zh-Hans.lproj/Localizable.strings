@@ -440,12 +440,8 @@
 "settings.panel.returnsToSummaryOnOpen.description" = "开启后，每次点开状态面板都从主界面开始；关闭时会保留上次查看的详情页。";
 "settings.popup.volumeScroll.group" = "面板滚动";
 "settings.audio.volumeScroll.group" = "音量滚动";
-"settings.popup.volumeScroll" = "滚动调节";
-"settings.popup.volumeScroll.description" = "在状态面板内滚动调节输出音量；指针位于滑杆上时改为调节该滑杆（音量、亮度或输入增益）。";
-"settings.popup.volumeScroll.scope" = "生效范围";
-"settings.popup.volumeScroll.scope.description" = "选择空白处的滚动是否调节输出音量。";
-"settings.popup.volumeScroll.scope.panel" = "整个面板";
-"settings.popup.volumeScroll.scope.volumeControl" = "仅滑杆";
+"settings.popup.panelScroll" = "在面板中滚动调节音量";
+"settings.popup.panelScroll.description" = "在摘要页空白处滚动可调节输出音量；滑杆始终支持滚动调节。";
 "settings.popup.volumeScroll.natural" = "自然滚动";
 "settings.popup.volumeScroll.natural.description" = "开启后，上滚增大指针下的数值（音量、亮度或输入增益）；关闭后跟随系统的滚动方向。如果开启后上滚仍然减小数值，请在 MOS、Scroll Reverser、LinearMouse 等应用中将 Status Trio 设为不处理，通常可加入例外/忽略列表（部分应用称为白名单）。";
 "settings.audio.volumeFeedbackTitle" = "音量反馈";
@@ -896,3 +892,31 @@
 "settings.audio.priority.failed" = "无法切换设备。下次设备连接状态或规则变化时会重新应用优先级。";
 
 "settings.audio.priority.inputManual" = "输入优先级不受系统自动切换影响。在 Status Trio 面板中手动选择麦克风可临时覆盖，直到连接状态或优先级规则变化。";
+
+"settings.transfer.title" = "设置迁移";
+"settings.transfer.description" = "将可迁移的偏好设置保存为易读的 JSON 文件，或在导入前预览设置文件。";
+"settings.transfer.exclusions" = "登录项、Helper 安装、隐私授权、分析数据共享授权和全局快捷键均不会迁移。请在导入后手动设置。";
+"settings.transfer.export" = "导出…";
+"settings.transfer.import" = "导入…";
+"settings.transfer.previewTitle" = "检查导入内容";
+"settings.transfer.previewDescription" = "确认前不会更改任何设置。文件中缺失的偏好设置保持不变；无效值使用默认值。应用前会保存备份。";
+"settings.transfer.preferenceCount" = "将应用的偏好设置：%d";
+"settings.transfer.source" = "版本 %@ · 导出于 %@";
+"settings.transfer.warnings" = "警告（未知、无效或不匹配的字段）";
+"settings.transfer.confirm" = "应用导入";
+"settings.transfer.cancel" = "取消";
+"settings.transfer.undo" = "撤销上次导入";
+"settings.transfer.backup" = "导入前备份";
+"settings.transfer.exported" = "设置已导出。";
+"settings.transfer.imported" = "设置已导入。此设置窗口保持打开时，可以撤销上次导入。";
+"settings.transfer.undone" = "已恢复之前的设置。";
+"settings.transfer.errorTitle" = "设置迁移失败";
+"settings.transfer.error.malformedFile" = "这不是有效的设置文件。";
+"settings.transfer.error.unsupportedVersion" = "不支持版本为 %d 的设置文件。";
+"settings.transfer.error.fileTooLarge" = "请选择不超过 2 MB 的设置文件。";
+"settings.transfer.error.noPendingImport" = "请先选择设置文件并检查内容，再进行导入。";
+"settings.transfer.error.backupFailed" = "无法保存备份。未更改任何设置。";
+"settings.transfer.error.undoUnavailable" = "没有可撤销的导入。";
+"settings.transfer.error.fileAccess" = "无法读取或保存文件。请检查文件位置和权限。";
+"settings.transfer.done" = "完成";
+"settings.transfer.warningCount" = "警告总数：%d（最多显示前 50 条）";

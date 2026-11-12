@@ -239,11 +239,16 @@ checks include all paired devices, including disconnected devices: first collect
 every device any record could match, require exactly one possible owner, then
 require every record in the group to match that owner. A matching part cannot
 vouch for another part with conflicting metadata. Only connected devices receive
-fallback levels. Missing identifiers are ignored; if multiple identifiers cannot
-all be attributed unambiguously, the entire fallback round is rejected. This
-conservative rule is not a UUID-to-Bluetooth-address mapping. Real AirPods
-L/R/Case samples are still needed to establish whether their parts share this
-identifier; do not substitute `Group Identifier` without that evidence.
+fallback levels. Missing identifiers are ignored. Ambiguity is scoped to the
+device it concerns: a group that names no single device adds nothing, and a
+device that two identifiers both name is dropped, but every other device whose
+reading resolves uniquely keeps its level. An unresolvable accessory therefore
+cannot suppress the levels of unrelated devices — the case that hid a mouse and
+keyboard merely because a set of AirPods reported its case and combined level
+under two identifiers (#328). This conservative rule is not a
+UUID-to-Bluetooth-address mapping. Real AirPods L/R/Case samples are still
+needed to establish whether their parts share this identifier; do not substitute
+`Group Identifier` without that evidence.
 
 A reading is written to the channel its part names, and a part never writes the
 device-wide level: `Part Identifier = Left` fills `left`, and only a reading with

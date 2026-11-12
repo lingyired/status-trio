@@ -440,12 +440,8 @@
 "settings.panel.returnsToSummaryOnOpen.description" = "有効にすると、ステータスパネルは常に概要ページで開きます。無効の場合は、最後に表示していたページが保持されます。";
 "settings.popup.volumeScroll.group" = "パネルのスクロール";
 "settings.audio.volumeScroll.group" = "音量スクロール";
-"settings.popup.volumeScroll" = "スクロールで調整";
-"settings.popup.volumeScroll.description" = "ステータスパネル内をスクロールして出力音量を変更します。スライダー上では、そのスライダー（音量・明るさ・入力ゲイン）を調整します。";
-"settings.popup.volumeScroll.scope" = "適用範囲";
-"settings.popup.volumeScroll.scope.description" = "パネルの空白領域をスクロールしたときに出力音量を調整するかを選択します。";
-"settings.popup.volumeScroll.scope.panel" = "パネル全体";
-"settings.popup.volumeScroll.scope.volumeControl" = "スライダーのみ";
+"settings.popup.panelScroll" = "パネルのスクロールで音量を調整";
+"settings.popup.panelScroll.description" = "概要ページの空白領域をスクロールすると出力音量が変わります。スライダーは常にスクロールで調整できます。";
 "settings.popup.volumeScroll.natural" = "ナチュラルスクロール";
 "settings.popup.volumeScroll.natural.description" = "オンにすると、上方向のスクロールでポインタ下の値（音量・明るさ・入力ゲイン）が増えます。オフにするとシステムのスクロール方向に従います。オンにした後も上スクロールで値が下がる場合は、MOS、Scroll Reverser、LinearMouse などで Status Trio を例外/無視リストに追加してください。";
 "settings.audio.volumeFeedbackTitle" = "音量フィードバック";
@@ -896,3 +892,31 @@
 "settings.audio.priority.failed" = "デバイスを切り替えられませんでした。接続状態やルールが次に変わったときに優先順位を再適用します。";
 
 "settings.audio.priority.inputManual" = "入力の優先順位はシステムによる変更より優先されます。Status Trio でマイクを選択すると、接続状態や優先順位のルールが変わるまで手動選択が保持されます。";
+
+"settings.transfer.title" = "設定の移行";
+"settings.transfer.description" = "移行可能な環境設定を読みやすい JSON として保存するか、読み込む前に設定ファイルをプレビューします。";
+"settings.transfer.exclusions" = "ログイン項目、Helper のインストール、プライバシーに関する同意、解析データ共有への同意、グローバルショートカットは移行されません。読み込み後に手動で設定してください。";
+"settings.transfer.export" = "書き出す…";
+"settings.transfer.import" = "読み込む…";
+"settings.transfer.previewTitle" = "読み込み内容の確認";
+"settings.transfer.previewDescription" = "確認するまで設定は変更されません。ファイルにない環境設定はそのまま維持され、無効な値にはデフォルト値が使われます。適用前にバックアップが保存されます。";
+"settings.transfer.preferenceCount" = "適用する環境設定：%d";
+"settings.transfer.source" = "バージョン %@ · 書き出し日時 %@";
+"settings.transfer.warnings" = "警告（不明、無効、または不一致のフィールド）";
+"settings.transfer.confirm" = "読み込みを適用";
+"settings.transfer.cancel" = "キャンセル";
+"settings.transfer.undo" = "前回の読み込みを取り消す";
+"settings.transfer.backup" = "読み込み前のバックアップ";
+"settings.transfer.exported" = "設定を書き出しました。";
+"settings.transfer.imported" = "設定を読み込みました。この設定ウインドウが開いている間は、前回の読み込みを取り消せます。";
+"settings.transfer.undone" = "以前の設定を復元しました。";
+"settings.transfer.errorTitle" = "設定の移行に失敗しました";
+"settings.transfer.error.malformedFile" = "有効な設定ファイルではありません。";
+"settings.transfer.error.unsupportedVersion" = "設定ファイルのバージョン %d はサポートされていません。";
+"settings.transfer.error.fileTooLarge" = "2 MB 以下の設定ファイルを選択してください。";
+"settings.transfer.error.noPendingImport" = "設定ファイルを選択し、内容を確認してから読み込んでください。";
+"settings.transfer.error.backupFailed" = "バックアップを保存できませんでした。設定は変更されていません。";
+"settings.transfer.error.undoUnavailable" = "取り消せる読み込みはありません。";
+"settings.transfer.error.fileAccess" = "ファイルを読み取りまたは保存できませんでした。保存場所とアクセス権を確認してください。";
+"settings.transfer.done" = "完了";
+"settings.transfer.warningCount" = "警告の総数：%d（最初の 50 件まで表示）。";
