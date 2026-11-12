@@ -20,6 +20,11 @@ struct WiFiNetworkListView: View {
     let showsMore: Bool
     let onSetShowsDetails: (Bool) -> Void
     let onSetShowsMore: (Bool) -> Void
+    /// Join an open or personal network from the list. The defaults keep
+    /// previews and fixtures that do not exercise the join flow unchanged.
+    var onJoin: (WiFiNetworkIdentity) -> Void = { _ in }
+    var onSubmitPassword: (String, WiFiNetworkIdentity) -> Void = { _, _ in }
+    var onCancelJoin: () -> Void = {}
 
     /// The panel owns one outer scroll surface (#237); this page must not add a
     /// second one on top of it.
@@ -58,6 +63,8 @@ struct WiFiNetworkListView: View {
                 Text(localization.string(.wifiPowerOffConfirmMessage))
             }
 
+            joinSection
+
             if statusPanelManagesScrolling {
                 networkSections
             } else {
@@ -68,7 +75,7 @@ struct WiFiNetworkListView: View {
             }
 
             Divider()
-            Text(localization.string(.wifiActionSwitchingHint))
+            Text(localization.string(state.joinsInApp ? .wifiActionJoinHint : .wifiActionSwitchingHint))
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
@@ -80,6 +87,36 @@ struct WiFiNetworkListView: View {
             Button(localization.string(.networkActionShareInternet), action: onOpenSharingSettings)
                 .buttonStyle(.plain)
                 .help(localization.string(.networkActionShareInternetHelp))
+        }
+    }
+
+    @ViewBuilder
+    private var joinSection: some View {
+        if let prompt = state.joinPrompt {
+            WiFiJoinPasswordForm(
+                prompt: prompt,
+                onSubmit: { onSubmitPassword($0, prompt.key) },
+                onCancel: onCancelJoin
+            )
+            // A different network gets a fresh form, so a typed password never
+            // carries over from one network to the next.
+            .id(prompt.key)
+        } else if let status = state.joinStatus {
+            HStack(spacing: 8) {
+                if status.isBusy { ProgressView().controlSize(.small) }
+                Text(status.text)
+                    .fixedSize(horizontal: false, vertical: true)
+                Spacer(minLength: 0)
+                if !status.isBusy {
+                    Button(action: onCancelJoin) {
+                        Image(systemName: "xmark")
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel(localization.string(.commonCancel))
+                }
+            }
+            .font(.caption)
+            .foregroundStyle(.secondary)
         }
     }
 
@@ -219,14 +256,18 @@ struct WiFiNetworkListView: View {
 
     private func networkRow(_ row: PanelWiFiNetworkRow) -> some View {
         Button {
-            if row.opensSettings { onOpenWiFiSettings() }
+            switch row.action {
+            case .join: onJoin(row.key)
+            case .openSettings: onOpenWiFiSettings()
+            case .none: break
+            }
         } label: {
             HStack(alignment: .center, spacing: 10) {
                 if row.selected {
                     Image(systemName: "checkmark")
                         .frame(width: 16, height: 16, alignment: .center)
                         .foregroundStyle(connectedMarkerColor)
-                        .opacity(row.opensSettings ? 1 : 0)
+                        .opacity(row.isActionable ? 1 : 0)
                         // The button's accessibility label already says
                         // "Connected"; the marker is decoration.
                         .accessibilityHidden(true)
@@ -261,9 +302,9 @@ struct WiFiNetworkListView: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .disabled(!row.opensSettings)
+        .disabled(!row.isActionable || state.isJoining)
         .overlay(alignment: .leading) {
-            if row.selected && !row.opensSettings {
+            if row.selected && !row.isActionable {
                 // A disabled button dims its whole label, but connection state
                 // is not a control — draw the marker again outside that dimming.
                 // Keep this frame and leading alignment in sync with the marker
@@ -276,6 +317,53 @@ struct WiFiNetworkListView: View {
             }
         }
         .accessibilityLabel(row.accessibilityLabel)
+    }
+}
+
+/// The inline password form for a network that needs a passphrase. The typed
+/// text lives only in this view's state and is cleared when the form goes away.
+private struct WiFiJoinPasswordForm: View {
+    @EnvironmentObject private var localization: Localization
+    let prompt: WiFiJoinPrompt
+    let onSubmit: (String) -> Void
+    let onCancel: () -> Void
+
+    @State private var password = ""
+    @FocusState private var isFocused: Bool
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text(prompt.title)
+                .font(.caption.weight(.semibold))
+            SecureField(localization.string(.wifiJoinPasswordPlaceholder), text: $password)
+                .textFieldStyle(.roundedBorder)
+                .focused($isFocused)
+                .onSubmit { submit() }
+            if let errorText = prompt.errorText {
+                Text(errorText)
+                    .font(.caption)
+                    .foregroundStyle(.red)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            Text(localization.string(.wifiJoinSavedNotice))
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+            HStack {
+                Spacer(minLength: 0)
+                Button(localization.string(.commonCancel), action: onCancel)
+                Button(localization.string(.wifiActionJoin)) { submit() }
+                    .disabled(password.isEmpty)
+                    .keyboardShortcut(.defaultAction)
+            }
+        }
+        .onAppear { isFocused = true }
+        .onDisappear { password = "" }
+    }
+
+    private func submit() {
+        guard !password.isEmpty else { return }
+        onSubmit(password)
     }
 }
 

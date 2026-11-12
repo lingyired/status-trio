@@ -97,7 +97,7 @@ final class SettingsPreferenceCatalogTests: XCTestCase {
     func testInvalidTypesAndUnknownKeysCannotGrantConsentOrChangeDeviceIdentity() {
         let excluded = [
             "sharesAnonymousAnalytics", "telemetryConsentVersion", "statusPanelShortcut", "controlsLowPowerMode",
-            "hasCompletedIconGuideOnboarding", "simulatesNoBattery", "testsChargingEffect",
+            "hasCompletedIconGuideOnboarding", "joinsWiFiInApp", "hasAnsweredWiFiJoinPrompt", "simulatesNoBattery", "testsChargingEffect",
             "previewsBluetoothListeningMode", "bluetoothListeningModePreviewDeviceName",
             "bluetoothListeningModePreviewDeviceCount", "bluetoothListeningModePreviewLanguage",
             "nearbyBLESelections", "trustedAppleDeviceMetadata", "nearbyBLEConsent.v1",

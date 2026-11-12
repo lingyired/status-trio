@@ -909,3 +909,16 @@
 "settings.transfer.error.fileAccess" = "Не удалось прочитать или сохранить файл. Проверьте его расположение и права доступа.";
 "settings.transfer.done" = "Готово";
 "settings.transfer.warningCount" = "Всего предупреждений: %d (показано не более 50).";
+"wifi.action.join" = "Подключиться";
+"wifi.join.passwordTitle" = "Пароль для «%@»";
+"wifi.join.passwordPlaceholder" = "Пароль";
+"wifi.join.savedNotice" = "Сохраняется открытым текстом в ~/.status-trio на этом Mac, чтобы подключаться снова без ввода.";
+"wifi.join.wrongPassword" = "Не удалось подключиться. Проверьте пароль и повторите попытку.";
+"wifi.join.inProgress" = "Подключение к «%@»…";
+"wifi.join.notInRange" = "«%@» вне зоны действия.";
+"wifi.join.failed" = "Не удалось подключиться к «%@».";
+"wifi.action.joinHint" = "Выберите открытую или персональную сеть, чтобы подключиться здесь. Другие сети открывают панель Wi-Fi в «Системных настройках».";
+"settings.network.joinInApp" = "Подключаться к сетям Wi-Fi из панели";
+"settings.network.joinInApp.description" = "Подключайтесь к открытым и персональным сетям, не выходя из панели. Введённые пароли сохраняются открытым текстом в ~/.status-trio; при выключении они удаляются.";
+"onboarding.wifiJoin.toggle" = "Подключаться к сетям Wi-Fi из панели";
+"onboarding.wifiJoin.description" = "Сохраняет введённые пароли Wi-Fi открытым текстом в ~/.status-trio на этом Mac. По умолчанию выключено; изменить можно в любой момент в «Настройки › Сеть».";

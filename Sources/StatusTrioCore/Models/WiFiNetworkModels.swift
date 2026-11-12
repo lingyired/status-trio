@@ -29,6 +29,22 @@ enum WiFiSecurityKind: Int, CaseIterable, Equatable, Hashable, Sendable {
     var requiresPassword: Bool {
         self != .open && self != .owe && self != .oweTransition && self != .unknown
     }
+
+    /// The kinds the in-app join covers: open networks and personal (PSK/SAE)
+    /// networks, where one passphrase is the whole credential. OWE, WEP,
+    /// 802.1X enterprise and unknown kinds keep handing off to System Settings,
+    /// because they need a different `CWInterface` entry point or credential
+    /// shape that has not been verified.
+    var canJoinInApp: Bool {
+        switch self {
+        case .open, .wpaPersonal, .wpaPersonalMixed, .wpa2Personal,
+             .personal, .wpa3Personal, .wpa3Transition:
+            true
+        case .unknown, .wep, .dynamicWEP, .wpaEnterprise, .wpaEnterpriseMixed,
+             .wpa2Enterprise, .enterprise, .wpa3Enterprise, .owe, .oweTransition:
+            false
+        }
+    }
 }
 
 struct WiFiNetworkIdentity: Equatable, Hashable, Sendable {
@@ -135,6 +151,9 @@ struct WiFiNetwork: Identifiable, Equatable, Sendable {
 
 enum WiFiNetworkRowAction: Equatable, Sendable {
     case none
+    /// Join the network from the panel (open and personal networks).
+    case join
+    /// Hand the network to the system Wi-Fi pane.
     case openSettings
 }
 
@@ -172,10 +191,16 @@ enum WiFiNetworkPresentation {
         wifiState == .hotspot && network.isConnected ? "personalhotspot" : nil
     }
 
-    /// Status Trio never joins a network itself, so every row other than the
-    /// current connection hands the job to the system Wi-Fi pane.
-    static func action(for network: WiFiNetwork) -> WiFiNetworkRowAction {
-        network.isConnected ? .none : .openSettings
+    /// With the opt-in on, open and personal networks are joined in the panel;
+    /// everything else (enterprise, WEP, OWE, hidden or unnamed networks,
+    /// unknown security, or the opt-in off) hands the job to the system Wi-Fi
+    /// pane. The connected row has no action. A hidden network has an empty
+    /// SSID, which a directed scan cannot target.
+    static func action(for network: WiFiNetwork, joinsInApp: Bool) -> WiFiNetworkRowAction {
+        if network.isConnected { return .none }
+        return joinsInApp && network.security.canJoinInApp && !network.ssid.isEmpty
+            ? .join
+            : .openSettings
     }
 
     /// The details row names the action it performs, so its caption and its

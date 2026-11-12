@@ -909,3 +909,16 @@
 "settings.transfer.error.fileAccess" = "ファイルを読み取りまたは保存できませんでした。保存場所とアクセス権を確認してください。";
 "settings.transfer.done" = "完了";
 "settings.transfer.warningCount" = "警告の総数：%d（最初の 50 件まで表示）。";
+"wifi.action.join" = "接続";
+"wifi.join.passwordTitle" = "“%@”のパスワード";
+"wifi.join.passwordPlaceholder" = "パスワード";
+"wifi.join.savedNotice" = "このMacの ~/.status-trio にプレーンテキストで保存され、次回は入力せずに再接続できます。";
+"wifi.join.wrongPassword" = "接続できませんでした。パスワードを確認して、もう一度お試しください。";
+"wifi.join.inProgress" = "“%@”に接続中…";
+"wifi.join.notInRange" = "“%@”は圏外です。";
+"wifi.join.failed" = "“%@”に接続できませんでした。";
+"wifi.action.joinHint" = "オープンまたはパーソナルのネットワークを選ぶと、ここで接続します。それ以外のネットワークは、システム設定の Wi-Fi パネルが開きます。";
+"settings.network.joinInApp" = "パネルから Wi-Fi ネットワークに接続";
+"settings.network.joinInApp.description" = "オープンおよびパーソナルのネットワークに、パネルを離れずに接続します。入力したパスワードは ~/.status-trio にプレーンテキストで保存され、オフにすると削除されます。";
+"onboarding.wifiJoin.toggle" = "パネルから Wi-Fi ネットワークに接続する";
+"onboarding.wifiJoin.description" = "入力した Wi-Fi パスワードを、この Mac の ~/.status-trio にプレーンテキストで保存します。初期設定ではオフで、いつでも「設定 › ネットワーク」で変更できます。";

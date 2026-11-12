@@ -49,11 +49,31 @@ protocol WiFiNetworkScanning: AnyObject {
     func scan(completion: @escaping @Sendable (WiFiScanWorkerResult) -> Void)
     func readBasicDetails(completion: @escaping @Sendable (WiFiScanWorkerResult) -> Void)
     func setPower(_ isOn: Bool, completion: @escaping @Sendable (Bool) -> Void)
+    /// Joins the named network. The passphrase, if any, is resolved and
+    /// remembered on the worker's queue so no disk access happens on the main
+    /// actor.
+    func join(
+        ssid: String,
+        credential: WiFiJoinCredential,
+        completion: @escaping @Sendable (WiFiJoinOutcome) -> Void
+    )
+    /// Deletes every password the in-app join saved.
+    func forgetSavedPasswords()
 }
 
 extension WiFiNetworkScanning {
+    func forgetSavedPasswords() {}
+
     func readBasicDetails(completion: @escaping @Sendable (WiFiScanWorkerResult) -> Void) {
         completion(.success(WiFiScanPayload(networks: [], details: .unavailable)))
+    }
+
+    func join(
+        ssid: String,
+        credential: WiFiJoinCredential,
+        completion: @escaping @Sendable (WiFiJoinOutcome) -> Void
+    ) {
+        completion(.unavailable)
     }
 }
 
@@ -62,11 +82,67 @@ extension WiFiNetworkScanning {
 private final class CoreWLANNetworkWorker: @unchecked Sendable, WiFiNetworkScanning {
     private let queue = DispatchQueue(label: "StatusTrio.CoreWLANNetworkWorker")
     private let knownNetworkProvider: any WiFiKnownNetworkProviding
+    private let passwordStore: any WiFiPasswordStoring
 
     init(
-        knownNetworkProvider: any WiFiKnownNetworkProviding = NetworksetupWiFiKnownNetworkProvider()
+        knownNetworkProvider: any WiFiKnownNetworkProviding = NetworksetupWiFiKnownNetworkProvider(),
+        passwordStore: any WiFiPasswordStoring = FileWiFiPasswordStore()
     ) {
         self.knownNetworkProvider = knownNetworkProvider
+        self.passwordStore = passwordStore
+    }
+
+    func join(
+        ssid: String,
+        credential: WiFiJoinCredential,
+        completion: @escaping @Sendable (WiFiJoinOutcome) -> Void
+    ) {
+        queue.async { [self] in
+            completion(joinSynchronously(ssid: ssid, credential: credential))
+        }
+    }
+
+    func forgetSavedPasswords() {
+        queue.async { [self] in passwordStore.removeAll() }
+    }
+
+    /// `associate` blocks for up to a few seconds, which is why it runs on this
+    /// worker's queue. The system does not supply a saved network's passphrase
+    /// (a `nil` passphrase is refused for a secured network, verified on
+    /// macOS 27), so a secured join always carries one.
+    private func joinSynchronously(
+        ssid: String,
+        credential: WiFiJoinCredential
+    ) -> WiFiJoinOutcome {
+        let password: String?
+        switch WiFiJoinPasswordPolicy.resolve(credential, ssid: ssid, store: passwordStore) {
+        case .needsPassword:
+            return .needsPassword
+        case .password(let value):
+            password = value
+        }
+        guard let interface = CWWiFiClient.shared().interface(), interface.powerOn() else {
+            return .unavailable
+        }
+
+        let outcome: WiFiJoinOutcome
+        do {
+            let found = try interface.scanForNetworks(withName: ssid)
+            if let network = found.max(by: { $0.rssiValue < $1.rssiValue }) {
+                do {
+                    try interface.associate(to: network, password: password)
+                    outcome = .joined
+                } catch {
+                    outcome = .rejected
+                }
+            } else {
+                outcome = .notInRange
+            }
+        } catch {
+            outcome = .unavailable
+        }
+        WiFiJoinPasswordPolicy.record(outcome, credential: credential, ssid: ssid, store: passwordStore)
+        return outcome
     }
 
     func scan(completion: @escaping @Sendable (WiFiScanWorkerResult) -> Void) {
@@ -257,6 +333,10 @@ final class WiFiNetworkController: ObservableObject {
     @Published private(set) var networks: [WiFiNetwork] = []
     @Published private(set) var details = WiFiConnectionDetails.unavailable
     @Published private(set) var state: WiFiListState = .idle
+    /// The in-app join flow. It holds the network's identity only; a typed
+    /// passphrase is passed straight to the worker and never published.
+    @Published private(set) var joinState: WiFiJoinState = .idle
+    private var joinGate = AsyncRequestGate()
     private let worker: any WiFiNetworkScanning
     private let now: () -> Date
     /// A full scan sweeps every channel, so the automatic path may not run one
@@ -301,6 +381,11 @@ final class WiFiNetworkController: ObservableObject {
         guard isActive else { return }
         isActive = false
         _ = scanGate.advance()
+        // A password form or failure note belongs to the open list. A join that
+        // is still running finishes on the worker, but its result no longer
+        // reaches this state.
+        _ = joinGate.advance()
+        joinState = .idle
         periodicRefreshTask?.cancel()
         periodicRefreshTask = nil
         // A scan that is in flight now has a completion that the `isActive`
@@ -403,6 +488,101 @@ final class WiFiNetworkController: ObservableObject {
                 }
                 completion(changed)
             }
+        }
+    }
+
+    /// A row tap. An open network joins at once; a personal network joins with
+    /// its saved passphrase when one exists and otherwise asks for one. The
+    /// completion reports whether the join succeeded, and runs even when the
+    /// list was closed meanwhile so the caller can refresh the status monitor.
+    func join(
+        _ identity: WiFiNetworkIdentity,
+        completion: @escaping @MainActor (Bool) -> Void = { _ in }
+    ) {
+        guard isActive,
+              identity.security.canJoinInApp,
+              !identity.ssid.isEmpty,
+              !joinState.isJoining else {
+            completion(false)
+            return
+        }
+        beginJoin(
+            identity,
+            credential: identity.security.requiresPassword ? .stored : .none,
+            completion: completion
+        )
+    }
+
+    /// The password form's submit. Only valid while that network is waiting for
+    /// a passphrase.
+    func submitPassword(
+        _ password: String,
+        for identity: WiFiNetworkIdentity,
+        completion: @escaping @MainActor (Bool) -> Void = { _ in }
+    ) {
+        guard isActive,
+              case .needsPassword(let pending, _) = joinState,
+              pending == identity,
+              !password.isEmpty else {
+            completion(false)
+            return
+        }
+        beginJoin(identity, credential: .typed(password), completion: completion)
+    }
+
+    /// Turning the in-app join off deletes every saved password and closes any
+    /// open password form or failure note.
+    func forgetSavedPasswords() {
+        cancelJoin()
+        worker.forgetSavedPasswords()
+    }
+
+    /// Dismisses the password form or a failure note. A join that is already
+    /// running cannot be cancelled.
+    func cancelJoin() {
+        guard !joinState.isJoining else { return }
+        joinState = .idle
+    }
+
+    private func beginJoin(
+        _ identity: WiFiNetworkIdentity,
+        credential: WiFiJoinCredential,
+        completion: @escaping @MainActor (Bool) -> Void
+    ) {
+        joinState = .joining(identity)
+        let request = joinGate.advance()
+        worker.join(ssid: identity.ssid, credential: credential) { [weak self] outcome in
+            Task { @MainActor [weak self] in
+                guard let self else {
+                    completion(outcome == .joined)
+                    return
+                }
+                self.finishJoin(outcome, identity: identity, request: request)
+                completion(outcome == .joined)
+            }
+        }
+    }
+
+    private func finishJoin(
+        _ outcome: WiFiJoinOutcome,
+        identity: WiFiNetworkIdentity,
+        request: UInt64
+    ) {
+        guard joinGate.accepts(request) else { return }
+        switch outcome {
+        case .joined:
+            joinState = .idle
+            refreshNow()
+        case .needsPassword:
+            joinState = .needsPassword(identity, retry: false)
+        case .rejected:
+            joinState = identity.security.requiresPassword
+                ? .needsPassword(identity, retry: true)
+                : .failed(identity, .rejected)
+        case .notInRange:
+            joinState = .failed(identity, .notInRange)
+        case .unavailable:
+            joinState = .failed(identity, .unavailable)
         }
     }
 

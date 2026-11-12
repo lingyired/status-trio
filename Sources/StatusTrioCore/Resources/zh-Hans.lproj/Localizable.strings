@@ -909,3 +909,16 @@
 "settings.transfer.error.fileAccess" = "无法读取或保存文件。请检查文件位置和权限。";
 "settings.transfer.done" = "完成";
 "settings.transfer.warningCount" = "警告总数：%d（最多显示前 50 条）";
+"wifi.action.join" = "加入";
+"wifi.join.passwordTitle" = "“%@”的密码";
+"wifi.join.passwordPlaceholder" = "密码";
+"wifi.join.savedNotice" = "将以明文保存在此 Mac 的 ~/.status-trio 中，下次无需再次输入即可加入。";
+"wifi.join.wrongPassword" = "无法加入。请检查密码后重试。";
+"wifi.join.inProgress" = "正在加入“%@”…";
+"wifi.join.notInRange" = "“%@”不在范围内。";
+"wifi.join.failed" = "无法加入“%@”。";
+"wifi.action.joinHint" = "选择开放或个人网络即可在此加入。其他网络会在系统设置中打开 Wi-Fi 面板。";
+"settings.network.joinInApp" = "在面板中加入 Wi-Fi 网络";
+"settings.network.joinInApp.description" = "无需离开面板即可加入开放网络和个人网络。你输入的密码会以明文保存在 ~/.status-trio 中；关闭此选项会删除它们。";
+"onboarding.wifiJoin.toggle" = "在面板中加入 Wi-Fi 网络";
+"onboarding.wifiJoin.description" = "将你输入的 Wi-Fi 密码以明文保存在这台 Mac 的 ~/.status-trio 中。默认关闭，可随时在“设置 › 网络”中更改。";

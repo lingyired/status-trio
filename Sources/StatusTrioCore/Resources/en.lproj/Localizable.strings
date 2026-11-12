@@ -908,3 +908,16 @@
 "settings.transfer.error.fileAccess" = "The file could not be read or saved. Check its location and permissions.";
 "settings.transfer.done" = "Done";
 "settings.transfer.warningCount" = "Total warnings: %d (showing up to 50).";
+"wifi.action.join" = "Join";
+"wifi.join.passwordTitle" = "Password for “%@”";
+"wifi.join.passwordPlaceholder" = "Password";
+"wifi.join.savedNotice" = "Saved as plain text in ~/.status-trio on this Mac so you can rejoin without typing it.";
+"wifi.join.wrongPassword" = "Couldn’t join. Check the password and try again.";
+"wifi.join.inProgress" = "Joining “%@”…";
+"wifi.join.notInRange" = "“%@” is out of range.";
+"wifi.join.failed" = "Couldn’t join “%@”.";
+"wifi.action.joinHint" = "Choose an open or personal network to join it here. Other networks open the Wi-Fi pane in System Settings.";
+"settings.network.joinInApp" = "Join Wi-Fi Networks in the Panel";
+"settings.network.joinInApp.description" = "Join open and personal networks without leaving the panel. Passwords you type are saved as plain text in ~/.status-trio; turning this off deletes them.";
+"onboarding.wifiJoin.toggle" = "Join Wi-Fi networks from the panel";
+"onboarding.wifiJoin.description" = "Saves the Wi-Fi passwords you type as plain text in ~/.status-trio on this Mac. Off by default; change it any time in Settings › Network.";

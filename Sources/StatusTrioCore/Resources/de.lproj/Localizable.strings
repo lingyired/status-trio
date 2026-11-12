@@ -909,3 +909,16 @@
 "settings.transfer.error.fileAccess" = "Die Datei konnte nicht gelesen oder gespeichert werden. Prüfe ihren Speicherort und die Zugriffsrechte.";
 "settings.transfer.done" = "Fertig";
 "settings.transfer.warningCount" = "Warnungen insgesamt: %d (bis zu 50 werden angezeigt).";
+"wifi.action.join" = "Verbinden";
+"wifi.join.passwordTitle" = "Passwort für „%@“";
+"wifi.join.passwordPlaceholder" = "Passwort";
+"wifi.join.savedNotice" = "Wird als Klartext in ~/.status-trio auf diesem Mac gespeichert, damit du dich ohne erneute Eingabe wieder verbinden kannst.";
+"wifi.join.wrongPassword" = "Verbindung fehlgeschlagen. Prüfe das Passwort und versuche es erneut.";
+"wifi.join.inProgress" = "Verbinden mit „%@“ …";
+"wifi.join.notInRange" = "„%@“ ist außer Reichweite.";
+"wifi.join.failed" = "Verbindung mit „%@“ fehlgeschlagen.";
+"wifi.action.joinHint" = "Wähle ein offenes oder persönliches Netzwerk, um dich hier zu verbinden. Andere Netzwerke öffnen den Wi‑Fi-Bereich der Systemeinstellungen.";
+"settings.network.joinInApp" = "Wi-Fi-Netzwerken im Panel beitreten";
+"settings.network.joinInApp.description" = "Tritt offenen und persönlichen Netzwerken bei, ohne das Panel zu verlassen. Eingegebene Passwörter werden als Klartext in ~/.status-trio gespeichert; beim Ausschalten werden sie gelöscht.";
+"onboarding.wifiJoin.toggle" = "Wi-Fi-Netzwerken aus dem Panel beitreten";
+"onboarding.wifiJoin.description" = "Speichert eingegebene Wi-Fi-Passwörter als Klartext in ~/.status-trio auf diesem Mac. Standardmäßig aus; jederzeit änderbar unter Einstellungen › Netzwerk.";

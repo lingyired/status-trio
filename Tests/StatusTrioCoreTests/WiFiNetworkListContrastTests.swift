@@ -45,7 +45,7 @@ final class WiFiNetworkListContrastTests: XCTestCase {
             securityMarker: nil,
             selected: true,
             accessibilityLabel: "Contrast",
-            opensSettings: false
+            action: .none
         )
         let state = WiFiPanelState(
             detail: PanelDetailState(

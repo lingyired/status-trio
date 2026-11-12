@@ -4,45 +4,67 @@ Status Trio is a status app, not a system control panel. A few boundaries are wo
 stating plainly, so the popover does what users expect and the same questions do not
 have to be answered one issue at a time.
 
-## Switching networks happens in System Settings
+## Joining networks: opt-in for open and personal networks, the rest in System Settings
 
 The Wi-Fi page shows the network you are on, the nearby networks macOS knows about,
-and the link details of the current connection. It does not join or switch networks:
-choosing any network other than the current one opens the Wi-Fi pane of System
-Settings, and Status Trio never reads or stores Wi-Fi passwords.
+and the link details of the current connection. By default, choosing any network other
+than the current one opens the Wi-Fi pane of System Settings.
 
-That is a deliberate boundary rather than a missing feature. macOS keeps a saved
-network's password in the system keychain and exposes no public API that connects
-with a saved profile: `CWInterface.associate(to:password:)` needs the password
-itself, and `associate(password: nil)` is not credential reuse. An app that wants to
-switch between saved networks therefore has two options, and this project takes
-neither:
+**Join Wi-Fi networks in the panel** is an opt-in, off by default, because joining a
+personal network saves the typed password as plain text (see below). The first-launch
+guide asks once, with the checkbox unchecked, and **Settings › Network** changes it at
+any time. Upgrading never turns it on, and settings export/import can neither export
+nor import it. With it on, choosing an **open** or **personal** (WPA/WPA2/WPA3
+password) network joins it from the popover. Enterprise (802.1X), WEP, OWE,
+unknown-security and hidden networks still open System Settings, because the in-app
+join covers only the credential shape it was verified for. **Turning the option off
+deletes every saved password.**
 
-- **read the keychain**, by enumerating every saved Wi-Fi password or by asking for
-  one network at a time. Enumerating puts every password in the app. Asking one at a
-  time shows a system authorization prompt during an ordinary popover click, and a
-  stored password that has gone stale turns into a loop of prompts, because CoreWLAN
-  reports authentication failures without a stable error taxonomy — the app cannot
-  even tell the user that the password is wrong.
-- **store its own copy** of the passwords the user types. Such a copy goes stale as
-  soon as the password is changed anywhere else, and macOS saves the network itself
-  anyway, so the app ends up holding a second, older copy of a secret the system
-  already has.
+macOS does not hand a saved network's password to an app. `CWInterface.associate(to:password:)`
+needs the password itself, and `associate(password: nil)` is not credential reuse:
+verified on macOS 27 with a real dev bundle, a `nil` password for a saved secured
+network is refused (`-3900`), while the right password joins in under a second. So the
+first join of a network asks you to type its password in the popover.
 
-Switching Wi-Fi is also something macOS already does well: it auto-joins the networks
-you saved, and its own menu and pane switch between them. The popover therefore stays
-a status surface and hands this one job back to the system.
+### Where the password goes
+
+Status Trio saves the password you typed, **as plain text**, in
+`~/.status-trio/wifi-passwords.json` in your home folder, so the next join needs no
+typing. This is a deliberate product choice, with these properties:
+
+- The folder is created `0700` and the file `0600`, so only your user can read it.
+- A password is saved only after the join succeeded; a mistyped one is never kept.
+- It never reads the macOS keychain, never prompts for keychain access, and never
+  reads the passwords macOS saved. Only passwords you typed into Status Trio are in
+  the file.
+- If macOS refuses a saved password (for example the router's password changed), the
+  app forgets it and asks again, instead of repeating a refused value. CoreWLAN gives
+  no stable way to tell a wrong password from a weak-signal failure, so the form says
+  to check the password and try again, and a transient failure also costs a retype.
+- The file is not part of settings export/import and is not sent anywhere.
+- To forget a network, delete its entry, or delete `~/.status-trio`.
+
+Plain text on disk is weaker than the keychain: any process running as your user, and
+anything that backs up or syncs your home folder, can read it. The store is behind the
+`WiFiPasswordStoring` protocol, so moving it to the keychain later is a contained
+change.
+
+### Why this was withdrawn once, and what differs
+
+Versions up to 1.2.0 joined from the popover and kept the password in the keychain.
+That was removed because a joined network became system-known, so its next click took
+the "known, open System Settings" branch, and a stale stored password looped on
+keychain prompts. The current design differs on exactly those points: the row action
+depends only on the network's security kind and never on "known", and nothing reads
+the system keychain, so no prompt can appear on a click.
 
 ### Leftover items from older versions
 
-Earlier versions could join a network from the popover and, if you ticked
-**Remember password**, stored that password in the keychain under Status Trio's own
-item (`com.lingsmbp.StatusTrio.wifi-password`, keyed by security kind and SSID).
-
-Current versions neither read nor write those items. They are left in place on
-purpose, so a future version that reintroduces switching could reuse them instead of
-asking for every password again. To remove one yourself, open Keychain Access, search
-for `com.lingsmbp.StatusTrio.wifi-password`, and delete the item.
+Earlier versions stored a **Remember password** value in the keychain under Status
+Trio's own item (`com.lingsmbp.StatusTrio.wifi-password`, keyed by security kind and
+SSID). Current versions neither read nor write those items and do not migrate them;
+the new store starts empty. To remove one, open Keychain Access, search for
+`com.lingsmbp.StatusTrio.wifi-password`, and delete the item.
 
 ## Internet Sharing is toggled in System Settings
 

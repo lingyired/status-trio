@@ -770,6 +770,24 @@ final class SystemStatusStore: ObservableObject {
         }
     }
 
+    /// Join a network from the Wi-Fi list. The status monitor is refreshed on
+    /// success instead of waiting for the next poll, as the radio switch does.
+    func joinWiFi(_ identity: WiFiNetworkIdentity) {
+        guard !hasStopped else { return }
+        wifiNetworks.join(identity) { [weak self] joined in
+            guard joined, let self, !self.hasStopped else { return }
+            self.wifiMonitor.refresh()
+        }
+    }
+
+    func submitWiFiPassword(_ password: String, for identity: WiFiNetworkIdentity) {
+        guard !hasStopped else { return }
+        wifiNetworks.submitPassword(password, for: identity) { [weak self] joined in
+            guard joined, let self, !self.hasStopped else { return }
+            self.wifiMonitor.refresh()
+        }
+    }
+
     /// #272: the VPN summary row's power switch. The controller resolves the
     /// target from the current service list and confirms through the framework
     /// callback before the row leaves its changing state.

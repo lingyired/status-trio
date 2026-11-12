@@ -146,7 +146,7 @@ final class PanelListScrollingTests: XCTestCase {
                 securityMarker: "lock.fill",
                 selected: index == 0,
                 accessibilityLabel: "Network \(index)",
-                opensSettings: false
+                action: .none
             )
         }
         return WiFiPanelState(

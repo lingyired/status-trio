@@ -41,6 +41,9 @@ final class StatusPanelActions {
     private let activateWiFiDetails: (WiFiNameAccess) -> Void
     private let closeWiFiDetails: () -> Void
     private let setWiFiPowerCommand: (Bool) -> Void
+    private let joinWiFiCommand: (WiFiNetworkIdentity) -> Void
+    private let submitWiFiPasswordCommand: (String, WiFiNetworkIdentity) -> Void
+    private let cancelWiFiJoinCommand: () -> Void
     private let refreshWiFiCommand: (WiFiNameAccess) -> Void
     private let openWiredDetails: () -> Void
     private let closeWiredDetails: () -> Void
@@ -99,6 +102,9 @@ final class StatusPanelActions {
         activateWiFiDetails: @escaping (WiFiNameAccess) -> Void = { _ in },
         closeWiFiDetails: @escaping () -> Void = {},
         setWiFiPower: @escaping (Bool) -> Void = { _ in },
+        joinWiFi: @escaping (WiFiNetworkIdentity) -> Void = { _ in },
+        submitWiFiPassword: @escaping (String, WiFiNetworkIdentity) -> Void = { _, _ in },
+        cancelWiFiJoin: @escaping () -> Void = {},
         setVPNPower: @escaping (Bool) -> Void = { _ in },
         refreshWiFi: @escaping (WiFiNameAccess) -> Void = { _ in },
         openWiredDetails: @escaping () -> Void = {},
@@ -147,6 +153,9 @@ final class StatusPanelActions {
         self.activateWiFiDetails = activateWiFiDetails
         self.closeWiFiDetails = closeWiFiDetails
         self.setWiFiPowerCommand = setWiFiPower
+        self.joinWiFiCommand = joinWiFi
+        self.submitWiFiPasswordCommand = submitWiFiPassword
+        self.cancelWiFiJoinCommand = cancelWiFiJoin
         self.refreshWiFiCommand = refreshWiFi
         self.openWiredDetails = openWiredDetails
         self.closeWiredDetails = closeWiredDetails
@@ -227,6 +236,15 @@ final class StatusPanelActions {
             activateWiFiDetails: { store.wifiNetworks.activate(nameAccess: $0) },
             closeWiFiDetails: { store.wifiNetworks.deactivate() },
             setWiFiPower: { store.setWiFiPower($0) },
+            joinWiFi: {
+                guard settings.joinsWiFiInApp else { return }
+                store.joinWiFi($0)
+            },
+            submitWiFiPassword: {
+                guard settings.joinsWiFiInApp else { return }
+                store.submitWiFiPassword($0, for: $1)
+            },
+            cancelWiFiJoin: { store.wifiNetworks.cancelJoin() },
             setVPNPower: { store.setVPNPower($0) },
             refreshWiFi: { store.wifiNetworks.refreshNow(nameAccess: $0) },
             openWiredDetails: { store.activatePrimaryLinkPanel() },
@@ -415,6 +433,11 @@ final class StatusPanelActions {
     func volumeListChanged() { refreshVolumeListeningModes() }
     func volumeListDisappeared() { stopVolumeListeningModes() }
     func setWiFiPower(_ enabled: Bool) { setWiFiPowerCommand(enabled) }
+    func joinWiFi(_ identity: WiFiNetworkIdentity) { joinWiFiCommand(identity) }
+    func submitWiFiPassword(_ password: String, for identity: WiFiNetworkIdentity) {
+        submitWiFiPasswordCommand(password, identity)
+    }
+    func cancelWiFiJoin() { cancelWiFiJoinCommand() }
 
     func setVPNPower(_ enabled: Bool) { setVPNPowerCommand(enabled) }
 

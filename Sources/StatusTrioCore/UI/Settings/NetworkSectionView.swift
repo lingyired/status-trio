@@ -74,6 +74,22 @@ struct NetworkSectionView: View {
                 )
             )
 
+            SettingsDivider()
+            SettingsToggleRow(
+                symbol: "wifi",
+                tint: .blue,
+                title: localization.string(.settingsNetworkJoinInApp),
+                subtitle: localization.string(.settingsNetworkJoinInAppDescription),
+                isOn: Binding(
+                    get: { store.joinsWiFiInApp },
+                    set: { enabled in
+                        store.joinsWiFiInApp = enabled
+                        // Off means the app keeps no Wi-Fi passwords.
+                        if !enabled { statusStore.wifiNetworks.forgetSavedPasswords() }
+                    }
+                )
+            )
+
             if WiFiPowerControlVisibility.showsSettingsControl(state: statusStore.snapshot.wifi.state) {
                 SettingsDivider()
                 SettingsToggleRow(

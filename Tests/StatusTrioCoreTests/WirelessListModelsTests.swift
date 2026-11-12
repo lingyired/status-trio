@@ -122,53 +122,67 @@ final class WirelessListModelsTests: XCTestCase {
         )
         XCTAssertNil(WiFiNetworkPresentation.trailingSymbol(for: sameSSIDUnconnected, wifiState: .hotspot))
         XCTAssertNil(WiFiNetworkPresentation.trailingSymbol(for: connected, wifiState: .connected))
-        XCTAssertEqual(WiFiNetworkPresentation.action(for: connected), .none)
+        XCTAssertEqual(WiFiNetworkPresentation.action(for: connected, joinsInApp: false), .none)
         XCTAssertEqual(WiFiNetworkPresentation.detailsSection(for: .hotspot), .personalHotspot)
         XCTAssertEqual(WiFiNetworkPresentation.detailsSection(for: .connected), .known)
     }
 
-    func testEveryWiFiRowOpensSystemSettingsExceptTheConnectedOne() {
-        let known = WiFiNetwork.merge(
-            [
-                WiFiNetworkCandidate(
-                    ssid: "Home",
-                    bssid: "01",
-                    rssi: -40,
-                    channel: 1,
-                    security: .wpa2Personal
-                )
-            ],
-            connectedBSSID: nil,
-            knownSSIDs: ["Home"]
-        )[0]
-        let unknown = WiFiNetwork.merge(
-            [
-                WiFiNetworkCandidate(
-                    ssid: "Cafe",
-                    bssid: "01",
-                    rssi: -40,
-                    channel: 1,
-                    security: .wpa2Personal
-                )
-            ],
+    func testOpenAndPersonalRowsJoinInAppAndTheConnectedRowHasNoAction() {
+        func row(_ ssid: String, _ security: WiFiSecurityKind, connected: Bool = false, known: Bool = false) -> WiFiNetwork {
+            WiFiNetwork.merge(
+                [WiFiNetworkCandidate(ssid: ssid, bssid: "01", rssi: -40, channel: 1, security: security)],
+                connectedBSSID: connected ? "01" : nil,
+                knownSSIDs: known ? [ssid] : []
+            )[0]
+        }
+
+        XCTAssertEqual(WiFiNetworkPresentation.action(for: row("Home", .wpa2Personal, known: true), joinsInApp: true), .join)
+        XCTAssertEqual(WiFiNetworkPresentation.action(for: row("Cafe", .wpa3Personal), joinsInApp: true), .join)
+        XCTAssertEqual(WiFiNetworkPresentation.action(for: row("Lobby", .open), joinsInApp: true), .join)
+        XCTAssertEqual(WiFiNetworkPresentation.action(for: row("Office", .wpa2Personal, connected: true), joinsInApp: true), .none)
+    }
+
+    /// Enterprise, WEP, OWE and unknown security need a credential shape or an
+    /// entry point the in-app join was not verified for, and an unnamed network
+    /// cannot be targeted by a directed scan, so these keep using System Settings.
+    func testOtherSecurityKindsAndHiddenNetworksStillOpenSystemSettings() {
+        for security: WiFiSecurityKind in [
+            .wep, .dynamicWEP, .wpaEnterprise, .wpaEnterpriseMixed, .wpa2Enterprise,
+            .enterprise, .wpa3Enterprise, .owe, .oweTransition, .unknown
+        ] {
+            let network = WiFiNetwork.merge(
+                [WiFiNetworkCandidate(ssid: "Net", bssid: "01", rssi: -40, channel: 1, security: security)],
+                connectedBSSID: nil
+            )[0]
+            XCTAssertFalse(security.canJoinInApp, "\(security)")
+            XCTAssertEqual(WiFiNetworkPresentation.action(for: network, joinsInApp: true), .openSettings, "\(security)")
+        }
+
+        let hidden = WiFiNetwork.merge(
+            [WiFiNetworkCandidate(ssid: "", bssid: "01", rssi: -40, channel: 1, security: .wpa2Personal)],
             connectedBSSID: nil
         )[0]
-        let connected = WiFiNetwork.merge(
-            [
-                WiFiNetworkCandidate(
-                    ssid: "Office",
-                    bssid: "01",
-                    rssi: -40,
-                    channel: 1,
-                    security: .wpa2Personal
-                )
-            ],
-            connectedBSSID: "01"
-        )[0]
+        XCTAssertEqual(WiFiNetworkPresentation.action(for: hidden, joinsInApp: true), .openSettings)
+    }
 
-        XCTAssertEqual(WiFiNetworkPresentation.action(for: known), .openSettings)
-        XCTAssertEqual(WiFiNetworkPresentation.action(for: unknown), .openSettings)
-        XCTAssertEqual(WiFiNetworkPresentation.action(for: connected), .none)
+    /// The opt-in is off by default, and while it is off every row keeps handing
+    /// off to System Settings, as before joining existed.
+    func testEveryRowOpensSystemSettingsWhileTheOptInIsOff() {
+        for security in WiFiSecurityKind.allCases {
+            let network = WiFiNetwork.merge(
+                [WiFiNetworkCandidate(ssid: "Net", bssid: "01", rssi: -40, channel: 1, security: security)],
+                connectedBSSID: nil
+            )[0]
+            XCTAssertEqual(WiFiNetworkPresentation.action(for: network, joinsInApp: false), .openSettings, "\(security)")
+        }
+    }
+
+    func testEverySecurityKindIsClassifiedForInAppJoin() {
+        let joinable = WiFiSecurityKind.allCases.filter(\.canJoinInApp)
+        XCTAssertEqual(
+            Set(joinable),
+            [.open, .wpaPersonal, .wpaPersonalMixed, .wpa2Personal, .personal, .wpa3Personal, .wpa3Transition]
+        )
     }
 
     func testDetailsToggleStatesTheActionItPerforms() {

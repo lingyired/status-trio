@@ -909,3 +909,16 @@
 "settings.transfer.error.fileAccess" = "No se ha podido leer o guardar el archivo. Comprueba su ubicación y sus permisos.";
 "settings.transfer.done" = "Listo";
 "settings.transfer.warningCount" = "Total de advertencias: %d (se muestran hasta 50).";
+"wifi.action.join" = "Unirse";
+"wifi.join.passwordTitle" = "Contraseña de “%@”";
+"wifi.join.passwordPlaceholder" = "Contraseña";
+"wifi.join.savedNotice" = "Se guarda como texto sin cifrar en ~/.status-trio en este Mac para que puedas volver a unirte sin escribirla.";
+"wifi.join.wrongPassword" = "No se pudo unir. Comprueba la contraseña e inténtalo de nuevo.";
+"wifi.join.inProgress" = "Uniéndose a “%@”…";
+"wifi.join.notInRange" = "“%@” está fuera de alcance.";
+"wifi.join.failed" = "No se pudo unir a “%@”.";
+"wifi.action.joinHint" = "Elige una red abierta o personal para unirte aquí. Las demás redes abren el panel de Wi-Fi de Ajustes del Sistema.";
+"settings.network.joinInApp" = "Unirse a redes Wi-Fi desde el panel";
+"settings.network.joinInApp.description" = "Únete a redes abiertas y personales sin salir del panel. Las contraseñas que escribes se guardan como texto sin cifrar en ~/.status-trio; al desactivarlo se eliminan.";
+"onboarding.wifiJoin.toggle" = "Unirse a redes Wi-Fi desde el panel";
+"onboarding.wifiJoin.description" = "Guarda como texto sin cifrar las contraseñas de Wi-Fi que escribes en ~/.status-trio de este Mac. Desactivado por defecto; puedes cambiarlo en cualquier momento en Ajustes › Red.";

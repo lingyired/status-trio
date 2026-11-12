@@ -39,6 +39,7 @@ private struct PanelSettingsFingerprint: Equatable {
     let inputDeviceListPreferences: AudioInputListPreferences
     let externalVolumeConfigurations: [String: ExternalVolumeConfiguration]
     let inputSourceMarkerStyle: InputSourceMarkerStyle
+    let joinsWiFiInApp: Bool
 
     init(settings: SettingsStore) {
         sections = settings.visiblePopupSections
@@ -62,6 +63,7 @@ private struct PanelSettingsFingerprint: Equatable {
         inputDeviceListPreferences = settings.inputDeviceListPreferences
         externalVolumeConfigurations = settings.externalVolumeConfigurations
         inputSourceMarkerStyle = settings.inputSourceMarkerStyle
+        joinsWiFiInApp = settings.joinsWiFiInApp
     }
 }
 
@@ -277,6 +279,8 @@ final class StatusPanelViewModel: ObservableObject {
             networks: store.wifiNetworks.networks,
             details: store.wifiNetworks.details,
             listState: store.wifiNetworks.state,
+            joinState: store.wifiNetworks.joinState,
+            joinsInApp: settings.joinsWiFiInApp,
             localization: localization
         )
         wiredDetails = PanelDetailMapper.wired(details: store.primaryLink.details, localization: localization)
@@ -692,13 +696,14 @@ final class StatusPanelViewModel: ObservableObject {
                 coalesceControllerUpdate(.batteryDetails)
             }
             .store(in: &cancellables)
-        Publishers.CombineLatest3(
+        Publishers.CombineLatest4(
             store.wifiNetworks.$details,
             store.wifiNetworks.$networks,
-            store.wifiNetworks.$state
+            store.wifiNetworks.$state,
+            store.wifiNetworks.$joinState
         )
             .dropFirst()
-            .sink { [weak self] _, _, _ in
+            .sink { [weak self] _, _, _, _ in
                 guard let self, store.wifiNetworks.isActive else { return }
                 coalesceControllerUpdate(.wifiDetails)
             }
@@ -1091,6 +1096,8 @@ final class StatusPanelViewModel: ObservableObject {
             networks: store.wifiNetworks.networks,
             details: store.wifiNetworks.details,
             listState: store.wifiNetworks.state,
+            joinState: store.wifiNetworks.joinState,
+            joinsInApp: settings.joinsWiFiInApp,
             localization: localization
         )
         if wifiDetails != state { wifiDetails = state }

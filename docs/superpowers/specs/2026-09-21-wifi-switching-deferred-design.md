@@ -1,5 +1,10 @@
 # Wi-Fi switching from the popover — deferred design
 
+> **Superseded (2026-11-12):** in-app joining of open and personal networks was
+> reintroduced with a plain-text password file at `~/.status-trio/wifi-passwords.json`
+> instead of the keychain design below. See `docs/known-limitations.md`. The measurements
+> and constraints here remain as history.
+
 Status: **deferred** on 2026-09-21, not implemented. The feature that shipped up to
 1.2.0 — joining a network from the popover, optionally remembering its password — was
 removed in the same change; choosing a network now opens the Wi-Fi pane of System

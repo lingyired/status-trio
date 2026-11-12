@@ -44,7 +44,26 @@ struct PanelWiFiNetworkRow: Equatable, Sendable {
     let securityMarker: String?
     let selected: Bool
     let accessibilityLabel: String
-    let opensSettings: Bool
+    let action: WiFiNetworkRowAction
+
+    var opensSettings: Bool { action == .openSettings }
+    var joins: Bool { action == .join }
+    /// The connected row is state, not a control.
+    var isActionable: Bool { action != .none }
+}
+
+/// The password form for the network that is waiting for a passphrase.
+struct WiFiJoinPrompt: Equatable, Sendable {
+    let key: WiFiNetworkIdentity
+    let title: String
+    /// Set after a refused attempt.
+    let errorText: String?
+}
+
+/// One line of join progress or failure shown above the list.
+struct WiFiJoinStatus: Equatable, Sendable {
+    let text: String
+    let isBusy: Bool
 }
 
 struct WiFiPanelState: Equatable, Sendable {
@@ -62,6 +81,13 @@ struct WiFiPanelState: Equatable, Sendable {
     let message: String?
     let messageIntent: PanelSummaryIntent
     let showsConnectionDetails: Bool
+    let joinPrompt: WiFiJoinPrompt?
+    let joinStatus: WiFiJoinStatus?
+    /// Whether the in-app join opt-in is on, which decides the footer hint.
+    let joinsInApp: Bool
+
+    /// Rows are inert while an association is running.
+    var isJoining: Bool { joinStatus?.isBusy == true }
 
     init(
         detail: PanelDetailState,
@@ -77,7 +103,10 @@ struct WiFiPanelState: Equatable, Sendable {
         isScanning: Bool,
         message: String?,
         messageIntent: PanelSummaryIntent,
-        showsConnectionDetails: Bool = false
+        showsConnectionDetails: Bool = false,
+        joinPrompt: WiFiJoinPrompt? = nil,
+        joinStatus: WiFiJoinStatus? = nil,
+        joinsInApp: Bool = false
     ) {
         self.detail = detail
         self.collapsedDetailRowCount = collapsedDetailRowCount
@@ -93,6 +122,9 @@ struct WiFiPanelState: Equatable, Sendable {
         self.message = message
         self.messageIntent = messageIntent
         self.showsConnectionDetails = showsConnectionDetails
+        self.joinPrompt = joinPrompt
+        self.joinStatus = joinStatus
+        self.joinsInApp = joinsInApp
     }
 
     func visibleDetailRows(expanded: Bool) -> [PanelDetailRow] {

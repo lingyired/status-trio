@@ -186,12 +186,14 @@ final class PanelDetailMapperTests: XCTestCase {
             networks: [other, whitespace, connected],
             details: .unavailable,
             listState: .ready,
+            joinsInApp: true,
             localization: localization
         )
 
         XCTAssertEqual(state.knownRows.map(\.key.ssid), [" Home ", "Home"])
         XCTAssertEqual(state.otherRows.map(\.key.ssid), ["Cafe"])
-        XCTAssertEqual(state.knownRows.map(\.opensSettings), [true, false])
+        XCTAssertEqual(state.knownRows.map(\.action), [.join, .none])
+        XCTAssertEqual(state.otherRows.map(\.action), [.join])
         XCTAssertEqual(state.knownRows[0].name, " Home ")
         XCTAssertEqual(state.knownRows[0].securityMarker, nil)
         XCTAssertTrue(state.knownRows[1].selected)

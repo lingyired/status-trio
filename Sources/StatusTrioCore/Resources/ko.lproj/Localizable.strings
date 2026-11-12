@@ -909,3 +909,16 @@
 "settings.transfer.error.fileAccess" = "파일을 읽거나 저장할 수 없습니다. 파일 위치와 권한을 확인하세요.";
 "settings.transfer.done" = "완료";
 "settings.transfer.warningCount" = "총 경고 수: %d(처음 50개까지 표시).";
+"wifi.action.join" = "연결";
+"wifi.join.passwordTitle" = "“%@” 암호";
+"wifi.join.passwordPlaceholder" = "암호";
+"wifi.join.savedNotice" = "다시 입력하지 않고 재연결할 수 있도록 이 Mac의 ~/.status-trio에 일반 텍스트로 저장됩니다.";
+"wifi.join.wrongPassword" = "연결하지 못했습니다. 암호를 확인하고 다시 시도하세요.";
+"wifi.join.inProgress" = "“%@”에 연결하는 중…";
+"wifi.join.notInRange" = "“%@”이(가) 범위 밖에 있습니다.";
+"wifi.join.failed" = "“%@”에 연결하지 못했습니다.";
+"wifi.action.joinHint" = "공개 또는 개인 네트워크를 선택하면 여기에서 연결합니다. 그 외 네트워크는 시스템 설정의 Wi-Fi 패널을 엽니다.";
+"settings.network.joinInApp" = "패널에서 Wi-Fi 네트워크에 연결";
+"settings.network.joinInApp.description" = "패널을 벗어나지 않고 공개 및 개인 네트워크에 연결합니다. 입력한 암호는 ~/.status-trio에 일반 텍스트로 저장되며, 끄면 삭제됩니다.";
+"onboarding.wifiJoin.toggle" = "패널에서 Wi-Fi 네트워크에 연결";
+"onboarding.wifiJoin.description" = "입력한 Wi-Fi 암호를 이 Mac의 ~/.status-trio에 일반 텍스트로 저장합니다. 기본값은 꺼짐이며 언제든 설정 › 네트워크에서 바꿀 수 있습니다.";

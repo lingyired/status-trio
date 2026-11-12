@@ -10,6 +10,7 @@ struct IconGuideOnboardingView: View {
     @State private var page: IconGuidePage = .anatomy
     @State private var menuBarHelp = MenuBarHelpPresentation()
     @State private var telemetryConsentDraft = TelemetryConsentDraft()
+    @State private var wifiJoinDraft = WiFiJoinChoiceDraft()
     let onCustomize: () -> Void
     let onDone: () -> Void
     /// Reports the view's intrinsic content height so the hosting window can
@@ -73,6 +74,10 @@ struct IconGuideOnboardingView: View {
             VStack(alignment: .leading, spacing: 12) {
                 if settings.telemetryConsentVersion == 0 {
                     telemetryConsentRow
+                }
+
+                if !settings.hasAnsweredWiFiJoinPrompt {
+                    wifiJoinChoiceRow
                 }
 
                 footer
@@ -218,8 +223,39 @@ struct IconGuideOnboardingView: View {
         )
     }
 
+    /// Opt-in for joining Wi-Fi networks from the panel. Unchecked by default,
+    /// because the passwords it saves are plain text.
+    private var wifiJoinChoiceRow: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(alignment: .center, spacing: 8) {
+                Toggle("", isOn: $wifiJoinDraft.joinsInApp)
+                    .labelsHidden()
+                    .toggleStyle(.checkbox)
+                    .accessibilityLabel(localization.string(.onboardingWiFiJoinToggle))
+
+                Text(localization.string(.onboardingWiFiJoinToggle))
+                    .font(.system(size: 12, weight: .semibold))
+
+                Spacer(minLength: 8)
+            }
+
+            Text(localization.string(.onboardingWiFiJoinDescription))
+                .font(.system(size: 11))
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+                .padding(.leading, 22)
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 10)
+        .background(
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .fill(Color.secondary.opacity(0.04))
+        )
+    }
+
     private func completeOnboarding(_ action: () -> Void) {
         telemetryConsentDraft.acknowledge(settings: settings)
+        wifiJoinDraft.acknowledge(settings: settings)
         action()
     }
 }

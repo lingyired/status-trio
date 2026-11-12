@@ -909,3 +909,16 @@
 "settings.transfer.error.fileAccess" = "Le fichier n’a pas pu être lu ou enregistré. Vérifiez son emplacement et ses autorisations.";
 "settings.transfer.done" = "Terminé";
 "settings.transfer.warningCount" = "Nombre total d’avertissements : %d (50 affichés au maximum).";
+"wifi.action.join" = "Rejoindre";
+"wifi.join.passwordTitle" = "Mot de passe de « %@ »";
+"wifi.join.passwordPlaceholder" = "Mot de passe";
+"wifi.join.savedNotice" = "Enregistré en clair dans ~/.status-trio sur ce Mac pour pouvoir vous reconnecter sans le saisir.";
+"wifi.join.wrongPassword" = "Connexion impossible. Vérifiez le mot de passe et réessayez.";
+"wifi.join.inProgress" = "Connexion à « %@ »…";
+"wifi.join.notInRange" = "« %@ » est hors de portée.";
+"wifi.join.failed" = "Impossible de rejoindre « %@ ».";
+"wifi.action.joinHint" = "Choisissez un réseau ouvert ou personnel pour le rejoindre ici. Les autres réseaux ouvrent le panneau Wi-Fi des Réglages Système.";
+"settings.network.joinInApp" = "Rejoindre les réseaux Wi-Fi depuis le panneau";
+"settings.network.joinInApp.description" = "Rejoignez les réseaux ouverts et personnels sans quitter le panneau. Les mots de passe saisis sont enregistrés en clair dans ~/.status-trio ; désactiver cette option les supprime.";
+"onboarding.wifiJoin.toggle" = "Rejoindre les réseaux Wi-Fi depuis le panneau";
+"onboarding.wifiJoin.description" = "Enregistre en clair, dans ~/.status-trio sur ce Mac, les mots de passe Wi-Fi que vous saisissez. Désactivé par défaut ; modifiable à tout moment dans Réglages › Réseau.";

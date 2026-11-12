@@ -110,6 +110,8 @@ final class SettingsStore: ObservableObject {
     static let showsBluetoothBatteryLevelsDefaultsKey = "showsBluetoothBatteryLevels"
     static let showsWiFiPowerControlDefaultsKey = "showsWiFiPowerControl"
     static let confirmsWiFiPowerOffDefaultsKey = "confirmsWiFiPowerOff"
+    static let joinsWiFiInAppDefaultsKey = "joinsWiFiInApp"
+    static let hasAnsweredWiFiJoinPromptDefaultsKey = "hasAnsweredWiFiJoinPrompt"
     static let showsBluetoothPowerControlDefaultsKey = "showsBluetoothPowerControl"
     static let controlsLowPowerModeDefaultsKey = "controlsLowPowerMode"
     static let autoEnablesLowPowerModeDefaultsKey = "autoEnablesLowPowerMode"
@@ -840,6 +842,29 @@ final class SettingsStore: ObservableObject {
         didSet {
             defaults.set(confirmsWiFiPowerOff, forKey: Self.confirmsWiFiPowerOffDefaultsKey)
         }
+    }
+
+    /// Join open and personal Wi-Fi networks from the panel instead of handing
+    /// every row to System Settings. Opt-in and off by default, because joining
+    /// a personal network saves the typed password as plain text in
+    /// `~/.status-trio`. Like consent, it is not part of settings export/import.
+    @Published var joinsWiFiInApp: Bool {
+        didSet {
+            defaults.set(joinsWiFiInApp, forKey: Self.joinsWiFiInAppDefaultsKey)
+        }
+    }
+
+    /// Whether the first-launch guide has already asked about `joinsWiFiInApp`,
+    /// so an upgrade or a later guide never asks twice.
+    @Published private(set) var hasAnsweredWiFiJoinPrompt: Bool {
+        didSet {
+            defaults.set(hasAnsweredWiFiJoinPrompt, forKey: Self.hasAnsweredWiFiJoinPromptDefaultsKey)
+        }
+    }
+
+    func completeWiFiJoinPrompt(joinsInApp: Bool) {
+        joinsWiFiInApp = joinsInApp
+        hasAnsweredWiFiJoinPrompt = true
     }
 
     /// The Bluetooth radio switch uses private IOBluetooth symbols, but needs
@@ -2310,6 +2335,8 @@ final class SettingsStore: ObservableObject {
         ) as? Bool ?? true
         self.showsWiFiPowerControl = defaults.object(forKey: Self.showsWiFiPowerControlDefaultsKey) as? Bool ?? true
         self.confirmsWiFiPowerOff = defaults.object(forKey: Self.confirmsWiFiPowerOffDefaultsKey) as? Bool ?? true
+        self.joinsWiFiInApp = defaults.object(forKey: Self.joinsWiFiInAppDefaultsKey) as? Bool ?? false
+        self.hasAnsweredWiFiJoinPrompt = defaults.object(forKey: Self.hasAnsweredWiFiJoinPromptDefaultsKey) as? Bool ?? false
         self.showsBluetoothPowerControl = defaults.object(
             forKey: Self.showsBluetoothPowerControlDefaultsKey
         ) as? Bool ?? true

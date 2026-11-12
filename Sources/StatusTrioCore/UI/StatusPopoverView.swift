@@ -107,7 +107,10 @@ struct StatusPopoverView: View {
                     showsDetails: panel.wifiDisclosure.showsDetails,
                     showsMore: panel.wifiDisclosure.showsMore,
                     onSetShowsDetails: { panel.setWiFiShowsDetails($0) },
-                    onSetShowsMore: { panel.setWiFiShowsMore($0) }
+                    onSetShowsMore: { panel.setWiFiShowsMore($0) },
+                    onJoin: { panel.actions.joinWiFi($0) },
+                    onSubmitPassword: { panel.actions.submitWiFiPassword($0, for: $1) },
+                    onCancelJoin: { panel.actions.cancelWiFiJoin() }
                 )
             case .ethernet:
                 EthernetLinkView(

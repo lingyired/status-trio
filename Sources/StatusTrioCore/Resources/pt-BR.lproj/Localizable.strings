@@ -909,3 +909,16 @@
 "settings.transfer.error.fileAccess" = "Não foi possível ler ou salvar o arquivo. Verifique sua localização e permissões.";
 "settings.transfer.done" = "Concluído";
 "settings.transfer.warningCount" = "Total de avisos: %d (exibindo até 50).";
+"wifi.action.join" = "Entrar";
+"wifi.join.passwordTitle" = "Senha de “%@”";
+"wifi.join.passwordPlaceholder" = "Senha";
+"wifi.join.savedNotice" = "Salva como texto simples em ~/.status-trio neste Mac para você entrar de novo sem digitá-la.";
+"wifi.join.wrongPassword" = "Não foi possível entrar. Verifique a senha e tente novamente.";
+"wifi.join.inProgress" = "Entrando em “%@”…";
+"wifi.join.notInRange" = "“%@” está fora do alcance.";
+"wifi.join.failed" = "Não foi possível entrar em “%@”.";
+"wifi.action.joinHint" = "Escolha uma rede aberta ou pessoal para entrar aqui. As outras redes abrem o painel de Wi-Fi dos Ajustes do Sistema.";
+"settings.network.joinInApp" = "Entrar em redes Wi-Fi pelo painel";
+"settings.network.joinInApp.description" = "Entre em redes abertas e pessoais sem sair do painel. As senhas digitadas são salvas como texto simples em ~/.status-trio; desativar esta opção as exclui.";
+"onboarding.wifiJoin.toggle" = "Entrar em redes Wi-Fi pelo painel";
+"onboarding.wifiJoin.description" = "Salva como texto simples em ~/.status-trio, neste Mac, as senhas de Wi-Fi que você digita. Desativado por padrão; altere quando quiser em Ajustes › Rede.";

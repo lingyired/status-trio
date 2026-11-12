@@ -4,7 +4,10 @@ import Foundation
 /// domain. Adding a persisted property does not silently make it transferable.
 ///
 /// Helper opt-in, consent, telemetry, onboarding, shortcuts, development/test
-/// state, migration inputs and device identities are not portable. Language
+/// state, migration inputs and device identities are not portable. The Wi-Fi
+/// in-app join opt-in (`joinsWiFiInApp`, `hasAnsweredWiFiJoinPrompt`) is a
+/// consent to saving plain-text passwords, so it is an intentional exclusion:
+/// an import must never turn it on. Language
 /// belongs to Localization and is handled by the transfer document/session.
 @MainActor
 enum SettingsPreferenceCatalog {

@@ -909,3 +909,16 @@
 "settings.transfer.error.fileAccess" = "Impossibile leggere o salvare il file. Verifica la posizione e i permessi.";
 "settings.transfer.done" = "Fine";
 "settings.transfer.warningCount" = "Avvisi totali: %d (ne vengono mostrati al massimo 50).";
+"wifi.action.join" = "Collegati";
+"wifi.join.passwordTitle" = "Password di “%@”";
+"wifi.join.passwordPlaceholder" = "Password";
+"wifi.join.savedNotice" = "Salvata come testo normale in ~/.status-trio su questo Mac, così puoi ricollegarti senza digitarla.";
+"wifi.join.wrongPassword" = "Impossibile collegarsi. Controlla la password e riprova.";
+"wifi.join.inProgress" = "Collegamento a “%@”…";
+"wifi.join.notInRange" = "“%@” è fuori portata.";
+"wifi.join.failed" = "Impossibile collegarsi a “%@”.";
+"wifi.action.joinHint" = "Scegli una rete aperta o personale per collegarti da qui. Le altre reti aprono il pannello Wi-Fi delle Impostazioni di Sistema.";
+"settings.network.joinInApp" = "Collegati alle reti Wi-Fi dal pannello";
+"settings.network.joinInApp.description" = "Collegati a reti aperte e personali senza uscire dal pannello. Le password digitate vengono salvate come testo normale in ~/.status-trio; disattivando questa opzione vengono eliminate.";
+"onboarding.wifiJoin.toggle" = "Collegati alle reti Wi-Fi dal pannello";
+"onboarding.wifiJoin.description" = "Salva come testo normale in ~/.status-trio su questo Mac le password Wi-Fi che digiti. Disattivato per impostazione predefinita; puoi cambiarlo in qualsiasi momento in Impostazioni › Rete.";

@@ -909,3 +909,16 @@
 "settings.transfer.error.fileAccess" = "تعذرت قراءة الملف أو حفظه. تحقق من موقعه وأذوناته.";
 "settings.transfer.done" = "تم";
 "settings.transfer.warningCount" = "إجمالي التحذيرات: %d (يُعرض ما يصل إلى 50).";
+"wifi.action.join" = "انضمام";
+"wifi.join.passwordTitle" = "كلمة مرور «%@»";
+"wifi.join.passwordPlaceholder" = "كلمة المرور";
+"wifi.join.savedNotice" = "تُحفظ كنص عادي في ‎~/.status-trio‎ على هذا الـ Mac لتتمكن من إعادة الانضمام دون كتابتها.";
+"wifi.join.wrongPassword" = "تعذّر الانضمام. تحقق من كلمة المرور وحاول مرة أخرى.";
+"wifi.join.inProgress" = "جارٍ الانضمام إلى «%@»…";
+"wifi.join.notInRange" = "«%@» خارج النطاق.";
+"wifi.join.failed" = "تعذّر الانضمام إلى «%@».";
+"wifi.action.joinHint" = "اختر شبكة مفتوحة أو شخصية للانضمام إليها هنا. تفتح الشبكات الأخرى لوحة Wi-Fi في إعدادات النظام.";
+"settings.network.joinInApp" = "الانضمام إلى شبكات Wi-Fi من اللوحة";
+"settings.network.joinInApp.description" = "انضم إلى الشبكات المفتوحة والشخصية دون مغادرة اللوحة. تُحفظ كلمات المرور التي تكتبها كنص عادي في ‎~/.status-trio؛ وإيقاف هذا الخيار يحذفها.";
+"onboarding.wifiJoin.toggle" = "الانضمام إلى شبكات Wi-Fi من اللوحة";
+"onboarding.wifiJoin.description" = "يحفظ كلمات مرور Wi-Fi التي تكتبها كنص عادي في ‎~/.status-trio على هذا الـ Mac. معطّل افتراضيًا؛ يمكنك تغييره في أي وقت من الإعدادات ‹ الشبكة.";
