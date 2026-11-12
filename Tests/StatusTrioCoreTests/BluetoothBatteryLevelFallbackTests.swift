@@ -8,6 +8,7 @@ struct BluetoothBatteryLevelFallbackTests {
     private func device(
         address: String = "AC:90:85:C2:9C:1F",
         name: String = "AirPods Pro",
+        kind: BluetoothDeviceKind = .audio,
         isConnected: Bool = true,
         vendorID: Int? = nil,
         productID: Int? = nil
@@ -15,7 +16,7 @@ struct BluetoothBatteryLevelFallbackTests {
         BluetoothDevice(
             id: address,
             name: name,
-            kind: .audio,
+            kind: kind,
             isConnected: isConnected,
             vendorID: vendorID,
             productID: productID
@@ -387,5 +388,425 @@ struct BluetoothBatteryLevelFallbackTests {
             accessory(name: " "),
             device(name: "AirPods Pro")
         ))
+    }
+
+    // MARK: - Keyboard / mouse owner rule (MX Anywhere 3S)
+
+    /// The real snapshot that motivated the rule: a connected MX Anywhere 3S
+    /// with a complete vendor/product pair, plus a disconnected historical record
+    /// of the same mouse with no pair, sharing the full device list with a Magic
+    /// Keyboard and AirPods. The connected mouse must get the 25% `pmset` carries;
+    /// the stale record must get nothing and must stay disconnected.
+    @Test("MX Anywhere 3S: a stale name-only twin does not block the connected mouse")
+    func mxAnywhereConnectedMouseKeepsItsLevel() {
+        let mouse = device(
+            address: "D0:B1:B1:15:D7:F7",
+            name: "MX Anywhere 3S",
+            kind: .peripheral(.mouse),
+            isConnected: true,
+            vendorID: 1133,
+            productID: 45111
+        )
+        let staleMouse = device(
+            address: "D0:B1:B1:15:D7:F5",
+            name: "MX Anywhere 3S",
+            kind: .peripheral(.mouse),
+            isConnected: false
+        )
+        let magicKeyboard = device(
+            address: "AA:BB:CC:DD:EE:10",
+            name: "Magic Keyboard",
+            kind: .peripheral(.keyboard),
+            isConnected: true,
+            vendorID: 76,
+            productID: 615
+        )
+        let airpods = device(
+            address: "11:22:33:44:55:01",
+            name: "AirPods Pro",
+            kind: .audio,
+            isConnected: true,
+            vendorID: 76,
+            productID: 8207
+        )
+        let airpodsCase = device(
+            address: "11:22:33:44:55:02",
+            name: "AirPods Pro Case",
+            kind: .audio,
+            isConnected: false
+        )
+        let accessories = [
+            accessory(
+                identifier: "6F1D4C6A-2B7E-4C0D-9A3E-2C1B0A9D8E71",
+                name: "MX Anywhere 3S",
+                vendorID: 1133,
+                productID: 45111,
+                percentage: 25
+            )
+        ]
+        let devices = [mouse, staleMouse, magicKeyboard, airpods, airpodsCase]
+
+        let merged = BluetoothBatteryLevelFallback.merged(
+            levels: [:],
+            accessories: accessories,
+            devices: devices
+        )
+
+        #expect(merged[BluetoothBatteryReader.normalizedAddress(mouse.id)]?.main == 25)
+        #expect(merged[BluetoothBatteryReader.normalizedAddress(mouse.id)]?.summary == "25%")
+        #expect(merged[BluetoothBatteryReader.normalizedAddress(staleMouse.id)] == nil)
+        #expect(merged.count == 1)
+        // The device list itself is untouched: a battery rule never reconnects.
+        #expect(staleMouse.isConnected == false)
+    }
+
+    /// The same rule for a keyboard, using an address pair that differs only in
+    /// the last byte.
+    @Test("A connected keyboard with a stale name-only twin gets its level")
+    func connectedKeyboardWithStaleTwinGetsItsLevel() {
+        let keyboard = device(
+            address: "AA:BB:CC:DD:EE:10",
+            name: "MX Keys",
+            kind: .peripheral(.keyboard),
+            isConnected: true,
+            vendorID: 1133,
+            productID: 45915
+        )
+        let staleKeyboard = device(
+            address: "AA:BB:CC:DD:EE:12",
+            name: "MX Keys",
+            kind: .peripheral(.keyboard),
+            isConnected: false
+        )
+        let merged = BluetoothBatteryLevelFallback.merged(
+            levels: [:],
+            accessories: [
+                accessory(
+                    identifier: "0B2B5A4E-8D7C-4B1A-9F3E-5A6C7D8E9F01",
+                    name: "MX Keys",
+                    vendorID: 1133,
+                    productID: 45915,
+                    percentage: 71
+                )
+            ],
+            devices: [keyboard, staleKeyboard]
+        )
+
+        #expect(merged[BluetoothBatteryReader.normalizedAddress(keyboard.id)]?.main == 71)
+        #expect(merged[BluetoothBatteryReader.normalizedAddress(staleKeyboard.id)] == nil)
+    }
+
+    /// Two records of the same name whose addresses are visibly unrelated are not
+    /// the same device. The rule refuses rather than guessing by name alone.
+    @Test("Same name but unrelated addresses stay conservative")
+    func sameNameButUnrelatedAddressesStayConservative() {
+        let mouse = device(
+            address: "AA:BB:CC:DD:EE:10",
+            name: "MX Anywhere 3S",
+            kind: .peripheral(.mouse),
+            isConnected: true,
+            vendorID: 1133,
+            productID: 45111
+        )
+        let unrelated = device(
+            address: "11:22:33:44:55:66",
+            name: "MX Anywhere 3S",
+            kind: .peripheral(.mouse),
+            isConnected: false
+        )
+        let merged = BluetoothBatteryLevelFallback.merged(
+            levels: [:],
+            accessories: [accessory(name: "MX Anywhere 3S", vendorID: 1133, productID: 45111)],
+            devices: [mouse, unrelated]
+        )
+
+        #expect(merged.isEmpty)
+    }
+
+    /// Two connected mice of the same model cannot share one reading, even with
+    /// the relaxed rule available.
+    @Test("Two connected mice with the same pair are rejected")
+    func twoConnectedMiceWithSamePairAreRejected() {
+        let first = device(
+            address: "AA:BB:CC:DD:EE:10",
+            name: "MX Anywhere 3S",
+            kind: .peripheral(.mouse),
+            isConnected: true,
+            vendorID: 1133,
+            productID: 45111
+        )
+        let second = device(
+            address: "AA:BB:CC:DD:EE:12",
+            name: "MX Anywhere 3S",
+            kind: .peripheral(.mouse),
+            isConnected: true,
+            vendorID: 1133,
+            productID: 45111
+        )
+        let merged = BluetoothBatteryLevelFallback.merged(
+            levels: [:],
+            accessories: [accessory(name: "MX Anywhere 3S", vendorID: 1133, productID: 45111)],
+            devices: [first, second]
+        )
+
+        #expect(merged.isEmpty)
+    }
+
+    /// A disconnected twin that still carries the complete pair is a second real
+    /// device of the model, so the pair no longer names one owner.
+    @Test("A disconnected twin with the same complete pair blocks the rule")
+    func aDisconnectedTwinWithTheSamePairBlocksTheRule() {
+        let mouse = device(
+            address: "AA:BB:CC:DD:EE:10",
+            name: "MX Anywhere 3S",
+            kind: .peripheral(.mouse),
+            isConnected: true,
+            vendorID: 1133,
+            productID: 45111
+        )
+        let twin = device(
+            address: "AA:BB:CC:DD:EE:12",
+            name: "MX Anywhere 3S",
+            kind: .peripheral(.mouse),
+            isConnected: false,
+            vendorID: 1133,
+            productID: 45111
+        )
+        let merged = BluetoothBatteryLevelFallback.merged(
+            levels: [:],
+            accessories: [accessory(name: "MX Anywhere 3S", vendorID: 1133, productID: 45111)],
+            devices: [mouse, twin]
+        )
+
+        #expect(merged.isEmpty)
+    }
+
+    /// Without a complete pair on the source there is no safe strong match, so the
+    /// relaxed rule must not run at all.
+    @Test("A pmset reading without a full pair never triggers the relaxed rule")
+    func aReadingWithoutAFullPairNeverTriggersTheRelaxedRule() {
+        let mouse = device(
+            address: "AA:BB:CC:DD:EE:10",
+            name: "MX Anywhere 3S",
+            kind: .peripheral(.mouse),
+            isConnected: true,
+            vendorID: 1133,
+            productID: 45111
+        )
+        let stale = device(
+            address: "AA:BB:CC:DD:EE:12",
+            name: "MX Anywhere 3S",
+            kind: .peripheral(.mouse),
+            isConnected: false
+        )
+        let merged = BluetoothBatteryLevelFallback.merged(
+            levels: [:],
+            accessories: [accessory(name: "MX Anywhere 3S", percentage: 25)],
+            devices: [mouse, stale]
+        )
+
+        #expect(merged.isEmpty)
+    }
+
+    /// Two independent identifiers that both name the one mouse make ownership
+    /// ambiguous: a higher evidence level must not pick one of them.
+    @Test("Two identifiers naming one mouse are still rejected")
+    func twoIdentifiersNamingOneMouseAreRejected() {
+        let mouse = device(
+            address: "AA:BB:CC:DD:EE:10",
+            name: "MX Anywhere 3S",
+            kind: .peripheral(.mouse),
+            isConnected: true,
+            vendorID: 1133,
+            productID: 45111
+        )
+        let stale = device(
+            address: "AA:BB:CC:DD:EE:12",
+            name: "MX Anywhere 3S",
+            kind: .peripheral(.mouse),
+            isConnected: false
+        )
+        let merged = BluetoothBatteryLevelFallback.merged(
+            levels: [:],
+            accessories: [
+                accessory(identifier: "AAAA", name: "MX Anywhere 3S", vendorID: 1133, productID: 45111, percentage: 25),
+                accessory(identifier: "BBBB", name: "MX Anywhere 3S", vendorID: 1133, productID: 45111, percentage: 30)
+            ],
+            devices: [mouse, stale]
+        )
+
+        #expect(merged.isEmpty)
+    }
+
+    /// A complete, different pair on the same-named device is a conflict, not a
+    /// stale copy, so the reading is withheld.
+    @Test("A conflicting complete pair on a same-named device is rejected")
+    func aConflictingCompletePairOnASameNamedDeviceIsRejected() {
+        let mouse = device(
+            address: "AA:BB:CC:DD:EE:10",
+            name: "MX Anywhere 3S",
+            kind: .peripheral(.mouse),
+            isConnected: true,
+            vendorID: 1133,
+            productID: 12345
+        )
+        let merged = BluetoothBatteryLevelFallback.merged(
+            levels: [:],
+            accessories: [accessory(name: "MX Anywhere 3S", vendorID: 1133, productID: 45111)],
+            devices: [mouse]
+        )
+
+        #expect(merged.isEmpty)
+    }
+
+    /// A level the profiler already carries is never replaced by `pmset`, even
+    /// when the relaxed rule would otherwise apply.
+    @Test("A profiler level survives the relaxed rule untouched")
+    func aProfilerLevelSurvivesTheRelaxedRule() {
+        let mouse = device(
+            address: "AA:BB:CC:DD:EE:10",
+            name: "MX Anywhere 3S",
+            kind: .peripheral(.mouse),
+            isConnected: true,
+            vendorID: 1133,
+            productID: 45111
+        )
+        let stale = device(
+            address: "AA:BB:CC:DD:EE:12",
+            name: "MX Anywhere 3S",
+            kind: .peripheral(.mouse),
+            isConnected: false
+        )
+        let merged = BluetoothBatteryLevelFallback.merged(
+            levels: [BluetoothBatteryReader.normalizedAddress(mouse.id): level(main: 80)],
+            accessories: [accessory(name: "MX Anywhere 3S", vendorID: 1133, productID: 45111, percentage: 25)],
+            devices: [mouse, stale]
+        )
+
+        #expect(merged[BluetoothBatteryReader.normalizedAddress(mouse.id)]?.main == 80)
+    }
+
+    /// The relaxed rule is confined to keyboards and mice. AirPods of the same
+    /// name keep the strict behavior, so the twin still blocks.
+    @Test("AirPods never enter the keyboard/mouse relaxed rule")
+    func airPodsNeverEnterTheRelaxedRule() {
+        let connected = device(
+            address: "AA:BB:CC:DD:EE:10",
+            name: "AirPods Pro",
+            kind: .audio,
+            isConnected: true,
+            vendorID: 76,
+            productID: 8207
+        )
+        let stale = device(
+            address: "AA:BB:CC:DD:EE:12",
+            name: "AirPods Pro",
+            kind: .audio,
+            isConnected: false
+        )
+        let merged = BluetoothBatteryLevelFallback.merged(
+            levels: [:],
+            accessories: [accessory(name: "AirPods Pro", vendorID: 76, productID: 8207, percentage: 55)],
+            devices: [connected, stale]
+        )
+
+        #expect(merged.isEmpty)
+    }
+
+    /// A trackpad is a peripheral but not a keyboard or mouse: the relaxed rule
+    /// must not apply to it.
+    @Test("A trackpad stays on the strict rule")
+    func aTrackpadStaysOnTheStrictRule() {
+        let trackpad = device(
+            address: "AA:BB:CC:DD:EE:10",
+            name: "Magic Trackpad",
+            kind: .peripheral(.trackpad),
+            isConnected: true,
+            vendorID: 76,
+            productID: 613
+        )
+        let stale = device(
+            address: "AA:BB:CC:DD:EE:12",
+            name: "Magic Trackpad",
+            kind: .peripheral(.trackpad),
+            isConnected: false
+        )
+        let merged = BluetoothBatteryLevelFallback.merged(
+            levels: [:],
+            accessories: [accessory(name: "Magic Trackpad", vendorID: 76, productID: 613, percentage: 40)],
+            devices: [trackpad, stale]
+        )
+
+        #expect(merged.isEmpty)
+    }
+
+    /// A part-channel reading is never device-wide, so it must not be handed to a
+    /// keyboard or mouse by the relaxed rule either.
+    @Test("A part reading never feeds the relaxed rule")
+    func aPartReadingNeverFeedsTheRelaxedRule() {
+        let mouse = device(
+            address: "AA:BB:CC:DD:EE:10",
+            name: "MX Anywhere 3S",
+            kind: .peripheral(.mouse),
+            isConnected: true,
+            vendorID: 1133,
+            productID: 45111
+        )
+        let stale = device(
+            address: "AA:BB:CC:DD:EE:12",
+            name: "MX Anywhere 3S",
+            kind: .peripheral(.mouse),
+            isConnected: false
+        )
+        let merged = BluetoothBatteryLevelFallback.merged(
+            levels: [:],
+            accessories: [accessory(name: "MX Anywhere 3S", vendorID: 1133, productID: 45111, part: .left, percentage: 25)],
+            devices: [mouse, stale]
+        )
+
+        #expect(merged.isEmpty)
+    }
+
+    /// Resolving every identifier before assigning ownership makes the result
+    /// independent of both accessory and device order.
+    @Test("The relaxed rule is order independent")
+    func theRelaxedRuleIsOrderIndependent() {
+        let mouse = device(
+            address: "AA:BB:CC:DD:EE:10",
+            name: "MX Anywhere 3S",
+            kind: .peripheral(.mouse),
+            isConnected: true,
+            vendorID: 1133,
+            productID: 45111
+        )
+        let stale = device(
+            address: "AA:BB:CC:DD:EE:12",
+            name: "MX Anywhere 3S",
+            kind: .peripheral(.mouse),
+            isConnected: false
+        )
+        let other = device(
+            address: "11:22:33:44:55:66",
+            name: "Magic Keyboard",
+            kind: .peripheral(.keyboard),
+            isConnected: true,
+            vendorID: 76,
+            productID: 615
+        )
+        let accessories = [
+            accessory(identifier: "AAAA", name: "MX Anywhere 3S", vendorID: 1133, productID: 45111, percentage: 25),
+            accessory(identifier: "BBBB", name: "Magic Keyboard", vendorID: 76, productID: 615, percentage: 90)
+        ]
+
+        let forward = BluetoothBatteryLevelFallback.merged(
+            levels: [:], accessories: accessories, devices: [mouse, stale, other]
+        )
+        let reversed = BluetoothBatteryLevelFallback.merged(
+            levels: [:], accessories: Array(accessories.reversed()), devices: [stale, other, mouse]
+        )
+
+        #expect(forward == reversed)
+        #expect(forward[BluetoothBatteryReader.normalizedAddress(mouse.id)]?.main == 25)
+        #expect(forward[BluetoothBatteryReader.normalizedAddress(other.id)]?.main == 90)
     }
 }
