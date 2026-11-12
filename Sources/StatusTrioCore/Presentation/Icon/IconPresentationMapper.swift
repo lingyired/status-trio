@@ -395,7 +395,7 @@ enum IconPresentationMapper {
         case .wifi:
             guard let bars = wifiFooterBars(inputs.snapshot.wifi) else { return nil }
             return progressFooter(
-                dotSteps: bars,
+                dotSteps: wifiDotSteps(bars: bars),
                 arcProgress: Double(bars) / 3.0,
                 options: options
             )
@@ -449,6 +449,15 @@ enum IconPresentationMapper {
         case .notAssociated, .off, .unavailable:
             return nil
         }
+    }
+
+    /// Maps the icon's 3-bar Wi-Fi scale onto the four-dot footer so a full
+    /// (3-bar) reading fills all four dots instead of leaving one permanently
+    /// empty. The arc keeps the natural 0–3 progress; only the discrete dots
+    /// need the 3→4 spread.
+    private static func wifiDotSteps(bars: Int) -> Int {
+        let clamped = min(3, max(0, bars))
+        return Int((Double(clamped) / 3.0 * 4.0).rounded())
     }
 
     /// Shared dot/arc construction for the Wi-Fi and battery sources, which

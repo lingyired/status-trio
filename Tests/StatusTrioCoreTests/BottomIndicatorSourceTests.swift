@@ -145,14 +145,24 @@ final class BottomIndicatorSourceTests: XCTestCase {
     // MARK: Wi-Fi
 
     func testWiFiBarsMapToDots() {
-        let cases: [(Int, Int)] = [(-60, 3), (-75, 2), (-85, 1), (-95, 0)]
-        for (rssi, bars) in cases {
+        // The real Wi-Fi glyph has three bars, but the footer has four dots, so
+        // a full (3-bar) reading must fill all four dots rather than leave one
+        // empty.
+        let cases: [(Int, Int)] = [(-60, 4), (-75, 3), (-85, 1), (-95, 0)]
+        for (rssi, dots) in cases {
             let footer = scene(source: .wifi, style: .dots,
                                snapshot: snapshot(wifi: WiFiStatus(state: .connected, rssi: rssi))).footer
             guard case let .dots(d)? = footer else { return XCTFail("expected dots at \(rssi)") }
             XCTAssertEqual(d.count, 4)
-            XCTAssertEqual(d.activeCount, bars, "rssi \(rssi) should be \(bars) bars")
+            XCTAssertEqual(d.activeCount, dots, "rssi \(rssi) should show \(dots) dots")
         }
+    }
+
+    func testWiFiFullSignalFillsAllFourDots() {
+        let footer = scene(source: .wifi, style: .dots,
+                           snapshot: snapshot(wifi: WiFiStatus(state: .connected, rssi: -58))).footer
+        guard case let .dots(d)? = footer else { return XCTFail("expected dots") }
+        XCTAssertEqual(d.activeCount, 4, "Full Wi-Fi signal must fill all four dots.")
     }
 
     func testWiFiBarsMapToArcProgress() {
