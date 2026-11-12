@@ -232,6 +232,10 @@ struct AppIconRingView: View {
 
     private var hardwareTopGroup: some View {
         SettingsGroup(localization.string(.settingsTopMarkerGroup)) {
+            if hardwareTopMode != .hidden {
+                topMarkerSizeRow
+                SettingsDivider()
+            }
             SettingsMenuRow(
                 symbol: "textformat",
                 tint: .gray,
@@ -256,10 +260,6 @@ struct AppIconRingView: View {
                     options: HardwareMonitorMetric.allCases,
                     label: { metricLabel($0) }
                 )
-            }
-            if hardwareTopMode != .hidden {
-                SettingsDivider()
-                topMarkerSizeRow
             }
         }
     }
