@@ -360,27 +360,15 @@ struct AppIconRingView: View {
     @ViewBuilder
     private func hardwareAdvancedRow(for metric: HardwareMonitorMetric) -> some View {
         if metric.isSpeedMetric {
-            // Custom layout: title and the cap field share the top line so they
-            // align vertically; the description wraps underneath, indented to the
-            // title. The stock SettingsRow put the control centred against a
-            // two-line description, which read as misaligned.
-            VStack(alignment: .leading, spacing: 3) {
-                HStack(alignment: .center, spacing: 12) {
-                    SettingsIcon(symbol: metric.systemImage, tint: .orange)
-                    Text(metricLabel(metric))
-                        .font(.system(size: 13))
-                    Spacer(minLength: 12)
+            SettingsRow(
+                title: metricLabel(metric),
+                subtitle: localization.string(.hardwareMonitorSpeedCapDescription),
+                leading: { SettingsIcon(symbol: metric.systemImage, tint: .orange) },
+                trailing: {
                     HardwareCapField(value: speedCapBinding(metric),
                                      range: SettingsStore.hardwareSpeedCapRange)
                 }
-                Text(localization.string(.hardwareMonitorSpeedCapDescription))
-                    .font(.system(size: 11))
-                    .foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .padding(.leading, SettingsMetrics.iconSize + 12)
-            }
-            .padding(.horizontal, SettingsMetrics.rowPaddingH)
-            .padding(.vertical, SettingsMetrics.rowPaddingV)
+            )
         } else {
         let options = store.hardwareRingConfiguration.options(for: metric)
         // Threshold colours are only used when the ring is coloured and the
@@ -1066,7 +1054,7 @@ private struct HardwareCapField: View {
             Text("≈ \(String(format: "%.1f", value / 8)) MB/s")
                 .font(.system(size: 10))
                 .foregroundStyle(.tertiary)
-                .fixedSize()
+                .frame(width: 100, alignment: .leading)
         }
     }
 
