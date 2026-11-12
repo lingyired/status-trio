@@ -76,21 +76,6 @@ enum HardwareRingTopContent: Codable, Equatable, Hashable, Sendable {
     }
 }
 
-/// Colour strategy for the hardware-monitor ring. Mirrors the requested
-/// three-way choice; the left/right base colours are only used by `status` and
-/// `fixed` (monochrome draws through the template foreground).
-enum HardwareRingColorMode: String, Codable, CaseIterable, Identifiable, Sendable {
-    /// Metric base colour normally; whole filled arc turns orange at the warning
-    /// threshold and red at the critical threshold.
-    case status
-    /// Metric base colour, unaffected by load.
-    case fixed
-    /// Template foreground, no warning colour (matches the menu-bar tint).
-    case monochrome
-
-    var id: Self { self }
-}
-
 /// Per-metric display range and warning/critical thresholds. Thresholds compare
 /// the *raw* sampled value (not a fraction of the display range).
 struct HardwareMetricRingOptions: Codable, Equatable, Hashable, Sendable {
@@ -167,18 +152,61 @@ struct HardwareMetricRingOptions: Codable, Equatable, Hashable, Sendable {
     }
 }
 
-/// Colour strategy for the hardware ring. The per-metric base colour is *not*
-/// stored here: it is the shared "monitor metric colour" owned by the settings
-/// store, so the status-panel bar and the ring arc always agree and editing the
-/// colour in either place writes the same field.
+/// Colour strategy for the hardware ring, expressed as two independent choices
+/// instead of a three-way mode:
+/// - `monochrome`: draw the ring in the menu-bar foreground (template), ignoring
+///   metric colours entirely.
+/// - `thresholdColors`: when coloured, recolour the whole filled arc orange/red
+///   at the warning/critical thresholds. Irrelevant while `monochrome` is on.
+///
+/// The per-metric base colour is *not* stored here: it is the shared
+/// "monitor metric colour" owned by the settings store, so the status-panel bar
+/// and the ring arc always agree and editing the colour in either place writes
+/// the same field.
 struct HardwareRingColorConfiguration: Codable, Equatable, Hashable, Sendable {
-    var mode: HardwareRingColorMode
+    var monochrome: Bool
+    var thresholdColors: Bool
 
-    init(mode: HardwareRingColorMode = .status) {
-        self.mode = mode
+    init(monochrome: Bool = false, thresholdColors: Bool = true) {
+        self.monochrome = monochrome
+        self.thresholdColors = thresholdColors
     }
 
     func normalized() -> HardwareRingColorConfiguration { self }
+
+    // MARK: - Lenient Codable (migrates the old three-way `mode`)
+
+    private enum CodingKeys: String, CodingKey {
+        case monochrome, thresholdColors, mode
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        if let monochrome = try container.decodeIfPresent(Bool.self, forKey: .monochrome) {
+            self.monochrome = monochrome
+            self.thresholdColors = (try container.decodeIfPresent(Bool.self, forKey: .thresholdColors)) ?? true
+            return
+        }
+        // Legacy payload: status / fixed / monochrome.
+        let rawMode = (try container.decodeIfPresent(String.self, forKey: .mode)) ?? "status"
+        switch rawMode {
+        case "monochrome":
+            self.monochrome = true
+            self.thresholdColors = false
+        case "fixed":
+            self.monochrome = false
+            self.thresholdColors = false
+        default:
+            self.monochrome = false
+            self.thresholdColors = true
+        }
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(monochrome, forKey: .monochrome)
+        try container.encode(thresholdColors, forKey: .thresholdColors)
+    }
 
     /// The recommended base colour for a metric (the default of the shared
     /// per-metric colour; used until the user picks a custom one).

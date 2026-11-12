@@ -1160,3 +1160,7 @@
 "settings.hardwareRing.color.status.description" = "Normal affiche la couleur de la métrique ; orange au seuil d’avertissement, rouge au seuil critique.";
 "settings.hardwareRing.color.fixed.description" = "Affiche toujours la couleur de la métrique, quelle que soit la charge.";
 "settings.hardwareRing.color.monochrome.description" = "Suit la couleur de premier plan de la barre des menus ; pas de couleurs d’avertissement.";
+"settings.hardwareRing.monochrome" = "Monochrome système";
+"settings.hardwareRing.monochrome.description" = "Dessine tout l’anneau dans la couleur de premier plan de la barre des menus, sans couleurs de métrique.";
+"settings.hardwareRing.thresholdColors" = "Couleurs de seuil";
+"settings.hardwareRing.thresholdColors.description" = "Recolore l’arc rempli en orange au seuil d’avertissement et en rouge au seuil critique ; désactivé, garde la couleur de métrique.";

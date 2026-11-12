@@ -1160,3 +1160,7 @@
 "settings.hardwareRing.color.status.description" = "Normale mostra il colore della metrica; arancione alla soglia di avviso, rosso a quella critica.";
 "settings.hardwareRing.color.fixed.description" = "Mostra sempre il colore della metrica, a prescindere dal carico.";
 "settings.hardwareRing.color.monochrome.description" = "Segue il colore in primo piano della barra dei menu; nessun colore di avviso.";
+"settings.hardwareRing.monochrome" = "Monocromatico di sistema";
+"settings.hardwareRing.monochrome.description" = "Disegna l’intero anello con il colore in primo piano della barra dei menu, senza colori delle metriche.";
+"settings.hardwareRing.thresholdColors" = "Colori di soglia";
+"settings.hardwareRing.thresholdColors.description" = "Ricolora l’arco pieno in arancione alla soglia di avviso e rosso a quella critica; disattivato mantiene il colore della metrica.";

@@ -1160,3 +1160,7 @@
 "settings.hardwareRing.color.status.description" = "عادي يعرض لون المقياس؛ برتقالي عند حد التحذير وأحمر عند الحد الحرج.";
 "settings.hardwareRing.color.fixed.description" = "يعرض دائمًا لون المقياس بغض النظر عن الحمل.";
 "settings.hardwareRing.color.monochrome.description" = "يتبع لون الواجهة في شريط القوائم؛ دون ألوان تحذير.";
+"settings.hardwareRing.monochrome" = "أحادي اللون للنظام";
+"settings.hardwareRing.monochrome.description" = "يرسم الحلقة كاملة بلون واجهة شريط القوائم دون ألوان المقاييس.";
+"settings.hardwareRing.thresholdColors" = "ألوان الحدود";
+"settings.hardwareRing.thresholdColors.description" = "يعيد تلوين القوس الممتلئ برتقالي عند حد التحذير وأحمر عند الحد الحرج؛ الإيقاف يحافظ على لون المقياس.";

@@ -1160,3 +1160,7 @@
 "settings.hardwareRing.color.status.description" = "正常顯示各指標顏色；達警告閾值整段變橙、嚴重閾值變紅。";
 "settings.hardwareRing.color.fixed.description" = "始終使用各指標顏色，不受負載狀態影響。";
 "settings.hardwareRing.color.monochrome.description" = "跟隨選單列前景色，不啟用警示顏色。";
+"settings.hardwareRing.monochrome" = "系統單色";
+"settings.hardwareRing.monochrome.description" = "整環使用選單列前景色，不顯示各指標顏色。";
+"settings.hardwareRing.thresholdColors" = "閾值顏色";
+"settings.hardwareRing.thresholdColors.description" = "達警告閾值整段變橙、嚴重閾值整段變紅；關閉則始終使用指標顏色。";

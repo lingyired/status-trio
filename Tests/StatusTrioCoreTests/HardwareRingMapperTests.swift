@@ -38,7 +38,7 @@ final class HardwareRingMapperTests: XCTestCase {
     func testSingleRingMapsProgressAndBaseColor() {
         let snap = snapshot([.cpuUsage: sample(45, unit: .percent)])
         let config = HardwareRingConfiguration(layout: .single, primaryMetric: .cpuUsage,
-                                               color: HardwareRingColorConfiguration(mode: .status))
+                                               color: HardwareRingColorConfiguration(monochrome: false, thresholdColors: true))
         let state = HardwareRingMapper.resolve(snapshot: snap, configuration: config,
                                                 levels: [.cpuUsage: .normal], now: now)
         XCTAssertEqual(state.layout, .standard)
@@ -50,7 +50,7 @@ final class HardwareRingMapperTests: XCTestCase {
     func testStatusModeWarningAndCriticalRecolorWholeArc() {
         let snap = snapshot([.cpuUsage: sample(96, unit: .percent)])
         let config = HardwareRingConfiguration(layout: .single, primaryMetric: .cpuUsage,
-                                               color: HardwareRingColorConfiguration(mode: .status))
+                                               color: HardwareRingColorConfiguration(monochrome: false, thresholdColors: true))
 
         let warning = HardwareRingMapper.resolve(snapshot: snap, configuration: config,
                                                   levels: [.cpuUsage: .warning], now: now)
@@ -64,7 +64,7 @@ final class HardwareRingMapperTests: XCTestCase {
     func testFixedModeIgnoresLevel() {
         let snap = snapshot([.cpuUsage: sample(99, unit: .percent)])
         let config = HardwareRingConfiguration(layout: .single, primaryMetric: .cpuUsage,
-                                               color: HardwareRingColorConfiguration(mode: .fixed))
+                                               color: HardwareRingColorConfiguration(monochrome: false, thresholdColors: false))
         let state = HardwareRingMapper.resolve(snapshot: snap, configuration: config,
                                                 levels: [.cpuUsage: .critical], now: now)
         XCTAssertEqual(state.segments[0].color, .custom(green))
@@ -73,7 +73,7 @@ final class HardwareRingMapperTests: XCTestCase {
     func testMonochromeUsesPrimaryRole() {
         let snap = snapshot([.cpuUsage: sample(99, unit: .percent)])
         let config = HardwareRingConfiguration(layout: .single, primaryMetric: .cpuUsage,
-                                               color: HardwareRingColorConfiguration(mode: .monochrome))
+                                               color: HardwareRingColorConfiguration(monochrome: true, thresholdColors: false))
         let state = HardwareRingMapper.resolve(snapshot: snap, configuration: config,
                                                 levels: [.cpuUsage: .critical], now: now)
         XCTAssertEqual(state.segments[0].color, .primary)
@@ -82,7 +82,7 @@ final class HardwareRingMapperTests: XCTestCase {
     func testUnavailableSampleShowsInactiveTrack() {
         let snap = snapshot([.cpuUsage: sample(nil, unit: .percent, availability: .temporarilyUnavailable)])
         let config = HardwareRingConfiguration(layout: .single, primaryMetric: .cpuUsage,
-                                               color: HardwareRingColorConfiguration(mode: .status))
+                                               color: HardwareRingColorConfiguration(monochrome: false, thresholdColors: true))
         let state = HardwareRingMapper.resolve(snapshot: snap, configuration: config,
                                                 levels: [.cpuUsage: .normal], now: now)
         XCTAssertEqual(state.segments.count, 1)
@@ -134,7 +134,7 @@ final class HardwareRingMapperTests: XCTestCase {
         ])
         let config = HardwareRingConfiguration(
             layout: .dual, primaryMetric: .cpuUsage, secondaryMetric: .gpuUsage,
-            color: HardwareRingColorConfiguration(mode: .status)
+            color: HardwareRingColorConfiguration(monochrome: false, thresholdColors: true)
         )
         let state = HardwareRingMapper.resolve(
             snapshot: snap, configuration: config,
@@ -165,7 +165,7 @@ final class HardwareRingMapperTests: XCTestCase {
     func testMetricColorOverrideFeedsSegment() {
         let snap = snapshot([.cpuUsage: sample(45, unit: .percent)])
         let config = HardwareRingConfiguration(layout: .single, primaryMetric: .cpuUsage,
-                                               color: HardwareRingColorConfiguration(mode: .status))
+                                               color: HardwareRingColorConfiguration(monochrome: false, thresholdColors: true))
         let custom = IconRGBA(red: 1, green: 0, blue: 1, alpha: 1)
         let state = HardwareRingMapper.resolve(snapshot: snap, configuration: config,
                                                 levels: [.cpuUsage: .normal],

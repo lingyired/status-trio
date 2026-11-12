@@ -1159,3 +1159,7 @@
 "settings.hardwareRing.color.status.description" = "Normal shows each metric's colour; turns orange at warning, red at critical.";
 "settings.hardwareRing.color.fixed.description" = "Always shows each metric's colour, regardless of load.";
 "settings.hardwareRing.color.monochrome.description" = "Follows the menu-bar foreground colour; no warning colours.";
+"settings.hardwareRing.monochrome" = "System monochrome";
+"settings.hardwareRing.monochrome.description" = "Draws the whole ring in the menu-bar foreground colour, ignoring metric colours.";
+"settings.hardwareRing.thresholdColors" = "Threshold colours";
+"settings.hardwareRing.thresholdColors.description" = "Recolours the whole filled arc orange at the warning threshold and red at the critical threshold; off keeps the metric colour.";

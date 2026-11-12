@@ -1160,3 +1160,7 @@
 "settings.hardwareRing.color.status.description" = "Normal muestra el color de la métrica; naranja en el umbral de advertencia y rojo en el crítico.";
 "settings.hardwareRing.color.fixed.description" = "Muestra siempre el color de la métrica, independientemente de la carga.";
 "settings.hardwareRing.color.monochrome.description" = "Sigue el color de primer plano de la barra de menús; sin colores de advertencia.";
+"settings.hardwareRing.monochrome" = "Monocromo del sistema";
+"settings.hardwareRing.monochrome.description" = "Dibuja todo el anillo con el color de primer plano de la barra de menús, sin colores de métrica.";
+"settings.hardwareRing.thresholdColors" = "Colores de umbral";
+"settings.hardwareRing.thresholdColors.description" = "Recolorea el arco lleno en naranja al umbral de advertencia y rojo al crítico; desactivado mantiene el color de la métrica.";

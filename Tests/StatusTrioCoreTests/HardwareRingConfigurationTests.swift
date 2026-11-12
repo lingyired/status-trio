@@ -8,7 +8,7 @@ final class HardwareRingConfigurationTests: XCTestCase {
             primaryMetric: .cpuUsage,
             secondaryMetric: .gpuUsage,
             topContent: .value(.cpuTemperature),
-            color: HardwareRingColorConfiguration(mode: .status),
+            color: HardwareRingColorConfiguration(monochrome: false, thresholdColors: true),
             overrides: [
                 .cpuUsage: HardwareMetricRingOptions(
                     displayMinimum: 0, displayMaximum: 100,
@@ -38,8 +38,19 @@ final class HardwareRingConfigurationTests: XCTestCase {
         XCTAssertEqual(decoded.layout, .dual)
         XCTAssertEqual(decoded.primaryMetric, .fan)
         XCTAssertEqual(decoded.topContent, .automatic)
-        XCTAssertEqual(decoded.color.mode, .status)
+        XCTAssertFalse(decoded.color.monochrome)
+        XCTAssertTrue(decoded.color.thresholdColors)
         XCTAssertTrue(decoded.overrides.isEmpty)
+    }
+
+    func testLegacyColorModeMigratesToTwoToggles() throws {
+        func decode(_ mode: String) throws -> HardwareRingColorConfiguration {
+            let json = Data("{\"mode\":\"\(mode)\"}".utf8)
+            return try JSONDecoder().decode(HardwareRingColorConfiguration.self, from: json)
+        }
+        XCTAssertEqual(try decode("status"), HardwareRingColorConfiguration(monochrome: false, thresholdColors: true))
+        XCTAssertEqual(try decode("fixed"), HardwareRingColorConfiguration(monochrome: false, thresholdColors: false))
+        XCTAssertEqual(try decode("monochrome"), HardwareRingColorConfiguration(monochrome: true, thresholdColors: false))
     }
 
     func testUnknownLayoutStringFallsBackToDefault() throws {

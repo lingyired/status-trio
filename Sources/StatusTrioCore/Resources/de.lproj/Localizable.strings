@@ -1160,3 +1160,7 @@
 "settings.hardwareRing.color.status.description" = "Normal zeigt die Metrikfarbe; ab Warnschwelle orange, ab kritischer Schwelle rot.";
 "settings.hardwareRing.color.fixed.description" = "Zeigt immer die Metrikfarbe, unabhängig von der Last.";
 "settings.hardwareRing.color.monochrome.description" = "Folgt der Menüleisten-Vordergrundfarbe; keine Warnfarben.";
+"settings.hardwareRing.monochrome" = "System-Monochrom";
+"settings.hardwareRing.monochrome.description" = "Zeichnet den ganzen Ring in der Menüleisten-Vordergrundfarbe, ohne Metrikfarben.";
+"settings.hardwareRing.thresholdColors" = "Schwellenfarben";
+"settings.hardwareRing.thresholdColors.description" = "Färbt den gefüllten Bogen ab Warnschwelle orange, ab kritischer Schwelle rot; aus behält die Metrikfarbe.";

@@ -297,19 +297,29 @@ struct AppIconRingView: View {
 
     private var hardwareColorGroup: some View {
         SettingsGroup(localization.string(.settingsHardwareRingGroupColor)) {
-            SettingsMenuRow(
-                symbol: "paintpalette",
+            SettingsToggleRow(
+                symbol: "circle.lefthalf.filled",
                 tint: .purple,
-                title: localization.string(.settingsHardwareRingColorMode),
-                subtitle: colorModeDescription(store.hardwareRingConfiguration.color.mode),
-                selection: Binding(
-                    get: { store.hardwareRingConfiguration.color.mode },
-                    set: { setColorMode($0) }
-                ),
-                options: HardwareRingColorMode.allCases,
-                label: { colorModeLabel($0) }
+                title: localization.string(.settingsHardwareRingMonochrome),
+                subtitle: localization.string(.settingsHardwareRingMonochromeDescription),
+                isOn: Binding(
+                    get: { store.hardwareRingConfiguration.color.monochrome },
+                    set: { setColorMonochrome($0) }
+                )
             )
-            if store.hardwareRingConfiguration.color.mode != .monochrome {
+            SettingsDivider()
+            SettingsToggleRow(
+                symbol: "exclamationmark.triangle",
+                tint: .orange,
+                title: localization.string(.settingsHardwareRingThresholdColors),
+                subtitle: localization.string(.settingsHardwareRingThresholdColorsDescription),
+                isOn: Binding(
+                    get: { store.hardwareRingConfiguration.color.thresholdColors },
+                    set: { setColorThresholdColors($0) }
+                )
+            )
+            .disabled(store.hardwareRingConfiguration.color.monochrome)
+            if !store.hardwareRingConfiguration.color.monochrome {
                 SettingsDivider()
                 hardwareColorRow(
                     title: .settingsHardwareRingLeftColor,
@@ -350,6 +360,10 @@ struct AppIconRingView: View {
     @ViewBuilder
     private func hardwareAdvancedRow(for metric: HardwareMonitorMetric) -> some View {
         let options = store.hardwareRingConfiguration.options(for: metric)
+        // Threshold colours are only used when the ring is coloured and the
+        // "threshold colours" switch is on; otherwise the steppers are inert.
+        let thresholdsEnabled = !store.hardwareRingConfiguration.color.monochrome
+            && store.hardwareRingConfiguration.color.thresholdColors
         SettingsRow(
             title: metricLabel(metric),
             subtitle: hardwareRangeSubtitle(metric: metric, options: options),
@@ -362,12 +376,14 @@ struct AppIconRingView: View {
                         range: hardwareStepperRange(metric),
                         step: metric == .fan ? 100 : 1
                     )
+                    .disabled(!thresholdsEnabled)
                     hardwareStepper(
                         label: localization.string(.settingsHardwareRingCritical),
                         value: hardwareOptionBinding(metric, \HardwareMetricRingOptions.criticalThreshold),
                         range: hardwareStepperRange(metric),
                         step: metric == .fan ? 100 : 1
                     )
+                    .disabled(!thresholdsEnabled)
                     if !metric.isPercentageMetric && metric != .fan {
                         hardwareStepper(
                             label: "\(localization.string(.settingsHardwareRingRange)) ↓",
@@ -490,9 +506,15 @@ struct AppIconRingView: View {
         store.hardwareRingConfiguration = configuration
     }
 
-    private func setColorMode(_ mode: HardwareRingColorMode) {
+    private func setColorMonochrome(_ on: Bool) {
         var configuration = store.hardwareRingConfiguration
-        configuration.color.mode = mode
+        configuration.color.monochrome = on
+        store.hardwareRingConfiguration = configuration
+    }
+
+    private func setColorThresholdColors(_ on: Bool) {
+        var configuration = store.hardwareRingConfiguration
+        configuration.color.thresholdColors = on
         store.hardwareRingConfiguration = configuration
     }
 
@@ -555,22 +577,6 @@ struct AppIconRingView: View {
 
     private func metricLabel(_ metric: HardwareMonitorMetric) -> String {
         localization.string(metric.titleKey)
-    }
-
-    private func colorModeLabel(_ mode: HardwareRingColorMode) -> String {
-        switch mode {
-        case .status: return localization.string(.settingsHardwareRingColorStatus)
-        case .fixed: return localization.string(.settingsHardwareRingColorFixed)
-        case .monochrome: return localization.string(.settingsHardwareRingColorMonochrome)
-        }
-    }
-
-    private func colorModeDescription(_ mode: HardwareRingColorMode) -> String {
-        switch mode {
-        case .status: return localization.string(.settingsHardwareRingColorStatusDescription)
-        case .fixed: return localization.string(.settingsHardwareRingColorFixedDescription)
-        case .monochrome: return localization.string(.settingsHardwareRingColorMonochromeDescription)
-        }
     }
 
     private func topModeLabel(_ mode: HardwareTopMode) -> String {

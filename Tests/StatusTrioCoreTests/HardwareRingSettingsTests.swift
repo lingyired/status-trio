@@ -18,7 +18,7 @@ final class HardwareRingSettingsTests: XCTestCase {
             primaryMetric: .cpuUsage,
             secondaryMetric: .gpuUsage,
             topContent: .value(.cpuTemperature),
-            color: HardwareRingColorConfiguration(mode: .status)
+            color: HardwareRingColorConfiguration(monochrome: false, thresholdColors: true)
         )
     }
 
@@ -109,7 +109,7 @@ final class HardwareRingSettingsTests: XCTestCase {
         var config = IconConfigurationV1.classic
         config.composition.outerRing = SlotSelection(primary: .hardwareMonitor)
         config.behaviors.hardwareRing = HardwareRingConfiguration(layout: .single, primaryMetric: .cpuUsage,
-                                                                  color: HardwareRingColorConfiguration(mode: .status))
+                                                                  color: HardwareRingColorConfiguration(monochrome: false, thresholdColors: true))
         let custom = IconRGBA(red: 1, green: 0, blue: 1, alpha: 1)
         let inputs = IconPreviewInputBuilder.simulated(
             samples: IconPreviewSampleValues(),

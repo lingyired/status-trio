@@ -1160,3 +1160,7 @@
 "settings.hardwareRing.color.status.description" = "Обычно цвет метрики; оранжевый на пороге предупреждения, красный на критическом.";
 "settings.hardwareRing.color.fixed.description" = "Всегда показывает цвет метрики независимо от нагрузки.";
 "settings.hardwareRing.color.monochrome.description" = "Повторяет цвет переднего плана строки меню; без предупреждающих цветов.";
+"settings.hardwareRing.monochrome" = "Системный монохром";
+"settings.hardwareRing.monochrome.description" = "Рисует всё кольцо цветом переднего плана строки меню, без цветов метрик.";
+"settings.hardwareRing.thresholdColors" = "Цвета порогов";
+"settings.hardwareRing.thresholdColors.description" = "Перекрашивает заливку в оранжевый на пороге предупреждения и красный на критическом; выкл. сохраняет цвет метрики.";

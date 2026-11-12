@@ -1160,3 +1160,7 @@
 "settings.hardwareRing.color.status.description" = "정상 시 지표 색상, 경고 임계값에서 주황, 위험 임계값에서 빨강으로 표시합니다.";
 "settings.hardwareRing.color.fixed.description" = "부하와 관계없이 항상 지표 색상을 사용합니다.";
 "settings.hardwareRing.color.monochrome.description" = "메뉴 막대 전경색을 따르며 경고 색상을 사용하지 않습니다.";
+"settings.hardwareRing.monochrome" = "시스템 단색";
+"settings.hardwareRing.monochrome.description" = "링 전체를 메뉴 막대 전경색으로 그리며 지표 색상을 사용하지 않습니다.";
+"settings.hardwareRing.thresholdColors" = "임계값 색상";
+"settings.hardwareRing.thresholdColors.description" = "경고 임계값에서 주황, 위험 임계값에서 빨강으로 표시. 끄면 항상 지표 색상.";

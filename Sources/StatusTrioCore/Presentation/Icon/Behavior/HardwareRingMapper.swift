@@ -95,29 +95,28 @@ enum HardwareRingMapper {
         let level = levels[metric] ?? HardwareRingThresholdEngine.immediateLevel(value: sample.value ?? 0, options: options)
         let baseColor = metricColors[metric]
             ?? HardwareRingColorConfiguration.recommendedBaseColor(for: metric)
-        let color = segmentColor(level: level, mode: configuration.color.mode, baseColor: baseColor)
+        let color = segmentColor(level: level,
+                                 monochrome: configuration.color.monochrome,
+                                 thresholdColors: configuration.color.thresholdColors,
+                                 baseColor: baseColor)
         return RingSegmentState(progress: progress, color: color, position: position)
     }
 
     private static func segmentColor(
         level: HardwareLoadLevel,
-        mode: HardwareRingColorMode,
+        monochrome: Bool,
+        thresholdColors: Bool,
         baseColor: IconRGBA
     ) -> IconColorRole {
-        switch mode {
-        case .monochrome:
-            return .primary
-        case .fixed:
+        if monochrome { return .primary }
+        guard thresholdColors else { return .custom(baseColor) }
+        switch level {
+        case .critical:
+            return .custom(HardwareRingColorConfiguration.criticalColor)
+        case .warning:
+            return .custom(HardwareRingColorConfiguration.warningColor)
+        case .normal:
             return .custom(baseColor)
-        case .status:
-            switch level {
-            case .critical:
-                return .custom(HardwareRingColorConfiguration.criticalColor)
-            case .warning:
-                return .custom(HardwareRingColorConfiguration.warningColor)
-            case .normal:
-                return .custom(baseColor)
-            }
         }
     }
 
