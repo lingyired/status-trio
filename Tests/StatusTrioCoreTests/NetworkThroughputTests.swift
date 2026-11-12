@@ -33,6 +33,7 @@ final class NetworkThroughputTests: XCTestCase {
         XCTAssertEqual(NetworkSpeedFormatter.display(bytesPerSecond: 12_500_000), "12.5 MB/s")
         XCTAssertEqual(NetworkSpeedFormatter.compact(bytesPerSecond: 456_000), "456K")
         XCTAssertEqual(NetworkSpeedFormatter.compact(bytesPerSecond: 12_500_000), "12.5M")
+        XCTAssertEqual(NetworkSpeedFormatter.displayWithBits(bytesPerSecond: 12_500_000), "12.5 MB/s · 100 Mbps")
     }
 
     func testProgressUsesCapInMbps() throws {

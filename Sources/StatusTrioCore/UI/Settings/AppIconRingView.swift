@@ -365,12 +365,8 @@ struct AppIconRingView: View {
                 subtitle: localization.string(.hardwareMonitorSpeedCapDescription),
                 leading: { SettingsIcon(symbol: metric.systemImage, tint: .orange) },
                 trailing: {
-                    hardwareStepper(
-                        label: "Mbps",
-                        value: speedCapBinding(metric),
-                        range: SettingsStore.hardwareSpeedCapRange,
-                        step: 50
-                    )
+                    HardwareCapField(value: speedCapBinding(metric),
+                                     range: SettingsStore.hardwareSpeedCapRange)
                 }
             )
         } else {
@@ -1019,5 +1015,52 @@ enum RingContentPreviewScene {
             scale: 2,
             appearance: MenuBarPreviewBackdrop.appearance(isDarkBackground: isDarkBackground)
         )
+    }
+
+
+}
+
+/// Numeric broadband-cap field: type a value directly (no stepper). Values are
+/// clamped to the allowed range and rounded on commit; intermediate typing is
+/// preserved so the user can clear/enter freely.
+private struct HardwareCapField: View {
+    @Binding var value: Double
+    let range: ClosedRange<Double>
+    @EnvironmentObject private var localization: Localization
+    @State private var text: String = ""
+
+    var body: some View {
+        HStack(spacing: 6) {
+            TextField("", text: $text)
+                .textFieldStyle(.roundedBorder)
+                .multilineTextAlignment(.trailing)
+                .frame(width: 90)
+                .labelsHidden()
+                .onAppear { text = formatted(value) }
+                .onChange(of: text) { newText in
+                    if let parsed = parse(newText) {
+                        let clamped = min(range.upperBound, max(range.lowerBound, parsed.rounded()))
+                        if clamped != value { value = clamped }
+                    }
+                }
+                .onChange(of: value) { newValue in
+                    if parse(text) != newValue { text = formatted(newValue) }
+                }
+                .onSubmit { text = formatted(value) }
+            Text("Mbps")
+                .font(.system(size: 11))
+                .foregroundStyle(.secondary)
+        }
+    }
+
+    private func parse(_ string: String) -> Double? {
+        let cleaned = string.replacingOccurrences(of: ",", with: "")
+            .trimmingCharacters(in: .whitespaces)
+        guard let value = Double(cleaned), value.isFinite else { return nil }
+        return value
+    }
+
+    private func formatted(_ value: Double) -> String {
+        "\(Int(value.rounded()))"
     }
 }
