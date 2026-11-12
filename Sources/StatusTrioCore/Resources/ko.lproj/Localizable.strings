@@ -1157,3 +1157,6 @@
 "settings.topMarker.scale" = "상단 표시 크기";
 "settings.topMarker.scale.description" = "배터리 잔량/번개, AirPods, 시스템 모니터 상단 표시가 이 크기를 공유합니다.";
 "settings.topMarker.group" = "상단 표시";
+"settings.hardwareRing.color.status.description" = "정상 시 지표 색상, 경고 임계값에서 주황, 위험 임계값에서 빨강으로 표시합니다.";
+"settings.hardwareRing.color.fixed.description" = "부하와 관계없이 항상 지표 색상을 사용합니다.";
+"settings.hardwareRing.color.monochrome.description" = "메뉴 막대 전경색을 따르며 경고 색상을 사용하지 않습니다.";

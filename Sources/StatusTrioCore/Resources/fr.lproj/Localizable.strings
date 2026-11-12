@@ -1157,3 +1157,6 @@
 "settings.topMarker.scale" = "Taille du repère supérieur";
 "settings.topMarker.scale.description" = "Partagé par le niveau/éclair de la batterie, les AirPods et la surveillance système.";
 "settings.topMarker.group" = "Repère supérieur";
+"settings.hardwareRing.color.status.description" = "Normal affiche la couleur de la métrique ; orange au seuil d’avertissement, rouge au seuil critique.";
+"settings.hardwareRing.color.fixed.description" = "Affiche toujours la couleur de la métrique, quelle que soit la charge.";
+"settings.hardwareRing.color.monochrome.description" = "Suit la couleur de premier plan de la barre des menus ; pas de couleurs d’avertissement.";

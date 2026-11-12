@@ -1157,3 +1157,6 @@
 "settings.topMarker.scale" = "Größe der oberen Markierung";
 "settings.topMarker.scale.description" = "Gilt gemeinsam für Akkustand/Blitz, AirPods und Systemüberwachungs-Markierungen.";
 "settings.topMarker.group" = "Obere Markierung";
+"settings.hardwareRing.color.status.description" = "Normal zeigt die Metrikfarbe; ab Warnschwelle orange, ab kritischer Schwelle rot.";
+"settings.hardwareRing.color.fixed.description" = "Zeigt immer die Metrikfarbe, unabhängig von der Last.";
+"settings.hardwareRing.color.monochrome.description" = "Folgt der Menüleisten-Vordergrundfarbe; keine Warnfarben.";

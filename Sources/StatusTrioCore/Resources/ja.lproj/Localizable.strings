@@ -1157,3 +1157,6 @@
 "settings.topMarker.scale" = "上部マーカーのサイズ";
 "settings.topMarker.scale.description" = "バッテリー残量/稲妻、AirPods、システムモニターの上部マーカーで共通です。";
 "settings.topMarker.group" = "上部マーカー";
+"settings.hardwareRing.color.status.description" = "通常は指標の色。警告しきい値でオレンジ、危険しきい値で赤に変わります。";
+"settings.hardwareRing.color.fixed.description" = "負荷に関係なく、常に指標の色を使用します。";
+"settings.hardwareRing.color.monochrome.description" = "メニューバーの前景色に従い、警告色は使いません。";

@@ -1156,3 +1156,6 @@
 "settings.topMarker.scale" = "Top marker size";
 "settings.topMarker.scale.description" = "Shared by the battery level/bolt, AirPods and system-monitoring top markers.";
 "settings.topMarker.group" = "Top marker";
+"settings.hardwareRing.color.status.description" = "Normal shows each metric's colour; turns orange at warning, red at critical.";
+"settings.hardwareRing.color.fixed.description" = "Always shows each metric's colour, regardless of load.";
+"settings.hardwareRing.color.monochrome.description" = "Follows the menu-bar foreground colour; no warning colours.";

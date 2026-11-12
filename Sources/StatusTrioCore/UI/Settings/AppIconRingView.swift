@@ -301,6 +301,7 @@ struct AppIconRingView: View {
                 symbol: "paintpalette",
                 tint: .purple,
                 title: localization.string(.settingsHardwareRingColorMode),
+                subtitle: colorModeDescription(store.hardwareRingConfiguration.color.mode),
                 selection: Binding(
                     get: { store.hardwareRingConfiguration.color.mode },
                     set: { setColorMode($0) }
@@ -561,6 +562,14 @@ struct AppIconRingView: View {
         case .status: return localization.string(.settingsHardwareRingColorStatus)
         case .fixed: return localization.string(.settingsHardwareRingColorFixed)
         case .monochrome: return localization.string(.settingsHardwareRingColorMonochrome)
+        }
+    }
+
+    private func colorModeDescription(_ mode: HardwareRingColorMode) -> String {
+        switch mode {
+        case .status: return localization.string(.settingsHardwareRingColorStatusDescription)
+        case .fixed: return localization.string(.settingsHardwareRingColorFixedDescription)
+        case .monochrome: return localization.string(.settingsHardwareRingColorMonochromeDescription)
         }
     }
 

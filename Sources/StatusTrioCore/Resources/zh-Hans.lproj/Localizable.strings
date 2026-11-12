@@ -1157,3 +1157,6 @@
 "settings.topMarker.scale" = "顶部标识大小";
 "settings.topMarker.scale.description" = "本机电池电量/闪电、AirPods 和系统监控的顶部标识共用此尺寸。";
 "settings.topMarker.group" = "顶部标识";
+"settings.hardwareRing.color.status.description" = "正常显示各指标颜色；达警告阈值整段变橙、严重阈值变红。";
+"settings.hardwareRing.color.fixed.description" = "始终使用各指标颜色，不受负载状态影响。";
+"settings.hardwareRing.color.monochrome.description" = "跟随菜单栏前景色，不启用警示颜色。";

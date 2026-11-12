@@ -1157,3 +1157,6 @@
 "settings.topMarker.scale" = "Tamanho do marcador superior";
 "settings.topMarker.scale.description" = "Compartilhado por nível/raio da bateria, AirPods e monitoramento do sistema.";
 "settings.topMarker.group" = "Marcador superior";
+"settings.hardwareRing.color.status.description" = "Normal mostra a cor da métrica; laranja no limite de aviso, vermelho no limite crítico.";
+"settings.hardwareRing.color.fixed.description" = "Mostra sempre a cor da métrica, independentemente da carga.";
+"settings.hardwareRing.color.monochrome.description" = "Segue a cor de primeiro plano da barra de menus; sem cores de aviso.";

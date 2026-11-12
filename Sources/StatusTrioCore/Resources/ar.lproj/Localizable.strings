@@ -1157,3 +1157,6 @@
 "settings.topMarker.scale" = "حجم العلامة العلوية";
 "settings.topMarker.scale.description" = "مشترك بين مستوى/برق البطارية وAirPods ومراقبة النظام.";
 "settings.topMarker.group" = "العلامة العلوية";
+"settings.hardwareRing.color.status.description" = "عادي يعرض لون المقياس؛ برتقالي عند حد التحذير وأحمر عند الحد الحرج.";
+"settings.hardwareRing.color.fixed.description" = "يعرض دائمًا لون المقياس بغض النظر عن الحمل.";
+"settings.hardwareRing.color.monochrome.description" = "يتبع لون الواجهة في شريط القوائم؛ دون ألوان تحذير.";

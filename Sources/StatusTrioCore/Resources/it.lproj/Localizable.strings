@@ -1157,3 +1157,6 @@
 "settings.topMarker.scale" = "Dimensione indicatore superiore";
 "settings.topMarker.scale.description" = "Condiviso da livello/fulmine batteria, AirPods e monitoraggio sistema.";
 "settings.topMarker.group" = "Indicatore superiore";
+"settings.hardwareRing.color.status.description" = "Normale mostra il colore della metrica; arancione alla soglia di avviso, rosso a quella critica.";
+"settings.hardwareRing.color.fixed.description" = "Mostra sempre il colore della metrica, a prescindere dal carico.";
+"settings.hardwareRing.color.monochrome.description" = "Segue il colore in primo piano della barra dei menu; nessun colore di avviso.";
