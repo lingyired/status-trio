@@ -16,7 +16,14 @@ enum NetworkSpeedFormatter {
     static func displayWithBits(bytesPerSecond: Double) -> String {
         let value = max(0, bytesPerSecond)
         let megabits = value * 8 / 1_000_000
-        let bitsText = megabits >= 10 ? "\(Int(megabits.rounded())) Mbps" : String(format: "%.1f Mbps", megabits)
+        let bitsText: String
+        if megabits >= 10 {
+            bitsText = "\(Int(megabits.rounded())) Mbps"
+        } else if megabits >= 0.1 {
+            bitsText = String(format: "%.1f Mbps", megabits)
+        } else {
+            bitsText = "<0.1 Mbps"
+        }
         return "\(display(bytesPerSecond: value)) · \(bitsText)"
     }
 
