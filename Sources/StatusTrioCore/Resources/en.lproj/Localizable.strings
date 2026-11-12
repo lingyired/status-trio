@@ -561,6 +561,13 @@
 "settings.audio.indicatorStyleDescription" = "Choose whether volume displays as four discrete dots or a continuous bottom arc.";
 "settings.audio.indicatorStyle.dots" = "Dots";
 "settings.audio.indicatorStyle.arc" = "Arc";
+"settings.audio.bottomIndicatorTitle" = "Bottom Indicator";
+"settings.audio.bottomIndicatorDescription" = "Choose what the bar under the icon reports. The four-dot or arc style stays the same.";
+"settings.audio.bottomIndicatorSource" = "Bottom Indicator Source";
+"settings.audio.bottomIndicatorSource.volume" = "Volume";
+"settings.audio.bottomIndicatorSource.wifi" = "Wi-Fi";
+"settings.audio.bottomIndicatorSource.battery" = "Battery";
+"settings.audio.bottomIndicatorSource.hidden" = "Hidden";
 "settings.audio.airPodsInlineControlsTitle" = "Headphone Controls";
 "settings.audio.airPodsInlineControls" = "Show AirPods controls on the volume panel";
 "settings.audio.airPodsInlineControlsDescription" = "Show Conversation Awareness, Spatial Audio, and Adaptive controls beside your AirPods output. Disable to hide these private-API controls.";
@@ -605,8 +612,8 @@
 "guide.example" = "Example with your icon settings. Select a part to learn more.";
 "guide.battery" = "The outer battery arc shows charge level. Percentage and charging symbols can be adjusted in Settings.";
 "guide.network" = "The center shows network status. Its symbol can change with the connection type and your settings.";
-"guide.volumeDots" = "The dots below show volume, not cellular signal. More filled dots mean louder audio. Change the style in Audio settings.";
-"guide.volumeArc" = "The lower arc shows volume, not cellular signal. A longer arc means louder audio. Change the style in Audio settings.";
+"guide.volumeDots" = "The dots below show the bottom indicator — volume by default, or Wi-Fi signal or battery level. More filled dots mean a higher reading. Choose the source and style in Audio settings.";
+"guide.volumeArc" = "The lower arc shows the bottom indicator — volume by default, or Wi-Fi signal or battery level. A longer arc means a higher reading. Choose the source and style in Audio settings.";
 "guide.next" = "Next";
 "guide.anatomy.title" = "One icon, three signals";
 "guide.anatomy.description" = "Select a part to highlight it in the menu bar and Dock at the same time.";

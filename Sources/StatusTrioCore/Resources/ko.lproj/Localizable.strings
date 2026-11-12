@@ -562,6 +562,13 @@
 "settings.audio.indicatorStyleDescription" = "상태 링 하단에 네 개의 점 또는 연속된 호 모양 막대 중 표시 방식을 선택합니다.";
 "settings.audio.indicatorStyle.dots" = "네 개의 점";
 "settings.audio.indicatorStyle.arc" = "호 막대";
+"settings.audio.bottomIndicatorTitle" = "하단 표시기";
+"settings.audio.bottomIndicatorDescription" = "아이콘 아래 표시줄에 표시할 내용을 선택합니다. 점 4개 또는 호 스타일은 그대로입니다.";
+"settings.audio.bottomIndicatorSource" = "하단 표시기 소스";
+"settings.audio.bottomIndicatorSource.volume" = "볼륨";
+"settings.audio.bottomIndicatorSource.wifi" = "Wi-Fi";
+"settings.audio.bottomIndicatorSource.battery" = "배터리";
+"settings.audio.bottomIndicatorSource.hidden" = "숨김";
 "settings.audio.airPodsInlineControlsTitle" = "헤드폰 제어";
 "settings.audio.airPodsInlineControls" = "볼륨 패널에 AirPods 제어 표시";
 "settings.audio.airPodsInlineControlsDescription" = "AirPods 출력 옆에 대화 인식, 공간 오디오, 적응형 제어를 표시합니다. 비공개 API 기반의 이러한 제어를 숨기려면 끕니다.";

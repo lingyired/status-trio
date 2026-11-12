@@ -60,6 +60,27 @@ final class DockVolumeRenderCoalescerTests: XCTestCase {
         )
     }
 
+    /// A Wi-Fi or battery footer changes far more slowly than a volume drag, and
+    /// treating those updates as volume would rate-limit them behind an unrelated
+    /// burst. Only the volume source may classify as a volume value change.
+    func testNonVolumeSourcesAreNeverVolumeValueChanges() {
+        let wifiBase = IconSceneState(footer: arc(0.2), bottomIndicatorSource: .wifi)
+        XCTAssertFalse(
+            IconSceneState(footer: arc(0.8), bottomIndicatorSource: .wifi)
+                .isVolumeValueChange(from: wifiBase)
+        )
+        XCTAssertFalse(
+            IconSceneState(footer: arc(0.8), bottomIndicatorSource: .battery)
+                .isVolumeValueChange(from: IconSceneState(footer: arc(0.2), bottomIndicatorSource: .battery))
+        )
+        // Switching from Wi-Fi back to volume is a settings change, even though
+        // the footer kind matches.
+        XCTAssertFalse(
+            IconSceneState(footer: arc(0.8), bottomIndicatorSource: .volume)
+                .isVolumeValueChange(from: wifiBase)
+        )
+    }
+
     // MARK: Coalescer
 
     func testFirstVolumeChangeInAQuietPeriodRunsImmediately() {

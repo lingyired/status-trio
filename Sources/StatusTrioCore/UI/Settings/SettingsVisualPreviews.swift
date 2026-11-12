@@ -66,6 +66,9 @@ private func menuBarPreviewStatus(from statusStore: SystemStatusStore) -> MenuBa
 
 struct VolumeIndicatorPreview: View {
     let style: VolumeDisplayStyle
+    /// The selected bottom data source, so the style preview shows the same
+    /// quantity the settings page will actually draw.
+    var source: BottomIndicatorSource = .volume
     let isDarkBackground: Bool
     @ObservedObject var store: SettingsStore
     @ObservedObject var statusStore: SystemStatusStore
@@ -81,7 +84,8 @@ struct VolumeIndicatorPreview: View {
                     ringStrokeScale: store.ringStrokeStyle.scale
                 ),
                 bluetooth: .standard
-            )
+            ),
+            bottomIndicatorSource: source
         )
     }
 

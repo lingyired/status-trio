@@ -562,6 +562,13 @@
 "settings.audio.indicatorStyleDescription" = "اختر ما إذا كان مستوى الصوت يظهر كأربع نقاط أو كقوس متصل.";
 "settings.audio.indicatorStyle.dots" = "نقاط";
 "settings.audio.indicatorStyle.arc" = "قوس";
+"settings.audio.bottomIndicatorTitle" = "مؤشر سفلي";
+"settings.audio.bottomIndicatorDescription" = "اختر ما يعرضه الشريط أسفل الأيقونة. يبقى نمط النقاط الأربع أو القوس كما هو.";
+"settings.audio.bottomIndicatorSource" = "مصدر المؤشر السفلي";
+"settings.audio.bottomIndicatorSource.volume" = "مستوى الصوت";
+"settings.audio.bottomIndicatorSource.wifi" = "Wi-Fi";
+"settings.audio.bottomIndicatorSource.battery" = "البطارية";
+"settings.audio.bottomIndicatorSource.hidden" = "مخفي";
 "settings.audio.airPodsInlineControlsTitle" = "عناصر تحكم السماعات";
 "settings.audio.airPodsInlineControls" = "عرض عناصر تحكم AirPods في لوحة الصوت";
 "settings.audio.airPodsInlineControlsDescription" = "يعرض أدوات التحكم في إدراك المحادثة والصوت المكاني والتكيّف بجانب مخرج AirPods. عطّل لإخفاء هذه الأدوات القائمة على واجهات برمجية خاصة.";

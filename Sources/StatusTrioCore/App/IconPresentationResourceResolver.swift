@@ -28,7 +28,8 @@ enum IconPresentationResourceResolver {
                 inputSource: resolvedInputSource,
                 runtimeOptions: runtimeOptions,
                 systemPower: systemPower,
-                isHighPowerMode: isHighPowerMode
+                isHighPowerMode: isHighPowerMode,
+                bottomIndicatorSource: runtimeOptions?.bottomIndicatorSource ?? .volume
             )
         }
 
@@ -47,7 +48,8 @@ enum IconPresentationResourceResolver {
             inputSource: resolvedInputSource,
             runtimeOptions: runtimeOptions,
             systemPower: systemPower,
-            isHighPowerMode: isHighPowerMode
+            isHighPowerMode: isHighPowerMode,
+            bottomIndicatorSource: runtimeOptions?.bottomIndicatorSource ?? .volume
         )
     }
 }

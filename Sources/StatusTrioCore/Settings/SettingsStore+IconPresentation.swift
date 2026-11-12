@@ -11,12 +11,13 @@ extension SettingsStore {
         // the editor API. Deriving the V1 configuration from the appearance here
         // (instead of combining `$iconConfiguration`) is what keeps the menu bar
         // in step with the settings surface.
-        Publishers.CombineLatest3(
+        Publishers.CombineLatest4(
             iconAppearancePublisher,
             $testsChargingEffect,
-            $inputSourceMarkerStyle
+            $inputSourceMarkerStyle,
+            $bottomIndicatorSource
         )
-        .map { appearance, testsChargingEffect, markerStyle in
+        .map { appearance, testsChargingEffect, markerStyle, bottomIndicatorSource in
             IconPresentationSettings(
                 configuration: IconPresentationConfiguration(
                     battery: appearance.batteryOptions,
@@ -34,7 +35,8 @@ extension SettingsStore {
                     connectionCenterSource: appearance.connectionOptions.centerSource,
                     prioritizesNetworkErrorsOverInputSource: appearance.connectionOptions.prioritizesNetworkErrors,
                     batteryFullThreshold: appearance.batteryOptions.fullThreshold,
-                    bluetoothAudioIconChoice: appearance.bluetoothAudioOptions.iconChoice
+                    bluetoothAudioIconChoice: appearance.bluetoothAudioOptions.iconChoice,
+                    bottomIndicatorSource: bottomIndicatorSource
                 ),
                 hardwareMetricColors: appearance.hardwareMetricColors,
                 hardwareDownloadCapMbps: appearance.hardwareDownloadCapMbps,

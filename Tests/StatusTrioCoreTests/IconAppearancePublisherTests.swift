@@ -153,6 +153,29 @@ final class IconAppearancePublisherTests: XCTestCase {
         XCTAssertEqual(values.count, afterIconSettingCount)
     }
 
+    /// The bottom data source lives outside `StatusIconAppearance`, so it needs
+    /// its own link in the presentation chain. Without it, switching the source
+    /// would not redraw the menu bar or Dock until the next status poll.
+    func testBottomIndicatorSourcePublishesIconPresentation() throws {
+        let settings = makeSettings()
+        var values: [IconPresentationSettings] = []
+        let cancellable = settings.iconPresentationPublisher.sink { values.append($0) }
+        defer { cancellable.cancel() }
+
+        for source in [BottomIndicatorSource.wifi, .battery, .hidden, .volume] {
+            let previousCount = values.count
+            settings.bottomIndicatorSource = source
+            XCTAssertEqual(values.count, previousCount + 1, "\(source) publishes once")
+            XCTAssertEqual(try XCTUnwrap(values.last).runtimeOptions?.bottomIndicatorSource, source)
+        }
+
+        // The appearance itself must not change: the source only picks the
+        // footer quantity, not any shared artwork option.
+        let before = StatusIconAppearance(settings: settings)
+        settings.bottomIndicatorSource = .wifi
+        XCTAssertEqual(StatusIconAppearance(settings: settings), before)
+    }
+
     // MARK: - Helpers
 
     private static let menuBarOnlyMutationName = "iconSize"
