@@ -1034,7 +1034,7 @@ private struct HardwareCapField: View {
             TextField("", text: $text)
                 .textFieldStyle(.roundedBorder)
                 .multilineTextAlignment(.trailing)
-                .frame(width: 90)
+                .frame(width: 72)
                 .labelsHidden()
                 .onAppear { text = formatted(value) }
                 .onChange(of: text) { newText in
@@ -1050,10 +1050,11 @@ private struct HardwareCapField: View {
             Text("Mbps")
                 .font(.system(size: 11))
                 .foregroundStyle(.secondary)
+                .fixedSize()
             Text("≈ \(String(format: "%.1f", value / 8)) MB/s")
                 .font(.system(size: 10))
                 .foregroundStyle(.tertiary)
-                .frame(width: 74, alignment: .leading)
+                .fixedSize()
         }
     }
 
