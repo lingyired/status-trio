@@ -1156,3 +1156,4 @@
 "settings.hardwareRing.top.scale" = "顶部标识大小";
 "settings.topMarker.scale" = "顶部标识大小";
 "settings.topMarker.scale.description" = "本机电池电量/闪电、AirPods 和系统监控的顶部标识共用此尺寸。";
+"settings.topMarker.group" = "顶部标识";

@@ -1156,3 +1156,4 @@
 "settings.hardwareRing.top.scale" = "Dimensione indicatore superiore";
 "settings.topMarker.scale" = "Dimensione indicatore superiore";
 "settings.topMarker.scale.description" = "Condiviso da livello/fulmine batteria, AirPods e monitoraggio sistema.";
+"settings.topMarker.group" = "Indicatore superiore";

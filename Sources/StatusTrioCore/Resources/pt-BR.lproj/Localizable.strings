@@ -1156,3 +1156,4 @@
 "settings.hardwareRing.top.scale" = "Tamanho do marcador superior";
 "settings.topMarker.scale" = "Tamanho do marcador superior";
 "settings.topMarker.scale.description" = "Compartilhado por nível/raio da bateria, AirPods e monitoramento do sistema.";
+"settings.topMarker.group" = "Marcador superior";

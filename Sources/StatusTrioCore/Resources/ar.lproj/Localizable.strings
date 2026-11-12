@@ -1156,3 +1156,4 @@
 "settings.hardwareRing.top.scale" = "حجم العلامة العلوية";
 "settings.topMarker.scale" = "حجم العلامة العلوية";
 "settings.topMarker.scale.description" = "مشترك بين مستوى/برق البطارية وAirPods ومراقبة النظام.";
+"settings.topMarker.group" = "العلامة العلوية";

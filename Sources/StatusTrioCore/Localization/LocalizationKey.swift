@@ -666,6 +666,7 @@ enum LocalizationKey: String, CaseIterable, Hashable, Sendable {
     case settingsHardwareRingTopScale = "settings.hardwareRing.top.scale"
     case settingsTopMarkerScale = "settings.topMarker.scale"
     case settingsTopMarkerScaleDescription = "settings.topMarker.scale.description"
+    case settingsTopMarkerGroup = "settings.topMarker.group"
     case settingsHardwareRingGroupColor = "settings.hardwareRing.group.color"
     case settingsHardwareRingColorMode = "settings.hardwareRing.colorMode"
     case settingsHardwareRingColorStatus = "settings.hardwareRing.color.status"

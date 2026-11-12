@@ -1156,3 +1156,4 @@
 "settings.hardwareRing.top.scale" = "Taille du repère supérieur";
 "settings.topMarker.scale" = "Taille du repère supérieur";
 "settings.topMarker.scale.description" = "Partagé par le niveau/éclair de la batterie, les AirPods et la surveillance système.";
+"settings.topMarker.group" = "Repère supérieur";

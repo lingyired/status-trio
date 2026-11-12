@@ -41,7 +41,9 @@ struct AppIconRingView: View {
         }
         outerRingContentGroup
         if store.outerRingContent == .airPodsBattery {
-            airPodsRingGroup
+            airPodsTopMarkerGroup
+            airPodsArcGroup
+            airPodsFallbackGroup
         } else if store.outerRingContent == .hardwareMonitor {
             hardwareRingGroups
         } else {
@@ -49,8 +51,8 @@ struct AppIconRingView: View {
             // The settings are kept; the ring colour still follows connected
             // power and Low/High Power Mode, while the level and charging marker
             // do not apply. The hint above says so.
-            // The top-marker rows are folded into `outerRingContentGroup`; the
-            // remaining battery appearance groups stay as their own cards.
+            // Unified order: top marker → progress → colours → animations.
+            batteryTopMarkerGroup
             progressGroup
             colorsGroup
             effectsGroup
@@ -84,24 +86,32 @@ struct AppIconRingView: View {
                 preview: { OuterRingContentPreview(content: $0, store: store) }
             )
 
-            if store.outerRingContent == .systemBattery {
-                SettingsDivider(inset: SettingsMetrics.rowPaddingH)
-                topMarkersContent
-
+            if store.outerRingContent == .systemBattery, store.isDevelopmentBuild {
                 // Developer-only helper: force the battery-less look so a Mac
                 // with a battery can preview this page without one. It lives in
                 // the Mac battery card and a packaged release never shows it.
-                if store.isDevelopmentBuild {
-                    SettingsDivider(inset: SettingsMetrics.rowPaddingH)
-                    SettingsToggleRow(
-                        symbol: "eyeglasses",
-                        tint: .gray,
-                        title: localization.string(.settingsBatterySimulateNoBattery),
-                        subtitle: localization.string(.settingsBatterySimulateNoBatteryDescription),
-                        isOn: $store.simulatesNoBattery
-                    )
-                }
+                SettingsDivider(inset: SettingsMetrics.rowPaddingH)
+                SettingsToggleRow(
+                    symbol: "eyeglasses",
+                    tint: .gray,
+                    title: localization.string(.settingsBatterySimulateNoBattery),
+                    subtitle: localization.string(.settingsBatterySimulateNoBatteryDescription),
+                    isOn: $store.simulatesNoBattery
+                )
             }
+        }
+    }
+
+    /// Mac battery top-marker card. Pulled out of the picker card so every
+    /// source starts with the same「顶部标识」group; the shared size row is the
+    /// first row, then the per-power-state marker choices.
+    private var batteryTopMarkerGroup: some View {
+        SettingsGroup(localization.string(.settingsTopMarkerGroup)) {
+            if store.isBatterySymbolSizeEnabled {
+                topMarkerSizeRow
+                SettingsDivider()
+            }
+            topMarkersContent
         }
     }
 
@@ -115,16 +125,15 @@ struct AppIconRingView: View {
 
     /// AirPods-ring options: two-arc layout, the small top glyph, and whether an
     /// unavailable AirPods ring falls back to the Mac battery ring.
-    private var airPodsRingGroup: some View {
-        SettingsGroup(localization.string(.settingsRingAirPodsGroup)) {
-            SettingsToggleRow(
-                symbol: "airpods",
-                tint: .blue,
-                title: localization.string(.settingsRingAirPodsDualRing),
-                subtitle: localization.string(.settingsRingAirPodsDualRingDescription),
-                isOn: $store.airPodsRingUsesDualRing
-            )
-            SettingsDivider()
+    /// AirPods top-marker card: shared size row first, then the AirPods glyph
+    /// toggle. Split out of the old single AirPods card so this source also
+    /// starts with a「顶部标识」group.
+    private var airPodsTopMarkerGroup: some View {
+        SettingsGroup(localization.string(.settingsTopMarkerGroup)) {
+            if store.showsAirPodsTopSymbolInRing {
+                topMarkerSizeRow
+                SettingsDivider()
+            }
             SettingsToggleRow(
                 symbol: "airpods",
                 tint: .blue,
@@ -132,11 +141,25 @@ struct AppIconRingView: View {
                 subtitle: localization.string(.settingsRingAirPodsTopSymbolDescription),
                 isOn: $store.showsAirPodsTopSymbolInRing
             )
-            if store.showsAirPodsTopSymbolInRing {
-                SettingsDivider()
-                topMarkerSizeRow
-            }
-            SettingsDivider()
+        }
+    }
+
+    /// AirPods arc layout (single vs left/right dual).
+    private var airPodsArcGroup: some View {
+        SettingsGroup(localization.string(.settingsHardwareRingGroupArc)) {
+            SettingsToggleRow(
+                symbol: "airpods",
+                tint: .blue,
+                title: localization.string(.settingsRingAirPodsDualRing),
+                subtitle: localization.string(.settingsRingAirPodsDualRingDescription),
+                isOn: $store.airPodsRingUsesDualRing
+            )
+        }
+    }
+
+    /// Fallback when no AirPods are connected / readable.
+    private var airPodsFallbackGroup: some View {
+        SettingsGroup {
             SettingsToggleRow(
                 symbol: "battery.100",
                 tint: .green,
@@ -155,8 +178,8 @@ struct AppIconRingView: View {
     /// introduced; they reuse `SettingsGroup` / `SettingsMenuRow` / `SettingsRow`.
     @ViewBuilder
     private var hardwareRingGroups: some View {
-        hardwareArcGroup
         hardwareTopGroup
+        hardwareArcGroup
         hardwareColorGroup
         hardwareAdvancedGroup
     }
@@ -208,7 +231,7 @@ struct AppIconRingView: View {
     }
 
     private var hardwareTopGroup: some View {
-        SettingsGroup(localization.string(.settingsHardwareRingGroupTop)) {
+        SettingsGroup(localization.string(.settingsTopMarkerGroup)) {
             SettingsMenuRow(
                 symbol: "textformat",
                 tint: .gray,
@@ -605,38 +628,6 @@ struct AppIconRingView: View {
                     selection: $store.batteryNoBatteryMarker,
                     options: BatteryTopMarker.noBatteryOptions
                 )
-            }
-
-            if store.isBatterySymbolSizeEnabled {
-                SettingsDivider()
-
-                SettingsRow(
-                    "textformat.size",
-                    tint: .blue,
-                    title: localization.string(.settingsTopMarkerScale),
-                    subtitle: localization.string(.settingsTopMarkerScaleDescription)
-                ) {
-                    HStack(spacing: 8) {
-                        Slider(
-                            value: Binding(
-                                get: { store.batterySymbolScale },
-                                set: { store.setBatterySymbolScaleFromSlider(($0 * 20).rounded() / 20) }
-                            ),
-                            in: SettingsStore.batterySymbolScaleRange
-                        )
-                        .frame(width: 130)
-                        .controlSize(.small)
-                        .accessibilityLabel(
-                            localization.string(.settingsTopMarkerScale)
-                        )
-                        .accessibilityValue("\(Int(store.batterySymbolScale * 100))%")
-
-                        Text("\(Int(store.batterySymbolScale * 100))%")
-                            .font(.system(size: 12, design: .monospaced))
-                            .foregroundStyle(.secondary)
-                            .frame(width: 44, alignment: .trailing)
-                    }
-                }
             }
         }
     }

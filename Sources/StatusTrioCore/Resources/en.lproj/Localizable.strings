@@ -1155,3 +1155,4 @@
 "settings.hardwareRing.top.scale" = "Top marker size";
 "settings.topMarker.scale" = "Top marker size";
 "settings.topMarker.scale.description" = "Shared by the battery level/bolt, AirPods and system-monitoring top markers.";
+"settings.topMarker.group" = "Top marker";

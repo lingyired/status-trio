@@ -1156,3 +1156,4 @@
 "settings.hardwareRing.top.scale" = "Größe der oberen Markierung";
 "settings.topMarker.scale" = "Größe der oberen Markierung";
 "settings.topMarker.scale.description" = "Gilt gemeinsam für Akkustand/Blitz, AirPods und Systemüberwachungs-Markierungen.";
+"settings.topMarker.group" = "Obere Markierung";
