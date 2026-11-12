@@ -38,7 +38,73 @@ struct AppIconBottomIndicatorView: View {
                     isOn: $store.usesBluetoothAudioVolumeColor
                 )
             }
+
+            if store.bottomIndicatorSource == .battery {
+                batteryColorOptions
+            }
         }
+    }
+
+    /// The battery status-colour controls that the bottom battery shares with
+    /// the top ring. They are the same stored fields, surfaced here so the
+    /// source can be tuned without jumping to the ring page.
+    @ViewBuilder
+    private var batteryColorOptions: some View {
+        SettingsDivider()
+        SettingsToggleRow(
+            symbol: "circle.lefthalf.filled",
+            tint: .gray,
+            title: localization.string(.settingsBatteryMonochromeCharging),
+            subtitle: localization.string(.settingsBatteryMonochromeChargingDescription),
+            isOn: Binding(
+                get: { store.monochromeChargingRing ?? !effectiveHasBattery },
+                set: { store.monochromeChargingRing = $0 }
+            )
+        )
+
+        SettingsDivider()
+        SettingsToggleRow(
+            symbol: "paintpalette.fill",
+            tint: .orange,
+            title: localization.string(.settingsBatteryStatusColors),
+            subtitle: localization.string(.settingsBatteryStatusColorsDescription),
+            isOn: $store.usesBatteryStatusColors
+        )
+
+        BatteryStatusColorsView(store: store)
+
+        if store.usesBatteryStatusColors {
+            SettingsDivider()
+            SettingsRow(
+                "exclamationmark.triangle.fill",
+                tint: .red,
+                title: localization.string(.settingsBatteryCriticalThreshold),
+                subtitle: localization.string(.settingsBatteryCriticalThresholdDescription)
+            ) {
+                HStack(spacing: 8) {
+                    Slider(
+                        value: Binding(
+                            get: { store.batteryCriticalThreshold },
+                            set: { store.batteryCriticalThreshold = $0.rounded() }
+                        ),
+                        in: SettingsStore.batteryCriticalThresholdRange
+                    )
+                    .frame(width: 130)
+                    .controlSize(.small)
+                    .accessibilityLabel(localization.string(.settingsBatteryCriticalThreshold))
+                    .accessibilityValue("\(Int(store.batteryCriticalThreshold))%")
+
+                    Text("\(Int(store.batteryCriticalThreshold))%")
+                        .font(.system(size: 12, design: .monospaced))
+                        .foregroundStyle(.secondary)
+                        .frame(width: 44, alignment: .trailing)
+                }
+            }
+        }
+    }
+
+    private var effectiveHasBattery: Bool {
+        statusStore.snapshot.battery.isPresent && !store.isNoBatterySimulationActive
     }
 
     /// Graphic cards, matching the middle-icon source chooser. Each card uses a
