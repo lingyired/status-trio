@@ -46,10 +46,7 @@ struct HardwareMonitorSectionView: View {
                                 .disabled(isOnlyEnabled(metric))
                                 .accessibilityLabel(localization.string(metric.titleKey))
 
-                            Image(systemName: metric.systemImage)
-                                .font(.system(size: 13))
-                                .foregroundStyle(.secondary)
-                                .frame(width: 18, height: 18, alignment: .center)
+                            HardwareMetricSymbolView(symbol: metric.systemImage, box: 20, glyph: 14)
 
                             Text(localization.string(metric.titleKey))
                                 .font(.system(size: 13))

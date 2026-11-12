@@ -228,10 +228,7 @@ private struct HardwareMonitorTileView: View {
     var body: some View {
         VStack(spacing: 5) {
             HStack(spacing: 4) {
-                Image(systemName: presentation.metric.symbol)
-                    .font(.system(size: 10))
-                    .foregroundStyle(.secondary)
-                    .frame(width: 12)
+                HardwareMetricSymbolView(symbol: presentation.metric.symbol, box: 14, glyph: 11)
                 Text(presentation.label)
                     .font(.system(size: 11))
                     .foregroundStyle(.secondary)
