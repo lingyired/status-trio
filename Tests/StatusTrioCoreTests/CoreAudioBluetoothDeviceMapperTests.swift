@@ -37,6 +37,14 @@ final class CoreAudioBluetoothDeviceMapperTests: XCTestCase {
         )
     }
 
+    func testConflictingTrustedAddressNeverFallsBackToDefaultOutput() {
+        XCTAssertNil(BluetoothListeningModeEndpointMapper.endpointID(
+            forNormalizedAddress: address,
+            connectedEligibleAirPodsCount: 1,
+            in: [endpoint(7, address: "112233445566")]
+        ))
+    }
+
     func testExactAddressMatchResolves() {
         let endpoints = [
             endpoint(7, address: address),

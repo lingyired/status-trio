@@ -82,17 +82,23 @@ enum AudioPanelMapper {
         // output: hiding every device must never hide what is playing right now.
         let keepsHiddenActiveDevice = orderedDevices.count == 1
             && OutputDeviceListPresentation.isHidden(orderedDevices[0], in: deviceList.hiddenUIDs)
-        let previewRows = outputRows(
+        let mappedPreviewRows = outputRows(
             previewDevices,
             listeningModes: listeningModes,
             isPreview: true,
             localization: previewLocalization ?? localization
         )
-        // A lone row may still carry the only listening-mode control (AirPods
-        // noise control). Hiding the other outputs must not take that control
-        // away with the list, so a row that can change a listening mode keeps
-        // the list visible even when it is the only device left.
-        let hasListeningControls = rows.contains { $0.listeningMode?.isControllable == true }
+        let previewRows = ListeningModePreview.usesLayoutShowcase
+            ? ListeningModePreview.applyingLayoutVariants(to: mappedPreviewRows)
+            : mappedPreviewRows
+        // A lone output still owns its controls and any unavailable explanation.
+        // Turning off listening mode must not hide the other AirPods groups.
+        let hasAudioControls = rows.contains { row in
+            row.listeningMode?.isControllable == true
+                || row.listeningModeUnavailableText != nil
+                || (row.supportsAirPodsSystemControls
+                    && (row.airPodsSpatialSupported || row.airPodsConversationSupported))
+        }
 
         return VolumePanelState(
             summary: summary,
@@ -112,7 +118,7 @@ enum AudioPanelMapper {
             ),
             sliderLabel: localization.string(.volumeAccessibilityLabel),
             showsDeviceList: orderedDevices.count > 1 || keepsHiddenActiveDevice
-                || hasListeningControls || !previewRows.isEmpty
+                || hasAudioControls || !previewRows.isEmpty
                 || (deviceListPlaceholder?.showsDeviceList == true),
             deviceListPlaceholder: deviceListPlaceholder,
             rows: rows,
@@ -243,6 +249,24 @@ enum AudioPanelMapper {
                 && AirPodsModel(modelUID: device.modelUID) != nil && device.uid != nil
                 && (!isPreview || ListeningModePreview.isSyntheticPreviewUID(device.uid))
             let featureSupport = AirPodsFeatureSupport(modelUID: device.modelUID)
+            let control = listeningModes?.control(forEndpoint: device.id)
+            let mayHaveListeningModes: Bool
+            switch AirPodsModel(modelUID: device.modelUID) {
+            case .airPods, .airPodsGen3:
+                mayHaveListeningModes = false // No active noise control hardware.
+            case .airPodsGen4:
+                let product = (device.modelUID ?? "").split(separator: " ").first
+                    .flatMap { BluetoothHexIdentifier.value(from: String($0)) }
+                mayHaveListeningModes = product != 0x2019 // 0x2019 is AirPods 4 without ANC.
+            case .airPodsPro, .airPodsProGen1, .airPodsProGen3, .airPodsMax, .airPodsGen5:
+                mayHaveListeningModes = true
+            case .none:
+                mayHaveListeningModes = false
+            }
+            let expectsListeningControl = listeningModes != nil
+                && device.isCurrent && device.isBluetoothAudio
+                && (control != nil || mayHaveListeningModes) && !isPreview
+            let listeningUnavailable = expectsListeningControl && control == nil
             return PanelAudioDeviceRow(
                 key: PanelAudioDeviceID(id: device.id, uid: device.uid),
                 name: name,
@@ -257,10 +281,17 @@ enum AudioPanelMapper {
                     guard value.isFinite else { return nil }
                     return value.formatted(.percent.precision(.fractionLength(0)).locale(localization.resolvedLanguage.locale))
                 },
-                listeningModeAddress: listeningModes?.control(forEndpoint: device.id)?.address,
-                listeningMode: listeningModes?.control(forEndpoint: device.id)?.presentation,
+                listeningModeAddress: control?.address,
+                listeningMode: control?.presentation,
+                listeningModeUnavailableText: listeningUnavailable ? localization.format(
+                    .commonLabelValue, localization.string(.bluetoothListeningModeGroup),
+                    localization.string(.airPodsNotAvailable)
+                ) : nil,
                 isPreview: isPreview,
                 supportsAirPodsSystemControls: supportsSystemControls,
+                // Unknown models never reach here: supportsSystemControls requires
+                // AirPodsModel to resolve. A nil capability on a known model means
+                // "runtime reported", so it starts supported until the read settles.
                 airPodsSpatialSupported: supportsSystemControls
                     && showsSpatialAudioControls && (featureSupport.spatial ?? true),
                 airPodsConversationSupported: supportsSystemControls

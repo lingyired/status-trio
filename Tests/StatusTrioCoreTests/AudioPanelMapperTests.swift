@@ -584,6 +584,75 @@ final class AudioPanelMapperListeningControlTests: XCTestCase {
                        "Turning the preference off must hide the inline AirPods controls")
     }
 
+    /// With the listening-mode setting off the two other groups take that row's
+    /// place directly: no listening row is reserved, so the row is never a lone
+    /// disclosure arrow. Unknown hardware advertises neither group.
+    func testListeningModeOffPromotesSpatialAndConversationInline() {
+        let localization = makeLocalization()
+        let airPods = AudioOutputDevice(
+            id: AudioDeviceID(42), name: "AirPods", uid: "AA-BB-CC-DD-EE-FF:output",
+            isCurrent: true, transport: .bluetooth, modelUID: "2024 4c"
+        )
+        let status = VolumeStatus(
+            scalar: 0.5, isMuted: false, deviceName: "AirPods",
+            currentDevice: airPods, outputDevices: [airPods], canSetVolume: true, canMute: true
+        )
+        let mapped = AudioPanelMapper.volume(
+            status, controllerAvailable: true, listeningModes: nil, localization: localization
+        )
+        XCTAssertTrue(mapped.showsDeviceList, "A single output must retain its remaining AirPods controls")
+        let row = mapped.rows.first
+        XCTAssertNil(row?.listeningMode)
+        XCTAssertNil(row?.listeningModeUnavailableText, "Disabling listening controls must not show an error")
+        XCTAssertEqual(row?.airPodsSpatialSupported, true)
+        XCTAssertEqual(row?.airPodsConversationSupported, true)
+        XCTAssertFalse(OutputDeviceRow.disclosesExtraGroups(
+            hasListeningMode: row?.listeningMode?.isControllable == true,
+            spatial: row?.airPodsSpatialSupported ?? false,
+            conversation: row?.airPodsConversationSupported ?? false
+        ), "Groups must render inline, not behind an empty chevron")
+
+        let unknown = AudioOutputDevice(
+            id: AudioDeviceID(43), name: "Speaker", uid: "speaker",
+            isCurrent: true, transport: .bluetooth, modelUID: "ffff 4c"
+        )
+        let unknownRow = AudioPanelMapper.volume(
+            VolumeStatus(scalar: 0.5, isMuted: false, deviceName: "Speaker",
+                         currentDevice: unknown, outputDevices: [unknown],
+                         canSetVolume: true, canMute: true),
+            controllerAvailable: true, localization: localization
+        ).rows.first
+        XCTAssertEqual(unknownRow?.airPodsSpatialSupported, false)
+        XCTAssertEqual(unknownRow?.airPodsConversationSupported, false)
+    }
+
+    func testUnresolvedListeningModeExplainsUnavailableAndKeepsSingleOutputVisible() throws {
+        let localization = makeLocalization()
+        let controller = BluetoothListeningModeController(
+            hal: BluetoothListeningModeHAL(backend: FakeListeningModeBackend()),
+            endpointProvider: EndpointProvider([]),
+            listenerBackend: FakeListeningModeListenerBackend()
+        )
+        defer { controller.stop() }
+        let airPods = AudioOutputDevice(
+            id: AudioDeviceID(42), name: "AirPods Pro 2", uid: "AA-BB-CC-DD-EE-FF:output",
+            isCurrent: true, transport: .bluetooth, modelUID: "2024 4c"
+        )
+        let status = VolumeStatus(
+            scalar: 0.5, isMuted: false, deviceName: "AirPods Pro 2",
+            currentDevice: airPods, outputDevices: [airPods], canSetVolume: true, canMute: true
+        )
+        let mapped = AudioPanelMapper.volume(
+            status, controllerAvailable: true, listeningModes: controller,
+            showsSpatialAudioControls: false, showsConversationAwarenessControls: false,
+            localization: localization
+        )
+        XCTAssertTrue(mapped.showsDeviceList, "The unavailable explanation must remain reachable")
+        let row = try XCTUnwrap(mapped.rows.first)
+        XCTAssertNil(row.listeningMode)
+        XCTAssertFalse(try XCTUnwrap(row.listeningModeUnavailableText).isEmpty)
+    }
+
     func testAirPodsPreviewRowCarriesInlineControlsUnlessThePreferenceIsOff() {
         let localization = makeLocalization()
         let previewDevices = ListeningModePreview.outputRows(

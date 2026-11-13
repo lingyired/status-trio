@@ -29,14 +29,22 @@ struct OutputDeviceRow: View {
             && (state.airPodsSpatialSupported || state.airPodsConversationSupported)
     }
 
-    /// With two groups the chevron discloses them; with one group it is drawn
-    /// inline and no chevron is shown; with none there is nothing extra.
-    private var showsExtraToggle: Bool {
-        state.supportsAirPodsSystemControls
-            && state.airPodsSpatialSupported && state.airPodsConversationSupported
+    /// Extra groups disclose below listening controls when both are present.
+    /// Without listening controls they occupy that space directly, so a row can
+    /// never consist solely of an empty disclosure arrow.
+    static func disclosesExtraGroups(hasListeningMode: Bool, spatial: Bool, conversation: Bool) -> Bool {
+        hasListeningMode && spatial && conversation
     }
 
-    private var showsInlineExtraGroup: Bool {
+    var showsExtraToggle: Bool {
+        state.supportsAirPodsSystemControls && Self.disclosesExtraGroups(
+            hasListeningMode: state.listeningMode?.isControllable == true,
+            spatial: state.airPodsSpatialSupported,
+            conversation: state.airPodsConversationSupported
+        )
+    }
+
+    var showsInlineExtraGroup: Bool {
         hasExtraGroups && !showsExtraToggle
     }
 
@@ -53,7 +61,7 @@ struct OutputDeviceRow: View {
     }
 
     /// Rows that start their model as soon as the panel is visible: only the
-    /// inline single group. The Adaptive bar is deliberately excluded — showing
+    /// inline groups. The Adaptive bar is deliberately excluded — showing
     /// it eagerly used to open the AACP Bluetooth channel on every panel open,
     /// which dropped the headset's audio route (#323). It now loads on expansion.
     private var wantsInlineModel: Bool {
@@ -94,6 +102,21 @@ struct OutputDeviceRow: View {
         }
         .onChange(of: state.supportsAirPodsSystemControls) { supported in
             if !supported { resetControls() }
+        }
+        .onChange(of: showsExtraToggle) { shows in
+            if !shows {
+                expanded = false
+                disclosure.markSettled(at: 0)
+                if !wantsInlineModel { controls?.stop() }
+            }
+        }
+        .onChange(of: wantsInlineModel) { wantsInline in
+            if wantsInline, isPresented {
+                ensureControlsStarted()
+            } else if !expanded {
+                controls?.stop()
+            }
+            updateDisclosureTarget()
         }
         .onChange(of: state.listeningMode?.selectedMode) { mode in
             // Switching to Adaptive only reveals the strength bar. The AACP
@@ -154,13 +177,6 @@ struct OutputDeviceRow: View {
             }
             .padding(.leading, contentLeading)
             .padding(.top, 2)
-        } else if showsExtraToggle {
-            HStack {
-                Spacer(minLength: 0)
-                expandButton
-            }
-            .padding(.leading, contentLeading)
-            .padding(.top, 2)
         }
 
         if showsAdaptiveBar, let controls {
@@ -186,11 +202,19 @@ struct OutputDeviceRow: View {
         } else if showsInlineExtraGroup, let controls {
             AirPodsSpatialConversationView(model: controls)
                 .fixedSize(horizontal: false, vertical: true)
-                // No listening-mode row above: align the group with the device
-                // name's text column and give it room to read as its own block.
+                // Inline controls take the listening row's place when absent.
                 .padding(.leading, contentLeading)
                 .padding(.top, 6)
                 .padding(.bottom, 6)
+        }
+
+        if let message = state.listeningModeUnavailableText, !showsExtraToggle {
+            Text(message)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+                .padding(.leading, contentLeading)
+                .padding(.top, 2)
         }
     }
 
@@ -243,7 +267,10 @@ struct OutputDeviceRow: View {
             deviceID: state.key,
             deviceName: state.name,
             conversationCache: state.isPreview ? nil : conversationCache,
-            preview: state.isPreview ? ListeningModePreview.systemControlSnapshot(localization) : nil
+            preview: state.isPreview ? ListeningModePreview.systemControlSnapshot(
+                localization, spatialSupported: state.airPodsSpatialSupported,
+                conversationSupported: state.airPodsConversationSupported
+            ) : nil
         )
     }
 
