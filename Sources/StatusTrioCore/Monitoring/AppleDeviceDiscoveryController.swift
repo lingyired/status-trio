@@ -62,6 +62,10 @@ final class AppleDeviceDiscoveryController: ObservableObject {
     /// The last completed discovery cycle. Read-only; a future Settings row can
     /// use it to explain why an Apple Watch row is missing.
     @Published private(set) var discoveryDiagnostics: AppleDeviceDiscoveryDiagnostics?
+    /// IDs returned by the last cycle that actually completed. `nil` until one
+    /// has: a failed or still-running cycle must not make an empty list look like
+    /// "these devices are gone".
+    @Published private(set) var lastSuccessfulCandidateIDs: Set<AppleDeviceID>?
 
     private let reader: any MobileBatteryReading
     private var claims: Set<String> = []
@@ -163,6 +167,13 @@ final class AppleDeviceDiscoveryController: ObservableObject {
         candidates = sorted
         isDiscovering = false
         task = nil
+        // Only a cycle that finished without any failure is evidence about which
+        // devices exist. A failed or partially failed cycle leaves the previous
+        // answer in place: a device that lived only on the failed route must not
+        // look absent.
+        if failureCategory == nil, (routeDiagnostics?.failedRouteCount ?? 0) == 0 {
+            lastSuccessfulCandidateIDs = Set(sorted.map(\.id))
+        }
         let diagnostics = AppleDeviceDiscoveryDiagnostics.make(
             from: sorted,
             failureCategory: failureCategory,
@@ -266,6 +277,10 @@ final class AppleDeviceDiscoveryController: ObservableObject {
         isDiscovering = false
         if clearCandidates {
             candidates = []
+            // No cycle has completed for this new active period yet. Keeping an
+            // old answer would make the first frames treat "not discovered yet"
+            // as "gone" and hide rows until the first cycle lands.
+            lastSuccessfulCandidateIDs = nil
             discoveryDiagnostics = nil
             lastLoggedDiagnostics = nil
         }

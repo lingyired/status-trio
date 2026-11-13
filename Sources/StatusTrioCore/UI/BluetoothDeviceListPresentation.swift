@@ -106,9 +106,21 @@ enum BluetoothDeviceListPresentation {
         _ devices: [BluetoothDevice],
         options: BluetoothDeviceListOptions = .standard
     ) -> [BluetoothDisplayRow] {
+        // First collapse exact source identities (the same MAC in two formats,
+        // the same BLE UUID repeated, the same trusted ID). This is the only
+        // merge backed by proof. Everything below is legacy display folding.
+        let resolved = BluetoothDeviceIdentityResolver.resolve(devices)
+        let aliasesByID = Dictionary(resolved.map { ($0.device.id, $0.sourceIDs) },
+                                     uniquingKeysWith: { first, _ in first })
+        let devices = resolved.map(\.device)
         let names = Dictionary(grouping: devices.filter { !normalizedMeaningfulName($0.name).isEmpty }) {
             normalizedMeaningfulName($0.name)
         }
+        // Legacy display-only fold: one BLE row and one trusted row with the same
+        // name and a compatible specific phone/tablet model are shown as one row.
+        // It is deliberately *not* a persisted identity and never spreads to a
+        // third source or to another session; the row still lists both source
+        // IDs and either alias keeps hiding/ordering working.
         let bleByName = Dictionary(grouping: devices.compactMap { device -> (String, BluetoothDevice)? in
             guard BluetoothDeviceIdentity.bleUUID(from: device.id) != nil,
                   isSpecificPhoneOrTablet(device.appleMobileModel ?? "") else { return nil }
@@ -136,13 +148,29 @@ enum BluetoothDeviceListPresentation {
         for device in devices where !consumed.contains(device.id) && !consumedPairs.contains(device.id) {
             if let trusted = trustedForBLE[device.id] {
                 consumed.insert(device.id)
-                rows.append(BluetoothDisplayRow(device: device, sourceIDs: [device.id, trusted.id]))
+                rows.append(BluetoothDisplayRow(
+                    device: device,
+                    sourceIDs: expandedAliases([device.id, trusted.id], aliasesByID)
+                ))
             } else {
                 consumed.insert(device.id)
-                rows.append(BluetoothDisplayRow(device: device, sourceIDs: [device.id]))
+                rows.append(BluetoothDisplayRow(
+                    device: device,
+                    sourceIDs: expandedAliases([device.id], aliasesByID)
+                ))
             }
         }
         return rows
+    }
+
+    /// The display row's aliases, including every row that collapsed into one of
+    /// them through an exact source identity.
+    private static func expandedAliases(
+        _ ids: [String],
+        _ aliasesByID: [String: [String]]
+    ) -> [String] {
+        var seen = Set<String>()
+        return ids.flatMap { aliasesByID[$0] ?? [$0] }.filter { seen.insert($0).inserted }
     }
 
     static func settingsDisplayRows(
@@ -266,27 +294,12 @@ enum BluetoothDeviceListPresentation {
     /// Exact IDs may recur when a trusted paired row and a battery projection
     /// represent the same underlying device. Prefer the real system row so its
     /// connection state and actions survive. Never merge by display name.
+    ///
+    /// Rows that share an exact source identity but differ only in address
+    /// formatting (the same MAC with `:` and `-`) collapse too; that is a
+    /// formatting difference, not a second device.
     static func uniquelyIdentifiedDevices(_ devices: [BluetoothDevice]) -> [BluetoothDevice] {
-        var result: [BluetoothDevice] = []
-        var indexByID: [String: Int] = [:]
-        for device in devices {
-            guard let existingIndex = indexByID[device.id] else {
-                indexByID[device.id] = result.count
-                result.append(device)
-                continue
-            }
-            let existing = result[existingIndex]
-            if identityPriority(device) < identityPriority(existing) {
-                result[existingIndex] = device
-            }
-        }
-        return result
-    }
-
-    private static func identityPriority(_ device: BluetoothDevice) -> Int {
-        if !device.isUnpairedGhost && !device.isReadOverTheAir { return 0 }
-        if !device.isUnpairedGhost { return 1 }
-        return 2
+        BluetoothDeviceIdentityResolver.resolve(devices).map(\.device)
     }
 
     /// Connected devices always lead; the saved order only reorders devices
