@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct WiFiNetworkListView: View {
+    @Environment(\.statusPanelBoldTextEnabled) private var panelBoldText
     @EnvironmentObject private var localization: Localization
     @Environment(\.colorScheme) private var colorScheme
     let state: WiFiPanelState
@@ -177,7 +178,7 @@ struct WiFiNetworkListView: View {
 
     private func sectionTitle(_ title: String) -> some View {
         Text(title)
-            .font(.caption.weight(.semibold))
+            .font(.caption.weight(panelBoldText ? .semibold : .regular))
             .foregroundStyle(.secondary)
     }
 

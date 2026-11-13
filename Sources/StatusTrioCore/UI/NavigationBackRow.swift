@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct NavigationBackRow: View {
+    @Environment(\.statusPanelBoldTextEnabled) private var panelBoldText
     let accessibilityLabel: String
     let title: String
     let action: () -> Void
@@ -10,7 +11,7 @@ struct NavigationBackRow: View {
             HStack(alignment: .center, spacing: 8) {
                 PanelActionGlyph(systemName: "chevron.backward", size: 32)
                 Text(title)
-                    .font(.headline)
+                    .font(.headline.weight(panelBoldText ? .semibold : .regular))
                 Spacer(minLength: 0)
             }
             .contentShape(Rectangle())
