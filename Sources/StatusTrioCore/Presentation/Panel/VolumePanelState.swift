@@ -16,6 +16,7 @@ struct PanelAudioDeviceRow: Equatable, Identifiable, Sendable {
     var volumeText: String? = nil
     var listeningModeAddress: String? = nil
     var listeningMode: BluetoothListeningModePresentation? = nil
+    var listeningModeUnavailableText: String? = nil
     var isPreview: Bool = false
     var supportsAirPodsSystemControls: Bool = false
     /// Whether this AirPods row has Spatial Audio / Conversation Awareness
