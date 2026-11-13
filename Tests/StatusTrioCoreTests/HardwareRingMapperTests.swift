@@ -183,7 +183,7 @@ final class HardwareRingMapperTests: XCTestCase {
               case let .symbol(name, _, _) = symbol.source else {
             return XCTFail("expected symbol accessory")
         }
-        XCTAssertEqual(name, HardwareMonitorMetric.cpuUsage.systemImage)
+        XCTAssertEqual(name, HardwareRingMapper.topMarkerSymbol(for: .cpuUsage))
     }
 
     func testAutomaticTopMarkerForDualUsesGenericGlyph() {

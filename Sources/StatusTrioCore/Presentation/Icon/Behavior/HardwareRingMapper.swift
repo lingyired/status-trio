@@ -174,7 +174,7 @@ enum HardwareRingMapper {
         case .automatic:
             switch configuration.layout {
             case .single:
-                return .symbol(symbolState(name: configuration.primaryMetric.systemImage,
+                return .symbol(symbolState(name: topMarkerSymbol(for: configuration.primaryMetric),
                                            scale: Self.singleTopSymbolScale * configuration.topMarkerScale))
             case .dual:
                 return .symbol(symbolState(name: Self.genericMonitorSymbol,
@@ -182,7 +182,7 @@ enum HardwareRingMapper {
             }
         case let .symbol(metric):
             let base = configuration.layout == .single ? Self.singleTopSymbolScale : Self.topSymbolScale
-            return .symbol(symbolState(name: metric.systemImage, scale: base * configuration.topMarkerScale))
+            return .symbol(symbolState(name: topMarkerSymbol(for: metric), scale: base * configuration.topMarkerScale))
         case let .value(metric):
             // Geometry is decided by the configuration, not by data availability:
             // a temporarily missing value must keep the top gap (and thus the ring
@@ -195,6 +195,22 @@ enum HardwareRingMapper {
                                            color: .primary, scale: scale))
             }
             return .text(IconTextState(text: "--", color: .primary, scale: scale))
+        }
+    }
+
+    /// Simpler, higher-contrast glyphs for the tiny ring top marker. The list and
+    /// card keep the richer `metric.systemImage`; at menu-bar size the detailed
+    /// chip/memory outlines turn to mud, so the top gap uses filled variants.
+    static func topMarkerSymbol(for metric: HardwareMonitorMetric) -> String {
+        switch metric {
+        case .cpuUsage: SymbolFallback.name("cpu.fill", "cpu")
+        case .gpuUsage: "display"
+        case .memoryUsage: SymbolFallback.name("memorychip.fill", "memorychip")
+        case .cpuTemperature: "thermometer.medium"
+        case .batteryTemperature: SymbolFallback.name("battery.100percent", "battery.100")
+        case .fan: SymbolFallback.name("fanblades.fill", "fanblades")
+        case .downloadSpeed: "arrow.down.circle.fill"
+        case .uploadSpeed: "arrow.up.circle.fill"
         }
     }
 
