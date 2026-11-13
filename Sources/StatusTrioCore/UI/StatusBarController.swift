@@ -1140,7 +1140,7 @@ final class StatusBarController: NSObject {
         ) else {
             return false
         }
-        return consumeVolume(event: event)
+        return consumeVolume(event: event, allowsHorizontal: false)
     }
 
     /// Routes a wheel event to the slider directly under the pointer.
@@ -1153,7 +1153,7 @@ final class StatusBarController: NSObject {
             guard store.isVolumeControlAvailable, panelViewModel.volume.canAdjust else {
                 return true // consume so the wheel does not scroll underneath
             }
-            return consumeVolume(event: event)
+            return consumeVolume(event: event, allowsHorizontal: true)
         case .brightness(let displayID):
             // Sliders own the wheel wherever they are; the scope setting only
             // decides whether empty panel areas also adjust the output volume.
@@ -1176,6 +1176,7 @@ final class StatusBarController: NSObject {
             fallback: fallback
         ) else { return false }
         let delta = volumeScrollAdjustment.levelDelta(
+            deltaX: Double(event.scrollingDeltaX),
             deltaY: Double(event.scrollingDeltaY),
             isPrecise: event.hasPreciseScrollingDeltas,
             isDirectionInverted: event.isDirectionInvertedFromDevice,
@@ -1204,6 +1205,7 @@ final class StatusBarController: NSObject {
             fallback: fallback
         ) else { return false }
         let delta = volumeScrollAdjustment.levelDelta(
+            deltaX: Double(event.scrollingDeltaX),
             deltaY: Double(event.scrollingDeltaY),
             isPrecise: event.hasPreciseScrollingDeltas,
             isDirectionInverted: event.isDirectionInvertedFromDevice,
@@ -1218,11 +1220,17 @@ final class StatusBarController: NSObject {
         return true
     }
 
-    private func consumeVolume(event: NSEvent) -> Bool {
+    private func consumeVolume(event: NSEvent, allowsHorizontal: Bool) -> Bool {
         let volumeState = panelViewModel.volume
         guard event.window === popover.contentViewController?.view.window,
               store.isVolumeControlAvailable,
               volumeState.canAdjust else {
+            return false
+        }
+        // The panel-wide fallback only owns vertical scrolling; a horizontal
+        // gesture outside a slider must pass through instead of being swallowed.
+        if !allowsHorizontal,
+           abs(event.scrollingDeltaX) > abs(event.scrollingDeltaY) {
             return false
         }
         guard event.momentumPhase.isEmpty else { return true }
@@ -1235,6 +1243,7 @@ final class StatusBarController: NSObject {
             return false
         }
         let delta = volumeScrollAdjustment.levelDelta(
+            deltaX: allowsHorizontal ? Double(event.scrollingDeltaX) : 0,
             deltaY: Double(event.scrollingDeltaY),
             isPrecise: event.hasPreciseScrollingDeltas,
             isDirectionInverted: event.isDirectionInvertedFromDevice,
