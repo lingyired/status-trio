@@ -58,6 +58,7 @@ struct BluetoothStatusView: View {
     var nearbyBLESelections: [NearbyBLEDeviceSelection] = []
     var trustedAppleDeviceMetadata: [AppleDeviceCandidate] = []
     var currentTrustedAppleCandidates: [AppleDeviceCandidate] = []
+    var appleDeviceLastSuccessfulIDs: Set<AppleDeviceID>? = nil
     var trustedDiscoveryGeneration: UInt64 = 0
     var listOptions: BluetoothDeviceListOptions = .standard
     var showsRadioPowerControl = true
@@ -217,7 +218,13 @@ struct BluetoothStatusView: View {
 
     private var appleProjection: AppleDeviceCatalog.Projection {
         let candidates = showsAppleDevicesAndBattery
-            ? AppleDeviceCatalog.candidates(trusted: trustedAppleDeviceMetadata)
+            ? AppleDeviceCatalog.currentCandidates(
+                history: trustedAppleDeviceMetadata,
+                discovered: currentTrustedAppleCandidates,
+                lastSuccessfulIDs: appleDeviceLastSuccessfulIDs,
+                trustedSnapshots: showsMobileBatteryFeature ? mobileBatteryController.snapshots : [],
+                now: Date()
+            )
             : []
         let knownIDs = Set(candidates.map(\.id))
         let failures = Set(mobileBatteryController.failures.compactMap { failure -> AppleDeviceID? in

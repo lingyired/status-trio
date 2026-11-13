@@ -325,7 +325,13 @@ struct BluetoothSectionView: View {
     /// controller, not the store, so a read that lands later repaints it.
     private var sourceBluetoothDevices: [BluetoothDevice] {
         let trustedDevices = store.showsAppleDevicesAndBattery
-            ? AppleDeviceCatalog.candidates(trusted: store.trustedAppleDeviceMetadata + appleDeviceDiscovery.candidates)
+            ? AppleDeviceCatalog.currentCandidates(
+                history: store.trustedAppleDeviceMetadata,
+                discovered: appleDeviceDiscovery.candidates,
+                lastSuccessfulIDs: statusStore.appleDeviceLastSuccessfulIDs,
+                trustedSnapshots: statusStore.mobileBattery.snapshots,
+                now: Date()
+            )
                 .map { candidate in
                     BluetoothDevice(
                         id: candidate.id.rowID,

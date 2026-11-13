@@ -271,6 +271,11 @@ final class SystemStatusStore: ObservableObject {
     @Published private(set) var isPopoverVisible = false
     private(set) var popoverOpenGeneration: UInt64 = 0
     @Published private(set) var trustedAppleDeviceCandidates: [AppleDeviceCandidate] = []
+    /// Which Apple identities the last completed discovery actually returned.
+    /// `nil` means no cycle has completed, so an empty list is not proof of
+    /// absence. Used only to bound the display projection, never to delete the
+    /// stored metadata.
+    @Published private(set) var appleDeviceLastSuccessfulIDs: Set<AppleDeviceID>?
     @Published private(set) var trustedAppleDeviceDiscoveryGeneration: UInt64 = 0
     /// True while the display is asleep. The fallback poll skips its work then,
     /// because no menu bar or Dock tile is on screen to keep fresh.
@@ -1487,10 +1492,14 @@ final class SystemStatusStore: ObservableObject {
                 self?.mobileBattery.setReadingEnabled(enabled)
             }
         appleDeviceSettingsCancellable = settings.$showsAppleDevicesAndBattery
-            .combineLatest(appleDeviceDiscovery.$candidates)
-            .sink { [weak self, weak settings] enabled, candidates in
+            .combineLatest(
+                appleDeviceDiscovery.$candidates,
+                appleDeviceDiscovery.$lastSuccessfulCandidateIDs
+            )
+            .sink { [weak self, weak settings] enabled, candidates, lastSuccessfulIDs in
                 self?.trustedAppleDeviceCandidates = candidates
                 self?.trustedAppleDeviceDiscoveryGeneration = self?.appleDeviceDiscovery.discoveryGeneration ?? 0
+                self?.appleDeviceLastSuccessfulIDs = lastSuccessfulIDs
                 guard enabled else { return }
                 settings?.updateTrustedAppleDeviceMetadata(candidates)
             }
@@ -1537,6 +1546,7 @@ final class SystemStatusStore: ObservableObject {
         self.boundAppleRefreshSettings = settings
         trustedAppleDeviceCandidates = appleDeviceDiscovery.candidates
         trustedAppleDeviceDiscoveryGeneration = appleDeviceDiscovery.discoveryGeneration
+        appleDeviceLastSuccessfulIDs = appleDeviceDiscovery.lastSuccessfulCandidateIDs
         updateAppleRefreshDemand()
     }
 
@@ -1717,8 +1727,12 @@ final class SystemStatusStore: ObservableObject {
             revealedGhostDeviceAddresses: options.revealedGhostDeviceAddresses
         )
         let trustedRows = AppleDeviceCatalog.projection(
-            candidates: AppleDeviceCatalog.candidates(
-                trusted: settings.trustedAppleDeviceMetadata + trustedAppleDeviceCandidates
+            candidates: AppleDeviceCatalog.currentCandidates(
+                history: settings.trustedAppleDeviceMetadata,
+                discovered: trustedAppleDeviceCandidates,
+                lastSuccessfulIDs: appleDeviceLastSuccessfulIDs,
+                trustedSnapshots: mobileBattery.snapshots,
+                now: Date()
             ),
             trustedSnapshots: mobileBattery.snapshots,
             options: unhiddenOptions
