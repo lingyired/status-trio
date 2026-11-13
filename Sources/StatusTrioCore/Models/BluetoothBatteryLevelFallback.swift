@@ -33,6 +33,10 @@ enum BluetoothBatteryLevelFallback {
         case none
         case nameOnly
         case exactVendorProduct
+        /// `Accessory Identifier` is a six-byte Bluetooth address equal to the
+        /// device's own address. This is the only *physical-device* evidence the
+        /// accessory sources can carry, so it outranks every model or name fit.
+        case exactAddress
     }
 
     /// Whether the accessory sources are worth reading at all.
@@ -248,6 +252,14 @@ enum BluetoothBatteryLevelFallback {
         // or case, never to a keyboard or mouse.
         guard readings.allSatisfy({ $0.part == nil }) else { return nil }
 
+        // An identifier that is a real Bluetooth address is exact physical
+        // evidence. When it did not match a device's address, the group must not
+        // fall back to model or name guessing — that is exactly how a same-model
+        // neighbour would receive another mouse's level.
+        guard readings.allSatisfy({ $0.identifier.flatMap(normalizedAddressBytes) == nil }) else {
+            return nil
+        }
+
         // The source must carry one complete and self-consistent model identity.
         // A partial pair on any record, or a group whose records disagree, is not
         // a firm enough basis to relax anything.
@@ -445,6 +457,27 @@ enum BluetoothBatteryLevelFallback {
         _ accessory: BluetoothAccessoryBatteryLevel,
         _ device: BluetoothDevice
     ) -> IdentityEvidence {
+        // A six-byte `Accessory Identifier` is a Bluetooth address. The user's
+        // Magic Mouse proves `pmset` can report the address here rather than a
+        // UUID, so an exact address is decided first and alone: when the source
+        // carries a valid address, a device whose address differs cannot match by
+        // model or name, and no weaker guess is ever used.
+        if let identifier = accessory.identifier,
+           normalizedAddressBytes(identifier) != nil {
+            guard let sourceBytes = normalizedAddressBytes(identifier),
+                  let deviceBytes = normalizedAddressBytes(device.id),
+                  sourceBytes == deviceBytes else {
+                return .none
+            }
+            if let vendor = device.vendorID,
+               let product = device.productID,
+               let accessoryVendor = accessory.vendorID,
+               let accessoryProduct = accessory.productID,
+               vendor != accessoryVendor || product != accessoryProduct {
+                return .none
+            }
+            return .exactAddress
+        }
         if let vendor = device.vendorID,
            let product = device.productID,
            let accessoryVendor = accessory.vendorID,
