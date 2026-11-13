@@ -153,7 +153,7 @@ final class StatusBarController: NSObject {
     private var latestIconOutput: IconPresentationOutput
     private var popoverDismissMonitor: Any?
     private var volumeScrollMonitor: Any?
-    private let volumeScrollAdjustment = PopupVolumeScrollAdjustment()
+    private var volumeScrollAdjustment = PopupVolumeScrollAdjustment()
     private var volumeScrollSession = PopupVolumeScrollSession()
     private var brightnessScrollSession = PopupLevelScrollSession()
     private var audioInputScrollSession = PopupLevelScrollSession()
@@ -1101,8 +1101,7 @@ final class StatusBarController: NSObject {
     }
 
     private func shouldConsumeVolumeScrollWheel(_ event: NSEvent) -> Bool {
-        guard event.window === popover.contentViewController?.view.window,
-              settings.popupScrollAdjustsVolume else { return false }
+        guard event.window === popover.contentViewController?.view.window else { return false }
 
         let point = event.locationInWindow
         let window = event.window
@@ -1123,10 +1122,14 @@ final class StatusBarController: NSObject {
         // 2. A scrollable scroll view under the pointer owns the wheel.
         if isPointerOverScrollableScrollView(event) { return false }
 
-        // 3. Panel-wide fallback to the output volume (default preference).
-        guard settings.popupVolumeScrollScope == .panel,
-              store.isVolumeControlAvailable,
-              panelViewModel.volume.canAdjust else {
+        // 3. Opt-in summary-page fallback to the output volume. Sliders were
+        //    handled above; detail pages never change volume (issue #324).
+        guard PanelScrollVolumeFallback.allows(
+            panelScrollEnabled: settings.popupPanelScrollAdjustsVolume,
+            route: panelViewModel.route,
+            isVolumeControlAvailable: store.isVolumeControlAvailable,
+            canAdjustVolume: panelViewModel.volume.canAdjust
+        ) else {
             return false
         }
         return consumeVolume(event: event)
@@ -1164,11 +1167,13 @@ final class StatusBarController: NSObject {
             displayID: "audio-input",
             fallback: fallback
         ) else { return false }
-        let delta = volumeScrollAdjustment.volumeDelta(
+        let delta = volumeScrollAdjustment.levelDelta(
             deltaY: Double(event.scrollingDeltaY),
             isPrecise: event.hasPreciseScrollingDeltas,
             isDirectionInverted: event.isDirectionInvertedFromDevice,
-            usesNaturalScrolling: settings.popupVolumeNaturalScrolling
+            timestamp: event.timestamp,
+            target: .audioInput,
+            settings: settings
         )
         guard let delta else { return true }
 
@@ -1190,11 +1195,13 @@ final class StatusBarController: NSObject {
             displayID: displayID,
             fallback: fallback
         ) else { return false }
-        let delta = volumeScrollAdjustment.volumeDelta(
+        let delta = volumeScrollAdjustment.levelDelta(
             deltaY: Double(event.scrollingDeltaY),
             isPrecise: event.hasPreciseScrollingDeltas,
             isDirectionInverted: event.isDirectionInvertedFromDevice,
-            usesNaturalScrolling: settings.popupVolumeNaturalScrolling
+            timestamp: event.timestamp,
+            target: .brightness(displayID: displayID),
+            settings: settings
         )
         guard let delta else { return true }
 
@@ -1219,11 +1226,13 @@ final class StatusBarController: NSObject {
         ) else {
             return false
         }
-        let delta = volumeScrollAdjustment.volumeDelta(
+        let delta = volumeScrollAdjustment.levelDelta(
             deltaY: Double(event.scrollingDeltaY),
             isPrecise: event.hasPreciseScrollingDeltas,
             isDirectionInverted: event.isDirectionInvertedFromDevice,
-            usesNaturalScrolling: settings.popupVolumeNaturalScrolling
+            timestamp: event.timestamp,
+            target: .volume,
+            settings: settings
         )
         guard let delta else { return true }
 
@@ -1231,6 +1240,9 @@ final class StatusBarController: NSObject {
             delta: delta,
             to: currentScalar
         )
+        // Publish this wheel step on the current runloop instead of waiting for
+        // the drag coalescer, so the row tracks the wheel without a visible lag.
+        panelViewModel.beginWheelVolumeAdjustment()
         if volumeScrollSession.shouldUnmute(
             in: volumeState,
             isIncreasing: delta > 0
@@ -1238,6 +1250,7 @@ final class StatusBarController: NSObject {
             store.toggleMute()
         }
         store.setVolume(nextScalar)
+        panelViewModel.endWheelVolumeAdjustment()
         return true
     }
 
@@ -1924,7 +1937,30 @@ final class StatusBarController: NSObject {
         }
     }
 
-    private func showMenu() {
+    /// Pops the right-click context menu below the status item (#302).
+    ///
+    /// The anchor is the button's local bounds, but those bounds can be briefly
+    /// wrong during status-item/menu-bar lifecycle churn, which is what pushed
+    /// the menu away from the icon every so often. Validate the same screen rect
+    /// the panel path uses and, when it is unusable, retry on the next run-loop
+    /// turn instead of popping at the stale position.
+    private func showMenu(attempt: Int = 0) {
+        let screens = NSScreen.screens.map {
+            StatusPanelShortcutScreen(frame: $0.frame, visibleFrame: $0.visibleFrame)
+        }
+        let decision = StatusMenuPresentationPolicy.decision(
+            menuBarRect: visibleMenuBarAnchor()?.screenRect,
+            isStatusItemVisible: isStatusItemVisible,
+            screens: screens,
+            attempt: attempt
+        )
+        guard decision == .present else {
+            DispatchQueue.main.async { [weak self] in
+                self?.showMenu(attempt: attempt + 1)
+            }
+            return
+        }
+
         let menu = StatusMenuBuilder.makeMenu(
             version: Self.appVersion,
             settingsTarget: self,

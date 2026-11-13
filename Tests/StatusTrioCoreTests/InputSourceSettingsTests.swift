@@ -47,10 +47,6 @@ final class InputSourceSettingsTests: XCTestCase {
             ["volume", "battery"],
             forKey: SettingsStore.enabledPopupSectionsDefaultsKey
         )
-        // Keep this test about the input-source row: the one-shot VPN migration
-        // has its own coverage in `VPNRowSettingsTests`.
-        suite.defaults.set(true, forKey: SettingsStore.vpnPopupSectionIntroducedDefaultsKey)
-
         let store = SettingsStore(defaults: suite.defaults)
 
         // Every default section missing from the stored list is appended in

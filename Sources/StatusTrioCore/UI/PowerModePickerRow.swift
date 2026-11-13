@@ -61,15 +61,26 @@ struct PowerModePickerRow: View {
                     .foregroundStyle(selection == option ? Color.white : Color.primary)
                     .background(
                         selection == option ? Color.accentColor : Color.clear,
-                        in: RoundedRectangle(cornerRadius: 6)
+                        in: RoundedRectangle(cornerRadius: 6, style: .continuous)
                     )
                     .accessibilityAddTraits(selection == option ? .isSelected : [])
                 }
             }
             .padding(3)
+            // A translucent track instead of the opaque .controlBackgroundColor
+            // slab: the panel behind this row is Liquid Glass (or its material /
+            // solid fallback), and a solid system grey reads as a flat block
+            // sitting on top of it. Primary at 6% plus a hairline rim lets the
+            // panel show through, so the control belongs to the glass rather
+            // than covering it. The selected segment keeps the app's accent-fill
+            // + white-label language used by the other panel capsules.
             .background(
-                Color(nsColor: .controlBackgroundColor),
-                in: RoundedRectangle(cornerRadius: 8)
+                Color.primary.opacity(0.06),
+                in: RoundedRectangle(cornerRadius: 8, style: .continuous)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    .strokeBorder(Color.primary.opacity(0.08), lineWidth: 0.5)
             )
             // Deliberately not `.disabled(isBusy)`: disabling re-styles the
             // whole control mid-write, which reads as a flash. Re-entry is

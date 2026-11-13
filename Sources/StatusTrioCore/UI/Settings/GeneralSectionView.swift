@@ -8,6 +8,27 @@ struct GeneralSectionView: View {
     /// so previews/tests can render the pane without the full app graph.
     var statusStore: SystemStatusStore? = nil
     var chargeToFullNow: ChargeToFullNowController? = nil
+    /// The Settings root supplies its stable session. Standalone panes own a local fallback.
+    @StateObject private var transferSession: SettingsTransferSession
+
+    init(
+        store: SettingsStore,
+        localization: Localization,
+        globalShortcutController: GlobalShortcutController? = nil,
+        statusStore: SystemStatusStore? = nil,
+        chargeToFullNow: ChargeToFullNowController? = nil,
+        transferSession: SettingsTransferSession? = nil
+    ) {
+        self.store = store
+        self.localization = localization
+        self.globalShortcutController = globalShortcutController
+        self.statusStore = statusStore
+        self.chargeToFullNow = chargeToFullNow
+        _transferSession = StateObject(wrappedValue: transferSession ?? SettingsTransferSession(
+            store: store, localization: localization
+        ))
+    }
+
     @ObservedObject private var launchAtLogin: LaunchAtLoginManager = .shared
     @ObservedObject private var updaterManager: UpdaterManager = .shared
     @ObservedObject private var helper: PrivilegedHelperManager = .shared
@@ -15,6 +36,10 @@ struct GeneralSectionView: View {
     var body: some View {
         SettingsPage {
             systemGroup
+            SettingsTransferView(
+                session: transferSession,
+                localization: localization
+            )
             analyticsGroup
             if updaterManager.canCheckForUpdates {
                 updatesGroup

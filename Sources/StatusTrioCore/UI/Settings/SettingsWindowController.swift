@@ -209,14 +209,30 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
         )
     }
 
+    /// Frame autosave key for the Settings window. Kept in one place so the
+    /// restore-on-launch path and the AppKit save path cannot drift apart.
+    static let frameAutosaveName = "SettingsWindow.Sidebar.v1"
+
     private func makeWindow() -> NSWindow {
         let contentSize = NSSize(width: SettingsView.width, height: SettingsView.height)
         let window = NSWindow(
             contentRect: NSRect(origin: .zero, size: contentSize),
-            styleMask: [.titled, .closable, .fullSizeContentView],
+            // `.resizable` gives the green title-bar button its zoom/full-screen
+            // behaviour and lets the user drag the edges. The minimum content
+            // size keeps the fixed sidebar and detail controls from colliding
+            // (#304).
+            styleMask: [.titled, .closable, .resizable, .fullSizeContentView],
             backing: .buffered,
             defer: false
         )
+        window.contentMinSize = NSSize(
+            width: SettingsView.minimumWidth,
+            height: SettingsView.minimumHeight
+        )
+        // Standard macOS full-screen support for a resizable, titled window.
+        // Settings presents in temporary regular activation mode with the Dock
+        // visible, which full screen keeps (#304).
+        window.collectionBehavior.insert(.fullScreenPrimary)
 
         let rootView = LocalizedRootView(localization: localization) {
             SettingsView(
@@ -240,11 +256,24 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
         window.titleVisibility = .hidden
         window.titlebarAppearsTransparent = true
         window.titlebarSeparatorStyle = .none
-        if !backgroundUITesting.isEnabled {
-            window.setFrameAutosaveName("SettingsWindow.Sidebar.v1")
+        if backgroundUITesting.isEnabled {
+            // Test launches must stay deterministic: fixed default size, centred,
+            // and never touching the developer's saved Settings frame.
+            window.setContentSize(contentSize)
+            window.center()
+        } else if !window.setFrameUsingName(Self.frameAutosaveName) {
+            // First launch (no saved frame): use the default size and centre it.
+            // On later launches `setFrameUsingName` has already restored both the
+            // saved size and position, so do not overwrite them with
+            // `setContentSize`/`center` (#304).
+            window.setContentSize(contentSize)
+            window.center()
         }
-        window.center()
-        window.setContentSize(contentSize)
+        if !backgroundUITesting.isEnabled {
+            // Register for future saves only after restoring, so the initial
+            // default frame is not written over the user's last frame.
+            window.setFrameAutosaveName(Self.frameAutosaveName)
+        }
         return window
     }
 

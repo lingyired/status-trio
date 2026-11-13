@@ -29,7 +29,7 @@ final class AirPodsConversationCacheTests: XCTestCase {
         let model = AirPodsSystemControlsModel(deviceID: route, deviceName: "AirPods", conversationCache: cache)
         XCTAssertEqual(model.snapshot.conversation, old)
         var finish: CheckedContinuation<Void, Never>?
-        model.refresh { publish in
+        model.refresh { _, publish in
             publish(.init(spatialLoaded: true))
             await withCheckedContinuation { finish = $0 }
             return .init(conversation: [], loaded: true, conversationLoaded: true)
@@ -51,7 +51,7 @@ final class AirPodsConversationCacheTests: XCTestCase {
         let options = [AirPodsSystemOption(title: "Off", selected: true)]
         let model = AirPodsSystemControlsModel(deviceID: route, deviceName: "AirPods", conversationCache: cache)
         XCTAssertTrue(model.snapshot.conversation.isEmpty)
-        model.refresh { _ in .init(conversation: options, loaded: true, conversationLoaded: true) }
+        model.refresh { _, _ in .init(conversation: options, loaded: true, conversationLoaded: true) }
         for _ in 0..<100 where model.busy { try await Task.sleep(for: .milliseconds(5)) }
         model.stop()
         let reopened = AirPodsSystemControlsModel(deviceID: route, deviceName: "AirPods", conversationCache: cache)

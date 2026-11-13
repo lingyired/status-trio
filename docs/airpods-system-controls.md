@@ -36,6 +36,17 @@ Controls appear only after the device reports their values. A write clears the
 old value and requires a fresh matching report; transport success alone is not
 confirmation. Unknown state cannot be written.
 
+**Passive panel opens never open the AACP channel (#323).** Merely showing the
+panel reads Spatial Audio over CoreAudio and Conversation Awareness through the
+read-only helper, but it never opens the AACP L2CAP channel, and neither does
+expanding the AirPods disclosure. The channel is opened only when the user drags
+the Adaptive strength bar, because setting that value is the only operation that
+needs it. Opening the channel while the headset is streaming has been seen to
+drop and re-enumerate the Bluetooth device — and in the worst reported case to
+wedge `bluetoothd` so the whole control plane stops responding — even though no
+control was touched. The strength bar is therefore always shown but stays
+inert until dragged.
+
 **Hardware limitation:** on the tested Mac, opening a second AACP channel while
 the AirPods are connected returned `-536870212`. An isolated, manually run
 reconnect probe opened a channel on its third bounded attempt and accepted the

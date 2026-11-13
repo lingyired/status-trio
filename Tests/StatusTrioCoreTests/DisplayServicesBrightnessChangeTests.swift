@@ -16,6 +16,13 @@ final class DisplayServicesBrightnessChangeTests: XCTestCase {
         var unregisteredDisplays: [CGDirectDisplayID] = []
         var observers: [UInt32: CGDirectDisplayID] = [:]
         var registrationSucceeds = true
+        /// Result returned by `setBrightness` (0 = accepted, non-zero = failure).
+        var setResult: Int32 = 0
+        /// Result returned by `getBrightness` (0 = success, non-zero = read failure).
+        var getResult: Int32 = 0
+        /// When false, an accepted write leaves `value` at its old reading so a
+        /// test can simulate a read-back that has not caught up yet.
+        var setUpdatesStoredValue = true
 
         func getBrightness(
             _ displayID: CGDirectDisplayID,
@@ -23,12 +30,14 @@ final class DisplayServicesBrightnessChangeTests: XCTestCase {
         ) -> Int32 {
             getCount += 1
             value.pointee = self.value
-            return 0
+            return getResult
         }
 
         func setBrightness(_ displayID: CGDirectDisplayID, _ value: Float) -> Int32 {
-            self.value = value
-            return 0
+            if setUpdatesStoredValue {
+                self.value = value
+            }
+            return setResult
         }
 
         func startBrightnessChangeNotifications(
@@ -237,5 +246,85 @@ final class DisplayServicesBrightnessChangeTests: XCTestCase {
         XCTAssertEqual(updates.last?.source, .unavailable(.noBackend))
         controller.stop()
         XCTAssertTrue(api.unregisteredDisplays.isEmpty)
+    }
+
+    func testWriteAcceptedButReadBackStillOldKeepsDisplayAdjustable() {
+        let api = FakeDisplayServicesAPI()
+        api.value = 0.2
+        // The write is accepted, but the immediate read-back still reports the
+        // old value (the panel has not caught up yet).
+        api.setUpdatesStoredValue = false
+        var updates: [DisplayServicesBrightnessUpdate] = []
+        let controller = DisplayServicesBrightnessController(displayID: 5, api: api) {
+            updates.append($0)
+        }
+        controller.start()
+        updates.removeAll()
+
+        controller.setBrightness(0.8)
+
+        let update = updates.last
+        XCTAssertEqual(update?.canAdjust, true)
+        XCTAssertEqual(update?.scalar ?? -1, 0.8, accuracy: 0.0001)
+        if case .unavailable? = update?.source {
+            XCTFail("an accepted write must not be reported as unavailable")
+        }
+        XCTAssertEqual(update?.source, .displayServices)
+        controller.stop()
+    }
+
+    func testReadFailureAfterAcceptedWriteKeepsDisplayAdjustable() {
+        // A read-back that outright fails right after an accepted write is also
+        // treated optimistically here: the panel must not tear the slider down
+        // for a transient read failure. A *persistent* read failure is surfaced
+        // by refresh()/.readFailed, which these tests cover elsewhere.
+        let api = FakeDisplayServicesAPI()
+        api.getResult = -1
+        var updates: [DisplayServicesBrightnessUpdate] = []
+        let controller = DisplayServicesBrightnessController(displayID: 5, api: api) {
+            updates.append($0)
+        }
+        controller.start()
+        updates.removeAll()
+
+        controller.setBrightness(0.8)
+
+        let update = updates.last
+        XCTAssertEqual(update?.canAdjust, true)
+        XCTAssertEqual(update?.scalar ?? -1, 0.8, accuracy: 0.0001)
+        XCTAssertEqual(update?.source, .displayServices)
+        controller.stop()
+    }
+
+    func testGenuineWriteFailureReportsUnavailable() {
+        let api = FakeDisplayServicesAPI()
+        var updates: [DisplayServicesBrightnessUpdate] = []
+        let controller = DisplayServicesBrightnessController(displayID: 5, api: api) {
+            updates.append($0)
+        }
+        controller.start()
+        updates.removeAll()
+
+        api.setResult = 1
+        controller.setBrightness(0.8)
+
+        XCTAssertEqual(updates.last?.canAdjust, false)
+        XCTAssertEqual(updates.last?.source, .unavailable(.writeNotConfirmed))
+        controller.stop()
+    }
+
+    func testNonFiniteScalarIsIgnored() {
+        let api = FakeDisplayServicesAPI()
+        var updates: [DisplayServicesBrightnessUpdate] = []
+        let controller = DisplayServicesBrightnessController(displayID: 5, api: api) {
+            updates.append($0)
+        }
+        controller.start()
+        updates.removeAll()
+
+        controller.setBrightness(.nan)
+
+        XCTAssertTrue(updates.isEmpty, "a non-finite target must not emit or write")
+        controller.stop()
     }
 }

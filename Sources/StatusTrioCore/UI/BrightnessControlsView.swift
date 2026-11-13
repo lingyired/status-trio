@@ -60,7 +60,9 @@ private struct BrightnessRowView: View {
                         accessibilityValue: row.percentageText,
                         onEditingChanged: { editing in
                             isEditing = editing
-                            if !editing {
+                            if editing {
+                                actions.beginBrightnessAdjustment(displayID: row.id)
+                            } else {
                                 actions.finishBrightnessAdjustment(displayID: row.id)
                             }
                         }
@@ -109,6 +111,13 @@ private struct BrightnessRowView: View {
         .onChange(of: row.scalar) { newValue in
             if !isEditing, let newValue {
                 draft = newValue
+            }
+        }
+        .onDisappear {
+            // A row removed mid-gesture must not leave the pointer gesture open.
+            if isEditing {
+                isEditing = false
+                actions.finishBrightnessAdjustment(displayID: row.id)
             }
         }
         .accessibilityElement(children: .combine)

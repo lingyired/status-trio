@@ -68,7 +68,10 @@ enum StatusPanelShortcutPresentationPolicy {
         return .fallback(origin: origin, preferredEdge: .minY)
     }
 
-    private static func isUsableMenuBarRect(
+    /// Validates the screen rect AppKit reports for the status item before it is
+    /// used as an anchor. Shared by the shortcut/panel path and the right-click
+    /// context menu guard (#302), which must reject the same transient geometry.
+    static func isUsableMenuBarRect(
         _ rect: NSRect,
         screens: [StatusPanelShortcutScreen]
     ) -> Bool {

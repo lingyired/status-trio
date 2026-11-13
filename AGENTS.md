@@ -80,6 +80,7 @@ automatically by Codex.
 | Ordinary isolated feature or unit test | Rule for its subsystem | Focused `quick` tests; add the subsystem regression filter |
 | State/store schema, migration, `@MainActor`, `Sendable`, actor isolation, concurrency, `deinit`, generic/resource plumbing | `.agents/rules/performance.md`, `.agents/rules/macos-compatibility.md` | `full` before delivery; while iterating, the focused store/behavior tests |
 | Settings pane layout, control styling, copy or previews that only read existing state (no change to mapper, renderer, scene or stored schema) | `.agents/rules/rendering.md` only if a preview calls the renderer | `quick` with the pane's focused tests (e.g. `SettingsViewTests`); `full` only if the same change also touches rendering/model below |
+| Settings export/import allowlist (`SettingsPreferenceCatalog`), transfer document/session | `.agents/rules/rendering.md` only if a preview calls the renderer | Focused `SettingsTransfer*` and `SettingsPreferenceCatalogTests`; `quick` |
 | Icon scene, renderer, `StatusIconRenderer`, `StatusIconGeometry`, `IconPresentationMapper`, `IconSceneState`, `StatusBarController` icon path, `AppIconController`, `DockIconRenderKey`, `DockIconRenderer` | `.agents/rules/rendering.md` | `full` before delivery, plus `Issue30WiFiAlignmentTests` and Dock/Menu Bar parity tests; iterate with the focused renderer/mapper filter |
 | Bluetooth, nearby BLE, audio, battery, permission or privacy behavior | `.agents/rules/bluetooth.md` or the matching device rule | Affected focused tests; `full` for lifecycle or permission changes |
 | Wi-Fi, Ethernet, VPN, SSID/location, Settings pane route | `.agents/rules/network.md` | Focused network tests and `StatusMenuBuilderTests` for route changes |
@@ -191,6 +192,26 @@ See `.agents/rules/rendering.md` and
   `docs/settings-pane-routes.md`.
 - Keep `StatusMenuBuilderTests.testSystemSettingsURLFallbackOrder` aligned with
   the route order.
+
+## Settings Transfer Catalog
+
+Settings export/import is driven by an explicit allowlist,
+`SettingsPreferenceCatalog` (`Sources/StatusTrioCore/Settings/SettingsPreferenceCatalog.swift`).
+It is deliberately independent of the UserDefaults domain: a persisted property
+is not transferable just because it exists.
+
+- Whenever a setting is added or its meaning/defaults change, explicitly decide
+  whether it belongs in settings export/import. If it does, add it to the
+  catalog (default, read, validation, write) and cover it in
+  `SettingsPreferenceCatalogTests` and the transfer tests; if it does not, that
+  is an intentional exclusion and should be evident from the catalog/comment.
+- Never assume a new `@Published` setting is transferable automatically. Device
+  identities/configuration, Helper state, consent/privacy, telemetry,
+  onboarding, global shortcuts and development/test state stay out of the
+  transfer document.
+- A setting that is exported must round-trip through the existing published
+  setters so the Menu Bar and Dock stay in sync; see "Menu Bar and Dock Icon
+  Parity".
 
 ## Release Boundaries
 
