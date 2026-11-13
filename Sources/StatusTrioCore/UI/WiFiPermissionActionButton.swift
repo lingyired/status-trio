@@ -7,6 +7,7 @@ import SwiftUI
 /// Deliberately not accent-tinted: a permission hint should read as a quiet,
 /// tappable row rather than a primary blue action.
 struct WiFiPermissionActionButton: View {
+    @Environment(\.statusPanelMediumTextEnabled) private var panelMediumText
     let icon: String
     let title: String
     let action: () -> Void
@@ -19,7 +20,7 @@ struct WiFiPermissionActionButton: View {
                     .foregroundStyle(.secondary)
 
                 Text(title)
-                    .font(.system(size: 12, weight: .medium))
+                    .font(.system(size: 12, weight: panelMediumText ? .medium : .regular))
                     .foregroundStyle(.primary)
                     .frame(maxWidth: .infinity, alignment: .leading)
 

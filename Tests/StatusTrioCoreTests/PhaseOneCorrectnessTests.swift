@@ -138,4 +138,21 @@ final class PhaseOneCorrectnessTests: XCTestCase {
         first.statusPanelBoldTextEnabled = false
         XCTAssertFalse(SettingsStore(defaults: defaults).statusPanelBoldTextEnabled)
     }
+
+
+    func testPanelTextWeightAndKeepOpenSettingsDefaultsAndPersist() throws {
+        let name = "StatusTrioCoreTests.PanelText.\(UUID().uuidString)"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: name))
+        defaults.removePersistentDomain(forName: name)
+        addTeardownBlock { defaults.removePersistentDomain(forName: name) }
+        let first = SettingsStore(defaults: defaults)
+        XCTAssertTrue(first.statusPanelBoldTextEnabled)
+        XCTAssertTrue(first.statusPanelMediumTextEnabled)
+        XCTAssertFalse(first.keepsPanelOpenWhenOpeningSettings)
+        first.statusPanelMediumTextEnabled = false
+        first.keepsPanelOpenWhenOpeningSettings = true
+        let reopened = SettingsStore(defaults: defaults)
+        XCTAssertFalse(reopened.statusPanelMediumTextEnabled)
+        XCTAssertTrue(reopened.keepsPanelOpenWhenOpeningSettings)
+    }
 }

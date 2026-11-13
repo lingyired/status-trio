@@ -1206,3 +1206,7 @@
 "settings.popup.scrollWheelStep.description" = "Change per notch for volume, brightness, and microphone. Trackpad scrolling stays continuous.";
 "settings.panel.boldText" = "Disable all bold text";
 "settings.panel.boldText.description" = "Removes semibold/bold from every title and value in the status panel for comparison.";
+"settings.panel.mediumText" = "Disable medium weight text";
+"settings.panel.mediumText.description" = "Also drops medium-weight titles and values to regular, for a fully flat comparison.";
+"settings.panel.keepOpenForComparison" = "Keep panel open when opening Settings";
+"settings.panel.keepOpenForComparison.description" = "Lets the status panel stay on screen beside Settings so you can compare changes.";

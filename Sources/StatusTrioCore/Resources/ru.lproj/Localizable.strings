@@ -1207,3 +1207,7 @@
 "settings.popup.scrollWheelStep.description" = "Изменение громкости, яркости и микрофона за щелчок. Трекпад сохраняет плавную регулировку.";
 "settings.panel.boldText" = "Отключить всё полужирное";
 "settings.panel.boldText.description" = "Убирает полужирное начертание всех заголовков и значений панели состояния для сравнения.";
+"settings.panel.mediumText" = "Отключить среднюю насыщенность";
+"settings.panel.mediumText.description" = "Также переводит заголовки и значения средней насыщенности в regular для полностью плоского сравнения.";
+"settings.panel.keepOpenForComparison" = "Не закрывать панель при открытии настроек";
+"settings.panel.keepOpenForComparison.description" = "Оставляет панель состояния рядом с настройками для сравнения изменений.";

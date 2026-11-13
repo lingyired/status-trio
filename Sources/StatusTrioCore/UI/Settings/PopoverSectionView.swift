@@ -67,6 +67,14 @@ struct PopoverSectionView: View {
                 subtitle: localization.string(.settingsPanelReturnsToSummaryOnOpenDescription),
                 isOn: $store.returnsToSummaryOnOpen
             )
+            SettingsDivider()
+            SettingsToggleRow(
+                symbol: "macwindow.on.rectangle",
+                tint: .purple,
+                title: localization.string(.settingsPanelKeepOpenForComparison),
+                subtitle: localization.string(.settingsPanelKeepOpenForComparisonDescription),
+                isOn: $store.keepsPanelOpenWhenOpeningSettings
+            )
         }
     }
 
@@ -108,6 +116,17 @@ struct PopoverSectionView: View {
                 isOn: Binding(
                     get: { !store.statusPanelBoldTextEnabled },
                     set: { store.statusPanelBoldTextEnabled = !$0 }
+                )
+            )
+            SettingsDivider()
+            SettingsToggleRow(
+                symbol: "textformat.size",
+                tint: .purple,
+                title: localization.string(.settingsPanelMediumText),
+                subtitle: localization.string(.settingsPanelMediumTextDescription),
+                isOn: Binding(
+                    get: { !store.statusPanelMediumTextEnabled },
+                    set: { store.statusPanelMediumTextEnabled = !$0 }
                 )
             )
         }

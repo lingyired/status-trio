@@ -770,7 +770,7 @@ final class StatusBarController: NSObject {
         // observers before the window is ordered in.
         let isBackgroundStatusPanel =
             backgroundUITesting.isEnabled && backgroundUITesting.opensStatusPanel
-        popover.disablesDismissOnResignForTesting = isBackgroundStatusPanel
+        popover.disablesDismissOnResignForTesting = isBackgroundStatusPanel || settings.keepsPanelOpenWhenOpeningSettings
         popover.disablesKeyWindowForTesting = isBackgroundStatusPanel
         popover.avoidsOrderFrontRegardlessForTesting = isBackgroundStatusPanel
         if isBackgroundStatusPanel {
@@ -1748,7 +1748,12 @@ final class StatusBarController: NSObject {
     }
 
     @objc private func handleOpenSettings() {
-        popover.performClose(nil)
+        if settings.keepsPanelOpenWhenOpeningSettings {
+            // Keep the panel alive across the key/main handoff to Settings.
+            popover.disablesDismissOnResignForTesting = true
+        } else {
+            popover.performClose(nil)
+        }
         openSettings()
     }
 

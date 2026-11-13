@@ -1207,3 +1207,7 @@
 "settings.popup.scrollWheelStep.description" = "휠 한 칸당 음량, 밝기, 마이크 조절량입니다. 트랙패드는 연속 조절을 유지합니다.";
 "settings.panel.boldText" = "모든 굵은 글씨 끄기";
 "settings.panel.boldText.description" = "비교를 위해 상태 패널의 모든 제목과 값에서 굵은 글씨를 제거합니다.";
+"settings.panel.mediumText" = "중간 굵기 글씨 끄기";
+"settings.panel.mediumText.description" = "medium(중간 굵기) 제목과 값도 regular로 낮춰 완전히 평평하게 비교합니다.";
+"settings.panel.keepOpenForComparison" = "설정을 열어도 패널 유지";
+"settings.panel.keepOpenForComparison.description" = "설정 창 옆에 상태 패널을 남겨 변경 사항을 비교할 수 있습니다.";

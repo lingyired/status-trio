@@ -1207,3 +1207,7 @@
 "settings.popup.scrollWheelStep.description" = "1目盛りあたりの音量・明るさ・マイクの調整幅。トラックパッドは連続調整のままです。";
 "settings.panel.boldText" = "太字をすべて無効化";
 "settings.panel.boldText.description" = "比較用に、ステータスパネル内の見出しと数値の太字をすべて解除します。";
+"settings.panel.mediumText" = "中太字も無効化";
+"settings.panel.mediumText.description" = "medium（中太）の見出しと数値も regular に下げ、完全に平坦な表示で比較します。";
+"settings.panel.keepOpenForComparison" = "設定を開いてもパネルを閉じない";
+"settings.panel.keepOpenForComparison.description" = "設定ウィンドウの横にパネルを残して変更を比較できます。";

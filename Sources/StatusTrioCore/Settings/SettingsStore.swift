@@ -287,6 +287,11 @@ final class SettingsStore: ObservableObject {
     /// When false, the status panel renders every title/value in regular weight so
     /// the no-bold look can be compared. Local appearance preference, not exported.
     static let statusPanelBoldTextDefaultsKey = "statusPanelBoldTextEnabled"
+    /// When false, medium-weight panel text also renders regular.
+    static let statusPanelMediumTextDefaultsKey = "statusPanelMediumTextEnabled"
+    /// When true, opening Settings from the panel leaves the panel on screen so
+    /// the two can be compared side by side.
+    static let keepsPanelOpenWhenOpeningSettingsDefaultsKey = "keepsStatusPanelOpenWhenOpeningSettings"
 
     @Published private(set) var sharesAnonymousAnalytics: Bool
     @Published private(set) var telemetryConsentVersion: Int
@@ -1510,6 +1515,24 @@ final class SettingsStore: ObservableObject {
         }
     }
 
+    @Published var statusPanelMediumTextEnabled: Bool {
+        didSet {
+            defaults.set(
+                statusPanelMediumTextEnabled,
+                forKey: Self.statusPanelMediumTextDefaultsKey
+            )
+        }
+    }
+
+    @Published var keepsPanelOpenWhenOpeningSettings: Bool {
+        didSet {
+            defaults.set(
+                keepsPanelOpenWhenOpeningSettings,
+                forKey: Self.keepsPanelOpenWhenOpeningSettingsDefaultsKey
+            )
+        }
+    }
+
     @Published var popupVolumeScrollDirection: PopupVolumeScrollDirection {
         didSet {
             defaults.set(
@@ -2722,6 +2745,12 @@ final class SettingsStore: ObservableObject {
         self.statusPanelBoldTextEnabled = defaults.object(
             forKey: Self.statusPanelBoldTextDefaultsKey
         ) as? Bool ?? true
+        self.statusPanelMediumTextEnabled = defaults.object(
+            forKey: Self.statusPanelMediumTextDefaultsKey
+        ) as? Bool ?? true
+        self.keepsPanelOpenWhenOpeningSettings = defaults.object(
+            forKey: Self.keepsPanelOpenWhenOpeningSettingsDefaultsKey
+        ) as? Bool ?? false
         self.popupVolumeScrollDirection = storedPopupVolumeScrollDirection
             .flatMap(PopupVolumeScrollDirection.init(rawValue:))
             ?? Self.defaultPopupVolumeScrollDirection

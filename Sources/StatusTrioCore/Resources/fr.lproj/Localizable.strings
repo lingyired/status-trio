@@ -1207,3 +1207,7 @@
 "settings.popup.scrollWheelStep.description" = "Variation par cran du volume, de la luminosité et du micro. Le trackpad reste continu.";
 "settings.panel.boldText" = "Désactiver tout le gras";
 "settings.panel.boldText.description" = "Supprime le gras de tous les titres et valeurs du panneau d’état pour comparer.";
+"settings.panel.mediumText" = "Désactiver le poids moyen";
+"settings.panel.mediumText.description" = "Abaisse aussi les titres et valeurs en poids moyen vers regular pour une comparaison totalement plate.";
+"settings.panel.keepOpenForComparison" = "Garder le panneau ouvert en ouvrant les réglages";
+"settings.panel.keepOpenForComparison.description" = "Laisse le panneau d’état à côté des réglages pour comparer les changements.";

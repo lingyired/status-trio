@@ -1207,3 +1207,7 @@
 "settings.popup.scrollWheelStep.description" = "每格调节音量、亮度和麦克风的幅度。触控板保持连续调节。";
 "settings.panel.boldText" = "状态面板文字全部不加粗";
 "settings.panel.boldText.description" = "去掉状态面板里所有标题和数值的加粗，方便对比效果。";
+"settings.panel.mediumText" = "状态面板文字不用中等字重";
+"settings.panel.mediumText.description" = "同时把 medium（半粗）的标题和数值也降到 regular，做彻底扁平对比。";
+"settings.panel.keepOpenForComparison" = "打开设置时状态面板不隐藏";
+"settings.panel.keepOpenForComparison.description" = "方便把状态面板和设置窗口并排对照；关闭后恢复原来的自动隐藏。";

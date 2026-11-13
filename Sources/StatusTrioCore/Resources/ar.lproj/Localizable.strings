@@ -1207,3 +1207,7 @@
 "settings.popup.scrollWheelStep.description" = "مقدار تغيير الصوت والسطوع والميكروفون لكل نقرة. تظل لوحة التعقب سلسة.";
 "settings.panel.boldText" = "تعطيل كل النص العريض";
 "settings.panel.boldText.description" = "يزيل الخط العريض من كل العناوين والقيم في لوحة الحالة للمقارنة.";
+"settings.panel.mediumText" = "تعطيل الوزن المتوسط";
+"settings.panel.mediumText.description" = "يخفض أيضاً العناوين والقيم ذات الوزن المتوسط إلى regular لمقارنة مسطحة تماماً.";
+"settings.panel.keepOpenForComparison" = "إبقاء اللوحة مفتوحة عند فتح الإعدادات";
+"settings.panel.keepOpenForComparison.description" = "يُبقي لوحة الحالة بجانب الإعدادات لمقارنة التغييرات.";

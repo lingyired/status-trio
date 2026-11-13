@@ -1207,3 +1207,7 @@
 "settings.popup.scrollWheelStep.description" = "Änderung pro Raste für Lautstärke, Helligkeit und Mikrofon. Trackpad bleibt stufenlos.";
 "settings.panel.boldText" = "Alle Fettungen deaktivieren";
 "settings.panel.boldText.description" = "Entfernt alle halbfetten/fetten Titel und Werte im Statusfenster zum Vergleich.";
+"settings.panel.mediumText" = "Mittlere Schriftstärke deaktivieren";
+"settings.panel.mediumText.description" = "Setzt auch mittlere Titel und Werte auf regular für einen völlig flachen Vergleich.";
+"settings.panel.keepOpenForComparison" = "Panel beim Öffnen der Einstellungen offen lassen";
+"settings.panel.keepOpenForComparison.description" = "Lässt das Statusfenster neben den Einstellungen stehen, um Änderungen zu vergleichen.";

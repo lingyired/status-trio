@@ -1207,3 +1207,7 @@
 "settings.popup.scrollWheelStep.description" = "Variazione per scatto di volume, luminosità e microfono. Il trackpad resta continuo.";
 "settings.panel.boldText" = "Disattiva tutti i grassetti";
 "settings.panel.boldText.description" = "Rimuove il grassetto da titoli e valori del pannello di stato per il confronto.";
+"settings.panel.mediumText" = "Disattiva il peso medio";
+"settings.panel.mediumText.description" = "Riduce anche titoli e valori di peso medio a regular per un confronto completamente piatto.";
+"settings.panel.keepOpenForComparison" = "Mantieni il pannello aperto aprendo Impostazioni";
+"settings.panel.keepOpenForComparison.description" = "Lascia il pannello di stato accanto alle Impostazioni per confrontare le modifiche.";
