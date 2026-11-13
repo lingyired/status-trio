@@ -232,18 +232,18 @@ private struct HardwareMonitorTileView: View {
             HStack(spacing: 4) {
                 HardwareMetricSymbolView(symbol: presentation.metric.symbol, box: 14, glyph: 11)
                 Text(presentation.label)
-                    .font(.system(size: presentation.metric.isSpeed ? 10 : 11))
+                    .font(.system(size: presentation.metric.isSpeed ? 11 : 12))
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
                     .minimumScaleFactor(0.7)
                     .layoutPriority(1)
                 Spacer(minLength: 2)
                 Text(presentation.valueText)
-                    .font(.system(size: presentation.metric.isSpeed ? 10 : 11, weight: .medium))
+                    .font(.system(size: presentation.metric.isSpeed ? 12 : 13, weight: .semibold))
                     .monospacedDigit()
                     .lineLimit(1)
                     .minimumScaleFactor(presentation.metric.isSpeed ? 0.6 : 0.8)
-                    .frame(width: presentation.metric.isSpeed ? 76 : 52, alignment: .trailing)
+                    .frame(width: presentation.metric.isSpeed ? 84 : 56, alignment: .trailing)
                     .opacity(presentation.isStale ? 0.6 : 1)
             }
             .transaction { transaction in
