@@ -180,6 +180,36 @@ struct PopoverFocusLossDismissalPolicyTests {
 /// same click's mouse-up must not reopen it — the coordinate-free safety net for
 /// setups where the status-item hit test misjudges the item.
 struct PopoverReopenSuppressionTests {
+    @Test func dockToggleChecksCloseSuppressionBeforeConsumingTheToggleGate() throws {
+        let root = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
+        let source = try String(contentsOf: root.appendingPathComponent(
+            "Sources/StatusTrioCore/UI/StatusBarController.swift"), encoding: .utf8)
+        let start = try #require(source.range(of: "func togglePopover(anchoredAtScreenPoint point: NSPoint) {"))
+        let end = try #require(source.range(of: "private func presentPopover(", range: start.upperBound..<source.endIndex))
+        let dockToggle = String(source[start.upperBound..<end.lowerBound])
+        let suppression = try #require(dockToggle.range(of: "if !popover.isShown, reopenSuppression.shouldSuppressReopen(at: Date())"))
+        let gate = try #require(dockToggle.range(of: "popoverToggleGate.shouldAccept"))
+        #expect(suppression.lowerBound < gate.lowerBound)
+    }
+
+    @Test func dockCloseThenReopenDoesNotConsumeTheNextClick() {
+        var suppression = PopoverReopenSuppression(window: 0.35)
+        var gate = PopoverToggleGate(lockout: 0.25)
+        let start = Date(timeIntervalSince1970: 100)
+        let firstAccepted = gate.shouldAccept(at: start)
+        #expect(firstAccepted)
+        // The second Dock press closes on mouse-down, then delivers reopen.
+        suppression.recordClose(at: start.addingTimeInterval(1), mouseButtonDown: true)
+        let suppressed = suppression.shouldSuppressReopen(at: start.addingTimeInterval(1.05))
+        #expect(suppressed)
+        // A third press is independent: the record was consumed by the second.
+        let thirdSuppressed = suppression.shouldSuppressReopen(at: start.addingTimeInterval(1.1))
+        let thirdAccepted = gate.shouldAccept(at: start.addingTimeInterval(1.1))
+        #expect(!thirdSuppressed)
+        #expect(thirdAccepted)
+    }
+
     private let window: TimeInterval = 0.35
 
     @Test func suppressesReopenAfterAMouseDownClose() {

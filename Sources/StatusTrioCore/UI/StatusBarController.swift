@@ -620,6 +620,14 @@ final class StatusBarController: NSObject {
 
     /// Shows the same popover for a Dock icon click, above the clicked icon.
     func togglePopover(anchoredAtScreenPoint point: NSPoint) {
+        // Issue #341: a Dock tile click produces the same close-then-reopen pair
+        // as the status item (#224). The outside-click monitor closes the panel
+        // on mouse-down, then the app-reopen callback reaches this method with
+        // `popover.isShown == false`. Honour the same-click suppression before
+        // the toggle gate so the second click hides instead of reopening.
+        if !popover.isShown, reopenSuppression.shouldSuppressReopen(at: Date()) {
+            return
+        }
         guard popoverToggleGate.shouldAccept(at: Date()) else { return }
         if popover.isShown {
             closePopover()
