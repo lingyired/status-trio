@@ -65,7 +65,8 @@ struct AboutSectionView: View {
 
                     AboutActionsView(
                         canCheckForUpdates: updaterManager.canCheckForUpdates,
-                        onCheckForUpdates: { updaterManager.checkForUpdates() }
+                        onCheckForUpdates: { updaterManager.checkForUpdates(preference: .githubFirst) },
+                        onCheckViaGitee: { updaterManager.checkForUpdates(preference: .giteeFirst) }
                     )
                 }
                 .padding(.horizontal, SettingsMetrics.rowPaddingH)
@@ -96,6 +97,7 @@ struct AboutActionsView: View {
 
     let canCheckForUpdates: Bool
     let onCheckForUpdates: () -> Void
+    var onCheckViaGitee: () -> Void = {}
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -131,11 +133,20 @@ struct AboutActionsView: View {
             .frame(maxWidth: .infinity, alignment: .leading)
 
             if canCheckForUpdates {
-                Button(localization.string(.settingsUpdatesCheck)) {
-                    onCheckForUpdates()
+                HStack(spacing: 8) {
+                    Button(localization.string(.settingsUpdatesCheck)) {
+                        onCheckForUpdates()
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .controlSize(.small)
+
+                    Button(localization.string(.settingsUpdatesCheckViaGitee)) {
+                        onCheckViaGitee()
+                    }
+                    .buttonStyle(.bordered)
+                    .controlSize(.small)
                 }
-                .buttonStyle(.borderedProminent)
-                .controlSize(.small)
+                .frame(height: 22)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)

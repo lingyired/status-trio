@@ -8,6 +8,7 @@
 "menu.window" = "Janela";
 "menu.closeWindow" = "Fechar Janela";
 "menu.checkForUpdates" = "Verificar atualizações…";
+"menu.checkViaGitee" = "Verificar atualizações via Gitee…";
 "menu.openMenuBarSettings" = "Abrir Ajustes da Barra de Menus";
 "settings.title" = "Ajustes";
 "settings.page.appearance" = "Aparência";
@@ -256,6 +257,9 @@
 "settings.updates.title" = "Atualizações";
 "settings.updates.automatic" = "Verificar atualizações automaticamente";
 "settings.updates.check" = "Verificar atualizações…";
+"settings.updates.checkViaGitee" = "Verificar via Gitee";
+"settings.updates.giteeLaggingTitle" = "O espelho do Gitee pode estar atrasado";
+"settings.updates.giteeLaggingMessage" = "O Gitee não oferece atualização para esta versão. A versão mais recente pode ainda não ter sido sincronizada. Use Verificar atualizações para obter pelo GitHub.";
 "battery.title" = "Bateria · %d%%";
 "battery.title.power" = "Potência · %d W";
 "battery.title.powerUnavailable" = "Potência · Indisponível";

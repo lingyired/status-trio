@@ -1,0 +1,63 @@
+name: Gitee mirror sync
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Verified GitHub Release tag to mirror
+        required: true
+        type: string
+      source_run_id:
+        description: Optional original release workflow run id
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: gitee-sync-feed
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Check out trusted mirror tooling
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 1
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Test mirror scripts without credentials
+        run: |
+          node --test scripts/test-sync-gitee-release.mjs
+          python3 scripts/test-gitee-appcast.py
+
+      - name: Sync and verify Gitee mirror
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GITEE_TOKEN: ${{ secrets.GITEE_TOKEN }}
+          GITEE_REPOSITORY: ${{ vars.GITEE_REPOSITORY || 'lingyired/status-trio' }}
+          GITEE_FEED_URL: ${{ vars.GITEE_FEED_URL }}
+        run: node scripts/sync-gitee-release.mjs sync "${{ inputs.tag }}"
+
+      - name: Record result
+        if: ${{ always() }}
+        env:
+          TAG: ${{ inputs.tag }}
+          SOURCE_RUN_ID: ${{ inputs.source_run_id }}
+          RESULT: ${{ job.status }}
+        run: |
+          {
+            echo "## Gitee mirror $TAG"
+            echo "- Result: $RESULT"
+            echo "- Source release workflow run: ${SOURCE_RUN_ID:-unknown}"
+            echo "- GitHub release remains authoritative; mirror failures never roll it back."
+          } >> "$GITHUB_STEP_SUMMARY"

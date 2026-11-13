@@ -8,6 +8,7 @@
 "menu.window" = "窗口";
 "menu.closeWindow" = "关闭窗口";
 "menu.checkForUpdates" = "检查更新…";
+"menu.checkViaGitee" = "通过 Gitee 更新";
 "menu.openMenuBarSettings" = "打开系统菜单栏";
 "settings.title" = "设置";
 "settings.page.appearance" = "外观";
@@ -256,6 +257,9 @@
 "settings.updates.title" = "更新";
 "settings.updates.automatic" = "自动检查更新";
 "settings.updates.check" = "检查更新…";
+"settings.updates.checkViaGitee" = "通过 Gitee 更新";
+"settings.updates.giteeLaggingTitle" = "Gitee 镜像版本可能滞后";
+"settings.updates.giteeLaggingMessage" = "Gitee 未提供此版本的更新，可能尚未同步最新发布。可使用“检查更新”从 GitHub 获取。";
 "battery.title" = "电池 · %d%%";
 "battery.title.power" = "功耗 · %d W";
 "battery.title.powerUnavailable" = "功耗 · 暂不可用";

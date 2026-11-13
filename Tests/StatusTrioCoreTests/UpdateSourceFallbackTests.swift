@@ -5,6 +5,38 @@ import Testing
 
 struct UpdateSourceFallbackTests {
     @Test
+    func giteePreferenceIsScopedAndHasExactOrder() {
+        #expect(UpdatePreference.githubFirst.sources == [.github, .gitee, .ghProxy, .ghFast])
+        #expect(UpdatePreference.giteeFirst.sources == [.gitee, .github, .ghProxy, .ghFast])
+        var fallback = UpdateSourceFallback(preference: .giteeFirst)
+        #expect(fallback.currentSource == .gitee)
+        let advanced = fallback.advanceAfterError(URLError(.timedOut))
+        #expect(advanced)
+        #expect(fallback.currentSource == .github)
+        #expect(UpdateSourceFallback().currentSource == .github)
+    }
+
+    @Test
+    func securityAndCancellationAreNeverRetriedEvenWhenWrapped() {
+        for code in [URLError.cancelled, .secureConnectionFailed, .serverCertificateUntrusted, .userAuthenticationRequired, .badServerResponse, .cannotDecodeContentData] {
+            let fallback = UpdateSourceFallback()
+            let error = NSError(domain: SUSparkleErrorDomain, code: Int(SUError.downloadError.rawValue), userInfo: [NSUnderlyingErrorKey: URLError(code)])
+            #expect(!fallback.canAdvanceAfterError(error))
+        }
+        let signature = NSError(domain: SUSparkleErrorDomain, code: Int(SUError.signatureError.rawValue), userInfo: [NSUnderlyingErrorKey: URLError(.timedOut)])
+        #expect(!UpdateSourceFallback().canAdvanceAfterError(signature))
+    }
+
+    @Test
+    func giteeFeedIsExplicitAndDownloadComesFromVerifiedFeed() {
+        let fallback = UpdateSourceFallback(preference: .giteeFirst)
+        #expect(fallback.appcastURLString(from: "https://raw.githubusercontent.com/lingyired/status-trio/main/appcast.xml") == "https://gitee.com/lingyired/status-trio/raw/main/appcast.xml")
+        #expect(fallback.appcastURLString(from: "https://example.com/feed.xml") == "https://example.com/feed.xml")
+        let attachment = URL(string: "https://gitee.com/lingyired/status-trio/attach_files/42/download/a.dmg")!
+        #expect(fallback.downloadURL(for: attachment) == attachment)
+    }
+
+    @Test
     func directSourceKeepsGitHubURLsUnchanged() {
         let source = UpdateSource.github
         let appcastURL = URL(
@@ -61,7 +93,7 @@ struct UpdateSourceFallbackTests {
 
     @Test
     func fallbackAdvancesThroughEverySourceOnce() {
-        var fallback = UpdateSourceFallback(initialSource: .github)
+        var fallback = UpdateSourceFallback(sources: [.github, .ghProxy, .ghFast], initialSource: .github)
         let error = URLError(.cannotConnectToHost)
 
         #expect(fallback.currentSource == .github)
@@ -114,7 +146,7 @@ struct UpdateSourceFallbackTests {
 
     @Test
     func fallbackAdvancesForSparkleDownloadErrors() {
-        var fallback = UpdateSourceFallback(initialSource: .github)
+        var fallback = UpdateSourceFallback(sources: [.github, .ghProxy, .ghFast], initialSource: .github)
         let error = NSError(domain: SUSparkleErrorDomain, code: Int(SUError.downloadError.rawValue))
 
         let advanced = fallback.advanceAfterError(error)
@@ -124,7 +156,7 @@ struct UpdateSourceFallbackTests {
 
     @Test
     func fallbackAdvancesForWrappedNetworkErrors() {
-        var fallback = UpdateSourceFallback(initialSource: .github)
+        var fallback = UpdateSourceFallback(sources: [.github, .ghProxy, .ghFast], initialSource: .github)
         let error = NSError(
             domain: SUSparkleErrorDomain,
             code: Int(SUError.downloadError.rawValue),
