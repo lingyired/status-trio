@@ -290,6 +290,22 @@ struct HardwareRingConfiguration: Codable, Equatable, Hashable, Sendable {
 
     static let `default` = HardwareRingConfiguration()
 
+    /// The top marker now offers only value or hidden. Legacy saved symbol /
+    /// automatic choices migrate to a numeric value for the same metric so an
+    /// upgrade never keeps drawing the unreadable menu-bar glyph.
+    func migratingLegacyTopIcon() -> HardwareRingConfiguration {
+        var copy = self
+        switch copy.topContent {
+        case .automatic:
+            copy.topContent = .value(copy.primaryMetric)
+        case let .symbol(metric):
+            copy.topContent = .value(metric)
+        case .value, .hidden:
+            break
+        }
+        return copy
+    }
+
     /// The effective options for `metric` (override if present, else default).
     func options(for metric: HardwareMonitorMetric) -> HardwareMetricRingOptions {
         (overrides[metric] ?? .default(for: metric)).normalized(for: metric)

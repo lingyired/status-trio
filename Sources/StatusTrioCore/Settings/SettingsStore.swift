@@ -2736,9 +2736,9 @@ final class SettingsStore: ObservableObject {
         ) as? Bool ?? true
         if let data = defaults.data(forKey: Self.hardwareRingConfigurationDefaultsKey),
            let decoded = try? JSONDecoder().decode(HardwareRingConfiguration.self, from: data) {
-            self.hardwareRingConfiguration = decoded.normalized()
+            self.hardwareRingConfiguration = decoded.normalized().migratingLegacyTopIcon()
         } else {
-            self.hardwareRingConfiguration = .default
+            self.hardwareRingConfiguration = HardwareRingConfiguration.default.migratingLegacyTopIcon()
         }
         if let data = defaults.data(forKey: Self.hardwareMonitorMetricColorsDefaultsKey),
            let decoded = try? JSONDecoder().decode([HardwareMonitorMetric: IconRGBA].self, from: data) {

@@ -127,3 +127,19 @@ final class HardwareRingConfigurationTests: XCTestCase {
         XCTAssertEqual(decoded.topMarkerScale, 1.0)
     }
 }
+
+extension HardwareRingConfigurationTests {
+    func testLegacyTopIconModesMigrateToValue() {
+        let automatic = HardwareRingConfiguration(layout: .single, primaryMetric: .gpuUsage, topContent: .automatic)
+        XCTAssertEqual(automatic.migratingLegacyTopIcon().topContent, .value(.gpuUsage))
+
+        let symbol = HardwareRingConfiguration(layout: .single, primaryMetric: .cpuUsage, topContent: .symbol(.fan))
+        XCTAssertEqual(symbol.migratingLegacyTopIcon().topContent, .value(.fan))
+
+        let hidden = HardwareRingConfiguration(layout: .single, topContent: .hidden)
+        XCTAssertEqual(hidden.migratingLegacyTopIcon().topContent, .hidden)
+
+        let value = HardwareRingConfiguration(layout: .single, topContent: .value(.cpuTemperature))
+        XCTAssertEqual(value.migratingLegacyTopIcon().topContent, .value(.cpuTemperature))
+    }
+}

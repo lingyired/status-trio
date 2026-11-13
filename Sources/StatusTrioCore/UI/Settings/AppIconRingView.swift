@@ -1,11 +1,11 @@
 import AppKit
 import SwiftUI
 
-/// The four top-marker choices exposed in the settings pane. Mapped to/from
-/// `HardwareRingTopContent`, which carries the metric for the symbol/value cases.
+/// Top-marker choices exposed in the settings pane: a numeric value or hidden.
+/// The icon/symbol mode was removed because the detailed glyphs were unreadable
+/// at menu-bar size; legacy `.automatic`/`.symbol` configurations migrate to a
+/// value in `HardwareRingConfiguration.migratingLegacyTopIcon()`.
 private enum HardwareTopMode: String, CaseIterable, Identifiable {
-    case automatic
-    case symbol
     case value
     case hidden
     var id: Self { self }
@@ -247,7 +247,7 @@ struct AppIconRingView: View {
                 options: HardwareTopMode.allCases,
                 label: { topModeLabel($0) }
             )
-            if hardwareTopMode == .symbol || hardwareTopMode == .value {
+            if hardwareTopMode == .value {
                 SettingsDivider()
                 SettingsMenuRow(
                     symbol: hardwareTopMetric.systemImage,
@@ -464,10 +464,9 @@ struct AppIconRingView: View {
 
     private var hardwareTopMode: HardwareTopMode {
         switch store.hardwareRingConfiguration.topContent {
-        case .automatic: return .automatic
         case .hidden: return .hidden
-        case .symbol: return .symbol
         case .value: return .value
+        case .automatic, .symbol: return .value
         }
     }
 
@@ -508,9 +507,7 @@ struct AppIconRingView: View {
         var configuration = store.hardwareRingConfiguration
         let metric = hardwareTopMetric
         switch mode {
-        case .automatic: configuration.topContent = .automatic
         case .hidden: configuration.topContent = .hidden
-        case .symbol: configuration.topContent = .symbol(metric)
         case .value: configuration.topContent = .value(metric)
         }
         store.hardwareRingConfiguration = configuration
@@ -519,9 +516,8 @@ struct AppIconRingView: View {
     private func setTopMetric(_ metric: HardwareMonitorMetric) {
         var configuration = store.hardwareRingConfiguration
         switch hardwareTopMode {
-        case .symbol: configuration.topContent = .symbol(metric)
         case .value: configuration.topContent = .value(metric)
-        case .automatic, .hidden: break
+        case .hidden: break
         }
         store.hardwareRingConfiguration = configuration
     }
@@ -602,8 +598,6 @@ struct AppIconRingView: View {
 
     private func topModeLabel(_ mode: HardwareTopMode) -> String {
         switch mode {
-        case .automatic: return localization.string(.settingsHardwareRingTopAutomatic)
-        case .symbol: return localization.string(.settingsHardwareRingTopSymbol)
         case .value: return localization.string(.settingsHardwareRingTopValue)
         case .hidden: return localization.string(.settingsHardwareRingTopHidden)
         }
