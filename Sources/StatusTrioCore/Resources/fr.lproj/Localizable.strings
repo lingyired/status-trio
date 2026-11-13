@@ -1205,3 +1205,5 @@
 
 "settings.popup.scrollWheelStep" = "Pas de la molette";
 "settings.popup.scrollWheelStep.description" = "Variation par cran du volume, de la luminosité et du micro. Le trackpad reste continu.";
+"settings.panel.boldText" = "Désactiver tout le gras";
+"settings.panel.boldText.description" = "Supprime le gras de tous les titres et valeurs du panneau d’état pour comparer.";

@@ -225,6 +225,7 @@ struct HardwareMetricTilePresentation: Equatable {
 }
 
 private struct HardwareMonitorTileView: View {
+    @Environment(\.statusPanelBoldTextEnabled) private var panelBoldText
     let presentation: HardwareMetricTilePresentation
 
     var body: some View {
@@ -239,7 +240,7 @@ private struct HardwareMonitorTileView: View {
                     .layoutPriority(1)
                 Spacer(minLength: 2)
                 Text(presentation.valueText)
-                    .font(.system(size: presentation.metric.isSpeed ? 12 : 13, weight: .semibold))
+                    .font(.system(size: presentation.metric.isSpeed ? 12 : 13, weight: panelBoldText ? .semibold : .regular))
                     .monospacedDigit()
                     .lineLimit(1)
                     .minimumScaleFactor(presentation.metric.isSpeed ? 0.6 : 0.8)

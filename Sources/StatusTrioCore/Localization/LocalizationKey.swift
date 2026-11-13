@@ -200,6 +200,8 @@ enum LocalizationKey: String, CaseIterable, Hashable, Sendable {
     case settingsPanelOpenBehaviorTitle = "settings.panel.openBehavior.title"
     case settingsPanelReturnsToSummaryOnOpen = "settings.panel.returnsToSummaryOnOpen"
     case settingsPanelReturnsToSummaryOnOpenDescription = "settings.panel.returnsToSummaryOnOpen.description"
+    case settingsPanelBoldText = "settings.panel.boldText"
+    case settingsPanelBoldTextDescription = "settings.panel.boldText.description"
     case brightnessRowAccessibility = "brightness.row.accessibility"
     case brightnessRowAccessibilityUnavailable = "brightness.row.accessibilityUnavailable"
     case brightnessActionOpenSettings = "brightness.action.openSettings"

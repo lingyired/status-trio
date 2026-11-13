@@ -1205,3 +1205,5 @@
 
 "settings.popup.scrollWheelStep" = "滚轮调节步长";
 "settings.popup.scrollWheelStep.description" = "每格调节音量、亮度和麦克风的幅度。触控板保持连续调节。";
+"settings.panel.boldText" = "状态面板文字全部不加粗";
+"settings.panel.boldText.description" = "去掉状态面板里所有标题和数值的加粗，方便对比效果。";

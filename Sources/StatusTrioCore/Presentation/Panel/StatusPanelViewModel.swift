@@ -166,6 +166,7 @@ final class StatusPanelViewModel: ObservableObject {
     @Published private(set) var hardwareMonitorMetrics: [HardwareMonitorMetric]
     /// Shared per-metric colours shown on the card bars (same field as the ring).
     @Published private(set) var hardwareMonitorMetricColors: [HardwareMonitorMetric: IconRGBA]
+    @Published private(set) var statusPanelBoldTextEnabled: Bool
     /// Broadband caps (Mbps) for the network-speed tiles.
     @Published private(set) var hardwareSpeedCapsMbps: [HardwareMonitorMetric: Double]
 
@@ -224,6 +225,7 @@ final class StatusPanelViewModel: ObservableObject {
         visiblePopupSections = settings.visiblePopupSections
         hardwareMonitorMetrics = settings.visibleHardwareMetrics
         hardwareMonitorMetricColors = settings.hardwareMonitorMetricColors
+        statusPanelBoldTextEnabled = settings.statusPanelBoldTextEnabled
         hardwareSpeedCapsMbps = [
             .downloadSpeed: settings.hardwareDownloadCapMbps,
             .uploadSpeed: settings.hardwareUploadCapMbps
@@ -313,6 +315,9 @@ final class StatusPanelViewModel: ObservableObject {
         if hardwareMonitorMetricColors != settings.hardwareMonitorMetricColors {
             hardwareMonitorMetricColors = settings.hardwareMonitorMetricColors
         }
+        if statusPanelBoldTextEnabled != settings.statusPanelBoldTextEnabled {
+            statusPanelBoldTextEnabled = settings.statusPanelBoldTextEnabled
+        }
         let caps: [HardwareMonitorMetric: Double] = [
             .downloadSpeed: settings.hardwareDownloadCapMbps,
             .uploadSpeed: settings.hardwareUploadCapMbps
@@ -396,6 +401,14 @@ final class StatusPanelViewModel: ObservableObject {
             .sink { [weak self] colors in
                 guard let self else { return }
                 if self.hardwareMonitorMetricColors != colors { self.hardwareMonitorMetricColors = colors }
+            }
+            .store(in: &cancellables)
+
+        settings.$statusPanelBoldTextEnabled
+            .removeDuplicates()
+            .sink { [weak self] enabled in
+                guard let self else { return }
+                if self.statusPanelBoldTextEnabled != enabled { self.statusPanelBoldTextEnabled = enabled }
             }
             .store(in: &cancellables)
 

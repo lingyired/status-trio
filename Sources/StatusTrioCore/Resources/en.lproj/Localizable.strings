@@ -1204,3 +1204,5 @@
 
 "settings.popup.scrollWheelStep" = "Wheel adjustment step";
 "settings.popup.scrollWheelStep.description" = "Change per notch for volume, brightness, and microphone. Trackpad scrolling stays continuous.";
+"settings.panel.boldText" = "Disable all bold text";
+"settings.panel.boldText.description" = "Removes semibold/bold from every title and value in the status panel for comparison.";

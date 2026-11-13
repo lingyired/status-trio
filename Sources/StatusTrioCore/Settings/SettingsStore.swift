@@ -284,6 +284,10 @@ final class SettingsStore: ObservableObject {
     /// page instead of the last-opened detail page.
     static let returnsToSummaryOnOpenDefaultsKey = "returnsToSummaryOnOpen"
 
+    /// When false, the status panel renders every title/value in regular weight so
+    /// the no-bold look can be compared. Local appearance preference, not exported.
+    static let statusPanelBoldTextDefaultsKey = "statusPanelBoldTextEnabled"
+
     @Published private(set) var sharesAnonymousAnalytics: Bool
     @Published private(set) var telemetryConsentVersion: Int
     @Published var statusPanelShortcut: StatusPanelShortcut? {
@@ -1497,6 +1501,15 @@ final class SettingsStore: ObservableObject {
         }
     }
 
+    @Published var statusPanelBoldTextEnabled: Bool {
+        didSet {
+            defaults.set(
+                statusPanelBoldTextEnabled,
+                forKey: Self.statusPanelBoldTextDefaultsKey
+            )
+        }
+    }
+
     @Published var popupVolumeScrollDirection: PopupVolumeScrollDirection {
         didSet {
             defaults.set(
@@ -2706,6 +2719,9 @@ final class SettingsStore: ObservableObject {
         self.returnsToSummaryOnOpen = defaults.object(
             forKey: Self.returnsToSummaryOnOpenDefaultsKey
         ) as? Bool ?? false
+        self.statusPanelBoldTextEnabled = defaults.object(
+            forKey: Self.statusPanelBoldTextDefaultsKey
+        ) as? Bool ?? true
         self.popupVolumeScrollDirection = storedPopupVolumeScrollDirection
             .flatMap(PopupVolumeScrollDirection.init(rawValue:))
             ?? Self.defaultPopupVolumeScrollDirection

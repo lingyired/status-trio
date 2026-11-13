@@ -1205,3 +1205,5 @@
 
 "settings.popup.scrollWheelStep" = "Paso de la rueda";
 "settings.popup.scrollWheelStep.description" = "Cambio por paso para volumen, brillo y micrófono. El trackpad sigue siendo continuo.";
+"settings.panel.boldText" = "Desactivar todas las negritas";
+"settings.panel.boldText.description" = "Quita la negrita de todos los títulos y valores del panel de estado para comparar.";

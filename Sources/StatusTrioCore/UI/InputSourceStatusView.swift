@@ -6,6 +6,7 @@ import SwiftUI
 /// shape as the battery and network rows: the panel stays a list of rows, and
 /// the input sources only appear once the user asks for them.
 struct InputSourceStatusView: View {
+    @Environment(\.statusPanelBoldTextEnabled) private var panelBoldText
     @EnvironmentObject private var localization: Localization
 
     let state: InputSourcePanelState
@@ -25,7 +26,7 @@ struct InputSourceStatusView: View {
 
                     VStack(alignment: .leading, spacing: 2) {
                         Text(state.title)
-                            .font(.headline)
+                            .font(.headline.weight(panelBoldText ? .semibold : .regular))
                             .lineLimit(1)
                         subtitle
                     }

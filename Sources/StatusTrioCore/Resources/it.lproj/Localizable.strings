@@ -1205,3 +1205,5 @@
 
 "settings.popup.scrollWheelStep" = "Incremento della rotella";
 "settings.popup.scrollWheelStep.description" = "Variazione per scatto di volume, luminosità e microfono. Il trackpad resta continuo.";
+"settings.panel.boldText" = "Disattiva tutti i grassetti";
+"settings.panel.boldText.description" = "Rimuove il grassetto da titoli e valori del pannello di stato per il confronto.";

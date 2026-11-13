@@ -1205,3 +1205,5 @@
 
 "settings.popup.scrollWheelStep" = "滾輪調整幅度";
 "settings.popup.scrollWheelStep.description" = "每格調整音量、亮度和麥克風的幅度。觸控板維持連續調整。";
+"settings.panel.boldText" = "狀態面板文字全部不加粗";
+"settings.panel.boldText.description" = "去掉狀態面板裡所有標題和數值的加粗，方便對比效果。";

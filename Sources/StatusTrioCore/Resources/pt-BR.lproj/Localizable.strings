@@ -1205,3 +1205,5 @@
 
 "settings.popup.scrollWheelStep" = "Incremento da roda";
 "settings.popup.scrollWheelStep.description" = "Variação por passo de volume, brilho e microfone. O trackpad continua com ajuste contínuo.";
+"settings.panel.boldText" = "Desativar todo o negrito";
+"settings.panel.boldText.description" = "Remove o negrito de todos os títulos e valores do painel de status para comparar.";

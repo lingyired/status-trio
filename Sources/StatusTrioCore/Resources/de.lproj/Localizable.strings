@@ -1205,3 +1205,5 @@
 
 "settings.popup.scrollWheelStep" = "Schrittweite des Mausrads";
 "settings.popup.scrollWheelStep.description" = "Änderung pro Raste für Lautstärke, Helligkeit und Mikrofon. Trackpad bleibt stufenlos.";
+"settings.panel.boldText" = "Alle Fettungen deaktivieren";
+"settings.panel.boldText.description" = "Entfernt alle halbfetten/fetten Titel und Werte im Statusfenster zum Vergleich.";

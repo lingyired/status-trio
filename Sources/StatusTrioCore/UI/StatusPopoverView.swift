@@ -59,6 +59,7 @@ struct StatusPopoverView: View {
             }
         }
         .frame(width: 330)
+        .environment(\.statusPanelBoldTextEnabled, panel.statusPanelBoldTextEnabled)
     }
 
     /// The current route, inset for the panel's fixed width.

@@ -1205,3 +1205,5 @@
 
 "settings.popup.scrollWheelStep" = "Шаг колеса прокрутки";
 "settings.popup.scrollWheelStep.description" = "Изменение громкости, яркости и микрофона за щелчок. Трекпад сохраняет плавную регулировку.";
+"settings.panel.boldText" = "Отключить всё полужирное";
+"settings.panel.boldText.description" = "Убирает полужирное начертание всех заголовков и значений панели состояния для сравнения.";

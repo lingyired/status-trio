@@ -124,4 +124,18 @@ final class PhaseOneCorrectnessTests: XCTestCase {
         fallback.behaviors.hardwareRing = config.behaviors.hardwareRing
         XCTAssertNotNil(IconSourceDemandPolicy.hardwareRingDemands(configuration: fallback, placement: .menuBar).menuBar)
     }
+
+
+    func testStatusPanelBoldTextSettingDefaultsOnAndPersists() throws {
+        let store = try makeStore()
+        XCTAssertTrue(store.statusPanelBoldTextEnabled)
+        store.statusPanelBoldTextEnabled = false
+        let name = UUID().uuidString
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: "StatusTrioCoreTests.Bold.\(name)"))
+        defaults.removePersistentDomain(forName: "StatusTrioCoreTests.Bold.\(name)")
+        addTeardownBlock { defaults.removePersistentDomain(forName: "StatusTrioCoreTests.Bold.\(name)") }
+        let first = SettingsStore(defaults: defaults)
+        first.statusPanelBoldTextEnabled = false
+        XCTAssertFalse(SettingsStore(defaults: defaults).statusPanelBoldTextEnabled)
+    }
 }

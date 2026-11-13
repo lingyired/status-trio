@@ -1205,3 +1205,5 @@
 
 "settings.popup.scrollWheelStep" = "휠 조절 간격";
 "settings.popup.scrollWheelStep.description" = "휠 한 칸당 음량, 밝기, 마이크 조절량입니다. 트랙패드는 연속 조절을 유지합니다.";
+"settings.panel.boldText" = "모든 굵은 글씨 끄기";
+"settings.panel.boldText.description" = "비교를 위해 상태 패널의 모든 제목과 값에서 굵은 글씨를 제거합니다.";

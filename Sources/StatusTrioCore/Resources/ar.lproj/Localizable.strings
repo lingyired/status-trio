@@ -1205,3 +1205,5 @@
 
 "settings.popup.scrollWheelStep" = "خطوة ضبط العجلة";
 "settings.popup.scrollWheelStep.description" = "مقدار تغيير الصوت والسطوع والميكروفون لكل نقرة. تظل لوحة التعقب سلسة.";
+"settings.panel.boldText" = "تعطيل كل النص العريض";
+"settings.panel.boldText.description" = "يزيل الخط العريض من كل العناوين والقيم في لوحة الحالة للمقارنة.";

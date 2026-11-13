@@ -135,13 +135,14 @@ struct InputSourceListView: View {
 /// equally bright ink of an icon row. `compositingGroup()` is kept so the
 /// destination-out letter erases only the disc and never the row behind it.
 struct InputSourceLabelChip: View {
+    @Environment(\.statusPanelBoldTextEnabled) private var panelBoldText
     @Environment(\.colorScheme) private var colorScheme
 
     let label: String
 
     var body: some View {
         Text(label)
-            .font(.system(size: 10, weight: .semibold, design: .rounded))
+            .font(.system(size: 10, weight: panelBoldText ? .semibold : .regular, design: .rounded))
             .foregroundStyle(.white)
             .blendMode(.destinationOut)
             .frame(width: 18, height: 15)

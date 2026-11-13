@@ -99,6 +99,14 @@ struct PopoverSectionView: View {
                     PanelBackgroundStylePreview(style: style)
                 }
             )
+            SettingsDivider()
+            SettingsToggleRow(
+                symbol: "bold",
+                tint: .purple,
+                title: localization.string(.settingsPanelBoldText),
+                subtitle: localization.string(.settingsPanelBoldTextDescription),
+                isOn: $store.statusPanelBoldTextEnabled
+            )
         }
     }
 

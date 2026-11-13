@@ -3,6 +3,7 @@ import SwiftUI
 /// A static flow diagram: sampling changes the numbers and ribbon widths, with
 /// no animation clock, Canvas loop, or work while the panel is closed.
 struct BatteryPowerFlowView: View {
+    @Environment(\.statusPanelBoldTextEnabled) private var panelBoldText
     @Environment(\.colorScheme) private var colorScheme
     let state: BatteryPowerFlowState
 
@@ -270,7 +271,7 @@ struct BatteryPowerFlowView: View {
                         .frame(width: 20)
                         .accessibilityHidden(true)
                     Text(value.value)
-                        .font(.system(size: dense ? 10 : 11, weight: .semibold, design: .rounded))
+                        .font(.system(size: dense ? 10 : 11, weight: panelBoldText ? .semibold : .regular, design: .rounded))
                         .monospacedDigit()
                         .lineLimit(1)
                         .minimumScaleFactor(0.8)
@@ -285,7 +286,7 @@ struct BatteryPowerFlowView: View {
                             .frame(width: 20)
                             .accessibilityHidden(true)
                         Text(value.value)
-                            .font(.system(size: 13, weight: .semibold, design: .rounded))
+                            .font(.system(size: 13, weight: panelBoldText ? .semibold : .regular, design: .rounded))
                             .monospacedDigit()
                             .lineLimit(1)
                             .minimumScaleFactor(0.8)
@@ -308,7 +309,7 @@ struct BatteryPowerFlowView: View {
                         .font(.system(size: 16, weight: .medium))
                         .accessibilityHidden(true)
                     Text(value.value)
-                        .font(.system(size: 13, weight: .semibold, design: .rounded))
+                        .font(.system(size: 13, weight: panelBoldText ? .semibold : .regular, design: .rounded))
                         .monospacedDigit()
                         .lineLimit(1)
                         .minimumScaleFactor(0.8)
