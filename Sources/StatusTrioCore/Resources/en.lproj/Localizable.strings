@@ -110,9 +110,9 @@
 "settings.bluetooth.batteryLevels" = "Show Bluetooth battery levels";
 "settings.bluetooth.batteryLevelsDescription" = "Reads battery levels for visible Bluetooth and Apple device rows in the status panel.";
 "settings.bluetooth.listeningModeTitle" = "Show listening mode controls";
-"settings.bluetooth.listeningModeDescription" = "Supports AirPods and some HUAWEI headphones: shows noise-cancelling, transparency and off capsules on connected devices. Only some HUAWEI models are supported; if a switch fails, the previous mode is restored.";
+"settings.bluetooth.listeningModeDescription" = "Supports AirPods, HUAWEI FreeBuds, Redmi/Xiaomi and OPPO/OnePlus/realme (Enco family) earbuds: shows noise-cancelling, transparency and off capsules on connected devices. Only some third-party models are supported; if a switch fails, the previous mode is restored.";
 "settings.bluetooth.listeningModePreview" = "Listening mode preview (test only)";
-"settings.bluetooth.listeningModePreviewDescription" = "Preview adds synthetic rows for interface testing only; switching a preview row never changes your headphones. Real device rows, including HUAWEI, still work according to each device's support: only some HUAWEI models are supported, and a failed switch restores the previous mode.";
+"settings.bluetooth.listeningModePreviewDescription" = "Preview adds synthetic rows for interface testing only; switching a preview row never changes your headphones. Real device rows, including HUAWEI, Redmi/Xiaomi and OPPO, still work according to each device's support: only some third-party models are supported, and a failed switch restores the previous mode.";
 "settings.bluetooth.listeningModePreviewOptions" = "Preview Options";
 "settings.bluetooth.listeningModePreviewDeviceName" = "Preview device name";
 "settings.bluetooth.listeningModePreviewDeviceNameDescription" = "Name shown on the preview rows. Leave empty for the built-in default, or type a very long name to check truncation.";

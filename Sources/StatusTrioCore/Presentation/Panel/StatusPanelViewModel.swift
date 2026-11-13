@@ -637,7 +637,7 @@ final class StatusPanelViewModel: ObservableObject {
             return "off::\(store.popoverOpenGeneration)"
         }
         let connected = BluetoothDevicePresentation.grouped(store.bluetoothDevices.devices).connected
-            .filter { $0.isAirPods || $0.isHuaweiAudio || $0.isRedmiAudio }
+            .filter { $0.isAirPods || $0.isHuaweiAudio || $0.isRedmiAudio || $0.isOppoAudio }
             .map { BluetoothBatteryReader.normalizedAddress($0.id) }
             .joined(separator: ",")
         let preview = configuration.isEnabled ? "|preview" : ""
