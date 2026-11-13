@@ -105,7 +105,10 @@ struct PopoverSectionView: View {
                 tint: .purple,
                 title: localization.string(.settingsPanelBoldText),
                 subtitle: localization.string(.settingsPanelBoldTextDescription),
-                isOn: $store.statusPanelBoldTextEnabled
+                isOn: Binding(
+                    get: { !store.statusPanelBoldTextEnabled },
+                    set: { store.statusPanelBoldTextEnabled = !$0 }
+                )
             )
         }
     }
