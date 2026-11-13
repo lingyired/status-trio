@@ -909,3 +909,6 @@
 "settings.transfer.error.fileAccess" = "파일을 읽거나 저장할 수 없습니다. 파일 위치와 권한을 확인하세요.";
 "settings.transfer.done" = "완료";
 "settings.transfer.warningCount" = "총 경고 수: %d(처음 50개까지 표시).";
+
+"settings.popup.scrollWheelStep" = "휠 조절 간격";
+"settings.popup.scrollWheelStep.description" = "휠 한 칸당 음량, 밝기, 마이크 조절량입니다. 트랙패드는 연속 조절을 유지합니다.";

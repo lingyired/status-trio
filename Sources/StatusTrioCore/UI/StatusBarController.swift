@@ -153,7 +153,7 @@ final class StatusBarController: NSObject {
     private var latestIconOutput: IconPresentationOutput
     private var popoverDismissMonitor: Any?
     private var volumeScrollMonitor: Any?
-    private let volumeScrollAdjustment = PopupVolumeScrollAdjustment()
+    private var volumeScrollAdjustment = PopupVolumeScrollAdjustment()
     private var volumeScrollSession = PopupVolumeScrollSession()
     private var brightnessScrollSession = PopupLevelScrollSession()
     private var audioInputScrollSession = PopupLevelScrollSession()
@@ -1167,11 +1167,13 @@ final class StatusBarController: NSObject {
             displayID: "audio-input",
             fallback: fallback
         ) else { return false }
-        let delta = volumeScrollAdjustment.volumeDelta(
+        let delta = volumeScrollAdjustment.levelDelta(
             deltaY: Double(event.scrollingDeltaY),
             isPrecise: event.hasPreciseScrollingDeltas,
             isDirectionInverted: event.isDirectionInvertedFromDevice,
-            usesNaturalScrolling: settings.popupVolumeNaturalScrolling
+            timestamp: event.timestamp,
+            target: .audioInput,
+            settings: settings
         )
         guard let delta else { return true }
 
@@ -1193,11 +1195,13 @@ final class StatusBarController: NSObject {
             displayID: displayID,
             fallback: fallback
         ) else { return false }
-        let delta = volumeScrollAdjustment.volumeDelta(
+        let delta = volumeScrollAdjustment.levelDelta(
             deltaY: Double(event.scrollingDeltaY),
             isPrecise: event.hasPreciseScrollingDeltas,
             isDirectionInverted: event.isDirectionInvertedFromDevice,
-            usesNaturalScrolling: settings.popupVolumeNaturalScrolling
+            timestamp: event.timestamp,
+            target: .brightness(displayID: displayID),
+            settings: settings
         )
         guard let delta else { return true }
 
@@ -1222,12 +1226,13 @@ final class StatusBarController: NSObject {
         ) else {
             return false
         }
-        let delta = volumeScrollAdjustment.volumeDelta(
+        let delta = volumeScrollAdjustment.levelDelta(
             deltaY: Double(event.scrollingDeltaY),
             isPrecise: event.hasPreciseScrollingDeltas,
             isDirectionInverted: event.isDirectionInvertedFromDevice,
-            usesNaturalScrolling: settings.popupVolumeNaturalScrolling,
-            wheelStep: PopupVolumeScrollAdjustment.volumeWheelStep
+            timestamp: event.timestamp,
+            target: .volume,
+            settings: settings
         )
         guard let delta else { return true }
 

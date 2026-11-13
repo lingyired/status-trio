@@ -909,3 +909,6 @@
 "settings.transfer.error.fileAccess" = "Die Datei konnte nicht gelesen oder gespeichert werden. Prüfe ihren Speicherort und die Zugriffsrechte.";
 "settings.transfer.done" = "Fertig";
 "settings.transfer.warningCount" = "Warnungen insgesamt: %d (bis zu 50 werden angezeigt).";
+
+"settings.popup.scrollWheelStep" = "Schrittweite des Mausrads";
+"settings.popup.scrollWheelStep.description" = "Änderung pro Raste für Lautstärke, Helligkeit und Mikrofon. Trackpad bleibt stufenlos.";

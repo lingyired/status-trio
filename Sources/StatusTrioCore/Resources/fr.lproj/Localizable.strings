@@ -909,3 +909,6 @@
 "settings.transfer.error.fileAccess" = "Le fichier n’a pas pu être lu ou enregistré. Vérifiez son emplacement et ses autorisations.";
 "settings.transfer.done" = "Terminé";
 "settings.transfer.warningCount" = "Nombre total d’avertissements : %d (50 affichés au maximum).";
+
+"settings.popup.scrollWheelStep" = "Pas de la molette";
+"settings.popup.scrollWheelStep.description" = "Variation par cran du volume, de la luminosité et du micro. Le trackpad reste continu.";

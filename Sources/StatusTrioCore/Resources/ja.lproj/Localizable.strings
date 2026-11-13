@@ -909,3 +909,6 @@
 "settings.transfer.error.fileAccess" = "ファイルを読み取りまたは保存できませんでした。保存場所とアクセス権を確認してください。";
 "settings.transfer.done" = "完了";
 "settings.transfer.warningCount" = "警告の総数：%d（最初の 50 件まで表示）。";
+
+"settings.popup.scrollWheelStep" = "ホイールの調整幅";
+"settings.popup.scrollWheelStep.description" = "1目盛りあたりの音量・明るさ・マイクの調整幅。トラックパッドは連続調整のままです。";

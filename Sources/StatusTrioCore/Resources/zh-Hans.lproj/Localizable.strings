@@ -909,3 +909,6 @@
 "settings.transfer.error.fileAccess" = "无法读取或保存文件。请检查文件位置和权限。";
 "settings.transfer.done" = "完成";
 "settings.transfer.warningCount" = "警告总数：%d（最多显示前 50 条）";
+
+"settings.popup.scrollWheelStep" = "滚轮调节步长";
+"settings.popup.scrollWheelStep.description" = "每格调节音量、亮度和麦克风的幅度。触控板保持连续调节。";

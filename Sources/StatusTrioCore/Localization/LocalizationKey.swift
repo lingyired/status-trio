@@ -187,6 +187,8 @@ enum LocalizationKey: String, CaseIterable, Hashable, Sendable {
     case settingsAudioVolumeScrollGroup = "settings.audio.volumeScroll.group"
     case settingsPopupPanelScroll = "settings.popup.panelScroll"
     case settingsPopupPanelScrollDescription = "settings.popup.panelScroll.description"
+    case settingsPopupScrollWheelStep = "settings.popup.scrollWheelStep"
+    case settingsPopupScrollWheelStepDescription = "settings.popup.scrollWheelStep.description"
     case settingsPopupVolumeScrollNatural = "settings.popup.volumeScroll.natural"
     case settingsPopupVolumeScrollNaturalDescription = "settings.popup.volumeScroll.natural.description"
     case settingsAudioVolumeFeedbackTitle = "settings.audio.volumeFeedbackTitle"

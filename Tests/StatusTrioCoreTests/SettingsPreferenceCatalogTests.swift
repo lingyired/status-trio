@@ -32,7 +32,7 @@ final class SettingsPreferenceCatalogTests: XCTestCase {
                 "maxVisibleInputDevices", "alwaysShowsAllInputDevices", "showsBluetoothDeviceList",
                 "maxVisibleBluetoothDevices", "hidesGhostBluetoothDevices", "popupSectionOrder",
                 "enabledPopupSections", "popupPanelScrollAdjustsVolume", "returnsToSummaryOnOpen",
-                "popupVolumeNaturalScrolling", "popupVolumeScrollFeedbackOverride"
+                "popupVolumeNaturalScrolling", "popupVolumeScrollFeedbackOverride", "popupScrollWheelStepPercent"
             ]
             XCTAssertEqual(Set(snapshot.keys), expected)
         }
@@ -44,6 +44,7 @@ final class SettingsPreferenceCatalogTests: XCTestCase {
             source.showsMenuBarChargingEffect = false
             source.showsDockChargingEffect = true
             source.monochromeChargingRing = false
+            source.popupScrollWheelStepPercent = 2.5
             source.popupVolumeScrollFeedbackOverride = true
             source.batteryStatusColors.charging = .custom(.init(hue: 0.2, saturation: 0.6, brightness: 0.8))
             source.bluetoothIconColor = .custom(.init(hue: 0.1, saturation: 0.4, brightness: 0.9))
@@ -59,6 +60,26 @@ final class SettingsPreferenceCatalogTests: XCTestCase {
                 XCTAssertEqual(SettingsPreferenceCatalog.snapshot(target), snapshot)
                 let reloaded = SettingsStore(defaults: defaults, systemChargeLimit: { nil })
                 XCTAssertEqual(SettingsPreferenceCatalog.snapshot(reloaded), snapshot)
+            }
+        }
+    }
+
+    func testWheelStepValidatesRangeAndPersistsDefaultAndCustomValues() {
+        withStore { store, defaults in
+            XCTAssertEqual(store.popupScrollWheelStepPercent, 5)
+            for value in [1.0, 2.5, 5, 20] {
+                store.popupScrollWheelStepPercent = value
+                XCTAssertEqual(SettingsStore(defaults: defaults).popupScrollWheelStepPercent, value)
+            }
+            for value in [0.0, 21, 2.7, .infinity, .nan] {
+                store.popupScrollWheelStepPercent = value
+                XCTAssertEqual(store.popupScrollWheelStepPercent, 5)
+                XCTAssertEqual(defaults.double(forKey: "popupScrollWheelStepPercent"), 5)
+            }
+            for value in [-1.0, 21, 2.7] {
+                let prepared = SettingsPreferenceCatalog.prepare(["popupScrollWheelStepPercent": .number(value)])
+                XCTAssertEqual(prepared.values["popupScrollWheelStepPercent"], .number(5))
+                XCTAssertFalse(prepared.warnings.isEmpty)
             }
         }
     }

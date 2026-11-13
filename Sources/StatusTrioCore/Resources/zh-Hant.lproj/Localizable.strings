@@ -909,3 +909,6 @@
 "settings.transfer.error.fileAccess" = "無法讀取或儲存檔案。請檢查檔案位置和權限。";
 "settings.transfer.done" = "完成";
 "settings.transfer.warningCount" = "警告總數：%d（最多顯示前 50 則）";
+
+"settings.popup.scrollWheelStep" = "滾輪調整幅度";
+"settings.popup.scrollWheelStep.description" = "每格調整音量、亮度和麥克風的幅度。觸控板維持連續調整。";

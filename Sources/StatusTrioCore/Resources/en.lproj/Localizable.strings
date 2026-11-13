@@ -908,3 +908,6 @@
 "settings.transfer.error.fileAccess" = "The file could not be read or saved. Check its location and permissions.";
 "settings.transfer.done" = "Done";
 "settings.transfer.warningCount" = "Total warnings: %d (showing up to 50).";
+
+"settings.popup.scrollWheelStep" = "Wheel adjustment step";
+"settings.popup.scrollWheelStep.description" = "Change per notch for volume, brightness, and microphone. Trackpad scrolling stays continuous.";

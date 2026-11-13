@@ -909,3 +909,6 @@
 "settings.transfer.error.fileAccess" = "No se ha podido leer o guardar el archivo. Comprueba su ubicación y sus permisos.";
 "settings.transfer.done" = "Listo";
 "settings.transfer.warningCount" = "Total de advertencias: %d (se muestran hasta 50).";
+
+"settings.popup.scrollWheelStep" = "Paso de la rueda";
+"settings.popup.scrollWheelStep.description" = "Cambio por paso para volumen, brillo y micrófono. El trackpad sigue siendo continuo.";

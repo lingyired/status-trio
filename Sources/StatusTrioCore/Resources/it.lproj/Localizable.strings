@@ -909,3 +909,6 @@
 "settings.transfer.error.fileAccess" = "Impossibile leggere o salvare il file. Verifica la posizione e i permessi.";
 "settings.transfer.done" = "Fine";
 "settings.transfer.warningCount" = "Avvisi totali: %d (ne vengono mostrati al massimo 50).";
+
+"settings.popup.scrollWheelStep" = "Incremento della rotella";
+"settings.popup.scrollWheelStep.description" = "Variazione per scatto di volume, luminosità e microfono. Il trackpad resta continuo.";

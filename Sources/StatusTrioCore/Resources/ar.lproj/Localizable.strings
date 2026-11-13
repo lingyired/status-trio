@@ -909,3 +909,6 @@
 "settings.transfer.error.fileAccess" = "تعذرت قراءة الملف أو حفظه. تحقق من موقعه وأذوناته.";
 "settings.transfer.done" = "تم";
 "settings.transfer.warningCount" = "إجمالي التحذيرات: %d (يُعرض ما يصل إلى 50).";
+
+"settings.popup.scrollWheelStep" = "خطوة ضبط العجلة";
+"settings.popup.scrollWheelStep.description" = "مقدار تغيير الصوت والسطوع والميكروفون لكل نقرة. تظل لوحة التعقب سلسة.";

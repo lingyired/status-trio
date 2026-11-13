@@ -17,7 +17,7 @@ struct PopoverSectionView: View {
 
     private var scrollDirectionGroup: some View {
         SettingsGroup(
-            localization.string(.settingsPopupVolumeScrollDirection),
+            localization.string(.settingsPopupVolumeScrollGroup),
             footnote: localization.string(.settingsPopupVolumeScrollDirectionDescription)
         ) {
             SettingsToggleRow(
@@ -27,7 +27,30 @@ struct PopoverSectionView: View {
                 subtitle: localization.string(.settingsPopupVolumeScrollNaturalDescription),
                 isOn: $store.popupVolumeNaturalScrolling
             )
+            SettingsRow(
+                "dial.low", tint: .indigo,
+                title: localization.string(.settingsPopupScrollWheelStep),
+                subtitle: localization.string(.settingsPopupScrollWheelStepDescription)
+            ) {
+                HStack(spacing: 8) {
+                    Slider(value: $store.popupScrollWheelStepPercent,
+                           in: SettingsStore.popupScrollWheelStepPercentRange, step: 0.5)
+                        .frame(width: 130)
+                        .controlSize(.small)
+                        .accessibilityLabel(localization.string(.settingsPopupScrollWheelStep))
+                        .accessibilityValue(wheelStepLabel)
+                    Text(wheelStepLabel)
+                        .monospacedDigit()
+                        .frame(minWidth: 48, alignment: .trailing)
+                }
+            }
         }
+    }
+
+    private var wheelStepLabel: String {
+        (store.popupScrollWheelStepPercent / 100).formatted(
+            .percent.precision(.fractionLength(0...1)).locale(localization.resolvedLanguage.locale)
+        )
     }
 
     private var openBehaviorGroup: some View {

@@ -2,7 +2,17 @@ import XCTest
 @testable import StatusTrioCore
 
 final class PopupVolumeScrollAdjustmentTests: XCTestCase {
-    private let adjustment = PopupVolumeScrollAdjustment()
+    private var adjustment = PopupVolumeScrollAdjustment()
+
+    func testWheelNotchHasSameStepForOneAndThreeReportedLines() throws {
+        for lines in [1.0, 3.0, -1.0, -3.0] {
+            let delta = try XCTUnwrap(adjustment.volumeDelta(
+                deltaY: lines, isPrecise: false, isDirectionInverted: false,
+                usesNaturalScrolling: false, wheelStep: 0.05
+            ))
+            XCTAssertEqual(delta, lines > 0 ? 0.05 : -0.05, accuracy: 0.000_001)
+        }
+    }
 
     func testNaturalScrollingRaisesVolumeForPhysicalScrollUpWithSystemNaturalScrolling() throws {
         // The system reports a negative value after natural-scrolling inversion.
@@ -96,67 +106,56 @@ final class PopupVolumeScrollAdjustmentTests: XCTestCase {
         XCTAssertEqual(first + second, 0.02, accuracy: 0.000_001)
     }
 
-    func testDiscreteWheelScrollUsesLineDeltaAsStepCount() throws {
-        let increase = try XCTUnwrap(
-            adjustment.volumeDelta(
-                deltaY: 1,
-                isPrecise: false,
-                isDirectionInverted: false,
-                usesNaturalScrolling: false
-            )
-        )
-        XCTAssertEqual(increase, 0.02, accuracy: 0.000_001)
-
-        let decrease = try XCTUnwrap(
-            adjustment.volumeDelta(
-                deltaY: -2,
-                isPrecise: false,
-                isDirectionInverted: false,
-                usesNaturalScrolling: false
-            )
-        )
-        XCTAssertEqual(decrease, -0.04, accuracy: 0.000_001)
+    func testDefaultWheelStepIsFivePercent() throws {
+        let delta = try XCTUnwrap(adjustment.volumeDelta(
+            deltaY: 3, isPrecise: false, isDirectionInverted: false, usesNaturalScrolling: false
+        ))
+        XCTAssertEqual(delta, 0.05, accuracy: 0.000_001)
     }
 
-    func testVolumeWheelStepMatchesSystemVolumeKeyIncrement() throws {
-        // A physical mouse-wheel notch (non-precise, one line) should move the
-        // same 1/16 step as the system volume keys instead of the old 2%.
-        XCTAssertEqual(PopupVolumeScrollAdjustment.volumeWheelStep, 1.0 / 16.0, accuracy: 0.000_001)
-
-        let increase = try XCTUnwrap(
-            adjustment.volumeDelta(
-                deltaY: 1,
-                isPrecise: false,
-                isDirectionInverted: false,
-                usesNaturalScrolling: false,
-                wheelStep: PopupVolumeScrollAdjustment.volumeWheelStep
-            )
-        )
-        XCTAssertEqual(increase, 1.0 / 16.0, accuracy: 0.000_001)
-
-        let decrease = try XCTUnwrap(
-            adjustment.volumeDelta(
-                deltaY: -1,
-                isPrecise: false,
-                isDirectionInverted: false,
-                usesNaturalScrolling: false,
-                wheelStep: PopupVolumeScrollAdjustment.volumeWheelStep
-            )
-        )
-        XCTAssertEqual(decrease, -1.0 / 16.0, accuracy: 0.000_001)
-    }
-
-    func testVolumeWheelStepLeavesTrackpadPreciseMappingUnchanged() throws {
-        let delta = try XCTUnwrap(
-            adjustment.volumeDelta(
-                deltaY: 4,
-                isPrecise: true,
-                isDirectionInverted: false,
-                usesNaturalScrolling: false,
-                wheelStep: PopupVolumeScrollAdjustment.volumeWheelStep
-            )
-        )
+    func testPreciseScrollIgnoresConfiguredWheelStep() throws {
+        let delta = try XCTUnwrap(adjustment.volumeDelta(
+            deltaY: 4, isPrecise: true, isDirectionInverted: false,
+            usesNaturalScrolling: false, wheelStep: 0.2
+        ))
         XCTAssertEqual(delta, 0.008, accuracy: 0.000_001)
+    }
+
+    func testFractionalWheelPacketsAccumulateAndReverseWithoutOldRemainder() throws {
+        XCTAssertNil(wheel(0.25))
+        XCTAssertNil(wheel(0.25))
+        XCTAssertNil(wheel(0.25))
+        XCTAssertEqual(try XCTUnwrap(wheel(0.25)), 0.05, accuracy: 0.000_001)
+        XCTAssertNil(wheel(0.5))
+        XCTAssertNil(wheel(-0.5))
+        XCTAssertEqual(try XCTUnwrap(wheel(-0.5)), -0.05, accuracy: 0.000_001)
+    }
+
+    func testFractionalRemainderResetsAcrossTargetsTimeoutAndPreciseScroll() throws {
+        XCTAssertNil(wheel(0.5, context: "volume"))
+        XCTAssertNil(wheel(0.5, context: "audioInput"))
+        XCTAssertNil(wheel(0.5, context: "brightness.1"))
+        XCTAssertNil(wheel(0.5, timestamp: 1, context: "brightness.1"))
+        _ = adjustment.volumeDelta(deltaY: 1, isPrecise: true,
+            isDirectionInverted: false, usesNaturalScrolling: false)
+        XCTAssertNil(wheel(0.5, timestamp: 1, context: "brightness.1"))
+        XCTAssertEqual(try XCTUnwrap(wheel(0.5, timestamp: 1, context: "brightness.1")), 0.05, accuracy: 0.000_001)
+    }
+
+    func testNaturalWheelDirectionAndNewStepDiscardOldFraction() throws {
+        XCTAssertNil(wheel(0.5))
+        XCTAssertNil(wheel(0.5, step: 0.025))
+        XCTAssertEqual(try XCTUnwrap(wheel(0.5, step: 0.025)), 0.025, accuracy: 0.000_001)
+        let delta = try XCTUnwrap(adjustment.volumeDelta(deltaY: -3, isPrecise: false,
+            isDirectionInverted: true, usesNaturalScrolling: true, wheelStep: 0.1))
+        XCTAssertEqual(delta, 0.1, accuracy: 0.000_001)
+    }
+
+    private func wheel(_ lines: Double, timestamp: TimeInterval = 0,
+                       context: String = "volume", step: Double = 0.05) -> Double? {
+        adjustment.volumeDelta(deltaY: lines, isPrecise: false,
+            isDirectionInverted: false, usesNaturalScrolling: false,
+            wheelStep: step, timestamp: timestamp, context: context)
     }
 
     func testInvalidAndZeroDeltasAreIgnored() {

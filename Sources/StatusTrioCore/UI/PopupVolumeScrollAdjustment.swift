@@ -2,31 +2,74 @@ import Foundation
 
 struct PopupVolumeScrollAdjustment {
     private static let preciseVolumePerPoint = 0.002
-    static let discreteVolumePerLine = 0.02
+    static let defaultWheelStep = 0.05
+    private var pendingLines = 0.0
+    private var lastTimestamp: TimeInterval?
+    private var lastContext: String?
+    private var lastWheelStep: Double?
 
-    /// Volume step for one mouse-wheel notch. A physical wheel loses the
-    /// trackpad's continuous feel and only fires discrete lines, so the
-    /// per-point trackpad constant leaves it moving ~2% a notch — many turns
-    /// to cross the slider. Matching the system volume keys' 1/16 increment
-    /// (~6%) keeps the wheel snappy without changing the smooth trackpad mapping.
-    static let volumeWheelStep = 1.0 / 16.0
+    /// Shared entry for all three panel sliders; keeps their preferences and
+    /// partial wheel packets on the same path without requiring a live NSEvent.
+    @MainActor
+    mutating func levelDelta(
+        deltaY: Double,
+        isPrecise: Bool,
+        isDirectionInverted: Bool,
+        timestamp: TimeInterval,
+        target: PanelLevelScrollTarget,
+        settings: SettingsStore
+    ) -> Double? {
+        let context: String
+        switch target {
+        case .volume: context = "volume"
+        case .audioInput: context = "audioInput"
+        case .brightness(let displayID): context = "brightness.\(displayID)"
+        }
+        return volumeDelta(
+            deltaY: deltaY, isPrecise: isPrecise,
+            isDirectionInverted: isDirectionInverted,
+            usesNaturalScrolling: settings.popupVolumeNaturalScrolling,
+            wheelStep: settings.popupScrollWheelStepPercent / 100,
+            timestamp: timestamp, context: context
+        )
+    }
 
-    func volumeDelta(
+    mutating func volumeDelta(
         deltaY: Double,
         isPrecise: Bool,
         isDirectionInverted: Bool,
         usesNaturalScrolling: Bool,
-        wheelStep: Double = PopupVolumeScrollAdjustment.discreteVolumePerLine
+        wheelStep: Double = PopupVolumeScrollAdjustment.defaultWheelStep,
+        timestamp: TimeInterval = 0,
+        context: String = "volume"
     ) -> Double? {
         guard deltaY.isFinite, deltaY != 0 else { return nil }
-
-        let volumePerUnit = isPrecise
-            ? Self.preciseVolumePerPoint
-            : wheelStep
         let scrollUpDelta = usesNaturalScrolling
             ? (isDirectionInverted ? -deltaY : deltaY)
             : deltaY
-        return scrollUpDelta * volumePerUnit
+        if isPrecise {
+            pendingLines = 0
+            lastTimestamp = nil
+            return scrollUpDelta * Self.preciseVolumePerPoint
+        }
+        guard wheelStep.isFinite, wheelStep > 0 else { return nil }
+        if lastContext != context || lastWheelStep != wheelStep
+            || lastTimestamp.map({ timestamp < $0 || timestamp - $0 > PopupVolumeScrollSession.timeout }) == true
+            || pendingLines * scrollUpDelta < 0 {
+            pendingLines = 0
+        }
+        lastContext = context
+        lastWheelStep = wheelStep
+        lastTimestamp = timestamp
+        // AppKit reports lines, not physical notches (commonly 1 or 3 per
+        // event). Normalize a full packet to one step; retain sub-line packets
+        // until they form a step. Coalesced hardware notches are not exposed.
+        pendingLines += min(abs(scrollUpDelta), 1) * (scrollUpDelta > 0 ? 1 : -1)
+        guard abs(pendingLines) >= 1 - 1e-9 else { return nil }
+        let direction = pendingLines > 0 ? 1.0 : -1.0
+        pendingLines -= direction
+        if abs(pendingLines) < 1e-9 { pendingLines = 0 }
+        return direction * wheelStep
     }
 }
 

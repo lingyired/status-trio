@@ -909,3 +909,6 @@
 "settings.transfer.error.fileAccess" = "Не удалось прочитать или сохранить файл. Проверьте его расположение и права доступа.";
 "settings.transfer.done" = "Готово";
 "settings.transfer.warningCount" = "Всего предупреждений: %d (показано не более 50).";
+
+"settings.popup.scrollWheelStep" = "Шаг колеса прокрутки";
+"settings.popup.scrollWheelStep.description" = "Изменение громкости, яркости и микрофона за щелчок. Трекпад сохраняет плавную регулировку.";
