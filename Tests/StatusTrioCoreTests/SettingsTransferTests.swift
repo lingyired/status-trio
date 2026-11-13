@@ -155,7 +155,7 @@ struct SettingsTransferSessionTests {
         #expect(store.popupScrollWheelStepPercent == 2.5)
         _ = try session.stageImport(SettingsTransferDocument(appVersion: "bad", preferences: ["popupScrollWheelStepPercent": .number(30)]).encoded())
         _ = try session.applyImport()
-        #expect(store.popupScrollWheelStepPercent == 5)
+        #expect(store.popupScrollWheelStepPercent == 10)
     }
 
     @Test func backupCanBeImportedByANewSession() throws {

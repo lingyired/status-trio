@@ -66,19 +66,19 @@ final class SettingsPreferenceCatalogTests: XCTestCase {
 
     func testWheelStepValidatesRangeAndPersistsDefaultAndCustomValues() {
         withStore { store, defaults in
-            XCTAssertEqual(store.popupScrollWheelStepPercent, 5)
+            XCTAssertEqual(store.popupScrollWheelStepPercent, 10)
             for value in [1.0, 2.5, 5, 20] {
                 store.popupScrollWheelStepPercent = value
                 XCTAssertEqual(SettingsStore(defaults: defaults).popupScrollWheelStepPercent, value)
             }
             for value in [0.0, 21, 2.7, .infinity, .nan] {
                 store.popupScrollWheelStepPercent = value
-                XCTAssertEqual(store.popupScrollWheelStepPercent, 5)
-                XCTAssertEqual(defaults.double(forKey: "popupScrollWheelStepPercent"), 5)
+                XCTAssertEqual(store.popupScrollWheelStepPercent, 10)
+                XCTAssertEqual(defaults.double(forKey: "popupScrollWheelStepPercent"), 10)
             }
             for value in [-1.0, 21, 2.7] {
                 let prepared = SettingsPreferenceCatalog.prepare(["popupScrollWheelStepPercent": .number(value)])
-                XCTAssertEqual(prepared.values["popupScrollWheelStepPercent"], .number(5))
+                XCTAssertEqual(prepared.values["popupScrollWheelStepPercent"], .number(10))
                 XCTAssertFalse(prepared.warnings.isEmpty)
             }
         }

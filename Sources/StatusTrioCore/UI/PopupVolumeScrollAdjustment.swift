@@ -2,7 +2,7 @@ import Foundation
 
 struct PopupVolumeScrollAdjustment {
     private static let preciseVolumePerPoint = 0.002
-    static let defaultWheelStep = 0.05
+    static let defaultWheelStep = 0.10
     private var pendingLines = 0.0
     private var lastTimestamp: TimeInterval?
     private var lastContext: String?

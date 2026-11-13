@@ -33,8 +33,13 @@ struct PopoverSectionView: View {
                 subtitle: localization.string(.settingsPopupScrollWheelStepDescription)
             ) {
                 HStack(spacing: 8) {
-                    Slider(value: $store.popupScrollWheelStepPercent,
-                           in: SettingsStore.popupScrollWheelStepPercentRange, step: 0.5)
+                    Slider(
+                        value: Binding(
+                            get: { store.popupScrollWheelStepPercent },
+                            set: { store.popupScrollWheelStepPercent = ($0 * 2).rounded() / 2 }
+                        ),
+                        in: SettingsStore.popupScrollWheelStepPercentRange
+                    )
                         .frame(width: 130)
                         .controlSize(.small)
                         .accessibilityLabel(localization.string(.settingsPopupScrollWheelStep))

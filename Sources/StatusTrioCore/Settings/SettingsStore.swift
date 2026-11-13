@@ -212,7 +212,7 @@ final class SettingsStore: ObservableObject {
     static let popupVolumeNaturalScrollingDefaultsKey = "popupVolumeNaturalScrolling"
     static let defaultPopupVolumeNaturalScrolling = false
     static let popupScrollWheelStepPercentDefaultsKey = "popupScrollWheelStepPercent"
-    static let defaultPopupScrollWheelStepPercent = 5.0
+    static let defaultPopupScrollWheelStepPercent = 10.0
     static let popupScrollWheelStepPercentRange = 1.0...20.0
 
     static func validatedPopupScrollWheelStepPercent(_ value: Double) -> Double {

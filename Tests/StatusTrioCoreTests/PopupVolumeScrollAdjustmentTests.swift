@@ -106,11 +106,11 @@ final class PopupVolumeScrollAdjustmentTests: XCTestCase {
         XCTAssertEqual(first + second, 0.02, accuracy: 0.000_001)
     }
 
-    func testDefaultWheelStepIsFivePercent() throws {
+    func testDefaultWheelStepIsTenPercent() throws {
         let delta = try XCTUnwrap(adjustment.volumeDelta(
             deltaY: 3, isPrecise: false, isDirectionInverted: false, usesNaturalScrolling: false
         ))
-        XCTAssertEqual(delta, 0.05, accuracy: 0.000_001)
+        XCTAssertEqual(delta, 0.10, accuracy: 0.000_001)
     }
 
     func testPreciseScrollIgnoresConfiguredWheelStep() throws {
