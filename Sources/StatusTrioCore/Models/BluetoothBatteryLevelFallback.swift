@@ -337,8 +337,7 @@ enum BluetoothBatteryLevelFallback {
     /// twelve hex digits after normalization is rejected outright, so a malformed
     /// address can never accidentally match another malformed one.
     private static func normalizedAddressBytes(_ address: String) -> [UInt8]? {
-        let hex = BluetoothBatteryReader.normalizedAddress(address)
-        guard hex.count == 12 else { return nil }
+        guard let hex = BluetoothDeviceIdentity.normalizedAddress(from: address) else { return nil }
         var bytes: [UInt8] = []
         var index = hex.startIndex
         while index < hex.endIndex {

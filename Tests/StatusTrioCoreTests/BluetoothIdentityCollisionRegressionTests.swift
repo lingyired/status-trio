@@ -48,6 +48,12 @@ struct BluetoothIdentityCollisionRegressionTests {
         #expect(forward.map(\.sourceIDs) == reverse.map(\.sourceIDs))
     }
 
+    @Test func nonAddressTextCannotBecomeAnAddressByDroppingCharacters() {
+        let address = mouse("02:00:00:00:00:01")
+        let invalid = mouse("xyz02:00:00:00:00:01")
+        #expect(BluetoothDeviceListPresentation.sharedDisplayRows([address, invalid]).count == 2)
+    }
+
     @Test func sameMACFormattingProducesOneDisplayIdentity() {
         let rows = BluetoothDeviceListPresentation.sharedDisplayRows([
             mouse("02:00:00:00:00:01"), mouse("02-00-00-00-00-01")])

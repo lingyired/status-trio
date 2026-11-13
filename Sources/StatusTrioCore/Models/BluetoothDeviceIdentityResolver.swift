@@ -36,8 +36,8 @@ enum BluetoothDeviceIdentityResolver {
         if let uuid = BluetoothDeviceIdentity.bleUUID(from: device.id) {
             return .bluetoothUUID(uuid.uuidString.lowercased())
         }
-        let normalized = BluetoothBatteryReader.normalizedAddress(device.id)
-        if normalized.count == 12 {
+        let normalized = BluetoothDeviceIdentity.normalizedAddress(from: device.id)
+        if let normalized {
             return .systemAddress(normalized)
         }
         if device.id.hasPrefix("mobile-") || device.id.hasPrefix("trusted") {
