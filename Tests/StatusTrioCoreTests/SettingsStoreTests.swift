@@ -2194,12 +2194,25 @@ final class SettingsStoreTests: XCTestCase {
         )
 
         store.setBatterySymbolScaleFromSlider(1.05)
-        try await Task.sleep(for: .milliseconds(120))
 
-        XCTAssertEqual(
-            (suite.defaults.object(forKey: SettingsStore.batterySymbolScaleDefaultsKey) as? NSNumber)?.doubleValue,
-            1.05
+        // The write is coalesced, so it must not be in the defaults synchronously.
+        XCTAssertNil(
+            suite.defaults.object(forKey: SettingsStore.batterySymbolScaleDefaultsKey),
+            "a coalesced write must not land before the interval"
         )
+
+        // Wait for the timer to drain instead of assuming a fixed wall-clock
+        // delay; a loaded CI runner can schedule the coalescing task later than
+        // the interval without the store misbehaving.
+        let deadline = ContinuousClock.now + .seconds(2)
+        var persisted: Double?
+        while ContinuousClock.now < deadline {
+            persisted = (suite.defaults.object(forKey: SettingsStore.batterySymbolScaleDefaultsKey) as? NSNumber)?.doubleValue
+            if persisted != nil { break }
+            try await Task.sleep(for: .milliseconds(20))
+        }
+
+        XCTAssertEqual(persisted, 1.05)
     }
 
     private func makeSuite() -> (defaults: UserDefaults, name: String) {
