@@ -80,6 +80,20 @@ final class PresentationTextMapperTests: XCTestCase {
         )
     }
 
+    func testUnpluggedBatteryDoesNotShowChargeToFullPlaceholder() {
+        let localization = makeLocalization(.simplifiedChinese)
+        for action: ChargeToFullNowPresentation in [.applying, .chargingToFull, .cancelling] {
+            XCTAssertEqual(
+                PanelPresentationMapper.batterySubtitle(
+                    makeBattery(isConnectedToPower: false),
+                    localization: localization,
+                    chargeToFullNow: action
+                ),
+                "电池供电"
+            )
+        }
+    }
+
     func testBatteryRuntimeFormattingAndUnknownFallback() {
         let localization = makeLocalization(.simplifiedChinese)
         let cases: [(Int?, String)] = [
@@ -124,13 +138,15 @@ final class PresentationTextMapperTests: XCTestCase {
                 expected
             )
         }
+        // `.applying` on battery (no adapter) must not masquerade as charging;
+        // the real runtime text wins instead.
         XCTAssertEqual(
             PanelPresentationMapper.batterySubtitle(
                 makeBattery(timeToEmptyMinutes: 85),
                 localization: localization,
                 chargeToFullNow: .applying
             ),
-            "正在计算充满时间"
+            "约 1小时25分钟可用"
         )
     }
 

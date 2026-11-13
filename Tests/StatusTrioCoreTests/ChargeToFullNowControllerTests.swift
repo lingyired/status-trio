@@ -1073,11 +1073,13 @@ final class ChargeToFullNowControllerTests: XCTestCase {
         XCTAssertNil(store.load())
     }
 
-    func testCancelRemainsAvailableWhenFullOrUnplugged() async {
+    func testUnpluggedFullBatteryHidesChargingRow() async {
         let backend = StubBatteryChargeController(deviceState: .activeLimit)
         let controller = ChargeToFullNowController(backend: backend)
         controller.update(demand())
         await beginCharge(controller, backend)
+        // PowerUI can keep reporting the temporary override after the machine is
+        // unplugged; the panel must still stop showing a charging row.
         backend.deviceState = .temporaryOverride
 
         controller.clearDemand()
@@ -1089,8 +1091,7 @@ final class ChargeToFullNowControllerTests: XCTestCase {
             )
         )
 
-        XCTAssertEqual(controller.presentation, .chargingToFull)
-        XCTAssertTrue(controller.presentation.showsButton)
+        XCTAssertEqual(controller.presentation, .hidden)
     }
 
     func testDuplicateCancelClicksProduceOneRestoreRequest() async {
@@ -1167,6 +1168,39 @@ final class ChargeToFullNowControllerTests: XCTestCase {
     }
 
     // MARK: - Stale charge-to-full session cleanup
+
+    func testWriteFinishingAfterUnplugDoesNotResurrectChargingRow() async {
+        let backend = StubBatteryChargeController(deviceState: .activeLimit)
+        let controller = ChargeToFullNowController(backend: backend)
+        controller.update(demand())
+        controller.requestChargeToFullNow()
+        await backend.waitUntilWriteStarts()
+        controller.update(demand(connectedToPower: false))
+        backend.finishWrite(.success)
+        await waitUntil { controller.presentation != .applying }
+        XCTAssertEqual(controller.presentation, .hidden)
+    }
+
+    func testUnpluggingHidesChargingRowWithoutDiscardingOverrideSession() {
+        let store = VolatileChargeToFullNowSessionStore(
+            session: ChargeToFullNowSession(originalLimit: 80, acceptedAt: Date())
+        )
+        let backend = StubBatteryChargeController(deviceState: ChargeToFullNowDeviceState(
+            mclEnabledRawValue: 3, mclLimit: 80, chargingOverrideAllowed: false
+        ))
+        let controller = ChargeToFullNowController(backend: backend, sessionStore: store)
+        controller.update(demand(percentage: 96, isCharging: true))
+        XCTAssertEqual(controller.presentation, .chargingToFull)
+
+        for percentage in [96, 100] {
+            controller.update(demand(connectedToPower: false, percentage: percentage))
+            XCTAssertEqual(controller.presentation, .hidden)
+            XCTAssertNotNil(store.load())
+        }
+
+        controller.update(demand(percentage: 96, isCharging: true))
+        XCTAssertEqual(controller.presentation, .chargingToFull)
+    }
 
     func testStaleSessionClearsWhenOverrideGoneAndNotCharging() {
         let now = Date(timeIntervalSince1970: 1_000_000)

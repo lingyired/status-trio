@@ -138,6 +138,13 @@ final class ChargeToFullNowController: ObservableObject {
             publish(.unavailable)
             return
         }
+        // On battery there is no charging to report. The user may unplug in the
+        // middle of a charge-to-full session; keep the stored session so the row
+        // can come back when power returns, but hide every charging state now.
+        guard demand.battery.isConnectedToPower else {
+            publish(.hidden)
+            return
+        }
 
         let state = backend.readState()
         if let startedAt = optimizedChargingStartedAt {
@@ -641,6 +648,10 @@ final class ChargeToFullNowController: ObservableObject {
     }
 
     private func publish(_ next: ChargeToFullNowPresentation) {
+        // A write can finish after an unplug tick updated the demand. Its
+        // completion must not resurrect a charging label on battery power.
+        let next = next == .chargingToFull
+            && currentDemand?.battery.isConnectedToPower == false ? .hidden : next
         guard presentation != next else { return }
         presentation = next
     }
