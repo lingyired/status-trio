@@ -60,3 +60,9 @@
 - 历史身份清理依赖一次完整无失败的发现周期；若某条发现路由长期失败，过期历史行会继续保留（这是避免误删在线设备的保守取舍）。
 - 没有新增跨会话 S2 映射；BLE UUID 与系统 MAC 之间仍不做不可验证的永久关联。
 - 真实 AirPods 多 part 的 identifier 语义仍按既有保守策略，未改变左右耳/盒分组。
+
+## 9. 验证记录
+
+- final code SHA `818a5b91`：`bash scripts/verify-local.sh full` → PASS；全量 Swift 3119 tests、99 skipped、0 failures；Release 构建、非 Universal 本地 app bundle、platform/SDK、Helper、mobile battery、依赖与离线发布脚本通过。
+- docs-only 提交 `1d2146fc`：`bash scripts/verify-local.sh docs` → PASS。
+- NOT RUN：签名、公证、DMG、正式 release CI、Universal 打包、macOS 13/26+ 真机运行验收。
