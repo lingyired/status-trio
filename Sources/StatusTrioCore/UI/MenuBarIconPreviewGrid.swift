@@ -149,7 +149,7 @@ private struct BottomLabel: View {
                 .font(.system(size: proxy.size.width * 0.14, weight: .medium))
                 .foregroundStyle(.secondary)
                 .frame(width: proxy.size.width, height: proxy.size.height, alignment: .bottom)
-                .padding(.bottom, proxy.size.height * 0.10)
+                .padding(.bottom, proxy.size.height * 0.14)
         }
         .allowsHitTesting(false)
         .accessibilityHidden(true)

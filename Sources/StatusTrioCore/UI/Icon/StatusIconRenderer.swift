@@ -1439,6 +1439,7 @@ extension StatusIconRenderer {
                         x: centerTextInkCenter.x,
                         y: centerTextInkCenter.y + numberBounds.midY
                     ),
+                    degreeLift: fontSize * 0.35,
                     in: context
                 )
                 return
@@ -1681,6 +1682,7 @@ extension StatusIconRenderer {
         color: CGColor,
         fontSize: CGFloat,
         baseline: CGPoint,
+        degreeLift: CGFloat = 0,
         in context: CGContext
     ) {
         guard text.count > 1, text.hasSuffix("°") else {
@@ -1701,7 +1703,7 @@ extension StatusIconRenderer {
         let degreeInk = CTLineGetBoundsWithOptions(degreeLine, [.useGlyphPathBounds])
         let gap = fontSize * 0.06
         let degreeX = numberX + numberInk.maxX + gap - degreeInk.minX
-        context.textPosition = CGPoint(x: degreeX, y: baseline.y)
+        context.textPosition = CGPoint(x: degreeX, y: baseline.y + degreeLift)
         CTLineDraw(degreeLine, context)
     }
 
