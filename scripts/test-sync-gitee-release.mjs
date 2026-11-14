@@ -7,7 +7,8 @@ const bytes = Buffer.from('original signed dmg');
 
 async function mockMirror(run) {
   const m = manifest();
-  const source = '<rss xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle"><channel><item><sparkle:version>42</sparkle:version><enclosure url="' + m.sparkle.download_url + '" length="' + bytes.length + '" sparkle:edSignature="signature"/></item></channel></rss>';
+  const downloadUrl = 'https://github.com/lingyired/status-trio/releases/download/' + m.tag + '/' + m.dmg.filename;
+  const source = '<rss xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle"><channel><item><sparkle:version>42</sparkle:version><enclosure url="' + downloadUrl + '" length="' + bytes.length + '" sparkle:edSignature="signature"/></item></channel></rss>';
   const state = {release:null, files:new Map(),feed:Buffer.from(source),feedSHA:'initial',writes:[],failure:null};
   const contents = new Map([[m.dmg.filename,bytes],[m.dmg.filename+'.sha256',Buffer.from(sha+'  '+m.dmg.filename+'\n')],['release-manifest.json',Buffer.from(JSON.stringify(m))]]);
   const server = createServer(async (req,res) => {
@@ -90,10 +91,10 @@ test('same tag with different bytes fails without replacing attachment',async()=
 }));
 
 const sha = createHash('sha256').update(bytes).digest('hex');
-const manifest = () => ({schema_version:1, version:'1.2.3',build:'42',tag:'v1.2.3',source_sha:'a'.repeat(40),minimum_system_version:'13.0',signing:{kind:'developer-id',notarization_status:'accepted'},dmg:{filename:'StatusTrio-1.2.3.dmg',length:bytes.length,sha256:sha},sparkle:{signature:'signature',download_url:'https://github.com/lingyired/status-trio/releases/download/v1.2.3/StatusTrio-1.2.3.dmg'}});
+const manifest = () => ({schema_version:1, version:'1.2.3',build:'42',tag:'v1.2.3',source_sha:'a'.repeat(40),minimum_system_version:'13.0',signing:{kind:'developer_id'},notarization:{status:'accepted_and_stapled'},dmg:{filename:'StatusTrio-1.2.3.dmg',length:String(bytes.length),sha256:sha,ed_signature:'signature'},release:{repo:'lingyired/status-trio'}});
 test('manifest identity and signed public package required', () => {
   assert.doesNotThrow(() => validateManifest(manifest(), 'v1.2.3', 'lingyired/status-trio', 'a'.repeat(40)));
-  for (const mutate of [m => m.source_sha='b'.repeat(40), m => m.signing.notarization_status='skipped',m => m.tag='v1.0',m => m.dmg.filename='../diagnostic.dmg',m => m.sparkle.download_url='https://evil.test/a.dmg']) {
+  for (const mutate of [m => m.source_sha='b'.repeat(40), m => m.notarization.status='skipped',m => m.tag='v1.0',m => m.dmg.filename='../diagnostic.dmg',m => m.dmg.ed_signature='',m => m.release.repo='evil/repo']) {
     const m = manifest(); mutate(m); assert.throws(() => validateManifest(m,'v1.2.3','lingyired/status-trio','a'.repeat(40)));
   }
 });

@@ -12,15 +12,16 @@ const hash = bytes => createHash('sha256').update(bytes).digest('hex');
 export function validateManifest(m, tag, repo, sha) {
   if (m?.schema_version !== 1 || m.tag !== tag || m.source_sha !== sha || !/^[a-f0-9]{40}$/.test(sha) ||
       !/^[0-9]+(?:[.][0-9]+)*$/.test(m.version) || !/^[0-9]+$/.test(String(m.build)) ||
-      m.minimum_system_version !== '13.0' || m.signing?.kind !== 'developer-id' || m.signing?.notarization_status !== 'accepted' ||
+      m.minimum_system_version !== '13.0' || m.signing?.kind !== 'developer_id' ||
+      m.notarization?.status !== 'accepted_and_stapled' ||
       !/^StatusTrio-[A-Za-z0-9._-]+[.]dmg$/.test(m.dmg?.filename) || !/^[a-f0-9]{64}$/.test(m.dmg?.sha256) ||
-      !Number.isSafeInteger(m.dmg?.length) || m.dmg.length <= 0 || !m.sparkle?.signature ||
-      m.sparkle.download_url !== 'https://github.com/' + repo + '/releases/download/' + tag + '/' + m.dmg.filename) {
+      !/^[1-9][0-9]*$/.test(String(m.dmg?.length)) || !m.dmg?.ed_signature ||
+      m.release?.repo !== repo) {
     fail('Release manifest identity / notarized package contract mismatch');
   }
 }
 export function verifyBytes(bytes, dmg) {
-  if (bytes.length !== dmg.length || hash(bytes) !== dmg.sha256) fail('Public attachment length / SHA-256 conflict; refusing overwrite');
+  if (bytes.length !== Number(dmg.length) || hash(bytes) !== dmg.sha256) fail('Public attachment length / SHA-256 conflict; refusing overwrite');
 }
 export async function request(url, options = {}) {
   const { token, fetch: fetcher = fetch, method = 'GET', body, headers = {}, missing = false } = options;
@@ -68,7 +69,7 @@ export async function synchronize(config) {
   const manifest = JSON.parse(manifestBytes);
   validateManifest(manifest, tag, github, commit.sha);
   const dmgAsset = asset(manifest.dmg.filename);
-  if (dmgAsset.size !== manifest.dmg.length) fail('GitHub asset metadata length mismatch');
+  if (dmgAsset.size !== Number(manifest.dmg.length)) fail('GitHub asset metadata length mismatch');
   const checksum = await bytes(asset(manifest.dmg.filename + '.sha256').browser_download_url);
   if (checksum.toString().trim() !== manifest.dmg.sha256 + '  ' + manifest.dmg.filename) fail('Checksum sidecar identity mismatch');
   const dmg = await bytes(dmgAsset.browser_download_url);
@@ -95,12 +96,13 @@ export async function synchronize(config) {
   let mirror = releases.find(r => r.tag_name === tag);
   if (releases.filter(r => r.tag_name === tag).length > 1) fail('Ambiguous Gitee tag');
   const marker = 'Status Trio mirror SHA-256: ' + manifest.dmg.sha256;
-  if (mirror && (!mirror.body?.includes(marker) || mirror.prerelease || mirror.target_commitish !== manifest.source_sha)) fail('Existing Gitee release identity conflict; refusing overwrite');
+  const sourceMarker = 'Source commit: ' + manifest.source_sha;
+  if (mirror && (!mirror.body?.includes(marker) || !mirror.body?.includes(sourceMarker) || mirror.prerelease)) fail('Existing Gitee release identity conflict; refusing overwrite');
   if (mode === 'sync' && !token) fail('GITEE_TOKEN required for sync');
   if (!mirror && mode !== 'sync') fail('Mirror release is missing');
   const mutate = async (url, data, method='POST') => json(url, {token, method, body:JSON.stringify(data), headers:{'Content-Type':'application/json'}});
   if (!mirror) {
-    mirror = await mutate(gt + '/releases', {tag_name:tag, name:release.name || tag, target_commitish:manifest.source_sha, body:marker + '\nAuthoritative release: ' + release.html_url, prerelease:false});
+    mirror = await mutate(gt + '/releases', {tag_name:tag, name:release.name || tag, target_commitish:'main', body:marker + '\n' + sourceMarker + '\nAuthoritative release: ' + release.html_url, prerelease:false});
   }
   const files = [[manifest.dmg.filename,dmg],[manifest.dmg.filename + '.sha256',checksum],['release-manifest.json',manifestBytes]];
   let mirrorURL;
@@ -128,7 +130,8 @@ export async function synchronize(config) {
   const directory = await mkdtemp(join(tmpdir(), 'status-trio-gitee-'));
   let derived;
   try {
-    const mappings = {[manifest.sparkle.download_url]:{url:mirrorURL,length:manifest.dmg.length,signature:manifest.sparkle.signature}};
+    const authoritativeDownload = 'https://github.com/' + github + '/releases/download/' + tag + '/' + manifest.dmg.filename;
+    const mappings = {[authoritativeDownload]:{url:mirrorURL,length:Number(manifest.dmg.length),signature:manifest.dmg.ed_signature}};
     await writeFile(join(directory,'source.xml'),source);
     await writeFile(join(directory,'map.json'),JSON.stringify(mappings));
     execFileSync('python3',[join(dirname(fileURLToPath(import.meta.url)),'generate-gitee-appcast.py'),join(directory,'source.xml'),join(directory,'map.json'),join(directory,'output.xml'),gitee],{stdio:['ignore','pipe','pipe']});
@@ -148,7 +151,7 @@ export async function synchronize(config) {
   }
   const publicFeed = await bytes(feed);
   if (!publicFeed.equals(derived)) fail('Public feed not converged; attachment is safe, retry same tag after cache refresh');
-  return {mode,tag,version:manifest.version,build:manifest.build,sha256:manifest.dmg.sha256,github:manifest.sparkle.download_url,gitee:mirrorURL,feed,elapsed_ms:Date.now()-started,result:'verified',retention:'No automatic deletion until Gitee API qualification'};
+  return {mode,tag,version:manifest.version,build:manifest.build,sha256:manifest.dmg.sha256,github:'https://github.com/' + github + '/releases/download/' + tag + '/' + manifest.dmg.filename,gitee:mirrorURL,feed,elapsed_ms:Date.now()-started,result:'verified',retention:'No automatic deletion until Gitee API qualification'};
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
