@@ -72,20 +72,21 @@ struct MenuBarIconPreviewGrid: View {
     }
 
     private func scene(for slot: Slot) -> IconSceneState {
-        let spec: (center: String, progress: Double, color: IconRGBA, topScale: Double, centerScale: Double)
+        let spec: (center: String, progress: Double, color: IconRGBA, topScale: Double, centerScale: Double, dots: Int)
         switch slot {
         case .cpu:
             spec = ("\(temperatureText(.cpuTemperature))", percent(.cpuUsage),
-                    color(.cpuUsage), 1.05, 1.05)
+                    color(.cpuUsage), 1.05, 1.05, temperatureRemainingDots(.cpuTemperature))
         case .gpu:
             spec = ("\(temperatureText(.gpuTemperature))", percent(.gpuUsage),
-                    color(.gpuUsage), 1.05, 1.05)
+                    color(.gpuUsage), 1.05, 1.05, temperatureRemainingDots(.gpuTemperature))
         case .ram:
             spec = (memoryAvailableText, percent(.memoryUsage),
-                    color(.memoryUsage), 0.95, 0.8)
+                    color(.memoryUsage), 0.95, 0.8, remainingDots(1 - percent(.memoryUsage)))
         case .ssd:
             spec = (disk.freeText, disk.usedFraction ?? 0,
-                    IconRGBA(red: 0.55, green: 0.58, blue: 0.66, alpha: 1), 0.95, 0.8)
+                    IconRGBA(red: 0.55, green: 0.58, blue: 0.66, alpha: 1), 0.95, 0.8,
+                    remainingDots(1 - (disk.usedFraction ?? 0)))
         }
         let ring = OuterRingState(
             segments: [RingSegmentState(progress: spec.progress, color: .custom(spec.color))],
@@ -94,9 +95,16 @@ struct MenuBarIconPreviewGrid: View {
             accessory: .text(IconTextState(text: slot.label, color: .primary, scale: spec.topScale)),
             strokeScale: 1.1
         )
+        let footer = FooterState.dots(DotsState(
+            count: 4,
+            activeCount: spec.dots,
+            color: .custom(spec.color),
+            strokeScale: 1.1
+        ))
         return IconSceneState(
             outerRing: ring,
-            center: .text(IconTextState(text: spec.center, color: .primary, scale: spec.centerScale))
+            center: .text(IconTextState(text: spec.center, color: .primary, scale: spec.centerScale)),
+            footer: footer
         )
     }
 
@@ -125,6 +133,18 @@ struct MenuBarIconPreviewGrid: View {
         let total = Double(ProcessInfo.processInfo.physicalMemory)
         let available = max(0, total * (1 - usedPercent / 100))
         return Self.compactBytes(available)
+    }
+
+    private func remainingDots(_ remainingFraction: Double) -> Int {
+        let clamped = min(1, max(0, remainingFraction))
+        return Int((clamped * 4).rounded())
+    }
+
+    /// Cooler = more dots, so the footer reads as headroom rather than load.
+    private func temperatureRemainingDots(_ id: HardwareMetricID) -> Int {
+        guard let sample = sample(id), let value = sample.value, value.isFinite else { return 0 }
+        let remaining = (100 - value) / (100 - 30)
+        return remainingDots(remaining)
     }
 
     private static func compactBytes(_ bytes: Double) -> String {
