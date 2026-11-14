@@ -8,6 +8,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 import { execFileSync } from 'node:child_process';
 
 let stage = 'initializing';
+const nativeFetch = globalThis.fetch;
 const fail = message => { throw new Error(stage + ': ' + message); };
 const hash = bytes => createHash('sha256').update(bytes).digest('hex');
 export function validateManifest(m, tag, repo, sha) {
@@ -36,6 +37,40 @@ export async function request(url, options = {}) {
 }
 const json = async (url, options) => (await request(url, options))?.json();
 const bytes = async url => Buffer.from(await (await request(url)).arrayBuffer());
+async function uploadAttachment(url, name, content, token) {
+  // Node's FormData upload can stall on Gitee for multi-megabyte files; curl
+  // sends a bounded multipart request. Tests replace global fetch, in which
+  // case the in-memory transport is used instead.
+  if (globalThis.fetch !== nativeFetch) {
+    const form = new FormData();
+    form.set('access_token', token);
+    form.set('file', new Blob([content]), name);
+    await request(url, { method: 'POST', token, body: form });
+    return;
+  }
+  const directory = await mkdtemp(join(tmpdir(), 'status-trio-upload-'));
+  const file = join(directory, name);
+  try {
+    await writeFile(file, content);
+    let output;
+    try {
+      output = execFileSync('curl', [
+        '--silent', '--show-error', '--max-time', '900',
+        '--write-out', '\\n%{http_code}',
+        '--form', 'access_token=' + token,
+        '--form', 'file=@' + file,
+        url,
+      ], { encoding: 'utf8', maxBuffer: 1024 * 1024 });
+    } catch {
+      fail('network upload failed');
+    }
+    const code = output.trim().split('\n').pop();
+    if (!/^2[0-9][0-9]$/.test(code ?? '')) fail('HTTP ' + code);
+  } finally {
+    await rm(directory, { recursive: true, force: true });
+  }
+}
+
 const repoPath = value => {
   const repo = value?.replace(/^https:\/\/(github|gitee)[.]com\//, '').replace(/[.]git$/, '');
   if (!/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(repo ?? '')) fail('Repository must be owner/repo');
@@ -127,10 +162,7 @@ export async function synchronize(config) {
     if (!existing) {
       if (mode !== 'sync') fail('Mirror attachment missing: ' + name);
       stage = 'uploading ' + name;
-      const form = new FormData();
-      form.set('access_token', token);
-      form.set('file', new Blob([content]), name);
-      await request(gt + '/releases/' + mirror.id + '/attach_files', {method:'POST',token,body:form});
+      await uploadAttachment(gt + '/releases/' + mirror.id + '/attach_files', name, content, token);
       mirror = await json(gt + '/releases/' + mirror.id);
       existing = attachmentList(mirror).find(a => a.name === name);
       if (!existing) fail('Uploaded attachment not visible; retry same tag');
