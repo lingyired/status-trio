@@ -2,71 +2,43 @@ import AppKit
 import Foundation
 import SwiftUI
 
-/// Design preview: four menu-bar icons, one row, under System Monitoring. Each
-/// icon uses the app's real ring renderer (same scene/renderer as the menu bar)
-/// and a real metric for its arc, so the size and density of a 4-up arrangement
-/// can be judged. Progress changes are interpolated with the app's scene so the
-/// arc animates instead of snapping.
-struct MenuBarIconPreviewGrid: View {
+/// The real four-ring strip (CPU, GPU, RAM, SSD) shared by the menu-bar design
+/// preview and the status panel. It renders the app's actual ring scene and a
+/// real metric per arc, so both surfaces stay pixel-identical.
+struct HardwareRingStrip: View {
     @ObservedObject var hardware: HardwareMonitorObservable
     let colors: [HardwareMonitorMetric: IconRGBA]
 
-    @Environment(\.colorScheme) private var colorScheme
     @State private var disk: DiskCapacitySample = .current()
 
     private var snapshot: HardwareMetricsSnapshot { hardware.snapshot }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack(spacing: 6) {
-                Text("菜单栏图标")
-                    .font(.system(size: 11))
-                    .foregroundStyle(.secondary)
-                Spacer(minLength: 8)
-                Text("实时 · 1 行 4 个")
-                    .font(.system(size: 10))
-                    .foregroundStyle(.tertiary)
+        HStack(alignment: .top, spacing: 10) {
+            ForEach(Slot.allCases) { slot in
+                let spec = spec(for: slot)
+                AnimatedSceneIcon(
+                    label: slot.label,
+                    top: spec.top,
+                    center: spec.center,
+                    centerScale: spec.centerScale,
+                    color: spec.color,
+                    progress: spec.progress
+                )
+                .animation(.easeOut(duration: 0.55), value: spec.progress)
+                .frame(maxWidth: .infinity)
+                .aspectRatio(1, contentMode: .fit)
             }
-
-            HStack(alignment: .top, spacing: 10) {
-                ForEach(Self.items) { item in
-                    let spec = spec(for: item)
-                    AnimatedSceneIcon(
-                        label: item.label,
-                        top: spec.top,
-                        center: spec.center,
-                        centerScale: spec.centerScale,
-                        color: spec.color,
-                        progress: spec.progress
-                    )
-                    .animation(.easeOut(duration: 0.55), value: spec.progress)
-                    .frame(maxWidth: .infinity)
-                    .aspectRatio(1, contentMode: .fit)
-                }
-            }
-
-            Text("图标约 60×60 pt · 标签在底部，数据实时")
-                .font(.system(size: 9))
-                .foregroundStyle(.tertiary)
         }
-        .padding(10)
-        .background(
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .fill(Color.primary.opacity(0.03))
-        )
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel("菜单栏图标预览，一行四个")
     }
 
-    // MARK: - Items
+    // MARK: - Slots
 
     private enum Slot: String, CaseIterable, Identifiable {
         case cpu, gpu, ram, ssd
         var id: String { rawValue }
         var label: String { rawValue.uppercased() }
     }
-
-    private static let items = Slot.allCases
 
     private func spec(for slot: Slot) -> (top: String, center: String, progress: Double, color: IconRGBA, centerScale: Double) {
         switch slot {
@@ -101,8 +73,6 @@ struct MenuBarIconPreviewGrid: View {
         return min(1, max(0, value / 100))
     }
 
-    /// Capacity strings such as "1000G" are wider than the centre slot; shrink
-    /// the font once the text grows past four characters.
     private func fittedCenterScale(_ text: String, base: Double) -> Double {
         let count = text.count
         guard count > 4 else { return base }
@@ -113,7 +83,6 @@ struct MenuBarIconPreviewGrid: View {
         if let id {
             return "\(Int((percent(id) * 100).rounded()))%"
         }
-        // SSD has no hardware sample; use its disk fraction.
         return "\(Int(((disk.usedFraction ?? 0) * 100).rounded()))%"
     }
 
@@ -133,6 +102,40 @@ struct MenuBarIconPreviewGrid: View {
         let gb = bytes / 1_000_000_000
         if gb >= 10 { return "\(Int(gb.rounded()))GB" }
         return String(format: "%.1fGB", gb)
+    }
+}
+
+/// Design preview: the shared four-ring strip under System Monitoring, wrapped
+/// with the explanatory title and footnote.
+struct MenuBarIconPreviewGrid: View {
+    @ObservedObject var hardware: HardwareMonitorObservable
+    let colors: [HardwareMonitorMetric: IconRGBA]
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 6) {
+                Text("菜单栏图标")
+                    .font(.system(size: 11))
+                    .foregroundStyle(.secondary)
+                Spacer(minLength: 8)
+                Text("实时 · 1 行 4 个")
+                    .font(.system(size: 10))
+                    .foregroundStyle(.tertiary)
+            }
+
+            HardwareRingStrip(hardware: hardware, colors: colors)
+
+            Text("图标约 60×60 pt · 标签在底部，数据实时")
+                .font(.system(size: 9))
+                .foregroundStyle(.tertiary)
+        }
+        .padding(10)
+        .background(
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .fill(Color.primary.opacity(0.03))
+        )
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("菜单栏图标预览，一行四个")
     }
 }
 

@@ -897,11 +897,11 @@ final class StatusPanelViewModel: ObservableObject {
             && route == .summary
             && visiblePopupSections.contains(.hardwareMonitor)
         if visible {
-            // The 4-up icon preview also shows GPU temperature, which is not a
-            // selectable card metric; request it while the card is visible.
-            var ids = Set(hardwareMonitorMetrics.map(\.metricID))
-            ids.insert(.gpuTemperature)
-            store.hardwareMetrics.begin(.panel, metrics: ids)
+            // The compact summary is fixed: four rings plus download/upload,
+            // average fan and disk read/write. It no longer follows the card
+            // metric order, so every group has data even when the user's card
+            // selection changed.
+            store.hardwareMetrics.begin(.panel, metrics: HardwareMetricsService.hardwareSummaryMetricIDs)
         } else {
             store.hardwareMetrics.end(.panel)
         }

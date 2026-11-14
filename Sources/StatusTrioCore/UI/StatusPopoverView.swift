@@ -288,16 +288,11 @@ struct StatusPopoverView: View {
                 onOpenKeyboardSettings: openKeyboardSettings
             )
         case .hardwareMonitor:
-            if !panel.hardwareMonitorMetrics.isEmpty {
-                VStack(spacing: 10) {
-                    HardwareMonitorCardView(model: panel.hardwareMonitor,
-                                            metrics: panel.hardwareMonitorMetrics,
-                                            metricColors: panel.hardwareMonitorMetricColors,
-                                            speedCapsMbps: panel.hardwareSpeedCapsMbps)
-                    MenuBarIconPreviewGrid(hardware: panel.hardwareMonitor,
-                                           colors: panel.hardwareMonitorMetricColors)
-                }
-            }
+            // Fixed compact summary: the existing four rings plus one aligned
+            // four-column data row. Card metric order/colour settings still feed
+            // the ring colours; the summary no longer depends on card metrics.
+            HardwareMonitorSummaryView(model: panel.hardwareMonitor,
+                                       metricColors: panel.hardwareMonitorMetricColors)
         }
     }
 

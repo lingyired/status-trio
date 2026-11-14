@@ -60,6 +60,17 @@ final class HardwareMetricsService: ObservableObject {
     static let defaultMetricIDs: Set<HardwareMetricID> = [
         .cpuUsage, .gpuUsage, .memoryUsage, .cpuTemperature, .batteryTemperature, .fanRPM(index: 0)
     ]
+    /// The compact status-panel summary shows the four rings (CPU/GPU/RAM usage
+    /// plus CPU/GPU temperature) and the four data groups (download, upload,
+    /// average fan, disk read/write). These are fixed, so the panel samples the
+    /// same set regardless of the user's card-metric selection.
+    static let hardwareSummaryMetricIDs: Set<HardwareMetricID> = [
+        .cpuUsage, .gpuUsage, .memoryUsage,
+        .cpuTemperature, .gpuTemperature,
+        .fanRPM(index: 0),
+        .networkDownload, .networkUpload,
+        .diskRead, .diskWrite
+    ]
     typealias Reader = @Sendable (Set<HardwareMetricID>, Date) async -> HardwareMetricsSnapshot
 
     let observable = HardwareMonitorObservable()
