@@ -149,10 +149,10 @@ private struct CurvedBottomLabel: View {
             Canvas { context, canvasSize in
                 let characters = Array(text)
                 guard !characters.isEmpty else { return }
-                let fontSize = size * 0.155
+                let fontSize = size * 0.15
                 let radius = size * 0.30
                 let center = CGPoint(x: canvasSize.width / 2, y: canvasSize.height / 2)
-                let spanDegrees = characters.count > 1 ? min(110, Double(characters.count) * 14) : 0
+                let spanDegrees = characters.count > 1 ? min(110, Double(characters.count) * 12) : 0
                 for (index, character) in characters.enumerated() {
                     let t = characters.count == 1 ? 0.5 : Double(index) / Double(characters.count - 1)
                     let angle = 90 + (0.5 - t) * spanDegrees
@@ -162,7 +162,7 @@ private struct CurvedBottomLabel: View {
                         x: center.x + radius * cos(radians),
                         y: center.y + radius * sin(radians)
                     )
-                    glyphContext.rotate(by: .degrees(angle - 90))
+                    glyphContext.rotate(by: .degrees((angle - 90) * 0.55))
                     glyphContext.draw(
                         Text(String(character))
                             .font(.system(size: fontSize, weight: .medium))
