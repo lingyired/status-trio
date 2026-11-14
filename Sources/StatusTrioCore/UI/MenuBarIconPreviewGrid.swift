@@ -136,14 +136,10 @@ struct MenuBarIconPreviewGrid: View {
     }
 }
 
-/// Renders the app's real icon scene for the current (animatable) progress and
-/// overlays the horizontal bottom label. Conforming to `Animatable` lets SwiftUI
-/// interpolate `progress` through the app's own renderer.
-private struct AnimatedSceneIcon: View, Animatable {
-    let label: String
-    let top: String
-    let center: String
-    let centerScale: Double
+/// Renders only the app's real ring (no text) and lets the caller overlay static
+/// text. Conforming to `Animatable` means only the ring's progress interpolates;
+/// numeric/label text changes are siblings and update instantly.
+private struct AnimatedRingLayer: View, Animatable {
     let color: IconRGBA
     var progress: Double
 
@@ -157,12 +153,55 @@ private struct AnimatedSceneIcon: View, Animatable {
     var body: some View {
         GeometryReader { proxy in
             let side = min(proxy.size.width, proxy.size.height)
+            if let image {
+                Image(nsImage: image)
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: side, height: side)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            }
+        }
+    }
+
+    private var image: NSImage? {
+        let ring = OuterRingState(
+            segments: [RingSegmentState(progress: progress, color: .custom(color))],
+            gap: .value,
+            layout: .standard,
+            accessory: nil,
+            strokeScale: 1.1
+        )
+        return StatusIconPreviewCache.shared.image(
+            scene: IconSceneState(outerRing: ring, center: nil),
+            size: 72,
+            scale: 2,
+            appearance: MenuBarPreviewBackdrop.appearance(isDarkBackground: colorScheme == .dark)
+        )
+    }
+}
+
+/// Static text layer over the animated app ring: top percentage, centre value
+/// and bottom label. These never animate with the ring progress.
+private struct AnimatedSceneIcon: View {
+    let label: String
+    let top: String
+    let center: String
+    let centerScale: Double
+    let color: IconRGBA
+    let progress: Double
+
+    var body: some View {
+        GeometryReader { proxy in
+            let side = min(proxy.size.width, proxy.size.height)
             ZStack {
-                if let image {
-                    Image(nsImage: image)
-                        .resizable()
-                        .scaledToFit()
-                }
+                AnimatedRingLayer(color: color, progress: progress)
+                    .animation(.easeOut(duration: 0.55), value: progress)
+                Text(top)
+                    .font(.system(size: side * 0.166 * 1.1, weight: .semibold))
+                    .monospacedDigit()
+                    .foregroundStyle(.primary)
+                    .offset(y: -side * 0.33)
+                centerValueText(side: side)
                 Text(label)
                     .font(.system(size: side * 0.14, weight: .medium))
                     .foregroundStyle(.secondary)
@@ -173,24 +212,27 @@ private struct AnimatedSceneIcon: View, Animatable {
         }
     }
 
-    private var image: NSImage? {
-        let ring = OuterRingState(
-            segments: [RingSegmentState(progress: progress, color: .custom(color))],
-            gap: .value,
-            layout: .standard,
-            accessory: .text(IconTextState(text: top, color: .primary, scale: 1.1)),
-            strokeScale: 1.1
-        )
-        let scene = IconSceneState(
-            outerRing: ring,
-            center: .text(IconTextState(text: center, color: .primary, scale: centerScale))
-        )
-        return StatusIconPreviewCache.shared.image(
-            scene: scene,
-            size: 72,
-            scale: 2,
-            appearance: MenuBarPreviewBackdrop.appearance(isDarkBackground: colorScheme == .dark)
-        )
+    @ViewBuilder
+    private func centerValueText(side: CGFloat) -> some View {
+        let fontSize = side * 0.285 * centerScale
+        if center.count > 1, center.hasSuffix("°") {
+            let number = String(center.dropLast())
+            Text(number)
+                .font(.system(size: fontSize, weight: .semibold))
+                .monospacedDigit()
+                .foregroundStyle(.primary)
+                .overlay(alignment: .topTrailing) {
+                    Text("°")
+                        .font(.system(size: fontSize * 0.5, weight: .semibold))
+                        .foregroundStyle(.primary)
+                        .offset(x: fontSize * 0.35, y: -fontSize * 0.05)
+                }
+        } else {
+            Text(center)
+                .font(.system(size: fontSize, weight: .semibold))
+                .monospacedDigit()
+                .foregroundStyle(.primary)
+        }
     }
 }
 
