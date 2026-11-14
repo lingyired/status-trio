@@ -37,13 +37,13 @@ struct MenuBarIconPreviewGrid: View {
                             }
                         }
                         .overlay {
-                            CurvedBottomLabel(text: item.label)
+                            BottomLabel(text: item.label)
                         }
                         .frame(maxWidth: .infinity)
                 }
             }
 
-            Text("图标约 60×60 pt · 标签沿底部圆弧，数据实时")
+            Text("图标约 60×60 pt · 标签在底部，数据实时")
                 .font(.system(size: 9))
                 .foregroundStyle(.tertiary)
         }
@@ -138,40 +138,18 @@ struct MenuBarIconPreviewGrid: View {
     }
 }
 
-/// Bottom label bent along the same arc the old dot indicator used, so the
-/// label reads as part of the circle instead of a caption under it.
-private struct CurvedBottomLabel: View {
+/// Bottom label sitting where the old dot/arc indicator was, kept horizontal for
+/// legibility.
+private struct BottomLabel: View {
     let text: String
 
     var body: some View {
         GeometryReader { proxy in
-            let size = min(proxy.size.width, proxy.size.height)
-            Canvas { context, canvasSize in
-                let characters = Array(text)
-                guard !characters.isEmpty else { return }
-                let fontSize = size * 0.15
-                let radius = size * 0.30
-                let center = CGPoint(x: canvasSize.width / 2, y: canvasSize.height / 2)
-                let spanDegrees = characters.count > 1 ? min(110, Double(characters.count) * 12) : 0
-                for (index, character) in characters.enumerated() {
-                    let t = characters.count == 1 ? 0.5 : Double(index) / Double(characters.count - 1)
-                    let angle = 90 + (0.5 - t) * spanDegrees
-                    let radians = angle * .pi / 180
-                    var glyphContext = context
-                    glyphContext.translateBy(
-                        x: center.x + radius * cos(radians),
-                        y: center.y + radius * sin(radians)
-                    )
-                    glyphContext.rotate(by: .degrees((angle - 90) * 0.55))
-                    glyphContext.draw(
-                        Text(String(character))
-                            .font(.system(size: fontSize, weight: .medium))
-                            .foregroundColor(.secondary),
-                        at: .zero,
-                        anchor: .center
-                    )
-                }
-            }
+            Text(text)
+                .font(.system(size: proxy.size.width * 0.16, weight: .medium))
+                .foregroundStyle(.secondary)
+                .frame(width: proxy.size.width, height: proxy.size.height, alignment: .bottom)
+                .padding(.bottom, proxy.size.height * 0.06)
         }
         .allowsHitTesting(false)
         .accessibilityHidden(true)
