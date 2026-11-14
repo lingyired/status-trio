@@ -45,6 +45,9 @@ protocol VPNMonitoring: AnyObject {
 
 @MainActor
 protocol VolumeMonitoring: AnyObject {
+    func setPriorityErrorHandler(_ handler: (@MainActor () -> Void)?)
+    func setPriorityInventoryHandler(_ handler: (@MainActor ([AudioPriorityDevice], UInt32?) -> Void)?)
+    func setPriorityInventoryRequired(_ required: Bool)
     var updates: AsyncStream<VolumeStatus> { get }
     var betterDisplayCatalogUpdates: AsyncStream<BetterDisplayCatalogUpdate> { get }
     func start()
@@ -98,6 +101,9 @@ extension BrightnessMonitoring {
 
 @MainActor
 extension VolumeMonitoring {
+    func setPriorityErrorHandler(_ handler: (@MainActor () -> Void)?) {}
+    func setPriorityInventoryHandler(_ handler: (@MainActor ([AudioPriorityDevice], UInt32?) -> Void)?) {}
+    func setPriorityInventoryRequired(_ required: Bool) {}
     var betterDisplayCatalogUpdates: AsyncStream<BetterDisplayCatalogUpdate> {
         AsyncStream { $0.finish() }
     }

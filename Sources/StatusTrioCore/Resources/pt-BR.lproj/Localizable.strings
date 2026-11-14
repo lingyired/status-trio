@@ -886,6 +886,17 @@
 "settings.audio.conversationAwarenessControlsTitle" = "Mostrar controles de Consciência de Conversa";
 "settings.audio.conversationAwarenessControlsDescription" = "Mostra o interruptor de Consciência de Conversa na linha de saída dos AirPods. Atualmente apenas AirPods.";
 
+// Audio device priority
+"settings.audio.priority.toggle" = "Alternar automaticamente por prioridade";
+"settings.audio.priority.description" = "Os dispositivos no topo têm prioridade. Os ocultos são excluídos. Os desconectados mantêm sua posição.";
+"settings.audio.priority.manual" = "A seleção manual permanece até que conexões ou prioridades mudem, ou a alternância automática seja reativada.";
+"settings.audio.priority.stopped" = "A alternância automática fica pausada enquanto este módulo de áudio está desativado.";
+"settings.audio.priority.disconnected" = "Não conectado";
+"settings.audio.priority.forget" = "Esquecer dispositivo";
+"settings.audio.priority.failed" = "Não foi possível alternar dispositivos. As prioridades serão reaplicadas na próxima mudança de dispositivo ou regra.";
+
+"settings.audio.priority.inputManual" = "A prioridade de entrada corrige mudanças do sistema. Selecione um microfone no Status Trio para substituí-la até que conexões ou prioridades mudem.";
+
 "settings.transfer.title" = "Transferência de ajustes";
 "settings.transfer.description" = "Salve as preferências transferíveis como JSON legível ou visualize um arquivo de ajustes antes de importá-lo.";
 "settings.transfer.exclusions" = "Itens de início de sessão, instalação do Helper, permissões de privacidade, consentimento para análise e atalhos globais nunca são transferidos. Configure-os manualmente após a importação.";

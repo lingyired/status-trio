@@ -140,6 +140,7 @@ final class AppEnvironment {
             helper: PrivilegedHelperManager.shared
         )
         store.bindInputSettings(settings)
+        store.bindAudioPrioritySettings(settings)
         store.bindLocalIPSettings(settings)
         store.bindApplicationEnergySettings(settings)
         store.bindMobileBatterySettings(settings)

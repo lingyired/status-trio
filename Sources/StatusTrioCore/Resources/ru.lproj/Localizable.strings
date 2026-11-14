@@ -886,6 +886,17 @@
 "settings.audio.conversationAwarenessControlsTitle" = "Показывать элементы управления распознаванием речи";
 "settings.audio.conversationAwarenessControlsDescription" = "Показывает переключатель распознавания речи в строке вывода AirPods. Сейчас только AirPods.";
 
+// Audio device priority
+"settings.audio.priority.toggle" = "Переключать автоматически по приоритету";
+"settings.audio.priority.description" = "Устройства выше в списке имеют приоритет. Скрытые устройства исключены. Отключённые сохраняют своё место.";
+"settings.audio.priority.manual" = "Ручной выбор сохраняется до изменения подключений или приоритетов либо повторного включения автопереключения.";
+"settings.audio.priority.stopped" = "Автопереключение приостановлено, пока этот аудиомодуль выключен.";
+"settings.audio.priority.disconnected" = "Не подключено";
+"settings.audio.priority.forget" = "Забыть устройство";
+"settings.audio.priority.failed" = "Не удалось переключить устройство. Приоритеты будут применены при следующем изменении устройств или правил.";
+
+"settings.audio.priority.inputManual" = "Приоритет входа отменяет изменения системы. Выберите микрофон в Status Trio, чтобы сохранить ручной выбор до изменения подключений или правил приоритета.";
+
 "settings.transfer.title" = "Перенос настроек";
 "settings.transfer.description" = "Сохраните переносимые настройки в читаемом формате JSON или просмотрите файл настроек перед импортом.";
 "settings.transfer.exclusions" = "Объекты входа, установка Helper, разрешения конфиденциальности, согласие на аналитику и глобальные сочетания клавиш никогда не переносятся. Настройте их вручную после импорта.";

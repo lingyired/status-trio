@@ -885,6 +885,17 @@
 "settings.audio.conversationAwarenessControlsTitle" = "Show Conversation Awareness controls";
 "settings.audio.conversationAwarenessControlsDescription" = "Shows the Conversation Awareness toggle on the AirPods output row. Currently AirPods only.";
 
+// Audio device priority
+"settings.audio.priority.toggle" = "Switch automatically by priority";
+"settings.audio.priority.description" = "Devices higher in this list have priority. Hidden devices are excluded. Disconnected devices keep their place.";
+"settings.audio.priority.manual" = "Manual selection lasts until connections or priorities change, or automatic switching is enabled again.";
+"settings.audio.priority.stopped" = "Automatic switching is paused while this audio module is turned off.";
+"settings.audio.priority.disconnected" = "Not connected";
+"settings.audio.priority.forget" = "Forget device";
+"settings.audio.priority.failed" = "Could not switch devices. Priorities will be applied again after the next device or rule change.";
+
+"settings.audio.priority.inputManual" = "Input priority overrides system changes. Select a microphone in Status Trio to override it until connections or priority rules change.";
+
 "settings.transfer.title" = "Settings transfer";
 "settings.transfer.description" = "Save portable preferences as readable JSON, or preview a settings file before importing.";
 "settings.transfer.exclusions" = "Login items, Helper installation, privacy consent, analytics consent and global shortcuts are never transferred. Set these up manually after import.";

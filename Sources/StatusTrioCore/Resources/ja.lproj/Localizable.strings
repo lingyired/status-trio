@@ -886,6 +886,17 @@
 "settings.audio.conversationAwarenessControlsTitle" = "会話認識のコントロールを表示";
 "settings.audio.conversationAwarenessControlsDescription" = "AirPods の出力行に会話認識のスイッチを表示します。現在は AirPods のみ対応。";
 
+// Audio device priority
+"settings.audio.priority.toggle" = "優先順位に従って自動切り替え";
+"settings.audio.priority.description" = "上のデバイスほど優先されます。非表示のデバイスは除外され、未接続のデバイスも順序を保持します。";
+"settings.audio.priority.manual" = "手動選択は、接続状態や優先順位が変わるか、自動切り替えを再度有効にするまで保持されます。";
+"settings.audio.priority.stopped" = "このオーディオモジュールがオフの間、自動切り替えは停止します。";
+"settings.audio.priority.disconnected" = "未接続";
+"settings.audio.priority.forget" = "デバイスを削除";
+"settings.audio.priority.failed" = "デバイスを切り替えられませんでした。接続状態やルールが次に変わったときに優先順位を再適用します。";
+
+"settings.audio.priority.inputManual" = "入力の優先順位はシステムによる変更より優先されます。Status Trio でマイクを選択すると、接続状態や優先順位のルールが変わるまで手動選択が保持されます。";
+
 "settings.transfer.title" = "設定の移行";
 "settings.transfer.description" = "移行可能な環境設定を読みやすい JSON として保存するか、読み込む前に設定ファイルをプレビューします。";
 "settings.transfer.exclusions" = "ログイン項目、Helper のインストール、プライバシーに関する同意、解析データ共有への同意、グローバルショートカットは移行されません。読み込み後に手動で設定してください。";

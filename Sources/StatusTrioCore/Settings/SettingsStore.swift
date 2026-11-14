@@ -180,6 +180,10 @@ final class SettingsStore: ObservableObject {
     static let bluetoothNetworkIconSymbolNameDefaultsKey = "bluetoothNetworkIconSymbolName"
     static let bluetoothDeviceLimitRange: ClosedRange<Int> = 1...20
     static let alwaysShowsAllOutputDevicesDefaultsKey = "alwaysShowsAllOutputDevices"
+    static let automaticallySwitchesOutputDefaultsKey = "automaticallySwitchesOutput"
+    static let automaticallySwitchesInputDefaultsKey = "automaticallySwitchesInput"
+    static let rememberedOutputsDefaultsKey = "rememberedAudioOutputs.v1"
+    static let rememberedInputsDefaultsKey = "rememberedAudioInputs.v1"
     static let outputDeviceOrderDefaultsKey = "outputDeviceOrder"
     static let hiddenOutputDeviceUIDsDefaultsKey = "hiddenOutputDeviceUIDs"
     static let inputDeviceOrderDefaultsKey = "inputDeviceOrder"
@@ -1152,6 +1156,19 @@ final class SettingsStore: ObservableObject {
         }
     }
 
+    @Published var automaticallySwitchesOutput: Bool {
+        didSet { defaults.set(automaticallySwitchesOutput, forKey: Self.automaticallySwitchesOutputDefaultsKey) }
+    }
+    @Published var automaticallySwitchesInput: Bool {
+        didSet { defaults.set(automaticallySwitchesInput, forKey: Self.automaticallySwitchesInputDefaultsKey) }
+    }
+    @Published private(set) var rememberedAudioOutputs: [RememberedAudioDevice] {
+        didSet { defaults.set(try? JSONEncoder().encode(rememberedAudioOutputs), forKey: Self.rememberedOutputsDefaultsKey) }
+    }
+    @Published private(set) var rememberedAudioInputs: [RememberedAudioDevice] {
+        didSet { defaults.set(try? JSONEncoder().encode(rememberedAudioInputs), forKey: Self.rememberedInputsDefaultsKey) }
+    }
+
     @Published private(set) var outputDeviceOrder: [String] {
         didSet {
             defaults.set(outputDeviceOrder, forKey: Self.outputDeviceOrderDefaultsKey)
@@ -1509,6 +1526,61 @@ final class SettingsStore: ObservableObject {
         }
         guard updated != hiddenBrightnessDisplayIDs else { return }
         hiddenBrightnessDisplayIDs = updated
+    }
+
+    func rememberAudioDevices(_ devices: [AudioPriorityDevice], currentID: UInt32?, input: Bool) {
+        let existing = input ? rememberedAudioInputs : rememberedAudioOutputs
+        var records = existing
+        for device in devices {
+            guard let uid = device.uid, !uid.isEmpty else { continue }
+            let name = device.name ?? uid
+            if let index = records.firstIndex(where: { $0.uid == uid }) {
+                records[index].name = name
+            } else {
+                records.append(RememberedAudioDevice(uid: uid, name: name))
+            }
+        }
+        if records != existing {
+            if input { rememberedAudioInputs = records } else { rememberedAudioOutputs = records }
+        }
+        var order = input ? inputDeviceOrder : outputDeviceOrder
+        let isInitial = order.isEmpty
+        let known = Set(order)
+        let additions = devices.filter { device in
+            guard let uid = device.uid, !uid.isEmpty else { return false }
+            return !known.contains(uid)
+        }.sorted { lhs, rhs in
+            if isInitial, (lhs.id == currentID) != (rhs.id == currentID) { return lhs.id == currentID }
+            let left = lhs.name ?? lhs.uid ?? ""
+            let right = rhs.name ?? rhs.uid ?? ""
+            return left == right ? (lhs.uid ?? "") < (rhs.uid ?? "") : left < right
+        }
+        for device in additions {
+            if let uid = device.uid, !order.contains(uid) { order.append(uid) }
+        }
+        if input {
+            if order != inputDeviceOrder { inputDeviceOrder = order }
+        } else if order != outputDeviceOrder { outputDeviceOrder = order }
+    }
+
+    func moveRememberedAudioDevices(fromOffsets source: IndexSet, toOffset destination: Int,
+                                    in devices: [RememberedAudioDevice], input: Bool) {
+        guard let reordered = Self.movedDeviceUIDs(devices.map { $0.uid },
+            fromOffsets: source, toOffset: destination) else { return }
+        if input { inputDeviceOrder = Self.mergedDeviceOrder(reordered, previous: inputDeviceOrder) }
+        else { outputDeviceOrder = Self.mergedDeviceOrder(reordered, previous: outputDeviceOrder) }
+    }
+
+    func forgetAudioDevice(_ uid: String, input: Bool) {
+        if input {
+            rememberedAudioInputs.removeAll { $0.uid == uid }
+            inputDeviceOrder.removeAll { $0 == uid }
+            hiddenInputDeviceUIDs.remove(uid)
+        } else {
+            rememberedAudioOutputs.removeAll { $0.uid == uid }
+            outputDeviceOrder.removeAll { $0 == uid }
+            hiddenOutputDeviceUIDs.remove(uid)
+        }
     }
 
     func moveOutputDevices(
@@ -2470,6 +2542,12 @@ final class SettingsStore: ObservableObject {
         self.alwaysShowsAllOutputDevices = defaults.object(
             forKey: Self.alwaysShowsAllOutputDevicesDefaultsKey
         ) as? Bool ?? false
+        self.automaticallySwitchesOutput = defaults.bool(forKey: Self.automaticallySwitchesOutputDefaultsKey)
+        self.automaticallySwitchesInput = defaults.bool(forKey: Self.automaticallySwitchesInputDefaultsKey)
+        self.rememberedAudioOutputs = defaults.data(forKey: Self.rememberedOutputsDefaultsKey)
+            .flatMap { try? JSONDecoder().decode([RememberedAudioDevice].self, from: $0) } ?? []
+        self.rememberedAudioInputs = defaults.data(forKey: Self.rememberedInputsDefaultsKey)
+            .flatMap { try? JSONDecoder().decode([RememberedAudioDevice].self, from: $0) } ?? []
         self.outputDeviceOrder = storedOutputDeviceOrder
         self.hiddenOutputDeviceUIDs = storedHiddenOutputDeviceUIDs
         self.inputDeviceOrder = storedInputDeviceOrder

@@ -6,6 +6,74 @@ import XCTest
 
 @MainActor
 final class SystemStatusStoreTests: XCTestCase {
+    func testInputPriorityRestoresHigherRankAfterSystemTakeoverButRespectsPanelSelection() throws {
+        let suite = makeSuite()
+        defer { suite.defaults.removeTestSuite(named: suite.name) }
+        let settings = SettingsStore(defaults: suite.defaults)
+        let input = FakeAudioInputMonitor()
+        let output = FakeVolumeMonitor()
+        let store = makeStore(battery: FakeBatteryMonitor(), wifi: FakeWiFiMonitor(),
+                              volume: output, inputMonitor: input)
+        defer { store.stop() }
+        let a = AudioPriorityDevice(id: 10, uid: "A", name: "A")
+        let b = AudioPriorityDevice(id: 20, uid: "B", name: "B")
+        settings.rememberAudioDevices([a, b], currentID: 10, input: true)
+        settings.setPopupSection(.audioInput, enabled: true)
+        settings.automaticallySwitchesInput = true
+        store.bindInputSettings(settings)
+        store.bindAudioPrioritySettings(settings)
+        store.start()
+        input.priorityHandler?([a], 10)
+        input.priorityHandler?([a, b], 10)
+        input.priorityHandler?([a, b], 20)
+        XCTAssertEqual(input.automaticDeviceIDs, [10])
+        input.priorityHandler?([a, b], 10)
+        store.selectInputDevice(20)
+        input.priorityHandler?([a, b], 20)
+        XCTAssertEqual(input.automaticDeviceIDs, [10])
+        XCTAssertEqual(input.selectedDeviceIDs, [20])
+        XCTAssertTrue(output.selectedOutputDeviceIDs.isEmpty)
+        XCTAssertFalse(output.priorityRequired)
+    }
+
+    func testAudioPriorityDemandFollowsModuleAndPreservesStoredSwitches() throws {
+        let suite = "AudioPriorityStoreTests.\(UUID().uuidString)"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
+        defer { defaults.removeTestSuite(named: suite) }
+        let settings = SettingsStore(defaults: defaults)
+        let input = FakeAudioInputMonitor()
+        let output = FakeVolumeMonitor()
+        let store = SystemStatusStore(batteryMonitor: FakeBatteryMonitor(), wifiMonitor: FakeWiFiMonitor(),
+                                      volumeMonitor: output, inputMonitor: input, refreshInterval: .seconds(60))
+        defer { store.stop() }
+        store.bindInputSettings(settings)
+        store.bindAudioPrioritySettings(settings)
+        store.start()
+        XCTAssertFalse(input.priorityRequired)
+        XCTAssertFalse(output.priorityRequired)
+        settings.automaticallySwitchesInput = true
+        XCTAssertFalse(input.priorityRequired, "Input module is off by default")
+        settings.setPopupSection(.audioInput, enabled: true)
+        XCTAssertTrue(input.priorityRequired)
+        XCTAssertFalse(output.priorityRequired)
+        settings.automaticallySwitchesOutput = true
+        XCTAssertTrue(output.priorityRequired)
+        store.setPopoverVisible(false)
+        store.setSettingsVisible(false)
+        XCTAssertTrue(input.priorityRequired)
+        XCTAssertTrue(output.priorityRequired)
+        settings.setPopupSection(.volume, enabled: false)
+        XCTAssertFalse(output.priorityRequired)
+        XCTAssertTrue(input.priorityRequired)
+        XCTAssertTrue(settings.automaticallySwitchesOutput)
+        settings.setPopupSection(.audioInput, enabled: false)
+        XCTAssertFalse(input.priorityRequired)
+        XCTAssertTrue(settings.automaticallySwitchesInput)
+        store.stop()
+        settings.setPopupSection(.volume, enabled: true)
+        XCTAssertNil(output.priorityHandler)
+        XCTAssertNil(input.priorityHandler)
+    }
     func testStoreMergesIndependentMonitorUpdates() async {
         let battery = FakeBatteryMonitor()
         let wifi = FakeWiFiMonitor()
@@ -3176,6 +3244,16 @@ private final class FakeWiFiMonitor: WiFiMonitoring {
 
 @MainActor
 private final class FakeAudioInputMonitor: AudioInputMonitoring {
+    private(set) var automaticDeviceIDs: [AudioDeviceID] = []
+    func selectAutomatically(_ id: AudioDeviceID, request: AudioPriorityRequest,
+                             completion: @escaping @MainActor (Bool) -> Void) {
+        automaticDeviceIDs.append(id)
+        completion(true)
+    }
+    private(set) var priorityRequired = false
+    var priorityHandler: (@MainActor ([AudioPriorityDevice], UInt32?) -> Void)?
+    func setPriorityInventoryRequired(_ required: Bool) { priorityRequired = required }
+    func setPriorityInventoryHandler(_ handler: (@MainActor ([AudioPriorityDevice], UInt32?) -> Void)?) { priorityHandler = handler }
     let updates: AsyncStream<AudioInputStatus>
     private let continuation: AsyncStream<AudioInputStatus>.Continuation
     private(set) var enabledValues: [Bool] = []
@@ -3208,6 +3286,10 @@ private final class FakeAudioInputMonitor: AudioInputMonitoring {
 
 @MainActor
 private final class FakeVolumeMonitor: VolumeMonitoring, VolumeControlling {
+    private(set) var priorityRequired = false
+    var priorityHandler: (@MainActor ([AudioPriorityDevice], UInt32?) -> Void)?
+    func setPriorityInventoryRequired(_ required: Bool) { priorityRequired = required }
+    func setPriorityInventoryHandler(_ handler: (@MainActor ([AudioPriorityDevice], UInt32?) -> Void)?) { priorityHandler = handler }
     let updates: AsyncStream<VolumeStatus>
     private(set) var startCount = 0
     private(set) var stopCount = 0

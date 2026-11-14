@@ -124,6 +124,8 @@ final class SettingsPreferenceCatalogTests: XCTestCase {
             "nearbyBLESelections", "trustedAppleDeviceMetadata", "nearbyBLEConsent.v1",
             "appleDeviceSelections", "archivedLegacyNearbyBLESelections", "outputDeviceOrder",
             "hiddenOutputDeviceUIDs", "inputDeviceOrder", "hiddenInputDeviceUIDs",
+            "automaticallySwitchesOutput", "automaticallySwitchesInput",
+            "rememberedAudioOutputs.v1", "rememberedAudioInputs.v1",
             "externalVolumeConfigurations", "externalBrightnessConfigurations", "hiddenBrightnessDisplayIDs",
             "bluetoothDeviceOrder", "hiddenBluetoothDeviceAddresses", "revealedGhostBluetoothDeviceAddresses",
             "bluetoothNetworkIconDeviceAddress", "bluetoothNetworkIconSymbolName",
@@ -139,6 +141,10 @@ final class SettingsPreferenceCatalogTests: XCTestCase {
             SettingsPreferenceCatalog.apply(prepared.values, to: store)
             XCTAssertFalse(store.sharesAnonymousAnalytics)
             XCTAssertTrue(store.outputDeviceOrder.isEmpty)
+            XCTAssertFalse(store.automaticallySwitchesOutput)
+            XCTAssertFalse(store.automaticallySwitchesInput)
+            XCTAssertTrue(store.rememberedAudioOutputs.isEmpty)
+            XCTAssertTrue(store.rememberedAudioInputs.isEmpty)
             XCTAssertTrue(store.trustedAppleDeviceMetadata.isEmpty)
         }
     }

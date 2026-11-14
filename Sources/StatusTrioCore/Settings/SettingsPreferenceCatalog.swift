@@ -8,6 +8,8 @@ import Foundation
 /// belongs to Localization and is handled by the transfer document/session.
 @MainActor
 enum SettingsPreferenceCatalog {
+    // 音频自动切换开关、设备记忆及优先级配置仅适用于本机，不参与迁移；
+    // 避免导入偏好时，在缺少对应设备与排序的机器上意外启用自动切换。
     private typealias Value = SettingsTransferValue
 
     private struct Preference {

@@ -886,6 +886,17 @@
 "settings.audio.conversationAwarenessControlsTitle" = "顯示對話感知控制";
 "settings.audio.conversationAwarenessControlsDescription" = "在 AirPods 輸出列顯示對話感知開關。目前僅支援 AirPods。";
 
+// Audio device priority
+"settings.audio.priority.toggle" = "依優先順序自動切換";
+"settings.audio.priority.description" = "清單越靠前優先順序越高。隱藏的裝置不參與自動切換，已中斷連線的裝置保留排序。";
+"settings.audio.priority.manual" = "手動選擇會保留，直到裝置連線狀態或優先順序規則變更，或重新啟用自動切換。";
+"settings.audio.priority.stopped" = "此聲音模組已關閉，自動切換已暫停。";
+"settings.audio.priority.disconnected" = "未連線";
+"settings.audio.priority.forget" = "忘記裝置";
+"settings.audio.priority.failed" = "無法切換裝置。下次裝置連線狀態或規則變更時會重新套用優先順序。";
+
+"settings.audio.priority.inputManual" = "輸入優先順序不受系統自動切換影響。在 Status Trio 面板中手動選擇麥克風可暫時覆寫，直到連線狀態或優先順序規則變更。";
+
 "settings.transfer.title" = "設定移轉";
 "settings.transfer.description" = "將可移轉的偏好設定儲存為易讀的 JSON 檔案，或在匯入前預覽設定檔案。";
 "settings.transfer.exclusions" = "登入項目、Helper 安裝、隱私權授權、分析資料共享授權和全域快速鍵均不會移轉。請在匯入後手動設定。";
