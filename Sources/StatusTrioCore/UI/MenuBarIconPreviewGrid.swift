@@ -71,14 +71,18 @@ struct MenuBarIconPreviewGrid: View {
     private func spec(for slot: Slot) -> (top: String, center: String, progress: Double, color: IconRGBA, centerScale: Double) {
         switch slot {
         case .cpu:
-            return (percentText(.cpuUsage), "\(temperatureText(.cpuTemperature))", percent(.cpuUsage), color(.cpuUsage), 1.05)
+            let center = temperatureText(.cpuTemperature)
+            return (percentText(.cpuUsage), center, percent(.cpuUsage), color(.cpuUsage), fittedCenterScale(center, base: 1.05))
         case .gpu:
-            return (percentText(.gpuUsage), "\(temperatureText(.gpuTemperature))", percent(.gpuUsage), color(.gpuUsage), 1.05)
+            let center = temperatureText(.gpuTemperature)
+            return (percentText(.gpuUsage), center, percent(.gpuUsage), color(.gpuUsage), fittedCenterScale(center, base: 1.05))
         case .ram:
-            return (percentText(.memoryUsage), memoryAvailableText, percent(.memoryUsage), color(.memoryUsage), 0.8)
+            let center = memoryAvailableText
+            return (percentText(.memoryUsage), center, percent(.memoryUsage), color(.memoryUsage), fittedCenterScale(center, base: 0.8))
         case .ssd:
-            return (percentText(nil), disk.freeText, disk.usedFraction ?? 0,
-                    IconRGBA(red: 0.55, green: 0.58, blue: 0.66, alpha: 1), 0.8)
+            let center = disk.freeText
+            return (percentText(nil), center, disk.usedFraction ?? 0,
+                    IconRGBA(red: 0.55, green: 0.58, blue: 0.66, alpha: 1), fittedCenterScale(center, base: 0.8))
         }
     }
 
@@ -95,6 +99,14 @@ struct MenuBarIconPreviewGrid: View {
     private func percent(_ id: HardwareMetricID) -> Double {
         guard let sample = sample(id), let value = sample.value, value.isFinite else { return 0 }
         return min(1, max(0, value / 100))
+    }
+
+    /// Capacity strings such as "1000G" are wider than the centre slot; shrink
+    /// the font once the text grows past four characters.
+    private func fittedCenterScale(_ text: String, base: Double) -> Double {
+        let count = text.count
+        guard count > 4 else { return base }
+        return max(0.52, base * 4.0 / Double(count))
     }
 
     private func percentText(_ id: HardwareMetricID?) -> String {
