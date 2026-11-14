@@ -27,6 +27,7 @@ export async function runAgentMirror(args, env = process.env, run = synchronize,
     gitee: env.GITEE_REPOSITORY || 'lingyired/status-trio',
     feedURL: env.GITEE_FEED_URL,
     githubToken: env.GH_TOKEN,
+    localDmg: env.GITEE_LOCAL_DMG,
     token: mode === 'sync' ? resolveToken(env, readKeychain) : undefined,
   });
 }

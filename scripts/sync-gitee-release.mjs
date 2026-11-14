@@ -119,7 +119,7 @@ export async function synchronize(config) {
   const checksum = await assetBytes(asset(manifest.dmg.filename + '.sha256'));
   if (checksum.toString().trim() !== manifest.dmg.sha256 + '  ' + manifest.dmg.filename) fail('Checksum sidecar identity mismatch');
   stage = 'downloading GitHub DMG';
-  const dmg = await assetBytes(dmgAsset);
+  const dmg = config.localDmg ? await readFile(config.localDmg) : await assetBytes(dmgAsset);
   verifyBytes(dmg, manifest.dmg);
   const sourceFile = await json(gh + '/contents/appcast.xml?ref=main', ghOptions);
   if (sourceFile.encoding !== 'base64') fail('Unsupported authoritative feed encoding');
@@ -208,7 +208,7 @@ export async function synchronize(config) {
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   const [mode,tag] = process.argv.slice(2);
-  synchronize({mode,tag,github:process.env.GITHUB_REPOSITORY,gitee:process.env.GITEE_REPOSITORY,token:process.env.GITEE_TOKEN,githubToken:process.env.GH_TOKEN,feedURL:process.env.GITEE_FEED_URL})
+  synchronize({mode,tag,github:process.env.GITHUB_REPOSITORY,gitee:process.env.GITEE_REPOSITORY,token:process.env.GITEE_TOKEN,githubToken:process.env.GH_TOKEN,feedURL:process.env.GITEE_FEED_URL,localDmg:process.env.GITEE_LOCAL_DMG})
     .then(result => console.log(JSON.stringify(result,null,2)))
     .catch(error => { console.error('Gitee mirror verification/sync failed: ' + (error?.message || 'unknown error')); console.error('No GitHub mutation performed. Credentials and response bodies are intentionally omitted; retry the same tag.'); process.exitCode=1; });
 }
