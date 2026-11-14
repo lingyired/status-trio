@@ -166,7 +166,7 @@ private struct AnimatedSceneIcon: View, Animatable {
             segments: [RingSegmentState(progress: progress, color: .custom(color))],
             gap: .value,
             layout: .standard,
-            accessory: .text(IconTextState(text: top, color: .primary, scale: 1.5)),
+            accessory: .text(IconTextState(text: top, color: .primary, scale: HardwareRingMapper.topValueTextScale(for: .percent))),
             strokeScale: 1.1
         )
         let scene = IconSceneState(
