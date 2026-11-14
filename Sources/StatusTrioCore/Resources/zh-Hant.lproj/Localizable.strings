@@ -1,3 +1,7 @@
+"updates.failure.title" = "更新失敗";
+"updates.failure.message" = "無法自動更新，請前往官網下載最新 DMG 並手動安裝。也可使用官網提供的網盤下載方式。";
+"updates.failure.website" = "官網下載";
+
 "menu.version" = "Status Trio %@";
 "menu.settings" = "設定…";
 "menu.quit" = "結束 Status Trio";

@@ -62,6 +62,9 @@ enum LocalizationKey: String, CaseIterable, Hashable, Sendable {
 
     case menuVersion = "menu.version"
     case menuCheckForUpdates = "menu.checkForUpdates"
+    case updateFailureTitle = "updates.failure.title"
+    case updateFailureMessage = "updates.failure.message"
+    case updateFailureWebsite = "updates.failure.website"
     case menuSettings = "menu.settings"
     case menuQuit = "menu.quit"
     case menuMore = "menu.more"

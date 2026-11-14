@@ -1,3 +1,7 @@
+"updates.failure.title" = "업데이트 실패";
+"updates.failure.message" = "자동 업데이트를 완료하지 못했습니다. 공식 웹사이트에서 최신 DMG를 다운로드하여 직접 설치해 주세요.";
+"updates.failure.website" = "공식 웹사이트에서 다운로드";
+
 "menu.version" = "Status Trio %@";
 "menu.settings" = "설정…";
 "menu.quit" = "Status Trio 종료";

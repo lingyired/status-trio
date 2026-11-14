@@ -1,3 +1,7 @@
+"updates.failure.title" = "فشل التحديث";
+"updates.failure.message" = "تعذّر إكمال التحديث التلقائي. نزّل أحدث ملف DMG من الموقع الرسمي وثبّته يدويًا.";
+"updates.failure.website" = "تنزيل من الموقع الرسمي";
+
 "menu.version" = "Status Trio %@";
 "menu.settings" = "الإعدادات…";
 "menu.quit" = "إنهاء Status Trio";

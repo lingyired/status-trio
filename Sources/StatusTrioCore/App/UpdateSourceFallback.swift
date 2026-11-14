@@ -81,7 +81,7 @@ struct UpdateSourceFallback {
 
     mutating func advanceAfterError(_ error: Error?) -> Bool {
         guard UpdateSourceRetryPolicy.shouldTryNextSource(after: error) else {
-            attemptedSources.removeAll()
+            finishCycle()
             return false
         }
 
@@ -91,18 +91,26 @@ struct UpdateSourceFallback {
             let currentIndex = sources.firstIndex(of: currentSource),
             sources.indices.contains(currentIndex + 1)
         else {
-            attemptedSources.removeAll()
+            finishCycle()
             return false
         }
 
         let nextSource = sources[currentIndex + 1]
         guard !attemptedSources.contains(nextSource) else {
-            attemptedSources.removeAll()
+            finishCycle()
             return false
         }
 
         currentSource = nextSource
         return true
+    }
+
+    // Each update-check round must start from GitHub: once the round ends
+    // (success, no update, or exhausted mirrors) forget the visited sources and
+    // return to the first one so a reachable mirror never becomes sticky.
+    private mutating func finishCycle() {
+        attemptedSources.removeAll()
+        currentSource = sources[0]
     }
 }
 

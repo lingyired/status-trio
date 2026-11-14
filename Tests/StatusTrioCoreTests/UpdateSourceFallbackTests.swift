@@ -73,7 +73,50 @@ struct UpdateSourceFallbackTests {
         #expect(fallback.currentSource == .ghFast)
         let advancedPastGhFast = fallback.advanceAfterError(error)
         #expect(!advancedPastGhFast)
-        #expect(fallback.currentSource == .ghFast)
+        #expect(fallback.currentSource == .github)
+    }
+
+    @Test
+    func exhaustedCycleRestartsFromGitHub() {
+        var fallback = UpdateSourceFallback()
+        let error = URLError(.timedOut)
+
+        for _ in 0..<2 {
+            #expect(fallback.currentSource == .github)
+            let toProxy = fallback.advanceAfterError(error)
+            #expect(toProxy)
+            #expect(fallback.currentSource == .ghProxy)
+            let toGhFast = fallback.advanceAfterError(error)
+            #expect(toGhFast)
+            #expect(fallback.currentSource == .ghFast)
+            let pastGhFast = fallback.advanceAfterError(error)
+            #expect(!pastGhFast)
+            #expect(fallback.currentSource == .github)
+        }
+    }
+
+    @Test
+    func completedMirrorCycleRestartsFromGitHub() {
+        let terminalErrors: [Error?] = [
+            nil,
+            NSError(domain: SUSparkleErrorDomain, code: Int(SUError.noUpdateError.rawValue)),
+            NSError(domain: SUSparkleErrorDomain, code: Int(SUError.signatureError.rawValue))
+        ]
+        let downloadURL = URL(string: "https://github.com/lingyired/status-trio/releases/download/v1.1.0/StatusTrio-1.1.0.dmg")!
+        let appcastString = "https://raw.githubusercontent.com/lingyired/status-trio/main/appcast.xml"
+
+        for source in [UpdateSource.ghProxy, .ghFast] {
+            for error in terminalErrors {
+                var fallback = UpdateSourceFallback(initialSource: source)
+                let finished = fallback.advanceAfterError(error)
+                #expect(!finished)
+                #expect(fallback.appcastURLString(from: appcastString) == appcastString)
+                #expect(fallback.downloadURL(for: downloadURL) == downloadURL)
+                let nextRound = fallback.advanceAfterError(URLError(.timedOut))
+                #expect(nextRound)
+                #expect(fallback.currentSource == .ghProxy)
+            }
+        }
     }
 
     @Test

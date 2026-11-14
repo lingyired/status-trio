@@ -1,3 +1,7 @@
+"updates.failure.title" = "Ошибка обновления";
+"updates.failure.message" = "Не удалось выполнить автоматическое обновление. Скачайте последнюю версию DMG с официального сайта и установите её вручную.";
+"updates.failure.website" = "Скачать с сайта";
+
 "menu.version" = "Status Trio %@";
 "menu.settings" = "Настройки…";
 "menu.quit" = "Завершить Status Trio";

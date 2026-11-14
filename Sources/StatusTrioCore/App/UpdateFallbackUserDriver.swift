@@ -27,7 +27,7 @@ final class UpdateFallbackUserDriver: SPUStandardUserDriver {
         if let presentUpdaterError {
             presentUpdaterError(error, acknowledgement)
         } else {
-            super.showUpdaterError(error, acknowledgement: acknowledgement)
+            UpdateFailurePresenter.present(error, acknowledgement: acknowledgement)
         }
     }
 }
