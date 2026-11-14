@@ -428,7 +428,7 @@
 "inputSource.switchFailed" = "Wechsel zu „%@“ nicht möglich. Wähle sie direkt aus oder versuche es erneut.";
 "inputSource.switchUnconfirmed" = "macOS hat „%@“ akzeptiert, meldet aber weiterhin eine andere Eingabequelle. Die vorderste App braucht möglicherweise den Fokus.";
 "settings.popup.order.inputSource" = "Eingabequelle";
-"settings.popup.order.quickActions" = "Schnellaktionen";
+"settings.popup.order.quickActions" = "Wach halten";
 "quickActions.displaySleep" = "Bildschirm wach halten";
 "quickActions.displaySleep.description" = "Verhindert, dass das Display bei Inaktivität in den Ruhezustand geht.";
 "quickActions.lidSleep" = "Mit geschlossenem Deckel wach halten";

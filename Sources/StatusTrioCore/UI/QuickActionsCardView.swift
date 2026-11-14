@@ -1,85 +1,91 @@
 import SwiftUI
 
 /// The status panel's "quick actions" card (#295): two independent keep-awake
-/// toggles, each with an optional timer. "Keep Screen Awake" is a local
-/// assertion; "Keep Awake With Lid Closed" needs the privileged helper and is
-/// only offered on external power.
+/// toggles on one compact row, each with its own optional timer.
+///
+/// "Keep Screen Awake" is a local assertion; "Keep Awake With Lid Closed" needs
+/// the privileged helper and is only offered on external power. The two live
+/// side by side so the card costs a single row of panel height; the per-toggle
+/// descriptions moved into hover help, and a reason / error / notice line only
+/// appears underneath when there is something to say.
 struct QuickActionsCardView: View {
     @ObservedObject var control: SleepControlController
     @EnvironmentObject private var localization: Localization
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Label {
-                Text(localization.string(.settingsPopupOrderQuickActions))
-                    .font(.system(size: 12, weight: .semibold))
-            } icon: {
-                Image(systemName: "moon.zzz")
-                    .font(.system(size: 12, weight: .semibold))
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(spacing: 10) {
+                displayControl
+                Divider()
+                    .frame(height: 22)
+                lidControl
             }
-            .foregroundStyle(.secondary)
-
-            row(
-                title: localization.string(.quickActionsDisplaySleep),
-                subtitle: localization.string(.quickActionsDisplaySleepDescription),
-                isOn: displayBinding,
-                isEnabled: true,
-                isApplying: false,
-                timer: TimerMenu(
-                    isOn: control.isPreventingDisplaySleep,
-                    duration: control.displayTimer,
-                    expiry: control.displayExpiry,
-                    onSelect: { control.setDisplayTimer($0) }
-                )
-            )
-
-            Divider().opacity(0.5)
-
-            row(
-                title: localization.string(.quickActionsLidSleep),
-                subtitle: lidSubtitle,
-                isOn: lidBinding,
-                isEnabled: control.isPreventingLidSleep || control.canEnableLidSleep,
-                isApplying: control.isApplyingLidSleep,
-                timer: TimerMenu(
-                    isOn: control.isPreventingLidSleep,
-                    duration: control.lidTimer,
-                    expiry: control.lidExpiry,
-                    onSelect: { control.setLidTimer($0) }
-                )
-            )
-
-            if let error = control.lastError {
-                Text(
-                    String(
-                        format: localization.string(.quickActionsError),
-                        locale: localization.resolvedLanguage.locale,
-                        arguments: [error]
-                    )
-                )
-                .font(.system(size: 11))
-                .foregroundStyle(.red)
-                .fixedSize(horizontal: false, vertical: true)
-            }
-
-            if let notice = control.notice {
-                Text(localization.string(notice.localizationKey))
+            if let status = statusLine {
+                Text(status.text)
                     .font(.system(size: 11))
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(status.color)
                     .fixedSize(horizontal: false, vertical: true)
-                    .transition(.opacity)
             }
         }
         .animation(.easeInOut(duration: 0.15), value: control.notice)
     }
 
-    /// While the lid toggle is available the row repeats the one-line reminder
-    /// instead of the reason, so the card does not grow a second line of status.
-    private var lidSubtitle: String {
-        if !control.isPreventingLidSleep, let reason = control.lidUnavailableReason {
-            return localization.string(reason.localizationKey)
+    private var displayControl: some View {
+        compactRow(
+            symbol: "sun.max.fill",
+            title: localization.string(.quickActionsDisplaySleep),
+            help: localization.string(.quickActionsDisplaySleepDescription),
+            tint: .orange,
+            isOn: displayBinding,
+            isEnabled: true,
+            isApplying: false,
+            timer: TimerMenu(
+                isOn: control.isPreventingDisplaySleep,
+                duration: control.displayTimer,
+                expiry: control.displayExpiry,
+                onSelect: { control.setDisplayTimer($0) }
+            )
+        )
+    }
+
+    private var lidControl: some View {
+        compactRow(
+            symbol: "moon.zzz.fill",
+            title: localization.string(.quickActionsLidSleep),
+            help: localization.string(.quickActionsLidSleepDescription),
+            tint: .blue,
+            isOn: lidBinding,
+            isEnabled: control.isPreventingLidSleep || control.canEnableLidSleep,
+            isApplying: control.isApplyingLidSleep,
+            timer: TimerMenu(
+                isOn: control.isPreventingLidSleep,
+                duration: control.lidTimer,
+                expiry: control.lidExpiry,
+                onSelect: { control.setLidTimer($0) }
+            )
+        )
+    }
+
+    /// One line under the row when something needs saying. Only one message is
+    /// shown, so the card never grows into a paragraph.
+    private var statusLine: (text: String, color: Color)? {
+        if let error = control.lastError {
+            return (
+                String(
+                    format: localization.string(.quickActionsError),
+                    locale: localization.resolvedLanguage.locale,
+                    arguments: [error]
+                ),
+                .red
+            )
         }
-        return localization.string(.quickActionsLidSleepDescription)
+        if !control.isPreventingLidSleep, let reason = control.lidUnavailableReason {
+            return (localization.string(reason.localizationKey), .secondary)
+        }
+        if let notice = control.notice {
+            return (localization.string(notice.localizationKey), .secondary)
+        }
+        return nil
     }
 
     private var displayBinding: Binding<Bool> {
@@ -96,25 +102,30 @@ struct QuickActionsCardView: View {
         )
     }
 
-    private func row<MenuContent: View>(
+    private func compactRow<Timer: View>(
+        symbol: String,
         title: String,
-        subtitle: String,
+        help: String,
+        tint: Color,
         isOn: Binding<Bool>,
         isEnabled: Bool,
         isApplying: Bool,
-        timer: MenuContent
+        timer: Timer
     ) -> some View {
-        HStack(alignment: .center, spacing: 8) {
-            VStack(alignment: .leading, spacing: 2) {
-                Text(title)
-                    .font(.system(size: 13))
-                    .foregroundStyle(isEnabled ? .primary : .secondary)
-                Text(subtitle)
-                    .font(.system(size: 11))
-                    .foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-            Spacer(minLength: 6)
+        HStack(spacing: 4) {
+            Image(systemName: symbol)
+                .font(.system(size: 10, weight: .semibold))
+                .foregroundStyle(isOn.wrappedValue ? tint : Color.secondary)
+                .frame(width: 12)
+                .accessibilityHidden(true)
+
+            Text(title)
+                .font(.system(size: 11))
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
+                .foregroundStyle(isEnabled ? .primary : .secondary)
+
+            Spacer(minLength: 2)
 
             if isApplying {
                 ProgressView().controlSize(.mini)
@@ -129,12 +140,14 @@ struct QuickActionsCardView: View {
                 .disabled(!isEnabled || isApplying)
                 .accessibilityLabel(Text(title))
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .help(help)
     }
 }
 
-/// The per-toggle timer menu. While a countdown is running it shows the time
-/// left instead of the chosen option, and updates once a second through a
-/// `TimelineView` (no controller-side ticker).
+/// A compact per-toggle timer menu: a timer glyph when idle, and the remaining
+/// time (m:ss / h:mm) while a countdown runs. Still a menu, so picking another
+/// duration is one click away.
 private struct TimerMenu: View {
     let isOn: Bool
     let duration: SleepTimerDuration
@@ -149,7 +162,7 @@ private struct TimerMenu: View {
                 localization.string(.quickActionsTimer),
                 selection: Binding(get: { duration }, set: { onSelect($0) })
             ) {
-                ForEach(SleepTimerDuration.allCases) { option in
+                ForEach(SleepTimerDuration.allCases, id: \.self) { option in
                     Text(localization.string(option.localizationKey)).tag(option)
                 }
             }
@@ -159,44 +172,33 @@ private struct TimerMenu: View {
         }
         .menuStyle(.borderlessButton)
         .menuIndicator(.hidden)
-        .fixedSize()
+        .frame(width: 34, alignment: .trailing)
         .disabled(!isOn)
         .help(localization.string(.quickActionsTimer))
+        .accessibilityLabel(Text(localization.string(.quickActionsTimer)))
     }
 
     @ViewBuilder
     private var label: some View {
         if let expiry, isOn {
             TimelineView(.periodic(from: .now, by: 1)) { context in
-                Text(remainingText(until: expiry, now: context.date))
-                    .font(.system(size: 11, weight: .medium))
+                Text(remaining(until: expiry, now: context.date))
+                    .font(.system(size: 10, weight: .medium))
                     .monospacedDigit()
                     .foregroundStyle(.secondary)
             }
         } else {
-            Text(localization.string(duration.localizationKey))
-                .font(.system(size: 11, weight: .medium))
+            Image(systemName: "timer")
+                .font(.system(size: 11))
                 .foregroundStyle(.secondary)
         }
     }
 
-    private func remainingText(until expiry: Date, now: Date) -> String {
+    private func remaining(until expiry: Date, now: Date) -> String {
         let seconds = max(0, Int(expiry.timeIntervalSince(now).rounded()))
-        let formatted: String
         if seconds >= 3600 {
-            formatted = String(
-                format: "%d:%02d:%02d",
-                seconds / 3600,
-                (seconds % 3600) / 60,
-                seconds % 60
-            )
-        } else {
-            formatted = String(format: "%d:%02d", seconds / 60, seconds % 60)
+            return String(format: "%d:%02d", seconds / 3600, (seconds % 3600) / 60)
         }
-        return String(
-            format: localization.string(.quickActionsRemaining),
-            locale: localization.resolvedLanguage.locale,
-            arguments: [formatted]
-        )
+        return String(format: "%d:%02d", seconds / 60, seconds % 60)
     }
 }

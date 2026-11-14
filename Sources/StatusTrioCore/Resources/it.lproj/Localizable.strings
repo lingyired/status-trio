@@ -428,7 +428,7 @@
 "inputSource.switchFailed" = "Impossibile passare a «%@». Selezionala direttamente o riprova.";
 "inputSource.switchUnconfirmed" = "macOS ha accettato «%@» ma segnala ancora un’altra sorgente di input. L’app in primo piano potrebbe richiedere il focus.";
 "settings.popup.order.inputSource" = "Sorgente di input";
-"settings.popup.order.quickActions" = "Azioni rapide";
+"settings.popup.order.quickActions" = "Mantieni attivo";
 "quickActions.displaySleep" = "Mantieni lo schermo attivo";
 "quickActions.displaySleep.description" = "Impedisce allo schermo di andare in sospensione quando è inattivo.";
 "quickActions.lidSleep" = "Mantieni attivo con coperchio chiuso";

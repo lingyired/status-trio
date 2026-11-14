@@ -428,7 +428,7 @@
 "inputSource.switchFailed" = "‘%@’(으)로 전환하지 못했습니다. 직접 선택하거나 다시 시도하십시오.";
 "inputSource.switchUnconfirmed" = "macOS가 ‘%@’을(를) 수락했지만 현재 입력 소스는 다른 항목입니다. 최전면 앱에 포커스가 필요할 수 있습니다.";
 "settings.popup.order.inputSource" = "입력 소스";
-"settings.popup.order.quickActions" = "빠른 작업";
+"settings.popup.order.quickActions" = "잠자기 방지";
 "quickActions.displaySleep" = "화면 켜두기";
 "quickActions.displaySleep.description" = "유휴 상태에서 디스플레이가 잠자기로 전환되지 않도록 합니다.";
 "quickActions.lidSleep" = "덮개를 닫아도 깨어 있게 유지";

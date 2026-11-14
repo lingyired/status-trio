@@ -428,7 +428,7 @@
 "inputSource.switchFailed" = "「%@」に切り替えられませんでした。直接選択するか、もう一度お試しください。";
 "inputSource.switchUnconfirmed" = "macOS は「%@」を受け付けましたが、現在の入力ソースは別のままです。最前面のアプリにフォーカスが必要な場合があります。";
 "settings.popup.order.inputSource" = "入力ソース";
-"settings.popup.order.quickActions" = "クイックアクション";
+"settings.popup.order.quickActions" = "スリープ防止";
 "quickActions.displaySleep" = "画面をスリープさせない";
 "quickActions.displaySleep.description" = "アイドル時にディスプレイがスリープしないようにします。";
 "quickActions.lidSleep" = "フタを閉じてもスリープさせない";

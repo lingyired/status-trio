@@ -428,7 +428,7 @@
 "inputSource.switchFailed" = "تعذّر التبديل إلى «%@». اختره مباشرة أو حاول مرة أخرى.";
 "inputSource.switchUnconfirmed" = "قبل macOS «%@» لكنه لا يزال يُبلّغ عن مصدر إدخال آخر. قد يحتاج التطبيق في المقدمة إلى التركيز.";
 "settings.popup.order.inputSource" = "مصدر الإدخال";
-"settings.popup.order.quickActions" = "إجراءات سريعة";
+"settings.popup.order.quickActions" = "إبقاء الاستيقاظ";
 "quickActions.displaySleep" = "إبقاء الشاشة مستيقظة";
 "quickActions.displaySleep.description" = "منع الشاشة من الدخول في وضع النوم أثناء الخمول.";
 "quickActions.lidSleep" = "إبقاء الاستيقاظ مع إغلاق الغطاء";

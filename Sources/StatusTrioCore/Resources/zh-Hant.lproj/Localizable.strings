@@ -428,7 +428,7 @@
 "inputSource.switchFailed" = "無法切換到「%@」。請直接選擇它或稍後再試。";
 "inputSource.switchUnconfirmed" = "macOS 已接受「%@」，但目前的輸入法仍是其他項目。前景應用程式可能需要取得焦點。";
 "settings.popup.order.inputSource" = "輸入法";
-"settings.popup.order.quickActions" = "快速操作";
+"settings.popup.order.quickActions" = "保持喚醒";
 "quickActions.displaySleep" = "保持螢幕常亮";
 "quickActions.displaySleep.description" = "閒置時防止顯示器休眠。";
 "quickActions.lidSleep" = "闔蓋時保持喚醒";

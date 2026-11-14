@@ -427,7 +427,7 @@
 "inputSource.switchFailed" = "Couldn’t switch to “%@”. Select it directly or try again.";
 "inputSource.switchUnconfirmed" = "macOS accepted “%@” but still reports another input source. The front app may need focus.";
 "settings.popup.order.inputSource" = "Input Source";
-"settings.popup.order.quickActions" = "Quick Actions";
+"settings.popup.order.quickActions" = "Keep Awake";
 "quickActions.displaySleep" = "Keep Screen Awake";
 "quickActions.displaySleep.description" = "Prevent the display from sleeping while idle.";
 "quickActions.lidSleep" = "Keep Awake With Lid Closed";

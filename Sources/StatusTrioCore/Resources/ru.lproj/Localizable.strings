@@ -428,7 +428,7 @@
 "inputSource.switchFailed" = "Не удалось переключиться на «%@». Выберите его напрямую или повторите попытку.";
 "inputSource.switchUnconfirmed" = "macOS приняла «%@», но по-прежнему сообщает о другом источнике ввода. Возможно, активному приложению нужен фокус.";
 "settings.popup.order.inputSource" = "Источник ввода";
-"settings.popup.order.quickActions" = "Быстрые действия";
+"settings.popup.order.quickActions" = "Не давать уснуть";
 "quickActions.displaySleep" = "Не давать экрану засыпать";
 "quickActions.displaySleep.description" = "Не позволяет дисплею переходить в спящий режим при простое.";
 "quickActions.lidSleep" = "Не давать засыпать при закрытой крышке";

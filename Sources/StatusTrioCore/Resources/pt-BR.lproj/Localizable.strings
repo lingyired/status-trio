@@ -428,7 +428,7 @@
 "inputSource.switchFailed" = "Não foi possível mudar para “%@”. Selecione-a diretamente ou tente novamente.";
 "inputSource.switchUnconfirmed" = "O macOS aceitou “%@”, mas ainda informa outra fonte de entrada. O app em primeiro plano pode precisar de foco.";
 "settings.popup.order.inputSource" = "Fonte de entrada";
-"settings.popup.order.quickActions" = "Ações rápidas";
+"settings.popup.order.quickActions" = "Manter ativo";
 "quickActions.displaySleep" = "Manter a tela ativa";
 "quickActions.displaySleep.description" = "Impede que a tela entre em repouso quando ociosa.";
 "quickActions.lidSleep" = "Manter ativo com a tampa fechada";
