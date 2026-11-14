@@ -30,7 +30,7 @@ struct UpdateSourceFallbackTests {
     @Test
     func giteeFeedIsExplicitAndDownloadComesFromVerifiedFeed() {
         let fallback = UpdateSourceFallback(preference: .giteeFirst)
-        #expect(fallback.appcastURLString(from: "https://raw.githubusercontent.com/lingyired/status-trio/main/appcast.xml") == "https://gitee.com/lingyired/status-trio/raw/main/appcast.xml")
+        #expect(fallback.appcastURLString(from: "https://raw.githubusercontent.com/lingyired/status-trio/main/appcast.xml") == "https://gitee.com/lingyired/status-trio/raw/main/appcast-gitee.xml")
         #expect(fallback.appcastURLString(from: "https://example.com/feed.xml") == "https://example.com/feed.xml")
         let attachment = URL(string: "https://gitee.com/lingyired/status-trio/attach_files/42/download/a.dmg")!
         #expect(fallback.downloadURL(for: attachment) == attachment)

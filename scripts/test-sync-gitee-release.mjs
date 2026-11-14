@@ -28,7 +28,7 @@ async function mockMirror(run) {
       assert.equal(req.headers.authorization,undefined,'Public downloads have no token');
       return respond(state.files.get(p.split('/').at(-1))??Buffer.from('missing'));
     }
-    if(p.endsWith('/contents/appcast.xml')) {
+    if(p.endsWith('/contents/appcast-gitee.xml')) {
       if(req.method==='GET') return respond({sha:state.feedSHA,encoding:'base64',content:state.feed.toString('base64')});
       const chunks=[];for await (const chunk of req) chunks.push(chunk);
       const payload=JSON.parse(Buffer.concat(chunks));
@@ -74,7 +74,7 @@ test('partly uploaded release resumes without a second DMG upload',async()=>mock
   state.failure=null;await sync();assert.equal(state.release.assets.length,3);
 }));
 test('feed update failure preserves uploaded package for recovery',async()=>mockMirror(async state=>{
-  state.failure=(p,method)=>p.endsWith('/contents/appcast.xml')&&method==='PUT';
+  state.failure=(p,method)=>p.endsWith('/contents/appcast-gitee.xml')&&method==='PUT';
   await assert.rejects(sync());assert.equal(state.files.size,3);
   state.failure=null;await sync();assert.equal(state.release.assets.length,3);
 }));

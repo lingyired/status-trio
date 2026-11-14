@@ -59,7 +59,7 @@ enum UpdateMirrorConfig {
     static let authoritativeAppcastURLString =
         "https://raw.githubusercontent.com/\(giteeRepository)/main/appcast.xml"
     static let giteeAppcastURLString =
-        "https://gitee.com/\(giteeRepository)/raw/main/appcast.xml"
+        "https://gitee.com/\(giteeRepository)/raw/main/appcast-gitee.xml"
 
     /// Only the project's authoritative appcast is rewritten. Arbitrary URLs are
     /// never turned into Gitee URLs.

@@ -50,7 +50,7 @@ export async function synchronize(config) {
   const gitee = repoPath(config.gitee || 'lingyired/status-trio');
   const gh = 'https://api.github.com/repos/' + github;
   const gt = 'https://gitee.com/api/v5/repos/' + gitee;
-  const feed = feedURL || 'https://gitee.com/' + gitee + '/raw/main/appcast.xml';
+  const feed = feedURL || 'https://gitee.com/' + gitee + '/raw/main/appcast-gitee.xml';
   if (new URL(feed).protocol !== 'https:' || new URL(feed).host !== 'gitee.com') fail('Feed must be a public Gitee HTTPS URL');
   const ghOptions = {token:githubToken};
   const release = await json(gh + '/releases/tags/' + encodeURIComponent(tag), ghOptions);
@@ -76,10 +76,13 @@ export async function synchronize(config) {
   const sourceFile = await json(gh + '/contents/appcast.xml?ref=main', ghOptions);
   if (sourceFile.encoding !== 'base64') fail('Unsupported authoritative feed encoding');
   const source = Buffer.from(sourceFile.content, 'base64');
-  // A public raw endpoint must be usable BEFORE any mirror mutation.
-  await request(feed);
-  const remoteFile = await json(gt + '/contents/appcast.xml?ref=main');
-  if (!remoteFile?.sha || remoteFile.encoding !== 'base64') fail('Initialize and verify public Gitee appcast before syncing');
+  const remoteFile = await json(gt + '/contents/appcast-gitee.xml?ref=main', {missing:true});
+  if (remoteFile && remoteFile.encoding !== 'base64') fail('Unsupported Gitee feed encoding');
+  if (mode !== 'sync') {
+    // Read-only modes still require an already usable public feed.
+    await request(feed);
+    if (!remoteFile?.sha) fail('Mirror appcast is missing');
+  }
   let releases = [];
   for (let page=1; ; page++) {
     const batch = await json(gt + '/releases?per_page=100&page=' + page);
@@ -126,16 +129,18 @@ export async function synchronize(config) {
     const mappings = {[manifest.sparkle.download_url]:{url:mirrorURL,length:manifest.dmg.length,signature:manifest.sparkle.signature}};
     await writeFile(join(directory,'source.xml'),source);
     await writeFile(join(directory,'map.json'),JSON.stringify(mappings));
-    execFileSync('python3',[join(dirname(fileURLToPath(import.meta.url)),'generate-gitee-appcast.py'),join(directory,'source.xml'),join(directory,'map.json'),join(directory,'output.xml')],{stdio:['ignore','pipe','pipe']});
+    execFileSync('python3',[join(dirname(fileURLToPath(import.meta.url)),'generate-gitee-appcast.py'),join(directory,'source.xml'),join(directory,'map.json'),join(directory,'output.xml'),gitee],{stdio:['ignore','pipe','pipe']});
     derived = await readFile(join(directory,'output.xml'));
   } finally { await rm(directory,{recursive:true,force:true}); }
   // No deletion: unselected history reverts to authoritative GitHub URLs.
   // Capacity reclamation remains disabled until the real API is qualified.
   if (mode === 'sync') {
-    const current = await json(gt + '/contents/appcast.xml?ref=main');
-    if (current.sha !== remoteFile.sha) fail('Gitee feed changed concurrently; retry same tag');
-    if (!Buffer.from(current.content,'base64').equals(derived)) {
-      await mutate(gt + '/contents/appcast.xml',{sha:current.sha,branch:'main',message:'Mirror verified ' + tag,content:derived.toString('base64')},'PUT');
+    const current = remoteFile
+      ? await json(gt + '/contents/appcast-gitee.xml?ref=main', {missing:true})
+      : null;
+    if (remoteFile && current?.sha !== remoteFile.sha) fail('Gitee feed changed concurrently; retry same tag');
+    if (!current || !Buffer.from(current.content,'base64').equals(derived)) {
+      await mutate(gt + '/contents/appcast-gitee.xml',{...(current?.sha ? {sha:current.sha} : {}),branch:'main',message:'Mirror verified ' + tag,content:derived.toString('base64')},'PUT');
     }
   }
   const publicFeed = await bytes(feed);

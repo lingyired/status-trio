@@ -27,11 +27,13 @@ switch sources.
 4. The Ubuntu job downloads the public GitHub manifest and DMG, verifies
    length, SHA-256, tag, commit and notarization identity, uploads the exact
    bytes to Gitee, downloads them anonymously, re-hashes them, derives the
-   Gitee appcast from the GitHub appcast, and only then updates the public feed.
+   Gitee-only appcast from the GitHub appcast, and only then updates the public feed.
+The Gitee feed contains only mirrored versions and no GitHub URLs at all.
 
 Mirror order is fixed: upload → verify bytes → derive appcast → verify appcast
 → publish feed. The Gitee feed keeps the original package EdDSA signature and
-the authoritative GitHub URL for versions not yet mirrored.
+only includes versions already mirrored to Gitee; unmapped historical items and
+all GitHub URLs are removed. The public feed path is `appcast-gitee.xml`.
 
 ## Operations
 
