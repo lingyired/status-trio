@@ -152,5 +152,5 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
   const [mode,tag] = process.argv.slice(2);
   synchronize({mode,tag,github:process.env.GITHUB_REPOSITORY,gitee:process.env.GITEE_REPOSITORY,token:process.env.GITEE_TOKEN,githubToken:process.env.GH_TOKEN,feedURL:process.env.GITEE_FEED_URL})
     .then(result => console.log(JSON.stringify(result,null,2)))
-    .catch(() => { console.error('Gitee mirror verification/sync failed. No GitHub mutation performed. Inspect configuration and retry the same tag; credentials and response bodies are intentionally omitted.'); process.exitCode=1; });
+    .catch(error => { console.error('Gitee mirror verification/sync failed: ' + (error?.message || 'unknown error')); console.error('No GitHub mutation performed. Credentials and response bodies are intentionally omitted; retry the same tag.'); process.exitCode=1; });
 }
