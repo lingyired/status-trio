@@ -131,8 +131,8 @@ struct MenuBarIconPreviewGrid: View {
 
     private static func compactBytes(_ bytes: Double) -> String {
         let gb = bytes / 1_000_000_000
-        if gb >= 10 { return "\(Int(gb.rounded()))G" }
-        return String(format: "%.1fG", gb)
+        if gb >= 10 { return "\(Int(gb.rounded()))GB" }
+        return String(format: "%.1fGB", gb)
     }
 }
 
@@ -203,8 +203,8 @@ struct DiskCapacitySample {
     var freeText: String {
         guard let freeBytes else { return "--" }
         let gb = Double(freeBytes) / 1_000_000_000
-        if gb >= 10 { return "\(Int(gb.rounded()))G" }
-        return String(format: "%.1fG", gb)
+        if gb >= 10 { return "\(Int(gb.rounded()))GB" }
+        return String(format: "%.1fGB", gb)
     }
 
     static func current() -> DiskCapacitySample {
