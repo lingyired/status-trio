@@ -70,7 +70,6 @@ export async function synchronize(config) {
   // Download through the API asset endpoint: github.com release redirects are
   // blocked on some networks even when api.github.com is reachable.
   const assetBytes = async item => Buffer.from(await (await request(item.url, {
-    token: githubToken,
     headers: { Accept: 'application/octet-stream' },
   })).arrayBuffer());
   stage = 'reading release manifest';
