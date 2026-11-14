@@ -32,26 +32,21 @@ struct MenuBarIconPreviewGrid: View {
                     .foregroundStyle(.tertiary)
             }
 
-            LazyVGrid(
-                columns: Array(repeating: GridItem(.flexible(), spacing: 8), count: 4),
-                spacing: 8
-            ) {
+            HStack(spacing: 10) {
                 ForEach(0..<4, id: \.self) { _ in
-                    ZStack {
-                        RoundedRectangle(cornerRadius: 10, style: .continuous)
-                            .fill(Color.primary.opacity(0.06))
-                        if let image {
-                            Image(nsImage: image)
-                                .resizable()
-                                .scaledToFit()
-                                .padding(10)
+                    Color.clear
+                        .aspectRatio(1, contentMode: .fit)
+                        .overlay {
+                            if let image {
+                                Image(nsImage: image)
+                                    .resizable()
+                                    .scaledToFit()
+                            }
                         }
-                    }
-                    .aspectRatio(1, contentMode: .fit)
                 }
             }
 
-            Text("每格约 70×70 pt（面板宽 330 时）· 菜单栏实际约 \(Int(menuBarSize)) pt")
+            Text("图标约 60×60 pt（面板宽 330 时）· 菜单栏实际约 \(Int(menuBarSize)) pt")
                 .font(.system(size: 9))
                 .foregroundStyle(.tertiary)
         }
