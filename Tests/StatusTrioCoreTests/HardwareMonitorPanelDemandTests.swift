@@ -31,7 +31,7 @@ final class HardwareMonitorPanelDemandTests: XCTestCase {
         }
 
         let service = fixture.store.hardwareMetrics
-        XCTAssertEqual(service.demands[.panel], HardwareMetricsService.defaultMetricIDs)
+        XCTAssertEqual(service.demands[.panel], HardwareMetricsService.defaultMetricIDs.union([.gpuTemperature]))
         XCTAssertTrue(service.isRunning)
         XCTAssertEqual(panel.hardwareMonitor.snapshot, .empty)
 
@@ -43,7 +43,7 @@ final class HardwareMonitorPanelDemandTests: XCTestCase {
 
         // Back to summary resumes it.
         panel.showSummaryPage()
-        XCTAssertEqual(service.demands[.panel], HardwareMetricsService.defaultMetricIDs)
+        XCTAssertEqual(service.demands[.panel], HardwareMetricsService.defaultMetricIDs.union([.gpuTemperature]))
         XCTAssertTrue(service.isRunning)
 
         // Hiding the whole panel stops it too.
@@ -107,7 +107,7 @@ final class HardwareMonitorPanelDemandTests: XCTestCase {
         XCTAssertEqual(expected.first, .batteryTemperature,
                        "reordering is reflected in the panel")
         XCTAssertEqual(fixture.store.hardwareMetrics.demands[.panel],
-                       Set(expected.map(\.metricID)))
+                       Set(expected.map(\.metricID)).union([.gpuTemperature]))
     }
 
     func testDefaultSettingsKeepCardOffAndSampleNothing() {

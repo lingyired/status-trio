@@ -290,7 +290,6 @@ final class StatusBarController: NSObject {
             .sink { [weak self] output in
                 guard let self else { return }
                 latestIconOutput = output
-                panelViewModel.updateMenuBarIconPreview(output)
                 renderCoalescer.submit { [weak self] in
                     self?.renderLatestScene()
                 }

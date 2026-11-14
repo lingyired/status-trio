@@ -67,10 +67,6 @@ private struct PanelSettingsFingerprint: Equatable {
 
 @MainActor
 final class StatusPanelViewModel: ObservableObject {
-    struct MenuBarIconPreview: Equatable {
-        let scene: IconSceneState
-        let menuBarSize: Double
-    }
 
     struct RefreshRegions: OptionSet {
         let rawValue: UInt16
@@ -173,8 +169,6 @@ final class StatusPanelViewModel: ObservableObject {
     @Published private(set) var hardwareMonitorMetricColors: [HardwareMonitorMetric: IconRGBA]
     @Published private(set) var statusPanelBoldTextEnabled: Bool
     @Published private(set) var statusPanelMediumTextEnabled: Bool
-    /// Live menu-bar scene mirrored from the status controller for the 4-up preview.
-    @Published private(set) var menuBarIconPreview: MenuBarIconPreview?
     /// Broadband caps (Mbps) for the network-speed tiles.
     @Published private(set) var hardwareSpeedCapsMbps: [HardwareMonitorMetric: Double]
 
@@ -309,11 +303,6 @@ final class StatusPanelViewModel: ObservableObject {
         )
         wiredDetails = PanelDetailMapper.wired(details: store.primaryLink.details, localization: localization)
         refreshAll()
-    }
-
-    func updateMenuBarIconPreview(_ output: IconPresentationOutput) {
-        let preview = MenuBarIconPreview(scene: output.scene, menuBarSize: output.menuBarSize)
-        if menuBarIconPreview != preview { menuBarIconPreview = preview }
     }
 
     func start() {
@@ -908,7 +897,11 @@ final class StatusPanelViewModel: ObservableObject {
             && route == .summary
             && visiblePopupSections.contains(.hardwareMonitor)
         if visible {
-            store.hardwareMetrics.begin(.panel, metrics: Set(hardwareMonitorMetrics.map(\.metricID)))
+            // The 4-up icon preview also shows GPU temperature, which is not a
+            // selectable card metric; request it while the card is visible.
+            var ids = Set(hardwareMonitorMetrics.map(\.metricID))
+            ids.insert(.gpuTemperature)
+            store.hardwareMetrics.begin(.panel, metrics: ids)
         } else {
             store.hardwareMetrics.end(.panel)
         }

@@ -294,9 +294,8 @@ struct StatusPopoverView: View {
                                             metrics: panel.hardwareMonitorMetrics,
                                             metricColors: panel.hardwareMonitorMetricColors,
                                             speedCapsMbps: panel.hardwareSpeedCapsMbps)
-                    if let preview = panel.menuBarIconPreview {
-                        MenuBarIconPreviewGrid(scene: preview.scene, menuBarSize: preview.menuBarSize)
-                    }
+                    MenuBarIconPreviewGrid(hardware: panel.hardwareMonitor,
+                                           colors: panel.hardwareMonitorMetricColors)
                 }
             }
         }
