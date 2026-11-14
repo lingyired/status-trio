@@ -33,6 +33,7 @@ struct MenuBarIconPreviewGrid: View {
                     let spec = spec(for: item)
                     AnimatedSceneIcon(
                         label: item.label,
+                        top: spec.top,
                         center: spec.center,
                         centerScale: spec.centerScale,
                         color: spec.color,
@@ -67,16 +68,16 @@ struct MenuBarIconPreviewGrid: View {
 
     private static let items = Slot.allCases
 
-    private func spec(for slot: Slot) -> (center: String, progress: Double, color: IconRGBA, centerScale: Double) {
+    private func spec(for slot: Slot) -> (top: String, center: String, progress: Double, color: IconRGBA, centerScale: Double) {
         switch slot {
         case .cpu:
-            return ("\(temperatureText(.cpuTemperature))", percent(.cpuUsage), color(.cpuUsage), 1.05)
+            return (percentText(.cpuUsage), "\(temperatureText(.cpuTemperature))", percent(.cpuUsage), color(.cpuUsage), 1.05)
         case .gpu:
-            return ("\(temperatureText(.gpuTemperature))", percent(.gpuUsage), color(.gpuUsage), 1.05)
+            return (percentText(.gpuUsage), "\(temperatureText(.gpuTemperature))", percent(.gpuUsage), color(.gpuUsage), 1.05)
         case .ram:
-            return (memoryAvailableText, percent(.memoryUsage), color(.memoryUsage), 0.8)
+            return (percentText(.memoryUsage), memoryAvailableText, percent(.memoryUsage), color(.memoryUsage), 0.8)
         case .ssd:
-            return (disk.freeText, disk.usedFraction ?? 0,
+            return (percentText(nil), disk.freeText, disk.usedFraction ?? 0,
                     IconRGBA(red: 0.55, green: 0.58, blue: 0.66, alpha: 1), 0.8)
         }
     }
@@ -94,6 +95,14 @@ struct MenuBarIconPreviewGrid: View {
     private func percent(_ id: HardwareMetricID) -> Double {
         guard let sample = sample(id), let value = sample.value, value.isFinite else { return 0 }
         return min(1, max(0, value / 100))
+    }
+
+    private func percentText(_ id: HardwareMetricID?) -> String {
+        if let id {
+            return "\(Int((percent(id) * 100).rounded()))%"
+        }
+        // SSD has no hardware sample; use its disk fraction.
+        return "\(Int(((disk.usedFraction ?? 0) * 100).rounded()))%"
     }
 
     private func temperatureText(_ id: HardwareMetricID) -> String {
@@ -120,6 +129,7 @@ struct MenuBarIconPreviewGrid: View {
 /// interpolate `progress` through the app's own renderer.
 private struct AnimatedSceneIcon: View, Animatable {
     let label: String
+    let top: String
     let center: String
     let centerScale: Double
     let color: IconRGBA
@@ -154,9 +164,9 @@ private struct AnimatedSceneIcon: View, Animatable {
     private var image: NSImage? {
         let ring = OuterRingState(
             segments: [RingSegmentState(progress: progress, color: .custom(color))],
-            gap: .closed,
+            gap: .value,
             layout: .standard,
-            accessory: nil,
+            accessory: .text(IconTextState(text: top, color: .primary, scale: 1.5)),
             strokeScale: 1.1
         )
         let scene = IconSceneState(
