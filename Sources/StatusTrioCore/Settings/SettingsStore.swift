@@ -286,9 +286,9 @@ final class SettingsStore: ObservableObject {
 
     /// When false, the status panel renders every title/value in regular weight so
     /// the no-bold look can be compared. Local appearance preference, not exported.
-    static let statusPanelBoldTextDefaultsKey = "statusPanelBoldTextEnabled"
+    static let statusPanelBoldTextDefaultsKey = "statusPanelBoldTextEnabled.v2"
     /// When false, medium-weight panel text also renders regular.
-    static let statusPanelMediumTextDefaultsKey = "statusPanelMediumTextEnabled"
+    static let statusPanelMediumTextDefaultsKey = "statusPanelMediumTextEnabled.v2"
     /// When true, opening Settings from the panel leaves the panel on screen so
     /// the two can be compared side by side.
     static let keepsPanelOpenWhenOpeningSettingsDefaultsKey = "keepsStatusPanelOpenWhenOpeningSettings"
@@ -2744,7 +2744,7 @@ final class SettingsStore: ObservableObject {
         ) as? Bool ?? false
         self.statusPanelBoldTextEnabled = defaults.object(
             forKey: Self.statusPanelBoldTextDefaultsKey
-        ) as? Bool ?? true
+        ) as? Bool ?? false
         self.statusPanelMediumTextEnabled = defaults.object(
             forKey: Self.statusPanelMediumTextDefaultsKey
         ) as? Bool ?? true

@@ -107,28 +107,6 @@ struct PopoverSectionView: View {
                     PanelBackgroundStylePreview(style: style)
                 }
             )
-            SettingsDivider()
-            SettingsToggleRow(
-                symbol: "bold",
-                tint: .purple,
-                title: localization.string(.settingsPanelBoldText),
-                subtitle: localization.string(.settingsPanelBoldTextDescription),
-                isOn: Binding(
-                    get: { !store.statusPanelBoldTextEnabled },
-                    set: { store.statusPanelBoldTextEnabled = !$0 }
-                )
-            )
-            SettingsDivider()
-            SettingsToggleRow(
-                symbol: "textformat.size",
-                tint: .purple,
-                title: localization.string(.settingsPanelMediumText),
-                subtitle: localization.string(.settingsPanelMediumTextDescription),
-                isOn: Binding(
-                    get: { !store.statusPanelMediumTextEnabled },
-                    set: { store.statusPanelMediumTextEnabled = !$0 }
-                )
-            )
         }
     }
 
