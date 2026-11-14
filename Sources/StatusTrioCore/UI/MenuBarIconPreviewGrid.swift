@@ -1,14 +1,14 @@
-import AppKit
+import Foundation
 import SwiftUI
 
 /// Design preview: four menu-bar-style icons, one row, under System Monitoring.
-/// Each icon uses a real metric for its arc and its label/short value for the top
-/// and centre, so the size and density of a 4-up arrangement can be judged.
+/// Each icon uses a real metric for its arc and its short value/label, so the
+/// size and density of a 4-up arrangement can be judged. The arc is drawn natively
+/// so progress changes can animate instead of snapping between snapshots.
 struct MenuBarIconPreviewGrid: View {
     @ObservedObject var hardware: HardwareMonitorObservable
     let colors: [HardwareMonitorMetric: IconRGBA]
 
-    @Environment(\.colorScheme) private var colorScheme
     @State private var disk: DiskCapacitySample = .current()
 
     private var snapshot: HardwareMetricsSnapshot { hardware.snapshot }
@@ -27,19 +27,15 @@ struct MenuBarIconPreviewGrid: View {
 
             HStack(alignment: .top, spacing: 10) {
                 ForEach(Self.items) { item in
-                    Color.clear
-                        .aspectRatio(1, contentMode: .fit)
-                        .overlay {
-                            if let image = image(for: item) {
-                                Image(nsImage: image)
-                                    .resizable()
-                                    .scaledToFit()
-                            }
-                        }
-                        .overlay {
-                            BottomLabel(text: item.label)
-                        }
-                        .frame(maxWidth: .infinity)
+                    let spec = spec(for: item)
+                    PreviewRingIcon(
+                        label: item.label,
+                        center: spec.center,
+                        progress: spec.progress,
+                        color: IconAppearanceColorConversion.color(from: spec.color)
+                    )
+                    .frame(maxWidth: .infinity)
+                    .aspectRatio(1, contentMode: .fit)
                 }
             }
 
@@ -66,42 +62,18 @@ struct MenuBarIconPreviewGrid: View {
 
     private static let items = Slot.allCases
 
-    private func image(for slot: Slot) -> NSImage? {
-        StatusIconPreviewCache.shared.image(
-            scene: scene(for: slot),
-            size: 72,
-            scale: 2,
-            appearance: MenuBarPreviewBackdrop.appearance(isDarkBackground: colorScheme == .dark)
-        )
-    }
-
-    private func scene(for slot: Slot) -> IconSceneState {
-        let spec: (center: String, progress: Double, color: IconRGBA, centerScale: Double)
+    private func spec(for slot: Slot) -> (center: String, progress: Double, color: IconRGBA) {
         switch slot {
         case .cpu:
-            spec = ("\(temperatureText(.cpuTemperature))", percent(.cpuUsage),
-                    color(.cpuUsage), 1.05)
+            return ("\(temperatureText(.cpuTemperature))", percent(.cpuUsage), color(.cpuUsage))
         case .gpu:
-            spec = ("\(temperatureText(.gpuTemperature))", percent(.gpuUsage),
-                    color(.gpuUsage), 1.05)
+            return ("\(temperatureText(.gpuTemperature))", percent(.gpuUsage), color(.gpuUsage))
         case .ram:
-            spec = (memoryAvailableText, percent(.memoryUsage),
-                    color(.memoryUsage), 0.8)
+            return (memoryAvailableText, percent(.memoryUsage), color(.memoryUsage))
         case .ssd:
-            spec = (disk.freeText, disk.usedFraction ?? 0,
-                    IconRGBA(red: 0.55, green: 0.58, blue: 0.66, alpha: 1), 0.8)
+            return (disk.freeText, disk.usedFraction ?? 0,
+                    IconRGBA(red: 0.55, green: 0.58, blue: 0.66, alpha: 1))
         }
-        let ring = OuterRingState(
-            segments: [RingSegmentState(progress: spec.progress, color: .custom(spec.color))],
-            gap: .closed,
-            layout: .standard,
-            accessory: nil,
-            strokeScale: 1.1
-        )
-        return IconSceneState(
-            outerRing: ring,
-            center: .text(IconTextState(text: spec.center, color: .primary, scale: spec.centerScale))
-        )
     }
 
     // MARK: - Values
@@ -138,21 +110,58 @@ struct MenuBarIconPreviewGrid: View {
     }
 }
 
-/// Bottom label sitting where the old dot/arc indicator was, kept horizontal for
-/// legibility.
-private struct BottomLabel: View {
-    let text: String
+/// A natively drawn preview ring so progress changes can animate smoothly.
+private struct PreviewRingIcon: View {
+    let label: String
+    let center: String
+    let progress: Double
+    let color: Color
 
     var body: some View {
         GeometryReader { proxy in
-            Text(text)
-                .font(.system(size: proxy.size.width * 0.14, weight: .medium))
-                .foregroundStyle(.secondary)
-                .frame(width: proxy.size.width, height: proxy.size.height, alignment: .bottom)
-                .padding(.bottom, proxy.size.height * 0.14)
+            let side = min(proxy.size.width, proxy.size.height)
+            let stroke = max(1.5, side * 0.055)
+            ZStack {
+                Circle()
+                    .inset(by: side * 0.075)
+                    .stroke(Color.secondary.opacity(0.22), lineWidth: stroke)
+                Circle()
+                    .inset(by: side * 0.075)
+                    .trim(from: 0, to: min(1, max(0, progress)))
+                    .stroke(color, style: StrokeStyle(lineWidth: stroke, lineCap: .round))
+                    .rotationEffect(.degrees(-90))
+                    .animation(.easeOut(duration: 0.55), value: progress)
+                centerText(side: side)
+                Text(label)
+                    .font(.system(size: side * 0.14, weight: .medium))
+                    .foregroundStyle(.secondary)
+                    .offset(y: side * 0.30)
+            }
+            .frame(width: side, height: side)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
-        .allowsHitTesting(false)
-        .accessibilityHidden(true)
+    }
+
+    @ViewBuilder
+    private func centerText(side: CGFloat) -> some View {
+        if center.count > 1, center.hasSuffix("°") {
+            let number = String(center.dropLast())
+            Text(number)
+                .font(.system(size: side * 0.25, weight: .semibold))
+                .monospacedDigit()
+                .foregroundStyle(.primary)
+                .overlay(alignment: .topTrailing) {
+                    Text("°")
+                        .font(.system(size: side * 0.115, weight: .semibold))
+                        .foregroundStyle(.primary)
+                        .offset(x: side * 0.10, y: -side * 0.015)
+                }
+        } else {
+            Text(center)
+                .font(.system(size: side * 0.23, weight: .semibold))
+                .monospacedDigit()
+                .foregroundStyle(.primary)
+        }
     }
 }
 
