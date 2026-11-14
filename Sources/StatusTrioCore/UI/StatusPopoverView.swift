@@ -289,10 +289,15 @@ struct StatusPopoverView: View {
             )
         case .hardwareMonitor:
             if !panel.hardwareMonitorMetrics.isEmpty {
-                HardwareMonitorCardView(model: panel.hardwareMonitor,
-                                        metrics: panel.hardwareMonitorMetrics,
-                                        metricColors: panel.hardwareMonitorMetricColors,
-                                        speedCapsMbps: panel.hardwareSpeedCapsMbps)
+                VStack(spacing: 10) {
+                    HardwareMonitorCardView(model: panel.hardwareMonitor,
+                                            metrics: panel.hardwareMonitorMetrics,
+                                            metricColors: panel.hardwareMonitorMetricColors,
+                                            speedCapsMbps: panel.hardwareSpeedCapsMbps)
+                    if let preview = panel.menuBarIconPreview {
+                        MenuBarIconPreviewGrid(scene: preview.scene, menuBarSize: preview.menuBarSize)
+                    }
+                }
             }
         }
     }
