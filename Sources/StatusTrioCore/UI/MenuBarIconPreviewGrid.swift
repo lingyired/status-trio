@@ -27,25 +27,23 @@ struct MenuBarIconPreviewGrid: View {
 
             HStack(alignment: .top, spacing: 10) {
                 ForEach(Self.items) { item in
-                    VStack(spacing: 3) {
-                        Color.clear
-                            .aspectRatio(1, contentMode: .fit)
-                            .overlay {
-                                if let image = image(for: item) {
-                                    Image(nsImage: image)
-                                        .resizable()
-                                        .scaledToFit()
-                                }
+                    Color.clear
+                        .aspectRatio(1, contentMode: .fit)
+                        .overlay {
+                            if let image = image(for: item) {
+                                Image(nsImage: image)
+                                    .resizable()
+                                    .scaledToFit()
                             }
-                        Text(item.label)
-                            .font(.system(size: 10, weight: .medium))
-                            .foregroundStyle(.secondary)
-                    }
-                    .frame(maxWidth: .infinity)
+                        }
+                        .overlay {
+                            CurvedBottomLabel(text: item.label)
+                        }
+                        .frame(maxWidth: .infinity)
                 }
             }
 
-            Text("图标约 60×60 pt · 标签在底部，数据实时")
+            Text("图标约 60×60 pt · 标签沿底部圆弧，数据实时")
                 .font(.system(size: 9))
                 .foregroundStyle(.tertiary)
         }
@@ -137,6 +135,46 @@ struct MenuBarIconPreviewGrid: View {
         let gb = bytes / 1_000_000_000
         if gb >= 10 { return "\(Int(gb.rounded()))G" }
         return String(format: "%.1fG", gb)
+    }
+}
+
+/// Bottom label bent along the same arc the old dot indicator used, so the
+/// label reads as part of the circle instead of a caption under it.
+private struct CurvedBottomLabel: View {
+    let text: String
+
+    var body: some View {
+        GeometryReader { proxy in
+            let size = min(proxy.size.width, proxy.size.height)
+            Canvas { context, canvasSize in
+                let characters = Array(text)
+                guard !characters.isEmpty else { return }
+                let fontSize = size * 0.155
+                let radius = size * 0.30
+                let center = CGPoint(x: canvasSize.width / 2, y: canvasSize.height / 2)
+                let spanDegrees = characters.count > 1 ? min(110, Double(characters.count) * 14) : 0
+                for (index, character) in characters.enumerated() {
+                    let t = characters.count == 1 ? 0.5 : Double(index) / Double(characters.count - 1)
+                    let angle = 90 + (0.5 - t) * spanDegrees
+                    let radians = angle * .pi / 180
+                    var glyphContext = context
+                    glyphContext.translateBy(
+                        x: center.x + radius * cos(radians),
+                        y: center.y + radius * sin(radians)
+                    )
+                    glyphContext.rotate(by: .degrees(angle - 90))
+                    glyphContext.draw(
+                        Text(String(character))
+                            .font(.system(size: fontSize, weight: .medium))
+                            .foregroundColor(.secondary),
+                        at: .zero,
+                        anchor: .center
+                    )
+                }
+            }
+        }
+        .allowsHitTesting(false)
+        .accessibilityHidden(true)
     }
 }
 
