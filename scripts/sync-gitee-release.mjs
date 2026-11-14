@@ -67,17 +67,23 @@ export async function synchronize(config) {
     if (matches[0].browser_download_url !== url) fail('GitHub asset URL identity mismatch');
     return matches[0];
   };
+  // Download through the API asset endpoint: github.com release redirects are
+  // blocked on some networks even when api.github.com is reachable.
+  const assetBytes = async item => Buffer.from(await (await request(item.url, {
+    token: githubToken,
+    headers: { Accept: 'application/octet-stream' },
+  })).arrayBuffer());
   stage = 'reading release manifest';
   const manifestAsset = asset('release-manifest.json');
-  const manifestBytes = await bytes(manifestAsset.browser_download_url);
+  const manifestBytes = await assetBytes(manifestAsset);
   const manifest = JSON.parse(manifestBytes);
   validateManifest(manifest, tag, github, commit.sha);
   const dmgAsset = asset(manifest.dmg.filename);
   if (dmgAsset.size !== Number(manifest.dmg.length)) fail('GitHub asset metadata length mismatch');
-  const checksum = await bytes(asset(manifest.dmg.filename + '.sha256').browser_download_url);
+  const checksum = await assetBytes(asset(manifest.dmg.filename + '.sha256'));
   if (checksum.toString().trim() !== manifest.dmg.sha256 + '  ' + manifest.dmg.filename) fail('Checksum sidecar identity mismatch');
   stage = 'downloading GitHub DMG';
-  const dmg = await bytes(dmgAsset.browser_download_url);
+  const dmg = await assetBytes(dmgAsset);
   verifyBytes(dmg, manifest.dmg);
   const sourceFile = await json(gh + '/contents/appcast.xml?ref=main', ghOptions);
   if (sourceFile.encoding !== 'base64') fail('Unsupported authoritative feed encoding');

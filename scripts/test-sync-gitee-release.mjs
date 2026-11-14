@@ -19,9 +19,10 @@ async function mockMirror(run) {
     if (state.failure?.(p,req.method)) return respond({message:'secret'},state.status??503);
     if (target.hostname==='api.github.com') {
       assert.equal(req.method,'GET','GitHub is read only');
-      if(p.endsWith('/releases/tags/v1.2.3')) return respond({tag_name:m.tag,published_at:'2026-01-01',html_url:'https://github.com/lingyired/status-trio/releases/tag/'+m.tag,assets:[...contents].map(([name,data])=>({name,state:'uploaded',size:data.length,browser_download_url:'https://github.com/lingyired/status-trio/releases/download/'+m.tag+'/'+name}))});
+      if(p.endsWith('/releases/tags/v1.2.3')) return respond({tag_name:m.tag,published_at:'2026-01-01',html_url:'https://github.com/lingyired/status-trio/releases/tag/'+m.tag,assets:[...contents].map(([name,data])=>({name,state:'uploaded',size:data.length,browser_download_url:'https://github.com/lingyired/status-trio/releases/download/'+m.tag+'/'+name,url:'https://api.github.com/repos/lingyired/status-trio/releases/assets/'+name}))});
       if(p.endsWith('/commits/v1.2.3')) return respond({sha:m.source_sha});
       if(p.endsWith('/contents/appcast.xml')) return respond({encoding:'base64',content:Buffer.from(source).toString('base64')});
+      if(p.includes('/releases/assets/')) return respond(contents.get(decodeURIComponent(p.split('/').at(-1))));
     }
     if(target.hostname==='github.com') return respond(contents.get(decodeURIComponent(p.split('/').at(-1))));
     if(p.includes('/raw/')) return respond(state.feed);
