@@ -437,6 +437,11 @@
 "quickActions.timer.thirtyMinutes" = "30 minuti";
 "quickActions.timer.oneHour" = "1 ora";
 "quickActions.timer.twoHours" = "2 ore";
+"quickActions.timer.fourHours" = "4 ore";
+"quickActions.status.off" = "Disattivato";
+"quickActions.status.unlimited" = "Attivo continuo";
+"quickActions.remaining.minutes" = "Restano %d min";
+"quickActions.remaining.hoursMinutes" = "Restano %d h %d min";
 "quickActions.timer.unlimited" = "Nessun limite";
 "quickActions.remaining" = "Rimanente %@";
 "quickActions.requiresPower" = "Collega l’alimentazione per attivare questa opzione.";

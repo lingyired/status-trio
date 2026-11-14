@@ -437,6 +437,11 @@
 "quickActions.timer.thirtyMinutes" = "30 دقيقة";
 "quickActions.timer.oneHour" = "ساعة واحدة";
 "quickActions.timer.twoHours" = "ساعتان";
+"quickActions.timer.fourHours" = "4 ساعات";
+"quickActions.status.off" = "متوقف";
+"quickActions.status.unlimited" = "قيد التشغيل";
+"quickActions.remaining.minutes" = "متبقي %d دقيقة";
+"quickActions.remaining.hoursMinutes" = "متبقي %d ساعة %d دقيقة";
 "quickActions.timer.unlimited" = "بلا حد";
 "quickActions.remaining" = "المتبقي %@";
 "quickActions.requiresPower" = "وصّل الجهاز بالطاقة لتفعيل هذا الخيار.";

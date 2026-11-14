@@ -437,6 +437,11 @@
 "quickActions.timer.thirtyMinutes" = "30분";
 "quickActions.timer.oneHour" = "1시간";
 "quickActions.timer.twoHours" = "2시간";
+"quickActions.timer.fourHours" = "4시간";
+"quickActions.status.off" = "꺼짐";
+"quickActions.status.unlimited" = "계속 켜짐";
+"quickActions.remaining.minutes" = "남은 %d분";
+"quickActions.remaining.hoursMinutes" = "남은 %d시간 %d분";
 "quickActions.timer.unlimited" = "제한 없음";
 "quickActions.remaining" = "남은 시간 %@";
 "quickActions.requiresPower" = "이 기능을 켜려면 전원에 연결하세요.";

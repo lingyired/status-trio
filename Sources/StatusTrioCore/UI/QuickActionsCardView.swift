@@ -1,25 +1,24 @@
 import SwiftUI
 
-/// The status panel's "quick actions" card (#295): two independent keep-awake
-/// toggles on one compact row, each with its own optional timer.
+/// The status panel's keep-awake controls (#295): two split-capsule controls on
+/// one row, in the spirit of macOS Control Center.
 ///
-/// "Keep Screen Awake" is a local assertion; "Keep Awake With Lid Closed" needs
-/// the privileged helper and is only offered on external power. The two live
-/// side by side so the card costs a single row of panel height; the per-toggle
-/// descriptions moved into hover help, and a reason / error / notice line only
-/// appears underneath when there is something to say.
+/// Each control is one capsule split into two tappable segments:
+///
+///     [ ● Title / status    | ⏱ 1h ]
+///       └ main: toggle + progress   └ time: neutral, opens a menu
+///
+/// Only the left main segment carries the blue remaining-time progress. The
+/// right time segment is always a neutral gray, so there is never a second blue
+/// block. The row reuses `SleepControlController` for every behaviour: the
+/// toggles, the timers, the helper gating, power policy and residual cleanup.
 struct QuickActionsCardView: View {
     @ObservedObject var control: SleepControlController
     @EnvironmentObject private var localization: Localization
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
-            HStack(spacing: 10) {
-                displayControl
-                Divider()
-                    .frame(height: 22)
-                lidControl
-            }
+            keepAwakeRow
             if let status = statusLine {
                 Text(status.text)
                     .font(.system(size: 11))
@@ -30,44 +29,145 @@ struct QuickActionsCardView: View {
         .animation(.easeInOut(duration: 0.15), value: control.notice)
     }
 
-    private var displayControl: some View {
-        compactRow(
+    // MARK: - Row
+
+    /// While a finite countdown runs, a low-frequency timeline updates the
+    /// progress and remaining text. When nothing is counting down there is no
+    /// timeline at all, so an idle panel does not redraw.
+    private var keepAwakeRow: some View {
+        Group {
+            if needsTicker {
+                TimelineView(.periodic(from: .now, by: 15)) { context in
+                    pillRow(now: context.date)
+                }
+            } else {
+                pillRow(now: Date())
+            }
+        }
+    }
+
+    private var needsTicker: Bool {
+        (control.isPreventingDisplaySleep && control.displayExpiry != nil)
+            || (control.isPreventingLidSleep && control.lidExpiry != nil)
+    }
+
+    private func pillRow(now: Date) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            displayPill(now: now)
+            lidPill(now: now)
+        }
+    }
+
+    private func displayPill(now: Date) -> some View {
+        SplitCapsuleControl(
             symbol: "sun.max.fill",
             title: localization.string(.quickActionsDisplaySleep),
             help: localization.string(.quickActionsDisplaySleepDescription),
-            tint: .orange,
-            isOn: displayBinding,
+            subtitle: subtitle(
+                isOn: control.isPreventingDisplaySleep,
+                expiry: control.displayExpiry,
+                timer: control.displayTimer,
+                now: now
+            ),
+            progress: progress(
+                isOn: control.isPreventingDisplaySleep,
+                expiry: control.displayExpiry,
+                timer: control.displayTimer,
+                now: now
+            ),
+            isOn: control.isPreventingDisplaySleep,
             isEnabled: true,
             isApplying: false,
-            timer: TimerMenu(
-                isOn: control.isPreventingDisplaySleep,
-                duration: control.displayTimer,
-                expiry: control.displayExpiry,
-                onSelect: { control.setDisplayTimer($0) }
-            )
+            selectedDuration: control.displayTimer,
+            onToggle: { control.setDisplaySleep(!control.isPreventingDisplaySleep) },
+            onSelectDuration: { duration in
+                control.setDisplayTimer(duration)
+                if !control.isPreventingDisplaySleep {
+                    control.setDisplaySleep(true)
+                }
+            }
         )
     }
 
-    private var lidControl: some View {
-        compactRow(
+    private func lidPill(now: Date) -> some View {
+        SplitCapsuleControl(
             symbol: "moon.zzz.fill",
             title: localization.string(.quickActionsLidSleep),
             help: localization.string(.quickActionsLidSleepDescription),
-            tint: .blue,
-            isOn: lidBinding,
+            subtitle: subtitle(
+                isOn: control.isPreventingLidSleep,
+                expiry: control.lidExpiry,
+                timer: control.lidTimer,
+                now: now
+            ),
+            progress: progress(
+                isOn: control.isPreventingLidSleep,
+                expiry: control.lidExpiry,
+                timer: control.lidTimer,
+                now: now
+            ),
+            isOn: control.isPreventingLidSleep,
             isEnabled: control.isPreventingLidSleep || control.canEnableLidSleep,
             isApplying: control.isApplyingLidSleep,
-            timer: TimerMenu(
-                isOn: control.isPreventingLidSleep,
-                duration: control.lidTimer,
-                expiry: control.lidExpiry,
-                onSelect: { control.setLidTimer($0) }
-            )
+            selectedDuration: control.lidTimer,
+            onToggle: { control.setLidSleep(!control.isPreventingLidSleep) },
+            onSelectDuration: { duration in
+                control.setLidTimer(duration)
+                if !control.isPreventingLidSleep, control.canEnableLidSleep {
+                    control.setLidSleep(true)
+                }
+            }
         )
     }
 
-    /// One line under the row when something needs saying. Only one message is
-    /// shown, so the card never grows into a paragraph.
+    // MARK: - State text / progress
+
+    private func subtitle(
+        isOn: Bool,
+        expiry: Date?,
+        timer: SleepTimerDuration,
+        now: Date
+    ) -> String {
+        guard isOn else { return localization.string(.quickActionsStatusOff) }
+        guard timer != .unlimited, let expiry else {
+            return localization.string(.quickActionsStatusUnlimited)
+        }
+        let remaining = SleepProgress.remaining(until: expiry, now: now)
+        guard remaining > 0 else { return localization.string(.quickActionsStatusOff) }
+        let minutes = SleepProgress.displayMinutes(remaining: remaining)
+        if minutes >= 60 {
+            let hours = minutes / 60
+            let rest = minutes % 60
+            return String(
+                format: localization.string(.quickActionsRemainingHoursMinutes),
+                locale: localization.resolvedLanguage.locale,
+                arguments: [Int32(hours), Int32(rest)]
+            )
+        }
+        return String(
+            format: localization.string(.quickActionsRemainingMinutes),
+            locale: localization.resolvedLanguage.locale,
+            arguments: [Int32(minutes)]
+        )
+    }
+
+    private func progress(
+        isOn: Bool,
+        expiry: Date?,
+        timer: SleepTimerDuration,
+        now: Date
+    ) -> Double {
+        guard isOn else { return 0 }
+        guard let total = timer.timeInterval, let expiry else { return 1 }
+        return SleepProgress.fraction(
+            remaining: SleepProgress.remaining(until: expiry, now: now),
+            total: total
+        )
+    }
+
+    /// One line under the row when something needs saying (error > unavailable
+    /// reason > auto-off notice). Only one message is shown, so the card never
+    /// grows into a paragraph.
     private var statusLine: (text: String, color: Color)? {
         if let error = control.lastError {
             return (
@@ -87,118 +187,140 @@ struct QuickActionsCardView: View {
         }
         return nil
     }
-
-    private var displayBinding: Binding<Bool> {
-        Binding(
-            get: { control.isPreventingDisplaySleep },
-            set: { control.setDisplaySleep($0) }
-        )
-    }
-
-    private var lidBinding: Binding<Bool> {
-        Binding(
-            get: { control.isPreventingLidSleep },
-            set: { control.setLidSleep($0) }
-        )
-    }
-
-    private func compactRow<Timer: View>(
-        symbol: String,
-        title: String,
-        help: String,
-        tint: Color,
-        isOn: Binding<Bool>,
-        isEnabled: Bool,
-        isApplying: Bool,
-        timer: Timer
-    ) -> some View {
-        HStack(spacing: 4) {
-            Image(systemName: symbol)
-                .font(.system(size: 10, weight: .semibold))
-                .foregroundStyle(isOn.wrappedValue ? tint : Color.secondary)
-                .frame(width: 12)
-                .accessibilityHidden(true)
-
-            Text(title)
-                .font(.system(size: 11))
-                .lineLimit(1)
-                .minimumScaleFactor(0.7)
-                .foregroundStyle(isEnabled ? .primary : .secondary)
-
-            Spacer(minLength: 2)
-
-            if isApplying {
-                ProgressView().controlSize(.mini)
-            } else {
-                timer
-            }
-
-            Toggle("", isOn: isOn)
-                .labelsHidden()
-                .toggleStyle(.switch)
-                .controlSize(.mini)
-                .disabled(!isEnabled || isApplying)
-                .accessibilityLabel(Text(title))
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .help(help)
-    }
 }
 
-/// A compact per-toggle timer menu: a timer glyph when idle, and the remaining
-/// time (m:ss / h:mm) while a countdown runs. Still a menu, so picking another
-/// duration is one click away.
-private struct TimerMenu: View {
+// MARK: - Split capsule
+
+/// One Control Center style split capsule: a main toggle with the remaining
+/// time as a blue progress fill, and a separate neutral time button.
+private struct SplitCapsuleControl: View {
+    let symbol: String
+    let title: String
+    let help: String
+    let subtitle: String
+    let progress: Double
     let isOn: Bool
-    let duration: SleepTimerDuration
-    let expiry: Date?
-    let onSelect: (SleepTimerDuration) -> Void
+    let isEnabled: Bool
+    let isApplying: Bool
+    let selectedDuration: SleepTimerDuration
+    let onToggle: () -> Void
+    let onSelectDuration: (SleepTimerDuration) -> Void
 
     @EnvironmentObject private var localization: Localization
 
+    private static let height: CGFloat = 44
+    private static let timeWidth: CGFloat = 40
+    private static let segmentRadius: CGFloat = 12
+    private static let iconDiameter: CGFloat = 26
+
     var body: some View {
+        HStack(spacing: 2) {
+            mainButton
+            timeButton
+        }
+        // Two 12pt rounded segments with a hairline gap, sized like the
+        // battery power cards so the panel does not gain a taller row.
+        .frame(maxWidth: .infinity)
+        .frame(height: Self.height)
+        .opacity(isEnabled ? 1 : 0.5)
+        .help(help)
+    }
+
+    private var mainButton: some View {
+        Button(action: onToggle) {
+            ZStack(alignment: .leading) {
+                GeometryReader { geometry in
+                    ZStack(alignment: .leading) {
+                        Color.primary.opacity(0.07)
+                        Color.blue
+                            .opacity(0.32)
+                            .frame(width: geometry.size.width * clampedProgress)
+                    }
+                }
+
+                HStack(spacing: 5) {
+                    ZStack {
+                        Circle()
+                            .fill(Color.primary.opacity(0.12))
+                            .frame(width: Self.iconDiameter, height: Self.iconDiameter)
+                        Image(systemName: symbol)
+                            .font(.system(size: 12, weight: .semibold))
+                            .foregroundStyle(.primary)
+                    }
+
+                    VStack(alignment: .leading, spacing: 1) {
+                        Text(title)
+                            .font(.system(size: 11, weight: .medium))
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.75)
+                            .foregroundStyle(.primary)
+                        Text(subtitle)
+                            .font(.system(size: 9))
+                            .lineLimit(2)
+                            .minimumScaleFactor(0.8)
+                            .foregroundStyle(.secondary)
+                    }
+
+                    Spacer(minLength: 0)
+                }
+                .padding(.leading, 6)
+                .padding(.trailing, 4)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
+            .clipShape(RoundedRectangle(cornerRadius: Self.segmentRadius, style: .continuous))
+            .contentShape(RoundedRectangle(cornerRadius: Self.segmentRadius, style: .continuous))
+            .overlay {
+                if isApplying {
+                    ProgressView().controlSize(.small)
+                }
+            }
+        }
+        .buttonStyle(.plain)
+        .disabled(!isEnabled || isApplying)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(Text(title))
+        .accessibilityValue(Text(subtitle))
+        .accessibilityAddTraits(isOn ? [.isButton, .isSelected] : .isButton)
+        .accessibilityHint(Text(help))
+        .focusable(isEnabled)
+    }
+
+    private var timeButton: some View {
         Menu {
             Picker(
                 localization.string(.quickActionsTimer),
-                selection: Binding(get: { duration }, set: { onSelect($0) })
+                selection: Binding(
+                    get: { selectedDuration },
+                    set: { onSelectDuration($0) }
+                )
             ) {
-                ForEach(SleepTimerDuration.allCases, id: \.self) { option in
+                ForEach(SleepTimerDuration.allCases) { option in
                     Text(localization.string(option.localizationKey)).tag(option)
                 }
             }
             .pickerStyle(.inline)
         } label: {
-            label
+            VStack(spacing: 1) {
+                Image(systemName: "timer")
+                    .font(.system(size: 10, weight: .medium))
+                Text(selectedDuration.shortLabel)
+                    .font(.system(size: 9.5, weight: .semibold))
+                    .lineLimit(1)
+            }
+            .frame(width: Self.timeWidth, height: Self.height)
+            .foregroundStyle(.primary)
+            .background(Color.primary.opacity(0.10))
+            .clipShape(RoundedRectangle(cornerRadius: Self.segmentRadius, style: .continuous))
+            .contentShape(RoundedRectangle(cornerRadius: Self.segmentRadius, style: .continuous))
         }
         .menuStyle(.borderlessButton)
         .menuIndicator(.hidden)
-        .frame(width: 34, alignment: .trailing)
-        .disabled(!isOn)
-        .help(localization.string(.quickActionsTimer))
+        .disabled(!isEnabled || isApplying)
         .accessibilityLabel(Text(localization.string(.quickActionsTimer)))
+        .accessibilityValue(Text(localization.string(selectedDuration.localizationKey)))
     }
 
-    @ViewBuilder
-    private var label: some View {
-        if let expiry, isOn {
-            TimelineView(.periodic(from: .now, by: 1)) { context in
-                Text(remaining(until: expiry, now: context.date))
-                    .font(.system(size: 10, weight: .medium))
-                    .monospacedDigit()
-                    .foregroundStyle(.secondary)
-            }
-        } else {
-            Image(systemName: "timer")
-                .font(.system(size: 11))
-                .foregroundStyle(.secondary)
-        }
-    }
-
-    private func remaining(until expiry: Date, now: Date) -> String {
-        let seconds = max(0, Int(expiry.timeIntervalSince(now).rounded()))
-        if seconds >= 3600 {
-            return String(format: "%d:%02d", seconds / 3600, (seconds % 3600) / 60)
-        }
-        return String(format: "%d:%02d", seconds / 60, seconds % 60)
+    private var clampedProgress: Double {
+        min(1, max(0, progress))
     }
 }

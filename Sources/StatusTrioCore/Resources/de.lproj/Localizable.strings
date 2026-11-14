@@ -437,6 +437,11 @@
 "quickActions.timer.thirtyMinutes" = "30 Minuten";
 "quickActions.timer.oneHour" = "1 Stunde";
 "quickActions.timer.twoHours" = "2 Stunden";
+"quickActions.timer.fourHours" = "4 Stunden";
+"quickActions.status.off" = "Aus";
+"quickActions.status.unlimited" = "Dauerhaft an";
+"quickActions.remaining.minutes" = "Noch %d Min.";
+"quickActions.remaining.hoursMinutes" = "Noch %d Std. %d Min.";
 "quickActions.timer.unlimited" = "Keine Begrenzung";
 "quickActions.remaining" = "Verbleibend %@";
 "quickActions.requiresPower" = "Schließe das Netzteil an, um dies einzuschalten.";

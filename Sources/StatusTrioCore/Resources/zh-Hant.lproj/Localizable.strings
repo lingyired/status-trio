@@ -437,6 +437,11 @@
 "quickActions.timer.thirtyMinutes" = "30 分鐘";
 "quickActions.timer.oneHour" = "1 小時";
 "quickActions.timer.twoHours" = "2 小時";
+"quickActions.timer.fourHours" = "4 小時";
+"quickActions.status.off" = "已關閉";
+"quickActions.status.unlimited" = "持續開啟";
+"quickActions.remaining.minutes" = "剩餘%d分鐘";
+"quickActions.remaining.hoursMinutes" = "剩餘%d小時%d分鐘";
 "quickActions.timer.unlimited" = "不限";
 "quickActions.remaining" = "剩餘 %@";
 "quickActions.requiresPower" = "接上電源後才能開啟。";

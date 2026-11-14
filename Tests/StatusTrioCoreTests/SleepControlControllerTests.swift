@@ -312,4 +312,41 @@ final class SleepControlControllerTests: XCTestCase {
         XCTAssertFalse(client.disableSleep)
         XCTAssertFalse(ownership.ownsDisableSleep)
     }
+
+    // MARK: - Four-hour timer / restarting a countdown
+
+    func testFourHourTimerUsesConfiguredExpiry() {
+        let fixed = Date(timeIntervalSince1970: 1_700_000_000)
+        let control = SleepControlController(
+            assertion: FakeDisplayAssertion(),
+            client: FakeDisableSleepClient(),
+            helperReadiness: FakeHelperReadiness(isReady: true),
+            ownership: FakeOwnership(),
+            now: { fixed }
+        )
+
+        control.setDisplaySleep(true)
+        control.setDisplayTimer(.fourHours)
+
+        XCTAssertEqual(control.displayExpiry, fixed.addingTimeInterval(4 * 60 * 60))
+    }
+
+    func testSelectingNewDurationRestartsCountdownFromNow() {
+        let fixed = Date(timeIntervalSince1970: 1_700_000_000)
+        let control = SleepControlController(
+            assertion: FakeDisplayAssertion(),
+            client: FakeDisableSleepClient(),
+            helperReadiness: FakeHelperReadiness(isReady: true),
+            ownership: FakeOwnership(),
+            now: { fixed }
+        )
+
+        control.setDisplaySleep(true)
+        control.setDisplayTimer(.oneHour)
+        XCTAssertEqual(control.displayExpiry, fixed.addingTimeInterval(60 * 60))
+
+        control.setDisplayTimer(.thirtyMinutes)
+        XCTAssertEqual(control.displayExpiry, fixed.addingTimeInterval(30 * 60))
+        XCTAssertTrue(control.isPreventingDisplaySleep)
+    }
 }

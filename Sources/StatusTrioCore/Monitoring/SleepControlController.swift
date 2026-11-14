@@ -8,6 +8,7 @@ enum SleepTimerDuration: String, CaseIterable, Identifiable, Sendable {
     case thirtyMinutes
     case oneHour
     case twoHours
+    case fourHours
     case unlimited
 
     var id: Self { self }
@@ -18,6 +19,7 @@ enum SleepTimerDuration: String, CaseIterable, Identifiable, Sendable {
         case .thirtyMinutes: 30 * 60
         case .oneHour: 60 * 60
         case .twoHours: 2 * 60 * 60
+        case .fourHours: 4 * 60 * 60
         case .unlimited: nil
         }
     }
@@ -27,7 +29,19 @@ enum SleepTimerDuration: String, CaseIterable, Identifiable, Sendable {
         case .thirtyMinutes: .quickActionsTimerThirtyMinutes
         case .oneHour: .quickActionsTimerOneHour
         case .twoHours: .quickActionsTimerTwoHours
+        case .fourHours: .quickActionsTimerFourHours
         case .unlimited: .quickActionsTimerUnlimited
+        }
+    }
+
+    /// The compact label on the time button: `30m`, `1h`, `2h`, `4h`, `∞`.
+    var shortLabel: String {
+        switch self {
+        case .thirtyMinutes: "30m"
+        case .oneHour: "1h"
+        case .twoHours: "2h"
+        case .fourHours: "4h"
+        case .unlimited: "∞"
         }
     }
 }

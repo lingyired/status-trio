@@ -437,6 +437,11 @@
 "quickActions.timer.thirtyMinutes" = "30分";
 "quickActions.timer.oneHour" = "1時間";
 "quickActions.timer.twoHours" = "2時間";
+"quickActions.timer.fourHours" = "4時間";
+"quickActions.status.off" = "オフ";
+"quickActions.status.unlimited" = "継続中";
+"quickActions.remaining.minutes" = "残り %d 分";
+"quickActions.remaining.hoursMinutes" = "残り %d 時間 %d 分";
 "quickActions.timer.unlimited" = "制限なし";
 "quickActions.remaining" = "残り %@";
 "quickActions.requiresPower" = "電源に接続するとオンにできます。";

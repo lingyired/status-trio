@@ -437,6 +437,11 @@
 "quickActions.timer.thirtyMinutes" = "30 минут";
 "quickActions.timer.oneHour" = "1 час";
 "quickActions.timer.twoHours" = "2 часа";
+"quickActions.timer.fourHours" = "4 часа";
+"quickActions.status.off" = "Выкл.";
+"quickActions.status.unlimited" = "Постоянно вкл.";
+"quickActions.remaining.minutes" = "Осталось %d мин";
+"quickActions.remaining.hoursMinutes" = "Осталось %d ч %d мин";
 "quickActions.timer.unlimited" = "Без ограничения";
 "quickActions.remaining" = "Осталось %@";
 "quickActions.requiresPower" = "Подключите питание, чтобы включить это.";
