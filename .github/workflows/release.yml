@@ -672,7 +672,7 @@ jobs:
     environment:
       name: distribution
     permissions:
-      actions: write
+      actions: read
       contents: write
     env:
       GH_TOKEN: ${{ secrets.RELEASE_TOKEN || secrets.GITHUB_TOKEN }}
@@ -757,21 +757,15 @@ jobs:
           PACKAGE_DIR: ${{ github.workspace }}/dist/release-package
         run: bash scripts/publish-release.sh
 
-      - name: Trigger Gitee mirror sync
+      - name: Record pending Gitee mirror for local Agent
         if: ${{ success() }}
         env:
-          GH_TOKEN: ${{ secrets.RELEASE_TOKEN || secrets.GITHUB_TOKEN }}
           TAG: ${{ needs.verify.outputs.tag }}
-          SOURCE_RUN_ID: ${{ github.run_id }}
         run: |
-          set -euo pipefail
-          if ! gh api --method POST \
-            -H "Accept: application/vnd.github+json" \
-            "/repos/${GITHUB_REPOSITORY}/actions/workflows/gitee-sync.yml/dispatches" \
-            -f ref=main \
-            -f "inputs[tag]=${TAG}" \
-            -f "inputs[source_run_id]=${SOURCE_RUN_ID}"; then
-            echo "::error::Gitee mirror sync dispatch failed for ${TAG}; GitHub release stays authoritative." | tee -a "$GITHUB_STEP_SUMMARY"
-            exit 1
-          fi
-          echo "Gitee mirror sync dispatched for ${TAG} (source run ${SOURCE_RUN_ID})." | tee -a "$GITHUB_STEP_SUMMARY"
+          {
+            echo '### Gitee mirror pending local Agent sync'
+            echo "GitHub release $TAG is public. Mirror it from a local network after publication."
+            echo 'Run the gitee-release-sync Skill with:'
+            printf '\x60node scripts/gitee-mirror-agent.mjs sync %s\x60\n' "$TAG"
+            echo 'Only verified public GitHub artifacts are mirrored; a mirror failure never rolls back GitHub.'
+          } >> "$GITHUB_STEP_SUMMARY"

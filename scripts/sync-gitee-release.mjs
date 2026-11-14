@@ -52,12 +52,14 @@ async function uploadAttachment(url, name, content, token) {
   const file = join(directory, name);
   try {
     await writeFile(file, content);
+    const credentialFile = join(directory, 'upload-token');
+    await writeFile(credentialFile, token, { mode: 0o600 });
     let output;
     try {
       output = execFileSync('curl', [
         '--silent', '--show-error', '--max-time', '900',
         '--write-out', '\\n%{http_code}',
-        '--form', 'access_token=' + token,
+        '--form', 'access_token=<' + credentialFile,
         '--form', 'file=@' + file,
         url,
       ], { encoding: 'utf8', maxBuffer: 1024 * 1024 });

@@ -1,75 +1,66 @@
-# Gitee release mirror
+# Gitee 本地 Agent 镜像维护
 
-GitHub Release remains the only authoritative build and publication source.
-Gitee mirrors already published, notarized artifacts. It never rebuilds,
-re-signs, or notarizes, and a Gitee failure never deletes or rolls back a
-GitHub release.
+GitHub Release 继续是唯一正式构建和发布来源。Gitee 只镜像已公开且验证通过的原始包。
+正式发布后，GitHub Actions 的 Job Summary 会标记“Gitee mirror pending local Agent sync”，
+不自动上传、不重跑 macOS 构建，也不因镜像故障回滚正式发布。
 
-## Source order
+## 日常操作
 
-| Entry point | Order |
-| --- | --- |
-| Automatic and normal check | GitHub → Gitee → gh-proxy.com → ghfast.top |
-| "Check via Gitee" | Gitee → GitHub → gh-proxy.com → ghfast.top |
+给本地 AI Agent 一句话：“用 gitee-release-sync 把 v1.9.6 同步到 Gitee。”
+Agent 从仓库根目录执行：
 
-The Gitee-first preference lives for one manual update cycle only. Ending,
-cancelling or failing the cycle restores GitHub-first, including for the next
-background check. Only transient network causes (DNS, timeout, unreachable
-host, connection loss) move to the next source. Cancellation, TLS/certificate
-failures, Sparkle EdDSA failures, corrupt packages and install failures never
-switch sources.
+```bash
+node scripts/gitee-mirror-agent.mjs check v1.9.6
+node scripts/gitee-mirror-agent.mjs sync v1.9.6
+node scripts/gitee-mirror-agent.mjs verify v1.9.6
+```
 
-## Pipeline
+`check` 和 `verify` 只读。首次未同步时报告缺失；`sync` 调用与之前相同的核心脚本，
+不是第二套发布器。整个顺序为：读取 GitHub 正式版本 → 校验身份/公证/哈希 → 上传原包
+→ 匿名下载校验 → 派生并校验 Feed → 提交 Feed → 匿名回读。
 
-1. A maintainer dispatches \`release.yml\` with a frozen \`candidate_sha\`.
-2. \`publish\` publishes one verified Universal, notarized DMG and appcast.
-3. Only after that succeeds, \`publish\` dispatches \`gitee-sync.yml\`.
-4. The Ubuntu job downloads the public GitHub manifest and DMG, verifies
-   length, SHA-256, tag, commit and notarization identity, uploads the exact
-   bytes to Gitee, downloads them anonymously, re-hashes them, derives the
-   Gitee-only appcast from the GitHub appcast, and only then updates the public feed.
-The Gitee feed contains only mirrored versions and no GitHub URLs at all.
+## 一次性凭据配置
 
-Mirror order is fixed: upload → verify bytes → derive appcast → verify appcast
-→ publish feed. The Gitee feed keeps the original package EdDSA signature and
-only includes versions already mirrored to Gitee; unmapped historical items and
-all GitHub URLs are removed. The public feed path is `appcast-gitee.xml`.
+本地入口只在 `sync` 时使用 `GITEE_TOKEN`；未设置时读取 macOS 钥匙串通用密码：
+名称 `status-trio.gitee-token`，账户 `lingyired`，密码填 Gitee Token。请在“钥匙串访问”
+或受控 Agent 环境中配置，不把 Token 发给 Agent，不放在 shell 命令行或提交文件里。
+钥匙串若请求授权，由用户批准。之后 Agent 可直接运行，无需占用用户 Otty 终端。
+GitHub Actions Secret 不能导出给本地 Agent；云端存着 Token 不等于本地已配置。
 
-## Operations
+## 工作流边界
 
-\`\`\`bash
-node scripts/sync-gitee-release.mjs check v1.2.3    # read-only
-GITEE_TOKEN=... node scripts/sync-gitee-release.mjs sync v1.2.3
-node scripts/sync-gitee-release.mjs verify v1.2.3   # read-only
-\`\`\`
+- 正式 `release.yml` 仅在成功后记录待同步提示，不 dispatch 上传流程；撤销额外的
+  `actions: write` 权限，保留原正式发布和恢复逻辑。
+- `gitee-sync.yml` 保留为手动离线脚本检查：Ubuntu、无 Token、无远程写入。
+- 不自动创建定时任务。需要每次发布后同步时，显式调用本地 Skill。
+- 同一时间只运行一个镜像命令，避免不同版本竞争 Feed。
 
-The same script is used by the \`.agents/skills/gitee-release-sync\` skill. A
-failed run is safe to retry with the same tag; only missing attachments are
-uploaded and a differing SHA-256 fails instead of overwriting.
+## Feed 与客户端
 
-## Network reality (verified 2026-11-14)
+Gitee Feed 独立使用 `appcast-gitee.xml`，由权威 GitHub appcast 派生，只包含已镜像
+条目，仓库链接和发布说明链接都改成 Gitee，不含 GitHub URL。保留 Sparkle EdDSA
+签名、文件长度、macOS 13.0 最低版本、XML 扩展字段和多语言内容。遇到 Signed Feed
+或 DTD/实体直接失败，不能假设安装包签名等于 Feed 签名。
 
-Uploading a real 20 MB DMG from a GitHub-hosted runner to Gitee timed out
-with zero bytes received after 900 seconds, while the same upload succeeds
-from a China-local machine. Keep `ubuntu-latest` only as a fallback; for
-reliable production mirrors set the repository variable `GITEE_SYNC_RUNNER`
-to a China-local self-hosted runner label, or run the local
-`gitee-release-sync` skill command. Never treat a cross-border upload timeout
-as proof that the DMG or token is invalid.
+默认客户端顺序：GitHub → Gitee → gh-proxy.com → ghfast.top。手动 Gitee 入口
+只对该周期使用 Gitee → GitHub → gh-proxy.com → ghfast.top；共享一个 Sparkle Updater。
+取消、TLS/证书、签名、损坏、安装错误不自动换源。
 
-## Known limits (not yet qualified against the live service)
+## 故障恢复与尚未验收
 
-- The configured Gitee repository currently returns HTTP 451 on its anonymous
-  raw appcast URL and has no Release. A public HTTPS feed must exist before the
-  client can use Gitee-first.
-- Automatic retention cleanup is disabled: the script never deletes releases
-  or attachments. Retention must be re-enabled only after the live Gitee API
-  and feed caching behavior are verified.
-- Real Sparkle updates from Gitee and macOS 13–27 compatibility require an
-  actual release test.
+重试相同 tag 时复用同哈希附件、补齐缺失内容；不同哈希立即失败且不覆盖。
+Feed 更新失败时保留上传附件，不删除上一版；公开缓存尚未刷新时也报告未验证。
+旧版自动清理和最近五版策略尚未实现，不能据此声称容量已受控。
 
-## Secrets
+2026-11-14 的证据：临时小 XML 和不含 GitHub 链接的完整 Feed 都公开返回 200；
+本机上传 20 MB 零字节测试文件（含 .dmg 后缀）返回 201。真实正式 DMG 本机尚未
+完成上传验证。海外 Runner 上传真实 DMG 发生 300 秒和 900 秒超时，这只证明测试
+时该路径不可用，不能据此断言所有跨境链路被封锁或确认是文件安全拦截。
+真实 Gitee DMG 校验、公开 Feed 发布、Sparkle 安装和 Ventura/当前系统运行时仍待验收。
 
-Only \`GITEE_TOKEN\` is a Gitee credential. It is read from the environment,
-never logged, and never required by \`check\` or \`verify\`. The sync job needs no
-Sparkle, Apple Developer ID, or notarization credentials.
+## 官方 Skill 参考
+
+[Gitee 官方社区版 Skills](https://gitee.com/oschina/gitee-agent-skills/blob/main/mcp-gitee-skills/README_CN.md)
+中的 create-release 用于 Release 元数据、标签和 Changelog，并要求 Gitee MCP。
+它未定义本项目签名、哈希与 Feed 的一致性规则。可结合它查询仓库，但镜像写入保持
+调用本项目共用脚本，不复制二进制发布逻辑。无需为此新增或安装整个官方 Skill 合集。
