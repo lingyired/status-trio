@@ -3,7 +3,7 @@
 // Gitee-only appcast. Never touches a real release, appcast or DMG.
 import { readFileSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
-import { createHash } from 'node:crypto';
+import { randomUUID } from 'node:crypto';
 import { mkdtempSync, writeFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -17,13 +17,13 @@ const repo = process.env.GITEE_REPOSITORY || 'lingyired/status-trio';
 const api = 'https://gitee.com/api/v5/repos/' + repo + '/contents/';
 const branch = 'main';
 
-async function put(path, content) {
+async function create(path, content) {
   const response = await fetch(api + path, {
-    method: 'PUT',
+    method: 'POST',
     headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' },
     body: JSON.stringify({ content: Buffer.from(content).toString('base64'), message: 'diagnostic probe', branch }),
   });
-  if (!response.ok) throw new Error('PUT ' + path + ' HTTP ' + response.status);
+  if (!response.ok) throw new Error('POST ' + path + ' HTTP ' + response.status);
   return response.json();
 }
 async function remove(path, sha) {
@@ -61,15 +61,20 @@ try {
 
 for (const [label, content] of [['minimal', minimal], ['full-no-github', full]]) {
   if (!content) continue;
-  const path = label === 'minimal' ? 'gitee-feed-probe.xml' : 'gitee-feed-probe-full.xml';
+  const path = 'gitee-feed-probe-' + label + '-' + randomUUID() + '.xml';
+  let written;
   try {
-    const written = await put(path, content);
+    written = await create(path, content);
     const result = await publicStatus(path);
-    console.log(label + ': PUT ok, public ' + result.status + ', ' + result.bytes + ' bytes, ' + result.head);
-    await remove(path, written.content.sha);
-    const after = await publicStatus(path);
-    console.log(label + ': cleanup ' + (after.status === 404 ? 'ok' : 'check manually (' + after.status + ')'));
+    console.log(label + ': POST ok, public ' + result.status + ', ' + result.bytes + ' bytes, ' + result.head);
   } catch (error) {
+    process.exitCode = 1;
     console.error(label + ': ' + error.message);
+  } finally {
+    if (written?.content?.sha) {
+      const removed = await remove(path, written.content.sha);
+      console.log(label + ': cleanup ' + (removed ? 'ok' : 'failed; remove ' + path + ' manually'));
+      if (!removed) process.exitCode = 1;
+    }
   }
 }

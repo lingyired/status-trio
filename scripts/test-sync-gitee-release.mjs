@@ -29,7 +29,8 @@ async function mockMirror(run) {
       return respond(state.files.get(p.split('/').at(-1))??Buffer.from('missing'));
     }
     if(p.endsWith('/contents/appcast-gitee.xml')) {
-      if(req.method==='GET') return respond({sha:state.feedSHA,encoding:'base64',content:state.feed.toString('base64')});
+      if(req.method==='GET') return state.feedSHA ? respond({sha:state.feedSHA,encoding:'base64',content:state.feed.toString('base64')}) : respond({},404);
+      if(req.method !== (state.feedSHA ? 'PUT' : 'POST')) return respond({message:'wrong file method'},400);
       const chunks=[];for await (const chunk of req) chunks.push(chunk);
       const payload=JSON.parse(Buffer.concat(chunks));
       assert.equal(payload.sha,state.feedSHA);
@@ -77,6 +78,11 @@ test('feed update failure preserves uploaded package for recovery',async()=>mock
   state.failure=(p,method)=>p.endsWith('/contents/appcast-gitee.xml')&&method==='PUT';
   await assert.rejects(sync());assert.equal(state.files.size,3);
   state.failure=null;await sync();assert.equal(state.release.assets.length,3);
+}));
+test('missing feed is created with POST then reused',async()=>mockMirror(async state=>{
+  state.feedSHA=undefined;
+  assert.equal((await sync()).result,'verified');
+  const count=state.writes.length;await sync();assert.equal(state.writes.length,count);
 }));
 test('same tag with different bytes fails without replacing attachment',async()=>mockMirror(async state=>{
   await sync();state.files.set('StatusTrio-1.2.3.dmg',Buffer.from('tampered'));const count=state.writes.length;

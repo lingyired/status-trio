@@ -140,7 +140,7 @@ export async function synchronize(config) {
       : null;
     if (remoteFile && current?.sha !== remoteFile.sha) fail('Gitee feed changed concurrently; retry same tag');
     if (!current || !Buffer.from(current.content,'base64').equals(derived)) {
-      await mutate(gt + '/contents/appcast-gitee.xml',{...(current?.sha ? {sha:current.sha} : {}),branch:'main',message:'Mirror verified ' + tag,content:derived.toString('base64')},'PUT');
+      await mutate(gt + '/contents/appcast-gitee.xml',{...(current?.sha ? {sha:current.sha} : {}),branch:'main',message:'Mirror verified ' + tag,content:derived.toString('base64')},current ? 'PUT' : 'POST');
     }
   }
   const publicFeed = await bytes(feed);
