@@ -76,7 +76,9 @@ export async function synchronize(config) {
   const sourceFile = await json(gh + '/contents/appcast.xml?ref=main', ghOptions);
   if (sourceFile.encoding !== 'base64') fail('Unsupported authoritative feed encoding');
   const source = Buffer.from(sourceFile.content, 'base64');
-  const remoteFile = await json(gt + '/contents/appcast-gitee.xml?ref=main', {missing:true});
+  const remoteFileValue = await json(gt + '/contents/appcast-gitee.xml?ref=main', {missing:true});
+  // Gitee returns 200 [] for a missing file, unlike GitHub's 404.
+  const remoteFile = Array.isArray(remoteFileValue) ? null : remoteFileValue;
   if (remoteFile && remoteFile.encoding !== 'base64') fail('Unsupported Gitee feed encoding');
   if (mode !== 'sync') {
     // Read-only modes still require an already usable public feed.
@@ -135,9 +137,10 @@ export async function synchronize(config) {
   // No deletion: unselected history reverts to authoritative GitHub URLs.
   // Capacity reclamation remains disabled until the real API is qualified.
   if (mode === 'sync') {
-    const current = remoteFile
+    const currentValue = remoteFile
       ? await json(gt + '/contents/appcast-gitee.xml?ref=main', {missing:true})
       : null;
+    const current = Array.isArray(currentValue) ? null : currentValue;
     if (remoteFile && current?.sha !== remoteFile.sha) fail('Gitee feed changed concurrently; retry same tag');
     if (!current || !Buffer.from(current.content,'base64').equals(derived)) {
       await mutate(gt + '/contents/appcast-gitee.xml',{...(current?.sha ? {sha:current.sha} : {}),branch:'main',message:'Mirror verified ' + tag,content:derived.toString('base64')},current ? 'PUT' : 'POST');

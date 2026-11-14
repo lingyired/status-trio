@@ -29,7 +29,7 @@ async function mockMirror(run) {
       return respond(state.files.get(p.split('/').at(-1))??Buffer.from('missing'));
     }
     if(p.endsWith('/contents/appcast-gitee.xml')) {
-      if(req.method==='GET') return state.feedSHA ? respond({sha:state.feedSHA,encoding:'base64',content:state.feed.toString('base64')}) : respond({},404);
+      if(req.method==='GET') return state.feedSHA ? respond({sha:state.feedSHA,encoding:'base64',content:state.feed.toString('base64')}) : respond([]);
       if(req.method !== (state.feedSHA ? 'PUT' : 'POST')) return respond({message:'wrong file method'},400);
       const chunks=[];for await (const chunk of req) chunks.push(chunk);
       const payload=JSON.parse(Buffer.concat(chunks));
