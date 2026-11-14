@@ -129,6 +129,7 @@ export async function synchronize(config) {
       if (mode !== 'sync') fail('Mirror attachment missing: ' + name);
       stage = 'uploading ' + name;
       const form = new FormData();
+      form.set('access_token', token);
       form.set('file', new Blob([content]), name);
       await request(gt + '/releases/' + mirror.id + '/attach_files', {method:'POST',token,body:form});
       mirror = await json(gt + '/releases/' + mirror.id);
