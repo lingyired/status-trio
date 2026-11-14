@@ -13,6 +13,10 @@ enum HardwareMetricID: Hashable, Sendable {
     case networkDownload
     /// Aggregate upload throughput across physical interfaces (bytes/second).
     case networkUpload
+    /// Aggregate read throughput across physical storage devices (bytes/second).
+    case diskRead
+    /// Aggregate write throughput across physical storage devices (bytes/second).
+    case diskWrite
 }
 
 /// How a metric sample may be presented. Distinct from a mere missing value so
@@ -47,6 +51,7 @@ enum HardwareMetricSource: Equatable, Sendable {
     case ioAccelerator
     case powerIO
     case network
+    case ioStorage
 }
 
 /// Optional sample metadata (fan limits, temperature sample statistics).
@@ -151,6 +156,8 @@ struct HardwareMetricsSnapshot: Equatable, Sendable {
     var batteryTemperature: HardwareMetricSample { self[.batteryTemperature] }
     var networkDownload: HardwareMetricSample { self[.networkDownload] }
     var networkUpload: HardwareMetricSample { self[.networkUpload] }
+    var diskRead: HardwareMetricSample { self[.diskRead] }
+    var diskWrite: HardwareMetricSample { self[.diskWrite] }
 
     /// Per-fan samples sorted by index, for a future details expansion.
     var fanSamples: [HardwareMetricSample] {
@@ -216,7 +223,7 @@ struct HardwareMetricsSnapshot: Equatable, Sendable {
         case .cpuUsage, .gpuUsage, .memoryUsage: .percent
         case .cpuTemperature, .gpuTemperature, .batteryTemperature: .celsius
         case .fanRPM: .rpm
-        case .networkDownload, .networkUpload: .bytesPerSecond
+        case .networkDownload, .networkUpload, .diskRead, .diskWrite: .bytesPerSecond
         }
     }
 }
@@ -228,6 +235,7 @@ enum HardwareMetricFamily: Hashable, Sendable, CaseIterable {
     case temperature
     case fan
     case network
+    case disk
 
     static func requested(from ids: Set<HardwareMetricID>) -> Set<HardwareMetricFamily> {
         var result: Set<HardwareMetricFamily> = []
@@ -237,6 +245,7 @@ enum HardwareMetricFamily: Hashable, Sendable, CaseIterable {
             case .cpuTemperature, .gpuTemperature, .batteryTemperature: result.insert(.temperature)
             case .fanRPM: result.insert(.fan)
             case .networkDownload, .networkUpload: result.insert(.network)
+            case .diskRead, .diskWrite: result.insert(.disk)
             }
         }
         return result

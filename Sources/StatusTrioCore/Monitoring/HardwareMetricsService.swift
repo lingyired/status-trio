@@ -293,6 +293,7 @@ final class HardwareMetricsService: ObservableObject {
         case .cpuUsage, .gpuUsage, .memoryUsage: 2
         case .cpuTemperature, .gpuTemperature, .batteryTemperature, .fanRPM: 4
         case .networkDownload, .networkUpload: 1
+        case .diskRead, .diskWrite: 1
         }
     }
 

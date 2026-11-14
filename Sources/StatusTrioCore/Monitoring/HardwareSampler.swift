@@ -9,12 +9,14 @@ final class HardwareSampler: @unchecked Sendable {
     private let memoryReader = MemoryReader()
     private let sensorReader = SensorSMCReader()
     private let networkReader = NetworkThroughputReader()
+    private let diskReader = DiskThroughputReader()
     private var hasAttemptedCPURead = false
 
     func reset() async {
         await withCheckedContinuation { continuation in
             queue.async {
                 self.cpuReader.reset()
+                self.diskReader.reset()
                 self.hasAttemptedCPURead = false
                 continuation.resume()
             }
@@ -35,7 +37,8 @@ final class HardwareSampler: @unchecked Sendable {
                                            includeBatteryTemperature: batteryTemperature,
                                            includeFans: fans, at: date)
                 },
-                                            networkProvider: { self.networkReader.read(at: $0) })
+                                            networkProvider: { self.networkReader.read(at: $0) },
+                                            diskProvider: { self.diskReader.read(at: $0) })
                 if ids.contains(.cpuUsage) { self.hasAttemptedCPURead = true }
                 continuation.resume(returning: snapshot)
             }
@@ -49,7 +52,8 @@ final class HardwareSampler: @unchecked Sendable {
                         gpuProvider: (Date) -> GPUReading?,
                         memoryProvider: (Date) -> MemoryReader.Reading?,
                         sensorProvider: (Bool, Bool, Bool, Bool, Date) -> SensorReading,
-                        networkProvider: (Date) -> NetworkThroughputReading? = { _ in nil }) -> HardwareMetricsSnapshot {
+                        networkProvider: (Date) -> NetworkThroughputReading? = { _ in nil },
+                        diskProvider: (Date) -> DiskThroughputReading? = { _ in nil }) -> HardwareMetricsSnapshot {
         let temperature = ids.contains(.cpuTemperature)
         let gpuTemperature = ids.contains(.gpuTemperature)
         let batteryTemperature = ids.contains(.batteryTemperature)
@@ -61,8 +65,10 @@ final class HardwareSampler: @unchecked Sendable {
         let sensors = temperature || gpuTemperature || batteryTemperature || fans
             ? sensorProvider(temperature, gpuTemperature, batteryTemperature, fans, date) : nil
         let network = needsNetwork ? networkProvider(date) : nil
+        let needsDisk = ids.contains(.diskRead) || ids.contains(.diskWrite)
+        let disk = needsDisk ? diskProvider(date) : nil
         return map(ids: ids, cpu: cpu, gpu: gpu, memory: memory, sensors: sensors, network: network,
-                   isFirstCPURead: isFirstCPURead, at: date)
+                   disk: disk, isFirstCPURead: isFirstCPURead, at: date)
     }
 
     /// Pure mapping of one read attempt. Reader nil alone cannot establish lack
@@ -72,6 +78,7 @@ final class HardwareSampler: @unchecked Sendable {
     static func map(ids: Set<HardwareMetricID>, cpu: CPUReading?, gpu: GPUReading?,
                     memory: MemoryReader.Reading? = nil, sensors: SensorReading?,
                     network: NetworkThroughputReading? = nil,
+                    disk: DiskThroughputReading? = nil,
                     isFirstCPURead: Bool, at date: Date) -> HardwareMetricsSnapshot {
         var snapshot = HardwareMetricsSnapshot.empty
         for id in ids {
@@ -119,6 +126,15 @@ final class HardwareSampler: @unchecked Sendable {
                 snapshot.samples[id] = HardwareMetricSample(
                     value: value, unit: .bytesPerSecond, sampledAt: network?.sampledAt ?? date,
                     source: .network, availability: value != nil ? .measured : .collecting)
+            case .diskRead, .diskWrite:
+                let value: Double? = disk.map { reading in
+                    id == .diskRead
+                        ? max(0, reading.readBytesPerSecond)
+                        : max(0, reading.writeBytesPerSecond)
+                }
+                snapshot.samples[id] = HardwareMetricSample(
+                    value: value, unit: .bytesPerSecond, sampledAt: disk?.sampledAt ?? date,
+                    source: .ioStorage, availability: value != nil ? .measured : .collecting)
             }
         }
         let requestedFans = ids.compactMap { id -> Int? in

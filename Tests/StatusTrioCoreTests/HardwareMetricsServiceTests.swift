@@ -519,4 +519,25 @@ final class HardwareMetricsServiceTests: XCTestCase {
         XCTAssertEqual(summary.availability, .unsupported)
         XCTAssertNil(MetricProgressMapper.rpm(summary))
     }
+
+    func testDiskDemandUsesOneSecondCadenceAndStopsOnEnd() async {
+        let clock = Clock()
+        let recorder = Recorder()
+        let service = HardwareMetricsService(automaticScheduling: false,
+                                             now: { clock.date },
+                                             reader: recorder.countingReader(usage: 0))
+        service.begin(.panel, metrics: [.diskRead, .diskWrite])
+        XCTAssertEqual(service.currentTickIntervalForTesting, 1,
+                       "disk throughput samples once per second")
+        await awaitSettled(service, recorder)
+        XCTAssertEqual(recorder.calls.last, [.diskRead, .diskWrite])
+        service.end(.panel)
+        XCTAssertFalse(service.isRunning)
+        let callCount = recorder.calls.count
+        clock.advance(5)
+        service.refreshIfNeeded(forceFamilies: [])
+        await drain()
+        XCTAssertEqual(recorder.calls.count, callCount, "ended disk demand must stop reads")
+        service.stopAll()
+    }
 }

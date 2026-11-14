@@ -133,6 +133,46 @@ final class HardwareSamplerTests: XCTestCase {
         XCTAssertEqual(snapshot[.memoryUsage].value, 20)
     }
 
+
+    func testDiskNotRequestedNeverReadsDisk() {
+        _ = HardwareSampler.collect(ids: [.cpuUsage, .networkDownload], isFirstCPURead: true, at: date,
+                                    cpuProvider: { _ in nil }, gpuProvider: { _ in nil },
+                                    memoryProvider: { _ in nil }, sensorProvider: { _, _, _, _, _ in self.sensors() },
+                                    networkProvider: { _ in nil },
+                                    diskProvider: { _ in XCTFail("disk must not be read when not requested"); return nil })
+    }
+
+    func testDiskRequestedReadsOnceAndMapsStorageSource() {
+        var calls = 0
+        let reading = DiskThroughputReading(readBytesPerSecond: 2_000_000, writeBytesPerSecond: 500_000, sampledAt: date)
+        let snapshot = HardwareSampler.collect(ids: [.diskRead, .diskWrite], isFirstCPURead: true, at: date,
+                                               cpuProvider: { _ in XCTFail("disk must not read CPU"); return nil },
+                                               gpuProvider: { _ in XCTFail("disk must not read GPU"); return nil },
+                                               memoryProvider: { _ in XCTFail("disk must not read memory"); return nil },
+                                               sensorProvider: { _, _, _, _, _ in XCTFail("disk must not read SMC"); return self.sensors() },
+                                               networkProvider: { _ in XCTFail("disk must not read network"); return nil },
+                                               diskProvider: { _ in calls += 1; return reading })
+        XCTAssertEqual(calls, 1)
+        XCTAssertEqual(snapshot[.diskRead].value, 2_000_000)
+        XCTAssertEqual(snapshot[.diskWrite].value, 500_000)
+        XCTAssertEqual(snapshot[.diskRead].unit, .bytesPerSecond)
+        XCTAssertEqual(snapshot[.diskRead].source, .ioStorage)
+        XCTAssertEqual(snapshot[.diskWrite].source, .ioStorage)
+        XCTAssertEqual(snapshot[.diskRead].availability, .measured)
+        XCTAssertEqual(snapshot[.diskWrite].availability, .measured)
+    }
+
+    func testDiskMissingIsCollectingNotZero() {
+        let snapshot = HardwareSampler.collect(ids: [.diskRead, .diskWrite], isFirstCPURead: true, at: date,
+                                               cpuProvider: { _ in nil }, gpuProvider: { _ in nil },
+                                               memoryProvider: { _ in nil }, sensorProvider: { _, _, _, _, _ in self.sensors() },
+                                               diskProvider: { _ in nil })
+        XCTAssertNil(snapshot[.diskRead].value)
+        XCTAssertNil(snapshot[.diskWrite].value)
+        XCTAssertEqual(snapshot[.diskRead].availability, .collecting)
+        XCTAssertEqual(snapshot[.diskWrite].availability, .collecting)
+    }
+
     private func sensors(cpu: Double? = nil, gpu: Double? = nil, battery: Double? = nil,
                          fanCount: Int? = nil, fans: [FanReading] = []) -> SensorReading {
         SensorReading(cpuTemperature: cpu, cpuTemperatureSource: cpu == nil ? nil : .average(2),
