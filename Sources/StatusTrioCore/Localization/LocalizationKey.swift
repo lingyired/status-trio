@@ -542,10 +542,6 @@ enum LocalizationKey: String, CaseIterable, Hashable, Sendable {
     case settingsUpdatesTitle = "settings.updates.title"
     case settingsUpdatesAutomatic = "settings.updates.automatic"
     case settingsUpdatesCheck = "settings.updates.check"
-    case settingsUpdatesCheckViaGitee = "settings.updates.checkViaGitee"
-    case menuCheckViaGitee = "menu.checkViaGitee"
-    case settingsUpdatesGiteeLaggingTitle = "settings.updates.giteeLaggingTitle"
-    case settingsUpdatesGiteeLaggingMessage = "settings.updates.giteeLaggingMessage"
 
     case batteryTitle = "battery.title"
     case batteryTitlePower = "battery.title.power"

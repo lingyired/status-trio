@@ -8,7 +8,6 @@
 "menu.window" = "Окно";
 "menu.closeWindow" = "Закрыть окно";
 "menu.checkForUpdates" = "Проверить обновления…";
-"menu.checkViaGitee" = "Проверить обновления через Gitee…";
 "menu.openMenuBarSettings" = "Открыть настройки строки меню";
 "settings.title" = "Настройки";
 "settings.page.appearance" = "Оформление";
@@ -257,9 +256,6 @@
 "settings.updates.title" = "Обновления";
 "settings.updates.automatic" = "Автоматически проверять обновления";
 "settings.updates.check" = "Проверить обновления…";
-"settings.updates.checkViaGitee" = "Проверить через Gitee";
-"settings.updates.giteeLaggingTitle" = "Зеркало Gitee может отставать";
-"settings.updates.giteeLaggingMessage" = "Gitee не предлагает обновление для этой версии. Последний выпуск мог ещё не синхронизироваться. Используйте «Проверить обновления», чтобы получить его с GitHub.";
 "battery.title" = "Батарея · %d%%";
 "battery.title.power" = "Мощность · %d Вт";
 "battery.title.powerUnavailable" = "Мощность · Недоступно";

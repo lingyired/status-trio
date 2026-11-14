@@ -8,7 +8,6 @@
 "menu.window" = "윈도우";
 "menu.closeWindow" = "윈도우 닫기";
 "menu.checkForUpdates" = "업데이트 확인…";
-"menu.checkViaGitee" = "Gitee로 업데이트 확인…";
 "menu.openMenuBarSettings" = "메뉴 막대 설정 열기";
 "settings.title" = "설정";
 "settings.page.appearance" = "모양";
@@ -257,9 +256,6 @@
 "settings.updates.title" = "업데이트";
 "settings.updates.automatic" = "자동으로 업데이트 확인";
 "settings.updates.check" = "업데이트 확인…";
-"settings.updates.checkViaGitee" = "Gitee로 확인";
-"settings.updates.giteeLaggingTitle" = "Gitee 미러가 GitHub보다 오래되었을 수 있습니다";
-"settings.updates.giteeLaggingMessage" = "Gitee에서 이 버전의 업데이트를 제공하지 않습니다. 최신 릴리스가 아직 동기화되지 않았을 수 있습니다. “업데이트 확인”으로 GitHub에서 받으세요.";
 "battery.title" = "배터리 · %d%%";
 "battery.title.power" = "전력 · %d W";
 "battery.title.powerUnavailable" = "전력 · 사용할 수 없음";

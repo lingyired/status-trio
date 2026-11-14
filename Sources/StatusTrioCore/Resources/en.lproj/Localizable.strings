@@ -8,7 +8,6 @@
 "menu.window" = "Window";
 "menu.closeWindow" = "Close Window";
 "menu.checkForUpdates" = "Check for Updates…";
-"menu.checkViaGitee" = "Check via Gitee";
 "menu.openMenuBarSettings" = "Open Menu Bar Settings";
 "settings.title" = "Settings";
 "settings.page.appearance" = "Appearance";
@@ -257,9 +256,6 @@
 "settings.updates.title" = "Updates";
 "settings.updates.automatic" = "Automatically check for updates";
 "settings.updates.check" = "Check for Updates…";
-"settings.updates.checkViaGitee" = "Check via Gitee";
-"settings.updates.giteeLaggingTitle" = "Gitee mirror may lag behind GitHub";
-"settings.updates.giteeLaggingMessage" = "Gitee reports no update for this version. It may not have mirrored the latest release yet. Use Check for Updates to fetch from GitHub.";
 "battery.title" = "Battery · %d%%";
 "battery.title.power" = "Power · %d W";
 "battery.title.powerUnavailable" = "Power · Unavailable";

@@ -110,16 +110,6 @@ SH
 set -euo pipefail
 printf 'clang\n' >> "${VERIFY_TRACE:?}"
 SH
-    cat > "$fixture/scripts/test-gitee-mirror.sh" <<'SH'
-#!/usr/bin/env bash
-set -euo pipefail
-printf 'gitee-mirror\n' >> "${VERIFY_TRACE:?}"
-SH
-    cat > "$fixture/scripts/test-gitee-sync-workflow.sh" <<'SH'
-#!/usr/bin/env bash
-set -euo pipefail
-printf 'gitee-workflow\n' >> "${VERIFY_TRACE:?}"
-SH
     cat > "$fixture/scripts/test-verify-local.sh" <<'SH'
 #!/usr/bin/env bash
 set -euo pipefail
@@ -328,7 +318,7 @@ bash "$WORK/repo/scripts/verify-local.sh" full >"$WORK/full.log" 2>&1 ||
     fail "full verification failed"
 for expected in forbidden "swift test" "swift build -c release" powerui-restore deployment deployment-regressions \
     appcast helper-contract mobile-helper mobile-rpaths otool sparkle mobile-source-cache release-policy \
-    release-pipeline release-notarization dmg-installer clang gitee-mirror gitee-workflow self-test \
+    release-pipeline release-notarization dmg-installer clang self-test \
     workflow-policy bundle-self-test bundle app-icon-contract "build-app release no-open" \
     "BUNDLE_ID=com.lingsmbp.StatusTrio.dev.verify-local" \
     "APP_NAME=Status Trio (Verify Local)" "UNIVERSAL_BUILD=0" \

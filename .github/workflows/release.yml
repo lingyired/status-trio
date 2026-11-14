@@ -756,16 +756,3 @@ jobs:
           MANIFEST_PATH: ${{ github.workspace }}/dist/release-package/release-manifest.json
           PACKAGE_DIR: ${{ github.workspace }}/dist/release-package
         run: bash scripts/publish-release.sh
-
-      - name: Record pending Gitee mirror for local Agent
-        if: ${{ success() }}
-        env:
-          TAG: ${{ needs.verify.outputs.tag }}
-        run: |
-          {
-            echo '### Gitee mirror pending local Agent sync'
-            echo "GitHub release $TAG is public. Mirror it from a local network after publication."
-            echo 'Run the gitee-release-sync Skill with:'
-            printf '\x60node scripts/gitee-mirror-agent.mjs sync %s\x60\n' "$TAG"
-            echo 'Only verified public GitHub artifacts are mirrored; a mirror failure never rolls back GitHub.'
-          } >> "$GITHUB_STEP_SUMMARY"

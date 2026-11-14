@@ -13,7 +13,7 @@ final class UpdaterManager: NSObject, ObservableObject, SPUUpdaterDelegate {
     private lazy var userDriver: UpdateFallbackUserDriver = {
         let driver = UpdateFallbackUserDriver(hostBundle: .main, delegate: nil)
         driver.shouldSuppressUpdaterError = { [weak self] error in
-            self?.updateCycle.canSuppressErrorForRetry(error) == true
+            self?.updateSourceFallback.canAdvanceAfterError(error) == true
         }
         return driver
     }()
@@ -23,7 +23,7 @@ final class UpdaterManager: NSObject, ObservableObject, SPUUpdaterDelegate {
         userDriver: userDriver,
         delegate: self
     )
-    private var updateCycle = UpdateCycleState()
+    private var updateSourceFallback = UpdateSourceFallback()
     private var manualUpdatePresentation: ManualUpdatePresentation?
 
     var automaticallyChecksForUpdatesBinding: Binding<Bool> {
@@ -58,12 +58,12 @@ final class UpdaterManager: NSObject, ObservableObject, SPUUpdaterDelegate {
         #endif
     }
 
-    func checkForUpdates(preference: UpdatePreference = .githubFirst) {
+    func checkForUpdates() {
         guard AppMetadata.developmentCodename == nil else { return }
         #if DEBUG
         return
         #else
-        guard canCheckForUpdates, updateCycle.beginManual(preference: preference) else { return }
+        guard canCheckForUpdates else { return }
 
         manualUpdatePresentation?.begin()
         updater.checkForUpdates()
@@ -79,10 +79,7 @@ final class UpdaterManager: NSObject, ObservableObject, SPUUpdaterDelegate {
             return nil
         }
 
-        if !updateCycle.isActive {
-            _ = updateCycle.beginAutomaticIfIdle()
-        }
-        return updateCycle.appcastURLString(from: directURLString)
+        return updateSourceFallback.appcastURLString(from: directURLString)
     }
 
     func updater(
@@ -91,8 +88,7 @@ final class UpdaterManager: NSObject, ObservableObject, SPUUpdaterDelegate {
         with request: NSMutableURLRequest
     ) {
         guard let fileURL = item.fileURL else { return }
-        updateCycle.markDownloading()
-        request.url = updateCycle.downloadURL(for: fileURL)
+        request.url = updateSourceFallback.downloadURL(for: fileURL)
     }
 
     func updater(
@@ -100,42 +96,12 @@ final class UpdaterManager: NSObject, ObservableObject, SPUUpdaterDelegate {
         didFinishUpdateCycleFor updateCheck: SPUUpdateCheck,
         error: Error?
     ) {
-        updateCycle.prepareForRetryAfterFinishedCycle()
-        if updateCycle.advanceAfterError(error) {
+        if updateSourceFallback.advanceAfterError(error) {
             retryUpdateCheck(updateCheck)
             return
         }
 
-        let giteeMayLag = updateCycle.isGiteeFirstCycle && Self.isNoUpdateError(error)
-        updateCycle.finish()
         manualUpdatePresentation?.end()
-        if giteeMayLag {
-            presentGiteeMirrorMayLagAlert()
-        }
-    }
-
-    private static func isNoUpdateError(_ error: Error?) -> Bool {
-        guard let nsError = error as NSError? else { return false }
-        if nsError.domain == SUSparkleErrorDomain,
-           nsError.code == Int(SUError.noUpdateError.rawValue) {
-            return true
-        }
-        guard let underlying = nsError.userInfo[NSUnderlyingErrorKey] as? Error else { return false }
-        return isNoUpdateError(underlying)
-    }
-
-    private func presentGiteeMirrorMayLagAlert() {
-        let localization = Localization()
-        let alert = NSAlert()
-        alert.messageText = localization.string(.settingsUpdatesGiteeLaggingTitle)
-        alert.informativeText = localization.string(.settingsUpdatesGiteeLaggingMessage)
-        alert.alertStyle = .informational
-        alert.addButton(withTitle: "OK")
-        alert.runModal()
-    }
-
-    func updater(_ updater: SPUUpdater, willInstallUpdate item: SUAppcastItem) {
-        updateCycle.markInstalling()
     }
 
     private func retryUpdateCheck(_ updateCheck: SPUUpdateCheck) {
