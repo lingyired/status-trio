@@ -1,14 +1,17 @@
+import AppKit
 import Foundation
 import SwiftUI
 
-/// Design preview: four menu-bar-style icons, one row, under System Monitoring.
-/// Each icon uses a real metric for its arc and its short value/label, so the
-/// size and density of a 4-up arrangement can be judged. The arc is drawn natively
-/// so progress changes can animate instead of snapping between snapshots.
+/// Design preview: four menu-bar icons, one row, under System Monitoring. Each
+/// icon uses the app's real ring renderer (same scene/renderer as the menu bar)
+/// and a real metric for its arc, so the size and density of a 4-up arrangement
+/// can be judged. Progress changes are interpolated with the app's scene so the
+/// arc animates instead of snapping.
 struct MenuBarIconPreviewGrid: View {
     @ObservedObject var hardware: HardwareMonitorObservable
     let colors: [HardwareMonitorMetric: IconRGBA]
 
+    @Environment(\.colorScheme) private var colorScheme
     @State private var disk: DiskCapacitySample = .current()
 
     private var snapshot: HardwareMetricsSnapshot { hardware.snapshot }
@@ -28,12 +31,14 @@ struct MenuBarIconPreviewGrid: View {
             HStack(alignment: .top, spacing: 10) {
                 ForEach(Self.items) { item in
                     let spec = spec(for: item)
-                    PreviewRingIcon(
+                    AnimatedSceneIcon(
                         label: item.label,
                         center: spec.center,
-                        progress: spec.progress,
-                        color: IconAppearanceColorConversion.color(from: spec.color)
+                        centerScale: spec.centerScale,
+                        color: spec.color,
+                        progress: spec.progress
                     )
+                    .animation(.easeOut(duration: 0.55), value: spec.progress)
                     .frame(maxWidth: .infinity)
                     .aspectRatio(1, contentMode: .fit)
                 }
@@ -62,17 +67,17 @@ struct MenuBarIconPreviewGrid: View {
 
     private static let items = Slot.allCases
 
-    private func spec(for slot: Slot) -> (center: String, progress: Double, color: IconRGBA) {
+    private func spec(for slot: Slot) -> (center: String, progress: Double, color: IconRGBA, centerScale: Double) {
         switch slot {
         case .cpu:
-            return ("\(temperatureText(.cpuTemperature))", percent(.cpuUsage), color(.cpuUsage))
+            return ("\(temperatureText(.cpuTemperature))", percent(.cpuUsage), color(.cpuUsage), 1.05)
         case .gpu:
-            return ("\(temperatureText(.gpuTemperature))", percent(.gpuUsage), color(.gpuUsage))
+            return ("\(temperatureText(.gpuTemperature))", percent(.gpuUsage), color(.gpuUsage), 1.05)
         case .ram:
-            return (memoryAvailableText, percent(.memoryUsage), color(.memoryUsage))
+            return (memoryAvailableText, percent(.memoryUsage), color(.memoryUsage), 0.8)
         case .ssd:
             return (disk.freeText, disk.usedFraction ?? 0,
-                    IconRGBA(red: 0.55, green: 0.58, blue: 0.66, alpha: 1))
+                    IconRGBA(red: 0.55, green: 0.58, blue: 0.66, alpha: 1), 0.8)
         }
     }
 
@@ -110,28 +115,32 @@ struct MenuBarIconPreviewGrid: View {
     }
 }
 
-/// A natively drawn preview ring so progress changes can animate smoothly.
-private struct PreviewRingIcon: View {
+/// Renders the app's real icon scene for the current (animatable) progress and
+/// overlays the horizontal bottom label. Conforming to `Animatable` lets SwiftUI
+/// interpolate `progress` through the app's own renderer.
+private struct AnimatedSceneIcon: View, Animatable {
     let label: String
     let center: String
-    let progress: Double
-    let color: Color
+    let centerScale: Double
+    let color: IconRGBA
+    var progress: Double
+
+    @Environment(\.colorScheme) private var colorScheme
+
+    nonisolated var animatableData: Double {
+        get { progress }
+        set { progress = newValue }
+    }
 
     var body: some View {
         GeometryReader { proxy in
             let side = min(proxy.size.width, proxy.size.height)
-            let stroke = max(1.5, side * 0.055)
             ZStack {
-                Circle()
-                    .inset(by: side * 0.075)
-                    .stroke(Color.secondary.opacity(0.22), lineWidth: stroke)
-                Circle()
-                    .inset(by: side * 0.075)
-                    .trim(from: 0, to: min(1, max(0, progress)))
-                    .stroke(color, style: StrokeStyle(lineWidth: stroke, lineCap: .round))
-                    .rotationEffect(.degrees(-90))
-                    .animation(.easeOut(duration: 0.55), value: progress)
-                centerText(side: side)
+                if let image {
+                    Image(nsImage: image)
+                        .resizable()
+                        .scaledToFit()
+                }
                 Text(label)
                     .font(.system(size: side * 0.14, weight: .medium))
                     .foregroundStyle(.secondary)
@@ -142,26 +151,24 @@ private struct PreviewRingIcon: View {
         }
     }
 
-    @ViewBuilder
-    private func centerText(side: CGFloat) -> some View {
-        if center.count > 1, center.hasSuffix("°") {
-            let number = String(center.dropLast())
-            Text(number)
-                .font(.system(size: side * 0.25, weight: .semibold))
-                .monospacedDigit()
-                .foregroundStyle(.primary)
-                .overlay(alignment: .topTrailing) {
-                    Text("°")
-                        .font(.system(size: side * 0.115, weight: .semibold))
-                        .foregroundStyle(.primary)
-                        .offset(x: side * 0.10, y: -side * 0.015)
-                }
-        } else {
-            Text(center)
-                .font(.system(size: side * 0.23, weight: .semibold))
-                .monospacedDigit()
-                .foregroundStyle(.primary)
-        }
+    private var image: NSImage? {
+        let ring = OuterRingState(
+            segments: [RingSegmentState(progress: progress, color: .custom(color))],
+            gap: .closed,
+            layout: .standard,
+            accessory: nil,
+            strokeScale: 1.1
+        )
+        let scene = IconSceneState(
+            outerRing: ring,
+            center: .text(IconTextState(text: center, color: .primary, scale: centerScale))
+        )
+        return StatusIconPreviewCache.shared.image(
+            scene: scene,
+            size: 72,
+            scale: 2,
+            appearance: MenuBarPreviewBackdrop.appearance(isDarkBackground: colorScheme == .dark)
+        )
     }
 }
 
