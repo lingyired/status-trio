@@ -146,10 +146,10 @@ private struct BottomLabel: View {
     var body: some View {
         GeometryReader { proxy in
             Text(text)
-                .font(.system(size: proxy.size.width * 0.16, weight: .medium))
+                .font(.system(size: proxy.size.width * 0.14, weight: .medium))
                 .foregroundStyle(.secondary)
                 .frame(width: proxy.size.width, height: proxy.size.height, alignment: .bottom)
-                .padding(.bottom, proxy.size.height * 0.06)
+                .padding(.bottom, proxy.size.height * 0.10)
         }
         .allowsHitTesting(false)
         .accessibilityHidden(true)

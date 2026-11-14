@@ -1426,6 +1426,23 @@ extension StatusIconRenderer {
         case let .text(text):
             let fontSize = centerTextPointSize(for: centerScale(of: text.scale, normalized: text.normalizedSizePercentage))
             let color = sceneColor(for: text.color, foreground: foreground, statusPalette: statusPalette)
+            if text.text.count > 1, text.text.hasSuffix("°") {
+                // Keep the number optically centred and let the degree symbol sit
+                // to its right without shifting the digits left.
+                let numberLine = sceneTextLine(String(text.text.dropLast()), color: color, fontSize: fontSize)
+                let numberBounds = CTLineGetBoundsWithOptions(numberLine, [.useGlyphPathBounds])
+                drawSceneAccessoryText(
+                    text.text,
+                    color: color,
+                    fontSize: fontSize,
+                    baseline: CGPoint(
+                        x: centerTextInkCenter.x,
+                        y: centerTextInkCenter.y + numberBounds.midY
+                    ),
+                    in: context
+                )
+                return
+            }
             let line = sceneTextLine(text.text, color: color, fontSize: fontSize)
             let bounds = CTLineGetBoundsWithOptions(line, [.useGlyphPathBounds])
             context.setFillColor(color)
