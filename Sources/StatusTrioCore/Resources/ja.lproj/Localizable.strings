@@ -1174,6 +1174,15 @@
 "hardware.monitor.speed.capDescription" = "リングは回線上限（Mbps）を基準に描画します。";
 "hardware.monitor.kbps" = "KB/s";
 "hardware.monitor.mbps" = "MB/s";
+"hardware.monitor.gbps" = "GB/s";
+"hardware.monitor.fan.average" = "ファン平均";
+"hardware.monitor.fan.average.help" = "現在報告されているファン回転数の平均です。古い、または読み取れないファンは除外されます。ファンのない Mac ではファンなしと表示します。";
+"hardware.monitor.disk" = "ディスク I/O";
+"hardware.monitor.disk.read" = "読み取り";
+"hardware.monitor.disk.write" = "書き込み";
+"hardware.monitor.disk.help" = "物理ディスク全体の読み取りと書き込みのスループット。";
+"hardware.monitor.download.help" = "物理ネットワークインターフェイス全体のダウンロードスループット。";
+"hardware.monitor.upload.help" = "物理ネットワークインターフェイス全体のアップロードスループット。";
 
 "settings.transfer.title" = "設定の移行";
 "settings.transfer.description" = "移行可能な環境設定を読みやすい JSON として保存するか、読み込む前に設定ファイルをプレビューします。";

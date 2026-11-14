@@ -1174,6 +1174,15 @@
 "hardware.monitor.speed.capDescription" = "L’anneau est proportionnel à votre débit maximal (Mbps).";
 "hardware.monitor.kbps" = "Ko/s";
 "hardware.monitor.mbps" = "Mo/s";
+"hardware.monitor.gbps" = "Go/s";
+"hardware.monitor.fan.average" = "Ventil. moyen";
+"hardware.monitor.fan.average.help" = "Vitesse moyenne des ventilateurs actuellement signalés. Les ventilateurs obsolètes ou illisibles sont exclus ; un Mac sans ventilateur affiche le libellé Sans ventilateur.";
+"hardware.monitor.disk" = "E/S disque";
+"hardware.monitor.disk.read" = "Lecture";
+"hardware.monitor.disk.write" = "Écriture";
+"hardware.monitor.disk.help" = "Débit total de lecture et d’écriture des disques physiques.";
+"hardware.monitor.download.help" = "Débit de téléchargement total sur les interfaces réseau physiques.";
+"hardware.monitor.upload.help" = "Débit d’envoi total sur les interfaces réseau physiques.";
 
 "settings.transfer.title" = "Transfert des réglages";
 "settings.transfer.description" = "Enregistrez les préférences transférables dans un fichier JSON lisible, ou examinez un fichier de réglages avant de l’importer.";

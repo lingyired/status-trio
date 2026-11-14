@@ -1174,6 +1174,15 @@
 "hardware.monitor.speed.capDescription" = "El anillo se escala según tu límite de banda ancha (Mbps).";
 "hardware.monitor.kbps" = "KB/s";
 "hardware.monitor.mbps" = "MB/s";
+"hardware.monitor.gbps" = "GB/s";
+"hardware.monitor.fan.average" = "Ventilador medio";
+"hardware.monitor.fan.average.help" = "Velocidad media de los ventiladores que el Mac informa ahora. Se excluyen los obsoletos o ilegibles; un Mac sin ventilador muestra la etiqueta Sin ventilador.";
+"hardware.monitor.disk" = "E/S de disco";
+"hardware.monitor.disk.read" = "Lectura";
+"hardware.monitor.disk.write" = "Escritura";
+"hardware.monitor.disk.help" = "Rendimiento total de lectura y escritura de los discos físicos.";
+"hardware.monitor.download.help" = "Rendimiento total de descarga en las interfaces de red físicas.";
+"hardware.monitor.upload.help" = "Rendimiento total de subida en las interfaces de red físicas.";
 
 "settings.transfer.title" = "Transferencia de ajustes";
 "settings.transfer.description" = "Guarda las preferencias transferibles como JSON legible o revisa un archivo de ajustes antes de importarlo.";

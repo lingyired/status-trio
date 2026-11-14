@@ -1174,6 +1174,15 @@
 "hardware.monitor.speed.capDescription" = "링은 회선 상한(Mbps) 기준으로 표시됩니다.";
 "hardware.monitor.kbps" = "KB/s";
 "hardware.monitor.mbps" = "MB/s";
+"hardware.monitor.gbps" = "GB/s";
+"hardware.monitor.fan.average" = "팬 평균";
+"hardware.monitor.fan.average.help" = "현재 보고되는 팬 속도의 평균입니다. 오래되었거나 읽을 수 없는 팬은 제외되며, 팬이 없는 Mac은 팬 없음으로 표시합니다.";
+"hardware.monitor.disk" = "디스크 I/O";
+"hardware.monitor.disk.read" = "읽기";
+"hardware.monitor.disk.write" = "쓰기";
+"hardware.monitor.disk.help" = "물리 디스크 전체의 읽기 및 쓰기 처리량입니다.";
+"hardware.monitor.download.help" = "물리 네트워크 인터페이스 전체의 다운로드 처리량입니다.";
+"hardware.monitor.upload.help" = "물리 네트워크 인터페이스 전체의 업로드 처리량입니다.";
 
 "settings.transfer.title" = "설정 이전";
 "settings.transfer.description" = "이전 가능한 환경설정을 읽기 쉬운 JSON으로 저장하거나, 가져오기 전에 설정 파일을 미리 봅니다.";

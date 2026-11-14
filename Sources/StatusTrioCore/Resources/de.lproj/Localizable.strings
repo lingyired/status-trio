@@ -1174,6 +1174,15 @@
 "hardware.monitor.speed.capDescription" = "Der Ring füllt sich relativ zur Verbindungsobergrenze (Mbps).";
 "hardware.monitor.kbps" = "KB/s";
 "hardware.monitor.mbps" = "MB/s";
+"hardware.monitor.gbps" = "GB/s";
+"hardware.monitor.fan.average" = "Ø Lüfter";
+"hardware.monitor.fan.average.help" = "Durchschnitt der aktuell gemeldeten Lüfterdrehzahlen. Veraltete oder nicht lesbare Lüfter werden ausgeschlossen; ein lüfterloser Mac zeigt die Bezeichnung Lüfterlos.";
+"hardware.monitor.disk" = "Festplatten-E/A";
+"hardware.monitor.disk.read" = "Lesen";
+"hardware.monitor.disk.write" = "Schreiben";
+"hardware.monitor.disk.help" = "Gesamter Lese- und Schreibdurchsatz der physischen Datenträger.";
+"hardware.monitor.download.help" = "Gesamter Download-Durchsatz über die physischen Netzwerkschnittstellen.";
+"hardware.monitor.upload.help" = "Gesamter Upload-Durchsatz über die physischen Netzwerkschnittstellen.";
 
 "settings.transfer.title" = "Einstellungen übertragen";
 "settings.transfer.description" = "Übertragbare Einstellungen als lesbare JSON-Datei speichern oder eine Einstellungsdatei vor dem Import prüfen.";

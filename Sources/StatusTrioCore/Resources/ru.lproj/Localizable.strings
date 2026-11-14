@@ -1174,6 +1174,15 @@
 "hardware.monitor.speed.capDescription" = "Кольцо масштабируется по пределу канала (Мбит/с).";
 "hardware.monitor.kbps" = "КБ/с";
 "hardware.monitor.mbps" = "МБ/с";
+"hardware.monitor.gbps" = "ГБ/с";
+"hardware.monitor.fan.average" = "Ср. вентилятор";
+"hardware.monitor.fan.average.help" = "Средняя скорость вентиляторов, о которой сообщает Mac. Устаревшие или нечитаемые вентиляторы исключаются; на Mac без вентилятора отображается метка Без вентилятора.";
+"hardware.monitor.disk" = "Диск I/O";
+"hardware.monitor.disk.read" = "Чтение";
+"hardware.monitor.disk.write" = "Запись";
+"hardware.monitor.disk.help" = "Суммарная скорость чтения и записи физических дисков.";
+"hardware.monitor.download.help" = "Суммарная скорость загрузки по физическим сетевым интерфейсам.";
+"hardware.monitor.upload.help" = "Суммарная скорость отдачи по физическим сетевым интерфейсам.";
 
 "settings.transfer.title" = "Перенос настроек";
 "settings.transfer.description" = "Сохраните переносимые настройки в читаемом формате JSON или просмотрите файл настроек перед импортом.";

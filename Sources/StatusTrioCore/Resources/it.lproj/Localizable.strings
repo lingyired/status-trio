@@ -1174,6 +1174,15 @@
 "hardware.monitor.speed.capDescription" = "L’anello è rapportato al limite della connessione (Mbps).";
 "hardware.monitor.kbps" = "KB/s";
 "hardware.monitor.mbps" = "MB/s";
+"hardware.monitor.gbps" = "GB/s";
+"hardware.monitor.fan.average" = "Ventola media";
+"hardware.monitor.fan.average.help" = "Velocità media delle ventole attualmente segnalate. Le ventole obsolete o non leggibili sono escluse; un Mac senza ventola mostra l’etichetta Senza ventola.";
+"hardware.monitor.disk" = "I/O disco";
+"hardware.monitor.disk.read" = "Lettura";
+"hardware.monitor.disk.write" = "Scrittura";
+"hardware.monitor.disk.help" = "Velocità totale di lettura e scrittura dei dischi fisici.";
+"hardware.monitor.download.help" = "Velocità di download totale sulle interfacce di rete fisiche.";
+"hardware.monitor.upload.help" = "Velocità di upload totale sulle interfacce di rete fisiche.";
 
 "settings.transfer.title" = "Trasferimento impostazioni";
 "settings.transfer.description" = "Salva le preferenze trasferibili in un file JSON leggibile o visualizza l’anteprima di un file di impostazioni prima di importarlo.";

@@ -1173,6 +1173,15 @@
 "hardware.monitor.speed.capDescription" = "Ring fill is scaled to your broadband cap (Mbps).";
 "hardware.monitor.kbps" = "KB/s";
 "hardware.monitor.mbps" = "MB/s";
+"hardware.monitor.gbps" = "GB/s";
+"hardware.monitor.fan.average" = "Avg fan";
+"hardware.monitor.fan.average.help" = "Average of the fan speeds the Mac is currently reporting. Stale or unreadable fans are excluded; a fanless Mac shows \"Fanless\".";
+"hardware.monitor.disk" = "Disk I/O";
+"hardware.monitor.disk.read" = "Read";
+"hardware.monitor.disk.write" = "Write";
+"hardware.monitor.disk.help" = "Aggregate storage read and write throughput across physical disks.";
+"hardware.monitor.download.help" = "Total download throughput across physical network interfaces.";
+"hardware.monitor.upload.help" = "Total upload throughput across physical network interfaces.";
 
 "settings.transfer.title" = "Settings transfer";
 "settings.transfer.description" = "Save portable preferences as readable JSON, or preview a settings file before importing.";

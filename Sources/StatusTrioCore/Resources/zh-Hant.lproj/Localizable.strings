@@ -1174,6 +1174,15 @@
 "hardware.monitor.speed.capDescription" = "圓弧進度按你的寬頻上限（Mbps）換算。";
 "hardware.monitor.kbps" = "KB/s";
 "hardware.monitor.mbps" = "MB/s";
+"hardware.monitor.gbps" = "GB/s";
+"hardware.monitor.fan.average" = "風扇均速";
+"hardware.monitor.fan.average.help" = "目前可讀風扇轉速的平均值。已過期或無法讀取的風扇不計入；無風扇的 Mac 顯示「無風扇」。";
+"hardware.monitor.disk" = "磁碟 I/O";
+"hardware.monitor.disk.read" = "讀取";
+"hardware.monitor.disk.write" = "寫入";
+"hardware.monitor.disk.help" = "所有實體磁碟的讀取與寫入總吞吐。";
+"hardware.monitor.download.help" = "所有實體網路介面的下載總吞吐。";
+"hardware.monitor.upload.help" = "所有實體網路介面的上傳總吞吐。";
 
 "settings.transfer.title" = "設定移轉";
 "settings.transfer.description" = "將可移轉的偏好設定儲存為易讀的 JSON 檔案，或在匯入前預覽設定檔案。";

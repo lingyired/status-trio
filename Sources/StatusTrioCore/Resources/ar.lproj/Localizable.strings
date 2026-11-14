@@ -1174,6 +1174,15 @@
 "hardware.monitor.speed.capDescription" = "يُحسب القوس بالنسبة إلى حد النطاق (Mbps).";
 "hardware.monitor.kbps" = "KB/s";
 "hardware.monitor.mbps" = "MB/s";
+"hardware.monitor.gbps" = "GB/s";
+"hardware.monitor.fan.average" = "متوسط المروحة";
+"hardware.monitor.fan.average.help" = "متوسط سرعة المراوح التي يبلّغ عنها الجهاز حاليًا. تُستثنى المراوح القديمة أو غير القابلة للقراءة؛ ويُظهر جهاز بلا مروحة تسمية بدون مروحة.";
+"hardware.monitor.disk" = "إدخال/إخراج القرص";
+"hardware.monitor.disk.read" = "قراءة";
+"hardware.monitor.disk.write" = "كتابة";
+"hardware.monitor.disk.help" = "إجمالي سرعة قراءة وكتابة التخزين عبر الأقراص الفعلية.";
+"hardware.monitor.download.help" = "إجمالي سرعة التنزيل عبر واجهات الشبكة الفعلية.";
+"hardware.monitor.upload.help" = "إجمالي سرعة الرفع عبر واجهات الشبكة الفعلية.";
 
 "settings.transfer.title" = "نقل الإعدادات";
 "settings.transfer.description" = "احفظ التفضيلات القابلة للنقل بصيغة JSON مقروءة، أو عاين ملف إعدادات قبل استيراده.";

@@ -209,6 +209,52 @@ struct HardwareMetricsSnapshot: Equatable, Sendable {
                                     availability: .temporarilyUnavailable)
     }
 
+    /// The status-panel summary's fan reading: the arithmetic mean of every
+    /// currently-readable fan's RPM. A real 0 RPM fan participates. Stale,
+    /// unreadable, NaN or negative samples never drag the average, and a fanless
+    /// machine is reported as unsupported rather than averaging to zero. This is
+    /// deliberately separate from `fanSummarySample` (the hottest fan), which
+    /// stays the icon/ring source so its semantics do not change.
+    var averageFanSample: HardwareMetricSample {
+        let fans = fanSamples
+        func value(_ s: HardwareMetricSample) -> Double? {
+            guard let v = s.value, v.isFinite, v >= 0 else { return nil }
+            return v
+        }
+        let fresh = fans.filter { $0.availability == .measured && value($0) != nil }
+        if !fresh.isEmpty {
+            let values = fresh.compactMap(value)
+            let average = values.reduce(0, +) / Double(values.count)
+            return HardwareMetricSample(
+                value: average, unit: .rpm,
+                sampledAt: fresh.map(\.sampledAt).max() ?? .distantPast, source: .smc,
+                availability: .measured,
+                metadata: HardwareMetricMetadata(sourceCount: values.count))
+        }
+        if let fanCount, fanCount == 0 {
+            return HardwareMetricSample(unit: .rpm, source: .smc, availability: .unsupported,
+                                        metadata: HardwareMetricMetadata(isFanless: true))
+        }
+        let stale = fans.filter { $0.availability == .stale && value($0) != nil }
+        if !stale.isEmpty {
+            let values = stale.compactMap(value)
+            let average = values.reduce(0, +) / Double(values.count)
+            return HardwareMetricSample(
+                value: average, unit: .rpm,
+                sampledAt: stale.map(\.sampledAt).max() ?? .distantPast, source: .smc,
+                availability: .stale,
+                metadata: HardwareMetricMetadata(sourceCount: values.count))
+        }
+        if fans.isEmpty {
+            return HardwareMetricSample(unit: .rpm, source: .smc, availability: .collecting)
+        }
+        if fans.allSatisfy({ $0.availability == .unsupported }) {
+            return HardwareMetricSample(unit: .rpm, source: .smc, availability: .unsupported,
+                                        metadata: HardwareMetricMetadata(isFanless: true))
+        }
+        return HardwareMetricSample(unit: .rpm, source: .smc, availability: .temporarilyUnavailable)
+    }
+
     /// Copy this snapshot forward with every measured sample expired as of `now`.
     func expiring(at now: Date) -> HardwareMetricsSnapshot {
         var copy = self
