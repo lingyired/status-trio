@@ -10,7 +10,8 @@ require() { grep -Fq -- "$2" "$1" || fail "$1 must contain: $2"; }
 forbid() { ! grep -Fq -- "$2" "$1" || fail "$1 must not contain: $2"; }
 [[ -f "$WORKFLOW" ]] || fail "gitee-sync.yml is missing"
 require "$WORKFLOW" "workflow_dispatch:"
-require "$WORKFLOW" "runs-on: ubuntu-latest"
+require "$WORKFLOW" "runs-on:"
+require "$WORKFLOW" "vars.GITEE_SYNC_RUNNER || 'ubuntu-latest'"
 require "$WORKFLOW" "tag:"
 require "$WORKFLOW" "required: true"
 require "$WORKFLOW" "contents: read"

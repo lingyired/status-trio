@@ -47,6 +47,16 @@ The same script is used by the \`.agents/skills/gitee-release-sync\` skill. A
 failed run is safe to retry with the same tag; only missing attachments are
 uploaded and a differing SHA-256 fails instead of overwriting.
 
+## Network reality (verified 2026-11-14)
+
+Uploading a real 20 MB DMG from a GitHub-hosted runner to Gitee timed out
+with zero bytes received after 900 seconds, while the same upload succeeds
+from a China-local machine. Keep `ubuntu-latest` only as a fallback; for
+reliable production mirrors set the repository variable `GITEE_SYNC_RUNNER`
+to a China-local self-hosted runner label, or run the local
+`gitee-release-sync` skill command. Never treat a cross-border upload timeout
+as proof that the DMG or token is invalid.
+
 ## Known limits (not yet qualified against the live service)
 
 - The configured Gitee repository currently returns HTTP 451 on its anonymous
