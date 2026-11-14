@@ -1439,7 +1439,7 @@ extension StatusIconRenderer {
                         x: centerTextInkCenter.x,
                         y: centerTextInkCenter.y + numberBounds.midY
                     ),
-                    degreeLift: fontSize * 0.35,
+                    degreeLift: -fontSize * 0.42,
                     in: context
                 )
                 return
