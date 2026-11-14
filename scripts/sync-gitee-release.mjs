@@ -7,7 +7,8 @@ import { join, dirname } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { execFileSync } from 'node:child_process';
 
-const fail = message => { throw new Error(message); };
+let stage = 'initializing';
+const fail = message => { throw new Error(stage + ': ' + message); };
 const hash = bytes => createHash('sha256').update(bytes).digest('hex');
 export function validateManifest(m, tag, repo, sha) {
   if (m?.schema_version !== 1 || m.tag !== tag || m.source_sha !== sha || !/^[a-f0-9]{40}$/.test(sha) ||
@@ -28,9 +29,9 @@ export async function request(url, options = {}) {
   let response;
   try {
     response = await fetcher(url, { method, body, headers: {...headers, ...(token ? {Authorization:'Bearer ' + token} : {})}, signal:AbortSignal.timeout(300_000), redirect: token ? 'error' : 'follow' });
-  } catch { fail('Network request failed (timeout, TLS, or redirect); retry the same tag after diagnosis'); }
+  } catch { fail('network request failed (timeout, TLS, or redirect)'); }
   if (missing && response.status === 404) return null;
-  if (!response.ok) fail('Remote request failed: HTTP ' + response.status);
+  if (!response.ok) fail('HTTP ' + response.status);
   return response;
 }
 const json = async (url, options) => (await request(url, options))?.json();
@@ -54,8 +55,10 @@ export async function synchronize(config) {
   const feed = feedURL || 'https://gitee.com/' + gitee + '/raw/main/appcast-gitee.xml';
   if (new URL(feed).protocol !== 'https:' || new URL(feed).host !== 'gitee.com') fail('Feed must be a public Gitee HTTPS URL');
   const ghOptions = {token:githubToken};
+  stage = 'reading GitHub release';
   const release = await json(gh + '/releases/tags/' + encodeURIComponent(tag), ghOptions);
   if (release.draft || release.prerelease || release.tag_name !== tag || !release.published_at || release.html_url !== 'https://github.com/' + github + '/releases/tag/' + tag) fail('Not an authoritative published stable GitHub Release');
+  stage = 'resolving GitHub commit';
   const commit = await json(gh + '/commits/' + encodeURIComponent(tag), ghOptions);
   const asset = name => {
     const matches = release.assets.filter(a => a.name === name && a.state === 'uploaded');
@@ -64,6 +67,7 @@ export async function synchronize(config) {
     if (matches[0].browser_download_url !== url) fail('GitHub asset URL identity mismatch');
     return matches[0];
   };
+  stage = 'reading release manifest';
   const manifestAsset = asset('release-manifest.json');
   const manifestBytes = await bytes(manifestAsset.browser_download_url);
   const manifest = JSON.parse(manifestBytes);
@@ -72,11 +76,13 @@ export async function synchronize(config) {
   if (dmgAsset.size !== Number(manifest.dmg.length)) fail('GitHub asset metadata length mismatch');
   const checksum = await bytes(asset(manifest.dmg.filename + '.sha256').browser_download_url);
   if (checksum.toString().trim() !== manifest.dmg.sha256 + '  ' + manifest.dmg.filename) fail('Checksum sidecar identity mismatch');
+  stage = 'downloading GitHub DMG';
   const dmg = await bytes(dmgAsset.browser_download_url);
   verifyBytes(dmg, manifest.dmg);
   const sourceFile = await json(gh + '/contents/appcast.xml?ref=main', ghOptions);
   if (sourceFile.encoding !== 'base64') fail('Unsupported authoritative feed encoding');
   const source = Buffer.from(sourceFile.content, 'base64');
+  stage = 'reading Gitee feed metadata';
   const remoteFileValue = await json(gt + '/contents/appcast-gitee.xml?ref=main', {missing:true});
   // Gitee returns 200 [] for a missing file, unlike GitHub's 404.
   const remoteFile = Array.isArray(remoteFileValue) ? null : remoteFileValue;
@@ -86,6 +92,7 @@ export async function synchronize(config) {
     await request(feed);
     if (!remoteFile?.sha) fail('Mirror appcast is missing');
   }
+  stage = 'listing Gitee releases';
   let releases = [];
   for (let page=1; ; page++) {
     const batch = await json(gt + '/releases?per_page=100&page=' + page);
@@ -102,6 +109,7 @@ export async function synchronize(config) {
   if (!mirror && mode !== 'sync') fail('Mirror release is missing');
   const mutate = async (url, data, method='POST') => json(url, {token, method, body:JSON.stringify(data), headers:{'Content-Type':'application/json'}});
   if (!mirror) {
+    stage = 'creating Gitee release';
     mirror = await mutate(gt + '/releases', {tag_name:tag, name:release.name || tag, target_commitish:'main', body:marker + '\n' + sourceMarker + '\nAuthoritative release: ' + release.html_url, prerelease:false});
   }
   const files = [[manifest.dmg.filename,dmg],[manifest.dmg.filename + '.sha256',checksum],['release-manifest.json',manifestBytes]];
@@ -113,6 +121,7 @@ export async function synchronize(config) {
     let existing = matches[0];
     if (!existing) {
       if (mode !== 'sync') fail('Mirror attachment missing: ' + name);
+      stage = 'uploading ' + name;
       const form = new FormData();
       form.set('file', new Blob([content]), name);
       await request(gt + '/releases/' + mirror.id + '/attach_files', {method:'POST',token,body:form});
@@ -140,15 +149,18 @@ export async function synchronize(config) {
   // No deletion: unselected history reverts to authoritative GitHub URLs.
   // Capacity reclamation remains disabled until the real API is qualified.
   if (mode === 'sync') {
+    stage = 're-reading Gitee feed';
     const currentValue = remoteFile
       ? await json(gt + '/contents/appcast-gitee.xml?ref=main', {missing:true})
       : null;
     const current = Array.isArray(currentValue) ? null : currentValue;
     if (remoteFile && current?.sha !== remoteFile.sha) fail('Gitee feed changed concurrently; retry same tag');
     if (!current || !Buffer.from(current.content,'base64').equals(derived)) {
+      stage = 'writing Gitee feed';
       await mutate(gt + '/contents/appcast-gitee.xml',{...(current?.sha ? {sha:current.sha} : {}),branch:'main',message:'Mirror verified ' + tag,content:derived.toString('base64')},current ? 'PUT' : 'POST');
     }
   }
+  stage = 'verifying public Gitee feed';
   const publicFeed = await bytes(feed);
   if (!publicFeed.equals(derived)) fail('Public feed not converged; attachment is safe, retry same tag after cache refresh');
   return {mode,tag,version:manifest.version,build:manifest.build,sha256:manifest.dmg.sha256,github:'https://github.com/' + github + '/releases/download/' + tag + '/' + manifest.dmg.filename,gitee:mirrorURL,feed,elapsed_ms:Date.now()-started,result:'verified',retention:'No automatic deletion until Gitee API qualification'};
