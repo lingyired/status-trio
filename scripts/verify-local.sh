@@ -113,6 +113,7 @@ else
         bash scripts/build-app.sh release no-open
     run_step "Platform and SDK contract" bash scripts/verify-platform-version.sh \
         dist/StatusTrio.app/Contents/MacOS/StatusTrio 13.0 26
+    run_step "Gitee mirror scripts (offline)" bash scripts/test-gitee-mirror.sh
     run_step "Mobile battery bundle" bash scripts/verify-mobile-battery-bundle.sh dist/StatusTrio.app
     run_step "Privileged helper bundle" bash scripts/verify-privileged-helper-bundle.sh dist/StatusTrio.app
 
@@ -132,6 +133,7 @@ else
         "scripts/test-mobile-battery-build-cache.sh"
         "scripts/test-ci-diagnostics.sh"
         "scripts/test-ci-workflow.sh"
+        "scripts/test-gitee-sync-workflow.sh"
         "scripts/test-build-timing.sh"
         "scripts/test-launch-computer-use.sh"
         "scripts/test-background-ui-configuration.sh"

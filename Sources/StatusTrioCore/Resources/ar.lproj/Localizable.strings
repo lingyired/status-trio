@@ -8,6 +8,7 @@
 "menu.window" = "نافذة";
 "menu.closeWindow" = "إغلاق النافذة";
 "menu.checkForUpdates" = "التحقق من وجود تحديثات…";
+"menu.checkViaGitee" = "التحقق من التحديثات عبر Gitee…";
 "menu.openMenuBarSettings" = "فتح إعدادات شريط القوائم";
 "settings.title" = "الإعدادات";
 "settings.page.appearance" = "المظهر";
@@ -239,6 +240,9 @@
 "settings.updates.title" = "التحديثات";
 "settings.updates.automatic" = "التحقق تلقائيًا من وجود تحديثات";
 "settings.updates.check" = "التحقق من وجود تحديثات…";
+"settings.updates.checkViaGitee" = "التحقق عبر Gitee";
+"settings.updates.giteeLaggingTitle" = "قد تتأخر مرآة Gitee";
+"settings.updates.giteeLaggingMessage" = "لا يوفّر Gitee تحديثًا لهذا الإصدار. ربما لم تتم مزامنة أحدث إصدار بعد. استخدم «التحقق من التحديثات» للحصول عليه من GitHub.";
 "battery.title" = "البطارية · %d%%";
 "battery.title.power" = "الطاقة · %d واط";
 "battery.title.powerUnavailable" = "الطاقة · غير متاحة";

@@ -77,11 +77,17 @@ struct PopoverFooterView: View {
             Menu {
                 Button(localization.string(.menuCheckForUpdates)) {
                     dismissPanel()
-                    updaterManager.checkForUpdates()
+                    updaterManager.checkForUpdates(preference: .githubFirst)
                 }
                 // Sparkle reports `canCheckForUpdates == false` while a check is
                 // in flight, which is exactly the disabled window the footer
                 // wants; while idle it enables itself again.
+                .disabled(!updaterManager.canCheckForUpdates)
+
+                Button(localization.string(.menuCheckViaGitee)) {
+                    dismissPanel()
+                    updaterManager.checkForUpdates(preference: .giteeFirst)
+                }
                 .disabled(!updaterManager.canCheckForUpdates)
 
                 Button(localization.format(.menuAbout, AppMetadata.name)) {
