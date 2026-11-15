@@ -276,6 +276,11 @@ final class SleepControlController: ObservableObject {
             || lidInFlightWrite || lidPendingRecovery || desiredLidSleep
     }
 
+    /// True while a failed lid-sleep clear is still awaiting recovery. The helper
+    /// self-check must not drop to the slow cadence while this is set, or the
+    /// residual `disablesleep=1` would go unnoticed.
+    var hasPendingLidRecovery: Bool { lidPendingRecovery }
+
     // MARK: - Lifecycle
 
     func start() {

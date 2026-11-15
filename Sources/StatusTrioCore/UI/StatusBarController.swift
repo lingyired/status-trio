@@ -80,6 +80,7 @@ final class StatusBarController: NSObject {
     private var powerDemandCancellable: AnyCancellable?
     private var panelBackgroundCancellable: AnyCancellable?
     private var reduceTransparencyCancellable: AnyCancellable?
+    private var helperQuiescenceCancellable: AnyCancellable?
     private let openSettings: () -> Void
     /// Opens Status Trio's own Settings window on the Battery tab.
     private let openAppBatterySettings: () -> Void
@@ -371,6 +372,24 @@ final class StatusBarController: NSObject {
             .sink { [weak self] _ in
                 self?.popover.refreshBackgroundForAccessibilityChange()
             }
+
+        // Keep the helper enabled but stretch its self-check cadence to 30 minutes
+        // when no visible panel section needs it. Hiding a section never disables
+        // the helper; a pending lid-sleep recovery keeps the normal cadence so a
+        // residual disablesleep=1 is still noticed.
+        helperQuiescenceCancellable = Publishers.CombineLatest3(
+            settings.$controlsLowPowerMode,
+            settings.$showsLidSleepButton,
+            settings.$enabledPopupSections
+        )
+        .receive(on: RunLoop.main)
+        .sink { [weak self] batteryOn, lidOn, sections in
+            guard let self else { return }
+            let anyVisible = (batteryOn && sections.contains(.battery))
+                || (lidOn && sections.contains(.quickActions))
+            let pending = self.store.sleepControl.hasPendingLidRecovery
+            PrivilegedHelperManager.shared.setQuiescent(!anyVisible && !pending)
+        }
 
         screenParametersCancellable = NotificationCenter.default.publisher(
             for: NSApplication.didChangeScreenParametersNotification,

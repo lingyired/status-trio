@@ -264,7 +264,9 @@ final class SleepControlControllerTests: XCTestCase {
         let control = make(client: client, ownership: ownership)
 
         control.start()
-        await waitUntil { client.setCalls.contains(false) }
+        // Wait for the observable outcome (marker cleared), not the write call —
+        // the write is appended before the async recovery resumes.
+        await waitUntil { !ownership.ownsDisableSleep }
 
         XCTAssertFalse(client.disableSleep)
         XCTAssertFalse(ownership.ownsDisableSleep)
