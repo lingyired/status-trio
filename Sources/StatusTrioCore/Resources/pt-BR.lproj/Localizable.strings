@@ -429,6 +429,8 @@
 "inputSource.switchUnconfirmed" = "O macOS aceitou “%@”, mas ainda informa outra fonte de entrada. O app em primeiro plano pode precisar de foco.";
 "settings.popup.order.inputSource" = "Fonte de entrada";
 "settings.popup.order.quickActions" = "Manter ativo";
+"settings.keepAwake.showInPanel" = "Mostrar «Manter ativo» no painel de status";
+"settings.keepAwake.helper" = "Ativar o auxiliar privilegiado";
 "quickActions.displaySleep" = "Manter a tela ativa";
 "quickActions.displaySleep.description" = "Impede que a tela entre em repouso quando ociosa.";
 "quickActions.lidSleep" = "Manter ativo com a tampa fechada";

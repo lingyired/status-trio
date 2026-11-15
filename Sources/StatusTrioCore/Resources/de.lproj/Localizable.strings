@@ -429,6 +429,8 @@
 "inputSource.switchUnconfirmed" = "macOS hat „%@“ akzeptiert, meldet aber weiterhin eine andere Eingabequelle. Die vorderste App braucht möglicherweise den Fokus.";
 "settings.popup.order.inputSource" = "Eingabequelle";
 "settings.popup.order.quickActions" = "Wach halten";
+"settings.keepAwake.showInPanel" = "„Wach halten“ im Statusfenster anzeigen";
+"settings.keepAwake.helper" = "Privilegierten Helper aktivieren";
 "quickActions.displaySleep" = "Bildschirm wach halten";
 "quickActions.displaySleep.description" = "Verhindert, dass das Display bei Inaktivität in den Ruhezustand geht.";
 "quickActions.lidSleep" = "Mit geschlossenem Deckel wach halten";

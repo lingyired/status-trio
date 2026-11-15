@@ -429,6 +429,8 @@
 "inputSource.switchUnconfirmed" = "macOS ha accettato «%@» ma segnala ancora un’altra sorgente di input. L’app in primo piano potrebbe richiedere il focus.";
 "settings.popup.order.inputSource" = "Sorgente di input";
 "settings.popup.order.quickActions" = "Mantieni attivo";
+"settings.keepAwake.showInPanel" = "Mostra «Mantieni attivo» nel pannello di stato";
+"settings.keepAwake.helper" = "Attiva l’helper con privilegi";
 "quickActions.displaySleep" = "Mantieni lo schermo attivo";
 "quickActions.displaySleep.description" = "Impedisce allo schermo di andare in sospensione quando è inattivo.";
 "quickActions.lidSleep" = "Mantieni attivo con coperchio chiuso";

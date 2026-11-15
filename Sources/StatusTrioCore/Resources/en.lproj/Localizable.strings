@@ -428,6 +428,8 @@
 "inputSource.switchUnconfirmed" = "macOS accepted “%@” but still reports another input source. The front app may need focus.";
 "settings.popup.order.inputSource" = "Input Source";
 "settings.popup.order.quickActions" = "Keep Awake";
+"settings.keepAwake.showInPanel" = "Show “Keep Awake” in the status panel";
+"settings.keepAwake.helper" = "Enable privileged helper";
 "quickActions.displaySleep" = "Keep Screen Awake";
 "quickActions.displaySleep.description" = "Prevent the display from sleeping while idle.";
 "quickActions.lidSleep" = "Keep Awake With Lid Closed";

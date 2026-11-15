@@ -174,7 +174,11 @@ struct StatusPopoverView: View {
     /// dropped when every display is hidden, so no empty section or dangling
     /// separator is left behind (#241).
     private var displayedSections: [PopupSection] {
-        panel.displayedSummarySections
+        panel.displayedSummarySections.filter { section in
+            guard section == .quickActions else { return true }
+            // Drop the whole keep-awake section when both pills are turned off.
+            return panel.settings.showsKeepScreenButton || panel.settings.showsLidSleepButton
+        }
     }
 
     /// The footer only renders on the summary route, so its rule follows the
@@ -220,7 +224,11 @@ struct StatusPopoverView: View {
                 }
             )
         case .quickActions:
-            QuickActionsCardView(control: panel.store.sleepControl)
+            QuickActionsCardView(
+                control: panel.store.sleepControl,
+                showsDisplay: panel.settings.showsKeepScreenButton,
+                showsLid: panel.settings.showsLidSleepButton
+            )
         case .network:
             WiFiPowerSummaryView(panel: panel,
                 state: panel.network,

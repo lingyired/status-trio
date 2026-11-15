@@ -37,6 +37,10 @@ final class SettingsStore: ObservableObject {
     static let showsBatteryPercentageDefaultsKey = "showsBatteryPercentage"
     static let showsBatteryPowerFlowDefaultsKey = "showsBatteryPowerFlow"
     static let showsBatteryPowerInfoBarDefaultsKey = "showsBatteryPowerInfoBar"
+    // Per-button visibility inside the panel's keep-awake section. Display-only
+    // preferences (intentionally not part of the settings transfer document).
+    static let showsKeepScreenButtonDefaultsKey = "showsKeepScreenButton"
+    static let showsLidSleepButtonDefaultsKey = "showsLidSleepButton"
     static let showsHighEnergyAppsDefaultsKey = "showsHighEnergyApps"
     static let highEnergyAppsRefreshIntervalDefaultsKey = "highEnergyAppsRefreshIntervalSeconds"
     static let highEnergyAppsRefreshIntervalRange: ClosedRange<Double> = 10...60
@@ -423,6 +427,14 @@ final class SettingsStore: ObservableObject {
     }
     @Published var showsHighEnergyApps: Bool {
         didSet { defaults.set(showsHighEnergyApps, forKey: Self.showsHighEnergyAppsDefaultsKey) }
+    }
+    /// Whether the panel's keep-awake section shows the "keep screen awake" pill.
+    @Published var showsKeepScreenButton: Bool {
+        didSet { defaults.set(showsKeepScreenButton, forKey: Self.showsKeepScreenButtonDefaultsKey) }
+    }
+    /// Whether the panel's keep-awake section shows the "keep lid-sleep off" pill.
+    @Published var showsLidSleepButton: Bool {
+        didSet { defaults.set(showsLidSleepButton, forKey: Self.showsLidSleepButtonDefaultsKey) }
     }
     @Published var highEnergyAppsRefreshIntervalSeconds: Double {
         didSet {
@@ -2067,6 +2079,8 @@ final class SettingsStore: ObservableObject {
         let legacyShowsPercentage = defaults.object(forKey: Self.showsBatteryPercentageDefaultsKey) as? Bool ?? true
         self.showsBatteryPowerFlow = defaults.object(forKey: Self.showsBatteryPowerFlowDefaultsKey) as? Bool ?? true
         self.showsBatteryPowerInfoBar = defaults.object(forKey: Self.showsBatteryPowerInfoBarDefaultsKey) as? Bool ?? false
+        self.showsKeepScreenButton = defaults.object(forKey: Self.showsKeepScreenButtonDefaultsKey) as? Bool ?? true
+        self.showsLidSleepButton = defaults.object(forKey: Self.showsLidSleepButtonDefaultsKey) as? Bool ?? true
         self.showsHighEnergyApps = defaults.object(forKey: Self.showsHighEnergyAppsDefaultsKey) as? Bool ?? false
         self.highEnergyAppsRefreshIntervalSeconds = Self.clampedHighEnergyAppsRefreshInterval(
             defaults.object(forKey: Self.highEnergyAppsRefreshIntervalDefaultsKey) as? Double

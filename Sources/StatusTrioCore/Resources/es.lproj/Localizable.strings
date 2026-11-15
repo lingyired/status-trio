@@ -429,6 +429,8 @@
 "inputSource.switchUnconfirmed" = "macOS aceptó «%@», pero sigue indicando otra fuente de entrada. Puede que la app en primer plano necesite el foco.";
 "settings.popup.order.inputSource" = "Fuente de entrada";
 "settings.popup.order.quickActions" = "Mantener activo";
+"settings.keepAwake.showInPanel" = "Mostrar «Mantener activo» en el panel de estado";
+"settings.keepAwake.helper" = "Activar el asistente con privilegios";
 "quickActions.displaySleep" = "Mantener la pantalla activa";
 "quickActions.displaySleep.description" = "Evita que la pantalla entre en reposo cuando está inactiva.";
 "quickActions.lidSleep" = "Mantener activo con la tapa cerrada";

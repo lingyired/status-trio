@@ -429,6 +429,8 @@
 "inputSource.switchUnconfirmed" = "macOS は「%@」を受け付けましたが、現在の入力ソースは別のままです。最前面のアプリにフォーカスが必要な場合があります。";
 "settings.popup.order.inputSource" = "入力ソース";
 "settings.popup.order.quickActions" = "スリープ防止";
+"settings.keepAwake.showInPanel" = "「スリープ防止」をステータスパネルに表示";
+"settings.keepAwake.helper" = "特権ヘルパーを有効にする";
 "quickActions.displaySleep" = "画面をスリープさせない";
 "quickActions.displaySleep.description" = "アイドル時にディスプレイがスリープしないようにします。";
 "quickActions.lidSleep" = "フタを閉じてもスリープさせない";

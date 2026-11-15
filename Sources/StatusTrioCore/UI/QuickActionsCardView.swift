@@ -14,7 +14,21 @@ import SwiftUI
 /// toggles, the timers, the helper gating, power policy and residual cleanup.
 struct QuickActionsCardView: View {
     @ObservedObject var control: SleepControlController
+    /// Whether each pill is shown at all (Settings → 保持唤醒). The lid pill is
+    /// additionally hidden while the privileged helper is not usable.
+    var showsDisplay: Bool = true
+    var showsLid: Bool = true
     @EnvironmentObject private var localization: Localization
+
+    /// Hide the lid pill entirely until the helper can actually back it, instead
+    /// of showing a permanently-grey button and a "需要特权辅助程序" line.
+    private var shouldShowLid: Bool {
+        guard showsLid else { return false }
+        switch control.lidUnavailableReason {
+        case .helperUnavailable, .helperNeedsUpdate: return false
+        default: return true
+        }
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
@@ -53,8 +67,12 @@ struct QuickActionsCardView: View {
 
     private func pillRow(now: Date) -> some View {
         VStack(alignment: .leading, spacing: 8) {
-            displayPill(now: now)
-            lidPill(now: now)
+            if showsDisplay {
+                displayPill(now: now)
+            }
+            if shouldShowLid {
+                lidPill(now: now)
+            }
         }
     }
 
@@ -179,10 +197,10 @@ struct QuickActionsCardView: View {
                 .red
             )
         }
-        if let external = control.lidSleepExternalState {
+        if shouldShowLid, let external = control.lidSleepExternalState {
             return (localization.string(external.localizationKey), .secondary)
         }
-        if !control.isPreventingLidSleep, let reason = control.lidUnavailableReason {
+        if shouldShowLid, !control.isPreventingLidSleep, let reason = control.lidUnavailableReason {
             return (localization.string(reason.localizationKey), .secondary)
         }
         if let notice = control.notice {

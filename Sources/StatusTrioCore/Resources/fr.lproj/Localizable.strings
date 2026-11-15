@@ -429,6 +429,8 @@
 "inputSource.switchUnconfirmed" = "macOS a accepté « %@ » mais signale toujours une autre source de saisie. L’app au premier plan doit peut-être être activée.";
 "settings.popup.order.inputSource" = "Source de saisie";
 "settings.popup.order.quickActions" = "Maintenir éveillé";
+"settings.keepAwake.showInPanel" = "Afficher « Garder éveillé » dans le panneau d’état";
+"settings.keepAwake.helper" = "Activer l’assistant privilégié";
 "quickActions.displaySleep" = "Garder l’écran allumé";
 "quickActions.displaySleep.description" = "Empêche l’écran de se mettre en veille en cas d’inactivité.";
 "quickActions.lidSleep" = "Rester éveillé avec le capot fermé";
