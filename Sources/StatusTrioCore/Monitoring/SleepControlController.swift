@@ -61,6 +61,28 @@ enum LidSleepUnavailableReason: Equatable, Sendable {
     }
 }
 
+/// Explicit Helper capability state (stage 2), so an old helper and a missing
+/// helper are told apart instead of collapsing into one "needs update" flag.
+/// Only a helper that has answered the version handshake at or above the
+/// `disableSleep` protocol may receive `disableSleep` writes; the pre-probe
+/// `.undetected`/`.detecting` states stay optimistic so startup does not dead-
+/// click, and the probe refines them within the first runloop.
+enum HelperCapability: Equatable, Sendable {
+    case undetected
+    case detecting
+    case available
+    case needsUpdate
+    case unavailable
+
+    /// Whether a `disableSleep` write may be attempted in this state.
+    var supportsDisableSleep: Bool {
+        switch self {
+        case .available, .undetected, .detecting: return true
+        case .needsUpdate, .unavailable: return false
+        }
+    }
+}
+
 /// A short, self-clearing notice shown in the card after an automatic change.
 enum SleepControlNotice: Equatable, Sendable {
     case turnedOffUnplugged
@@ -159,8 +181,11 @@ final class SleepControlController: ObservableObject {
     @Published private(set) var lidTimer: SleepTimerDuration = .unlimited
     @Published private(set) var lidExpiry: Date?
     @Published private(set) var isApplyingLidSleep = false
-    @Published private(set) var helperNeedsUpdate = false
+    @Published private(set) var helperCapability: HelperCapability = .undetected
     @Published private(set) var isHelperReady = false
+
+    /// Kept for the existing "needs update" copy; derived from the capability.
+    var helperNeedsUpdate: Bool { helperCapability == .needsUpdate }
     @Published private(set) var notice: SleepControlNotice?
     @Published private(set) var lastError: String?
     @Published private(set) var isOnExternalPower = true
@@ -178,28 +203,49 @@ final class SleepControlController: ObservableObject {
     private var readinessCancellable: AnyCancellable?
     private var hasStarted = false
     private var isStopped = false
-    private var lidGeneration: UInt64 = 0
+
+    // Serialized lid-sleep coordinator (stage 1). All `disableSleep` writes flow
+    // through one worker so concurrent/rapid requests cannot complete out of
+    // order; the desired state is the source of truth and the worker converges
+    // the real system state toward it.
+    private var lidWorkerTask: Task<Void, Never>?
+    private var lidWorkerRunning = false
+    private var lidInFlightWrite = false
+    private var desiredLidSleep = false
+    private var lidDisableAttempts = 0
+    private var lidPendingRecovery = false
+    private var lidForeignActive = false
+    private let lidDisableRetryDelays: [TimeInterval]
 
     init(
         assertion: any DisplaySleepAsserting = IOPMDisplaySleepAssertion(),
         client: any DisableSleepClienting = XPCPrivilegedHighPowerClient(),
         helperReadiness: any HelperReadinessProviding = SharedHelperReadiness(),
         ownership: any SleepOwnershipStoring = UserDefaultsSleepOwnershipStore(),
-        now: @escaping () -> Date = Date.init
+        now: @escaping () -> Date = Date.init,
+        lidDisableRetryDelays: [TimeInterval] = [1, 3, 9]
     ) {
         self.assertion = assertion
         self.client = client
         self.helperReadiness = helperReadiness
         self.ownership = ownership
         self.now = now
+        self.lidDisableRetryDelays = lidDisableRetryDelays
         self.isHelperReady = helperReadiness.isReady
+        // Optimistic before the first probe (keeps startup from dead-clicking);
+        // a known-missing helper is unavailable immediately.
+        self.helperCapability = helperReadiness.isReady ? .undetected : .unavailable
     }
 
     /// Why the lid toggle is unavailable, or `nil` when it can be turned on.
     var lidUnavailableReason: LidSleepUnavailableReason? {
         if isPreventingLidSleep { return nil }
-        if helperNeedsUpdate { return .helperNeedsUpdate }
         if !isHelperReady { return .helperUnavailable }
+        switch helperCapability {
+        case .needsUpdate: return .helperNeedsUpdate
+        case .unavailable: return .helperUnavailable
+        case .undetected, .detecting, .available: break
+        }
         if !isOnExternalPower { return .requiresPower }
         return nil
     }
@@ -208,7 +254,8 @@ final class SleepControlController: ObservableObject {
 
     /// Whether quitting must first restore `disablesleep 0`.
     var needsTerminationCleanup: Bool {
-        isPreventingLidSleep || ownership.ownsDisableSleep
+        isPreventingLidSleep || ownership.ownsDisableSleep || lidWorkerRunning
+            || lidInFlightWrite || lidPendingRecovery || desiredLidSleep
     }
 
     // MARK: - Lifecycle
@@ -224,7 +271,7 @@ final class SleepControlController: ObservableObject {
                     if ready {
                         self.probeHelperAndRecover()
                     } else {
-                        self.helperNeedsUpdate = false
+                        self.helperCapability = .unavailable
                     }
                 }
             }
@@ -240,6 +287,7 @@ final class SleepControlController: ObservableObject {
         readinessCancellable = nil
         displayOffTask?.cancel()
         lidOffTask?.cancel()
+        lidWorkerTask?.cancel()
         noticeTask?.cancel()
         displayOffTask = nil
         lidOffTask = nil
@@ -254,15 +302,22 @@ final class SleepControlController: ObservableObject {
     /// that cannot be reached keeps the ownership marker so the next launch
     /// retries the cleanup.
     func shutdown() async {
-        if !isStopped {
-            stop()
+        // Refuse new enables and stop timers first, then let any in-flight write
+        // settle before issuing the clear so a late enable cannot land after it.
+        desiredLidSleep = false
+        if !isStopped { stop() }
+        if let task = lidWorkerTask { _ = await task.value }
+        guard ownership.ownsDisableSleep || isPreventingLidSleep || lidInFlightWrite else {
+            isPreventingLidSleep = false
+            return
         }
-        guard ownership.ownsDisableSleep || isPreventingLidSleep else { return }
-        guard helperReadiness.isReady, !helperNeedsUpdate else { return }
-        guard let observed = try? await client.setDisableSleep(false) else { return }
-        if !observed {
+        guard helperReadiness.isReady, helperCapability.supportsDisableSleep,
+              helperCapability != .needsUpdate else { return }
+        let observed = try? await client.setDisableSleep(false)
+        if observed == false {
             ownership.ownsDisableSleep = false
             isPreventingLidSleep = false
+            lidPendingRecovery = false
         }
     }
 
@@ -318,14 +373,21 @@ final class SleepControlController: ObservableObject {
         displayExpiry = nil
     }
 
-    // MARK: - Lid sleep (helper-backed)
+    // MARK: - Lid sleep (helper-backed, serialized)
 
+    /// Requests the desired lid-sleep state. Every actual `disableSleep` write is
+    /// funnelled through one serial worker, so rapid toggles or an unplug during
+    /// an in-flight enable cannot leave the system on battery with the lid awake.
     func setLidSleep(_ enabled: Bool) {
-        guard !isStopped, !isApplyingLidSleep, enabled != isPreventingLidSleep else { return }
-        if enabled && !canEnableLidSleep {
-            return
+        guard !isStopped else { return }
+        if enabled {
+            guard canEnableLidSleep else { return }
+            guard !lidForeignActive else {
+                lastError = Self.foreignActiveMessage
+                return
+            }
         }
-        applyLidSleep(enabled)
+        requestLidState(enabled)
     }
 
     func setLidTimer(_ duration: SleepTimerDuration) {
@@ -334,37 +396,148 @@ final class SleepControlController: ObservableObject {
         scheduleLidAutoOff()
     }
 
-    private func applyLidSleep(_ enabled: Bool) {
+    private func requestLidState(_ enabled: Bool) {
+        guard !isStopped else { return }
+        if enabled == desiredLidSleep, !lidWorkerRunning,
+           isPreventingLidSleep == enabled, !lidPendingRecovery {
+            return
+        }
+        desiredLidSleep = enabled
+        startLidWorkerIfNeeded()
+    }
+
+    private func startLidWorkerIfNeeded() {
+        guard !lidWorkerRunning, !isStopped else { return }
+        lidWorkerRunning = true
         isApplyingLidSleep = true
-        lastError = nil
-        lidGeneration &+= 1
-        let generation = lidGeneration
-        Task { [weak self] in
-            guard let self else { return }
-            do {
-                let observed = try await self.client.setDisableSleep(enabled)
-                guard generation == self.lidGeneration else { return }
-                if observed == enabled {
-                    self.isPreventingLidSleep = enabled
-                    self.ownership.ownsDisableSleep = enabled
-                    if enabled {
-                        self.scheduleLidAutoOff()
-                    } else {
-                        self.cancelLidTimer()
-                    }
-                } else {
-                    self.lastError = enabled
-                        ? "The helper did not apply lid sleep prevention."
-                        : "The helper did not clear lid sleep prevention."
-                }
-            } catch {
-                guard generation == self.lidGeneration else { return }
-                self.lastError = error.localizedDescription
+        lidWorkerTask = Task { [weak self] in
+            await self?.runLidWorker()
+        }
+    }
+
+    private enum LidWriteOutcome: Equatable {
+        case applied
+        case blockedByPolicy
+        case retryableFailure
+        case failed
+    }
+
+    private func runLidWorker() async {
+        defer {
+            lidWorkerRunning = false
+            isApplyingLidSleep = false
+            lidWorkerTask = nil
+        }
+        while !isStopped {
+            let target = desiredLidSleep
+            if target == isPreventingLidSleep && !lidPendingRecovery {
+                return
             }
-            if generation == self.lidGeneration {
-                self.isApplyingLidSleep = false
+            if target {
+                // Re-check after any previous await: an unplug during an in-flight
+                // enable must flip the target off before we ever write `1`.
+                if lidForeignActive || !canEnableLidSleep {
+                    desiredLidSleep = false
+                    if isPreventingLidSleep { continue }
+                    return
+                }
+                switch await performEnableLidSleep() {
+                case .applied:
+                    continue
+                case .blockedByPolicy:
+                    desiredLidSleep = false
+                    continue
+                case .retryableFailure, .failed:
+                    desiredLidSleep = false
+                    return
+                }
+            } else {
+                switch await performDisableLidSleep() {
+                case .applied:
+                    continue
+                case .retryableFailure:
+                    lidDisableAttempts += 1
+                    if lidDisableAttempts <= lidDisableRetryDelays.count {
+                        let delay = lidDisableRetryDelays[lidDisableAttempts - 1]
+                        if delay > 0 { try? await Task.sleep(for: .seconds(delay)) }
+                        continue
+                    }
+                    lidPendingRecovery = true
+                    return
+                case .blockedByPolicy, .failed:
+                    return
+                }
             }
         }
+    }
+
+    private static let foreignActiveMessage =
+        "Lid sleep was already disabled by another tool; Status Trio will not change it."
+
+    private func performEnableLidSleep() async -> LidWriteOutcome {
+        guard canEnableLidSleep else { return .blockedByPolicy }
+        // Never claim ownership of a value the user (or another tool) set first.
+        let current: Bool?
+        do { current = try await client.readDisableSleep() } catch { current = nil }
+        guard let current else {
+            lastError = "Could not read the current lid sleep state; leaving it unchanged."
+            return .failed
+        }
+        if current {
+            if ownership.ownsDisableSleep {
+                isPreventingLidSleep = true
+                lidPendingRecovery = false
+                scheduleLidAutoOff()
+                return .applied
+            }
+            lidForeignActive = true
+            lastError = Self.foreignActiveMessage
+            return .failed
+        }
+        // Persist the intent *before* the write so a crash mid-write is recovered
+        // on the next launch (this is the durable pending-cleanup record).
+        ownership.ownsDisableSleep = true
+        lidInFlightWrite = true
+        let observed: Bool?
+        do { observed = try await client.setDisableSleep(true) } catch { observed = nil }
+        lidInFlightWrite = false
+        var onNow = (observed == true)
+        if !onNow { onNow = ((try? await client.readDisableSleep()) ?? false) }
+        if onNow {
+            isPreventingLidSleep = true
+            lidForeignActive = false
+            lidPendingRecovery = false
+            scheduleLidAutoOff()
+            return .applied
+        }
+        ownership.ownsDisableSleep = false
+        lastError = "The helper did not apply lid sleep prevention."
+        return .failed
+    }
+
+    private func performDisableLidSleep() async -> LidWriteOutcome {
+        guard ownership.ownsDisableSleep || isPreventingLidSleep || lidInFlightWrite else {
+            isPreventingLidSleep = false
+            lidPendingRecovery = false
+            cancelLidTimer()
+            return .applied
+        }
+        lidInFlightWrite = true
+        let observed: Bool?
+        do { observed = try await client.setDisableSleep(false) } catch { observed = nil }
+        lidInFlightWrite = false
+        var offNow = (observed == false)
+        if !offNow { offNow = ((try? await client.readDisableSleep()) == false) }
+        if offNow {
+            isPreventingLidSleep = false
+            ownership.ownsDisableSleep = false
+            lidPendingRecovery = false
+            lidDisableAttempts = 0
+            cancelLidTimer()
+            return .applied
+        }
+        lastError = "The helper did not clear lid sleep prevention."
+        return .retryableFailure
     }
 
     private func scheduleLidAutoOff() {
@@ -385,7 +558,7 @@ final class SleepControlController: ObservableObject {
     /// The end of a lid timer. Internal so tests exercise it without waiting.
     func lidTimerFired() {
         guard isPreventingLidSleep else { return }
-        setLidSleep(false)
+        requestLidState(false)
         showNotice(.timerEnded)
     }
 
@@ -404,23 +577,42 @@ final class SleepControlController: ObservableObject {
         let onExternalPower = battery.isPresent ? battery.isConnectedToPower : true
         isOnExternalPower = onExternalPower
         batteryPercentage = battery.percentage
-        guard isPreventingLidSleep else { return }
         guard !onExternalPower else { return }
+        // Check the in-flight/desired state too: an enable that has not returned
+        // yet is exactly the race that would otherwise stay on battery.
+        let wasActive = isPreventingLidSleep || lidWorkerRunning
+            || desiredLidSleep || lidInFlightWrite
+        guard wasActive else { return }
         let isLow = battery.isPresent && battery.percentage <= Self.lowBatteryThreshold
-        setLidSleep(false)
+        requestLidState(false)
         showNotice(isLow ? .turnedOffLowBattery : .turnedOffUnplugged)
     }
 
     // MARK: - Helper probing / residual recovery
 
     private func probeHelperAndRecover() {
-        guard !isStopped, isHelperReady else { return }
+        guard !isStopped, isHelperReady else {
+            if !isHelperReady { helperCapability = .unavailable }
+            return
+        }
+        helperCapability = .detecting
         Task { [weak self] in
             guard let self else { return }
-            if let version = try? await self.client.protocolVersion() {
-                self.helperNeedsUpdate = version < PowerHelperProtocolVersion.disableSleep
+            do {
+                let version = try await self.client.protocolVersion()
+                guard !self.isStopped else { return }
+                self.helperCapability =
+                    version < PowerHelperProtocolVersion.disableSleep ? .needsUpdate : .available
+            } catch {
+                guard !self.isStopped else { return }
+                // A helper that answers readiness but cannot name a version is a
+                // pre-handshake (old) helper: treat it as needing an update.
+                self.helperCapability = self.isHelperReady ? .needsUpdate : .unavailable
             }
             await self.recoverResidualIfOwned()
+            if self.lidPendingRecovery {
+                self.startLidWorkerIfNeeded()
+            }
         }
     }
 
@@ -429,16 +621,18 @@ final class SleepControlController: ObservableObject {
     private func recoverResidualIfOwned() async {
         guard ownership.ownsDisableSleep,
               helperReadiness.isReady,
-              !helperNeedsUpdate else { return }
+              helperCapability.supportsDisableSleep,
+              helperCapability != .needsUpdate else { return }
         guard let current = try? await client.readDisableSleep() else { return }
         if !current {
             ownership.ownsDisableSleep = false
             return
         }
         guard let observed = try? await client.setDisableSleep(false) else { return }
-        if !observed {
+        if observed == false {
             ownership.ownsDisableSleep = false
             isPreventingLidSleep = false
+            lidPendingRecovery = false
         }
     }
 
