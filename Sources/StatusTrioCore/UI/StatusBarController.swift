@@ -79,6 +79,7 @@ final class StatusBarController: NSObject {
     private var refreshIntervalCancellable: AnyCancellable?
     private var powerDemandCancellable: AnyCancellable?
     private var panelBackgroundCancellable: AnyCancellable?
+    private var reduceTransparencyCancellable: AnyCancellable?
     private let openSettings: () -> Void
     /// Opens Status Trio's own Settings window on the Battery tab.
     private let openAppBatterySettings: () -> Void
@@ -358,6 +359,17 @@ final class StatusBarController: NSObject {
             .removeDuplicates()
             .sink { [weak self] style in
                 self?.popover.applyBackgroundStyle(style)
+            }
+
+        // Reduce Transparency changes neither the persisted style nor the panel's
+        // own observers, so replay the background through the same effective-style
+        // calculation the SwiftUI cards use. One event updates the window and the
+        // content; no reopen required.
+        reduceTransparencyCancellable = NSWorkspace.shared.notificationCenter
+            .publisher(for: NSWorkspace.accessibilityDisplayOptionsDidChangeNotification)
+            .receive(on: RunLoop.main)
+            .sink { [weak self] _ in
+                self?.popover.refreshBackgroundForAccessibilityChange()
             }
 
         screenParametersCancellable = NotificationCenter.default.publisher(
