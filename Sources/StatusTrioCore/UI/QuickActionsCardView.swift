@@ -59,8 +59,8 @@ struct QuickActionsCardView: View {
     }
 
     private func displayPill(now: Date) -> some View {
-        SplitCapsuleControl(
-            symbol: "sun.max.fill",
+        UnifiedCountdownControl(
+            role: .displayAwake,
             title: localization.string(.quickActionsDisplaySleep),
             help: localization.string(.quickActionsDisplaySleepDescription),
             subtitle: subtitle(
@@ -90,8 +90,8 @@ struct QuickActionsCardView: View {
     }
 
     private func lidPill(now: Date) -> some View {
-        SplitCapsuleControl(
-            symbol: "moon.zzz.fill",
+        UnifiedCountdownControl(
+            role: .lidAwake,
             title: localization.string(.quickActionsLidSleep),
             help: localization.string(.quickActionsLidSleepDescription),
             subtitle: subtitle(
@@ -193,8 +193,8 @@ struct QuickActionsCardView: View {
 
 /// One Control Center style split capsule: a main toggle with the remaining
 /// time as a blue progress fill, and a separate neutral time button.
-private struct SplitCapsuleControl: View {
-    let symbol: String
+private struct UnifiedCountdownControl: View {
+    let role: KeepAwakeRole
     let title: String
     let help: String
     let subtitle: String
@@ -207,68 +207,86 @@ private struct SplitCapsuleControl: View {
     let onSelectDuration: (SleepTimerDuration) -> Void
 
     @EnvironmentObject private var localization: Localization
+    @Environment(\.colorScheme) private var colorScheme
+    @State private var isHoveringTime = false
 
-    private static let height: CGFloat = 44
-    private static let timeWidth: CGFloat = 40
-    private static let segmentRadius: CGFloat = 12
-    private static let iconDiameter: CGFloat = 26
+    private static let height: CGFloat = 54
+    private static let cornerRadius: CGFloat = 13
+    private static let timeWidth: CGFloat = 64
+    private static let iconDiameter: CGFloat = 32
 
     var body: some View {
-        HStack(spacing: 2) {
+        HStack(spacing: 0) {
             mainButton
+            divider
             timeButton
         }
-        // Two 12pt rounded segments with a hairline gap, sized like the
-        // battery power cards so the panel does not gain a taller row.
         .frame(maxWidth: .infinity)
         .frame(height: Self.height)
-        .opacity(isEnabled ? 1 : 0.5)
+        .background { progressBackground }
+        .clipShape(RoundedRectangle(cornerRadius: Self.cornerRadius, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: Self.cornerRadius, style: .continuous)
+                .stroke(Color.primary.opacity(0.10), lineWidth: 1)
+        }
+        .opacity(isEnabled ? 1 : 0.55)
         .help(help)
+    }
+
+    /// One neutral layer and one blue layer spanning the whole capsule. The
+    /// blue is drawn at the container width, so a full countdown also tints the
+    /// time region — it is the same continuous background, not a second block.
+    private var progressBackground: some View {
+        GeometryReader { geometry in
+            ZStack(alignment: .leading) {
+                Color.primary.opacity(0.06)
+                progressColor
+                    .frame(width: geometry.size.width * clampedProgress)
+            }
+        }
+    }
+
+    private var progressColor: Color {
+        // A deeper blue in dark mode and a lighter one in light mode keep the
+        // label readable over both the gray and the blue part.
+        Color.blue.opacity(colorScheme == .dark ? 0.62 : 0.30)
+    }
+
+    private var iconPalette: KeepAwakeIconPalette {
+        KeepAwakeIconPalette.resolve(role: role, isOn: isOn, isDark: colorScheme == .dark)
     }
 
     private var mainButton: some View {
         Button(action: onToggle) {
-            ZStack(alignment: .leading) {
-                GeometryReader { geometry in
-                    ZStack(alignment: .leading) {
-                        Color.primary.opacity(0.07)
-                        Color.blue
-                            .opacity(0.32)
-                            .frame(width: geometry.size.width * clampedProgress)
-                    }
+            HStack(spacing: 10) {
+                ZStack {
+                    Circle()
+                        .fill(iconPalette.circle)
+                    Image(systemName: role.symbol)
+                        .font(.system(size: role.glyphSize, weight: .semibold))
+                        .foregroundStyle(iconPalette.glyph)
+                }
+                .frame(width: Self.iconDiameter, height: Self.iconDiameter)
+
+                VStack(alignment: .leading, spacing: 1) {
+                    Text(title)
+                        .font(.system(size: 13, weight: .semibold))
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.8)
+                        .foregroundStyle(.primary)
+                    Text(subtitle)
+                        .font(.system(size: 10.5))
+                        .lineLimit(2)
+                        .minimumScaleFactor(0.85)
+                        .foregroundStyle(.secondary)
                 }
 
-                HStack(spacing: 5) {
-                    ZStack {
-                        Circle()
-                            .fill(Color.primary.opacity(0.12))
-                            .frame(width: Self.iconDiameter, height: Self.iconDiameter)
-                        Image(systemName: symbol)
-                            .font(.system(size: 12, weight: .semibold))
-                            .foregroundStyle(.primary)
-                    }
-
-                    VStack(alignment: .leading, spacing: 1) {
-                        Text(title)
-                            .font(.system(size: 11, weight: .medium))
-                            .lineLimit(1)
-                            .minimumScaleFactor(0.75)
-                            .foregroundStyle(.primary)
-                        Text(subtitle)
-                            .font(.system(size: 9))
-                            .lineLimit(2)
-                            .minimumScaleFactor(0.8)
-                            .foregroundStyle(.secondary)
-                    }
-
-                    Spacer(minLength: 0)
-                }
-                .padding(.leading, 6)
-                .padding(.trailing, 4)
+                Spacer(minLength: 0)
             }
+            .padding(.leading, 12)
+            .padding(.trailing, 8)
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
-            .clipShape(RoundedRectangle(cornerRadius: Self.segmentRadius, style: .continuous))
-            .contentShape(RoundedRectangle(cornerRadius: Self.segmentRadius, style: .continuous))
+            .contentShape(Rectangle())
             .overlay {
                 if isApplying {
                     ProgressView().controlSize(.small)
@@ -283,6 +301,15 @@ private struct SplitCapsuleControl: View {
         .accessibilityAddTraits(isOn ? [.isButton, .isSelected] : .isButton)
         .accessibilityHint(Text(help))
         .focusable(isEnabled)
+        .suppressFocusRing()
+    }
+
+    private var divider: some View {
+        Rectangle()
+            .fill(Color.primary.opacity(0.12))
+            .frame(width: 1)
+            .padding(.vertical, 10)
+            .accessibilityHidden(true)
     }
 
     private var timeButton: some View {
@@ -300,21 +327,25 @@ private struct SplitCapsuleControl: View {
             }
             .pickerStyle(.inline)
         } label: {
-            VStack(spacing: 1) {
+            VStack(spacing: 2) {
                 Image(systemName: "timer")
-                    .font(.system(size: 10, weight: .medium))
+                    .font(.system(size: 12, weight: .medium))
                 Text(selectedDuration.shortLabel)
-                    .font(.system(size: 9.5, weight: .semibold))
+                    .font(.system(size: 10, weight: .semibold))
                     .lineLimit(1)
             }
-            .frame(width: Self.timeWidth, height: Self.height)
+            .frame(maxWidth: .infinity)
+            .frame(maxHeight: .infinity)
             .foregroundStyle(.primary)
-            .background(Color.primary.opacity(0.10))
-            .clipShape(RoundedRectangle(cornerRadius: Self.segmentRadius, style: .continuous))
-            .contentShape(RoundedRectangle(cornerRadius: Self.segmentRadius, style: .continuous))
+            .background(Color.primary.opacity(isHoveringTime ? 0.05 : 0))
+            .contentShape(Rectangle())
+            .onHover { isHoveringTime = $0 }
         }
         .menuStyle(.borderlessButton)
         .menuIndicator(.hidden)
+        .frame(width: Self.timeWidth)
+        .focusable(isEnabled)
+        .suppressFocusRing()
         .disabled(!isEnabled || isApplying)
         .accessibilityLabel(Text(localization.string(.quickActionsTimer)))
         .accessibilityValue(Text(localization.string(selectedDuration.localizationKey)))
@@ -322,5 +353,73 @@ private struct SplitCapsuleControl: View {
 
     private var clampedProgress: Double {
         min(1, max(0, progress))
+    }
+}
+
+
+private enum KeepAwakeRole {
+    case displayAwake
+    case lidAwake
+
+    var symbol: String {
+        switch self {
+        case .displayAwake: "lightbulb.fill"
+        case .lidAwake: "moon.zzz.fill"
+        }
+    }
+
+    /// Slightly larger glyph for the bulb so it balances the wider moon in the
+    /// same 32pt circle.
+    var glyphSize: CGFloat {
+        switch self {
+        case .displayAwake: 16
+        case .lidAwake: 15
+        }
+    }
+}
+
+/// The semantic icon colours, kept apart from the blue countdown progress.
+/// Warm / bright for "keep the screen lit", soft cool for "keep the Mac awake
+/// with the lid closed", neutral gray when off.
+private struct KeepAwakeIconPalette {
+    let circle: Color
+    let glyph: Color
+
+    static func resolve(role: KeepAwakeRole, isOn: Bool, isDark: Bool) -> KeepAwakeIconPalette {
+        guard isOn else {
+            return KeepAwakeIconPalette(circle: Color.primary.opacity(0.12), glyph: .secondary)
+        }
+        switch (role, isDark) {
+        case (.displayAwake, true):
+            return KeepAwakeIconPalette(circle: srgb(0xFFF4DB), glyph: srgb(0xF5BD35))
+        case (.displayAwake, false):
+            return KeepAwakeIconPalette(circle: srgb(0xFFF0CC), glyph: srgb(0xD4920E))
+        case (.lidAwake, true):
+            return KeepAwakeIconPalette(circle: srgb(0xEFF3F5), glyph: srgb(0x65AEBB))
+        case (.lidAwake, false):
+            return KeepAwakeIconPalette(circle: srgb(0xE6F1F3), glyph: srgb(0x4E97A3))
+        }
+    }
+}
+
+private func srgb(_ rgb: UInt32) -> Color {
+    Color(
+        red: Double((rgb >> 16) & 0xFF) / 255,
+        green: Double((rgb >> 8) & 0xFF) / 255,
+        blue: Double(rgb & 0xFF) / 255
+    )
+}
+
+private extension View {
+    /// Keeps the control keyboard-focusable without painting the blue focus
+    /// ring when it is clicked. `focusEffectDisabled` exists on macOS 14+; on
+    /// macOS 13 the ring stays as the only platform-provided affordance.
+    @ViewBuilder
+    func suppressFocusRing() -> some View {
+        if #available(macOS 14.0, *) {
+            focusEffectDisabled()
+        } else {
+            self
+        }
     }
 }
