@@ -46,3 +46,11 @@
 - HardwareMonitorObservable 保留上次有效读数；摘要用 summarySnapshot 在缺值时回退显示上次缓存（变暗），打开面板不再闪「—」。
 - 测试：设置校验/往返、后台节奏、需求生命周期、摘要缓存回退，共 78 项相关测试通过。
 
+
+
+## 追加：面板打开刷新频率可调（2026-11-15）
+
+- 新增设置 `hardwarePanelRefreshSeconds`：1/2/3/5/10 秒，默认 1 秒；存入 SettingsStore、加入 SettingsPreferenceCatalog、覆盖 12 种语言、设置页「系统监控」新增下拉。
+- HardwareMetricsService 在面板是唯一非后台消费者时按该秒数节流；菜单栏/Dock 等消费者仍按各自需要的节奏。
+- 测试：设置校验/往返、面板节奏；相关 48 项测试通过。
+
