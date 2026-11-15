@@ -37,3 +37,12 @@
 ## 说明
 
 早前阶段此文件记录的是指定模型入口不可用（NO_ADAPTER: provider "auto"）的受阻状态；模型切换为该模型后已完成实现与本地验证。
+
+
+## 追加：后台监控频率与缓存显示（2026-11-15）
+
+- 新增设置 `hardwareBackgroundRefreshSeconds`：关闭(0，默认)/5/10/15/30/60 秒；存入 SettingsStore、加入 SettingsPreferenceCatalog（可导出导入）、覆盖 12 种语言、设置页「系统监控」新增下拉。
+- HardwareMetricsService 新增 `.background` 需求：仅当后台需求是唯一消费者时按设定秒数采样；面板打开时仍用快速节奏。StatusPanelViewModel 随设置开启/关闭后台需求。
+- HardwareMonitorObservable 保留上次有效读数；摘要用 summarySnapshot 在缺值时回退显示上次缓存（变暗），打开面板不再闪「—」。
+- 测试：设置校验/往返、后台节奏、需求生命周期、摘要缓存回退，共 78 项相关测试通过。
+
