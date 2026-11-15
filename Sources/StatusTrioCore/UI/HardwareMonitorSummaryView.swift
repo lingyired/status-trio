@@ -46,8 +46,7 @@ struct HardwareSummaryMetricCell: View {
     var body: some View {
         VStack(spacing: 3) {
             Text(item.valueText)
-                .font(.system(size: 13, weight: .regular))
-                .monospacedDigit()
+                .font(.system(size: 13, weight: .regular, design: .monospaced))
                 .foregroundStyle(.primary)
                 .opacity(item.isStale ? 0.45 : 1)
                 .lineLimit(1)
@@ -60,7 +59,7 @@ struct HardwareSummaryMetricCell: View {
                     .accessibilityHidden(true)
                 if !item.unitText.isEmpty {
                     Text(item.unitText)
-                        .font(.system(size: 9.5))
+                        .font(.system(size: 9.5, design: .monospaced))
                         .foregroundStyle(.secondary)
                         .lineLimit(1)
                 }
