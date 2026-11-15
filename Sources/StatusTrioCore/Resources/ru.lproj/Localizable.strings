@@ -1179,6 +1179,8 @@
 "hardware.monitor.settings.background.description" = "Продолжать опрос показателей оборудования при закрытой панели, чтобы она открывалась с актуальными данными. По умолчанию выключено для экономии энергии.";
 "hardware.monitor.background.off" = "Выкл.";
 "hardware.monitor.background.seconds" = "%d с";
+"hardware.monitor.settings.panelRefresh" = "Обновление панели";
+"hardware.monitor.settings.panelRefresh.description" = "Как часто обновляется панель, пока открыта. Быстрее — актуальнее, но больше чтений; медленнее — экономит энергию.";
 "hardware.monitor.fan.average" = "Ср. вентилятор";
 "hardware.monitor.fan.average.help" = "Средняя скорость вентиляторов, о которой сообщает Mac. Устаревшие или нечитаемые вентиляторы исключаются; на Mac без вентилятора отображается метка Без вентилятора.";
 "hardware.monitor.disk" = "Диск I/O";

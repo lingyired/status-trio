@@ -103,6 +103,8 @@ enum LocalizationKey: String, CaseIterable, Hashable, Sendable {
     case hardwareMonitorSettingsBackgroundDescription = "hardware.monitor.settings.background.description"
     case hardwareMonitorBackgroundOff = "hardware.monitor.background.off"
     case hardwareMonitorBackgroundSeconds = "hardware.monitor.background.seconds"
+    case hardwareMonitorSettingsPanelRefresh = "hardware.monitor.settings.panelRefresh"
+    case hardwareMonitorSettingsPanelRefreshDescription = "hardware.monitor.settings.panelRefresh.description"
     case settingsTabPanel = "settings.tab.panel"
     case settingsTabAppIcon = "settings.tab.appIcon"
     case settingsTabBattery = "settings.tab.battery"

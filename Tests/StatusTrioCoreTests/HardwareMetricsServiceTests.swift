@@ -521,6 +521,20 @@ final class HardwareMetricsServiceTests: XCTestCase {
     }
 
 
+
+    func testPanelDemandUsesConfiguredCadence() async {
+        let clock = Clock()
+        let service = HardwareMetricsService(automaticScheduling: false, now: { clock.date }, reader: { _, _ in .empty })
+        service.panelIntervalSeconds = 5
+        service.begin(.panel, metrics: [.networkDownload])
+        XCTAssertEqual(service.currentTickIntervalForTesting, 5, "panel-open cadence is configurable")
+        service.begin(.menuBarArc, metrics: [.networkDownload])
+        XCTAssertEqual(service.currentTickIntervalForTesting, 1, "a second consumer keeps the fast cadence")
+        service.end(.menuBarArc)
+        XCTAssertEqual(service.currentTickIntervalForTesting, 5)
+        service.stopAll()
+    }
+
     func testBackgroundDemandUsesConfiguredCadence() async {
         let clock = Clock()
         let service = HardwareMetricsService(automaticScheduling: false, now: { clock.date }, reader: { _, _ in .empty })

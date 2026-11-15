@@ -415,6 +415,11 @@ final class StatusPanelViewModel: ObservableObject {
             .sink { [weak self] seconds in self?.updateHardwareMetricsDemand(backgroundSeconds: seconds) }
             .store(in: &cancellables)
 
+        settings.$hardwarePanelRefreshSeconds
+            .removeDuplicates()
+            .sink { [weak self] seconds in self?.updateHardwareMetricsDemand(panelSeconds: seconds) }
+            .store(in: &cancellables)
+
         settings.$statusPanelBoldTextEnabled
             .removeDuplicates()
             .sink { [weak self] enabled in
@@ -894,7 +899,8 @@ final class StatusPanelViewModel: ObservableObject {
     /// panel is open, the route is the summary, and the section is visible.
     /// Switching pages, hiding the module or closing the panel ends the demand
     /// immediately, so a closed panel never keeps a hardware timer alive.
-    private func updateHardwareMetricsDemand(popoverVisible: Bool? = nil, backgroundSeconds: Int? = nil) {
+    private func updateHardwareMetricsDemand(popoverVisible: Bool? = nil, backgroundSeconds: Int? = nil,
+                                             panelSeconds: Int? = nil) {
         // `@Published` publishes in willSet, so a subscriber must pass the new
         // value in rather than read `store.isPopoverVisible` (still the old one).
         let sectionOn = visiblePopupSections.contains(.hardwareMonitor)
@@ -906,6 +912,8 @@ final class StatusPanelViewModel: ObservableObject {
         // value in rather than read the not-yet-committed stored property.
         let background = backgroundSeconds ?? settings.hardwareBackgroundRefreshSeconds
         store.hardwareMetrics.backgroundIntervalSeconds = TimeInterval(background)
+        let panelRefresh = panelSeconds ?? settings.hardwarePanelRefreshSeconds
+        store.hardwareMetrics.panelIntervalSeconds = TimeInterval(panelRefresh)
         if visible {
             // The compact summary is fixed: four rings plus download/upload,
             // average fan and disk read/write. It no longer follows the card

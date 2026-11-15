@@ -1179,6 +1179,8 @@
 "hardware.monitor.settings.background.description" = "面板关闭时仍持续采集硬件指标，打开面板即为实时数据。为省电默认关闭。";
 "hardware.monitor.background.off" = "关闭";
 "hardware.monitor.background.seconds" = "%d 秒";
+"hardware.monitor.settings.panelRefresh" = "面板刷新";
+"hardware.monitor.settings.panelRefresh.description" = "面板打开时的更新频率。越快越实时但读取更多，越慢越省电。";
 "hardware.monitor.fan.average" = "风扇均速";
 "hardware.monitor.fan.average.help" = "当前可读风扇转速的平均值。已过期或无法读取的风扇不计入；无风扇的 Mac 显示「无风扇」。";
 "hardware.monitor.disk" = "磁盘 I/O";

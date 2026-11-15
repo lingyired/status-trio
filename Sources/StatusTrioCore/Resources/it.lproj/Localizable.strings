@@ -1179,6 +1179,8 @@
 "hardware.monitor.settings.background.description" = "Continua a campionare le metriche hardware mentre il pannello è chiuso, così si apre con dati in tempo reale. Disattivato per impostazione predefinita per risparmiare energia.";
 "hardware.monitor.background.off" = "Disattivato";
 "hardware.monitor.background.seconds" = "%d s";
+"hardware.monitor.settings.panelRefresh" = "Aggiornamento pannello";
+"hardware.monitor.settings.panelRefresh.description" = "Ogni quanto si aggiorna il pannello mentre è aperto. Più veloce è più in tempo reale ma legge di più; più lento risparmia energia.";
 "hardware.monitor.fan.average" = "Ventola media";
 "hardware.monitor.fan.average.help" = "Velocità media delle ventole attualmente segnalate. Le ventole obsolete o non leggibili sono escluse; un Mac senza ventola mostra l’etichetta Senza ventola.";
 "hardware.monitor.disk" = "I/O disco";

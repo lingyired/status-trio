@@ -27,7 +27,7 @@ final class SettingsPreferenceCatalogTests: XCTestCase {
                 "autoEnablesLowPowerMode", "showsAppleDevicesAndBattery",
                 "refreshesAppleBatteriesInBackground", "appleBatteryRefreshIntervalMinutes",
                 "showsBluetoothListeningMode", "bluetoothAudioIconChoiceRawValue", "wifiSymbolScale",
-                "volumeDisplayStyle", "ringStrokeStyle", "hardwareBackgroundRefreshSeconds", "refreshIntervalOnBatterySeconds",
+                "volumeDisplayStyle", "ringStrokeStyle", "hardwareBackgroundRefreshSeconds", "hardwarePanelRefreshSeconds", "refreshIntervalOnBatterySeconds",
                 "refreshIntervalOnPowerSeconds", "maxVisibleOutputDevices", "alwaysShowsAllOutputDevices",
                 "maxVisibleInputDevices", "alwaysShowsAllInputDevices", "showsBluetoothDeviceList",
                 "maxVisibleBluetoothDevices", "hidesGhostBluetoothDevices", "popupSectionOrder",
@@ -84,6 +84,23 @@ final class SettingsPreferenceCatalogTests: XCTestCase {
         }
     }
 
+
+
+    func testHardwarePanelRefreshValidatesOptionsAndRoundTrips() {
+        withStore { store, defaults in
+            XCTAssertEqual(store.hardwarePanelRefreshSeconds, 1)
+            for value in [2, 3, 5, 10] {
+                store.hardwarePanelRefreshSeconds = value
+                XCTAssertEqual(SettingsStore(defaults: defaults).hardwarePanelRefreshSeconds, value)
+            }
+            for invalid in [0, 4, 11, -1] {
+                store.hardwarePanelRefreshSeconds = invalid
+                XCTAssertEqual(store.hardwarePanelRefreshSeconds, 1, "only shipped options are accepted")
+            }
+            store.hardwarePanelRefreshSeconds = 5
+            XCTAssertEqual(SettingsPreferenceCatalog.snapshot(store)["hardwarePanelRefreshSeconds"], .number(5))
+        }
+    }
 
     func testHardwareBackgroundRefreshValidatesOptionsAndRoundTrips() {
         withStore { store, defaults in

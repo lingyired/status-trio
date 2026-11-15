@@ -175,6 +175,7 @@ final class SettingsStore: ObservableObject {
     static let hardwareDownloadCapMbpsDefaultsKey = "hardwareDownloadCapMbps"
     static let hardwareUploadCapMbpsDefaultsKey = "hardwareUploadCapMbps"
     static let hardwareBackgroundRefreshSecondsDefaultsKey = "hardwareBackgroundRefreshSeconds"
+    static let hardwarePanelRefreshSecondsDefaultsKey = "hardwarePanelRefreshSeconds"
     static let hardwareSpeedCapRange: ClosedRange<Double> = 1...100000
     static let defaultHardwareDownloadCapMbps: Double = 1000
     static let defaultHardwareUploadCapMbps: Double = 100
@@ -183,6 +184,11 @@ final class SettingsStore: ObservableObject {
     /// the app idle-when-closed unless the user opts in.
     static let hardwareBackgroundRefreshOptions: [Int] = [0, 5, 10, 15, 30, 60]
     static let defaultHardwareBackgroundRefreshSeconds: Int = 0
+    /// Refresh cadence for the status-panel hardware summary while it is open.
+    /// 1 s preserves the historical fastest cadence; slower options trade
+    /// freshness for fewer reads.
+    static let hardwarePanelRefreshOptions: [Int] = [1, 2, 3, 5, 10]
+    static let defaultHardwarePanelRefreshSeconds: Int = 1
 
     static func clampedHardwareSpeedCap(_ value: Double, fallback: Double) -> Double {
         value.isFinite ? min(hardwareSpeedCapRange.upperBound, max(hardwareSpeedCapRange.lowerBound, value)) : fallback
@@ -1184,6 +1190,17 @@ final class SettingsStore: ObservableObject {
                 return
             }
             defaults.set(hardwareBackgroundRefreshSeconds, forKey: Self.hardwareBackgroundRefreshSecondsDefaultsKey)
+        }
+    }
+
+    /// Panel-open refresh cadence in whole seconds; one of the shipped options.
+    @Published var hardwarePanelRefreshSeconds: Int = SettingsStore.defaultHardwarePanelRefreshSeconds {
+        didSet {
+            guard Self.hardwarePanelRefreshOptions.contains(hardwarePanelRefreshSeconds) else {
+                hardwarePanelRefreshSeconds = Self.defaultHardwarePanelRefreshSeconds
+                return
+            }
+            defaults.set(hardwarePanelRefreshSeconds, forKey: Self.hardwarePanelRefreshSecondsDefaultsKey)
         }
     }
 
@@ -2820,6 +2837,10 @@ final class SettingsStore: ObservableObject {
             ?? Self.defaultHardwareBackgroundRefreshSeconds
         self.hardwareBackgroundRefreshSeconds = Self.hardwareBackgroundRefreshOptions.contains(storedBackground)
             ? storedBackground : Self.defaultHardwareBackgroundRefreshSeconds
+        let storedPanel = defaults.object(forKey: Self.hardwarePanelRefreshSecondsDefaultsKey) as? Int
+            ?? Self.defaultHardwarePanelRefreshSeconds
+        self.hardwarePanelRefreshSeconds = Self.hardwarePanelRefreshOptions.contains(storedPanel)
+            ? storedPanel : Self.defaultHardwarePanelRefreshSeconds
         bootstrapIconConfiguration()
     }
 

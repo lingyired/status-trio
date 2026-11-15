@@ -1179,6 +1179,8 @@
 "hardware.monitor.settings.background.description" = "Sammelt Hardware-Messwerte weiter, während das Panel geschlossen ist, damit es mit Live-Daten öffnet. Standardmäßig aus, um Energie zu sparen.";
 "hardware.monitor.background.off" = "Aus";
 "hardware.monitor.background.seconds" = "%d s";
+"hardware.monitor.settings.panelRefresh" = "Panel-Aktualisierung";
+"hardware.monitor.settings.panelRefresh.description" = "Wie oft das Panel bei geöffnetem Zustand aktualisiert wird. Schneller ist aktueller, liest aber mehr; langsamer spart Energie.";
 "hardware.monitor.fan.average" = "Ø Lüfter";
 "hardware.monitor.fan.average.help" = "Durchschnitt der aktuell gemeldeten Lüfterdrehzahlen. Veraltete oder nicht lesbare Lüfter werden ausgeschlossen; ein lüfterloser Mac zeigt die Bezeichnung Lüfterlos.";
 "hardware.monitor.disk" = "Festplatten-E/A";

@@ -84,6 +84,10 @@ final class HardwareMetricsService: ObservableObject {
     /// background demand is the sole consumer, so an open panel still refreshes
     /// at the fast metric cadence. Set by the panel view model from settings.
     var backgroundIntervalSeconds: TimeInterval = 0
+    /// Panel-open cadence in seconds (0 = metric default). Applied only when the
+    /// panel is the sole non-background consumer, so icon/dock consumers keep
+    /// their own fast needs.
+    var panelIntervalSeconds: TimeInterval = 0
 
     static let defaultMetricIDs: Set<HardwareMetricID> = [
         .cpuUsage, .gpuUsage, .memoryUsage, .cpuTemperature, .batteryTemperature, .fanRPM(index: 0)
@@ -324,8 +328,12 @@ final class HardwareMetricsService: ObservableObject {
     private var tickInterval: TimeInterval {
         let ids = requestedIDs
         guard !ids.isEmpty else { return 2 }
-        if demands.keys.allSatisfy({ $0 == .background }), backgroundIntervalSeconds > 0 {
+        let nonBackground = Set(demands.keys.filter { $0 != .background })
+        if nonBackground.isEmpty, backgroundIntervalSeconds > 0 {
             return max(1, backgroundIntervalSeconds)
+        }
+        if nonBackground == [.panel], panelIntervalSeconds > 0 {
+            return max(1, panelIntervalSeconds)
         }
         return ids.map(interval(for:)).min() ?? 2
     }

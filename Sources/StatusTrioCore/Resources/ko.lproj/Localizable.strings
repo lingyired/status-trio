@@ -1179,6 +1179,8 @@
 "hardware.monitor.settings.background.description" = "패널이 닫혀 있는 동안에도 하드웨어 지표를 계속 샘플링하여 열 때 실시간 데이터를 표시합니다. 전력 절약을 위해 기본적으로 꺼져 있습니다.";
 "hardware.monitor.background.off" = "끔";
 "hardware.monitor.background.seconds" = "%d초";
+"hardware.monitor.settings.panelRefresh" = "패널 새로 고침";
+"hardware.monitor.settings.panelRefresh.description" = "패널이 열려 있는 동안 업데이트 빈도입니다. 빠를수록 더 실시간이지만 더 많이 읽고, 느릴수록 전력을 절약합니다.";
 "hardware.monitor.fan.average" = "팬 평균";
 "hardware.monitor.fan.average.help" = "현재 보고되는 팬 속도의 평균입니다. 오래되었거나 읽을 수 없는 팬은 제외되며, 팬이 없는 Mac은 팬 없음으로 표시합니다.";
 "hardware.monitor.disk" = "디스크 I/O";

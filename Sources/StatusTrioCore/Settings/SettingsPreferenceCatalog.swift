@@ -185,7 +185,9 @@ enum SettingsPreferenceCatalog {
                     default: SettingsStore.defaultPopupVolumeNaturalScrolling),
             optionalBoolean("popupVolumeScrollFeedbackOverride", \.popupVolumeScrollFeedbackOverride),
             integer("hardwareBackgroundRefreshSeconds", \.hardwareBackgroundRefreshSeconds,
-                    default: SettingsStore.defaultHardwareBackgroundRefreshSeconds, range: 0...60)
+                    default: SettingsStore.defaultHardwareBackgroundRefreshSeconds, range: 0...60),
+            integer("hardwarePanelRefreshSeconds", \.hardwarePanelRefreshSeconds,
+                    default: SettingsStore.defaultHardwarePanelRefreshSeconds, range: 1...10)
         ]
     }
 

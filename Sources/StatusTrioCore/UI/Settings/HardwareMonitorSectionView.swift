@@ -9,8 +9,34 @@ struct HardwareMonitorSectionView: View {
     var body: some View {
         SettingsPage {
             placementGroup
+            panelRefreshGroup
             backgroundGroup
             metricsGroup
+        }
+    }
+
+    private var panelRefreshGroup: some View {
+        SettingsGroup(
+            localization.string(.hardwareMonitorSettingsPanelRefresh),
+            footnote: localization.string(.hardwareMonitorSettingsPanelRefreshDescription)
+        ) {
+            SettingsCustomRow {
+                HStack {
+                    Spacer(minLength: 8)
+                    Picker("", selection: Binding(
+                        get: { store.hardwarePanelRefreshSeconds },
+                        set: { store.hardwarePanelRefreshSeconds = $0 }
+                    )) {
+                        ForEach(SettingsStore.hardwarePanelRefreshOptions, id: \.self) { seconds in
+                            Text(localization.format(.hardwareMonitorBackgroundSeconds, seconds))
+                                .tag(seconds)
+                        }
+                    }
+                    .labelsHidden()
+                    .pickerStyle(.menu)
+                    .fixedSize()
+                }
+            }
         }
     }
 

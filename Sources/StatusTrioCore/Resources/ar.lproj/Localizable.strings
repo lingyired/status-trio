@@ -1179,6 +1179,8 @@
 "hardware.monitor.settings.background.description" = "متابعة أخذ عينات مؤشرات العتاد أثناء إغلاق اللوحة حتى تُفتح ببيانات حيّة. معطّلة افتراضيًا لتوفير الطاقة.";
 "hardware.monitor.background.off" = "إيقاف";
 "hardware.monitor.background.seconds" = "%d ث";
+"hardware.monitor.settings.panelRefresh" = "تحديث اللوحة";
+"hardware.monitor.settings.panelRefresh.description" = "مدى تكرار تحديث اللوحة أثناء فتحها. الأسرع أكثر حيوية لكنه يقرأ أكثر؛ الأبطأ يوفر الطاقة.";
 "hardware.monitor.fan.average" = "متوسط المروحة";
 "hardware.monitor.fan.average.help" = "متوسط سرعة المراوح التي يبلّغ عنها الجهاز حاليًا. تُستثنى المراوح القديمة أو غير القابلة للقراءة؛ ويُظهر جهاز بلا مروحة تسمية بدون مروحة.";
 "hardware.monitor.disk" = "إدخال/إخراج القرص";
