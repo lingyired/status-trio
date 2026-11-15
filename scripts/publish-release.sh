@@ -109,6 +109,9 @@ case "$SIGNING_KIND:$NOTARIZATION_STATUS" in
 esac
 [[ "$MINIMUM_SYSTEM_VERSION" == "13.0" ]] ||
     die "manifest minimum system version must remain 13.0."
+# Optional for recovery of historical DMG-only packages. New ZIPs must already
+# exist and match the frozen manifest; publish never constructs an archive.
+ZIP_FILENAME="$(ruby "$ROOT/scripts/verify-release-zip.rb" "$MANIFEST" "$PACKAGE_DIR")"
 
 [[ "$MANIFEST" == "$PACKAGE_DIR/release-manifest.json" ]] ||
     die "manifest must be the release-manifest.json inside PACKAGE_DIR."
@@ -397,7 +400,7 @@ verify_release_assets() {
     ruby -rjson -e '
         release_path, dmg_name, dmg_digest, dmg_length, checksum_name,
           checksum_digest, checksum_length, manifest_name, manifest_digest,
-          manifest_length = ARGV
+          manifest_length, package_manifest, package_dir = ARGV
         release = JSON.parse(File.read(release_path))
         assets = release.fetch("assets")
         expected = {
@@ -405,6 +408,14 @@ verify_release_assets() {
           checksum_name => ["sha256:#{checksum_digest}", Integer(checksum_length)],
           manifest_name => ["sha256:#{manifest_digest}", Integer(manifest_length)]
         }
+        archive = JSON.parse(File.read(package_manifest))["zip"]
+        if archive
+          require "digest"
+          name = archive.fetch("filename")
+          sidecar = File.join(package_dir, name + ".sha256")
+          expected[name] = ["sha256:#{archive.fetch("sha256")}", Integer(archive.fetch("length"))]
+          expected[name + ".sha256"] = ["sha256:#{Digest::SHA256.file(sidecar).hexdigest}", File.size(sidecar)]
+        end
         expected.each do |name, (digest, length)|
           matches = assets.select { |asset| asset["name"] == name }
           abort("Release has #{matches.length} assets named #{name}, expected one.") unless matches.length == 1
@@ -414,7 +425,7 @@ verify_release_assets() {
         end
     ' "$release_path" "$DMG_FILENAME" "$DMG_SHA256" "$DMG_LENGTH" \
         "$SHA_ASSET_FILENAME" "$SHA_ASSET_SHA256" "$SHA_ASSET_LENGTH" \
-        "$MANIFEST_ASSET_FILENAME" "$MANIFEST_ASSET_SHA256" "$MANIFEST_ASSET_LENGTH"
+        "$MANIFEST_ASSET_FILENAME" "$MANIFEST_ASSET_SHA256" "$MANIFEST_ASSET_LENGTH" "$MANIFEST" "$PACKAGE_DIR"
 }
 
 verify_existing_draft_assets_are_same_artifact() {
@@ -423,7 +434,7 @@ verify_existing_draft_assets_are_same_artifact() {
     ruby -rjson -e '
         release_path, dmg_name, dmg_digest, dmg_length, checksum_name,
           checksum_digest, checksum_length, manifest_name, manifest_digest,
-          manifest_length = ARGV
+          manifest_length, package_manifest, package_dir = ARGV
         release = JSON.parse(File.read(release_path))
         assets = release.fetch("assets")
         expected = {
@@ -431,6 +442,14 @@ verify_existing_draft_assets_are_same_artifact() {
           checksum_name => ["sha256:#{checksum_digest}", Integer(checksum_length)],
           manifest_name => ["sha256:#{manifest_digest}", Integer(manifest_length)]
         }
+        archive = JSON.parse(File.read(package_manifest))["zip"]
+        if archive
+          require "digest"
+          name = archive.fetch("filename")
+          sidecar = File.join(package_dir, name + ".sha256")
+          expected[name] = ["sha256:#{archive.fetch("sha256")}", Integer(archive.fetch("length"))]
+          expected[name + ".sha256"] = ["sha256:#{Digest::SHA256.file(sidecar).hexdigest}", File.size(sidecar)]
+        end
         expected.each do |name, (digest, length)|
           matches = assets.select { |asset| asset["name"] == name }
           abort("Draft Release has #{matches.length} assets named #{name}, expected at most one.") if matches.length > 1
@@ -445,7 +464,7 @@ verify_existing_draft_assets_are_same_artifact() {
         end
     ' "$release_path" "$DMG_FILENAME" "$DMG_SHA256" "$DMG_LENGTH" \
         "$SHA_ASSET_FILENAME" "$SHA_ASSET_SHA256" "$SHA_ASSET_LENGTH" \
-        "$MANIFEST_ASSET_FILENAME" "$MANIFEST_ASSET_SHA256" "$MANIFEST_ASSET_LENGTH"
+        "$MANIFEST_ASSET_FILENAME" "$MANIFEST_ASSET_SHA256" "$MANIFEST_ASSET_LENGTH" "$MANIFEST" "$PACKAGE_DIR"
 }
 
 ensure_tag() {
@@ -486,12 +505,11 @@ ensure_draft_release() {
         [[ "$RELEASE_DRAFT" == "true" ]] ||
             die "Release $TAG was not a draft after creation."
     fi
-    gh release upload "$TAG" \
-        "$PACKAGE_DIR/$DMG_FILENAME" \
-        "$PACKAGE_DIR/$SHA_ASSET_FILENAME" \
-        "$PACKAGE_DIR/$MANIFEST_ASSET_FILENAME" \
-        --repo "$RELEASE_REPO" \
-        --clobber
+    UPLOAD_FILES=("$PACKAGE_DIR/$DMG_FILENAME" "$PACKAGE_DIR/$SHA_ASSET_FILENAME" "$PACKAGE_DIR/$MANIFEST_ASSET_FILENAME")
+    if [[ -n "$ZIP_FILENAME" ]]; then
+        UPLOAD_FILES+=("$PACKAGE_DIR/$ZIP_FILENAME" "$PACKAGE_DIR/$ZIP_FILENAME.sha256")
+    fi
+    gh release upload "$TAG" "${UPLOAD_FILES[@]}" --repo "$RELEASE_REPO" --clobber
     refresh_release_json
     verify_release_assets
 }
@@ -608,6 +626,16 @@ RELEASE_DRAFT="$(
 [[ "$RELEASE_DRAFT" == "false" ]] ||
     die "Release $TAG is still a draft after publication."
 verify_release_assets
+
+# ZIP publication never repackages the frozen artifact. Check its public bytes.
+if [[ -n "$ZIP_FILENAME" ]]; then
+    for zip_asset in "$ZIP_FILENAME" "$ZIP_FILENAME.sha256"; do
+        curl -fsSL --connect-timeout 15 --max-time 300 \
+            "https://github.com/$RELEASE_REPO/releases/download/$TAG/$zip_asset" > "$TEMP_ROOT/$zip_asset"
+        [[ "$(file_sha256 "$TEMP_ROOT/$zip_asset")" == "$(file_sha256 "$PACKAGE_DIR/$zip_asset")" ]] ||
+            die "Published ZIP asset mismatch: $zip_asset"
+    done
+fi
 
 PUBLIC_VERIFY_ATTEMPTS="${PUBLIC_VERIFY_ATTEMPTS:-6}"
 PUBLIC_VERIFY_DELAY_SECONDS="${PUBLIC_VERIFY_DELAY_SECONDS:-5}"

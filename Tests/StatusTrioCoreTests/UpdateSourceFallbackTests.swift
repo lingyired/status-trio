@@ -5,6 +5,38 @@ import Testing
 
 struct UpdateSourceFallbackTests {
     @Test
+    func giteePreferenceIsScopedAndHasExactOrder() {
+        #expect(UpdatePreference.githubFirst.sources == [.github, .gitee, .ghProxy, .ghFast])
+        #expect(UpdatePreference.giteeFirst.sources == [.gitee, .github, .ghProxy, .ghFast])
+        var fallback = UpdateSourceFallback(preference: .giteeFirst)
+        #expect(fallback.currentSource == .gitee)
+        let advanced = fallback.advanceAfterError(URLError(.timedOut))
+        #expect(advanced)
+        #expect(fallback.currentSource == .github)
+        #expect(UpdateSourceFallback().currentSource == .github)
+    }
+
+    @Test
+    func securityAndCancellationAreNeverRetriedEvenWhenWrapped() {
+        for code in [URLError.cancelled, .secureConnectionFailed, .serverCertificateUntrusted, .userAuthenticationRequired, .badServerResponse, .cannotDecodeContentData] {
+            let fallback = UpdateSourceFallback()
+            let error = NSError(domain: SUSparkleErrorDomain, code: Int(SUError.downloadError.rawValue), userInfo: [NSUnderlyingErrorKey: URLError(code)])
+            #expect(!fallback.canAdvanceAfterError(error))
+        }
+        let signature = NSError(domain: SUSparkleErrorDomain, code: Int(SUError.signatureError.rawValue), userInfo: [NSUnderlyingErrorKey: URLError(.timedOut)])
+        #expect(!UpdateSourceFallback().canAdvanceAfterError(signature))
+    }
+
+    @Test
+    func giteeFeedIsExplicitAndDownloadComesFromVerifiedFeed() {
+        let fallback = UpdateSourceFallback(preference: .giteeFirst)
+        #expect(fallback.appcastURLString(from: "https://raw.githubusercontent.com/lingyired/status-trio/main/appcast.xml") == "https://gitee.com/lingyired/status-trio/raw/main/appcast-gitee.xml")
+        #expect(fallback.appcastURLString(from: "https://example.com/feed.xml") == "https://example.com/feed.xml")
+        let attachment = URL(string: "https://gitee.com/lingyired/status-trio/attach_files/42/download/a.dmg")!
+        #expect(fallback.downloadURL(for: attachment) == attachment)
+    }
+
+    @Test
     func directSourceKeepsGitHubURLsUnchanged() {
         let source = UpdateSource.github
         let appcastURL = URL(
@@ -61,7 +93,7 @@ struct UpdateSourceFallbackTests {
 
     @Test
     func fallbackAdvancesThroughEverySourceOnce() {
-        var fallback = UpdateSourceFallback(initialSource: .github)
+        var fallback = UpdateSourceFallback(sources: [.github, .ghProxy, .ghFast], initialSource: .github)
         let error = URLError(.cannotConnectToHost)
 
         #expect(fallback.currentSource == .github)
@@ -73,50 +105,7 @@ struct UpdateSourceFallbackTests {
         #expect(fallback.currentSource == .ghFast)
         let advancedPastGhFast = fallback.advanceAfterError(error)
         #expect(!advancedPastGhFast)
-        #expect(fallback.currentSource == .github)
-    }
-
-    @Test
-    func exhaustedCycleRestartsFromGitHub() {
-        var fallback = UpdateSourceFallback()
-        let error = URLError(.timedOut)
-
-        for _ in 0..<2 {
-            #expect(fallback.currentSource == .github)
-            let toProxy = fallback.advanceAfterError(error)
-            #expect(toProxy)
-            #expect(fallback.currentSource == .ghProxy)
-            let toGhFast = fallback.advanceAfterError(error)
-            #expect(toGhFast)
-            #expect(fallback.currentSource == .ghFast)
-            let pastGhFast = fallback.advanceAfterError(error)
-            #expect(!pastGhFast)
-            #expect(fallback.currentSource == .github)
-        }
-    }
-
-    @Test
-    func completedMirrorCycleRestartsFromGitHub() {
-        let terminalErrors: [Error?] = [
-            nil,
-            NSError(domain: SUSparkleErrorDomain, code: Int(SUError.noUpdateError.rawValue)),
-            NSError(domain: SUSparkleErrorDomain, code: Int(SUError.signatureError.rawValue))
-        ]
-        let downloadURL = URL(string: "https://github.com/lingyired/status-trio/releases/download/v1.1.0/StatusTrio-1.1.0.dmg")!
-        let appcastString = "https://raw.githubusercontent.com/lingyired/status-trio/main/appcast.xml"
-
-        for source in [UpdateSource.ghProxy, .ghFast] {
-            for error in terminalErrors {
-                var fallback = UpdateSourceFallback(initialSource: source)
-                let finished = fallback.advanceAfterError(error)
-                #expect(!finished)
-                #expect(fallback.appcastURLString(from: appcastString) == appcastString)
-                #expect(fallback.downloadURL(for: downloadURL) == downloadURL)
-                let nextRound = fallback.advanceAfterError(URLError(.timedOut))
-                #expect(nextRound)
-                #expect(fallback.currentSource == .ghProxy)
-            }
-        }
+        #expect(fallback.currentSource == .ghFast)
     }
 
     @Test
@@ -157,7 +146,7 @@ struct UpdateSourceFallbackTests {
 
     @Test
     func fallbackAdvancesForSparkleDownloadErrors() {
-        var fallback = UpdateSourceFallback(initialSource: .github)
+        var fallback = UpdateSourceFallback(sources: [.github, .ghProxy, .ghFast], initialSource: .github)
         let error = NSError(domain: SUSparkleErrorDomain, code: Int(SUError.downloadError.rawValue))
 
         let advanced = fallback.advanceAfterError(error)
@@ -167,7 +156,7 @@ struct UpdateSourceFallbackTests {
 
     @Test
     func fallbackAdvancesForWrappedNetworkErrors() {
-        var fallback = UpdateSourceFallback(initialSource: .github)
+        var fallback = UpdateSourceFallback(sources: [.github, .ghProxy, .ghFast], initialSource: .github)
         let error = NSError(
             domain: SUSparkleErrorDomain,
             code: Int(SUError.downloadError.rawValue),

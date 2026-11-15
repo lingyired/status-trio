@@ -40,6 +40,13 @@ struct UpdaterManagerTests {
 
         #expect(manager.currentProxiedFeedURLString() == direct)
 
+        let toGitee = manager.advanceUpdateSource(after: URLError(.timedOut))
+        #expect(toGitee)
+        #expect(
+            manager.currentProxiedFeedURLString()
+                == "https://gitee.com/lingyired/status-trio/raw/main/appcast-gitee.xml"
+        )
+
         let toProxy = manager.advanceUpdateSource(after: URLError(.timedOut))
         #expect(toProxy)
         #expect(

@@ -1,7 +1,3 @@
-"updates.failure.title" = "アップデートに失敗しました";
-"updates.failure.message" = "自動アップデートを完了できませんでした。公式サイトから最新の DMG をダウンロードして、手動でインストールしてください。";
-"updates.failure.website" = "公式サイトからダウンロード";
-
 "menu.version" = "Status Trio %@";
 "menu.settings" = "設定…";
 "menu.quit" = "Status Trioを終了";
@@ -12,6 +8,7 @@
 "menu.window" = "ウインドウ";
 "menu.closeWindow" = "ウインドウを閉じる";
 "menu.checkForUpdates" = "アップデートを確認…";
+"menu.checkViaGitee" = "Gitee 経由でアップデートを確認…";
 "menu.openMenuBarSettings" = "メニューバー設定を開く";
 "settings.title" = "設定";
 "settings.page.appearance" = "外観";
@@ -260,6 +257,9 @@
 "settings.updates.title" = "アップデート";
 "settings.updates.automatic" = "自動的にアップデートを確認";
 "settings.updates.check" = "アップデートを確認…";
+"settings.updates.checkViaGitee" = "Gitee 経由で確認";
+"settings.updates.giteeLaggingTitle" = "Gitee ミラーが古い可能性があります";
+"settings.updates.giteeLaggingMessage" = "Gitee ではこのバージョンの更新がありません。最新リリースがまだ同期されていない可能性があります。「アップデートを確認」から GitHub 経由で取得してください。";
 "battery.title" = "バッテリー · %d%%";
 "battery.title.power" = "消費電力 · %d W";
 "battery.title.powerUnavailable" = "消費電力 · 利用不可";
@@ -916,3 +916,6 @@
 
 "settings.popup.scrollWheelStep" = "ホイールの調整幅";
 "settings.popup.scrollWheelStep.description" = "1目盛りあたりの音量・明るさ・マイクの調整幅。トラックパッドは連続調整のままです。";
+"updates.failure.title" = "アップデートに失敗しました";
+"updates.failure.message" = "自動アップデートを完了できませんでした。公式サイトから最新の DMG をダウンロードして、手動でインストールしてください。";
+"updates.failure.website" = "公式サイトからダウンロード";
