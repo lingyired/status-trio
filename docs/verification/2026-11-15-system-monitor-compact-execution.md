@@ -54,3 +54,14 @@
 - HardwareMetricsService 在面板是唯一非后台消费者时按该秒数节流；菜单栏/Dock 等消费者仍按各自需要的节奏。
 - 测试：设置校验/往返、面板节奏；相关 48 项测试通过。
 
+
+
+## 追加：格式化与正确性优化（2026-11-16）
+
+- Phase1 统一 `ByteRateFormatter`（十进制 KB/s→TB/s，按量级选精度），网络、旧卡片、菜单栏顶部共用；0–999 B/s 显示 0 KB/s。
+- Phase2 磁盘摘要显示读写合计（同一采样周期才合计；缺失/混合不冒充总量），tooltip/VoiceOver 保留读、写、合计。
+- Phase3 网络改按接口差分，接口集合变化重建基线不出尖峰，排除 utun 等虚拟接口；stale 缓存超过 300 秒不再显示。
+- Phase4 保留 averageFanSample 平均逻辑，部分风扇不可读时 tooltip 说明参与数量；fanSummarySample 语义不变。
+- Phase5 离屏布局在 999KB/1.0MB/125MB/1.3GB、0、—、过期等边界下高度稳定。
+- 聚焦测试 122 项通过；完整档 verify-local full 结果见下。
+
