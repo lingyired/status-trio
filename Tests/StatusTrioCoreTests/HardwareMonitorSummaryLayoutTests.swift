@@ -31,6 +31,64 @@ final class HardwareMonitorSummaryLayoutTests: XCTestCase {
         return snapshot
     }
 
+
+
+    private func wideSnapshot(_ wide: Bool) -> HardwareMetricsSnapshot {
+        var s = HardwareMetricsSnapshot(fanCount: 1)
+        func bytes(_ normal: Double, _ big: Double) -> HardwareMetricSample {
+            HardwareMetricSample(value: wide ? big : normal, unit: .bytesPerSecond,
+                                 sampledAt: Date(), source: .ioStorage, availability: .measured)
+        }
+        s.samples[.cpuUsage] = HardwareMetricSample(value: 61, unit: .percent, sampledAt: Date(), source: .mach, availability: .measured)
+        s.samples[.gpuUsage] = HardwareMetricSample(value: 72, unit: .percent, sampledAt: Date(), source: .mach, availability: .measured)
+        s.samples[.memoryUsage] = HardwareMetricSample(value: 51, unit: .percent, sampledAt: Date(), source: .mach, availability: .measured)
+        s.samples[.cpuTemperature] = HardwareMetricSample(value: 61, unit: .celsius, sampledAt: Date(), source: .smc, availability: .measured)
+        s.samples[.gpuTemperature] = HardwareMetricSample(value: 72, unit: .celsius, sampledAt: Date(), source: .smc, availability: .measured)
+        s.samples[.fanRPM(index: 0)] = HardwareMetricSample(value: wide ? 987654 : 2036, unit: .rpm, sampledAt: Date(), source: .smc, availability: .measured)
+        s.samples[.networkDownload] = bytes(1_820_000, 9_876_543_210)
+        s.samples[.networkUpload] = bytes(184_000, 8_765_432_100)
+        s.samples[.diskRead] = bytes(18_400_000, 9_999_999_999)
+        s.samples[.diskWrite] = bytes(6_200_000, 8_888_888_888)
+        return s
+    }
+
+    private func fittingHeight(_ snapshot: HardwareMetricsSnapshot) -> CGFloat {
+        let host = NSHostingView(rootView: HardwareMonitorSummaryView(model: HardwareMonitorObservable(snapshot: snapshot))
+            .environmentObject(makeLocalization())
+            .frame(width: 302))
+        host.layoutSubtreeIfNeeded()
+        return host.fittingSize.height
+    }
+
+
+    private func presentation(_ valueText: String, unit: String) -> HardwareSummaryMetricPresentation {
+        HardwareSummaryMetricPresentation(
+            metric: .disk, valueText: valueText, unitText: unit, symbol: "internaldrive",
+            accessibilityLabel: "Disk", accessibilityValue: valueText, help: "",
+            isStale: false, availability: .measured)
+    }
+
+    private func cellHeight(_ valueText: String) -> CGFloat {
+        let host = NSHostingView(rootView: HardwareSummaryMetricCell(item: presentation(valueText, unit: "GB/s"))
+            .frame(width: 63))
+        host.layoutSubtreeIfNeeded()
+        return host.fittingSize.height
+    }
+
+    func testCellHeightUnaffectedByShrinkingLongValue() {
+        let short = cellHeight("18.4/6.2")
+        let long = cellHeight("9999999999/8888888888")
+        XCTAssertEqual(short, long, accuracy: 0.5,
+                       "a value shrunk to fit must not change the cell height or move the icon row")
+    }
+
+    func testSummaryHeightStableWhenAllValuesAreLong() {
+        let normal = fittingHeight(wideSnapshot(false))
+        let wide = fittingHeight(wideSnapshot(true))
+        XCTAssertEqual(normal, wide, accuracy: 0.5,
+                       "all four values shrinking must not change the summary height")
+    }
+
     func testFitsPanelWidthAndStaysCompactAcrossLanguagesAndStates() {
         let localization = makeLocalization()
         for language in AppLanguage.allCases {

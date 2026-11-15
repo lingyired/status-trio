@@ -40,7 +40,7 @@ struct HardwareMonitorSummaryView: View {
 /// One summary group: value on top, icon + unit below, both centred so the group
 /// aligns to its ring column. Stale readings are dimmed, missing values show the
 /// presentation's em dash rather than a fabricated zero.
-private struct HardwareSummaryMetricCell: View {
+struct HardwareSummaryMetricCell: View {
     let item: HardwareSummaryMetricPresentation
 
     var body: some View {
@@ -51,7 +51,8 @@ private struct HardwareSummaryMetricCell: View {
                 .foregroundStyle(.primary)
                 .opacity(item.isStale ? 0.45 : 1)
                 .lineLimit(1)
-                .minimumScaleFactor(0.7)
+                .minimumScaleFactor(0.6)
+                .frame(height: 16)
             HStack(spacing: 3) {
                 Image(systemName: item.symbol)
                     .font(.system(size: 9, weight: .medium))
@@ -64,8 +65,12 @@ private struct HardwareSummaryMetricCell: View {
                         .lineLimit(1)
                 }
             }
+            .frame(height: 12)
         }
+        // Fixed cell height: identical whether a value is short or shrunk to fit,
+        // so the icon/unit row cannot shift between columns or resize the panel.
         .frame(maxWidth: .infinity)
+        .frame(height: 31, alignment: .top)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(item.accessibilityLabel)
         .accessibilityValue(item.accessibilityValue)
