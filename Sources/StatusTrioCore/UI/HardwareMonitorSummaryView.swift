@@ -46,7 +46,7 @@ private struct HardwareSummaryMetricCell: View {
     var body: some View {
         VStack(spacing: 3) {
             Text(item.valueText)
-                .font(.system(size: 13, weight: .semibold))
+                .font(.system(size: 13, weight: .regular))
                 .monospacedDigit()
                 .foregroundStyle(.primary)
                 .opacity(item.isStale ? 0.45 : 1)

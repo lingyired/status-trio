@@ -186,7 +186,7 @@ struct BatteryDetailsView: View {
             showsInfo.toggle()
         } label: {
             Image(systemName: "exclamationmark.circle")
-                .font(.system(size: 13, weight: .semibold))
+                .font(.system(size: 13, weight: .regular))
                 .contentShape(Rectangle())
         }
         .buttonStyle(.plain)

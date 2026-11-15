@@ -80,7 +80,7 @@ struct InputSourceListView: View {
                         if row.isCurrent {
                             PanelActionGlyph(
                                 systemName: "checkmark",
-                                font: .system(size: 11, weight: .semibold),
+                                font: .system(size: 11, weight: .regular),
                                 size: 16
                             )
                                 .foregroundStyle(.secondary)

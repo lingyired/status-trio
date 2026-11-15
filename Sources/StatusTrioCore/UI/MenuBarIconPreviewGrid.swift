@@ -200,13 +200,13 @@ private struct AnimatedSceneIcon: View {
                 AnimatedRingLayer(color: color, progress: progress)
                     .animation(.easeOut(duration: 0.55), value: progress)
                 Text(top)
-                    .font(.system(size: side * 0.166 * 1.1, weight: .semibold))
+                    .font(.system(size: side * 0.166 * 1.1, weight: .regular))
                     .monospacedDigit()
                     .foregroundStyle(.primary)
                     .offset(y: -side * 0.33)
                 centerValueText(side: side)
                 Text(label)
-                    .font(.system(size: side * 0.14, weight: .medium))
+                    .font(.system(size: side * 0.14, weight: .regular))
                     .foregroundStyle(.secondary)
                     .offset(y: side * 0.30)
             }
@@ -221,18 +221,18 @@ private struct AnimatedSceneIcon: View {
         if center.count > 1, center.hasSuffix("°") {
             let number = String(center.dropLast())
             Text(number)
-                .font(.system(size: fontSize, weight: .semibold))
+                .font(.system(size: fontSize, weight: .regular))
                 .monospacedDigit()
                 .foregroundStyle(.primary)
                 .overlay(alignment: .topTrailing) {
                     Text("°")
-                        .font(.system(size: fontSize * 0.5, weight: .semibold))
+                        .font(.system(size: fontSize * 0.5, weight: .regular))
                         .foregroundStyle(.primary)
                         .offset(x: fontSize * 0.35, y: -fontSize * 0.05)
                 }
         } else {
             Text(center)
-                .font(.system(size: fontSize, weight: .semibold))
+                .font(.system(size: fontSize, weight: .regular))
                 .monospacedDigit()
                 .foregroundStyle(.primary)
         }

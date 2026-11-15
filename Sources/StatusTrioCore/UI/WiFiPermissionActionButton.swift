@@ -25,7 +25,7 @@ struct WiFiPermissionActionButton: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
 
                 Image(systemName: "chevron.right")
-                    .font(.system(size: 10, weight: .semibold))
+                    .font(.system(size: 10, weight: .regular))
                     .foregroundStyle(.tertiary)
             }
             .padding(.horizontal, 10)
