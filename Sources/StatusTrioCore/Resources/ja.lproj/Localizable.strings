@@ -434,6 +434,7 @@
 "quickActions.lidSleep" = "フタを閉じてもスリープさせない";
 "quickActions.lidSleep.description" = "フタを閉じたときに Mac がスリープしないようにします。";
 "quickActions.timer" = "タイマー";
+"quickActions.timer.choose" = "継続時間を選択";
 "quickActions.timer.thirtyMinutes" = "30分";
 "quickActions.timer.oneHour" = "1時間";
 "quickActions.timer.twoHours" = "2時間";

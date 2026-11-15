@@ -434,6 +434,7 @@
 "quickActions.lidSleep" = "إبقاء الاستيقاظ مع إغلاق الغطاء";
 "quickActions.lidSleep.description" = "منع الـ Mac من النوم عند إغلاق الغطاء.";
 "quickActions.timer" = "مؤقت";
+"quickActions.timer.choose" = "اختيار المدة";
 "quickActions.timer.thirtyMinutes" = "30 دقيقة";
 "quickActions.timer.oneHour" = "ساعة واحدة";
 "quickActions.timer.twoHours" = "ساعتان";

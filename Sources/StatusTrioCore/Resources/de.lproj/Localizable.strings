@@ -434,6 +434,7 @@
 "quickActions.lidSleep" = "Mit geschlossenem Deckel wach halten";
 "quickActions.lidSleep.description" = "Verhindert, dass der Mac beim Schließen des Deckels in den Ruhezustand geht.";
 "quickActions.timer" = "Timer";
+"quickActions.timer.choose" = "Dauer auswählen";
 "quickActions.timer.thirtyMinutes" = "30 Minuten";
 "quickActions.timer.oneHour" = "1 Stunde";
 "quickActions.timer.twoHours" = "2 Stunden";

@@ -434,6 +434,7 @@
 "quickActions.lidSleep" = "Manter ativo com a tampa fechada";
 "quickActions.lidSleep.description" = "Impede que o Mac entre em repouso quando a tampa está fechada.";
 "quickActions.timer" = "Temporizador";
+"quickActions.timer.choose" = "Escolher duração";
 "quickActions.timer.thirtyMinutes" = "30 minutos";
 "quickActions.timer.oneHour" = "1 hora";
 "quickActions.timer.twoHours" = "2 horas";

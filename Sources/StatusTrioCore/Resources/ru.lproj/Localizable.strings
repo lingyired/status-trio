@@ -434,6 +434,7 @@
 "quickActions.lidSleep" = "Не давать засыпать при закрытой крышке";
 "quickActions.lidSleep.description" = "Не позволяет Mac переходить в спящий режим при закрытой крышке.";
 "quickActions.timer" = "Таймер";
+"quickActions.timer.choose" = "Выберите длительность";
 "quickActions.timer.thirtyMinutes" = "30 минут";
 "quickActions.timer.oneHour" = "1 час";
 "quickActions.timer.twoHours" = "2 часа";

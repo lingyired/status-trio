@@ -434,6 +434,7 @@
 "quickActions.lidSleep" = "Mantieni attivo con coperchio chiuso";
 "quickActions.lidSleep.description" = "Impedisce al Mac di andare in sospensione quando il coperchio è chiuso.";
 "quickActions.timer" = "Timer";
+"quickActions.timer.choose" = "Scegli durata";
 "quickActions.timer.thirtyMinutes" = "30 minuti";
 "quickActions.timer.oneHour" = "1 ora";
 "quickActions.timer.twoHours" = "2 ore";

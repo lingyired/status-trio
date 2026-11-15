@@ -434,6 +434,7 @@
 "quickActions.lidSleep" = "덮개를 닫아도 깨어 있게 유지";
 "quickActions.lidSleep.description" = "덮개를 닫았을 때 Mac이 잠자기로 전환되지 않도록 합니다.";
 "quickActions.timer" = "타이머";
+"quickActions.timer.choose" = "지속 시간 선택";
 "quickActions.timer.thirtyMinutes" = "30분";
 "quickActions.timer.oneHour" = "1시간";
 "quickActions.timer.twoHours" = "2시간";

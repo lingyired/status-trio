@@ -208,11 +208,12 @@ private struct UnifiedCountdownControl: View {
 
     @EnvironmentObject private var localization: Localization
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.panelCardSurfaceStyle) private var cardStyle
     @State private var isHoveringTime = false
 
     private static let height: CGFloat = 54
     private static let cornerRadius: CGFloat = 13
-    private static let timeWidth: CGFloat = 64
+    private static let timeWidth: CGFloat = 68
     private static let iconDiameter: CGFloat = 32
 
     var body: some View {
@@ -246,10 +247,19 @@ private struct UnifiedCountdownControl: View {
         }
     }
 
+    /// The role gives the countdown its colour: bright gold for "keep the
+    /// screen lit", the system blue for "keep the Mac awake with the lid
+    /// closed". The colour names the function, not merely that it is on. The
+    /// opacities are the tuned baseline for a glass capsule; the same semantic
+    /// colour still reads on the material and solid surfaces because the capsule
+    /// supplies its own background.
     private var progressColor: Color {
-        // A deeper blue in dark mode and a lighter one in light mode keep the
-        // label readable over both the gray and the blue part.
-        Color.blue.opacity(colorScheme == .dark ? 0.62 : 0.30)
+        switch role {
+        case .displayAwake:
+            return srgb(0xFFBE45).opacity(colorScheme == .dark ? 0.42 : 0.37)
+        case .lidAwake:
+            return Color.blue.opacity(colorScheme == .dark ? 0.62 : 0.30)
+        }
     }
 
     private var iconPalette: KeepAwakeIconPalette {
@@ -261,7 +271,7 @@ private struct UnifiedCountdownControl: View {
             HStack(spacing: 10) {
                 ZStack {
                     Circle()
-                        .fill(iconPalette.circle)
+                        .fill(iconPalette.circle(for: cardStyle))
                     Image(systemName: role.symbol)
                         .font(.system(size: role.glyphSize, weight: .semibold))
                         .foregroundStyle(iconPalette.glyph)
@@ -328,16 +338,24 @@ private struct UnifiedCountdownControl: View {
             .pickerStyle(.inline)
         } label: {
             VStack(spacing: 2) {
-                Image(systemName: "timer")
+                Image(systemName: "clock")
                     .font(.system(size: 12, weight: .medium))
-                Text(selectedDuration.shortLabel)
-                    .font(.system(size: 10, weight: .semibold))
-                    .lineLimit(1)
+                HStack(spacing: 2) {
+                    Text(selectedDuration.shortLabel)
+                        .font(.system(size: 10, weight: .semibold))
+                        .lineLimit(1)
+                    // The chevron is part of the resting label, never a hover
+                    // affordance: the time area has to read as a menu without
+                    // the pointer first having to find it.
+                    Image(systemName: "chevron.down")
+                        .font(.system(size: 8, weight: .bold))
+                        .foregroundStyle(.secondary)
+                }
             }
             .frame(maxWidth: .infinity)
             .frame(maxHeight: .infinity)
             .foregroundStyle(.primary)
-            .background(Color.primary.opacity(isHoveringTime ? 0.05 : 0))
+            .background(Color.primary.opacity(isHoveringTime ? 0.06 : 0))
             .contentShape(Rectangle())
             .onHover { isHoveringTime = $0 }
         }
@@ -347,7 +365,8 @@ private struct UnifiedCountdownControl: View {
         .focusable(isEnabled)
         .suppressFocusRing()
         .disabled(!isEnabled || isApplying)
-        .accessibilityLabel(Text(localization.string(.quickActionsTimer)))
+        .help(localization.string(.quickActionsTimerChoose))
+        .accessibilityLabel(Text(localization.string(.quickActionsTimerChoose)))
         .accessibilityValue(Text(localization.string(selectedDuration.localizationKey)))
     }
 
@@ -398,6 +417,19 @@ private struct KeepAwakeIconPalette {
             return KeepAwakeIconPalette(circle: srgb(0xEFF3F5), glyph: srgb(0x65AEBB))
         case (.lidAwake, false):
             return KeepAwakeIconPalette(circle: srgb(0xE6F1F3), glyph: srgb(0x4E97A3))
+        }
+    }
+
+    /// The icon disc adapted to the panel card surface: a light translucent
+    /// disc over glass, a softer one over material, an opaque but low-contrast
+    /// one over solid. The glyph colour is untouched so the function's colour
+    /// still reads on every background. This replaces the old opaque white
+    /// sticker look.
+    func circle(for style: PanelCardSurfaceStyle) -> Color {
+        switch style {
+        case .glass: return circle.opacity(0.55)
+        case .material: return circle.opacity(0.80)
+        case .solid: return circle
         }
     }
 }

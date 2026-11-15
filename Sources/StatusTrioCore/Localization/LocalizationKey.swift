@@ -152,6 +152,7 @@ enum LocalizationKey: String, CaseIterable, Hashable, Sendable {
     case quickActionsLidSleep = "quickActions.lidSleep"
     case quickActionsLidSleepDescription = "quickActions.lidSleep.description"
     case quickActionsTimer = "quickActions.timer"
+    case quickActionsTimerChoose = "quickActions.timer.choose"
     case quickActionsTimerThirtyMinutes = "quickActions.timer.thirtyMinutes"
     case quickActionsTimerOneHour = "quickActions.timer.oneHour"
     case quickActionsTimerTwoHours = "quickActions.timer.twoHours"

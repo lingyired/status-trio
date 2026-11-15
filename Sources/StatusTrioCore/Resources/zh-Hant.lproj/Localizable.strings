@@ -434,6 +434,7 @@
 "quickActions.lidSleep" = "闔蓋時保持喚醒";
 "quickActions.lidSleep.description" = "闔上蓋子時防止 Mac 休眠。";
 "quickActions.timer" = "計時器";
+"quickActions.timer.choose" = "選擇持續時間";
 "quickActions.timer.thirtyMinutes" = "30 分鐘";
 "quickActions.timer.oneHour" = "1 小時";
 "quickActions.timer.twoHours" = "2 小時";
