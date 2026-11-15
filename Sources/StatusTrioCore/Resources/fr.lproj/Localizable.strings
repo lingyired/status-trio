@@ -435,6 +435,8 @@
 "quickActions.lidSleep.description" = "Empêche le Mac de se mettre en veille lorsque le capot est fermé.";
 "quickActions.timer" = "Minuteur";
 "quickActions.timer.choose" = "Choisir la durée";
+"quickActions.lidSleep.external" = "« Garder éveillé capot fermé » est déjà activé par une autre app. Status Trio ne le remplacera pas.";
+"quickActions.lidSleep.unreadable" = "Impossible de lire l’état « Garder éveillé capot fermé » ; inchangé.";
 "quickActions.timer.thirtyMinutes" = "30 minutes";
 "quickActions.timer.oneHour" = "1 heure";
 "quickActions.timer.twoHours" = "2 heures";

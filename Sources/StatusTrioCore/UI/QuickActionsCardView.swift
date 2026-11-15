@@ -179,6 +179,9 @@ struct QuickActionsCardView: View {
                 .red
             )
         }
+        if let external = control.lidSleepExternalState {
+            return (localization.string(external.localizationKey), .secondary)
+        }
         if !control.isPreventingLidSleep, let reason = control.lidUnavailableReason {
             return (localization.string(reason.localizationKey), .secondary)
         }

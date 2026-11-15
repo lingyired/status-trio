@@ -435,6 +435,8 @@
 "quickActions.lidSleep.description" = "Evita que el Mac entre en reposo al cerrar la tapa.";
 "quickActions.timer" = "Temporizador";
 "quickActions.timer.choose" = "Elegir duración";
+"quickActions.lidSleep.external" = "Otra app ya activó «seguir despierto con la tapa cerrada». Status Trio no lo sobrescribirá.";
+"quickActions.lidSleep.unreadable" = "No se pudo leer el estado «seguir despierto con la tapa cerrada»; sin cambios.";
 "quickActions.timer.thirtyMinutes" = "30 minutos";
 "quickActions.timer.oneHour" = "1 hora";
 "quickActions.timer.twoHours" = "2 horas";

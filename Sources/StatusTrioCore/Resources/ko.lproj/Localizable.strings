@@ -435,6 +435,8 @@
 "quickActions.lidSleep.description" = "덮개를 닫았을 때 Mac이 잠자기로 전환되지 않도록 합니다.";
 "quickActions.timer" = "타이머";
 "quickActions.timer.choose" = "지속 시간 선택";
+"quickActions.lidSleep.external" = "「덮개를 닫아도 잠자지 않기」가 다른 앱에서 이미 켜져 있습니다. Status Trio는 덮어쓰지 않습니다.";
+"quickActions.lidSleep.unreadable" = "「덮개를 닫아도 잠자지 않기」 상태를 읽을 수 없어 변경하지 않았습니다.";
 "quickActions.timer.thirtyMinutes" = "30분";
 "quickActions.timer.oneHour" = "1시간";
 "quickActions.timer.twoHours" = "2시간";

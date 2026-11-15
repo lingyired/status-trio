@@ -435,6 +435,8 @@
 "quickActions.lidSleep.description" = "Не позволяет Mac переходить в спящий режим при закрытой крышке.";
 "quickActions.timer" = "Таймер";
 "quickActions.timer.choose" = "Выберите длительность";
+"quickActions.lidSleep.external" = "«Не спать при закрытой крышке» уже включено другим приложением. Status Trio не будет это перезаписывать.";
+"quickActions.lidSleep.unreadable" = "Не удалось прочитать состояние «Не спать при закрытой крышке»; без изменений.";
 "quickActions.timer.thirtyMinutes" = "30 минут";
 "quickActions.timer.oneHour" = "1 час";
 "quickActions.timer.twoHours" = "2 часа";

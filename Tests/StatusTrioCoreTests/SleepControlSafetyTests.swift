@@ -205,7 +205,9 @@ final class SleepControlSafetyTests: XCTestCase {
         let ownership = ProbeOwnership(owns: false)
         let control = make(client: client, ownership: ownership)
         control.setLidSleep(true)
-        await waitUntil { control.lastError != nil }
+        await waitUntil { control.lidSleepExternalState == .managedExternally }
+        XCTAssertEqual(control.lidSleepExternalState, .managedExternally)
+        XCTAssertNil(control.lastError, "external ownership is guidance, not a red error")
         XCTAssertTrue(client.setCalls.isEmpty)
         XCTAssertFalse(ownership.ownsDisableSleep)
         XCTAssertFalse(control.isPreventingLidSleep)
@@ -226,7 +228,8 @@ final class SleepControlSafetyTests: XCTestCase {
         let client = ControllableClient(readThrows: true)
         let control = make(client: client)
         control.setLidSleep(true)
-        await waitUntil { control.lastError != nil }
+        await waitUntil { control.lidSleepExternalState == .stateUnreadable }
+        XCTAssertEqual(control.lidSleepExternalState, .stateUnreadable)
         XCTAssertTrue(client.setCalls.isEmpty)
         XCTAssertFalse(control.isPreventingLidSleep)
     }

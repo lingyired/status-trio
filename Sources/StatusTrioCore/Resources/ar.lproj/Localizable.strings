@@ -435,6 +435,8 @@
 "quickActions.lidSleep.description" = "منع الـ Mac من النوم عند إغلاق الغطاء.";
 "quickActions.timer" = "مؤقت";
 "quickActions.timer.choose" = "اختيار المدة";
+"quickActions.lidSleep.external" = "تم تفعيل «البقاء مستيقظًا عند إغلاق الغطاء» بواسطة تطبيق آخر. لن يقوم Status Trio بالكتابة فوقه.";
+"quickActions.lidSleep.unreadable" = "تعذّرت قراءة حالة «البقاء مستيقظًا عند إغلاق الغطاء»؛ دون تغيير.";
 "quickActions.timer.thirtyMinutes" = "30 دقيقة";
 "quickActions.timer.oneHour" = "ساعة واحدة";
 "quickActions.timer.twoHours" = "ساعتان";

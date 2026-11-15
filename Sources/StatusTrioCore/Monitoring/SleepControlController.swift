@@ -61,6 +61,22 @@ enum LidSleepUnavailableReason: Equatable, Sendable {
     }
 }
 
+/// A non-error explanation shown when the lid toggle can't safely act. Kept
+/// separate from `lastError` so it renders as neutral guidance, not a red
+/// failure — e.g. another tool already set `disablesleep`, or the state can't
+/// be read.
+enum LidSleepExternalState: Equatable, Sendable {
+    case managedExternally
+    case stateUnreadable
+
+    var localizationKey: LocalizationKey {
+        switch self {
+        case .managedExternally: .quickActionsLidSleepExternal
+        case .stateUnreadable: .quickActionsLidSleepUnreadable
+        }
+    }
+}
+
 /// Explicit Helper capability state (stage 2), so an old helper and a missing
 /// helper are told apart instead of collapsing into one "needs update" flag.
 /// Only a helper that has answered the version handshake at or above the
@@ -183,6 +199,8 @@ final class SleepControlController: ObservableObject {
     @Published private(set) var isApplyingLidSleep = false
     @Published private(set) var helperCapability: HelperCapability = .undetected
     @Published private(set) var isHelperReady = false
+    /// Non-error explanation for the lid toggle (external ownership / unreadable).
+    @Published private(set) var lidSleepExternalState: LidSleepExternalState?
 
     /// Kept for the existing "needs update" copy; derived from the capability.
     var helperNeedsUpdate: Bool { helperCapability == .needsUpdate }
@@ -383,7 +401,7 @@ final class SleepControlController: ObservableObject {
         if enabled {
             guard canEnableLidSleep else { return }
             guard !lidForeignActive else {
-                lastError = Self.foreignActiveMessage
+                lidSleepExternalState = .managedExternally
                 return
             }
         }
@@ -480,7 +498,7 @@ final class SleepControlController: ObservableObject {
         let current: Bool?
         do { current = try await client.readDisableSleep() } catch { current = nil }
         guard let current else {
-            lastError = "Could not read the current lid sleep state; leaving it unchanged."
+            lidSleepExternalState = .stateUnreadable
             return .failed
         }
         if current {
@@ -491,7 +509,7 @@ final class SleepControlController: ObservableObject {
                 return .applied
             }
             lidForeignActive = true
-            lastError = Self.foreignActiveMessage
+            lidSleepExternalState = .managedExternally
             return .failed
         }
         // Persist the intent *before* the write so a crash mid-write is recovered
@@ -506,6 +524,7 @@ final class SleepControlController: ObservableObject {
         if onNow {
             isPreventingLidSleep = true
             lidForeignActive = false
+            lidSleepExternalState = nil
             lidPendingRecovery = false
             scheduleLidAutoOff()
             return .applied
@@ -531,6 +550,7 @@ final class SleepControlController: ObservableObject {
         if offNow {
             isPreventingLidSleep = false
             ownership.ownsDisableSleep = false
+            lidSleepExternalState = nil
             lidPendingRecovery = false
             lidDisableAttempts = 0
             cancelLidTimer()
