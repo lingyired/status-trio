@@ -1175,6 +1175,10 @@
 "hardware.monitor.kbps" = "Ko/s";
 "hardware.monitor.mbps" = "Mo/s";
 "hardware.monitor.gbps" = "Go/s";
+"hardware.monitor.settings.background" = "Surveillance en arrière-plan";
+"hardware.monitor.settings.background.description" = "Continue d’échantillonner les mesures matérielles lorsque le panneau est fermé afin qu’il s’ouvre avec des données en direct. Désactivé par défaut pour économiser l’énergie.";
+"hardware.monitor.background.off" = "Désactivé";
+"hardware.monitor.background.seconds" = "%d s";
 "hardware.monitor.fan.average" = "Ventil. moyen";
 "hardware.monitor.fan.average.help" = "Vitesse moyenne des ventilateurs actuellement signalés. Les ventilateurs obsolètes ou illisibles sont exclus ; un Mac sans ventilateur affiche le libellé Sans ventilateur.";
 "hardware.monitor.disk" = "E/S disque";

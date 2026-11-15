@@ -1174,6 +1174,10 @@
 "hardware.monitor.kbps" = "KB/s";
 "hardware.monitor.mbps" = "MB/s";
 "hardware.monitor.gbps" = "GB/s";
+"hardware.monitor.settings.background" = "Background monitoring";
+"hardware.monitor.settings.background.description" = "Keep sampling hardware metrics while the panel is closed so it opens with live data. Off by default to save power.";
+"hardware.monitor.background.off" = "Off";
+"hardware.monitor.background.seconds" = "%d s";
 "hardware.monitor.fan.average" = "Avg fan";
 "hardware.monitor.fan.average.help" = "Average of the fan speeds the Mac is currently reporting. Stale or unreadable fans are excluded; a fanless Mac shows \"Fanless\".";
 "hardware.monitor.disk" = "Disk I/O";

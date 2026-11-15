@@ -56,6 +56,37 @@ final class HardwareMonitorPanelDemandTests: XCTestCase {
         XCTAssertNotNil(service.demands[.panel])
     }
 
+
+    func testBackgroundDemandFollowsSettingWhilePanelClosed() {
+        let fixture = makeFixture()
+        let panel = startVisible(fixture)
+        defer {
+            panel.showSummaryPage()
+            panel.stop()
+            fixture.store.setPopoverVisible(false)
+            fixture.store.stop()
+        }
+        let service = fixture.store.hardwareMetrics
+        XCTAssertEqual(service.demands[.panel], HardwareMetricsService.hardwareSummaryMetricIDs)
+        XCTAssertNil(service.demands[.background])
+
+        fixture.store.setPopoverVisible(false)
+        XCTAssertNil(service.demands[.background], "off by default: no background reads when closed")
+
+        fixture.settings.hardwareBackgroundRefreshSeconds = 30
+        XCTAssertEqual(service.demands[.background], HardwareMetricsService.hardwareSummaryMetricIDs)
+        XCTAssertNil(service.demands[.panel])
+        XCTAssertEqual(service.backgroundIntervalSeconds, 30)
+
+        fixture.store.setPopoverVisible(true)
+        XCTAssertEqual(service.demands[.panel], HardwareMetricsService.hardwareSummaryMetricIDs)
+        XCTAssertNil(service.demands[.background], "an open panel ends the background demand")
+
+        fixture.settings.hardwareBackgroundRefreshSeconds = 0
+        fixture.store.setPopoverVisible(false)
+        XCTAssertNil(service.demands[.background])
+    }
+
     func testDisablingTheSectionStopsSampling() {
         let fixture = makeFixture()
         let panel = startVisible(fixture)

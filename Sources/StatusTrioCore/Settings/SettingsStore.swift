@@ -174,9 +174,15 @@ final class SettingsStore: ObservableObject {
     static let hardwareMonitorMetricColorsDefaultsKey = "hardwareMonitorMetricColorsV1"
     static let hardwareDownloadCapMbpsDefaultsKey = "hardwareDownloadCapMbps"
     static let hardwareUploadCapMbpsDefaultsKey = "hardwareUploadCapMbps"
+    static let hardwareBackgroundRefreshSecondsDefaultsKey = "hardwareBackgroundRefreshSeconds"
     static let hardwareSpeedCapRange: ClosedRange<Double> = 1...100000
     static let defaultHardwareDownloadCapMbps: Double = 1000
     static let defaultHardwareUploadCapMbps: Double = 100
+    /// Background sampling cadence for the status-panel hardware summary while
+    /// the panel is closed. 0 means off (no background reads); the default keeps
+    /// the app idle-when-closed unless the user opts in.
+    static let hardwareBackgroundRefreshOptions: [Int] = [0, 5, 10, 15, 30, 60]
+    static let defaultHardwareBackgroundRefreshSeconds: Int = 0
 
     static func clampedHardwareSpeedCap(_ value: Double, fallback: Double) -> Double {
         value.isFinite ? min(hardwareSpeedCapRange.upperBound, max(hardwareSpeedCapRange.lowerBound, value)) : fallback
@@ -1165,6 +1171,19 @@ final class SettingsStore: ObservableObject {
             let clamped = Self.clampedHardwareSpeedCap(hardwareUploadCapMbps, fallback: Self.defaultHardwareUploadCapMbps)
             guard clamped == hardwareUploadCapMbps else { hardwareUploadCapMbps = clamped; return }
             defaults.set(clamped, forKey: Self.hardwareUploadCapMbpsDefaultsKey)
+        }
+    }
+
+    /// Off (0) or a 5–60 s cadence for background hardware sampling while the
+    /// status panel is closed. Only one of the shipped option values is allowed.
+    @Published var hardwareBackgroundRefreshSeconds: Int = SettingsStore.defaultHardwareBackgroundRefreshSeconds {
+        didSet {
+            let staysInOptions = Self.hardwareBackgroundRefreshOptions.contains(hardwareBackgroundRefreshSeconds)
+            guard staysInOptions else {
+                hardwareBackgroundRefreshSeconds = Self.defaultHardwareBackgroundRefreshSeconds
+                return
+            }
+            defaults.set(hardwareBackgroundRefreshSeconds, forKey: Self.hardwareBackgroundRefreshSecondsDefaultsKey)
         }
     }
 
@@ -2797,6 +2816,10 @@ final class SettingsStore: ObservableObject {
         self.hardwareUploadCapMbps = Self.clampedHardwareSpeedCap(
             defaults.object(forKey: Self.hardwareUploadCapMbpsDefaultsKey) as? Double ?? Self.defaultHardwareUploadCapMbps,
             fallback: Self.defaultHardwareUploadCapMbps)
+        let storedBackground = defaults.object(forKey: Self.hardwareBackgroundRefreshSecondsDefaultsKey) as? Int
+            ?? Self.defaultHardwareBackgroundRefreshSeconds
+        self.hardwareBackgroundRefreshSeconds = Self.hardwareBackgroundRefreshOptions.contains(storedBackground)
+            ? storedBackground : Self.defaultHardwareBackgroundRefreshSeconds
         bootstrapIconConfiguration()
     }
 

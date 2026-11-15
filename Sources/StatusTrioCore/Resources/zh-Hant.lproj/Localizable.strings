@@ -1175,6 +1175,10 @@
 "hardware.monitor.kbps" = "KB/s";
 "hardware.monitor.mbps" = "MB/s";
 "hardware.monitor.gbps" = "GB/s";
+"hardware.monitor.settings.background" = "背景監控";
+"hardware.monitor.settings.background.description" = "面板關閉時仍持續擷取硬體指標，開啟面板即為即時資料。為省電預設關閉。";
+"hardware.monitor.background.off" = "關閉";
+"hardware.monitor.background.seconds" = "%d 秒";
 "hardware.monitor.fan.average" = "風扇均速";
 "hardware.monitor.fan.average.help" = "目前可讀風扇轉速的平均值。已過期或無法讀取的風扇不計入；無風扇的 Mac 顯示「無風扇」。";
 "hardware.monitor.disk" = "磁碟 I/O";

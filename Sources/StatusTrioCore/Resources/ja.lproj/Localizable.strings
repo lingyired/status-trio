@@ -1175,6 +1175,10 @@
 "hardware.monitor.kbps" = "KB/s";
 "hardware.monitor.mbps" = "MB/s";
 "hardware.monitor.gbps" = "GB/s";
+"hardware.monitor.settings.background" = "バックグラウンド監視";
+"hardware.monitor.settings.background.description" = "パネルを閉じている間もハードウェア指標をサンプリングし、開いたときに最新のデータを表示します。省電力のため既定ではオフです。";
+"hardware.monitor.background.off" = "オフ";
+"hardware.monitor.background.seconds" = "%d 秒";
 "hardware.monitor.fan.average" = "ファン平均";
 "hardware.monitor.fan.average.help" = "現在報告されているファン回転数の平均です。古い、または読み取れないファンは除外されます。ファンのない Mac ではファンなしと表示します。";
 "hardware.monitor.disk" = "ディスク I/O";

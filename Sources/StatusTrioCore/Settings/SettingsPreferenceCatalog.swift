@@ -183,7 +183,9 @@ enum SettingsPreferenceCatalog {
                    range: SettingsStore.popupScrollWheelStepPercentRange, step: 0.5),
             boolean("popupVolumeNaturalScrolling", \.popupVolumeNaturalScrolling,
                     default: SettingsStore.defaultPopupVolumeNaturalScrolling),
-            optionalBoolean("popupVolumeScrollFeedbackOverride", \.popupVolumeScrollFeedbackOverride)
+            optionalBoolean("popupVolumeScrollFeedbackOverride", \.popupVolumeScrollFeedbackOverride),
+            integer("hardwareBackgroundRefreshSeconds", \.hardwareBackgroundRefreshSeconds,
+                    default: SettingsStore.defaultHardwareBackgroundRefreshSeconds, range: 0...60)
         ]
     }
 

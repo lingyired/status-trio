@@ -10,11 +10,29 @@ final class HardwareMonitorObservable: ObservableObject {
     /// behind. We publish through `snapshotPublisher` *after* the stored value is
     /// updated, so subscribers always read the value they were just handed.
     private var stored: HardwareMetricsSnapshot
+    /// Last measured (valued) sample per metric, retained across close/stale so
+    /// the panel can show the previous reading instead of flashing an em dash.
+    private var lastKnown: [HardwareMetricID: HardwareMetricSample] = [:]
     private let snapshotSubject = PassthroughSubject<HardwareMetricsSnapshot, Never>()
 
     init(snapshot: HardwareMetricsSnapshot = .empty) { self.stored = snapshot }
 
     var snapshot: HardwareMetricsSnapshot { stored }
+
+    /// Snapshot for the status-panel summary: fills any missing/valued-less
+    /// summary metric from the retained last reading (marked stale/dimmed), so a
+    /// reopened panel shows the previous values until a fresh sample lands.
+    var summarySnapshot: HardwareMetricsSnapshot {
+        var copy = stored
+        for id in HardwareMetricsService.hardwareSummaryMetricIDs {
+            if copy.samples[id]?.value == nil, let known = lastKnown[id] {
+                var cached = known
+                cached.availability = .stale
+                copy.samples[id] = cached
+            }
+        }
+        return copy
+    }
 
     /// Emits the new snapshot after it has been stored.
     var snapshotPublisher: AnyPublisher<HardwareMetricsSnapshot, Never> {
@@ -23,6 +41,9 @@ final class HardwareMonitorObservable: ObservableObject {
 
     func update(_ snapshot: HardwareMetricsSnapshot, now: Date = Date()) {
         let next = snapshot.expiring(at: now)
+        for (id, sample) in next.samples where sample.availability == .measured {
+            if let value = sample.value, value.isFinite { lastKnown[id] = sample }
+        }
         guard next != stored else { return }
         objectWillChange.send()
         stored = next
@@ -55,7 +76,14 @@ final class HardwareMonitorObservable: ObservableObject {
 final class HardwareMetricsService: ObservableObject {
     enum Demand: Hashable, Sendable {
         case panel, menuBarArc, menuBarCenter, dock
+        /// User-opted low-frequency sampling while the panel is closed.
+        case background
     }
+
+    /// Background cadence in seconds (0 = disabled). Only consulted when the
+    /// background demand is the sole consumer, so an open panel still refreshes
+    /// at the fast metric cadence. Set by the panel view model from settings.
+    var backgroundIntervalSeconds: TimeInterval = 0
 
     static let defaultMetricIDs: Set<HardwareMetricID> = [
         .cpuUsage, .gpuUsage, .memoryUsage, .cpuTemperature, .batteryTemperature, .fanRPM(index: 0)
@@ -296,6 +324,9 @@ final class HardwareMetricsService: ObservableObject {
     private var tickInterval: TimeInterval {
         let ids = requestedIDs
         guard !ids.isEmpty else { return 2 }
+        if demands.keys.allSatisfy({ $0 == .background }), backgroundIntervalSeconds > 0 {
+            return max(1, backgroundIntervalSeconds)
+        }
         return ids.map(interval(for:)).min() ?? 2
     }
 

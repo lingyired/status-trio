@@ -1175,6 +1175,10 @@
 "hardware.monitor.kbps" = "КБ/с";
 "hardware.monitor.mbps" = "МБ/с";
 "hardware.monitor.gbps" = "ГБ/с";
+"hardware.monitor.settings.background" = "Фоновый мониторинг";
+"hardware.monitor.settings.background.description" = "Продолжать опрос показателей оборудования при закрытой панели, чтобы она открывалась с актуальными данными. По умолчанию выключено для экономии энергии.";
+"hardware.monitor.background.off" = "Выкл.";
+"hardware.monitor.background.seconds" = "%d с";
 "hardware.monitor.fan.average" = "Ср. вентилятор";
 "hardware.monitor.fan.average.help" = "Средняя скорость вентиляторов, о которой сообщает Mac. Устаревшие или нечитаемые вентиляторы исключаются; на Mac без вентилятора отображается метка Без вентилятора.";
 "hardware.monitor.disk" = "Диск I/O";

@@ -1175,6 +1175,10 @@
 "hardware.monitor.kbps" = "KB/s";
 "hardware.monitor.mbps" = "MB/s";
 "hardware.monitor.gbps" = "GB/s";
+"hardware.monitor.settings.background" = "Monitoramento em segundo plano";
+"hardware.monitor.settings.background.description" = "Continua amostrando métricas de hardware com o painel fechado para que ele abra com dados ao vivo. Desativado por padrão para economizar energia.";
+"hardware.monitor.background.off" = "Desativado";
+"hardware.monitor.background.seconds" = "%d s";
 "hardware.monitor.fan.average" = "Ventoinha média";
 "hardware.monitor.fan.average.help" = "Velocidade média das ventoinhas reportadas no momento. Ventoinhas obsoletas ou ilegíveis são excluídas; um Mac sem ventoinha mostra o rótulo Sem ventoinha.";
 "hardware.monitor.disk" = "E/S de disco";

@@ -9,7 +9,35 @@ struct HardwareMonitorSectionView: View {
     var body: some View {
         SettingsPage {
             placementGroup
+            backgroundGroup
             metricsGroup
+        }
+    }
+
+    private var backgroundGroup: some View {
+        SettingsGroup(
+            localization.string(.hardwareMonitorSettingsBackground),
+            footnote: localization.string(.hardwareMonitorSettingsBackgroundDescription)
+        ) {
+            SettingsCustomRow {
+                HStack {
+                    Spacer(minLength: 8)
+                    Picker("", selection: Binding(
+                        get: { store.hardwareBackgroundRefreshSeconds },
+                        set: { store.hardwareBackgroundRefreshSeconds = $0 }
+                    )) {
+                        Text(localization.string(.hardwareMonitorBackgroundOff))
+                            .tag(SettingsStore.defaultHardwareBackgroundRefreshSeconds)
+                        ForEach(SettingsStore.hardwareBackgroundRefreshOptions.filter { $0 > 0 }, id: \.self) { seconds in
+                            Text(localization.format(.hardwareMonitorBackgroundSeconds, seconds))
+                                .tag(seconds)
+                        }
+                    }
+                    .labelsHidden()
+                    .pickerStyle(.menu)
+                    .fixedSize()
+                }
+            }
         }
     }
 

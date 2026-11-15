@@ -1175,6 +1175,10 @@
 "hardware.monitor.kbps" = "KB/s";
 "hardware.monitor.mbps" = "MB/s";
 "hardware.monitor.gbps" = "GB/s";
+"hardware.monitor.settings.background" = "Hardware-Überwachung im Hintergrund";
+"hardware.monitor.settings.background.description" = "Sammelt Hardware-Messwerte weiter, während das Panel geschlossen ist, damit es mit Live-Daten öffnet. Standardmäßig aus, um Energie zu sparen.";
+"hardware.monitor.background.off" = "Aus";
+"hardware.monitor.background.seconds" = "%d s";
 "hardware.monitor.fan.average" = "Ø Lüfter";
 "hardware.monitor.fan.average.help" = "Durchschnitt der aktuell gemeldeten Lüfterdrehzahlen. Veraltete oder nicht lesbare Lüfter werden ausgeschlossen; ein lüfterloser Mac zeigt die Bezeichnung Lüfterlos.";
 "hardware.monitor.disk" = "Festplatten-E/A";

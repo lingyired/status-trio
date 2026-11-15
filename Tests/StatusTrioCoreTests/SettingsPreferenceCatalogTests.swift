@@ -27,7 +27,7 @@ final class SettingsPreferenceCatalogTests: XCTestCase {
                 "autoEnablesLowPowerMode", "showsAppleDevicesAndBattery",
                 "refreshesAppleBatteriesInBackground", "appleBatteryRefreshIntervalMinutes",
                 "showsBluetoothListeningMode", "bluetoothAudioIconChoiceRawValue", "wifiSymbolScale",
-                "volumeDisplayStyle", "ringStrokeStyle", "refreshIntervalOnBatterySeconds",
+                "volumeDisplayStyle", "ringStrokeStyle", "hardwareBackgroundRefreshSeconds", "refreshIntervalOnBatterySeconds",
                 "refreshIntervalOnPowerSeconds", "maxVisibleOutputDevices", "alwaysShowsAllOutputDevices",
                 "maxVisibleInputDevices", "alwaysShowsAllInputDevices", "showsBluetoothDeviceList",
                 "maxVisibleBluetoothDevices", "hidesGhostBluetoothDevices", "popupSectionOrder",
@@ -81,6 +81,26 @@ final class SettingsPreferenceCatalogTests: XCTestCase {
                 XCTAssertEqual(prepared.values["popupScrollWheelStepPercent"], .number(10))
                 XCTAssertFalse(prepared.warnings.isEmpty)
             }
+        }
+    }
+
+
+    func testHardwareBackgroundRefreshValidatesOptionsAndRoundTrips() {
+        withStore { store, defaults in
+            XCTAssertEqual(store.hardwareBackgroundRefreshSeconds, 0)
+            for value in [5, 15, 30, 60] {
+                store.hardwareBackgroundRefreshSeconds = value
+                XCTAssertEqual(SettingsStore(defaults: defaults).hardwareBackgroundRefreshSeconds, value)
+            }
+            for invalid in [7, 61, -5] {
+                store.hardwareBackgroundRefreshSeconds = invalid
+                XCTAssertEqual(store.hardwareBackgroundRefreshSeconds, 0, "only shipped options are accepted")
+            }
+            store.hardwareBackgroundRefreshSeconds = 30
+            let snapshot = SettingsPreferenceCatalog.snapshot(store)
+            XCTAssertEqual(snapshot["hardwareBackgroundRefreshSeconds"], .number(30))
+            let reloaded = SettingsStore(defaults: defaults, systemChargeLimit: { nil })
+            XCTAssertEqual(reloaded.hardwareBackgroundRefreshSeconds, 30)
         }
     }
 

@@ -520,6 +520,34 @@ final class HardwareMetricsServiceTests: XCTestCase {
         XCTAssertNil(MetricProgressMapper.rpm(summary))
     }
 
+
+    func testBackgroundDemandUsesConfiguredCadence() async {
+        let clock = Clock()
+        let service = HardwareMetricsService(automaticScheduling: false, now: { clock.date }, reader: { _, _ in .empty })
+        service.backgroundIntervalSeconds = 30
+        service.begin(.background, metrics: [.networkDownload])
+        XCTAssertEqual(service.currentTickIntervalForTesting, 30)
+        service.begin(.panel, metrics: [.networkDownload])
+        XCTAssertEqual(service.currentTickIntervalForTesting, 1, "an open panel overrides background cadence")
+        service.end(.panel)
+        XCTAssertEqual(service.currentTickIntervalForTesting, 30)
+        service.stopAll()
+    }
+
+    func testSummarySnapshotKeepsLastKnownValueAfterExpiry() {
+        let observable = HardwareMonitorObservable()
+        let t0 = Date(timeIntervalSince1970: 1_000)
+        var snap = HardwareMetricsSnapshot.empty
+        snap.samples[.networkDownload] = HardwareMetricSample(
+            value: 1_000_000, unit: .bytesPerSecond, sampledAt: t0, source: .network, availability: .measured)
+        observable.update(snap, now: t0)
+        XCTAssertEqual(observable.summarySnapshot.networkDownload.value, 1_000_000)
+        observable.markStale(now: t0.addingTimeInterval(600))
+        XCTAssertNil(observable.snapshot.samples[.networkDownload]?.value, "stored value expires past cache lifetime")
+        XCTAssertEqual(observable.summarySnapshot.networkDownload.value, 1_000_000)
+        XCTAssertEqual(observable.summarySnapshot.networkDownload.availability, .stale)
+    }
+
     func testDiskDemandUsesOneSecondCadenceAndStopsOnEnd() async {
         let clock = Clock()
         let recorder = Recorder()

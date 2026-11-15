@@ -410,6 +410,11 @@ final class StatusPanelViewModel: ObservableObject {
             }
             .store(in: &cancellables)
 
+        settings.$hardwareBackgroundRefreshSeconds
+            .removeDuplicates()
+            .sink { [weak self] seconds in self?.updateHardwareMetricsDemand(backgroundSeconds: seconds) }
+            .store(in: &cancellables)
+
         settings.$statusPanelBoldTextEnabled
             .removeDuplicates()
             .sink { [weak self] enabled in
@@ -889,21 +894,34 @@ final class StatusPanelViewModel: ObservableObject {
     /// panel is open, the route is the summary, and the section is visible.
     /// Switching pages, hiding the module or closing the panel ends the demand
     /// immediately, so a closed panel never keeps a hardware timer alive.
-    private func updateHardwareMetricsDemand(popoverVisible: Bool? = nil) {
+    private func updateHardwareMetricsDemand(popoverVisible: Bool? = nil, backgroundSeconds: Int? = nil) {
         // `@Published` publishes in willSet, so a subscriber must pass the new
         // value in rather than read `store.isPopoverVisible` (still the old one).
+        let sectionOn = visiblePopupSections.contains(.hardwareMonitor)
         let visible = isStarted
             && (popoverVisible ?? store.isPopoverVisible)
             && route == .summary
-            && visiblePopupSections.contains(.hardwareMonitor)
+            && sectionOn
+        // @Published fires in willSet, so a settings subscriber must pass the new
+        // value in rather than read the not-yet-committed stored property.
+        let background = backgroundSeconds ?? settings.hardwareBackgroundRefreshSeconds
+        store.hardwareMetrics.backgroundIntervalSeconds = TimeInterval(background)
         if visible {
             // The compact summary is fixed: four rings plus download/upload,
             // average fan and disk read/write. It no longer follows the card
             // metric order, so every group has data even when the user's card
             // selection changed.
+            store.hardwareMetrics.end(.background)
             store.hardwareMetrics.begin(.panel, metrics: HardwareMetricsService.hardwareSummaryMetricIDs)
         } else {
             store.hardwareMetrics.end(.panel)
+            // Optional low-frequency background sampling keeps the summary warm
+            // while the panel is closed (off by default to preserve idle power).
+            if isStarted, sectionOn, background > 0 {
+                store.hardwareMetrics.begin(.background, metrics: HardwareMetricsService.hardwareSummaryMetricIDs)
+            } else {
+                store.hardwareMetrics.end(.background)
+            }
         }
     }
 

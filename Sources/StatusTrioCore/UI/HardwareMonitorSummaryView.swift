@@ -13,7 +13,7 @@ struct HardwareMonitorSummaryView: View {
 
     var body: some View {
         let items = HardwareMonitorSummaryPresentation.items(
-            snapshot: model.snapshot, localization: localization)
+            snapshot: model.summarySnapshot, localization: localization)
         VStack(spacing: 8) {
             HardwareRingStrip(hardware: model, colors: metricColors)
             Rectangle()
