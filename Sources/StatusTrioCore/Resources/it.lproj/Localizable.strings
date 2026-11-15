@@ -431,6 +431,8 @@
 "settings.popup.order.quickActions" = "Mantieni attivo";
 "settings.keepAwake.showInPanel" = "Mostra «Mantieni attivo» nel pannello di stato";
 "settings.keepAwake.helper" = "Attiva l’helper con privilegi";
+"settings.keepAwake.helperReady" = "L’helper con privilegi è pronto.";
+"settings.keepAwake.helperHint" = "Attivare «Resta attivo a coperchio chiuso» (o il controllo Risparmio energetico) installa e richiede l’autorizzazione automaticamente.";
 "quickActions.displaySleep" = "Mantieni lo schermo attivo";
 "quickActions.displaySleep.description" = "Impedisce allo schermo di andare in sospensione quando è inattivo.";
 "quickActions.lidSleep" = "Mantieni attivo con coperchio chiuso";

@@ -300,7 +300,7 @@ struct BatterySectionView: View {
                 // Reported on the description's own line: one short state, not
                 // a block of rows under the switch.
                 subtitleStatus: helper.isEnabled ? lowPowerModeHelperStatus : nil,
-                isOn: helper.isEnabledBinding
+                isOn: $store.controlsLowPowerMode
             )
             .disabled(!helper.isAvailable)
 

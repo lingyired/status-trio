@@ -17,7 +17,6 @@ struct KeepAwakeSectionView: View {
 
     private var keepAwakeGroup: some View {
         let sectionEnabled = store.enabledPopupSections.contains(.quickActions)
-        let needsApproval = helper.requiresApproval && !helper.isReady
         return SettingsGroup(localization.string(.settingsPopupOrderQuickActions)) {
             SettingsToggleRow(
                 symbol: "moon.zzz",
@@ -46,33 +45,36 @@ struct KeepAwakeSectionView: View {
             )
             .disabled(!sectionEnabled)
             SettingsDivider()
-            SettingsToggleRow(
-                symbol: "lock.shield",
-                tint: .green,
-                title: localization.string(.settingsKeepAwakeHelper),
-                isOn: helper.isEnabledBinding
-            )
-            .disabled(!helper.isAvailable)
-            if helper.isAvailable {
-                Button {
-                    helper.openLoginItemsSettings()
-                } label: {
-                    HStack(spacing: 6) {
-                        Image(systemName: needsApproval ? "exclamationmark.triangle.fill" : "info.circle")
-                            .foregroundStyle(needsApproval ? Color.orange : Color.secondary)
-                        Text(localization.string(
-                            needsApproval ? .lowPowerModeRequiresApproval
-                            : (helper.isReady ? .lowPowerModeOpenLoginItems : .lowPowerModeApprovalHint)
-                        ))
-                    }
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+            VStack(alignment: .leading, spacing: 6) {
+                HStack(spacing: 8) {
+                    Image(systemName: "lock.shield")
+                        .foregroundStyle(.green)
+                    Text(localization.string(.settingsKeepAwakeHelper))
+                        .font(.callout)
                 }
-                .buttonStyle(.plain)
-                .padding(.horizontal, SettingsMetrics.rowPaddingH)
-                .padding(.bottom, 10)
-                .frame(maxWidth: .infinity, alignment: .leading)
+                Text(localization.string(
+                    helper.isReady ? .settingsKeepAwakeHelperReady : .settingsKeepAwakeHelperHint
+                ))
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                if helper.requiresApproval {
+                    Button {
+                        helper.openLoginItemsSettings()
+                    } label: {
+                        HStack(spacing: 6) {
+                            Image(systemName: "exclamationmark.triangle.fill")
+                                .foregroundStyle(.orange)
+                            Text(localization.string(.lowPowerModeRequiresApproval))
+                        }
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    }
+                    .buttonStyle(.plain)
+                }
             }
+            .padding(.horizontal, SettingsMetrics.rowPaddingH)
+            .padding(.vertical, 10)
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
     }
 }
