@@ -1187,6 +1187,8 @@
 "hardware.monitor.disk.read" = "Lettura";
 "hardware.monitor.disk.write" = "Scrittura";
 "hardware.monitor.disk.help" = "Velocità totale di lettura e scrittura dei dischi fisici.";
+"hardware.monitor.disk.total" = "Totale";
+"hardware.monitor.fan.sampleCount" = "Da %d sensori";
 "hardware.monitor.download.help" = "Velocità di download totale sulle interfacce di rete fisiche.";
 "hardware.monitor.upload.help" = "Velocità di upload totale sulle interfacce di rete fisiche.";
 

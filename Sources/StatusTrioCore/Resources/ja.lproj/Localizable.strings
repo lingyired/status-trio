@@ -1187,6 +1187,8 @@
 "hardware.monitor.disk.read" = "読み取り";
 "hardware.monitor.disk.write" = "書き込み";
 "hardware.monitor.disk.help" = "物理ディスク全体の読み取りと書き込みのスループット。";
+"hardware.monitor.disk.total" = "合計";
+"hardware.monitor.fan.sampleCount" = "%d 個のセンサーから";
 "hardware.monitor.download.help" = "物理ネットワークインターフェイス全体のダウンロードスループット。";
 "hardware.monitor.upload.help" = "物理ネットワークインターフェイス全体のアップロードスループット。";
 

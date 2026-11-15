@@ -1187,6 +1187,8 @@
 "hardware.monitor.disk.read" = "قراءة";
 "hardware.monitor.disk.write" = "كتابة";
 "hardware.monitor.disk.help" = "إجمالي سرعة قراءة وكتابة التخزين عبر الأقراص الفعلية.";
+"hardware.monitor.disk.total" = "الإجمالي";
+"hardware.monitor.fan.sampleCount" = "من %d مستشعرات";
 "hardware.monitor.download.help" = "إجمالي سرعة التنزيل عبر واجهات الشبكة الفعلية.";
 "hardware.monitor.upload.help" = "إجمالي سرعة الرفع عبر واجهات الشبكة الفعلية.";
 

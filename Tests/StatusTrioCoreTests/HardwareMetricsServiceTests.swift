@@ -548,18 +548,21 @@ final class HardwareMetricsServiceTests: XCTestCase {
         service.stopAll()
     }
 
-    func testSummarySnapshotKeepsLastKnownValueAfterExpiry() {
+    func testSummarySnapshotKeepsLastKnownValueWithinCacheLifetime() {
         let observable = HardwareMonitorObservable()
         let t0 = Date(timeIntervalSince1970: 1_000)
         var snap = HardwareMetricsSnapshot.empty
         snap.samples[.networkDownload] = HardwareMetricSample(
             value: 1_000_000, unit: .bytesPerSecond, sampledAt: t0, source: .network, availability: .measured)
         observable.update(snap, now: t0)
-        XCTAssertEqual(observable.summarySnapshot.networkDownload.value, 1_000_000)
-        observable.markStale(now: t0.addingTimeInterval(600))
-        XCTAssertNil(observable.snapshot.samples[.networkDownload]?.value, "stored value expires past cache lifetime")
-        XCTAssertEqual(observable.summarySnapshot.networkDownload.value, 1_000_000)
-        XCTAssertEqual(observable.summarySnapshot.networkDownload.availability, .stale)
+        // Still within the 300 s cache: the previous reading is shown (dimmed).
+        observable.markStale(now: t0.addingTimeInterval(100))
+        XCTAssertEqual(observable.summarySnapshot(at: t0.addingTimeInterval(100)).networkDownload.value, 1_000_000)
+        XCTAssertEqual(observable.summarySnapshot(at: t0.addingTimeInterval(100)).networkDownload.availability, .stale)
+        // Past cacheLifetime the value is dropped rather than shown indefinitely.
+        observable.markStale(now: t0.addingTimeInterval(400))
+        XCTAssertNil(observable.snapshot.samples[.networkDownload]?.value)
+        XCTAssertNil(observable.summarySnapshot(at: t0.addingTimeInterval(400)).networkDownload.value)
     }
 
     func testDiskDemandUsesOneSecondCadenceAndStopsOnEnd() async {

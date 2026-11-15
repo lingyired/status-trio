@@ -1187,6 +1187,8 @@
 "hardware.monitor.disk.read" = "Lectura";
 "hardware.monitor.disk.write" = "Escritura";
 "hardware.monitor.disk.help" = "Rendimiento total de lectura y escritura de los discos físicos.";
+"hardware.monitor.disk.total" = "Total";
+"hardware.monitor.fan.sampleCount" = "De %d sensores";
 "hardware.monitor.download.help" = "Rendimiento total de descarga en las interfaces de red físicas.";
 "hardware.monitor.upload.help" = "Rendimiento total de subida en las interfaces de red físicas.";
 

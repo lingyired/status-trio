@@ -1187,6 +1187,8 @@
 "hardware.monitor.disk.read" = "읽기";
 "hardware.monitor.disk.write" = "쓰기";
 "hardware.monitor.disk.help" = "물리 디스크 전체의 읽기 및 쓰기 처리량입니다.";
+"hardware.monitor.disk.total" = "합계";
+"hardware.monitor.fan.sampleCount" = "%d개 센서 기준";
 "hardware.monitor.download.help" = "물리 네트워크 인터페이스 전체의 다운로드 처리량입니다.";
 "hardware.monitor.upload.help" = "물리 네트워크 인터페이스 전체의 업로드 처리량입니다.";
 

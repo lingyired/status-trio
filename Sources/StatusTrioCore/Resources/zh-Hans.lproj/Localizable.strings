@@ -1187,6 +1187,8 @@
 "hardware.monitor.disk.read" = "读";
 "hardware.monitor.disk.write" = "写";
 "hardware.monitor.disk.help" = "所有物理磁盘的读取与写入总吞吐。";
+"hardware.monitor.disk.total" = "合计";
+"hardware.monitor.fan.sampleCount" = "基于 %d 个传感器";
 "hardware.monitor.download.help" = "所有物理网络接口的下载总吞吐。";
 "hardware.monitor.upload.help" = "所有物理网络接口的上传总吞吐。";
 

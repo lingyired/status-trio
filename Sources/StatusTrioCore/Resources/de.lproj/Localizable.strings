@@ -1187,6 +1187,8 @@
 "hardware.monitor.disk.read" = "Lesen";
 "hardware.monitor.disk.write" = "Schreiben";
 "hardware.monitor.disk.help" = "Gesamter Lese- und Schreibdurchsatz der physischen Datenträger.";
+"hardware.monitor.disk.total" = "Gesamt";
+"hardware.monitor.fan.sampleCount" = "Aus %d Sensoren";
 "hardware.monitor.download.help" = "Gesamter Download-Durchsatz über die physischen Netzwerkschnittstellen.";
 "hardware.monitor.upload.help" = "Gesamter Upload-Durchsatz über die physischen Netzwerkschnittstellen.";
 

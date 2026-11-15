@@ -1187,6 +1187,8 @@
 "hardware.monitor.disk.read" = "Leitura";
 "hardware.monitor.disk.write" = "Gravação";
 "hardware.monitor.disk.help" = "Taxa total de leitura e gravação dos discos físicos.";
+"hardware.monitor.disk.total" = "Total";
+"hardware.monitor.fan.sampleCount" = "De %d sensores";
 "hardware.monitor.download.help" = "Taxa de download total nas interfaces de rede físicas.";
 "hardware.monitor.upload.help" = "Taxa de upload total nas interfaces de rede físicas.";
 

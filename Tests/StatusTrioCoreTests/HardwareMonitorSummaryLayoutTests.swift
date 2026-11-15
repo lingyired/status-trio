@@ -14,8 +14,9 @@ final class HardwareMonitorSummaryLayoutTests: XCTestCase {
 
     private func snapshot(_ availability: HardwareMetricAvailability) -> HardwareMetricsSnapshot {
         var snapshot = HardwareMetricsSnapshot(fanCount: 2)
+        let ts = Date(timeIntervalSince1970: 1_000)
         func sample(_ unit: HardwareMetricUnit, _ value: Double?, _ source: HardwareMetricSource) -> HardwareMetricSample {
-            HardwareMetricSample(value: value, unit: unit, sampledAt: Date(), source: source,
+            HardwareMetricSample(value: value, unit: unit, sampledAt: ts, source: source,
                                  availability: availability)
         }
         snapshot.samples[.cpuUsage] = sample(.percent, 61, .mach)
@@ -50,6 +51,38 @@ final class HardwareMonitorSummaryLayoutTests: XCTestCase {
         s.samples[.diskRead] = bytes(18_400_000, 9_999_999_999)
         s.samples[.diskWrite] = bytes(6_200_000, 8_888_888_888)
         return s
+    }
+
+
+    func testHeightStableAcrossRateBoundariesZeroAndDash() {
+        let ts = Date(timeIntervalSince1970: 1_000)
+        func snap(_ net: Double?, _ availability: HardwareMetricAvailability = .measured) -> HardwareMetricsSnapshot {
+            var s = HardwareMetricsSnapshot(fanCount: 1)
+            func sample(_ unit: HardwareMetricUnit, _ value: Double?, _ source: HardwareMetricSource) -> HardwareMetricSample {
+                HardwareMetricSample(value: value, unit: unit, sampledAt: ts, source: source, availability: availability)
+            }
+            s.samples[.cpuUsage] = sample(.percent, 61, .mach)
+            s.samples[.gpuUsage] = sample(.percent, 72, .mach)
+            s.samples[.memoryUsage] = sample(.percent, 51, .mach)
+            s.samples[.cpuTemperature] = sample(.celsius, 61, .smc)
+            s.samples[.gpuTemperature] = sample(.celsius, 72, .smc)
+            s.samples[.fanRPM(index: 0)] = sample(.rpm, 2036, .smc)
+            s.samples[.networkDownload] = sample(.bytesPerSecond, net, .network)
+            s.samples[.networkUpload] = sample(.bytesPerSecond, net, .network)
+            s.samples[.diskRead] = sample(.bytesPerSecond, net, .ioStorage)
+            s.samples[.diskWrite] = sample(.bytesPerSecond, net, .ioStorage)
+            return s
+        }
+        var heights: [CGFloat] = []
+        for value in [0.0, 999, 999_000, 1_000_000, 125_000_000, 1_300_000_000] {
+            heights.append(fittingHeight(snap(value)))
+        }
+        heights.append(fittingHeight(snap(nil, .temporarilyUnavailable)))
+        heights.append(fittingHeight(snap(nil, .stale)))
+        let first = heights[0]
+        for height in heights {
+            XCTAssertEqual(height, first, accuracy: 0.5, "summary height must not change with value length/state")
+        }
     }
 
     private func fittingHeight(_ snapshot: HardwareMetricsSnapshot) -> CGFloat {

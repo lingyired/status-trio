@@ -1186,6 +1186,8 @@
 "hardware.monitor.disk.read" = "Read";
 "hardware.monitor.disk.write" = "Write";
 "hardware.monitor.disk.help" = "Aggregate storage read and write throughput across physical disks.";
+"hardware.monitor.disk.total" = "Total";
+"hardware.monitor.fan.sampleCount" = "From %d sensors";
 "hardware.monitor.download.help" = "Total download throughput across physical network interfaces.";
 "hardware.monitor.upload.help" = "Total upload throughput across physical network interfaces.";
 

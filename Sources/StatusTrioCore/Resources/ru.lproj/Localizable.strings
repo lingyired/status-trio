@@ -1187,6 +1187,8 @@
 "hardware.monitor.disk.read" = "Чтение";
 "hardware.monitor.disk.write" = "Запись";
 "hardware.monitor.disk.help" = "Суммарная скорость чтения и записи физических дисков.";
+"hardware.monitor.disk.total" = "Итого";
+"hardware.monitor.fan.sampleCount" = "По %d датчикам";
 "hardware.monitor.download.help" = "Суммарная скорость загрузки по физическим сетевым интерфейсам.";
 "hardware.monitor.upload.help" = "Суммарная скорость отдачи по физическим сетевым интерфейсам.";
 

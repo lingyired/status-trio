@@ -119,8 +119,16 @@ struct HardwareMetricSample: Equatable, Sendable {
     /// reopening the panel is not a blank flash; only past `cacheLifetime` is the
     /// value dropped.
     func expiring(at now: Date) -> HardwareMetricSample {
-        guard availability == .measured else { return self }
         let age = now.timeIntervalSince(sampledAt)
+        // An already-stale value must also be dropped once it is older than the
+        // cache lifetime, otherwise a long-closed panel could show it forever.
+        if availability == .stale {
+            guard age > Self.cacheLifetime || age < -Self.cacheLifetime else { return self }
+            var copy = self
+            copy.value = nil
+            return copy
+        }
+        guard availability == .measured else { return self }
         guard !Self.freshRange.contains(age) else { return self }
         var copy = self
         copy.availability = .stale
@@ -255,11 +263,14 @@ struct HardwareMetricsSnapshot: Equatable, Sendable {
         return HardwareMetricSample(unit: .rpm, source: .smc, availability: .temporarilyUnavailable)
     }
 
-    /// Copy this snapshot forward with every measured sample expired as of `now`.
+    /// Copy this snapshot forward with every measured or stale sample expired as
+    /// of `now`. Stale samples are included so a cached value older than
+    /// `cacheLifetime` is finally dropped instead of lingering forever.
     func expiring(at now: Date) -> HardwareMetricsSnapshot {
         var copy = self
-        for (id, sample) in samples where sample.availability == .measured {
-            copy.samples[id] = sample.expiring(at: now)
+        for (id, sample) in samples {
+            let expired = sample.expiring(at: now)
+            if expired != sample { copy.samples[id] = expired }
         }
         return copy
     }

@@ -20,9 +20,9 @@ struct HardwareSummaryMetricPresentation: Equatable {
 }
 
 /// Builds the fixed four-slot summary (download, upload, average fan, disk I/O).
-/// Values can be missing, so a slot never invents a number: it shows an em dash
-/// and explains why. Disk read and write always share one unit chosen from their
-/// larger magnitude, so two different quantities are never under one label.
+/// Rates use the shared Auto formatter; a slot never invents a number, showing an
+/// em dash and explaining why when data is missing. Disk shows the read+write
+/// total only when both directions come from the same valid sample.
 @MainActor
 enum HardwareMonitorSummaryPresentation {
     private static let dash = "—"
@@ -42,39 +42,6 @@ enum HardwareMonitorSummaryPresentation {
         ]
     }
 
-    // MARK: - Formatters
-
-    /// Byte-rate unit chosen by magnitude. Decimal (1 000-based) so the label
-    /// matches the KB/s, MB/s glyphs already used by the network tiles.
-    private struct UnitScale {
-        let divisor: Double
-        let key: LocalizationKey
-    }
-
-    private static func scale(for bytesPerSecond: Double) -> UnitScale {
-        let magnitude = abs(bytesPerSecond)
-        if magnitude >= 1_000_000_000 { return UnitScale(divisor: 1_000_000_000, key: .hardwareMonitorGBps) }
-        if magnitude >= 1_000_000 { return UnitScale(divisor: 1_000_000, key: .hardwareMonitorMBps) }
-        return UnitScale(divisor: 1_000, key: .hardwareMonitorKBps)
-    }
-
-    /// Decimal number capped at three significant digits, trailing zeros trimmed:
-    /// 2 000 000 → "2", 500 000 → "0.5", 18.4 → "18.4", 184 → "184".
-    static func number(_ value: Double) -> String {
-        let magnitude = abs(value)
-        let raw: String
-        if magnitude >= 100 { raw = String(format: "%.0f", value) }
-        else if magnitude >= 10 { raw = String(format: "%.1f", value) }
-        else if magnitude >= 1 { raw = String(format: "%.2f", value) }
-        else { raw = String(format: "%.3f", value) }
-        guard raw.contains(".") else { return raw }
-        var trimmed = raw
-        while trimmed.hasSuffix("0") { trimmed.removeLast() }
-        if trimmed.hasSuffix(".") { trimmed.removeLast() }
-        return trimmed
-    }
-
-    /// Numeric value eligible for display (measured or cached-stale), else nil.
     private static func displayValue(_ sample: HardwareMetricSample) -> Double? {
         guard sample.availability == .measured || sample.availability == .stale,
               let value = sample.value, value.isFinite, value >= 0 else { return nil }
@@ -90,8 +57,6 @@ enum HardwareMonitorSummaryPresentation {
         }
     }
 
-    // MARK: - Slots
-
     private static func networkItem(_ metric: HardwareSummaryMetric, sample: HardwareMetricSample,
                                     symbol: String, label: LocalizationKey, help: LocalizationKey,
                                     localization: Localization) -> HardwareSummaryMetricPresentation {
@@ -99,12 +64,10 @@ enum HardwareMonitorSummaryPresentation {
         var valueText = dash
         var unitText = ""
         var accessibilityValue = reasonText(sample, localization: localization)
-        if let value {
-            let unit = scale(for: value)
-            valueText = number(value / unit.divisor)
-            unitText = localization.string(unit.key)
-            accessibilityValue = accessibilityValue.isEmpty ? "\(valueText) \(unitText)"
-                : "\(valueText) \(unitText)"
+        if let value, let display = ByteRateFormatter.format(bytesPerSecond: value) {
+            valueText = display.valueText
+            unitText = display.unitText
+            accessibilityValue = display.combined
         }
         return HardwareSummaryMetricPresentation(
             metric: metric, valueText: valueText, unitText: unitText, symbol: symbol,
@@ -120,10 +83,16 @@ enum HardwareMonitorSummaryPresentation {
         var valueText = dash
         var unitText = ""
         var accessibilityValue = reasonText(sample, localization: localization)
+        var help = localization.string(.hardwareMonitorFanAverageHelp)
         if let value {
             valueText = String(Int(value.rounded()))
             unitText = "RPM"
             accessibilityValue = "\(valueText) \(unitText)"
+            if let fanCount = snapshot.fanCount, fanCount > 1,
+               let count = sample.metadata.sourceCount, count > 0, count < fanCount {
+                help += " " + localization.format(.hardwareMonitorFanSampleCount, count)
+                accessibilityValue += "，" + localization.format(.hardwareMonitorFanSampleCount, count)
+            }
         } else if sample.availability == .unsupported && sample.metadata.isFanless {
             valueText = localization.string(.hardwareMonitorFanless)
             accessibilityValue = valueText
@@ -132,36 +101,48 @@ enum HardwareMonitorSummaryPresentation {
             metric: .fan, valueText: valueText, unitText: unitText, symbol: "fanblades",
             accessibilityLabel: localization.string(.hardwareMonitorFanAverage),
             accessibilityValue: accessibilityValue,
-            help: localization.string(.hardwareMonitorFanAverageHelp),
-            isStale: sample.availability == .stale, availability: sample.availability)
+            help: help, isStale: sample.availability == .stale, availability: sample.availability)
     }
 
     private static func diskItem(snapshot: HardwareMetricsSnapshot,
                                  localization: Localization) -> HardwareSummaryMetricPresentation {
-        let read = displayValue(snapshot.diskRead)
-        let write = displayValue(snapshot.diskWrite)
-        let stale = snapshot.diskRead.availability == .stale || snapshot.diskWrite.availability == .stale
+        let readSample = snapshot.diskRead
+        let writeSample = snapshot.diskWrite
+        let read = displayValue(readSample)
+        let write = displayValue(writeSample)
+        let readLabel = localization.string(.hardwareMonitorDiskRead)
+        let writeLabel = localization.string(.hardwareMonitorDiskWrite)
+        let totalLabel = localization.string(.hardwareMonitorDiskTotal)
+        let sameCycle = read != nil && write != nil
+            && readSample.availability == writeSample.availability
+            && readSample.sampledAt == writeSample.sampledAt
         var valueText = dash
         var unitText = ""
-        var accessibilityValue = reasonText(snapshot.diskRead, localization: localization)
-        if read != nil || write != nil {
-            let unit = scale(for: max(read ?? 0, write ?? 0))
-            let readText = read.map { number($0 / unit.divisor) } ?? dash
-            let writeText = write.map { number($0 / unit.divisor) } ?? dash
-            valueText = "\(readText)/\(writeText)"
-            unitText = localization.string(unit.key)
-            let readFull = read.map { "\(number($0 / unit.divisor)) \(unitText)" } ?? dash
-            let writeFull = write.map { "\(number($0 / unit.divisor)) \(unitText)" } ?? dash
-            let readLabel = localization.string(.hardwareMonitorDiskRead)
-            let writeLabel = localization.string(.hardwareMonitorDiskWrite)
-            accessibilityValue = "\(readLabel) \(readFull), \(writeLabel) \(writeFull)"
+        var accessibilityValue: String
+        var help: String
+        var isStale = false
+        if sameCycle, let read, let write,
+           let total = ByteRateFormatter.format(bytesPerSecond: read + write) {
+            let readText = ByteRateFormatter.text(bytesPerSecond: read) ?? dash
+            let writeText = ByteRateFormatter.text(bytesPerSecond: write) ?? dash
+            valueText = total.valueText
+            unitText = total.unitText
+            help = "\(readLabel) \(readText) · \(writeLabel) \(writeText)"
+            accessibilityValue =
+                "\(readLabel) \(readText)，\(writeLabel) \(writeText)，\(totalLabel) \(total.combined)"
+            isStale = readSample.availability == .stale
+        } else {
+            let readText = read.map { ByteRateFormatter.text(bytesPerSecond: $0) ?? dash } ?? dash
+            let writeText = write.map { ByteRateFormatter.text(bytesPerSecond: $0) ?? dash } ?? dash
+            help = "\(readLabel) \(readText) · \(writeLabel) \(writeText)"
+            let reasonSample = read != nil ? writeSample : readSample
+            accessibilityValue = "\(totalLabel) —，\(reasonText(reasonSample, localization: localization))"
+            isStale = false
         }
         return HardwareSummaryMetricPresentation(
             metric: .disk, valueText: valueText, unitText: unitText, symbol: "internaldrive",
             accessibilityLabel: localization.string(.hardwareMonitorDisk),
-            accessibilityValue: accessibilityValue,
-            help: localization.string(.hardwareMonitorDiskHelp),
-            isStale: stale,
-            availability: snapshot.diskRead.availability)
+            accessibilityValue: accessibilityValue, help: help, isStale: isStale,
+            availability: readSample.availability)
     }
 }

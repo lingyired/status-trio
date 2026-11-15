@@ -28,6 +28,46 @@ final class NetworkThroughputTests: XCTestCase {
         XCTAssertNil(NetworkThroughputReader.rates(previous: p, previousAt: base, current: c, currentAt: base.addingTimeInterval(1)))
     }
 
+
+    func testPerInterfaceRateAggregatesWhenSetUnchanged() throws {
+        let previous: [String: InterfaceByteTotals] = [
+            "en0": InterfaceByteTotals(received: 1_000_000, sent: 200_000),
+            "en1": InterfaceByteTotals(received: 500_000, sent: 100_000),
+        ]
+        let current: [String: InterfaceByteTotals] = [
+            "en0": InterfaceByteTotals(received: 3_000_000, sent: 600_000),
+            "en1": InterfaceByteTotals(received: 1_500_000, sent: 300_000),
+        ]
+        let reading = try XCTUnwrap(NetworkThroughputReader.rates(
+            previous: previous, previousAt: base, current: current, currentAt: base.addingTimeInterval(2)))
+        XCTAssertEqual(reading.downloadBytesPerSecond, 1_500_000, accuracy: 1)
+        XCTAssertEqual(reading.uploadBytesPerSecond, 300_000, accuracy: 1)
+    }
+
+    func testPerInterfaceRateRejectsInterfaceSetChange() {
+        let previous: [String: InterfaceByteTotals] = ["en0": InterfaceByteTotals(received: 0, sent: 0)]
+        let added: [String: InterfaceByteTotals] = [
+            "en0": InterfaceByteTotals(received: 1_000_000, sent: 1_000_000),
+            "en1": InterfaceByteTotals(received: 9_000_000, sent: 9_000_000),
+        ]
+        // A newly appeared interface must not fabricate a spike.
+        XCTAssertNil(NetworkThroughputReader.rates(previous: previous, previousAt: base, current: added, currentAt: base.addingTimeInterval(1)))
+        // Removing one is also a topology change until the baseline is rebuilt.
+        XCTAssertNil(NetworkThroughputReader.rates(previous: added, previousAt: base, current: previous, currentAt: base.addingTimeInterval(1)))
+    }
+
+    func testPerInterfaceRateRejectsAnyCounterBackwards() {
+        let previous: [String: InterfaceByteTotals] = [
+            "en0": InterfaceByteTotals(received: 5_000_000, sent: 5_000_000),
+            "en1": InterfaceByteTotals(received: 5_000_000, sent: 5_000_000),
+        ]
+        let current: [String: InterfaceByteTotals] = [
+            "en0": InterfaceByteTotals(received: 6_000_000, sent: 6_000_000),
+            "en1": InterfaceByteTotals(received: 10, sent: 6_000_000),
+        ]
+        XCTAssertNil(NetworkThroughputReader.rates(previous: previous, previousAt: base, current: current, currentAt: base.addingTimeInterval(1)))
+    }
+
     func testFormatterSwitchesBetweenKBAndMB() {
         XCTAssertEqual(NetworkSpeedFormatter.display(bytesPerSecond: 456_000), "456 KB/s")
         XCTAssertEqual(NetworkSpeedFormatter.display(bytesPerSecond: 12_500_000), "12.5 MB/s")

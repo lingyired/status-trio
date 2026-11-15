@@ -1187,6 +1187,8 @@
 "hardware.monitor.disk.read" = "讀取";
 "hardware.monitor.disk.write" = "寫入";
 "hardware.monitor.disk.help" = "所有實體磁碟的讀取與寫入總吞吐。";
+"hardware.monitor.disk.total" = "合計";
+"hardware.monitor.fan.sampleCount" = "依 %d 個感測器";
 "hardware.monitor.download.help" = "所有實體網路介面的下載總吞吐。";
 "hardware.monitor.upload.help" = "所有實體網路介面的上傳總吞吐。";
 

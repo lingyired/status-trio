@@ -1187,6 +1187,8 @@
 "hardware.monitor.disk.read" = "Lecture";
 "hardware.monitor.disk.write" = "Écriture";
 "hardware.monitor.disk.help" = "Débit total de lecture et d’écriture des disques physiques.";
+"hardware.monitor.disk.total" = "Total";
+"hardware.monitor.fan.sampleCount" = "Sur %d capteurs";
 "hardware.monitor.download.help" = "Débit de téléchargement total sur les interfaces réseau physiques.";
 "hardware.monitor.upload.help" = "Débit d’envoi total sur les interfaces réseau physiques.";
 

@@ -22,10 +22,17 @@ final class HardwareMonitorObservable: ObservableObject {
     /// Snapshot for the status-panel summary: fills any missing/valued-less
     /// summary metric from the retained last reading (marked stale/dimmed), so a
     /// reopened panel shows the previous values until a fresh sample lands.
-    var summarySnapshot: HardwareMetricsSnapshot {
+    var summarySnapshot: HardwareMetricsSnapshot { summarySnapshot(at: Date()) }
+
+    /// Fills missing summary values from the retained last reading, but only
+    /// while that reading is within `cacheLifetime`; older caches are dropped so
+    /// a long-closed panel does not show an ancient number as if current.
+    func summarySnapshot(at now: Date) -> HardwareMetricsSnapshot {
         var copy = stored
         for id in HardwareMetricsService.hardwareSummaryMetricIDs {
             if copy.samples[id]?.value == nil, let known = lastKnown[id] {
+                let age = now.timeIntervalSince(known.sampledAt)
+                guard age >= -5, age <= HardwareMetricSample.cacheLifetime else { continue }
                 var cached = known
                 cached.availability = .stale
                 copy.samples[id] = cached
