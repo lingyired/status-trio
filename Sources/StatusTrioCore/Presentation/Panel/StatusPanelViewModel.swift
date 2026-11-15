@@ -1,3 +1,4 @@
+import AppKit
 import Combine
 import Foundation
 
@@ -121,6 +122,10 @@ final class StatusPanelViewModel: ObservableObject {
     @Published private(set) var visiblePopupSections: [PopupSection]
     @Published private(set) var route: StatusPanelRoute = .summary
     @Published private(set) var wifiDisclosure = WiFiPanelDisclosureState()
+    /// The panel background actually drawn, after Reduce Transparency collapses
+    /// it to `.solid`. The SwiftUI card layer reads this to pick the matching
+    /// card surface instead of guessing from `ColorScheme`.
+    @Published private(set) var effectivePanelBackgroundStyle: PanelBackgroundStyle
 
     /// The summary sections actually rendered. The brightness section is
     /// dropped when every display is hidden, so a fully hidden list leaves no
@@ -280,6 +285,10 @@ final class StatusPanelViewModel: ObservableObject {
             localization: localization
         )
         wiredDetails = PanelDetailMapper.wired(details: store.primaryLink.details, localization: localization)
+        effectivePanelBackgroundStyle = PanelBackgroundStyle.renderStyle(
+            for: settings.panelBackgroundStyle,
+            reduceTransparency: NSWorkspace.shared.accessibilityDisplayShouldReduceTransparency
+        )
         refreshAll()
     }
 
@@ -293,6 +302,7 @@ final class StatusPanelViewModel: ObservableObject {
         if visiblePopupSections != sections { visiblePopupSections = sections }
         subscribeToPopupPresentationSources()
         subscribeToChargeToFullNow()
+        subscribeToEffectivePanelBackgroundStyle()
         reconcileSourceSubscriptions()
         refreshAll()
         updatePowerSamplingDemand()
@@ -364,6 +374,32 @@ final class StatusPanelViewModel: ObservableObject {
             .dropFirst()
             .sink { [weak self] _ in self?.coalesceControllerUpdate(.all) }
             .store(in: &cancellables)
+    }
+
+    /// Keeps the SwiftUI card surface in sync with the rendered panel background
+    /// while the panel is open: a settings change and a Reduce Transparency
+    /// toggle both recompute the effective style. This mirrors the AppKit layer's
+    /// own calculation so the content and the window never disagree.
+    private func subscribeToEffectivePanelBackgroundStyle() {
+        settings.$panelBackgroundStyle
+            .removeDuplicates()
+            .sink { [weak self] _ in self?.refreshEffectivePanelBackgroundStyle() }
+            .store(in: &cancellables)
+        NSWorkspace.shared.notificationCenter
+            .publisher(for: NSWorkspace.accessibilityDisplayOptionsDidChangeNotification)
+            .receive(on: RunLoop.main)
+            .sink { [weak self] _ in self?.refreshEffectivePanelBackgroundStyle() }
+            .store(in: &cancellables)
+    }
+
+    private func refreshEffectivePanelBackgroundStyle() {
+        let next = PanelBackgroundStyle.renderStyle(
+            for: settings.panelBackgroundStyle,
+            reduceTransparency: NSWorkspace.shared.accessibilityDisplayShouldReduceTransparency
+        )
+        if next != effectivePanelBackgroundStyle {
+            effectivePanelBackgroundStyle = next
+        }
     }
 
     func stop() {

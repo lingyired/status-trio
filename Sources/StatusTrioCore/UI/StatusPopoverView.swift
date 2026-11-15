@@ -58,6 +58,7 @@ struct StatusPopoverView: View {
                 pinnedFooter
             }
         }
+        .environment(\.panelCardSurfaceStyle, PanelCardSurfaceStyle.resolve(panel.effectivePanelBackgroundStyle))
         .frame(width: 330)
     }
 
