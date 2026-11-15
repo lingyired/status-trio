@@ -240,25 +240,45 @@ private struct UnifiedCountdownControl: View {
     private var progressBackground: some View {
         GeometryReader { geometry in
             ZStack(alignment: .leading) {
-                Color.primary.opacity(0.06)
+                baseLayer
                 progressColor
                     .frame(width: geometry.size.width * clampedProgress)
             }
         }
     }
 
-    /// The role gives the countdown its colour: bright gold for "keep the
-    /// screen lit", the system blue for "keep the Mac awake with the lid
-    /// closed". The colour names the function, not merely that it is on. The
-    /// opacities are the tuned baseline for a glass capsule; the same semantic
-    /// colour still reads on the material and solid surfaces because the capsule
-    /// supplies its own background.
+    /// The capsule's resting surface for the current panel style. Solid gets an
+    /// opaque, appearance-adaptive base so it never reads as glass; glass and
+    /// material keep a faint neutral wash so the panel still shows through.
+    @ViewBuilder
+    private var baseLayer: some View {
+        switch cardStyle {
+        case .glass:
+            Color.primary.opacity(0.06)
+        case .material:
+            Color.primary.opacity(0.08)
+        case .solid:
+            PanelCardSurfaceStyle.solidBase(scheme: colorScheme)
+        }
+    }
+
+    /// Progress fill by role *and* panel style: the colour names the function
+    /// (gold = keep screen, blue = keep lid-sleep off), while the opacity adapts
+    /// so a coloured block does not overpower a frosted or solid capsule.
     private var progressColor: Color {
-        switch role {
-        case .displayAwake:
+        switch (role, cardStyle) {
+        case (.displayAwake, .glass):
             return srgb(0xFFBE45).opacity(colorScheme == .dark ? 0.42 : 0.37)
-        case .lidAwake:
+        case (.lidAwake, .glass):
             return Color.blue.opacity(colorScheme == .dark ? 0.62 : 0.30)
+        case (.displayAwake, .material):
+            return srgb(0xFFBE45).opacity(colorScheme == .dark ? 0.34 : 0.30)
+        case (.lidAwake, .material):
+            return Color.blue.opacity(colorScheme == .dark ? 0.50 : 0.26)
+        case (.displayAwake, .solid):
+            return srgb(0xFFBE45).opacity(colorScheme == .dark ? 0.55 : 0.60)
+        case (.lidAwake, .solid):
+            return Color.blue.opacity(colorScheme == .dark ? 0.55 : 0.55)
         }
     }
 
