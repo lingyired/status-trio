@@ -66,38 +66,37 @@ struct AirPodsSpatialConversationView: View {
     @ObservedObject var model: AirPodsSystemControlsModel
     @EnvironmentObject private var localization: Localization
 
-    private var showSpatial: Bool {
-        model.snapshot.supportsSpatial != false
-            && (!model.snapshot.spatialLoaded || !model.snapshot.spatial.isEmpty)
+    /// A supported model keeps its group visible even when no options can be
+    /// read (no active media client, or a failed HAL read). The group then shows
+    /// the disabled "unavailable" placeholder instead of disappearing, matching
+    /// both the native Sound menu and the original direct-control design.
+    static func showsSpatial(_ snapshot: AirPodsSystemSnapshot) -> Bool {
+        snapshot.supportsSpatial != false
     }
 
-    private var showConversation: Bool {
-        model.snapshot.supportsConversation != false
-            && (!model.snapshot.conversationLoaded || !model.snapshot.conversation.isEmpty)
+    static func showsConversation(_ snapshot: AirPodsSystemSnapshot) -> Bool {
+        snapshot.supportsConversation != false
     }
 
-    private var isLoading: Bool {
-        let spatialPending = showSpatial && !model.snapshot.spatialLoaded
-        let conversationPending = showConversation && !model.snapshot.conversationLoaded
-        return spatialPending || conversationPending
-    }
+    private var showSpatial: Bool { Self.showsSpatial(model.snapshot) }
+
+    private var showConversation: Bool { Self.showsConversation(model.snapshot) }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
-            if isLoading && model.snapshot.spatial.isEmpty && model.snapshot.conversation.isEmpty {
-                ProgressView().controlSize(.mini)
-                    .accessibilityLabel(localization.string(.batteryDetailsLoading))
-            } else {
-                ViewThatFits(in: .horizontal) {
-                    HStack(alignment: .center, spacing: 12) {
-                        group(.spatial, visible: showSpatial, options: model.snapshot.spatial, fixed: true)
-                        if showSpatial && showConversation { Spacer(minLength: 8) }
-                        group(.conversation, visible: showConversation, options: model.snapshot.conversation, fixed: true)
-                    }
-                    VStack(alignment: .leading, spacing: 6) {
-                        group(.spatial, visible: showSpatial, options: model.snapshot.spatial, fixed: true)
-                        group(.conversation, visible: showConversation, options: model.snapshot.conversation, fixed: true)
-                    }
+            ViewThatFits(in: .horizontal) {
+                HStack(alignment: .center, spacing: 12) {
+                    group(.spatial, visible: showSpatial, options: model.snapshot.spatial,
+                          loaded: model.snapshot.spatialLoaded, fixed: true)
+                    if showSpatial && showConversation { Spacer(minLength: 8) }
+                    group(.conversation, visible: showConversation, options: model.snapshot.conversation,
+                          loaded: model.snapshot.conversationLoaded, fixed: true)
+                }
+                VStack(alignment: .leading, spacing: 6) {
+                    group(.spatial, visible: showSpatial, options: model.snapshot.spatial,
+                          loaded: model.snapshot.spatialLoaded, fixed: true)
+                    group(.conversation, visible: showConversation, options: model.snapshot.conversation,
+                          loaded: model.snapshot.conversationLoaded, fixed: true)
                 }
             }
             if let key = model.errorKey {
@@ -123,6 +122,7 @@ struct AirPodsSpatialConversationView: View {
         _ group: AirPodsSystemControls.Group,
         visible: Bool,
         options: [AirPodsSystemOption],
+        loaded: Bool,
         fixed: Bool
     ) -> some View {
         if visible {
@@ -130,22 +130,116 @@ struct AirPodsSpatialConversationView: View {
                 Text(localization.string(group == .spatial ? .airPodsSpatial : .airPodsConversation))
                     .font(.caption2.weight(.semibold))
                     .foregroundStyle(.secondary)
-                if options.isEmpty {
-                    Text(localization.string(.airPodsNotAvailable))
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .fixedSize(horizontal: true, vertical: false)
-                } else {
-                    AirPodsOptionCapsuleGroup(
-                        options: options,
-                        disabled: group == .spatial ? model.spatialDisabled : (model.busy || model.spatialWriting)
-                    ) { option in
-                        if !option.selected { model.select(option.title, group: group) }
+                // Reserve the width of the full option set even while showing
+                // the loading or "unavailable" stand-in. `ViewThatFits` must
+                // choose one row or two from the widest real content, or the
+                // layout jumps rows the moment playback makes options readable.
+                ZStack(alignment: .leading) {
+                    referenceCapsuleRow(for: group)
+                        .hidden()
+                        .accessibilityHidden(true)
+                        .allowsHitTesting(false)
+                    if options.isEmpty {
+                        if loaded {
+                            unavailableCapsule(for: group)
+                        } else {
+                            ProgressView().controlSize(.mini)
+                                .frame(height: AirPodsControlMetrics.capsuleHeight)
+                                .accessibilityLabel(localization.string(.batteryDetailsLoading))
+                        }
+                    } else {
+                        AirPodsOptionCapsuleGroup(
+                            options: options,
+                            disabled: group == .spatial ? model.spatialDisabled : (model.busy || model.spatialWriting)
+                        ) { option in
+                            if !option.selected { model.select(option.title, group: group) }
+                        }
+                        .fixedSize(horizontal: fixed, vertical: false)
                     }
-                    .fixedSize(horizontal: fixed, vertical: false)
                 }
             }
             .fixedSize(horizontal: fixed, vertical: false)
         }
+    }
+
+    /// The canonical full option set a group can ever show. Its measured width
+    /// is what the one-row/two-row decision must use, independent of the current
+    /// read state. Titles and symbols mirror `spatialOptions()` /
+    /// `conversationOptions()` so the reserved width matches the real capsules.
+    private func canonicalOptions(for group: AirPodsSystemControls.Group) -> [AirPodsSystemOption] {
+        switch group {
+        case .spatial:
+            return [
+                AirPodsSystemOption(title: localization.string(.bluetoothListeningModeOff),
+                                    selected: false, symbol: "person.spatialaudio.stereo.fill", dimWaves: true),
+                AirPodsSystemOption(title: localization.string(.airPodsSpatialFixed),
+                                    selected: false, symbol: "person.spatialaudio.stereo.fill"),
+                AirPodsSystemOption(title: localization.string(.airPodsSpatialHeadTracked),
+                                    selected: false, symbol: "spatialize-stereo-head-tracked")
+            ]
+        case .conversation:
+            return [
+                AirPodsSystemOption(title: localization.string(.bluetoothListeningModeOff),
+                                    selected: false, symbol: "person.wave.2.fill", dimWaves: true),
+                AirPodsSystemOption(title: localization.string(.batteryDetailsOn),
+                                    selected: true, symbol: "person.wave.2.fill")
+            ]
+        }
+    }
+
+    /// Non-interactive twin of `AirPodsOptionCapsuleGroup`, used only to hold
+    /// layout width. It must not be a Button: a hidden Button would still
+    /// generate focus targets and make the stand-in look clickable to tests.
+    private func referenceCapsuleRow(for group: AirPodsSystemControls.Group) -> some View {
+        HStack(spacing: 6) {
+            ForEach(canonicalOptions(for: group)) { option in
+                HStack(spacing: 3) {
+                    if let symbol = option.symbol {
+                        Image(nsImage: AirPodsControlSymbols.image(symbol))
+                            .renderingMode(.template)
+                            .resizable()
+                            .scaledToFit()
+                            .frame(width: 13, height: 13)
+                    }
+                    Text(option.title)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.7)
+                        .allowsTightening(true)
+                }
+                .font(.caption)
+                .padding(.horizontal, 8)
+                .padding(.vertical, 3)
+                .frame(height: AirPodsControlMetrics.capsuleHeight)
+                .background(Capsule().fill(Color.secondary.opacity(0.10)))
+            }
+        }
+    }
+
+    /// The "unavailable" stand-in an unsupported read leaves behind: a single
+    /// disabled capsule in the same shape as a real option, never a Button, so
+    /// it cannot be activated. This is what keeps a supported model's group
+    /// visible (as "not available") when no media client is playing.
+    private func unavailableCapsule(for group: AirPodsSystemControls.Group) -> some View {
+        let symbol = group == .spatial ? "person.spatialaudio.stereo.fill" : "person.wave.2.fill"
+        return HStack(spacing: 3) {
+            Image(nsImage: AirPodsControlSymbols.image(symbol))
+                .renderingMode(.template)
+                .resizable()
+                .scaledToFit()
+                .frame(width: 13, height: 13)
+                .accessibilityHidden(true)
+            Text(localization.string(.airPodsNotAvailable))
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
+                .allowsTightening(true)
+        }
+        .font(.caption)
+        .padding(.horizontal, 8)
+        .padding(.vertical, 3)
+        .frame(height: AirPodsControlMetrics.capsuleHeight)
+        .background(Capsule().fill(Color.secondary.opacity(0.10)))
+        .foregroundStyle(.secondary)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(localization.string(.airPodsNotAvailable))
     }
 }

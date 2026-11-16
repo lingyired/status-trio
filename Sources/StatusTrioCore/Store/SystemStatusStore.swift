@@ -263,6 +263,10 @@ final class SystemStatusStore: ObservableObject {
     /// Any later publication supersedes the target, even if a confirmation was
     /// coalesced away by the update stream.
     private var pendingBrightnessSequences: [String: UInt64] = [:]
+    /// Displays whose brightness is currently owned by an active pointer gesture
+    /// (slider drag/wheel). While active, a stale read-back must not move the
+    /// target; the pointer's value wins until the gesture ends.
+    private var brightnessGestureDisplayIDs: Set<String> = []
     /// Optimistic input gain while the input monitor confirms the write.
     private var pendingInputScalar: Double?
     private var pendingInputDeviceID: AudioDeviceID?
@@ -271,6 +275,11 @@ final class SystemStatusStore: ObservableObject {
     @Published private(set) var isPopoverVisible = false
     private(set) var popoverOpenGeneration: UInt64 = 0
     @Published private(set) var trustedAppleDeviceCandidates: [AppleDeviceCandidate] = []
+    /// Which Apple identities the last completed discovery actually returned.
+    /// `nil` means no cycle has completed, so an empty list is not proof of
+    /// absence. Used only to bound the display projection, never to delete the
+    /// stored metadata.
+    @Published private(set) var appleDeviceLastSuccessfulIDs: Set<AppleDeviceID>?
     @Published private(set) var trustedAppleDeviceDiscoveryGeneration: UInt64 = 0
     /// True while the display is asleep. The fallback poll skips its work then,
     /// because no menu bar or Dock tile is on screen to keep fresh.
@@ -709,6 +718,9 @@ final class SystemStatusStore: ObservableObject {
         connectionMonitor?.stop()
         volumeMonitor.stop()
         brightnessMonitor.stop()
+        pendingBrightnessScalars.removeAll()
+        pendingBrightnessSequences.removeAll()
+        brightnessGestureDisplayIDs.removeAll()
         monitorTasks.forEach { $0.cancel() }
         monitorTasks.removeAll()
         refreshTask?.cancel()
@@ -1404,6 +1416,7 @@ final class SystemStatusStore: ObservableObject {
             // instead of the display's actual brightness.
             pendingBrightnessScalars.removeAll()
             pendingBrightnessSequences.removeAll()
+            brightnessGestureDisplayIDs.removeAll()
         }
     }
 
@@ -1498,10 +1511,14 @@ final class SystemStatusStore: ObservableObject {
                 self?.mobileBattery.setReadingEnabled(enabled)
             }
         appleDeviceSettingsCancellable = settings.$showsAppleDevicesAndBattery
-            .combineLatest(appleDeviceDiscovery.$candidates)
-            .sink { [weak self, weak settings] enabled, candidates in
+            .combineLatest(
+                appleDeviceDiscovery.$candidates,
+                appleDeviceDiscovery.$lastSuccessfulCandidateIDs
+            )
+            .sink { [weak self, weak settings] enabled, candidates, lastSuccessfulIDs in
                 self?.trustedAppleDeviceCandidates = candidates
                 self?.trustedAppleDeviceDiscoveryGeneration = self?.appleDeviceDiscovery.discoveryGeneration ?? 0
+                self?.appleDeviceLastSuccessfulIDs = lastSuccessfulIDs
                 guard enabled else { return }
                 settings?.updateTrustedAppleDeviceMetadata(candidates)
             }
@@ -1548,6 +1565,7 @@ final class SystemStatusStore: ObservableObject {
         self.boundAppleRefreshSettings = settings
         trustedAppleDeviceCandidates = appleDeviceDiscovery.candidates
         trustedAppleDeviceDiscoveryGeneration = appleDeviceDiscovery.discoveryGeneration
+        appleDeviceLastSuccessfulIDs = appleDeviceDiscovery.lastSuccessfulCandidateIDs
         updateAppleRefreshDemand()
     }
 
@@ -1728,8 +1746,12 @@ final class SystemStatusStore: ObservableObject {
             revealedGhostDeviceAddresses: options.revealedGhostDeviceAddresses
         )
         let trustedRows = AppleDeviceCatalog.projection(
-            candidates: AppleDeviceCatalog.candidates(
-                trusted: settings.trustedAppleDeviceMetadata + trustedAppleDeviceCandidates
+            candidates: AppleDeviceCatalog.currentCandidates(
+                history: settings.trustedAppleDeviceMetadata,
+                discovered: trustedAppleDeviceCandidates,
+                lastSuccessfulIDs: appleDeviceLastSuccessfulIDs,
+                trustedSnapshots: mobileBattery.snapshots,
+                now: Date()
             ),
             trustedSnapshots: mobileBattery.snapshots,
             options: unhiddenOptions
@@ -1921,6 +1943,22 @@ final class SystemStatusStore: ObservableObject {
         for index in displays.indices {
             let display = displays[index]
             guard let pending = pendingBrightnessScalars[display.id] else { continue }
+            // While the pointer owns this display, a read-back (even one that
+            // arrives with a higher sequence) must not move the slider. Keep
+            // showing the pending target as adjustable; do not drop it.
+            if brightnessGestureDisplayIDs.contains(display.id) {
+                displays[index] = DisplayBrightness(
+                    id: display.id,
+                    name: display.name,
+                    isBuiltin: display.isBuiltin,
+                    scalar: pending,
+                    canAdjust: true,
+                    backend: display.backend,
+                    source: display.source,
+                    readSequence: display.readSequence
+                )
+                continue
+            }
             // A publication made after this write began is authoritative, even
             // if the write's own confirmation was coalesced out of the stream.
             // Only readings already queued before the target was set are kept
@@ -1955,6 +1993,7 @@ final class SystemStatusStore: ObservableObject {
     func setBrightness(_ scalar: Double, forDisplayID displayID: String) {
         guard !hasStopped, scalar.isFinite, !displayID.isEmpty else { return }
         let clamped = min(1, max(0, scalar))
+        let previousTarget = pendingBrightnessScalars[displayID]
         pendingBrightnessScalars[displayID] = clamped
         pendingBrightnessSequences[displayID] = brightnessMonitor.latestUpdateSequence(forDisplayID: displayID)
         // Publish the target immediately so the panel follows the wheel/drag
@@ -1968,11 +2007,26 @@ final class SystemStatusStore: ObservableObject {
             )
             publish(snapshot.replacingBrightness(liveBrightness), immediately: true)
         }
+        // A pointer held at an edge keeps asking for the same scalar during a
+        // gesture. Repeat writes of the identical target update the optimistic
+        // value as usual but skip the redundant hardware write. Scoped to an
+        // active gesture so a later legitimate rewrite to the same 0/1 value
+        // (wheel, external change, re-seeking the edge) is never swallowed.
+        if brightnessGestureDisplayIDs.contains(displayID),
+           let previousTarget, abs(previousTarget - clamped) <= 1e-6 {
+            return
+        }
         brightnessMonitor.setBrightness(clamped, forDisplayID: displayID)
+    }
+
+    func beginBrightnessAdjustment(displayID: String) {
+        guard !hasStopped, !displayID.isEmpty else { return }
+        brightnessGestureDisplayIDs.insert(displayID)
     }
 
     func finishBrightnessAdjustment(displayID: String) {
         guard !hasStopped, !displayID.isEmpty else { return }
+        brightnessGestureDisplayIDs.remove(displayID)
         brightnessMonitor.finishBrightnessAdjustment(displayID: displayID)
     }
 

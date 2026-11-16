@@ -8,6 +8,7 @@
 "menu.window" = "윈도우";
 "menu.closeWindow" = "윈도우 닫기";
 "menu.checkForUpdates" = "업데이트 확인…";
+"menu.checkViaGitee" = "Gitee로 업데이트 확인…";
 "menu.openMenuBarSettings" = "메뉴 막대 설정 열기";
 "settings.title" = "설정";
 "settings.page.appearance" = "모양";
@@ -256,6 +257,9 @@
 "settings.updates.title" = "업데이트";
 "settings.updates.automatic" = "자동으로 업데이트 확인";
 "settings.updates.check" = "업데이트 확인…";
+"settings.updates.checkViaGitee" = "Gitee로 확인";
+"settings.updates.giteeLaggingTitle" = "Gitee 미러가 GitHub보다 오래되었을 수 있습니다";
+"settings.updates.giteeLaggingMessage" = "Gitee에서 이 버전의 업데이트를 제공하지 않습니다. 최신 릴리스가 아직 동기화되지 않았을 수 있습니다. “업데이트 확인”으로 GitHub에서 받으세요.";
 "battery.title" = "배터리 · %d%%";
 "battery.title.power" = "전력 · %d W";
 "battery.title.powerUnavailable" = "전력 · 사용할 수 없음";
@@ -939,3 +943,9 @@
 "settings.transfer.error.fileAccess" = "파일을 읽거나 저장할 수 없습니다. 파일 위치와 권한을 확인하세요.";
 "settings.transfer.done" = "완료";
 "settings.transfer.warningCount" = "총 경고 수: %d(처음 50개까지 표시).";
+
+"settings.popup.scrollWheelStep" = "휠 조절 간격";
+"settings.popup.scrollWheelStep.description" = "휠 한 칸당 음량, 밝기, 마이크 조절량입니다. 트랙패드는 연속 조절을 유지합니다.";
+"updates.failure.title" = "업데이트 실패";
+"updates.failure.message" = "자동 업데이트를 완료하지 못했습니다. 공식 웹사이트에서 최신 DMG를 다운로드하여 직접 설치해 주세요.";
+"updates.failure.website" = "공식 웹사이트에서 다운로드";

@@ -8,6 +8,7 @@
 "menu.window" = "窗口";
 "menu.closeWindow" = "关闭窗口";
 "menu.checkForUpdates" = "检查更新…";
+"menu.checkViaGitee" = "通过 Gitee 更新";
 "menu.openMenuBarSettings" = "打开系统菜单栏";
 "settings.title" = "设置";
 "settings.page.appearance" = "外观";
@@ -110,9 +111,9 @@
 "settings.bluetooth.batteryLevels" = "显示蓝牙设备电量";
 "settings.bluetooth.batteryLevelsDescription" = "当状态面板显示蓝牙设备时读取 AirPods 电量，不会额外请求权限。";
 "settings.bluetooth.listeningModeTitle" = "显示聆听模式控制";
-"settings.bluetooth.listeningModeDescription" = "支持 AirPods 和部分华为耳机：在已连接的设备上显示降噪/透传/关闭胶囊。华为仅部分型号支持，切换失败时会恢复原模式。";
+"settings.bluetooth.listeningModeDescription" = "支持 AirPods、华为 FreeBuds、红米/小米与 OPPO/一加/realme（Enco 系）耳机：在已连接的设备上显示降噪/透传/关闭胶囊。第三方耳机仅部分型号支持，切换失败时会恢复原模式。";
 "settings.bluetooth.listeningModePreview" = "聆听模式预览（仅测试）";
-"settings.bluetooth.listeningModePreviewDescription" = "预览仅注入合成行用于界面测试，切换预览行不会更改耳机。真实设备行（含华为）仍按设备实际支持工作：华为仅部分型号支持，切换失败时会恢复原模式。";
+"settings.bluetooth.listeningModePreviewDescription" = "预览仅注入合成行用于界面测试，切换预览行不会更改耳机。真实设备行（含华为、红米/小米、OPPO）仍按设备实际支持工作：第三方耳机仅部分型号支持，切换失败时会恢复原模式。";
 "settings.bluetooth.listeningModePreviewOptions" = "预览参数";
 "settings.bluetooth.listeningModePreviewDeviceName" = "预览设备名";
 "settings.bluetooth.listeningModePreviewDeviceNameDescription" = "预览行显示的名字。留空走默认；填一个超长的可以测截断。";
@@ -256,6 +257,9 @@
 "settings.updates.title" = "更新";
 "settings.updates.automatic" = "自动检查更新";
 "settings.updates.check" = "检查更新…";
+"settings.updates.checkViaGitee" = "通过 Gitee 更新";
+"settings.updates.giteeLaggingTitle" = "Gitee 镜像版本可能滞后";
+"settings.updates.giteeLaggingMessage" = "Gitee 未提供此版本的更新，可能尚未同步最新发布。可使用“检查更新”从 GitHub 获取。";
 "battery.title" = "电池 · %d%%";
 "battery.title.power" = "功耗 · %d W";
 "battery.title.powerUnavailable" = "功耗 · 暂不可用";
@@ -939,3 +943,9 @@
 "settings.transfer.error.fileAccess" = "无法读取或保存文件。请检查文件位置和权限。";
 "settings.transfer.done" = "完成";
 "settings.transfer.warningCount" = "警告总数：%d（最多显示前 50 条）";
+
+"settings.popup.scrollWheelStep" = "滚轮调节步长";
+"settings.popup.scrollWheelStep.description" = "每格调节音量、亮度和麦克风的幅度。触控板保持连续调节。";
+"updates.failure.title" = "更新失败";
+"updates.failure.message" = "无法自动更新，请前往官网下载最新 DMG 并手动安装。也可使用官网提供的网盘下载方式。";
+"updates.failure.website" = "官网下载";

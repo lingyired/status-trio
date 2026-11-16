@@ -58,7 +58,7 @@ struct BluetoothDeviceRow: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 2) {
             deviceRow
-            if device.isHuaweiAudio || device.isRedmiAudio,
+            if device.isHuaweiAudio || device.isRedmiAudio || device.isOppoAudio,
                let listeningMode, listeningMode.isControllable {
                 BluetoothListeningModeControl(
                     presentation: listeningMode,

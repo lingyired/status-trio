@@ -8,6 +8,7 @@
 "menu.window" = "Fenster";
 "menu.closeWindow" = "Fenster schließen";
 "menu.checkForUpdates" = "Nach Updates suchen…";
+"menu.checkViaGitee" = "Über Gitee nach Updates suchen…";
 "menu.openMenuBarSettings" = "Menüleisten-Einstellungen öffnen";
 "settings.title" = "Einstellungen";
 "settings.page.appearance" = "Erscheinungsbild";
@@ -256,6 +257,9 @@
 "settings.updates.title" = "Updates";
 "settings.updates.automatic" = "Automatisch nach Updates suchen";
 "settings.updates.check" = "Nach Updates suchen…";
+"settings.updates.checkViaGitee" = "Über Gitee prüfen";
+"settings.updates.giteeLaggingTitle" = "Der Gitee-Spiegel kann hinter GitHub zurückliegen";
+"settings.updates.giteeLaggingMessage" = "Gitee meldet für diese Version kein Update. Die neueste Veröffentlichung ist möglicherweise noch nicht gespiegelt. Nutze „Nach Updates suchen“, um über GitHub zu aktualisieren.";
 "battery.title" = "Batterie · %d%%";
 "battery.title.power" = "Leistung · %d W";
 "battery.title.powerUnavailable" = "Leistung · Nicht verfügbar";
@@ -939,3 +943,9 @@
 "settings.transfer.error.fileAccess" = "Die Datei konnte nicht gelesen oder gespeichert werden. Prüfe ihren Speicherort und die Zugriffsrechte.";
 "settings.transfer.done" = "Fertig";
 "settings.transfer.warningCount" = "Warnungen insgesamt: %d (bis zu 50 werden angezeigt).";
+
+"settings.popup.scrollWheelStep" = "Schrittweite des Mausrads";
+"settings.popup.scrollWheelStep.description" = "Änderung pro Raste für Lautstärke, Helligkeit und Mikrofon. Trackpad bleibt stufenlos.";
+"updates.failure.title" = "Update fehlgeschlagen";
+"updates.failure.message" = "Das automatische Update konnte nicht abgeschlossen werden. Lade die neueste DMG von der offiziellen Website herunter und installiere sie manuell.";
+"updates.failure.website" = "Von der Website laden";

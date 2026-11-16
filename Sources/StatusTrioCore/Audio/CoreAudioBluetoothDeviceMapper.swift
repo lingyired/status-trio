@@ -71,6 +71,7 @@ enum BluetoothListeningModeEndpointMapper {
     ) -> AudioDeviceID? {
         guard connectedEligibleAirPodsCount == 1,
               controllable.count == 1,
+              controllable[0].bluetoothAddress == nil,
               controllable[0].isDefaultOutput else {
             return nil
         }
@@ -88,14 +89,9 @@ protocol CoreAudioBluetoothEndpointProviding: Sendable {
 
 /// The production endpoint provider.
 ///
-/// It enumerates the CoreAudio output devices, builds each device's capability
-/// through the runtime-gated HAL, and marks the current default output. It resolves
-/// no Bluetooth address: no public CoreAudio property carries the peer MAC, and the
-/// plan forbids inventing one from the device name. With the address left `nil`,
-/// resolution uses §6's conservative single-device fallback — which means the
-/// control surfaces only for the AirPods that are the current default output,
-/// exactly the limitation §3.3 Case A accepts. A follow-up may add a trusted
-/// IOBluetooth address resolver here without changing the mapper's rules.
+/// Enumerates output capabilities and reads exact Bluetooth address UIDs from
+/// HAL. Unrecognized UID formats carry no identity evidence and retain the
+/// conservative single-device fallback. Device names are never matched.
 struct CoreAudioBluetoothListeningModeEndpointProvider: CoreAudioBluetoothEndpointProviding {
     init() {}
 
@@ -109,9 +105,22 @@ struct CoreAudioBluetoothListeningModeEndpointProvider: CoreAudioBluetoothEndpoi
                 audioDeviceID: deviceID,
                 capability: capability,
                 isDefaultOutput: deviceID == defaultID,
-                bluetoothAddress: nil
+                bluetoothAddress: bluetoothAddress(for: deviceID)
             )
         }
+    }
+
+    private func bluetoothAddress(for deviceID: AudioDeviceID) -> String? {
+        var property = AudioObjectPropertyAddress(
+            mSelector: kAudioDevicePropertyDeviceUID,
+            mScope: kAudioObjectPropertyScopeGlobal,
+            mElement: kAudioObjectPropertyElementMain
+        )
+        var uid: CFString?
+        var size = UInt32(MemoryLayout<CFString?>.size)
+        guard AudioObjectGetPropertyData(deviceID, &property, 0, nil, &size, &uid) == noErr,
+              let uid else { return nil }
+        return HuaweiAudioEndpointMatcher.bluetoothAddress(in: uid as String)
     }
 
     private static func outputDeviceIDs() -> [AudioDeviceID] {

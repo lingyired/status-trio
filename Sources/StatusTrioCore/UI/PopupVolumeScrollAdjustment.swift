@@ -2,31 +2,101 @@ import Foundation
 
 struct PopupVolumeScrollAdjustment {
     private static let preciseVolumePerPoint = 0.002
-    static let discreteVolumePerLine = 0.02
+    static let defaultWheelStep = 0.10
+    private var pendingLines = 0.0
+    private var lastTimestamp: TimeInterval?
+    private var lastContext: String?
+    private var lastWheelStep: Double?
+    private var lastAxis: ScrollAxis?
 
-    /// Volume step for one mouse-wheel notch. A physical wheel loses the
-    /// trackpad's continuous feel and only fires discrete lines, so the
-    /// per-point trackpad constant leaves it moving ~2% a notch — many turns
-    /// to cross the slider. Matching the system volume keys' 1/16 increment
-    /// (~6%) keeps the wheel snappy without changing the smooth trackpad mapping.
-    static let volumeWheelStep = 1.0 / 16.0
+    private enum ScrollAxis {
+        case vertical
+        case horizontal
+    }
 
-    func volumeDelta(
+    /// Shared entry for all three panel sliders; keeps their preferences and
+    /// partial wheel packets on the same path without requiring a live NSEvent.
+    @MainActor
+    mutating func levelDelta(
+        deltaX: Double = 0,
+        deltaY: Double,
+        isPrecise: Bool,
+        isDirectionInverted: Bool,
+        timestamp: TimeInterval,
+        target: PanelLevelScrollTarget,
+        settings: SettingsStore
+    ) -> Double? {
+        let context: String
+        switch target {
+        case .volume: context = "volume"
+        case .audioInput: context = "audioInput"
+        case .brightness(let displayID): context = "brightness.\(displayID)"
+        }
+        return volumeDelta(
+            deltaX: deltaX, deltaY: deltaY, isPrecise: isPrecise,
+            isDirectionInverted: isDirectionInverted,
+            usesNaturalScrolling: settings.popupVolumeNaturalScrolling,
+            wheelStep: settings.popupScrollWheelStepPercent / 100,
+            timestamp: timestamp, context: context
+        )
+    }
+
+    mutating func volumeDelta(
+        deltaX: Double = 0,
         deltaY: Double,
         isPrecise: Bool,
         isDirectionInverted: Bool,
         usesNaturalScrolling: Bool,
-        wheelStep: Double = PopupVolumeScrollAdjustment.discreteVolumePerLine
+        wheelStep: Double = PopupVolumeScrollAdjustment.defaultWheelStep,
+        timestamp: TimeInterval = 0,
+        context: String = "volume"
     ) -> Double? {
-        guard deltaY.isFinite, deltaY != 0 else { return nil }
-
-        let volumePerUnit = isPrecise
-            ? Self.preciseVolumePerPoint
-            : wheelStep
+        guard deltaX.isFinite,
+              let (delta, axis) = Self.dominantDelta(deltaX: deltaX, deltaY: deltaY)
+        else { return nil }
+        // Both axes share one convention: positive is "right"/"up" and raises
+        // the level, so the same natural-scrolling handling applies to each.
         let scrollUpDelta = usesNaturalScrolling
-            ? (isDirectionInverted ? -deltaY : deltaY)
-            : deltaY
-        return scrollUpDelta * volumePerUnit
+            ? (isDirectionInverted ? -delta : delta)
+            : delta
+        if isPrecise {
+            pendingLines = 0
+            lastTimestamp = nil
+            lastAxis = axis
+            return scrollUpDelta * Self.preciseVolumePerPoint
+        }
+        guard wheelStep.isFinite, wheelStep > 0 else { return nil }
+        if lastContext != context || lastWheelStep != wheelStep || lastAxis != axis
+            || lastTimestamp.map({ timestamp < $0 || timestamp - $0 > PopupVolumeScrollSession.timeout }) == true
+            || pendingLines * scrollUpDelta < 0 {
+            pendingLines = 0
+        }
+        lastContext = context
+        lastWheelStep = wheelStep
+        lastAxis = axis
+        lastTimestamp = timestamp
+        // AppKit reports lines, not physical notches (commonly 1 or 3 per
+        // event). Normalize a full packet to one step; retain sub-line packets
+        // until they form a step. Coalesced hardware notches are not exposed.
+        pendingLines += min(abs(scrollUpDelta), 1) * (scrollUpDelta > 0 ? 1 : -1)
+        guard abs(pendingLines) >= 1 - 1e-9 else { return nil }
+        let direction = pendingLines > 0 ? 1.0 : -1.0
+        pendingLines -= direction
+        if abs(pendingLines) < 1e-9 { pendingLines = 0 }
+        return direction * wheelStep
+    }
+
+    /// Picks the dominant axis so a diagonal trackpad gesture is applied once,
+    /// never as two separate adjustments. Ties keep the vertical axis, which is
+    /// the historical behaviour.
+    private static func dominantDelta(
+        deltaX: Double,
+        deltaY: Double
+    ) -> (delta: Double, axis: ScrollAxis)? {
+        guard deltaX.isFinite, deltaY.isFinite else { return nil }
+        if abs(deltaX) > abs(deltaY) { return (deltaX, .horizontal) }
+        guard deltaY != 0 else { return nil }
+        return (deltaY, .vertical)
     }
 }
 

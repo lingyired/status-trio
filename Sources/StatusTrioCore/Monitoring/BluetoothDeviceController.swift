@@ -744,6 +744,23 @@ final class BluetoothDeviceController: ObservableObject {
 
     func refresh(isSafetyNet: Bool = false) {
         guard isActive, availability == .available else { return }
+        performDeviceRefresh(isSafetyNet: isSafetyNet)
+    }
+
+    /// Retries a device read after a `.failed` read without an app restart.
+    ///
+    /// Only `.failed` is retryable: a powered-off, unauthorized or unavailable
+    /// radio is refused, so a manual refresh never starts a read that cannot
+    /// succeed. The retry still goes through the single-read latch and the
+    /// merged-follow-up rule, so repeated taps cannot storm `system_profiler`
+    /// or start a permanent poll. The `.failed` state is kept until the retry
+    /// actually succeeds, so last-known devices are never painted as live.
+    func retryDeviceReadAfterFailure() {
+        guard isActive, availability == .failed else { return }
+        performDeviceRefresh(isSafetyNet: false)
+    }
+
+    private func performDeviceRefresh(isSafetyNet: Bool) {
         if !isSafetyNet {
             externalRefreshEpoch &+= 1
         }
@@ -792,6 +809,13 @@ final class BluetoothDeviceController: ObservableObject {
                     self.updateKnownNearbyAppleNames()
                     self.reconcileDeviceActions()
                     self.availability = .available
+                    // A failed read retires the safety net, so a successful
+                    // recovery (a manual refresh after `.failed`) has to rebuild
+                    // it; otherwise the recovered session would stop polling at
+                    // the next tick and never notice another change.
+                    if self.periodicRefreshTask == nil {
+                        self.schedulePeriodicRefresh()
+                    }
                     self.refreshBatteryLevels()
                 case .poweredOff:
                     self.availability = .poweredOff
@@ -822,7 +846,13 @@ final class BluetoothDeviceController: ObservableObject {
     /// asks the Nearby scanner for a new bounded scan when its surface is active.
     /// The ordinary safety-net `refresh()` path never reaches CoreBluetooth.
     func refreshFromUser() {
-        refresh()
+        if availability == .failed {
+            // A failed read blocks the ordinary `.available`-only `refresh()`;
+            // the user explicitly asking is the one signal allowed to retry it.
+            retryDeviceReadAfterFailure()
+        } else {
+            refresh()
+        }
         guard isNearbyBLEScannerDemanded else { return }
         // A user asking for a refresh is the one signal that may retry a device
         // automatic scans have given up on — for example one whose pairing

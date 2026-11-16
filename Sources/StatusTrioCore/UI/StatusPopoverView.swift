@@ -253,6 +253,7 @@ struct StatusPopoverView: View {
                 nearbyBLESelections: panel.settings.nearbyBLESelections,
                 trustedAppleDeviceMetadata: panel.settings.trustedAppleDeviceMetadata,
                 currentTrustedAppleCandidates: panel.store.trustedAppleDeviceCandidates,
+                appleDeviceLastSuccessfulIDs: panel.store.appleDeviceLastSuccessfulIDs,
                 trustedDiscoveryGeneration: panel.store.trustedAppleDeviceDiscoveryGeneration,
                 listOptions: panel.settings.bluetoothDeviceListOptions,
                 showsRadioPowerControl: panel.settings.showsBluetoothPowerControl,

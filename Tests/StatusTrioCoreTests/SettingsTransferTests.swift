@@ -137,6 +137,27 @@ struct SettingsTransferSessionTests {
         #expect(localization.preference == .system)
     }
 
+    @Test func wheelStepRoundTripsAndMissingKeyKeepsCurrentValue() throws {
+        let (store, localization, directory, defaults, name) = try fixture()
+        defer { defaults.removePersistentDomain(forName: name) }
+        store.popupScrollWheelStepPercent = 2.5
+        let session = SettingsTransferSession(store: store, localization: localization, backupDirectory: directory)
+        let data = try session.exportData()
+        #expect(try SettingsTransferDocument.decode(data).preferences["popupScrollWheelStepPercent"] == .number(2.5))
+        store.popupScrollWheelStepPercent = 10
+        _ = try session.stageImport(data)
+        #expect(store.popupScrollWheelStepPercent == 10)
+        _ = try session.applyImport()
+        #expect(store.popupScrollWheelStepPercent == 2.5)
+        #expect(SettingsStore(defaults: defaults).popupScrollWheelStepPercent == 2.5)
+        _ = try session.stageImport(SettingsTransferDocument(appVersion: "old", preferences: [:]).encoded())
+        _ = try session.applyImport()
+        #expect(store.popupScrollWheelStepPercent == 2.5)
+        _ = try session.stageImport(SettingsTransferDocument(appVersion: "bad", preferences: ["popupScrollWheelStepPercent": .number(30)]).encoded())
+        _ = try session.applyImport()
+        #expect(store.popupScrollWheelStepPercent == 10)
+    }
+
     @Test func backupCanBeImportedByANewSession() throws {
         let (store, localization, directory, defaults, name) = try fixture()
         defer { defaults.removePersistentDomain(forName: name) }

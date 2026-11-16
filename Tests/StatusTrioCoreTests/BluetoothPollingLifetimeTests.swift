@@ -860,6 +860,116 @@ final class BluetoothPollingLifetimeTests: XCTestCase {
         XCTAssertEqual(wakes.value, 0, "a released bag must remove its observers")
     }
 
+    // MARK: - Issue #330: read-failure recovery and unpair consistency
+
+    /// A user removes a device in System Settings, then the panel's next read
+    /// fails (common while the Bluetooth stack is reconfiguring). `.failed`
+    /// stopped the poll but also refused every later `refresh()`, so the only
+    /// way out was to restart the app. A manual refresh must be able to retry,
+    /// and a successful retry must rebuild the safety net.
+    func testAManualRefreshRetriesAfterAFailedReadAndRestoresTheSafetyNet() async {
+        let reader = DeferredBluetoothDeviceReader()
+        let controller = makeController(reader: reader)
+        controller.activate()
+        controller.holdVisibleSurface("bluetooth.popover")
+        await waitUntil { reader.readCount == 1 }
+
+        reader.complete(.failed)
+        await waitUntil { controller.availability == .failed }
+        XCTAssertFalse(controller.isSafetyNetPolling, "a failed read retires the poll")
+
+        controller.refreshFromUser()
+        await waitUntil { reader.readCount == 2 }
+
+        let airPods = BluetoothDevice(id: "AA:BB:CC:DD:EE:01", name: "AirPods", kind: .audio, isConnected: true)
+        let keyboard = BluetoothDevice(id: "AA:BB:CC:DD:EE:02", name: "MX Keys", kind: .peripheral(.keyboard), isConnected: false)
+        reader.complete(.success([airPods, keyboard]))
+        await waitUntil { controller.availability == .available }
+
+        XCTAssertEqual(controller.devices.map(\.id), [airPods.id, keyboard.id])
+        XCTAssertTrue(
+            controller.isSafetyNetPolling,
+            "a recovered session must re-establish the 120-second safety net"
+        )
+        controller.deactivate()
+    }
+
+    /// A successful read is a full snapshot: a device the system no longer
+    /// reports has to vanish from both the live list and the reopen cache, so
+    /// unpairing in System Settings cannot leave it behind.
+    func testASuccessfulReadDropsADeviceTheSystemNoLongerReports() async {
+        let reader = DeferredBluetoothDeviceReader()
+        let controller = makeController(reader: reader)
+        controller.activate()
+        await waitUntil { reader.readCount == 1 }
+
+        let a = BluetoothDevice(id: "{{MAC_aaaa0001}}", name: "Device A", kind: .audio, isConnected: true)
+        let b = BluetoothDevice(id: "{{MAC_bbbb0002}}", name: "Device B", kind: .peripheral(.keyboard), isConnected: false)
+        let c = BluetoothDevice(id: "{{MAC_cccc0003}}", name: "Device C", kind: .audio, isConnected: false)
+        reader.complete(.success([a, b, c]))
+        await waitUntil { controller.devices.count == 3 }
+        XCTAssertEqual(controller.cachedDevices.map(\.id), [a.id, b.id, c.id])
+
+        controller.refreshFromUser()
+        await waitUntil { reader.readCount == 2 }
+        reader.complete(.success([a, c]))
+        await waitUntil { controller.devices.count == 2 }
+
+        XCTAssertEqual(controller.devices.map(\.id), [a.id, c.id])
+        XCTAssertEqual(
+            controller.cachedDevices.map(\.id),
+            [a.id, c.id],
+            "the removed device must not survive in the reopen cache"
+        )
+        controller.deactivate()
+    }
+
+    /// Repeated refresh taps during a failed-read recovery still obey the
+    /// single-read latch plus one merged follow-up, so recovery cannot fan out
+    /// into a `system_profiler` storm.
+    func testRepeatedRefreshDuringFailedRecoveryIsCoalesced() async {
+        let reader = DeferredBluetoothDeviceReader()
+        let controller = makeController(reader: reader)
+        controller.activate()
+        controller.holdVisibleSurface("bluetooth.popover")
+        await waitUntil { reader.readCount == 1 }
+
+        reader.complete(.failed)
+        await waitUntil { controller.availability == .failed }
+
+        controller.refreshFromUser()
+        await waitUntil { reader.readCount == 2 }
+        controller.refreshFromUser()
+        controller.refreshFromUser()
+        XCTAssertEqual(reader.readCount, 2, "only one read may be in flight")
+
+        let device = BluetoothDevice(id: "{{MAC_dddd0004}}", name: "Device D", kind: .audio, isConnected: true)
+        reader.complete(.success([device]))
+        await waitUntil { reader.readCount == 3 }
+        reader.complete(.success([device]))
+        await waitUntil { controller.availability == .available }
+
+        XCTAssertEqual(reader.readCount, 3, "at most one merged follow-up read")
+        controller.deactivate()
+    }
+
+    /// A manual refresh must not fight a radio that is actually off: recovery is
+    /// only for the `.failed` state, never for a state a read cannot succeed in.
+    func testAManualRefreshDoesNotRetryWhileTheRadioIsOff() async {
+        let reader = DeferredBluetoothDeviceReader()
+        let controller = makeController(reader: reader)
+        controller.activate()
+        await waitUntil { reader.readCount == 1 }
+
+        reader.complete(.poweredOff)
+        await waitUntil { controller.availability == .poweredOff }
+
+        controller.refreshFromUser()
+        await settle()
+        XCTAssertEqual(reader.readCount, 1, "a refresh must not start a read with the radio off")
+        controller.deactivate()
+    }
+
     private func waitUntil(_ condition: () -> Bool) async {
         for _ in 0..<1_000 {
             if condition() { return }

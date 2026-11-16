@@ -58,6 +58,7 @@ struct BluetoothStatusView: View {
     var nearbyBLESelections: [NearbyBLEDeviceSelection] = []
     var trustedAppleDeviceMetadata: [AppleDeviceCandidate] = []
     var currentTrustedAppleCandidates: [AppleDeviceCandidate] = []
+    var appleDeviceLastSuccessfulIDs: Set<AppleDeviceID>? = nil
     var trustedDiscoveryGeneration: UInt64 = 0
     var listOptions: BluetoothDeviceListOptions = .standard
     var showsRadioPowerControl = true
@@ -111,13 +112,18 @@ struct BluetoothStatusView: View {
 
     /// Whether the previous read's devices are standing in for the incoming one.
     /// This shows real names at once while the OS read runs; the list keeps the
-    /// cached rows until the fresh result lands.
+    /// cached rows until the fresh result lands. The decision lives in
+    /// `BluetoothDeviceListPresentation` so it can be unit-tested, including the
+    /// rule that a failed read must not paint stale rows as live (#330).
     private var isShowingCachedDevices: Bool {
-        guard !isRadioOff else { return false }
-        return listOptions.showsList
-            && !controller.hasLoadedDevices
-            && controller.devices.isEmpty
-            && !controller.cachedDevices.isEmpty
+        BluetoothDeviceListPresentation.showsCachedDevices(
+            availability: controller.availability,
+            isRadioOff: isRadioOff,
+            showsList: listOptions.showsList,
+            hasLoadedDevices: controller.hasLoadedDevices,
+            devices: controller.devices,
+            cachedDevices: controller.cachedDevices
+        )
     }
 
     private var displayedDevices: [BluetoothDevice] {
@@ -212,7 +218,13 @@ struct BluetoothStatusView: View {
 
     private var appleProjection: AppleDeviceCatalog.Projection {
         let candidates = showsAppleDevicesAndBattery
-            ? AppleDeviceCatalog.candidates(trusted: trustedAppleDeviceMetadata)
+            ? AppleDeviceCatalog.currentCandidates(
+                history: trustedAppleDeviceMetadata,
+                discovered: currentTrustedAppleCandidates,
+                lastSuccessfulIDs: appleDeviceLastSuccessfulIDs,
+                trustedSnapshots: showsMobileBatteryFeature ? mobileBatteryController.snapshots : [],
+                now: Date()
+            )
             : []
         let knownIDs = Set(candidates.map(\.id))
         let failures = Set(mobileBatteryController.failures.compactMap { failure -> AppleDeviceID? in

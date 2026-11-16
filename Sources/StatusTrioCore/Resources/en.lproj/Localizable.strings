@@ -8,6 +8,7 @@
 "menu.window" = "Window";
 "menu.closeWindow" = "Close Window";
 "menu.checkForUpdates" = "Check for Updates…";
+"menu.checkViaGitee" = "Check via Gitee";
 "menu.openMenuBarSettings" = "Open Menu Bar Settings";
 "settings.title" = "Settings";
 "settings.page.appearance" = "Appearance";
@@ -110,9 +111,9 @@
 "settings.bluetooth.batteryLevels" = "Show Bluetooth battery levels";
 "settings.bluetooth.batteryLevelsDescription" = "Reads battery levels for visible Bluetooth and Apple device rows in the status panel.";
 "settings.bluetooth.listeningModeTitle" = "Show listening mode controls";
-"settings.bluetooth.listeningModeDescription" = "Supports AirPods and some HUAWEI headphones: shows noise-cancelling, transparency and off capsules on connected devices. Only some HUAWEI models are supported; if a switch fails, the previous mode is restored.";
+"settings.bluetooth.listeningModeDescription" = "Supports AirPods, HUAWEI FreeBuds, Redmi/Xiaomi and OPPO/OnePlus/realme (Enco family) earbuds: shows noise-cancelling, transparency and off capsules on connected devices. Only some third-party models are supported; if a switch fails, the previous mode is restored.";
 "settings.bluetooth.listeningModePreview" = "Listening mode preview (test only)";
-"settings.bluetooth.listeningModePreviewDescription" = "Preview adds synthetic rows for interface testing only; switching a preview row never changes your headphones. Real device rows, including HUAWEI, still work according to each device's support: only some HUAWEI models are supported, and a failed switch restores the previous mode.";
+"settings.bluetooth.listeningModePreviewDescription" = "Preview adds synthetic rows for interface testing only; switching a preview row never changes your headphones. Real device rows, including HUAWEI, Redmi/Xiaomi and OPPO, still work according to each device's support: only some third-party models are supported, and a failed switch restores the previous mode.";
 "settings.bluetooth.listeningModePreviewOptions" = "Preview Options";
 "settings.bluetooth.listeningModePreviewDeviceName" = "Preview device name";
 "settings.bluetooth.listeningModePreviewDeviceNameDescription" = "Name shown on the preview rows. Leave empty for the built-in default, or type a very long name to check truncation.";
@@ -256,6 +257,9 @@
 "settings.updates.title" = "Updates";
 "settings.updates.automatic" = "Automatically check for updates";
 "settings.updates.check" = "Check for Updates…";
+"settings.updates.checkViaGitee" = "Check via Gitee";
+"settings.updates.giteeLaggingTitle" = "Gitee mirror may lag behind GitHub";
+"settings.updates.giteeLaggingMessage" = "Gitee reports no update for this version. It may not have mirrored the latest release yet. Use Check for Updates to fetch from GitHub.";
 "battery.title" = "Battery · %d%%";
 "battery.title.power" = "Power · %d W";
 "battery.title.powerUnavailable" = "Power · Unavailable";
@@ -938,3 +942,9 @@
 "settings.transfer.error.fileAccess" = "The file could not be read or saved. Check its location and permissions.";
 "settings.transfer.done" = "Done";
 "settings.transfer.warningCount" = "Total warnings: %d (showing up to 50).";
+
+"settings.popup.scrollWheelStep" = "Wheel adjustment step";
+"settings.popup.scrollWheelStep.description" = "Change per notch for volume, brightness, and microphone. Trackpad scrolling stays continuous.";
+"updates.failure.title" = "Update Failed";
+"updates.failure.message" = "The automatic update could not be completed. Download the latest DMG from the official website and install it manually.";
+"updates.failure.website" = "Download from Website";

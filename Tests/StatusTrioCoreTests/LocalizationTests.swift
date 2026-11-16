@@ -161,7 +161,10 @@ final class LocalizationTests: XCTestCase {
         XCTAssertTrue(englishPreview.localizedCaseInsensitiveContains("interface testing only"))
         XCTAssertTrue(englishPreview.localizedCaseInsensitiveContains("never changes your headphones"))
         XCTAssertTrue(englishPreview.localizedCaseInsensitiveContains("real device rows"))
-        XCTAssertTrue(englishPreview.localizedCaseInsensitiveContains("some HUAWEI models"))
+        // The scope wording now names the whole supported set rather than HUAWEI
+        // alone, so the pinned phrase is the third-party scope itself.
+        XCTAssertTrue(englishPreview.localizedCaseInsensitiveContains("some third-party models"))
+        XCTAssertTrue(englishPreview.localizedCaseInsensitiveContains("OPPO"))
         XCTAssertTrue(englishPreview.localizedCaseInsensitiveContains("restores the previous mode"))
 
         let chinesePreview = chinese.localizedString(
@@ -169,7 +172,7 @@ final class LocalizationTests: XCTestCase {
             value: nil,
             table: nil
         )
-        for term in ["预览", "界面测试", "不会更改耳机", "真实设备", "华为", "部分", "恢复原模式"] {
+        for term in ["预览", "界面测试", "不会更改耳机", "真实设备", "华为", "部分", "恢复原模式", "OPPO"] {
             XCTAssertTrue(chinesePreview.contains(term), "zh-Hans preview description 缺少 \(term)")
         }
     }

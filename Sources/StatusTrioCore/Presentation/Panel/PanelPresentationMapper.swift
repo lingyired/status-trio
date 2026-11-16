@@ -305,18 +305,23 @@ enum PanelPresentationMapper {
         // its charging flag trails the actual charge pulse. Show the time-to-full
         // placeholder immediately instead of leaving the row on "Connected to
         // power"; once a real estimate arrives the branch above takes over.
-        switch chargeToFullNow {
-        case .applying, .chargingToFull, .cancelling:
-            return localization.string(.batteryStateCalculatingTimeToFull)
-        case .hidden,
-             .available,
-             .failed,
-             .unavailable,
-             .cancelConfirmationRequired,
-             .cancelPending,
-             .cancelFailed,
-             .cancelLimitChangedConfirmation:
-            break
+        // The charge placeholder only makes sense while the Mac is actually on
+        // power. A session can outlive the adapter (the user unplugs mid-charge),
+        // so never let it keep claiming a charging state on battery.
+        if battery.isConnectedToPower {
+            switch chargeToFullNow {
+            case .applying, .chargingToFull, .cancelling:
+                return localization.string(.batteryStateCalculatingTimeToFull)
+            case .hidden,
+                 .available,
+                 .failed,
+                 .unavailable,
+                 .cancelConfirmationRequired,
+                 .cancelPending,
+                 .cancelFailed,
+                 .cancelLimitChangedConfirmation:
+                break
+            }
         }
         let runtime = batteryRuntimeText(battery, localization: localization)
         if battery.isLowPowerMode {

@@ -38,7 +38,7 @@ make_manifest() {
     local signature="$5"
     local signing="${6:-developer_id}"
     local notarization="${7:-accepted_and_stapled}"
-    ruby -rjson -e '
+    ruby -rjson -rdigest -e '
         path, dmg, sha, length, signature, signing, notarization = ARGV
         File.write(
           path,
@@ -61,6 +61,12 @@ make_manifest() {
               sha256: sha,
               length: length,
               ed_signature: signature
+            },
+            zip: {
+              filename: "StatusTrio-1.0.0.zip",
+              sha256: Digest::SHA256.file(File.join(File.dirname(dmg), "StatusTrio-1.0.0.zip")).hexdigest,
+              length: File.size(File.join(File.dirname(dmg), "StatusTrio-1.0.0.zip")).to_s,
+              ed_signature: "fixture-zip-signature"
             },
             signing: { kind: signing },
             notarization: { status: notarization },
@@ -85,6 +91,9 @@ printf 'fixture package\n' > "$PACKAGE/StatusTrio-1.0.0.dmg"
 DMG_SHA="$(sha256 "$PACKAGE/StatusTrio-1.0.0.dmg")"
 DMG_LENGTH="$(stat -f '%z' "$PACKAGE/StatusTrio-1.0.0.dmg")"
 printf '%s  StatusTrio-1.0.0.dmg\n' "$DMG_SHA" > "$PACKAGE/StatusTrio-1.0.0.dmg.sha256"
+printf 'fixture app ZIP\n' > "$PACKAGE/StatusTrio-1.0.0.zip"
+ZIP_SHA="$(sha256 "$PACKAGE/StatusTrio-1.0.0.zip")"
+printf '%s  StatusTrio-1.0.0.zip\n' "$ZIP_SHA" > "$PACKAGE/StatusTrio-1.0.0.zip.sha256"
 printf '# Version %%VERSION%% (Build %%BUILD%%)\n- English.\n' > "$PACKAGE/release-notes/1.0.0/en.md"
 printf '# 版本 %%VERSION%%（构建 %%BUILD%%）\n- 中文。\n' > "$PACKAGE/release-notes/1.0.0/zh-Hans.md"
 printf '# Version 1.0.0 （English + 中文， 中文在下方）\n\n## English\n\n- English.\n\n## 中文\n\n- 中文。\n' > "$PACKAGE/release-body.md"
@@ -144,7 +153,7 @@ release_json() {
         id="$(<"$state/release-id")"
     fi
     if [[ -f "$state/assets" ]]; then
-        assets="[$(asset_json StatusTrio-1.0.0.dmg "$dmg"),$(asset_json StatusTrio-1.0.0.dmg.sha256 "$checksum"),$(asset_json release-manifest.json "$manifest")]"
+        assets="[$(asset_json StatusTrio-1.0.0.dmg "$dmg"),$(asset_json StatusTrio-1.0.0.dmg.sha256 "$checksum"),$(asset_json StatusTrio-1.0.0.zip "$package/StatusTrio-1.0.0.zip"),$(asset_json StatusTrio-1.0.0.zip.sha256 "$package/StatusTrio-1.0.0.zip.sha256"),$(asset_json release-manifest.json "$manifest")]"
     else
         assets="[]"
     fi
@@ -360,6 +369,9 @@ case "$url" in
         else
             cat "${FAKE_PACKAGE_DIR:?}/StatusTrio-1.0.0.dmg"
         fi
+        ;;
+    https://github.com/example/status-trio/releases/download/v1.0.0/StatusTrio-1.0.0.zip|https://github.com/example/status-trio/releases/download/v1.0.0/StatusTrio-1.0.0.zip.sha256)
+        cat "${FAKE_PACKAGE_DIR:?}/$(basename "$url")"
         ;;
     https://raw.githubusercontent.com/example/status-trio/main/appcast.xml)
         if [[ "${FAKE_PUBLIC_APPCAST_MODE:-valid}" == "invalid" ]]; then

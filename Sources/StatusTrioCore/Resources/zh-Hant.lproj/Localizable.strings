@@ -8,6 +8,7 @@
 "menu.window" = "視窗";
 "menu.closeWindow" = "關閉視窗";
 "menu.checkForUpdates" = "檢查更新…";
+"menu.checkViaGitee" = "透過 Gitee 更新";
 "menu.openMenuBarSettings" = "開啟系統選單列";
 "settings.title" = "設定";
 "settings.page.appearance" = "外觀";
@@ -256,6 +257,9 @@
 "settings.updates.title" = "更新";
 "settings.updates.automatic" = "自動檢查更新";
 "settings.updates.check" = "檢查更新…";
+"settings.updates.checkViaGitee" = "透過 Gitee 更新";
+"settings.updates.giteeLaggingTitle" = "Gitee 鏡像版本可能落後";
+"settings.updates.giteeLaggingMessage" = "Gitee 未提供此版本的更新，可能尚未同步最新發佈。可使用「檢查更新」從 GitHub 取得。";
 "battery.title" = "電池 · %d%%";
 "battery.title.power" = "功耗 · %d W";
 "battery.title.powerUnavailable" = "功耗 · 暫不可用";
@@ -939,3 +943,9 @@
 "settings.transfer.error.fileAccess" = "無法讀取或儲存檔案。請檢查檔案位置和權限。";
 "settings.transfer.done" = "完成";
 "settings.transfer.warningCount" = "警告總數：%d（最多顯示前 50 則）";
+
+"settings.popup.scrollWheelStep" = "滾輪調整幅度";
+"settings.popup.scrollWheelStep.description" = "每格調整音量、亮度和麥克風的幅度。觸控板維持連續調整。";
+"updates.failure.title" = "更新失敗";
+"updates.failure.message" = "無法自動更新，請前往官網下載最新 DMG 並手動安裝。也可使用官網提供的網盤下載方式。";
+"updates.failure.website" = "官網下載";
