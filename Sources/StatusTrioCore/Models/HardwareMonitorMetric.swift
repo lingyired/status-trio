@@ -10,6 +10,7 @@ enum HardwareMonitorMetric: String, Codable, CaseIterable, Identifiable, Sendabl
     case gpuUsage
     case memoryUsage
     case cpuTemperature
+    case gpuTemperature
     case batteryTemperature
     case fan
     case downloadSpeed
@@ -20,7 +21,9 @@ enum HardwareMonitorMetric: String, Codable, CaseIterable, Identifiable, Sendabl
     /// Metrics shown by default on the card / enabled in the 监控 tab. Network
     /// speed is opt-in (it needs a broadband cap and a 1s sampler).
     static var defaultCardMetrics: [HardwareMonitorMetric] {
-        allCases.filter { !$0.isSpeedMetric }
+        // GPU temperature is offered for the outer ring and colours, but the
+        // legacy card keeps its original tile set.
+        allCases.filter { !$0.isSpeedMetric && $0 != .gpuTemperature }
     }
 
     static var defaultEnabledMetrics: Set<HardwareMonitorMetric> {
@@ -34,6 +37,7 @@ enum HardwareMonitorMetric: String, Codable, CaseIterable, Identifiable, Sendabl
         case .gpuUsage: .gpuUsage
         case .memoryUsage: .memoryUsage
         case .cpuTemperature: .cpuTemperature
+        case .gpuTemperature: .gpuTemperature
         case .batteryTemperature: .batteryTemperature
         case .fan: .fanRPM(index: 0)
         case .downloadSpeed: .networkDownload
@@ -47,6 +51,7 @@ enum HardwareMonitorMetric: String, Codable, CaseIterable, Identifiable, Sendabl
         case .gpuUsage: .hardwareMonitorGPU
         case .memoryUsage: .hardwareMonitorMemory
         case .cpuTemperature: .hardwareMonitorTemperature
+        case .gpuTemperature: .hardwareMonitorGPUTemperature
         case .batteryTemperature: .hardwareMonitorBatteryTemperature
         case .fan: .hardwareMonitorFan
         case .downloadSpeed: .hardwareMonitorDownload
@@ -60,6 +65,7 @@ enum HardwareMonitorMetric: String, Codable, CaseIterable, Identifiable, Sendabl
         case .gpuUsage: "display"
         case .memoryUsage: "memorychip"
         case .cpuTemperature: "thermometer.medium"
+        case .gpuTemperature: "thermometer.medium"
         case .batteryTemperature: SymbolFallback.name("battery.100percent", "battery.100")
         case .fan: "fanblades"
         case .downloadSpeed: "arrow.down.circle"

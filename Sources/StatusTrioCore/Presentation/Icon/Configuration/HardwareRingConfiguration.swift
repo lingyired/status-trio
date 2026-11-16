@@ -100,7 +100,7 @@ struct HardwareMetricRingOptions: Codable, Equatable, Hashable, Sendable {
             return .init(displayMinimum: 0, displayMaximum: 100, warningThreshold: 75, criticalThreshold: 90)
         case .gpuUsage, .memoryUsage:
             return .init(displayMinimum: 0, displayMaximum: 100, warningThreshold: 80, criticalThreshold: 95)
-        case .cpuTemperature:
+        case .cpuTemperature, .gpuTemperature:
             return .init(displayMinimum: 30, displayMaximum: 100, warningThreshold: 85, criticalThreshold: 95)
         case .batteryTemperature:
             return .init(displayMinimum: 20, displayMaximum: 60, warningThreshold: 45, criticalThreshold: 55)
@@ -240,6 +240,7 @@ struct HardwareRingColorConfiguration: Codable, Equatable, Hashable, Sendable {
         case .gpuUsage: gpuColor
         case .memoryUsage: memoryColor
         case .cpuTemperature: cpuTemperatureColor
+        case .gpuTemperature: cpuTemperatureColor
         case .batteryTemperature: batteryTemperatureColor
         case .fan: fanColor
         case .downloadSpeed: downloadColor
@@ -396,7 +397,7 @@ extension HardwareMonitorMetric {
     var isPercentageMetric: Bool {
         switch self {
         case .cpuUsage, .gpuUsage, .memoryUsage: return true
-        case .cpuTemperature, .batteryTemperature, .fan: return false
+        case .cpuTemperature, .gpuTemperature, .batteryTemperature, .fan: return false
         case .downloadSpeed, .uploadSpeed: return false
         }
     }

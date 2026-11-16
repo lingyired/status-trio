@@ -207,6 +207,7 @@ enum HardwareRingMapper {
         case .gpuUsage: "display"
         case .memoryUsage: SymbolFallback.name("memorychip.fill", "memorychip")
         case .cpuTemperature: "thermometer.medium"
+        case .gpuTemperature: "thermometer.medium"
         case .batteryTemperature: SymbolFallback.name("battery.100percent", "battery.100")
         case .fan: SymbolFallback.name("fanblades.fill", "fanblades")
         case .downloadSpeed: "arrow.down.circle.fill"

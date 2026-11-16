@@ -24,6 +24,7 @@ final class HardwareRingDefaultColorTests: XCTestCase {
         assertColor(HardwareRingColorConfiguration.recommendedBaseColor(for: .memoryUsage), 0xA477F5)
         assertColor(HardwareRingColorConfiguration.solidStateDriveColor, 0xAAB5C8)
         assertColor(HardwareRingColorConfiguration.recommendedBaseColor(for: .cpuTemperature), 0x35BFCF)
+        assertColor(HardwareRingColorConfiguration.recommendedBaseColor(for: .gpuTemperature), 0x35BFCF)
         assertColor(HardwareRingColorConfiguration.recommendedBaseColor(for: .batteryTemperature), 0x36ADA4)
         assertColor(HardwareRingColorConfiguration.recommendedBaseColor(for: .fan), 0x8BA4C3)
         assertColor(HardwareRingColorConfiguration.recommendedBaseColor(for: .downloadSpeed), 0x31B985)

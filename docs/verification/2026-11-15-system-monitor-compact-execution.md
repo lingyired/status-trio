@@ -76,3 +76,12 @@
 - 测试：新增 HardwareRingDefaultColorTests（精确默认值、状态色、自定义不被覆盖、重置回默认）。
 - Liquid Glass 高光未改 renderer（按计划为可选，避免性能回归）。
 
+
+
+## 追加：环形指标更细化（2026-11-16）
+
+- 外环指标标签改为明确名称：CPU 占用 / GPU 占用 / 内存占用 / CPU 温度 / GPU 温度 / 电池温度 / 风扇 / 下载 / 上传（12 语言）。
+- 新增 `HardwareMonitorMetric.gpuTemperature`：映射到已有 `.gpuTemperature` 采样，温度范围 30–100°C、阈值与 CPU 温度一致；环形可选，旧卡片默认不显示（保持卡片行为）。
+- 颜色沿用温度青色；颜色来源仍集中于 HardwareRingColorConfiguration。
+- 修正受指标顺序影响的设置/面板测试为按名称定位，未放宽断言。
+

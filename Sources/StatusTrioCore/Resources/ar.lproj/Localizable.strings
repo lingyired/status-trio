@@ -1107,9 +1107,10 @@
 "settings.audio.conversationAwarenessControlsTitle" = "إظهار عناصر تحكم الوعي بالمحادثة";
 "settings.audio.conversationAwarenessControlsDescription" = "يعرض مفتاح الوعي بالمحادثة في صف إخراج AirPods. يدعم AirPods فقط حالياً.";
 "hardware.monitor.title" = "مراقبة العتاد";
-"hardware.monitor.cpu" = "CPU";
-"hardware.monitor.gpu" = "GPU";
-"hardware.monitor.temperature" = "الحرارة";
+"hardware.monitor.cpu" = "استخدام CPU";
+"hardware.monitor.gpu" = "استخدام GPU";
+"hardware.monitor.temperature" = "حرارة CPU";
+"hardware.monitor.gpuTemperature" = "حرارة GPU";
 "hardware.monitor.fan" = "المروحة";
 "hardware.monitor.collecting" = "جارٍ الجمع";
 "hardware.monitor.unsupported" = "غير مدعوم";
@@ -1119,7 +1120,7 @@
 "hardware.monitor.temperature.help" = "متوسط مستشعرات حرارة حزمة CPU وأنويتها المتاحة. يستخدم الشريط مقياسًا مرئيًا من 30 إلى 100°C وليس نسبة أمان.";
 "hardware.monitor.fan.help" = "أعلى سرعة حالية للمراوح. يستخدم الشريط الحد الأقصى المبلغ عنه للمروحة نفسها؛ ولا يمتلئ إذا كان الحد الأقصى غير متاح.";
 "hardware.monitor.rpm" = "%@ دورة/دقيقة";
-"hardware.monitor.memory" = "الذاكرة";
+"hardware.monitor.memory" = "استخدام الذاكرة";
 "hardware.monitor.batteryTemperature" = "حرارة البطارية";
 "hardware.monitor.batteryTemperature.help" = "درجة حرارة البطارية. يستخدم الشريط مقياسًا مرئيًا من 20 إلى 60 درجة مئوية وليس نسبة أمان.";
 "settings.tab.monitor" = "المراقبة";

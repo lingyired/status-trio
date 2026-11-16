@@ -98,7 +98,7 @@ struct HardwareRingThresholdEngine: Equatable, Sendable {
     static func exitMargin(for metric: HardwareMonitorMetric) -> Double {
         switch metric {
         case .cpuUsage, .gpuUsage, .memoryUsage: return 3
-        case .cpuTemperature, .batteryTemperature: return 2
+        case .cpuTemperature, .gpuTemperature, .batteryTemperature: return 2
         case .fan: return 200
         case .downloadSpeed, .uploadSpeed: return 0
         }

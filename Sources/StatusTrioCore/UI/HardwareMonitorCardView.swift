@@ -126,6 +126,8 @@ struct HardwareMetricTilePresentation: Equatable {
                 return make(metric: .memory, sample: snapshot.memoryUsage, localization: localization, tint: tint)
             case .cpuTemperature:
                 return make(metric: .temperature, sample: snapshot.cpuTemperature, localization: localization, tint: tint)
+            case .gpuTemperature:
+                return make(metric: .temperature, sample: snapshot.gpuTemperature, localization: localization, tint: tint)
             case .batteryTemperature:
                 return make(metric: .batteryTemperature, sample: snapshot.batteryTemperature,
                             localization: localization, tint: tint)

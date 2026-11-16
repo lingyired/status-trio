@@ -121,7 +121,8 @@ final class HardwareMonitorPanelDemandTests: XCTestCase {
     func testCardMetricsFollowSettingsOrderAndEnabledSet() {
         let fixture = makeFixture()
         fixture.settings.setPopupSection(.hardwareMonitor, enabled: true)
-        fixture.settings.moveHardwareMonitorMetrics(fromOffsets: IndexSet(integer: 4), toOffset: 0)
+        let batteryIndex = fixture.settings.hardwareMonitorMetricOrder.firstIndex(of: .batteryTemperature)!
+        fixture.settings.moveHardwareMonitorMetrics(fromOffsets: IndexSet(integer: batteryIndex), toOffset: 0)
         fixture.settings.setHardwareMonitorMetric(.cpuUsage, enabled: false)
         let panel = fixture.makePanel()
         panel.start()

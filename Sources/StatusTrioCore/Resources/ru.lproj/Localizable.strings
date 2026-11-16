@@ -1107,9 +1107,10 @@
 "settings.audio.conversationAwarenessControlsTitle" = "Показывать элементы управления распознаванием речи";
 "settings.audio.conversationAwarenessControlsDescription" = "Показывает переключатель распознавания речи в строке вывода AirPods. Сейчас только AirPods.";
 "hardware.monitor.title" = "Монитор оборудования";
-"hardware.monitor.cpu" = "CPU";
-"hardware.monitor.gpu" = "GPU";
-"hardware.monitor.temperature" = "Темп.";
+"hardware.monitor.cpu" = "Загрузка CPU";
+"hardware.monitor.gpu" = "Загрузка GPU";
+"hardware.monitor.temperature" = "Темп. CPU";
+"hardware.monitor.gpuTemperature" = "Темп. GPU";
 "hardware.monitor.fan" = "Вент.";
 "hardware.monitor.collecting" = "Сбор данных";
 "hardware.monitor.unsupported" = "Не поддерживается";
@@ -1119,7 +1120,7 @@
 "hardware.monitor.temperature.help" = "Среднее доступных датчиков температуры корпуса и ядер CPU. Шкала 30–100°C служит для отображения и не означает процент безопасности.";
 "hardware.monitor.fan.help" = "Наибольшая текущая скорость вентилятора. Шкала использует максимум этого же вентилятора; если максимум неизвестен, заполнение не отображается.";
 "hardware.monitor.rpm" = "%@ об/мин";
-"hardware.monitor.memory" = "Память";
+"hardware.monitor.memory" = "Загрузка памяти";
 "hardware.monitor.batteryTemperature" = "Темп. батареи";
 "hardware.monitor.batteryTemperature.help" = "Температура батареи. Полоса использует визуальную шкалу 20–60 °C, а не процент безопасности.";
 "settings.tab.monitor" = "Монитор";

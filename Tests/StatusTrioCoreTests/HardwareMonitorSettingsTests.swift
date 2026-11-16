@@ -23,7 +23,8 @@ final class HardwareMonitorSettingsTests: XCTestCase {
         defer { defaults.removePersistentDomain(forName: name) }
         let store = SettingsStore(defaults: defaults)
         store.setHardwareMonitorMetric(.gpuUsage, enabled: false)
-        store.moveHardwareMonitorMetrics(fromOffsets: IndexSet(integer: 5), toOffset: 0) // fan to front
+        let fanIndex = store.hardwareMonitorMetricOrder.firstIndex(of: .fan)!
+        store.moveHardwareMonitorMetrics(fromOffsets: IndexSet(integer: fanIndex), toOffset: 0) // fan to front
         XCTAssertEqual(store.hardwareMonitorMetricOrder.first, .fan)
         XCTAssertFalse(store.enabledHardwareMonitorMetrics.contains(.gpuUsage))
         XCTAssertFalse(store.visibleHardwareMetrics.contains(.gpuUsage))

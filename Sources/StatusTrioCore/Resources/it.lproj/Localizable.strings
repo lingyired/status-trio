@@ -1107,9 +1107,10 @@
 "settings.audio.conversationAwarenessControlsTitle" = "Mostra controlli Consapevolezza conversazione";
 "settings.audio.conversationAwarenessControlsDescription" = "Mostra l’interruttore Consapevolezza conversazione nella riga di uscita AirPods. Al momento solo AirPods.";
 "hardware.monitor.title" = "Monitor hardware";
-"hardware.monitor.cpu" = "CPU";
-"hardware.monitor.gpu" = "GPU";
-"hardware.monitor.temperature" = "Temp.";
+"hardware.monitor.cpu" = "Uso CPU";
+"hardware.monitor.gpu" = "Uso GPU";
+"hardware.monitor.temperature" = "Temp. CPU";
+"hardware.monitor.gpuTemperature" = "Temp. GPU";
 "hardware.monitor.fan" = "Vent.";
 "hardware.monitor.collecting" = "Raccolta in corso";
 "hardware.monitor.unsupported" = "Non supportato";
@@ -1119,7 +1120,7 @@
 "hardware.monitor.temperature.help" = "Media dei sensori disponibili della temperatura del package e dei core della CPU. La barra usa una scala visiva di 30–100°C, non una percentuale di sicurezza.";
 "hardware.monitor.fan.help" = "Velocità attuale più alta delle ventole. La barra usa il massimo segnalato da quella stessa ventola; non viene riempita se il massimo non è disponibile.";
 "hardware.monitor.rpm" = "%@ giri/min";
-"hardware.monitor.memory" = "Memoria";
+"hardware.monitor.memory" = "Uso memoria";
 "hardware.monitor.batteryTemperature" = "Temp. batteria";
 "hardware.monitor.batteryTemperature.help" = "Temperatura della batteria. La barra usa una scala visiva 20–60 °C, non una percentuale di sicurezza.";
 "settings.tab.monitor" = "Monitor";

@@ -1107,9 +1107,10 @@
 "settings.audio.conversationAwarenessControlsTitle" = "会話認識のコントロールを表示";
 "settings.audio.conversationAwarenessControlsDescription" = "AirPods の出力行に会話認識のスイッチを表示します。現在は AirPods のみ対応。";
 "hardware.monitor.title" = "ハードウェアモニター";
-"hardware.monitor.cpu" = "CPU";
-"hardware.monitor.gpu" = "GPU";
-"hardware.monitor.temperature" = "温度";
+"hardware.monitor.cpu" = "CPU 使用率";
+"hardware.monitor.gpu" = "GPU 使用率";
+"hardware.monitor.temperature" = "CPU 温度";
+"hardware.monitor.gpuTemperature" = "GPU 温度";
 "hardware.monitor.fan" = "ファン";
 "hardware.monitor.collecting" = "取得中";
 "hardware.monitor.unsupported" = "非対応";
@@ -1119,7 +1120,7 @@
 "hardware.monitor.temperature.help" = "利用可能な CPU パッケージ・コア温度センサーの平均値です。バーは 30–100°C の目盛りで、安全性の割合ではありません。";
 "hardware.monitor.fan.help" = "現在の回転数が最も高いファンです。バーはそのファン自身が報告する最大回転数を使い、最大値が不明な場合は塗りつぶしません。";
 "hardware.monitor.rpm" = "%@ 回転/分";
-"hardware.monitor.memory" = "メモリ";
+"hardware.monitor.memory" = "メモリ使用率";
 "hardware.monitor.batteryTemperature" = "バッテリー温度";
 "hardware.monitor.batteryTemperature.help" = "バッテリー温度です。バーは 20〜60°C の目安スケールで、安全率ではありません。";
 "settings.tab.monitor" = "モニター";

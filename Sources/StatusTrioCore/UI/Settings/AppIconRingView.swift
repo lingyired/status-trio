@@ -573,7 +573,7 @@ struct AppIconRingView: View {
     private func hardwareStepperRange(_ metric: HardwareMonitorMetric) -> ClosedRange<Double> {
         switch metric {
         case .cpuUsage, .gpuUsage, .memoryUsage: return 0...100
-        case .cpuTemperature: return 30...120
+        case .cpuTemperature, .gpuTemperature: return 30...120
         case .batteryTemperature: return 20...80
         case .fan: return 0...10_000
         case .downloadSpeed, .uploadSpeed: return SettingsStore.hardwareSpeedCapRange
