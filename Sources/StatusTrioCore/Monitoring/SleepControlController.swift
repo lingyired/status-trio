@@ -416,10 +416,6 @@ final class SleepControlController: ObservableObject {
         guard !isStopped else { return }
         if enabled {
             guard canEnableLidSleep else { return }
-            guard !lidForeignActive else {
-                lidSleepExternalState = .managedExternally
-                return
-            }
         }
         requestLidState(enabled)
     }
@@ -470,7 +466,7 @@ final class SleepControlController: ObservableObject {
             if target {
                 // Re-check after any previous await: an unplug during an in-flight
                 // enable must flip the target off before we ever write `1`.
-                if lidForeignActive || !canEnableLidSleep {
+                if !canEnableLidSleep {
                     desiredLidSleep = false
                     if isPreventingLidSleep { continue }
                     return
