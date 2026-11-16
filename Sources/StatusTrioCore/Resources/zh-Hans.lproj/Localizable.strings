@@ -1,7 +1,3 @@
-"updates.failure.title" = "更新失败";
-"updates.failure.message" = "无法自动更新，请前往官网下载最新 DMG 并手动安装。也可使用官网提供的网盘下载方式。";
-"updates.failure.website" = "官网下载";
-
 "menu.version" = "Status Trio %@";
 "menu.settings" = "设置…";
 "menu.quit" = "退出 Status Trio";
@@ -12,6 +8,7 @@
 "menu.window" = "窗口";
 "menu.closeWindow" = "关闭窗口";
 "menu.checkForUpdates" = "检查更新…";
+"menu.checkViaGitee" = "通过 Gitee 更新";
 "menu.openMenuBarSettings" = "打开系统菜单栏";
 "settings.title" = "设置";
 "settings.page.appearance" = "外观";
@@ -260,6 +257,9 @@
 "settings.updates.title" = "更新";
 "settings.updates.automatic" = "自动检查更新";
 "settings.updates.check" = "检查更新…";
+"settings.updates.checkViaGitee" = "通过 Gitee 更新";
+"settings.updates.giteeLaggingTitle" = "Gitee 镜像版本可能滞后";
+"settings.updates.giteeLaggingMessage" = "Gitee 未提供此版本的更新，可能尚未同步最新发布。可使用“检查更新”从 GitHub 获取。";
 "battery.title" = "电池 · %d%%";
 "battery.title.power" = "功耗 · %d W";
 "battery.title.powerUnavailable" = "功耗 · 暂不可用";
@@ -270,6 +270,9 @@
 "battery.timeToFull.minutes" = "预计 %d 分钟充满";
 "battery.timeToFull.hours" = "预计 %d 小时充满";
 "battery.timeToFull.hoursMinutes" = "预计 %d 小时 %d 分钟充满";
+"battery.timeToChargeLimit.minutes" = "预计 %d 分钟充到 %d%%";
+"battery.timeToChargeLimit.hours" = "预计 %d 小时充到 %d%%";
+"battery.timeToChargeLimit.hoursMinutes" = "预计 %d 小时 %d 分钟充到 %d%%";
 "battery.state.lowPowerMode" = "低电量模式";
 "battery.state.connectedToPower" = "已连接电源";
 "battery.state.onBattery" = "电池供电";
@@ -916,8 +919,9 @@
 
 "settings.popup.scrollWheelStep" = "滚轮调节步长";
 "settings.popup.scrollWheelStep.description" = "每格调节音量、亮度和麦克风的幅度。触控板保持连续调节。";
-
+"updates.failure.title" = "更新失败";
+"updates.failure.message" = "无法自动更新，请前往官网下载最新 DMG 并手动安装。也可使用官网提供的网盘下载方式。";
+"updates.failure.website" = "官网下载";
 "settings.brightness.useBetterDisplayCombined" = "使用 BetterDisplay 的组合亮度";
 "settings.brightness.useBetterDisplayCombined.description" = "BetterDisplay 的组合亮度把硬件亮度、软件压暗（和 XDR 提升）合并成一条滑块：能比硬件最低亮度更暗，只有 100% 时才和系统百分比一致。";
 "settings.brightness.useBetterDisplayCombined.needsApp" = "需要先安装 BetterDisplay 才能使用。";
-

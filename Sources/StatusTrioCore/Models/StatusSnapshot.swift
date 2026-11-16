@@ -9,6 +9,10 @@ struct BatteryStatus: Equatable, Sendable {
     let timeToEmptyMinutes: Int?
     let isLowPowerMode: Bool
     let isConnectedToPower: Bool
+    /// The percentage macOS stops charging at when a charge limit is in
+    /// effect. Nil when the battery may reach 100%. The system estimate targets
+    /// this limit instead of 100%.
+    let chargeLimitPercent: Int?
 
     init(
         rawPercentage: Int?,
@@ -18,7 +22,8 @@ struct BatteryStatus: Equatable, Sendable {
         timeToFullChargeMinutes: Int? = nil,
         timeToEmptyMinutes: Int? = nil,
         isLowPowerMode: Bool,
-        isConnectedToPower: Bool
+        isConnectedToPower: Bool,
+        chargeLimitPercent: Int? = nil
     ) {
         self.rawPercentage = rawPercentage
         self.isPresent = isPresent
@@ -28,6 +33,7 @@ struct BatteryStatus: Equatable, Sendable {
         self.timeToEmptyMinutes = timeToEmptyMinutes
         self.isLowPowerMode = isLowPowerMode
         self.isConnectedToPower = isConnectedToPower
+        self.chargeLimitPercent = chargeLimitPercent
     }
 
     var percentage: Int {

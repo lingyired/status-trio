@@ -246,13 +246,39 @@ enum PanelPresentationMapper {
         return localization.format(.batteryTitle, battery.percentage)
     }
 
-    static func batteryTimeToFullText(minutes: Int?, localization: Localization) -> String {
+    static func batteryTimeToFullText(
+        minutes: Int?,
+        targetPercent: Int? = nil,
+        localization: Localization
+    ) -> String {
         guard let minutes, minutes > 0 else {
             return localization.string(.batteryStateCalculatingTimeToFull)
         }
 
         let hours = minutes / 60
         let remainingMinutes = minutes % 60
+        if let targetPercent {
+            if hours == 0 {
+                return localization.format(
+                    .batteryTimeToChargeLimitMinutes,
+                    remainingMinutes,
+                    targetPercent
+                )
+            }
+            if remainingMinutes == 0 {
+                return localization.format(
+                    .batteryTimeToChargeLimitHours,
+                    hours,
+                    targetPercent
+                )
+            }
+            return localization.format(
+                .batteryTimeToChargeLimitHoursMinutes,
+                hours,
+                remainingMinutes,
+                targetPercent
+            )
+        }
         if hours == 0 {
             return localization.format(.batteryTimeToFullMinutes, remainingMinutes)
         }
@@ -260,6 +286,32 @@ enum PanelPresentationMapper {
             return localization.format(.batteryTimeToFullHours, hours)
         }
         return localization.format(.batteryTimeToFullHoursMinutes, hours, remainingMinutes)
+    }
+
+    /// IOKit's time-to-full estimate targets 100%. When macOS holds the battery
+    /// at a lower charge limit, the system's own estimate targets that limit, so
+    /// scale the remaining energy to the remaining percentage up to the limit.
+    /// Charge to Full Now overrides the limit, so it keeps the 100% target.
+    static func chargeTimeEstimate(
+        _ battery: BatteryStatus,
+        chargeToFullNow: ChargeToFullNowPresentation
+    ) -> (minutes: Int?, targetPercent: Int?) {
+        let raw = battery.timeToFullChargeMinutes
+        guard let raw, raw > 0 else { return (raw, nil) }
+        if chargeToFullNow.isChargingToFull || chargeToFullNow.isApplying {
+            return (raw, nil)
+        }
+        guard let limit = battery.chargeLimitPercent,
+              (1..<100).contains(limit) else { return (raw, nil) }
+        let current = battery.rawPercentage.map { min(100, max(0, $0)) }
+            ?? battery.percentage
+        guard current < limit else { return (raw, nil) }
+        let remainingToFull = 100 - current
+        guard remainingToFull > 0 else { return (raw, nil) }
+        let scaled = Int(
+            (Double(raw) * Double(limit - current) / Double(remainingToFull)).rounded()
+        )
+        return (scaled > 0 ? scaled : nil, limit)
     }
 
     static func batteryRuntimeText(
@@ -296,8 +348,13 @@ enum PanelPresentationMapper {
         if battery.isCharging {
             // A known estimate always wins, including while Charge to Full Now
             // is running; the click only supplies a placeholder until then.
+            let estimate = chargeTimeEstimate(
+                battery,
+                chargeToFullNow: chargeToFullNow
+            )
             return batteryTimeToFullText(
-                minutes: battery.timeToFullChargeMinutes,
+                minutes: estimate.minutes,
+                targetPercent: estimate.targetPercent,
                 localization: localization
             )
         }

@@ -1,7 +1,3 @@
-"updates.failure.title" = "Échec de la mise à jour";
-"updates.failure.message" = "La mise à jour automatique n’a pas pu être effectuée. Téléchargez le dernier DMG depuis le site officiel et installez-le manuellement.";
-"updates.failure.website" = "Télécharger sur le site officiel";
-
 "menu.version" = "Status Trio %@";
 "menu.settings" = "Réglages…";
 "menu.quit" = "Quitter Status Trio";
@@ -12,6 +8,7 @@
 "menu.window" = "Fenêtre";
 "menu.closeWindow" = "Fermer la fenêtre";
 "menu.checkForUpdates" = "Rechercher les mises à jour…";
+"menu.checkViaGitee" = "Rechercher via Gitee…";
 "menu.openMenuBarSettings" = "Ouvrir les réglages de la barre des menus";
 "settings.title" = "Réglages";
 "settings.page.appearance" = "Apparence";
@@ -260,6 +257,9 @@
 "settings.updates.title" = "Mises à jour";
 "settings.updates.automatic" = "Rechercher automatiquement les mises à jour";
 "settings.updates.check" = "Rechercher les mises à jour…";
+"settings.updates.checkViaGitee" = "Vérifier via Gitee";
+"settings.updates.giteeLaggingTitle" = "Le miroir Gitee peut être en retard";
+"settings.updates.giteeLaggingMessage" = "Gitee ne signale aucune mise à jour pour cette version. Le dernier lancement n’est peut-être pas encore synchronisé. Utilisez Rechercher les mises à jour pour passer par GitHub.";
 "battery.title" = "Batterie · %d%%";
 "battery.title.power" = "Puissance · %d W";
 "battery.title.powerUnavailable" = "Puissance · Indisponible";
@@ -270,6 +270,9 @@
 "battery.timeToFull.minutes" = "Environ %d min avant charge complète";
 "battery.timeToFull.hours" = "Environ %d h avant charge complète";
 "battery.timeToFull.hoursMinutes" = "Environ %d h %d min avant charge complète";
+"battery.timeToChargeLimit.minutes" = "Environ %d min jusqu'à %d%%";
+"battery.timeToChargeLimit.hours" = "Environ %d h jusqu'à %d%%";
+"battery.timeToChargeLimit.hoursMinutes" = "Environ %d h %d min jusqu'à %d%%";
 "battery.state.lowPowerMode" = "Mode économie d’énergie";
 "battery.state.connectedToPower" = "Sur secteur";
 "battery.state.onBattery" = "Sur batterie";
@@ -916,8 +919,9 @@
 
 "settings.popup.scrollWheelStep" = "Pas de la molette";
 "settings.popup.scrollWheelStep.description" = "Variation par cran du volume, de la luminosité et du micro. Le trackpad reste continu.";
-
+"updates.failure.title" = "Échec de la mise à jour";
+"updates.failure.message" = "La mise à jour automatique n’a pas pu être effectuée. Téléchargez le dernier DMG depuis le site officiel et installez-le manuellement.";
+"updates.failure.website" = "Télécharger sur le site officiel";
 "settings.brightness.useBetterDisplayCombined" = "Utiliser la luminosité combinée de BetterDisplay";
 "settings.brightness.useBetterDisplayCombined.description" = "La luminosité combinée de BetterDisplay réunit la luminosité matérielle, l'assombrissement logiciel et la marge XDR dans un seul curseur. Elle peut descendre sous le minimum matériel et ne correspond au pourcentage système qu'à 100 %.";
 "settings.brightness.useBetterDisplayCombined.needsApp" = "Installez BetterDisplay pour utiliser cette option.";
-

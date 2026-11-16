@@ -1,7 +1,3 @@
-"updates.failure.title" = "فشل التحديث";
-"updates.failure.message" = "تعذّر إكمال التحديث التلقائي. نزّل أحدث ملف DMG من الموقع الرسمي وثبّته يدويًا.";
-"updates.failure.website" = "تنزيل من الموقع الرسمي";
-
 "menu.version" = "Status Trio %@";
 "menu.settings" = "الإعدادات…";
 "menu.quit" = "إنهاء Status Trio";
@@ -12,6 +8,7 @@
 "menu.window" = "نافذة";
 "menu.closeWindow" = "إغلاق النافذة";
 "menu.checkForUpdates" = "التحقق من وجود تحديثات…";
+"menu.checkViaGitee" = "التحقق من التحديثات عبر Gitee…";
 "menu.openMenuBarSettings" = "فتح إعدادات شريط القوائم";
 "settings.title" = "الإعدادات";
 "settings.page.appearance" = "المظهر";
@@ -243,6 +240,9 @@
 "settings.updates.title" = "التحديثات";
 "settings.updates.automatic" = "التحقق تلقائيًا من وجود تحديثات";
 "settings.updates.check" = "التحقق من وجود تحديثات…";
+"settings.updates.checkViaGitee" = "التحقق عبر Gitee";
+"settings.updates.giteeLaggingTitle" = "قد تتأخر مرآة Gitee";
+"settings.updates.giteeLaggingMessage" = "لا يوفّر Gitee تحديثًا لهذا الإصدار. ربما لم تتم مزامنة أحدث إصدار بعد. استخدم «التحقق من التحديثات» للحصول عليه من GitHub.";
 "battery.title" = "البطارية · %d%%";
 "battery.title.power" = "الطاقة · %d واط";
 "battery.title.powerUnavailable" = "الطاقة · غير متاحة";
@@ -253,6 +253,9 @@
 "battery.timeToFull.minutes" = "نحو %d دقيقة حتى الامتلاء";
 "battery.timeToFull.hours" = "نحو %d ساعة حتى الامتلاء";
 "battery.timeToFull.hoursMinutes" = "نحو %d ساعة و%d دقيقة حتى الامتلاء";
+"battery.timeToChargeLimit.minutes" = "نحو %d دقيقة حتى %d%%";
+"battery.timeToChargeLimit.hours" = "نحو %d ساعة حتى %d%%";
+"battery.timeToChargeLimit.hoursMinutes" = "نحو %d ساعة و%d دقيقة حتى %d%%";
 "battery.state.lowPowerMode" = "وضع الطاقة المنخفضة";
 "battery.state.connectedToPower" = "متصل بالطاقة";
 "battery.state.onBattery" = "على البطارية";
@@ -916,8 +919,9 @@
 
 "settings.popup.scrollWheelStep" = "خطوة ضبط العجلة";
 "settings.popup.scrollWheelStep.description" = "مقدار تغيير الصوت والسطوع والميكروفون لكل نقرة. تظل لوحة التعقب سلسة.";
-
+"updates.failure.title" = "فشل التحديث";
+"updates.failure.message" = "تعذّر إكمال التحديث التلقائي. نزّل أحدث ملف DMG من الموقع الرسمي وثبّته يدويًا.";
+"updates.failure.website" = "تنزيل من الموقع الرسمي";
 "settings.brightness.useBetterDisplayCombined" = "استخدام السطوع المركّب من BetterDisplay";
 "settings.brightness.useBetterDisplayCombined.description" = "يجمع السطوع المركّب في BetterDisplay سطوع العتاد والتعتيم البرمجي وهامش XDR في شريط تمرير واحد. يمكن أن يصبح أغمق من الحد الأدنى للعتاد، ولا يطابق نسبة النظام إلا عند 100%.";
 "settings.brightness.useBetterDisplayCombined.needsApp" = "يلزم تثبيت BetterDisplay لاستخدام هذا الخيار.";
-

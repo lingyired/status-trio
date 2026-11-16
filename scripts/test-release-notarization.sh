@@ -74,7 +74,7 @@ cp "$ROOT/scripts/release.sh" "$TEST_ROOT/repo/scripts/release.sh"
 cp "$ROOT/scripts/build-timing.sh" "$TEST_ROOT/repo/scripts/build-timing.sh"
 mkdir -p "$TEST_ROOT/repo/assets/dmg"
 cp "$ROOT/assets/dmg/background@2x.png" "$TEST_ROOT/repo/assets/dmg/"
-for script in create-installer-dmg.sh package-release.sh publish-release.sh prepare-release-body.sh validate-appcast-notes.sh update-appcast.rb; do
+for script in create-installer-dmg.sh package-release.sh publish-release.sh verify-release-zip.rb prepare-release-body.sh validate-appcast-notes.sh update-appcast.rb; do
     sed -e 's@/usr/bin/codesign@codesign@g' -e 's@/usr/bin/xcrun@xcrun@g' \
         "$ROOT/scripts/$script" > "$TEST_ROOT/repo/scripts/$script"
 done
@@ -193,7 +193,7 @@ case "$name" in
             printf fixture > "${args[${#args[@]}-2]}"
         fi ;;
     ditto)
-        if [[ "$1" != '-c' ]]; then cp -R "$1" "$2"; else touch "${!#}"; fi ;;
+        if [[ "$1" != '-c' ]]; then cp -R "$1" "$2"; else printf 'fixture app archive' > "${!#}"; fi ;;
     xcrun)
         if [[ "$1 $2" == '--sdk macosx' ]]; then
             printf '27.0\n'
@@ -412,6 +412,8 @@ DIAGNOSTIC_MANIFEST="$TEST_ROOT/output/release-manifest.json"
 ruby -rjson -e '
     manifest = JSON.parse(File.read(ARGV[0]))
     abort("diagnostic signature marker missing") unless manifest.dig("dmg", "ed_signature") == "diagnostic-not-for-publication"
+    abort("diagnostic ZIP signature marker missing") unless manifest.dig("zip", "ed_signature") == "diagnostic-not-for-publication"
+    abort("diagnostic ZIP length missing") unless manifest.dig("zip", "length").to_s.match?(/\A[1-9][0-9]*\z/)
     abort("diagnostic package was not Ad-hoc") unless manifest.dig("signing", "kind") == "ad_hoc"
     abort("diagnostic package was notarized") unless manifest.dig("notarization", "status") == "not_requested"
 ' "$DIAGNOSTIC_MANIFEST"
@@ -489,6 +491,9 @@ ruby -e '
   ].map { |parts| locate(lines, *parts) }
   abort "incorrect sign/notary/staple order" unless operations == operations.sort && operations.uniq.length == operations.length
   abort "unexpected duplicate submissions" unless lines.count { |line| line.include?("<submit>") } == 2
+  app_zip = locate(lines, "ditto", "<--sequesterRsrc>")
+  abort "ZIP must follow app staple" unless app_zip > locate(lines, "xcrun", "<staple>", ".app>")
+
   abort "publishing reached" if lines.any? { |line| line.start_with?("gh ") }
 ' "$TRACE"
 

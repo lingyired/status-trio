@@ -3,6 +3,7 @@
 # recovery run is allowed to write a Tag, Release, asset, or appcast item.
 set -euo pipefail
 
+ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
 WORKFLOW_PATH=".github/workflows/release.yml"
 CANDIDATE_WORKFLOW_PATH="${GITHUB_WORKSPACE:-$(pwd)}/$WORKFLOW_PATH"
 ARTIFACT_NAME="status-trio-release-package"
@@ -300,6 +301,10 @@ File.write(
   ].join("\n") + "\n"
 )
 RUBY
+
+if [[ -n "${MANIFEST_PATH:-}" ]]; then
+    ruby "$ROOT/scripts/verify-release-zip.rb" "$MANIFEST_PATH" "$(dirname "$MANIFEST_PATH")" >/dev/null
+fi
 
 if grep -Fqx 'source_mode=failed_publish' "$METADATA_PATH"; then
     source_label="failed-publish source run"

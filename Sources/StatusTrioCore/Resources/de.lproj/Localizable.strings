@@ -1,7 +1,3 @@
-"updates.failure.title" = "Update fehlgeschlagen";
-"updates.failure.message" = "Das automatische Update konnte nicht abgeschlossen werden. Lade die neueste DMG von der offiziellen Website herunter und installiere sie manuell.";
-"updates.failure.website" = "Von der Website laden";
-
 "menu.version" = "Status Trio %@";
 "menu.settings" = "Einstellungen…";
 "menu.quit" = "Status Trio beenden";
@@ -12,6 +8,7 @@
 "menu.window" = "Fenster";
 "menu.closeWindow" = "Fenster schließen";
 "menu.checkForUpdates" = "Nach Updates suchen…";
+"menu.checkViaGitee" = "Über Gitee nach Updates suchen…";
 "menu.openMenuBarSettings" = "Menüleisten-Einstellungen öffnen";
 "settings.title" = "Einstellungen";
 "settings.page.appearance" = "Erscheinungsbild";
@@ -260,6 +257,9 @@
 "settings.updates.title" = "Updates";
 "settings.updates.automatic" = "Automatisch nach Updates suchen";
 "settings.updates.check" = "Nach Updates suchen…";
+"settings.updates.checkViaGitee" = "Über Gitee prüfen";
+"settings.updates.giteeLaggingTitle" = "Der Gitee-Spiegel kann hinter GitHub zurückliegen";
+"settings.updates.giteeLaggingMessage" = "Gitee meldet für diese Version kein Update. Die neueste Veröffentlichung ist möglicherweise noch nicht gespiegelt. Nutze „Nach Updates suchen“, um über GitHub zu aktualisieren.";
 "battery.title" = "Batterie · %d%%";
 "battery.title.power" = "Leistung · %d W";
 "battery.title.powerUnavailable" = "Leistung · Nicht verfügbar";
@@ -270,6 +270,9 @@
 "battery.timeToFull.minutes" = "Noch ca. %d Min. bis voll";
 "battery.timeToFull.hours" = "Noch ca. %d Std. bis voll";
 "battery.timeToFull.hoursMinutes" = "Noch ca. %d Std. %d Min. bis voll";
+"battery.timeToChargeLimit.minutes" = "Noch ca. %d Min. bis %d%%";
+"battery.timeToChargeLimit.hours" = "Noch ca. %d Std. bis %d%%";
+"battery.timeToChargeLimit.hoursMinutes" = "Noch ca. %d Std. %d Min. bis %d%%";
 "battery.state.lowPowerMode" = "Energiesparmodus";
 "battery.state.connectedToPower" = "Mit Netzstrom verbunden";
 "battery.state.onBattery" = "Im Batteriebetrieb";
@@ -916,8 +919,9 @@
 
 "settings.popup.scrollWheelStep" = "Schrittweite des Mausrads";
 "settings.popup.scrollWheelStep.description" = "Änderung pro Raste für Lautstärke, Helligkeit und Mikrofon. Trackpad bleibt stufenlos.";
-
+"updates.failure.title" = "Update fehlgeschlagen";
+"updates.failure.message" = "Das automatische Update konnte nicht abgeschlossen werden. Lade die neueste DMG von der offiziellen Website herunter und installiere sie manuell.";
+"updates.failure.website" = "Von der Website laden";
 "settings.brightness.useBetterDisplayCombined" = "BetterDisplay-Kombinationshelligkeit verwenden";
 "settings.brightness.useBetterDisplayCombined.description" = "Die Kombinationshelligkeit von BetterDisplay fasst Hardware-Helligkeit, Software-Dimmung und XDR-Reserve in einem Regler zusammen. Sie kann dunkler als das Hardware-Minimum werden und stimmt nur bei 100 % mit dem Systemprozentsatz überein.";
 "settings.brightness.useBetterDisplayCombined.needsApp" = "BetterDisplay muss installiert sein, um diese Option zu nutzen.";
-
