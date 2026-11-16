@@ -15,7 +15,7 @@ for text in 'GITEE_TOKEN' 'secrets.' 'xcodebuild' 'notarytool' 'contents: write'
     forbid "$WORKFLOW" "$text"
 done
 require "$RELEASE" 'Gitee mirror pending local Agent sync'
-require "$RELEASE" 'node scripts/gitee-mirror-agent.mjs sync'
+require "$RELEASE" 'node scripts/gitee-mirror-agent.mjs auto'
 forbid "$RELEASE" 'actions/workflows/gitee-sync.yml/dispatches'
 if awk '/^  publish:/{inside=1} inside{print}' "$RELEASE" | grep -Fq 'actions: write'; then
     fail 'publish must not retain mirror workflow dispatch permissions'

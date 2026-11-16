@@ -15,6 +15,8 @@ struct UpdateCycleState {
 
     var isActive: Bool { phase != .idle }
 
+    private(set) var isManual = false
+
     var isGiteeFirstCycle: Bool { isActive && preference == .giteeFirst }
 
     mutating func advanceForTest(_ error: Error?) -> Bool {
@@ -26,9 +28,13 @@ struct UpdateCycleState {
     }
 
     mutating func beginManual(preference: UpdatePreference) -> Bool {
-        guard !isActive else { return false }
+        // A feedURL lookup at Sparkle startup can create an idle automatic
+        // context. Manual checks are allowed to replace that context; a real
+        // manual cycle is still protected by canCheckForUpdates.
+        guard !isActive || !isManual else { return false }
         self.preference = preference
         self.fallback = UpdateSourceFallback(preference: preference)
+        isManual = true
         phase = .checking
         return true
     }
@@ -37,6 +43,7 @@ struct UpdateCycleState {
         guard !isActive else { return false }
         preference = .githubFirst
         fallback = UpdateSourceFallback(preference: .githubFirst)
+        isManual = false
         phase = .checking
         return true
     }
@@ -85,6 +92,7 @@ struct UpdateCycleState {
     /// Ends the cycle and makes the next background check GitHub-first again.
     mutating func finish() {
         phase = .idle
+        isManual = false
         preference = .githubFirst
         fallback = UpdateSourceFallback()
     }

@@ -766,6 +766,6 @@ jobs:
             echo '### Gitee mirror pending local Agent sync'
             echo "GitHub release $TAG is public. Mirror it from a local network after publication."
             echo 'Run the gitee-release-sync Skill with:'
-            printf '\x60node scripts/gitee-mirror-agent.mjs sync %s\x60\n' "$TAG"
+            printf '\x60node scripts/gitee-mirror-agent.mjs auto %s\x60\n' "$TAG"
             echo 'Only verified public GitHub artifacts are mirrored; a mirror failure never rolls back GitHub.'
           } >> "$GITHUB_STEP_SUMMARY"

@@ -18,18 +18,24 @@ export function resolveToken(env = process.env, readKeychain = execFileSync) {
 
 export async function runAgentMirror(args, env = process.env, run = synchronize, readKeychain = execFileSync) {
   const [mode, tag] = args;
-  if (args.length !== 2 || !['check', 'sync', 'verify'].includes(mode) || !/^v[0-9]+(?:[.][0-9]+)*(?:[-.][A-Za-z0-9]+)*$/.test(tag ?? '')) {
-    throw new Error('Usage: node scripts/gitee-mirror-agent.mjs check|sync|verify <tag>');
+  if (args.length !== 2 || !['check', 'sync', 'verify', 'auto'].includes(mode) || !/^v[0-9]+(?:[.][0-9]+)*(?:[-.][A-Za-z0-9]+)*$/.test(tag ?? '')) {
+    throw new Error('Usage: node scripts/gitee-mirror-agent.mjs check|sync|verify|auto <tag>');
   }
-  return run({
-    mode, tag,
+  const base = {
+    tag,
     github: env.GITHUB_REPOSITORY || 'lingyired/status-trio',
     gitee: env.GITEE_REPOSITORY || 'lingyired/status-trio',
     feedURL: env.GITEE_FEED_URL,
     githubToken: env.GH_TOKEN,
     localZip: env.GITEE_LOCAL_ZIP,
-    token: mode === 'sync' ? resolveToken(env, readKeychain) : undefined,
-  });
+  };
+  if (mode === 'auto') {
+    const token = resolveToken(env, readKeychain);
+    const sync = await run({ ...base, mode: 'sync', token });
+    const verify = await run({ ...base, mode: 'verify' });
+    return { mode, tag, sync, verify };
+  }
+  return run({ ...base, mode, token: mode === 'sync' ? resolveToken(env, readKeychain) : undefined });
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {

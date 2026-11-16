@@ -29,6 +29,13 @@ test('sync uses the same core and credentials without logging them', async () =>
 test('invalid command fails before credentials or network', async()=>{
   await assert.rejects(runAgentMirror(['publish','v1.9.6'],{},()=>{throw Error('network');},()=>{throw Error('keychain');}),/Usage/);
 });
+test('auto runs sync then verify', async()=>{
+  const calls=[];
+  const result=await runAgentMirror(['auto','v1.9.6'],{GITEE_TOKEN:'test-token'},async c=>{calls.push(c.mode);return {mode:c.mode};},()=>{throw Error('must use env token');});
+  assert.deepEqual(calls,['sync','verify']);
+  assert.equal(result.verify.mode,'verify');
+});
+
 test('release completion only records local agent handoff',()=>{
   const release=readFileSync('.github/workflows/release.yml','utf8');
   assert.equal(release.includes('actions/workflows/gitee-sync.yml/dispatches'),false);

@@ -20,6 +20,17 @@ struct UpdateCycleStateTests {
     }
 
     @Test
+    func manualCheckCanReplaceStartupAutomaticContext() {
+        var cycle = UpdateCycleState()
+        let automatic = cycle.beginAutomaticIfIdle()
+        #expect(automatic)
+        let manual = cycle.beginManual(preference: .giteeFirst)
+        #expect(manual)
+        #expect(cycle.isManual)
+        #expect(cycle.preference == .giteeFirst)
+    }
+
+    @Test
     func secondCycleAndAutomaticStartAreRejectedWhileActive() {
         var cycle = UpdateCycleState()
         let first = cycle.beginManual(preference: .giteeFirst)

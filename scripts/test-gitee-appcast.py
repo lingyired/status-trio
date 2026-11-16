@@ -8,7 +8,7 @@ class AppcastTests(unittest.TestCase):
         xml = '''<?xml version="1.0"?><rss xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle"><channel><item><description xml:lang="zh-Hans"><![CDATA[<enclosure url="fake"/>中文]]></description><sparkle:version>42</sparkle:version><enclosure url="https://github.com/o/r/releases/download/v1/a.dmg" sparkle:edSignature="signed" length="3"/><sparkle:minimumSystemVersion>13.0</sparkle:minimumSystemVersion></item></channel></rss>'''.encode()
         old = 'https://github.com/o/r/releases/download/v1/a.dmg'
         new = 'https://gitee.com/o/r/attach_files/1/download/a.dmg'
-        self.assertEqual(helper.derive(xml, {old: {'url': new, 'length': 3, 'signature': 'signed'}}), xml.replace(old.encode(), new.encode()))
+        self.assertEqual(helper.derive(xml, {old: {'url': new, 'length': 3, 'signature': 'signed'}}), xml.replace(old.encode(), new.encode()).replace(b"<![CDATA[", "<![CDATA[<p><strong>更新源：Gitee</strong></p>".encode()))
         with self.assertRaises(ValueError):
             helper.derive(xml, {old: {'url': new, 'length': 4, 'signature': 'signed'}})
     def test_prunes_unmirrored_items_and_leaves_no_github_urls(self):

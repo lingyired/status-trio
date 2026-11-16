@@ -36,6 +36,7 @@ JSON manifest 的新字段：
 本地 AI Agent 执行（不依赖 GitHub 海外 Runner）：
 
     node scripts/gitee-mirror-agent.mjs check vX.Y.Z
+    node scripts/gitee-mirror-agent.mjs auto vX.Y.Z
     node scripts/gitee-mirror-agent.mjs sync vX.Y.Z
     node scripts/gitee-mirror-agent.mjs verify vX.Y.Z
 
@@ -43,6 +44,10 @@ JSON manifest 的新字段：
 重新计算 SHA-256，然后从正式 appcast 派生 `appcast-gitee.xml`：只保留已镜像的
 版本，enclosure URL 指向 Gitee ZIP，`length` 和 `sparkle:edSignature` 改为 ZIP
 的值，绝不包含 GitHub 地址。Feed 完整验证后才写 Gitee 分支文件。
+Gitee Feed 的中文说明顶部固定加 `更新源：Gitee`（繁体为 `更新來源：Gitee`）；
+其他语言不添加来源行。
+
+发布后默认运行 `auto`：先同步 ZIP 和 Feed，再立即回读 `verify`。
 
 本地凭据从当前进程的 `GITEE_TOKEN` 或 macOS 钥匙串读取：
 service `status-trio.gitee-token`，account `lingyired`。Token 不进入对话、日志、

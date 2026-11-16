@@ -105,6 +105,11 @@ def derive(xml, mappings, mirror_repo=None):
         )
     if b'github.com' in xml or b'githubusercontent.com' in xml:
         raise ValueError('Gitee feed still contains a GitHub URL')
+    # Identify the mirror in Chinese release notes without changing archive identity.
+    for language, label in [('zh-Hans', '更新源：Gitee'), ('zh-Hant', '更新來源：Gitee')]:
+        prefix = ('<description xml:lang="' + language + '"><![CDATA[').encode()
+        marker = ('<p><strong>' + label + '</strong></p>').encode()
+        xml = xml.replace(prefix, prefix + marker)
     expat.ParserCreate().Parse(xml, True)
     return xml
 

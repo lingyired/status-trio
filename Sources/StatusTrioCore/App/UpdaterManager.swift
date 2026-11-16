@@ -98,21 +98,6 @@ final class UpdaterManager: NSObject, ObservableObject, SPUUpdaterDelegate {
         updateCycle.resetForTest()
     }
 
-    func feedURLStringLegacy(for updater: SPUUpdater) -> String? {
-        guard
-            let directURLString = Bundle.main.object(
-                forInfoDictionaryKey: "SUFeedURL"
-            ) as? String
-        else {
-            return nil
-        }
-
-        if !updateCycle.isActive {
-            _ = updateCycle.beginAutomaticIfIdle()
-        }
-        return updateCycle.appcastURLString(from: directURLString)
-    }
-
     func updater(
         _ updater: SPUUpdater,
         willDownloadUpdate item: SUAppcastItem,
