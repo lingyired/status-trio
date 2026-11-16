@@ -41,6 +41,13 @@ protocol HelperReadinessProviding {
     /// re-evaluate against the current battery snapshot instead of waiting for
     /// the next one.
     var readinessPublisher: AnyPublisher<Bool, Never> { get }
+    /// Re-reads the helper's native status/readiness now (called on user action
+    /// so a click never acts on a stale helper state).
+    func refreshStatus()
+}
+
+extension HelperReadinessProviding {
+    func refreshStatus() {}
 }
 
 /// Production provider. Resolves the shared manager lazily so a store that
@@ -52,11 +59,17 @@ struct SharedHelperReadiness: HelperReadinessProviding {
     var readinessPublisher: AnyPublisher<Bool, Never> {
         PrivilegedHelperManager.shared.readinessPublisher
     }
+
+    func refreshStatus() {
+        PrivilegedHelperManager.shared.refresh()
+    }
 }
 
 extension PrivilegedHelperManager: HelperReadinessProviding {
     /// The same `isReady` rule the UI gates the switches with, re-published so
     /// the automation can re-evaluate when approval or responsiveness lands.
+    func refreshStatus() { refresh() }
+
     var readinessPublisher: AnyPublisher<Bool, Never> {
         Publishers.CombineLatest3($isEnabled, $status, $isHelperResponsive)
             .map { enabled, status, isResponsive in

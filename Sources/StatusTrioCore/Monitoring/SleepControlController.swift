@@ -414,6 +414,9 @@ final class SleepControlController: ObservableObject {
     /// an in-flight enable cannot leave the system on battery with the lid awake.
     func setLidSleep(_ enabled: Bool) {
         guard !isStopped else { return }
+        // Re-fetch the helper's state on every user click so it never acts on a
+        // stale readiness/external value.
+        helperReadiness.refreshStatus()
         if enabled {
             guard canEnableLidSleep else { return }
         }
