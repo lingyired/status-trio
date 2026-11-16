@@ -220,32 +220,36 @@ struct HardwareRingColorConfiguration: Codable, Equatable, Hashable, Sendable {
         try container.encode(thresholdColors, forKey: .thresholdColors)
     }
 
+    // MARK: - Apple-Silicon cool-glass palette (default identity colours)
+
+    static let cpuColor = IconRGBA(red: 0.262745, green: 0.788235, blue: 0.478431, alpha: 1)      // #43C97A
+    static let gpuColor = IconRGBA(red: 0.290196, green: 0.564706, blue: 1.000000, alpha: 1)      // #4A90FF
+    static let memoryColor = IconRGBA(red: 0.643137, green: 0.466667, blue: 0.960784, alpha: 1)   // #A477F5
+    static let solidStateDriveColor = IconRGBA(red: 0.666667, green: 0.709804, blue: 0.784314, alpha: 1) // #AAB5C8
+    static let cpuTemperatureColor = IconRGBA(red: 0.207843, green: 0.749020, blue: 0.811765, alpha: 1)  // #35BFCF
+    static let batteryTemperatureColor = IconRGBA(red: 0.211765, green: 0.678431, blue: 0.643137, alpha: 1) // #36ADA4
+    static let fanColor = IconRGBA(red: 0.545098, green: 0.643137, blue: 0.764706, alpha: 1)      // #8BA4C3
+    static let downloadColor = IconRGBA(red: 0.192157, green: 0.725490, blue: 0.521569, alpha: 1) // #31B985
+    static let uploadColor = IconRGBA(red: 0.949020, green: 0.639216, blue: 0.294118, alpha: 1)   // #F2A34B
+
     /// The recommended base colour for a metric (the default of the shared
     /// per-metric colour; used until the user picks a custom one).
     static func recommendedBaseColor(for metric: HardwareMonitorMetric) -> IconRGBA {
         switch metric {
-        case .cpuUsage:
-            return IconRGBA(red: 0.20, green: 0.72, blue: 0.36, alpha: 1)
-        case .gpuUsage:
-            return IconRGBA(red: 0.20, green: 0.51, blue: 0.95, alpha: 1)
-        case .memoryUsage:
-            return IconRGBA(red: 0.60, green: 0.36, blue: 0.85, alpha: 1)
-        case .cpuTemperature:
-            return IconRGBA(red: 0.13, green: 0.69, blue: 0.75, alpha: 1)
-        case .batteryTemperature:
-            return IconRGBA(red: 0.16, green: 0.66, blue: 0.62, alpha: 1)
-        case .fan:
-            return IconRGBA(red: 0.45, green: 0.55, blue: 0.68, alpha: 1)
-        case .downloadSpeed:
-            return IconRGBA(red: 0.20, green: 0.70, blue: 0.45, alpha: 1)
-        case .uploadSpeed:
-            return IconRGBA(red: 0.95, green: 0.60, blue: 0.20, alpha: 1)
+        case .cpuUsage: cpuColor
+        case .gpuUsage: gpuColor
+        case .memoryUsage: memoryColor
+        case .cpuTemperature: cpuTemperatureColor
+        case .batteryTemperature: batteryTemperatureColor
+        case .fan: fanColor
+        case .downloadSpeed: downloadColor
+        case .uploadSpeed: uploadColor
         }
     }
 
     /// Fixed warning / critical tints shared by every metric (whole-arc recolor).
-    static let warningColor = IconRGBA(red: 0.98, green: 0.60, blue: 0.10, alpha: 1)
-    static let criticalColor = IconRGBA(red: 0.88, green: 0.21, blue: 0.21, alpha: 1)
+    static let warningColor = IconRGBA(red: 0.960784, green: 0.647059, blue: 0.141176, alpha: 1)  // #F5A524
+    static let criticalColor = IconRGBA(red: 0.894118, green: 0.329412, blue: 0.329412, alpha: 1) // #E45454
 }
 
 /// The complete internal configuration of the `hardwareMonitor` outer-ring

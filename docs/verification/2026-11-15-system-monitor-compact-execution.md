@@ -65,3 +65,14 @@
 - Phase5 离屏布局在 999KB/1.0MB/125MB/1.3GB、0、—、过期等边界下高度稳定。
 - 聚焦测试 122 项通过；完整档 verify-local full 结果见下。
 
+
+
+## 追加：系统监控默认配色优化（2026-11-16）
+
+- 默认身份色统一为 Apple-Silicon 冷光玻璃色板：CPU #43C97A、GPU #4A90FF、RAM #A477F5、SSD #AAB5C8、CPU 温度 #35BFCF、电池温度 #36ADA4、风扇 #8BA4C3、下载 #31B985、上传 #F2A34B。
+- 状态色：Warning #F5A524、Critical #E45454。
+- 颜色仍集中在 HardwareRingColorConfiguration（新增命名常量 + solidStateDriveColor）；菜单栏/Dock/设置/预览/面板共用同一来源；SSD 改为复用共享常量，不再硬编码。
+- 自定义颜色优先，未自定义时用新默认；清空自定义即恢复新色板。序列化结构未变。
+- 测试：新增 HardwareRingDefaultColorTests（精确默认值、状态色、自定义不被覆盖、重置回默认）。
+- Liquid Glass 高光未改 renderer（按计划为可选，避免性能回归）。
+

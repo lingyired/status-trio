@@ -54,7 +54,7 @@ struct HardwareRingStrip: View {
         case .ssd:
             let center = disk.freeText
             return (percentText(nil), center, disk.usedFraction ?? 0,
-                    IconRGBA(red: 0.55, green: 0.58, blue: 0.66, alpha: 1), fittedCenterScale(center, base: 0.8))
+                    HardwareRingColorConfiguration.solidStateDriveColor, fittedCenterScale(center, base: 0.8))
         }
     }
 
