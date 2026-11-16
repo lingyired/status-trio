@@ -112,12 +112,7 @@ struct QuickActionsCardView: View {
             role: .lidAwake,
             title: localization.string(.quickActionsLidSleep),
             help: localization.string(.quickActionsLidSleepDescription),
-            subtitle: subtitle(
-                isOn: control.isPreventingLidSleep,
-                expiry: control.lidExpiry,
-                timer: control.lidTimer,
-                now: now
-            ),
+            subtitle: lidSubtitle(now: now),
             progress: progress(
                 isOn: control.isPreventingLidSleep,
                 expiry: control.lidExpiry,
@@ -169,6 +164,21 @@ struct QuickActionsCardView: View {
         )
     }
 
+    /// The lid pill's second line: keep "已关闭" and append the reason it can't
+    /// be turned on (e.g. "接通电源后才能开启") right under it, inside the pill.
+    private func lidSubtitle(now: Date) -> String {
+        let base = subtitle(
+            isOn: control.isPreventingLidSleep,
+            expiry: control.lidExpiry,
+            timer: control.lidTimer,
+            now: now
+        )
+        if !control.isPreventingLidSleep, control.lidUnavailableReason == .requiresPower {
+            return base + "\n" + localization.string(.quickActionsRequiresPower)
+        }
+        return base
+    }
+
     private func progress(
         isOn: Bool,
         expiry: Date?,
@@ -200,7 +210,8 @@ struct QuickActionsCardView: View {
         if shouldShowLid, let external = control.lidSleepExternalState {
             return (localization.string(external.localizationKey), .secondary)
         }
-        if shouldShowLid, !control.isPreventingLidSleep, let reason = control.lidUnavailableReason {
+        if shouldShowLid, !control.isPreventingLidSleep,
+           let reason = control.lidUnavailableReason, reason != .requiresPower {
             return (localization.string(reason.localizationKey), .secondary)
         }
         if let notice = control.notice {
