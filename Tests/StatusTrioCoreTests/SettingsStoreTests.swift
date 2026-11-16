@@ -1494,7 +1494,7 @@ final class SettingsStoreTests: XCTestCase {
 
         XCTAssertEqual(
             store.popupSectionOrder,
-            [.battery, .quickActions, .network, .vpn, .bluetooth, .volume, .audioInput, .brightness, .inputSource, .hardwareMonitor]
+            [.hardwareMonitor, .battery, .quickActions, .network, .vpn, .bluetooth, .volume, .audioInput, .brightness, .inputSource]
         )
     }
 
@@ -1672,7 +1672,7 @@ final class SettingsStoreTests: XCTestCase {
         let store = SettingsStore(defaults: suite.defaults)
         XCTAssertEqual(
             store.popupSectionOrder,
-            [.volume, .battery, .quickActions, .network, .vpn, .bluetooth, .audioInput, .brightness, .inputSource, .hardwareMonitor]
+            [.volume, .battery, .hardwareMonitor, .quickActions, .network, .vpn, .bluetooth, .audioInput, .brightness, .inputSource]
         )
         XCTAssertFalse(store.enabledPopupSections.contains(.audioInput))
         store.setPopupSection(.audioInput, enabled: true)
@@ -1692,8 +1692,8 @@ final class SettingsStoreTests: XCTestCase {
 
         let first = SettingsStore(defaults: suite.defaults)
         let expectedOrder: [PopupSection] = [
-            .inputSource, .volume, .battery, .quickActions, .network, .vpn, .bluetooth, .audioInput,
-            .brightness, .hardwareMonitor
+            .inputSource, .volume, .battery, .hardwareMonitor, .quickActions, .network, .vpn, .bluetooth, .audioInput,
+            .brightness
         ]
         XCTAssertEqual(first.popupSectionOrder, expectedOrder)
         XCTAssertEqual(first.enabledPopupSections, [.volume])
@@ -1714,11 +1714,11 @@ final class SettingsStoreTests: XCTestCase {
         XCTAssertFalse(SettingsStore(defaults: suite.defaults).enabledPopupSections.contains(.hardwareMonitor))
     }
 
-    func testHardwareMonitorIsLastAndDisabledOnFreshInstall() {
+    func testHardwareMonitorIsFirstAndDisabledOnFreshInstall() {
         let suite = makeSuite()
         defer { clear(suite) }
         let store = SettingsStore(defaults: suite.defaults)
-        XCTAssertEqual(store.popupSectionOrder.last, .hardwareMonitor)
+        XCTAssertEqual(store.popupSectionOrder.first, .hardwareMonitor)
         XCTAssertFalse(store.enabledPopupSections.contains(.hardwareMonitor))
         // A fresh install must not freeze today's default order on disk, or
         // sections added in later releases could never reach this user.
@@ -1748,7 +1748,7 @@ final class SettingsStoreTests: XCTestCase {
 
         XCTAssertEqual(
             first.popupSectionOrder,
-            [.battery, .quickActions, .network, .vpn, .bluetooth, .volume, .audioInput, .brightness, .inputSource, .hardwareMonitor]
+            [.hardwareMonitor, .battery, .quickActions, .network, .vpn, .bluetooth, .volume, .audioInput, .brightness, .inputSource]
         )
         XCTAssertEqual(
             first.visiblePopupSections,
@@ -1774,11 +1774,11 @@ final class SettingsStoreTests: XCTestCase {
 
         XCTAssertEqual(
             store.popupSectionOrder,
-            [.bluetooth, .battery, .quickActions, .network, .vpn, .volume, .audioInput, .brightness, .inputSource, .hardwareMonitor]
+            [.vpn, .hardwareMonitor, .battery, .quickActions, .network, .bluetooth, .volume, .audioInput, .brightness, .inputSource]
         )
         XCTAssertEqual(
             SettingsStore(defaults: suite.defaults).popupSectionOrder,
-            [.bluetooth, .battery, .quickActions, .network, .vpn, .volume, .audioInput, .brightness, .inputSource, .hardwareMonitor]
+            [.vpn, .hardwareMonitor, .battery, .quickActions, .network, .bluetooth, .volume, .audioInput, .brightness, .inputSource]
         )
     }
 
@@ -1795,7 +1795,7 @@ final class SettingsStoreTests: XCTestCase {
 
         XCTAssertEqual(
             store.popupSectionOrder,
-            [.volume, .network, .battery, .quickActions, .vpn, .bluetooth, .audioInput, .brightness, .inputSource, .hardwareMonitor]
+            [.volume, .network, .hardwareMonitor, .battery, .quickActions, .vpn, .bluetooth, .audioInput, .brightness, .inputSource]
         )
     }
 
