@@ -195,6 +195,11 @@ final class SettingsStore: ObservableObject {
     /// Display IDs the user unchecked in the new Brightness settings tab. The
     /// status panel's brightness section leaves those displays out.
     static let hiddenBrightnessDisplayIDsDefaultsKey = "hiddenBrightnessDisplayIDs"
+    /// When true, displays driven through BetterDisplay read and write its
+    /// "combined brightness" scale (hardware + software dimming + XDR) instead
+    /// of the hardware scale, so the panel matches BetterDisplay's own numbers
+    /// (issue #344). Requires BetterDisplay; off by default.
+    static let useBetterDisplayCombinedBrightnessDefaultsKey = "useBetterDisplayCombinedBrightness"
     static let popupSectionOrderDefaultsKey = "popupSectionOrder"
     static let enabledPopupSectionsDefaultsKey = "enabledPopupSections"
     /// Default order of the status-panel sections. Display brightness sits below
@@ -1237,6 +1242,18 @@ final class SettingsStore: ObservableObject {
         }
     }
 
+    /// Whether BetterDisplay-backed displays should use BetterDisplay's
+    /// combined-brightness scale instead of the hardware scale. See
+    /// `useBetterDisplayCombinedBrightnessDefaultsKey`.
+    @Published var useBetterDisplayCombinedBrightness: Bool {
+        didSet {
+            defaults.set(
+                useBetterDisplayCombinedBrightness,
+                forKey: Self.useBetterDisplayCombinedBrightnessDefaultsKey
+            )
+        }
+    }
+
     @Published var showsBluetoothDeviceList: Bool {
         didSet {
             defaults.set(
@@ -2107,6 +2124,9 @@ final class SettingsStore: ObservableObject {
         // #315 migration inputs: the old two booleans plus the connected choice.
         let legacyShowsPercentage = defaults.object(forKey: Self.showsBatteryPercentageDefaultsKey) as? Bool ?? true
         self.showsBatteryPowerFlow = defaults.object(forKey: Self.showsBatteryPowerFlowDefaultsKey) as? Bool ?? true
+        self.useBetterDisplayCombinedBrightness = defaults.object(
+            forKey: Self.useBetterDisplayCombinedBrightnessDefaultsKey
+        ) as? Bool ?? false
         self.showsBatteryPowerInfoBar = defaults.object(forKey: Self.showsBatteryPowerInfoBarDefaultsKey) as? Bool ?? false
         self.showsKeepScreenButton = defaults.object(forKey: Self.showsKeepScreenButtonDefaultsKey) as? Bool ?? true
         self.showsLidSleepButton = defaults.object(forKey: Self.showsLidSleepButtonDefaultsKey) as? Bool ?? true

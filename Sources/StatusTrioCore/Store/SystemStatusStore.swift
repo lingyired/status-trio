@@ -207,6 +207,7 @@ final class SystemStatusStore: ObservableObject {
     private var externalVolumeSettingsCancellable: AnyCancellable?
     private weak var boundExternalVolumeSettings: SettingsStore?
     private var externalBrightnessSettingsCancellable: AnyCancellable?
+    private var brightnessScaleSettingsCancellable: AnyCancellable?
     private weak var boundExternalBrightnessSettings: SettingsStore?
     private var localIPSettingsCancellable: AnyCancellable?
     private var applicationEnergySettingsCancellable: AnyCancellable?
@@ -658,6 +659,8 @@ final class SystemStatusStore: ObservableObject {
         inputSettingsCancellable = nil
         externalVolumeSettingsCancellable?.cancel()
         externalVolumeSettingsCancellable = nil
+        brightnessScaleSettingsCancellable?.cancel()
+        brightnessScaleSettingsCancellable = nil
         applicationEnergySettingsCancellable?.cancel()
         applicationEnergySettingsCancellable = nil
         batteryDetails.energyApps.stop()
@@ -1181,6 +1184,14 @@ final class SystemStatusStore: ObservableObject {
             .removeDuplicates()
             .sink { [weak self] configurations in
                 self?.brightnessMonitor.setExternalBrightnessConfigurations(configurations)
+            }
+        brightnessMonitor.setUseBetterDisplayCombinedBrightness(
+            settings.useBetterDisplayCombinedBrightness
+        )
+        brightnessScaleSettingsCancellable = settings.$useBetterDisplayCombinedBrightness
+            .removeDuplicates()
+            .sink { [weak self] enabled in
+                self?.brightnessMonitor.setUseBetterDisplayCombinedBrightness(enabled)
             }
     }
 

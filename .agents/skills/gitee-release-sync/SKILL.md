@@ -11,10 +11,13 @@ DMG，Gitee 使用同一 app 生成的 ZIP。不要重建、重签 app，也不�
 ## 命令
 
     node scripts/gitee-mirror-agent.mjs check vX.Y.Z
+    node scripts/gitee-mirror-agent.mjs auto vX.Y.Z
     node scripts/gitee-mirror-agent.mjs sync vX.Y.Z
     node scripts/gitee-mirror-agent.mjs verify vX.Y.Z
 
-`check` / `verify` 只读；`sync` 使用同一核心脚本同步 ZIP，成功后必须再跑 `verify`。
+`check` / `verify` 只读；`sync` 使用同一核心脚本同步 ZIP；`auto` 会自动执行
+`sync` 后紧接着 `verify`，这是发布后由本地 Agent 执行的默认流程。发布工作流
+本身只记录待同步 tag，不直接上传 Gitee。
 
 ## 凭据
 
@@ -22,6 +25,12 @@ Agent 进程优先读 `GITEE_TOKEN`，否则读 macOS 钥匙串通用密码：
 service `status-trio.gitee-token`，account `lingyired`。一次性配置后无需用户终端；
 Token 不进入聊天、日志、命令行或仓库。GitHub Secret 不可读出；不要把 Token 文本
 贴到对话里。
+
+## 中文更新日志来源标记
+
+Gitee 派生 Feed 的中文说明顶部必须加来源提示：`zh-Hans` 写
+`更新源：Gitee`，`zh-Hant` 写 `更新來源：Gitee`。目前只写中文，其他语言保持
+原文，不添加来源行；该行不能改变原更新日志正文。
 
 ## 必须保留的验证
 

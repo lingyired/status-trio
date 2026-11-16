@@ -270,6 +270,9 @@
 "battery.timeToFull.minutes" = "До полного заряда около %d мин";
 "battery.timeToFull.hours" = "До полного заряда около %d ч";
 "battery.timeToFull.hoursMinutes" = "До полного заряда около %d ч %d мин";
+"battery.timeToChargeLimit.minutes" = "Около %d мин до %d%%";
+"battery.timeToChargeLimit.hours" = "Около %d ч до %d%%";
+"battery.timeToChargeLimit.hoursMinutes" = "Около %d ч %d мин до %d%%";
 "battery.state.lowPowerMode" = "Режим энергосбережения";
 "battery.state.connectedToPower" = "Питание от сети";
 "battery.state.onBattery" = "От батареи";
@@ -955,3 +958,6 @@
 "updates.failure.title" = "Ошибка обновления";
 "updates.failure.message" = "Не удалось выполнить автоматическое обновление. Скачайте последнюю версию DMG с официального сайта и установите её вручную.";
 "updates.failure.website" = "Скачать с сайта";
+"settings.brightness.useBetterDisplayCombined" = "Использовать комбинированную яркость BetterDisplay";
+"settings.brightness.useBetterDisplayCombined.description" = "Комбинированная яркость BetterDisplay объединяет аппаратную яркость, программное затемнение и запас XDR в одном регуляторе. Она может быть ниже аппаратного минимума и совпадает с системным процентом только при 100 %.";
+"settings.brightness.useBetterDisplayCombined.needsApp" = "Для этой опции требуется установить BetterDisplay.";

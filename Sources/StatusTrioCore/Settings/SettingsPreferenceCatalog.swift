@@ -63,7 +63,17 @@ enum SettingsPreferenceCatalog {
     // a store, running migration, reading system settings or touching defaults.
     private static var preferences: [Preference] {
         generalPreferences + iconPreferences + batteryPreferences + networkAndAudioPreferences
-            + bluetoothPreferences + panelPreferences
+            + bluetoothPreferences + brightnessPreferences + panelPreferences
+    }
+
+    private static var brightnessPreferences: [Preference] {
+        [
+            boolean(
+                "useBetterDisplayCombinedBrightness",
+                \.useBetterDisplayCombinedBrightness,
+                default: false
+            )
+        ]
     }
 
     private static var generalPreferences: [Preference] {

@@ -270,6 +270,9 @@
 "battery.timeToFull.minutes" = "About %d min to full";
 "battery.timeToFull.hours" = "About %d h to full";
 "battery.timeToFull.hoursMinutes" = "About %d h %d min to full";
+"battery.timeToChargeLimit.minutes" = "About %d min to %d%%";
+"battery.timeToChargeLimit.hours" = "About %d h to %d%%";
+"battery.timeToChargeLimit.hoursMinutes" = "About %d h %d min to %d%%";
 "battery.state.lowPowerMode" = "Low Power Mode";
 "battery.state.connectedToPower" = "Connected to power";
 "battery.state.onBattery" = "On battery";
@@ -954,3 +957,6 @@
 "updates.failure.title" = "Update Failed";
 "updates.failure.message" = "The automatic update could not be completed. Download the latest DMG from the official website and install it manually.";
 "updates.failure.website" = "Download from Website";
+"settings.brightness.useBetterDisplayCombined" = "Use BetterDisplay Combined Brightness";
+"settings.brightness.useBetterDisplayCombined.description" = "BetterDisplay's combined brightness merges hardware brightness, software dimming and XDR headroom into one slider. It can go darker than the hardware minimum and only matches the system percentage at 100%.";
+"settings.brightness.useBetterDisplayCombined.needsApp" = "Install BetterDisplay to use this option.";

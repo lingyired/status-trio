@@ -523,6 +523,21 @@ final class BatteryMonitorTests: XCTestCase {
         XCTAssertFalse(CFRunLoopContainsSource(CFRunLoopGetMain(), harness.source, .defaultMode))
     }
 
+    func testMonitorPublishesChargeLimitForEstimateScaling() async {
+        let reader = FakeBatteryReader(result: makeReading(percentage: 70))
+        let monitor = BatteryMonitor(
+            reader: reader,
+            lowPowerModeProvider: { false },
+            iopsRunLoopSourceFactory: { _, _ in nil },
+            chargeLimitProvider: { 90 }
+        )
+        defer { monitor.stop() }
+        monitor.refresh()
+        var iterator = monitor.updates.makeAsyncIterator()
+        let value = await iterator.next()
+        XCTAssertEqual(value?.chargeLimitPercent, 90)
+    }
+
     private func makeReading(percentage: Int) -> BatteryReading {
         BatteryReading(
             currentCapacity: percentage,

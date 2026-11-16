@@ -76,6 +76,8 @@ final class BrightnessMonitor: BrightnessMonitoring {
     /// the display list immediately instead of waiting for a fresh DDC read.
     private var cachedStates: [String: DisplayBrightness] = [:]
     private var configurations: [String: ExternalBrightnessConfiguration] = [:]
+    /// See SettingsStore.useBetterDisplayCombinedBrightness.
+    private var useBetterDisplayCombinedBrightness = false
     private var detailsVisible = false
     private var displayAsleep = false
     private var started = false
@@ -342,6 +344,12 @@ final class BrightnessMonitor: BrightnessMonitoring {
         if detailsVisible { rebuild() }
     }
 
+    func setUseBetterDisplayCombinedBrightness(_ enabled: Bool) {
+        guard useBetterDisplayCombinedBrightness != enabled else { return }
+        useBetterDisplayCombinedBrightness = enabled
+        if detailsVisible { rebuild() }
+    }
+
     // MARK: - Writes
 
     func setBrightness(_ scalar: Double, forDisplayID displayID: String) {
@@ -449,6 +457,15 @@ final class BrightnessMonitor: BrightnessMonitoring {
 
     private func configuration(for descriptor: DisplayDescriptor) -> ExternalBrightnessConfiguration {
         if descriptor.isBuiltin {
+            // Opt-in: read BetterDisplay's combined scale for the built-in panel
+            // when the user asked for it and BetterDisplay is running. Otherwise
+            // the built-in panel stays on DisplayServices (the system value).
+            if useBetterDisplayCombinedBrightness, isBetterDisplayRunning() {
+                return ExternalBrightnessConfiguration(
+                    backend: .betterDisplay,
+                    betterDisplayUUID: nil
+                )
+            }
             return ExternalBrightnessConfiguration(backend: .displayServices, betterDisplayUUID: nil)
         }
         return configurations[descriptor.id]
@@ -555,6 +572,9 @@ final class BrightnessMonitor: BrightnessMonitoring {
             let coordinator = makeBetterDisplay(uuid) { [weak self] update in
                 self?.apply(update, systemDisplayID: displayID)
             }
+            coordinator.setPreferredFeature(
+                useBetterDisplayCombinedBrightness ? .combined : .hardware
+            )
             coordinator.start()
             return Entry(
                 descriptor: descriptor,

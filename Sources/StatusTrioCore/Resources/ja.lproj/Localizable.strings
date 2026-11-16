@@ -270,6 +270,9 @@
 "battery.timeToFull.minutes" = "満充電まで約 %d 分";
 "battery.timeToFull.hours" = "満充電まで約 %d 時間";
 "battery.timeToFull.hoursMinutes" = "満充電まで約 %d 時間 %d 分";
+"battery.timeToChargeLimit.minutes" = "約 %d 分で %d%% まで充電";
+"battery.timeToChargeLimit.hours" = "約 %d 時間で %d%% まで充電";
+"battery.timeToChargeLimit.hoursMinutes" = "約 %d 時間 %d 分で %d%% まで充電";
 "battery.state.lowPowerMode" = "低電力モード";
 "battery.state.connectedToPower" = "電源に接続";
 "battery.state.onBattery" = "バッテリー駆動";
@@ -955,3 +958,6 @@
 "updates.failure.title" = "アップデートに失敗しました";
 "updates.failure.message" = "自動アップデートを完了できませんでした。公式サイトから最新の DMG をダウンロードして、手動でインストールしてください。";
 "updates.failure.website" = "公式サイトからダウンロード";
+"settings.brightness.useBetterDisplayCombined" = "BetterDisplay の合成輝度を使用";
+"settings.brightness.useBetterDisplayCombined.description" = "BetterDisplay の合成輝度は、ハードウェア輝度・ソフトウェア減光・XDR の余裕を 1 本のスライダーにまとめたものです。ハードウェアの最小より暗くでき、システムのパーセントと一致するのは 100% のときだけです。";
+"settings.brightness.useBetterDisplayCombined.needsApp" = "この項目を使うには BetterDisplay のインストールが必要です。";

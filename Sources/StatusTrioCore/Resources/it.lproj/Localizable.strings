@@ -270,6 +270,9 @@
 "battery.timeToFull.minutes" = "Circa %d min alla carica completa";
 "battery.timeToFull.hours" = "Circa %d h alla carica completa";
 "battery.timeToFull.hoursMinutes" = "Circa %d h %d min alla carica completa";
+"battery.timeToChargeLimit.minutes" = "Circa %d min fino al %d%%";
+"battery.timeToChargeLimit.hours" = "Circa %d h fino al %d%%";
+"battery.timeToChargeLimit.hoursMinutes" = "Circa %d h %d min fino al %d%%";
 "battery.state.lowPowerMode" = "Risparmio energia";
 "battery.state.connectedToPower" = "Alimentazione collegata";
 "battery.state.onBattery" = "A batteria";
@@ -955,3 +958,6 @@
 "updates.failure.title" = "Aggiornamento non riuscito";
 "updates.failure.message" = "Impossibile completare l’aggiornamento automatico. Scarica il DMG più recente dal sito ufficiale e installalo manualmente.";
 "updates.failure.website" = "Scarica dal sito ufficiale";
+"settings.brightness.useBetterDisplayCombined" = "Usa la luminosità combinata di BetterDisplay";
+"settings.brightness.useBetterDisplayCombined.description" = "La luminosità combinata di BetterDisplay unisce luminosità hardware, oscuramento software e margine XDR in un unico cursore. Può scendere sotto il minimo hardware e coincide con la percentuale di sistema solo al 100%.";
+"settings.brightness.useBetterDisplayCombined.needsApp" = "Installa BetterDisplay per usare questa opzione.";

@@ -102,9 +102,9 @@ final class BetterDisplayBrightnessTests: XCTestCase {
         XCTAssertEqual(client.requests.count, 1)
         XCTAssertEqual(client.requests[0].commands, ["get"])
         XCTAssertEqual(client.requests[0].parameters["UUID"] ?? nil, "builtin-uuid")
-        // The brightness/value/min/max keys are present (with nil values).
+        // The feature/value/min/max keys are present (with nil values).
         let keys = Set(client.requests[0].parameters.keys)
-        XCTAssertTrue(keys.isSuperset(of: ["UUID", "brightness", "value", "min", "max"]))
+        XCTAssertTrue(keys.isSuperset(of: ["UUID", "hardwareBrightness", "value", "min", "max"]))
 
         let update = updates[0]
         XCTAssertEqual(update.displayUUID, "builtin-uuid")
@@ -115,6 +115,98 @@ final class BetterDisplayBrightnessTests: XCTestCase {
         coordinator.stop()
     }
 
+    func testHardwareFeatureFallsBackToAutomaticBrightness() async {
+        // A display with no hardware brightness: the hardware feature and its
+        // reply are unusable, so the coordinator must fall back to BetterDisplay's
+        // auto-selected "brightness" feature and keep using it for writes.
+        let state = Box(0.40)
+        let client = BrightnessRecordingClient()
+        client.responder = { _, commands, parameters in
+            if commands == ["get"], parameters.keys.contains("hardwareBrightness") {
+                throw BetterDisplayIntegrationError.requestFailed
+            }
+            if commands == ["set"], let raw = parameters["brightness"] ?? nil,
+               let value = Double(raw) {
+                state.value = value
+            }
+            return "\(state.value),0.0,1.0"
+        }
+        var updates: [BetterDisplayBrightnessCoordinator.Update] = []
+        let coordinator = BetterDisplayBrightnessCoordinator(
+            client: client, displayUUID: "software-only-uuid"
+        ) { updates.append($0) }
+
+        coordinator.start()
+        await waitUntil { updates.count == 1 }
+
+        XCTAssertEqual(updates[0].source, .betterDisplay)
+        XCTAssertEqual(updates[0].scalar ?? -1, 0.40, accuracy: 0.0001)
+        XCTAssertTrue(updates[0].canSet)
+        // First attempt: hardwareBrightness, then the automatic fallback.
+        XCTAssertEqual(client.requests.count, 2)
+        XCTAssertTrue(client.requests[0].parameters.keys.contains("hardwareBrightness"))
+        XCTAssertTrue(client.requests[1].parameters.keys.contains("brightness"))
+
+        coordinator.setBrightness(0.8)
+        await waitUntil { updates.count >= 2 }
+
+        let setRequest = client.requests.first { $0.commands == ["set"] }
+        XCTAssertEqual(setRequest?.parameters["brightness"] ?? nil, "0.8",
+                       "Writes must follow the feature that actually worked")
+        XCTAssertNil(setRequest?.parameters["hardwareBrightness"] ?? nil)
+        coordinator.stop()
+    }
+
+    func testPreferredCombinedFeatureIsUsedForReadAndWrite() async {
+        let client = BrightnessRecordingClient()
+        client.responder = { _, commands, parameters in
+            if commands == ["get"] {
+                XCTAssertTrue(parameters.keys.contains("combinedBrightness"))
+                return "0.50,0.0,1.0"
+            }
+            if commands == ["set"] {
+                XCTAssertEqual(parameters["combinedBrightness"] ?? nil, "0.8")
+                return nil
+            }
+            return "0.80,0.0,1.0"
+        }
+        var updates: [BetterDisplayBrightnessCoordinator.Update] = []
+        let coordinator = BetterDisplayBrightnessCoordinator(
+            client: client, displayUUID: "combined-uuid", preferredFeature: .combined
+        ) { updates.append($0) }
+
+        coordinator.start()
+        await waitUntil { updates.count == 1 }
+        XCTAssertEqual(updates[0].scalar ?? -1, 0.50, accuracy: 0.0001)
+        XCTAssertEqual(updates[0].source, .betterDisplay)
+
+        coordinator.setBrightness(0.8)
+        await waitUntil { updates.count >= 2 }
+        let setRequest = client.requests.first { $0.commands == ["set"] }
+        XCTAssertEqual(setRequest?.parameters["combinedBrightness"] ?? nil, "0.8")
+        coordinator.stop()
+    }
+
+    func testCombinedFeatureFallsBackToAutomaticWhenRejected() async {
+        let client = BrightnessRecordingClient()
+        client.responder = { _, commands, parameters in
+            if commands == ["get"], parameters.keys.contains("combinedBrightness") {
+                throw BetterDisplayIntegrationError.requestFailed
+            }
+            return "0.50,0.0,1.0"
+        }
+        var updates: [BetterDisplayBrightnessCoordinator.Update] = []
+        let coordinator = BetterDisplayBrightnessCoordinator(
+            client: client, displayUUID: "combined-uuid", preferredFeature: .combined
+        ) { updates.append($0) }
+
+        coordinator.start()
+        await waitUntil { updates.count == 1 }
+        XCTAssertEqual(updates[0].scalar ?? -1, 0.50, accuracy: 0.0001)
+        XCTAssertTrue(client.requests.contains { $0.parameters.keys.contains("brightness") })
+        coordinator.stop()
+    }
+
     // MARK: - Write + read-back
 
     func testSetWritesThenReadsBackConfirmed() async {
@@ -122,7 +214,7 @@ final class BetterDisplayBrightnessTests: XCTestCase {
         let client = BrightnessRecordingClient()
         client.responder = { _, commands, parameters in
             if commands == ["set"] {
-                if let raw = parameters["brightness"] ?? nil, let value = Double(raw) {
+                if let raw = parameters["hardwareBrightness"] ?? nil, let value = Double(raw) {
                     state.value = value
                 }
                 return nil
@@ -145,7 +237,7 @@ final class BetterDisplayBrightnessTests: XCTestCase {
         XCTAssertEqual(client.requests.count, 3)
         XCTAssertEqual(client.requests[1].commands, ["set"])
         XCTAssertEqual(client.requests[1].parameters["UUID"] ?? nil, "builtin-uuid")
-        XCTAssertEqual(client.requests[1].parameters["brightness"] ?? nil, "0.8")
+        XCTAssertEqual(client.requests[1].parameters["hardwareBrightness"] ?? nil, "0.8")
         XCTAssertEqual(client.requests[1].parameters["min"] ?? nil, "0.0")
         XCTAssertEqual(client.requests[1].parameters["max"] ?? nil, "1.0")
         // Third request is the read-back confirmation.
@@ -440,7 +532,7 @@ private final class DelayedBrightnessClient: BetterDisplayRequesting {
     func request(commands: [String], parameters: [String: String?]) async throws -> String? {
         let index = requests.count
         requests.append(commands)
-        if commands == ["set"], let raw = parameters["brightness"] ?? nil, let value = Double(raw) {
+        if commands == ["set"], let raw = parameters["hardwareBrightness"] ?? nil, let value = Double(raw) {
             writtenScalars.append(value)
         }
         guard index < responses.count else {
@@ -595,7 +687,7 @@ private final class GatedBrightnessClient: BetterDisplayRequesting {
 
     func request(commands: [String], parameters: [String: String?]) async throws -> String? {
         if commands == ["set"] {
-            if let raw = parameters["brightness"] ?? nil, let value = Double(raw) {
+            if let raw = parameters["hardwareBrightness"] ?? nil, let value = Double(raw) {
                 writes.append(value)
                 current = value
             }

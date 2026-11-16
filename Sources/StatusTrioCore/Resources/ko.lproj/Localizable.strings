@@ -270,6 +270,9 @@
 "battery.timeToFull.minutes" = "완전 충전까지 약 %d분";
 "battery.timeToFull.hours" = "완전 충전까지 약 %d시간";
 "battery.timeToFull.hoursMinutes" = "완전 충전까지 약 %d시간 %d분";
+"battery.timeToChargeLimit.minutes" = "약 %d분 후 %d%%까지 충전";
+"battery.timeToChargeLimit.hours" = "약 %d시간 후 %d%%까지 충전";
+"battery.timeToChargeLimit.hoursMinutes" = "약 %d시간 %d분 후 %d%%까지 충전";
 "battery.state.lowPowerMode" = "저전력 모드";
 "battery.state.connectedToPower" = "전원 연결됨";
 "battery.state.onBattery" = "배터리 사용 중";
@@ -955,3 +958,6 @@
 "updates.failure.title" = "업데이트 실패";
 "updates.failure.message" = "자동 업데이트를 완료하지 못했습니다. 공식 웹사이트에서 최신 DMG를 다운로드하여 직접 설치해 주세요.";
 "updates.failure.website" = "공식 웹사이트에서 다운로드";
+"settings.brightness.useBetterDisplayCombined" = "BetterDisplay 통합 밝기 사용";
+"settings.brightness.useBetterDisplayCombined.description" = "BetterDisplay의 통합 밝기는 하드웨어 밝기, 소프트웨어 디밍, XDR 여유분을 하나의 슬라이더로 합칩니다. 하드웨어 최저값보다 더 어둡게 할 수 있고, 시스템 퍼센트와는 100%에서만 일치합니다.";
+"settings.brightness.useBetterDisplayCombined.needsApp" = "이 옵션을 사용하려면 BetterDisplay를 설치해야 합니다.";
