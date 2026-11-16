@@ -435,6 +435,7 @@
 "settings.popup.order.quickActions" = "إبقاء الاستيقاظ";
 "settings.keepAwake.showInPanel" = "إظهار «إبقاء الاستيقاظ» في لوحة الحالة";
 "settings.keepAwake.showButton" = "إظهار في لوحة الحالة";
+"settings.keepAwake.showNamed" = "إظهار «%@» في لوحة الحالة";
 "settings.keepAwake.helper" = "تفعيل المساعد المميز";
 "settings.keepAwake.helperReady" = "المساعد المميز جاهز.";
 "settings.keepAwake.helperHint" = "تشغيل «البقاء مستيقظًا عند إغلاق الغطاء» (أو التحكم في وضع الطاقة المنخفضة) يثبّت المساعد ويطلب الإذن تلقائيًا.";

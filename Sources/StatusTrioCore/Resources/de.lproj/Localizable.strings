@@ -435,6 +435,7 @@
 "settings.popup.order.quickActions" = "Wach halten";
 "settings.keepAwake.showInPanel" = "„Wach halten“ im Statusfenster anzeigen";
 "settings.keepAwake.showButton" = "Im Statusfenster anzeigen";
+"settings.keepAwake.showNamed" = "„%@“ im Statusfenster anzeigen";
 "settings.keepAwake.helper" = "Privilegierten Helper aktivieren";
 "settings.keepAwake.helperReady" = "Privilegierter Helper ist bereit.";
 "settings.keepAwake.helperHint" = "Wenn du „Wach bei geschlossenem Deckel“ (oder die Low-Power-Modus-Steuerung) einschaltest, wird der Helper automatisch installiert und zur Freigabe angefragt.";

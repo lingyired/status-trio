@@ -435,6 +435,7 @@
 "settings.popup.order.quickActions" = "잠자기 방지";
 "settings.keepAwake.showInPanel" = "상태 패널에 「절전 방지」 표시";
 "settings.keepAwake.showButton" = "상태 패널에 표시";
+"settings.keepAwake.showNamed" = "상태 패널에 「%@」 표시";
 "settings.keepAwake.helper" = "권한 도우미 활성화";
 "settings.keepAwake.helperReady" = "권한 도우미가 준비되었습니다.";
 "settings.keepAwake.helperHint" = "「덮개를 닫아도 잠자지 않기」(또는 저전력 모드 제어)를 켜면 자동으로 설치 및 승인을 요청합니다.";

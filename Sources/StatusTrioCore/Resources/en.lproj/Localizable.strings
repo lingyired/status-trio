@@ -434,6 +434,7 @@
 "settings.popup.order.quickActions" = "Keep Awake";
 "settings.keepAwake.showInPanel" = "Show “Keep Awake” in the status panel";
 "settings.keepAwake.showButton" = "Show in status panel";
+"settings.keepAwake.showNamed" = "Show “%@” in status panel";
 "settings.keepAwake.helper" = "Enable privileged helper";
 "settings.keepAwake.helperReady" = "Privileged helper is ready.";
 "settings.keepAwake.helperHint" = "Turning on “keep awake with lid closed” (or Low Power Mode control) installs and requests approval automatically.";

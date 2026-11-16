@@ -35,12 +35,20 @@ struct KeepAwakeSectionView: View {
         }
     }
 
+    private func showNamed(_ key: LocalizationKey) -> String {
+        String(
+            format: localization.string(.settingsKeepAwakeShowNamed),
+            locale: localization.resolvedLanguage.locale,
+            arguments: [localization.string(key)]
+        )
+    }
+
     private var keepScreenGroup: some View {
         SettingsGroup(localization.string(.quickActionsDisplaySleep)) {
             SettingsToggleRow(
                 symbol: "lightbulb.fill",
                 tint: .orange,
-                title: localization.string(.settingsKeepAwakeShowButton),
+                title: showNamed(.quickActionsDisplaySleep),
                 isOn: $store.showsKeepScreenButton
             )
             .disabled(!sectionEnabled)
@@ -52,7 +60,7 @@ struct KeepAwakeSectionView: View {
             SettingsToggleRow(
                 symbol: "moon.zzz.fill",
                 tint: .blue,
-                title: localization.string(.settingsKeepAwakeShowButton),
+                title: showNamed(.quickActionsLidSleep),
                 isOn: $store.showsLidSleepButton
             )
             .disabled(!sectionEnabled)

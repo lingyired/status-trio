@@ -435,6 +435,7 @@
 "settings.popup.order.quickActions" = "Mantener activo";
 "settings.keepAwake.showInPanel" = "Mostrar «Mantener activo» en el panel de estado";
 "settings.keepAwake.showButton" = "Mostrar en el panel de estado";
+"settings.keepAwake.showNamed" = "Mostrar «%@» en el panel de estado";
 "settings.keepAwake.helper" = "Activar el asistente con privilegios";
 "settings.keepAwake.helperReady" = "El asistente con privilegios está listo.";
 "settings.keepAwake.helperHint" = "Activar «seguir despierto con la tapa cerrada» (o el control de modo de bajo consumo) instala y solicita autorización automáticamente.";

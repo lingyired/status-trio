@@ -435,6 +435,7 @@
 "settings.popup.order.quickActions" = "Не давать уснуть";
 "settings.keepAwake.showInPanel" = "Показывать «Не давать засыпать» в панели состояния";
 "settings.keepAwake.showButton" = "Показывать в панели состояния";
+"settings.keepAwake.showNamed" = "Показывать «%@» в панели состояния";
 "settings.keepAwake.helper" = "Включить привилегированный помощник";
 "settings.keepAwake.helperReady" = "Привилегированный помощник готов.";
 "settings.keepAwake.helperHint" = "Включение «Не спать при закрытой крышке» (или управления режимом низкого энергопотребления) автоматически устанавливает помощник и запрашивает разрешение.";
