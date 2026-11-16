@@ -1181,6 +1181,10 @@
 "hardware.monitor.background.seconds" = "%d s";
 "hardware.monitor.settings.panelRefresh" = "Atualização do painel";
 "hardware.monitor.settings.panelRefresh.description" = "Com que frequência o painel é atualizado enquanto aberto. Mais rápido é mais ao vivo mas lê mais; mais lento economiza energia.";
+"hardware.monitor.settings.showRings" = "Quatro anéis";
+"hardware.monitor.settings.showRings.description" = "Mostra os anéis de CPU / GPU / RAM / SSD.";
+"hardware.monitor.settings.showSummaryRow" = "Dados inferiores";
+"hardware.monitor.settings.showSummaryRow.description" = "Mostra download, upload, ventoinha e E/S de disco sob os anéis.";
 "hardware.monitor.fan.average" = "Ventoinha média";
 "hardware.monitor.fan.average.help" = "Velocidade média das ventoinhas reportadas no momento. Ventoinhas obsoletas ou ilegíveis são excluídas; um Mac sem ventoinha mostra o rótulo Sem ventoinha.";
 "hardware.monitor.disk" = "E/S de disco";

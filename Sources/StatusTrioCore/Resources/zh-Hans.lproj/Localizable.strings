@@ -1181,6 +1181,10 @@
 "hardware.monitor.background.seconds" = "%d 秒";
 "hardware.monitor.settings.panelRefresh" = "面板刷新";
 "hardware.monitor.settings.panelRefresh.description" = "面板打开时的更新频率。越快越实时但读取更多，越慢越省电。";
+"hardware.monitor.settings.showRings" = "四圆环";
+"hardware.monitor.settings.showRings.description" = "显示 CPU / GPU / 内存 / 磁盘 四个圆环。";
+"hardware.monitor.settings.showSummaryRow" = "底部数据";
+"hardware.monitor.settings.showSummaryRow.description" = "在圆环下方显示下载、上传、风扇和磁盘 I/O。";
 "hardware.monitor.fan.average" = "风扇均速";
 "hardware.monitor.fan.average.help" = "当前可读风扇转速的平均值。已过期或无法读取的风扇不计入；无风扇的 Mac 显示「无风扇」。";
 "hardware.monitor.disk" = "磁盘 I/O";

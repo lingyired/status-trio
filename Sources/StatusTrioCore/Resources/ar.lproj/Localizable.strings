@@ -1181,6 +1181,10 @@
 "hardware.monitor.background.seconds" = "%d ث";
 "hardware.monitor.settings.panelRefresh" = "تحديث اللوحة";
 "hardware.monitor.settings.panelRefresh.description" = "مدى تكرار تحديث اللوحة أثناء فتحها. الأسرع أكثر حيوية لكنه يقرأ أكثر؛ الأبطأ يوفر الطاقة.";
+"hardware.monitor.settings.showRings" = "أربع حلقات";
+"hardware.monitor.settings.showRings.description" = "إظهار حلقات CPU / GPU / RAM / SSD.";
+"hardware.monitor.settings.showSummaryRow" = "بيانات سفلية";
+"hardware.monitor.settings.showSummaryRow.description" = "إظهار التنزيل والرفع والمروحة وإدخال/إخراج القرص أسفل الحلقات.";
 "hardware.monitor.fan.average" = "متوسط المروحة";
 "hardware.monitor.fan.average.help" = "متوسط سرعة المراوح التي يبلّغ عنها الجهاز حاليًا. تُستثنى المراوح القديمة أو غير القابلة للقراءة؛ ويُظهر جهاز بلا مروحة تسمية بدون مروحة.";
 "hardware.monitor.disk" = "إدخال/إخراج القرص";

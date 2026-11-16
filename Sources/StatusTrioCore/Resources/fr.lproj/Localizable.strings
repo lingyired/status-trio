@@ -1181,6 +1181,10 @@
 "hardware.monitor.background.seconds" = "%d s";
 "hardware.monitor.settings.panelRefresh" = "Actualisation du panneau";
 "hardware.monitor.settings.panelRefresh.description" = "Fréquence de mise à jour du panneau lorsqu’il est ouvert. Plus rapide = plus direct mais lit davantage ; plus lent = économise l’énergie.";
+"hardware.monitor.settings.showRings" = "Quatre anneaux";
+"hardware.monitor.settings.showRings.description" = "Affiche les anneaux CPU / GPU / RAM / SSD.";
+"hardware.monitor.settings.showSummaryRow" = "Données du bas";
+"hardware.monitor.settings.showSummaryRow.description" = "Affiche téléchargement, envoi, ventilateur et E/S disque sous les anneaux.";
 "hardware.monitor.fan.average" = "Ventil. moyen";
 "hardware.monitor.fan.average.help" = "Vitesse moyenne des ventilateurs actuellement signalés. Les ventilateurs obsolètes ou illisibles sont exclus ; un Mac sans ventilateur affiche le libellé Sans ventilateur.";
 "hardware.monitor.disk" = "E/S disque";

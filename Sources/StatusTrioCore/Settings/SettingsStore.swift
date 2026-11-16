@@ -176,6 +176,8 @@ final class SettingsStore: ObservableObject {
     static let hardwareUploadCapMbpsDefaultsKey = "hardwareUploadCapMbps"
     static let hardwareBackgroundRefreshSecondsDefaultsKey = "hardwareBackgroundRefreshSeconds"
     static let hardwarePanelRefreshSecondsDefaultsKey = "hardwarePanelRefreshSeconds"
+    static let showsHardwareRingsDefaultsKey = "showsHardwareRings"
+    static let showsHardwareSummaryRowDefaultsKey = "showsHardwareSummaryRow"
     static let hardwareSpeedCapRange: ClosedRange<Double> = 1...100000
     static let defaultHardwareDownloadCapMbps: Double = 1000
     static let defaultHardwareUploadCapMbps: Double = 100
@@ -1202,6 +1204,17 @@ final class SettingsStore: ObservableObject {
             }
             defaults.set(hardwarePanelRefreshSeconds, forKey: Self.hardwarePanelRefreshSecondsDefaultsKey)
         }
+    }
+
+    /// Which blocks the status-panel hardware summary shows. Per-metric toggles
+    /// were removed because the panel samples a fixed set; these two control the
+    /// four rings and the bottom data row independently.
+    @Published var showsHardwareRings: Bool = true {
+        didSet { defaults.set(showsHardwareRings, forKey: Self.showsHardwareRingsDefaultsKey) }
+    }
+
+    @Published var showsHardwareSummaryRow: Bool = true {
+        didSet { defaults.set(showsHardwareSummaryRow, forKey: Self.showsHardwareSummaryRowDefaultsKey) }
     }
 
     @Published var bluetoothAudioIconChoiceRawValue: String {
@@ -2841,6 +2854,8 @@ final class SettingsStore: ObservableObject {
             ?? Self.defaultHardwarePanelRefreshSeconds
         self.hardwarePanelRefreshSeconds = Self.hardwarePanelRefreshOptions.contains(storedPanel)
             ? storedPanel : Self.defaultHardwarePanelRefreshSeconds
+        self.showsHardwareRings = defaults.object(forKey: Self.showsHardwareRingsDefaultsKey) as? Bool ?? true
+        self.showsHardwareSummaryRow = defaults.object(forKey: Self.showsHardwareSummaryRowDefaultsKey) as? Bool ?? true
         bootstrapIconConfiguration()
     }
 

@@ -292,7 +292,9 @@ struct StatusPopoverView: View {
             // four-column data row. Card metric order/colour settings still feed
             // the ring colours; the summary no longer depends on card metrics.
             HardwareMonitorSummaryView(model: panel.hardwareMonitor,
-                                       metricColors: panel.hardwareMonitorMetricColors)
+                                       metricColors: panel.hardwareMonitorMetricColors,
+                                       showsRings: panel.showsHardwareRings,
+                                       showsSummaryRow: panel.showsHardwareSummaryRow)
         }
     }
 

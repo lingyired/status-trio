@@ -187,7 +187,9 @@ enum SettingsPreferenceCatalog {
             integer("hardwareBackgroundRefreshSeconds", \.hardwareBackgroundRefreshSeconds,
                     default: SettingsStore.defaultHardwareBackgroundRefreshSeconds, range: 0...60),
             integer("hardwarePanelRefreshSeconds", \.hardwarePanelRefreshSeconds,
-                    default: SettingsStore.defaultHardwarePanelRefreshSeconds, range: 1...10)
+                    default: SettingsStore.defaultHardwarePanelRefreshSeconds, range: 1...10),
+            boolean("showsHardwareRings", \.showsHardwareRings, default: true),
+            boolean("showsHardwareSummaryRow", \.showsHardwareSummaryRow, default: true)
         ]
     }
 

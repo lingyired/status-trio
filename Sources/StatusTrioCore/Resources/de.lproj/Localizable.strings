@@ -1181,6 +1181,10 @@
 "hardware.monitor.background.seconds" = "%d s";
 "hardware.monitor.settings.panelRefresh" = "Panel-Aktualisierung";
 "hardware.monitor.settings.panelRefresh.description" = "Wie oft das Panel bei geöffnetem Zustand aktualisiert wird. Schneller ist aktueller, liest aber mehr; langsamer spart Energie.";
+"hardware.monitor.settings.showRings" = "Vier Ringe";
+"hardware.monitor.settings.showRings.description" = "Zeigt die Ringe für CPU / GPU / RAM / SSD.";
+"hardware.monitor.settings.showSummaryRow" = "Untere Daten";
+"hardware.monitor.settings.showSummaryRow.description" = "Zeigt Download, Upload, Lüfter und Festplatten-E/A unter den Ringen.";
 "hardware.monitor.fan.average" = "Ø Lüfter";
 "hardware.monitor.fan.average.help" = "Durchschnitt der aktuell gemeldeten Lüfterdrehzahlen. Veraltete oder nicht lesbare Lüfter werden ausgeschlossen; ein lüfterloser Mac zeigt die Bezeichnung Lüfterlos.";
 "hardware.monitor.disk" = "Festplatten-E/A";

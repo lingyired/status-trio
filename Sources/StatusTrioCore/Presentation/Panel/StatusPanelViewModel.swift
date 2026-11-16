@@ -171,6 +171,9 @@ final class StatusPanelViewModel: ObservableObject {
     @Published private(set) var statusPanelMediumTextEnabled: Bool
     /// Broadband caps (Mbps) for the network-speed tiles.
     @Published private(set) var hardwareSpeedCapsMbps: [HardwareMonitorMetric: Double]
+    /// Which hardware-summary blocks are visible.
+    @Published private(set) var showsHardwareRings: Bool
+    @Published private(set) var showsHardwareSummaryRow: Bool
 
     private var isStarted = false
     private var bluetoothIsExpanded = false
@@ -229,6 +232,8 @@ final class StatusPanelViewModel: ObservableObject {
         hardwareMonitorMetricColors = settings.hardwareMonitorMetricColors
         statusPanelBoldTextEnabled = settings.statusPanelBoldTextEnabled
         statusPanelMediumTextEnabled = settings.statusPanelMediumTextEnabled
+        showsHardwareRings = settings.showsHardwareRings
+        showsHardwareSummaryRow = settings.showsHardwareSummaryRow
         hardwareSpeedCapsMbps = [
             .downloadSpeed: settings.hardwareDownloadCapMbps,
             .uploadSpeed: settings.hardwareUploadCapMbps
@@ -418,6 +423,22 @@ final class StatusPanelViewModel: ObservableObject {
         settings.$hardwarePanelRefreshSeconds
             .removeDuplicates()
             .sink { [weak self] seconds in self?.updateHardwareMetricsDemand(panelSeconds: seconds) }
+            .store(in: &cancellables)
+
+        settings.$showsHardwareRings
+            .removeDuplicates()
+            .sink { [weak self] value in
+                guard let self, self.showsHardwareRings != value else { return }
+                self.showsHardwareRings = value
+            }
+            .store(in: &cancellables)
+
+        settings.$showsHardwareSummaryRow
+            .removeDuplicates()
+            .sink { [weak self] value in
+                guard let self, self.showsHardwareSummaryRow != value else { return }
+                self.showsHardwareSummaryRow = value
+            }
             .store(in: &cancellables)
 
         settings.$statusPanelBoldTextEnabled

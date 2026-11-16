@@ -7,22 +7,38 @@ import SwiftUI
 struct HardwareMonitorSummaryView: View {
     @ObservedObject var model: HardwareMonitorObservable
     var metricColors: [HardwareMonitorMetric: IconRGBA] = [:]
+    /// Show the CPU/GPU/RAM/SSD rings.
+    var showsRings: Bool = true
+    /// Show the bottom download/upload/fan/disk data row.
+    var showsSummaryRow: Bool = true
 
     @EnvironmentObject private var localization: Localization
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
 
     var body: some View {
+        if showsRings || showsSummaryRow {
+            content
+        }
+    }
+
+    private var content: some View {
         let items = HardwareMonitorSummaryPresentation.items(
             snapshot: model.summarySnapshot, localization: localization)
-        VStack(spacing: 8) {
-            HardwareRingStrip(hardware: model, colors: metricColors)
-            Rectangle()
-                .fill(Color.primary.opacity(0.08))
-                .frame(height: 1)
-            HStack(alignment: .top, spacing: 10) {
-                ForEach(items, id: \.metric) { item in
-                    HardwareSummaryMetricCell(item: item)
-                        .frame(maxWidth: .infinity)
+        return VStack(spacing: 8) {
+            if showsRings {
+                HardwareRingStrip(hardware: model, colors: metricColors)
+            }
+            if showsSummaryRow {
+                if showsRings {
+                    Rectangle()
+                        .fill(Color.primary.opacity(0.08))
+                        .frame(height: 1)
+                }
+                HStack(alignment: .top, spacing: 10) {
+                    ForEach(items, id: \.metric) { item in
+                        HardwareSummaryMetricCell(item: item)
+                            .frame(maxWidth: .infinity)
+                    }
                 }
             }
         }

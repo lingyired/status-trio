@@ -1180,6 +1180,10 @@
 "hardware.monitor.background.seconds" = "%d s";
 "hardware.monitor.settings.panelRefresh" = "Panel refresh";
 "hardware.monitor.settings.panelRefresh.description" = "How often the panel updates while open. Faster is more live but reads more; slower saves power.";
+"hardware.monitor.settings.showRings" = "Four rings";
+"hardware.monitor.settings.showRings.description" = "Show the CPU / GPU / RAM / SSD rings.";
+"hardware.monitor.settings.showSummaryRow" = "Bottom data";
+"hardware.monitor.settings.showSummaryRow.description" = "Show download, upload, fan and disk I/O below the rings.";
 "hardware.monitor.fan.average" = "Avg fan";
 "hardware.monitor.fan.average.help" = "Average of the fan speeds the Mac is currently reporting. Stale or unreadable fans are excluded; a fanless Mac shows \"Fanless\".";
 "hardware.monitor.disk" = "Disk I/O";

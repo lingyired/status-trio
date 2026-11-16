@@ -1181,6 +1181,10 @@
 "hardware.monitor.background.seconds" = "%d с";
 "hardware.monitor.settings.panelRefresh" = "Обновление панели";
 "hardware.monitor.settings.panelRefresh.description" = "Как часто обновляется панель, пока открыта. Быстрее — актуальнее, но больше чтений; медленнее — экономит энергию.";
+"hardware.monitor.settings.showRings" = "Четыре кольца";
+"hardware.monitor.settings.showRings.description" = "Показывать кольца CPU / GPU / RAM / SSD.";
+"hardware.monitor.settings.showSummaryRow" = "Нижние данные";
+"hardware.monitor.settings.showSummaryRow.description" = "Показывать загрузку, отдачу, вентилятор и диск I/O под кольцами.";
 "hardware.monitor.fan.average" = "Ср. вентилятор";
 "hardware.monitor.fan.average.help" = "Средняя скорость вентиляторов, о которой сообщает Mac. Устаревшие или нечитаемые вентиляторы исключаются; на Mac без вентилятора отображается метка Без вентилятора.";
 "hardware.monitor.disk" = "Диск I/O";
