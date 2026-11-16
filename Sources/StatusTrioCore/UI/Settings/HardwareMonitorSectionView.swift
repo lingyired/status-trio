@@ -9,13 +9,12 @@ struct HardwareMonitorSectionView: View {
     var body: some View {
         SettingsPage {
             placementGroup
-            panelRefreshGroup
-            backgroundGroup
+            refreshGroup
             metricsGroup
         }
     }
 
-    private var panelRefreshGroup: some View {
+    private var refreshGroup: some View {
         SettingsGroup {
             SettingsRow(
                 "speedometer",
@@ -35,11 +34,7 @@ struct HardwareMonitorSectionView: View {
                 .labelsHidden()
                 .settingsMenuPickerWidth()
             }
-        }
-    }
 
-    private var backgroundGroup: some View {
-        SettingsGroup {
             SettingsRow(
                 "clock.arrow.circlepath",
                 tint: .green,
