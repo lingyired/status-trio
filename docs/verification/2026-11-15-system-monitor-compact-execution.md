@@ -93,3 +93,11 @@
 - 解决原则：文案/键两边都保留（无重复键、plutil 通过）；分区顺序与默认同时保留 main 的 quickActions 与本分支的 hardwareMonitor；Section 同时保留 keepAwake 与 monitor。
 - 合并提交 c012496a。完整验证结果见下。
 
+
+
+## 追加：颜色列表分隔与环形指标分组（2026-11-16）
+
+- 颜色列表改为逐行分隔（SettingsDivider），不再挤在一起。
+- 环形主/副指标下拉按 CPU / GPU / 其他 分组（CPU：占用+温度；GPU：占用+温度；其他：内存/电池温度/风扇/下载/上传）。
+- CPU 占用与 CPU 温度暂时共用同一颜色（#43C97A）；GPU 温度仍用青色。
+

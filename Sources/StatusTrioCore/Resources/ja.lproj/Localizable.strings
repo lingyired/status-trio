@@ -1176,6 +1176,7 @@
 // MARK: - Hardware monitor ring (system monitoring)
 "settings.ringContent.hardwareMonitor" = "システムモニター";
 "settings.hardwareRing.group.arc" = "アーク";
+"settings.hardwareRing.group.other" = "その他";
 "settings.hardwareRing.layout" = "レイアウト";
 "settings.hardwareRing.layout.single" = "単一アーク";
 "settings.hardwareRing.layout.dual" = "左右2アーク";

@@ -1176,6 +1176,7 @@
 // MARK: - Hardware monitor ring (system monitoring)
 "settings.ringContent.hardwareMonitor" = "Мониторинг системы";
 "settings.hardwareRing.group.arc" = "Дуга";
+"settings.hardwareRing.group.other" = "Прочее";
 "settings.hardwareRing.layout" = "Макет";
 "settings.hardwareRing.layout.single" = "Одна дуга";
 "settings.hardwareRing.layout.dual" = "Две дуги";

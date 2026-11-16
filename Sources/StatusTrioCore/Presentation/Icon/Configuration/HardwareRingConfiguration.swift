@@ -239,7 +239,7 @@ struct HardwareRingColorConfiguration: Codable, Equatable, Hashable, Sendable {
         case .cpuUsage: cpuColor
         case .gpuUsage: gpuColor
         case .memoryUsage: memoryColor
-        case .cpuTemperature: cpuTemperatureColor
+        case .cpuTemperature: cpuColor
         case .gpuTemperature: cpuTemperatureColor
         case .batteryTemperature: batteryTemperatureColor
         case .fan: fanColor

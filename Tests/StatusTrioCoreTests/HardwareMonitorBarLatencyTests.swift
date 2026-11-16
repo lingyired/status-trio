@@ -31,10 +31,13 @@ final class HardwareMonitorBarLatencyTests: XCTestCase {
             for x in 0..<width {
                 guard let color = bitmap.colorAt(x: x, y: y)?
                     .usingColorSpace(.deviceRGB) else { continue }
-                // System accent blue: clearly more blue than red/green.
-                if color.blueComponent > 0.55,
-                   color.blueComponent > color.redComponent + 0.25,
-                   color.greenComponent > 0.15 {
+                // Any clearly saturated, non-grey pixel: these cases only provide
+                // a measured temperature sample, so a coloured fill is that bar.
+                // Colour-agnostic so the metric's tint may change without hiding
+                // a missing bar.
+                let high = max(color.redComponent, max(color.greenComponent, color.blueComponent))
+                let low = min(color.redComponent, min(color.greenComponent, color.blueComponent))
+                if high > 0.40, high - low > 0.25 {
                     count += 1
                 }
             }

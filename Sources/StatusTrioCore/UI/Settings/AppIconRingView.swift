@@ -202,7 +202,7 @@ struct AppIconRingView: View {
                 label: { layoutLabel($0) }
             )
             SettingsDivider()
-            SettingsMenuRow(
+            SettingsGroupedMenuRow(
                 symbol: store.hardwareRingConfiguration.primaryMetric.systemImage,
                 tint: .green,
                 title: localization.string(.settingsHardwareRingPrimaryMetric),
@@ -210,12 +210,12 @@ struct AppIconRingView: View {
                     get: { store.hardwareRingConfiguration.primaryMetric },
                     set: { setPrimaryMetric($0) }
                 ),
-                options: HardwareMonitorMetric.allCases,
+                groups: hardwareRingMetricGroups,
                 label: { metricLabel($0) }
             )
             if store.hardwareRingConfiguration.layout == .dual {
                 SettingsDivider()
-                SettingsMenuRow(
+                SettingsGroupedMenuRow(
                     symbol: hardwareSecondaryMetric.systemImage,
                     tint: .blue,
                     title: localization.string(.settingsHardwareRingSecondaryMetric),
@@ -223,7 +223,7 @@ struct AppIconRingView: View {
                         get: { hardwareSecondaryMetric },
                         set: { setSecondaryMetric($0) }
                     ),
-                    options: HardwareMonitorMetric.allCases,
+                    groups: hardwareRingMetricGroups,
                     label: { metricLabel($0) }
                 )
             }
@@ -590,6 +590,15 @@ struct AppIconRingView: View {
         case .single: return localization.string(.settingsHardwareRingLayoutSingle)
         case .dual: return localization.string(.settingsHardwareRingLayoutDual)
         }
+    }
+
+    private var hardwareRingMetricGroups: [(title: String, options: [HardwareMonitorMetric])] {
+        [
+            ("CPU", [.cpuUsage, .cpuTemperature]),
+            ("GPU", [.gpuUsage, .gpuTemperature]),
+            (localization.string(.settingsHardwareRingGroupOther),
+             [.memoryUsage, .batteryTemperature, .fan, .downloadSpeed, .uploadSpeed])
+        ]
     }
 
     private func metricLabel(_ metric: HardwareMonitorMetric) -> String {

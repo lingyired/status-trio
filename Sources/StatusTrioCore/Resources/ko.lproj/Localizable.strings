@@ -1176,6 +1176,7 @@
 // MARK: - Hardware monitor ring (system monitoring)
 "settings.ringContent.hardwareMonitor" = "시스템 모니터";
 "settings.hardwareRing.group.arc" = "호";
+"settings.hardwareRing.group.other" = "기타";
 "settings.hardwareRing.layout" = "레이아웃";
 "settings.hardwareRing.layout.single" = "단일 호";
 "settings.hardwareRing.layout.dual" = "좌우 두 호";

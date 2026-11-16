@@ -1176,6 +1176,7 @@
 // MARK: - Hardware monitor ring (system monitoring)
 "settings.ringContent.hardwareMonitor" = "Monitoramento do sistema";
 "settings.hardwareRing.group.arc" = "Arco";
+"settings.hardwareRing.group.other" = "Outros";
 "settings.hardwareRing.layout" = "Layout";
 "settings.hardwareRing.layout.single" = "Arco único";
 "settings.hardwareRing.layout.dual" = "Dois arcos";

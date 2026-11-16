@@ -423,6 +423,43 @@ struct SettingsMenuRow<T: Hashable & Identifiable>: View {
     }
 }
 
+
+/// A menu row whose options are grouped into labelled sections.
+struct SettingsGroupedMenuRow<T: Hashable & Identifiable>: View {
+    var symbol: String? = nil
+    var tint: Color = .accentColor
+    let title: String
+    var subtitle: String? = nil
+    @Binding var selection: T
+    let groups: [(title: String, options: [T])]
+    let label: (T) -> String
+
+    var body: some View {
+        SettingsRow(
+            title: title,
+            subtitle: subtitle,
+            leading: {
+                if let symbol {
+                    SettingsIcon(symbol: symbol, tint: tint)
+                }
+            },
+            trailing: {
+                Picker("", selection: $selection) {
+                    ForEach(groups.indices, id: \.self) { index in
+                        Section(groups[index].title) {
+                            ForEach(groups[index].options) { option in
+                                Text(label(option)).tag(option)
+                            }
+                        }
+                    }
+                }
+                .labelsHidden()
+                .settingsMenuPickerWidth()
+            }
+        )
+    }
+}
+
 /// Keeps the picture-card keyboard path native on every supported release.
 ///
 /// macOS 14+ keeps the existing `onKeyPress` handling and suppresses the
