@@ -44,6 +44,20 @@ struct KeepAwakeSectionView: View {
                 isOn: $store.showsLidSleepButton
             )
             .disabled(!sectionEnabled)
+            SettingsToggleRow(
+                symbol: "powerplug",
+                tint: .green,
+                title: localization.string(.settingsKeepAwakeAllowBattery),
+                isOn: $store.allowLidSleepOnBattery
+            )
+            .disabled(!sectionEnabled)
+            SettingsToggleRow(
+                symbol: "battery.25",
+                tint: .orange,
+                title: localization.string(.settingsKeepAwakeAutoOff),
+                isOn: $store.autoDisableLidSleepOnLowBattery
+            )
+            .disabled(!sectionEnabled)
             SettingsDivider()
             VStack(alignment: .leading, spacing: 6) {
                 HStack(spacing: 8) {

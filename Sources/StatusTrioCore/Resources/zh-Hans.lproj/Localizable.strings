@@ -437,6 +437,8 @@
 "settings.keepAwake.helper" = "启用特权辅助程序";
 "settings.keepAwake.helperReady" = "特权辅助程序已就绪。";
 "settings.keepAwake.helperHint" = "打开「盒盖不睡眠」（或低电量模式控制）后，会自动安装并请求授权。";
+"settings.keepAwake.allowBattery" = "允许仅用电池时开启";
+"settings.keepAwake.autoOff" = "低电量时自动关闭";
 "quickActions.displaySleep" = "保持屏幕";
 "quickActions.displaySleep.description" = "空闲时防止显示器休眠。";
 "quickActions.lidSleep" = "盒盖不睡眠";

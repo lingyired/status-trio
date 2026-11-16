@@ -130,6 +130,8 @@ final class SleepControlSafetyTests: XCTestCase {
     func testUnplugDuringInFlightEnableEndsOff() async {
         let client = ControllableClient(autoComplete: false)
         let control = make(client: client)
+        // This asserts the race guarantee when battery operation is disallowed.
+        control.allowsLidSleepOnBattery = false
         control.updatePowerState(battery: battery(connected: true))
         control.setLidSleep(true)
         await waitUntil { client.pendingCount == 1 }

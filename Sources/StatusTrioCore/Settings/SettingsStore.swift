@@ -41,6 +41,8 @@ final class SettingsStore: ObservableObject {
     // preferences (intentionally not part of the settings transfer document).
     static let showsKeepScreenButtonDefaultsKey = "showsKeepScreenButton"
     static let showsLidSleepButtonDefaultsKey = "showsLidSleepButton"
+    static let allowLidSleepOnBatteryDefaultsKey = "allowLidSleepOnBattery"
+    static let autoDisableLidSleepOnLowBatteryDefaultsKey = "autoDisableLidSleepOnLowBattery"
     static let showsHighEnergyAppsDefaultsKey = "showsHighEnergyApps"
     static let highEnergyAppsRefreshIntervalDefaultsKey = "highEnergyAppsRefreshIntervalSeconds"
     static let highEnergyAppsRefreshIntervalRange: ClosedRange<Double> = 10...60
@@ -446,6 +448,14 @@ final class SettingsStore: ObservableObject {
     /// Whether the panel's keep-awake section shows the "keep lid-sleep off" pill.
     @Published var showsLidSleepButton: Bool {
         didSet { defaults.set(showsLidSleepButton, forKey: Self.showsLidSleepButtonDefaultsKey) }
+    }
+    /// Allow the lid-sleep toggle while on battery (not just external power).
+    @Published var allowLidSleepOnBattery: Bool {
+        didSet { defaults.set(allowLidSleepOnBattery, forKey: Self.allowLidSleepOnBatteryDefaultsKey) }
+    }
+    /// Auto-disable the lid-sleep toggle when the battery gets low.
+    @Published var autoDisableLidSleepOnLowBattery: Bool {
+        didSet { defaults.set(autoDisableLidSleepOnLowBattery, forKey: Self.autoDisableLidSleepOnLowBatteryDefaultsKey) }
     }
     @Published var highEnergyAppsRefreshIntervalSeconds: Double {
         didSet {
@@ -2100,6 +2110,8 @@ final class SettingsStore: ObservableObject {
         self.showsBatteryPowerInfoBar = defaults.object(forKey: Self.showsBatteryPowerInfoBarDefaultsKey) as? Bool ?? false
         self.showsKeepScreenButton = defaults.object(forKey: Self.showsKeepScreenButtonDefaultsKey) as? Bool ?? true
         self.showsLidSleepButton = defaults.object(forKey: Self.showsLidSleepButtonDefaultsKey) as? Bool ?? true
+        self.allowLidSleepOnBattery = defaults.object(forKey: Self.allowLidSleepOnBatteryDefaultsKey) as? Bool ?? true
+        self.autoDisableLidSleepOnLowBattery = defaults.object(forKey: Self.autoDisableLidSleepOnLowBatteryDefaultsKey) as? Bool ?? true
         self.showsHighEnergyApps = defaults.object(forKey: Self.showsHighEnergyAppsDefaultsKey) as? Bool ?? false
         self.highEnergyAppsRefreshIntervalSeconds = Self.clampedHighEnergyAppsRefreshInterval(
             defaults.object(forKey: Self.highEnergyAppsRefreshIntervalDefaultsKey) as? Double

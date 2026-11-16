@@ -81,6 +81,7 @@ final class StatusBarController: NSObject {
     private var panelBackgroundCancellable: AnyCancellable?
     private var reduceTransparencyCancellable: AnyCancellable?
     private var helperQuiescenceCancellable: AnyCancellable?
+    private var lidPolicyCancellables: Set<AnyCancellable> = []
     private let openSettings: () -> Void
     /// Opens Status Trio's own Settings window on the Battery tab.
     private let openAppBatterySettings: () -> Void
@@ -377,6 +378,24 @@ final class StatusBarController: NSObject {
         // when no visible panel section needs it. Hiding a section never disables
         // the helper; a pending lid-sleep recovery keeps the normal cadence so a
         // residual disablesleep=1 is still noticed.
+        // Drive the lid-sleep battery policy from Settings.
+        store.sleepControl.allowsLidSleepOnBattery = settings.allowLidSleepOnBattery
+        store.sleepControl.autoDisablesLidSleepOnLowBattery = settings.autoDisableLidSleepOnLowBattery
+        settings.$allowLidSleepOnBattery
+            .sink { [weak self] value in
+                guard let self else { return }
+                self.store.sleepControl.allowsLidSleepOnBattery = value
+                self.store.sleepControl.applyLidPowerPolicy()
+            }
+            .store(in: &lidPolicyCancellables)
+        settings.$autoDisableLidSleepOnLowBattery
+            .sink { [weak self] value in
+                guard let self else { return }
+                self.store.sleepControl.autoDisablesLidSleepOnLowBattery = value
+                self.store.sleepControl.applyLidPowerPolicy()
+            }
+            .store(in: &lidPolicyCancellables)
+
         helperQuiescenceCancellable = Publishers.CombineLatest3(
             settings.$controlsLowPowerMode,
             settings.$showsLidSleepButton,

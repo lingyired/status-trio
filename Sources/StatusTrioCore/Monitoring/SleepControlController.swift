@@ -190,6 +190,11 @@ final class SleepControlController: ObservableObject {
     /// asks for.
     static let lowBatteryThreshold = 20
 
+    /// Behaviour options driven by Settings. Defaults keep the friendlier
+    /// "allowed on battery" behaviour with low-battery auto-off still on.
+    var allowsLidSleepOnBattery = true
+    var autoDisablesLidSleepOnLowBattery = true
+
     @Published private(set) var isPreventingDisplaySleep = false
     @Published private(set) var displayTimer: SleepTimerDuration = .unlimited
     @Published private(set) var displayExpiry: Date?
@@ -264,7 +269,7 @@ final class SleepControlController: ObservableObject {
         case .unavailable: return .helperUnavailable
         case .undetected, .detecting, .available: break
         }
-        if !isOnExternalPower { return .requiresPower }
+        if !isOnExternalPower && !allowsLidSleepOnBattery { return .requiresPower }
         return nil
     }
 
@@ -602,15 +607,27 @@ final class SleepControlController: ObservableObject {
         let onExternalPower = battery.isPresent ? battery.isConnectedToPower : true
         isOnExternalPower = onExternalPower
         batteryPercentage = battery.percentage
-        guard !onExternalPower else { return }
-        // Check the in-flight/desired state too: an enable that has not returned
-        // yet is exactly the race that would otherwise stay on battery.
+        applyLidPowerPolicy()
+    }
+
+    /// Re-applies the battery policy after a power/battery or settings change.
+    /// Only acts while on battery:
+    ///  - low battery + auto-off → turn off (low-battery notice);
+    ///  - battery disallowed → turn off (unplugged notice);
+    ///  - otherwise keep running (allowed on battery).
+    func applyLidPowerPolicy() {
+        guard !isOnExternalPower else { return }
         let wasActive = isPreventingLidSleep || lidWorkerRunning
             || desiredLidSleep || lidInFlightWrite
         guard wasActive else { return }
-        let isLow = battery.isPresent && battery.percentage <= Self.lowBatteryThreshold
-        requestLidState(false)
-        showNotice(isLow ? .turnedOffLowBattery : .turnedOffUnplugged)
+        let isLow = batteryPercentage <= Self.lowBatteryThreshold
+        if autoDisablesLidSleepOnLowBattery && isLow {
+            requestLidState(false)
+            showNotice(.turnedOffLowBattery)
+        } else if !allowsLidSleepOnBattery {
+            requestLidState(false)
+            showNotice(.turnedOffUnplugged)
+        }
     }
 
     // MARK: - Helper probing / residual recovery

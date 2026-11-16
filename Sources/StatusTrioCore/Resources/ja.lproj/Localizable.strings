@@ -437,6 +437,8 @@
 "settings.keepAwake.helper" = "特権ヘルパーを有効にする";
 "settings.keepAwake.helperReady" = "特権ヘルパーの準備ができています。";
 "settings.keepAwake.helperHint" = "「蓋を閉じてもスリープしない」（または低電力モード制御）をオンにすると、自動でインストールと承認を求めます。";
+"settings.keepAwake.allowBattery" = "バッテリー駆動でも許可";
+"settings.keepAwake.autoOff" = "バッテリー低下時に自動オフ";
 "quickActions.displaySleep" = "画面をスリープさせない";
 "quickActions.displaySleep.description" = "アイドル時にディスプレイがスリープしないようにします。";
 "quickActions.lidSleep" = "フタを閉じてもスリープさせない";

@@ -437,6 +437,8 @@
 "settings.keepAwake.helper" = "تفعيل المساعد المميز";
 "settings.keepAwake.helperReady" = "المساعد المميز جاهز.";
 "settings.keepAwake.helperHint" = "تشغيل «البقاء مستيقظًا عند إغلاق الغطاء» (أو التحكم في وضع الطاقة المنخفضة) يثبّت المساعد ويطلب الإذن تلقائيًا.";
+"settings.keepAwake.allowBattery" = "السماح أثناء استخدام البطارية";
+"settings.keepAwake.autoOff" = "إيقاف عند انخفاض البطارية";
 "quickActions.displaySleep" = "إبقاء الشاشة مستيقظة";
 "quickActions.displaySleep.description" = "منع الشاشة من الدخول في وضع النوم أثناء الخمول.";
 "quickActions.lidSleep" = "إبقاء الاستيقاظ مع إغلاق الغطاء";

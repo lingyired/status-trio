@@ -174,8 +174,15 @@ final class SleepControlControllerTests: XCTestCase {
         XCTAssertFalse(control.isPreventingLidSleep)
     }
 
-    func testLidUnavailableWithoutExternalPower() {
+    func testLidAllowedOnBatteryByDefault() {
         let control = make()
+        control.updatePowerState(battery: battery(connected: false))
+        XCTAssertNil(control.lidUnavailableReason, "battery is allowed by default now")
+    }
+
+    func testLidUnavailableOnBatteryWhenDisallowed() {
+        let control = make()
+        control.allowsLidSleepOnBattery = false
         control.updatePowerState(battery: battery(connected: false))
         XCTAssertEqual(control.lidUnavailableReason, .requiresPower)
 
@@ -213,7 +220,7 @@ final class SleepControlControllerTests: XCTestCase {
         XCTAssertEqual(client.setCalls.last, false)
     }
 
-    func testUnplugTurnsLidOffWithNotice() async {
+    func testUnplugKeepsLidOnWhenBatteryAllowed() async {
         let client = FakeDisableSleepClient()
         let ownership = FakeOwnership()
         let control = make(client: client, ownership: ownership)
@@ -221,7 +228,24 @@ final class SleepControlControllerTests: XCTestCase {
         control.setLidSleep(true)
         await waitUntil { control.isPreventingLidSleep }
 
-        control.updatePowerState(battery: battery(connected: false))
+        control.updatePowerState(battery: battery(connected: false, percentage: 50))
+        for _ in 0..<80 { await Task.yield() }
+
+        XCTAssertTrue(control.isPreventingLidSleep, "battery is allowed, so unplug keeps it on")
+        XCTAssertNil(control.notice)
+        XCTAssertTrue(ownership.ownsDisableSleep)
+    }
+
+    func testUnplugTurnsLidOffWhenBatteryDisallowed() async {
+        let client = FakeDisableSleepClient()
+        let ownership = FakeOwnership()
+        let control = make(client: client, ownership: ownership)
+        control.allowsLidSleepOnBattery = false
+        control.updatePowerState(battery: battery(connected: true))
+        control.setLidSleep(true)
+        await waitUntil { control.isPreventingLidSleep }
+
+        control.updatePowerState(battery: battery(connected: false, percentage: 50))
         await waitUntil { !control.isPreventingLidSleep }
 
         XCTAssertFalse(control.isPreventingLidSleep)
@@ -239,6 +263,19 @@ final class SleepControlControllerTests: XCTestCase {
         await waitUntil { !control.isPreventingLidSleep }
 
         XCTAssertEqual(control.notice, .turnedOffLowBattery)
+    }
+
+    func testLowBatteryKeepsLidOnWhenAutoOffDisabled() async {
+        let control = make()
+        control.autoDisablesLidSleepOnLowBattery = false
+        control.updatePowerState(battery: battery(connected: true))
+        control.setLidSleep(true)
+        await waitUntil { control.isPreventingLidSleep }
+
+        control.updatePowerState(battery: battery(connected: false, percentage: 10))
+        for _ in 0..<80 { await Task.yield() }
+
+        XCTAssertTrue(control.isPreventingLidSleep, "auto-off disabled keeps it running on low battery")
     }
 
     func testLidTimerFiringTurnsOff() async {
