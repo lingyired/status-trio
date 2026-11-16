@@ -32,8 +32,6 @@ struct KeepAwakeSectionView: View {
                     set: { store.setPopupSection(.quickActions, enabled: $0) }
                 )
             )
-            SettingsDivider()
-            helperStatus
         }
     }
 
@@ -72,6 +70,8 @@ struct KeepAwakeSectionView: View {
                 isOn: $store.autoDisableLidSleepOnLowBattery
             )
             .disabled(!sectionEnabled)
+            SettingsDivider()
+            helperStatus
         }
     }
 
