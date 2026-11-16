@@ -16,53 +16,49 @@ struct HardwareMonitorSectionView: View {
     }
 
     private var panelRefreshGroup: some View {
-        SettingsGroup(
-            localization.string(.hardwareMonitorSettingsPanelRefresh),
-            footnote: localization.string(.hardwareMonitorSettingsPanelRefreshDescription)
-        ) {
-            SettingsCustomRow {
-                HStack {
-                    Spacer(minLength: 8)
-                    Picker("", selection: Binding(
+        SettingsGroup {
+            SettingsRow(
+                "speedometer",
+                tint: .blue,
+                title: localization.string(.hardwareMonitorSettingsPanelRefresh),
+                subtitle: localization.string(.hardwareMonitorSettingsPanelRefreshDescription)
+            ) {
+                Picker(localization.string(.hardwareMonitorSettingsPanelRefresh),
+                       selection: Binding(
                         get: { store.hardwarePanelRefreshSeconds },
-                        set: { store.hardwarePanelRefreshSeconds = $0 }
-                    )) {
-                        ForEach(SettingsStore.hardwarePanelRefreshOptions, id: \.self) { seconds in
-                            Text(localization.format(.hardwareMonitorBackgroundSeconds, seconds))
-                                .tag(seconds)
-                        }
+                        set: { store.hardwarePanelRefreshSeconds = $0 })) {
+                    ForEach(SettingsStore.hardwarePanelRefreshOptions, id: \.self) { seconds in
+                        Text(localization.format(.hardwareMonitorBackgroundSeconds, seconds))
+                            .tag(seconds)
                     }
-                    .labelsHidden()
-                    .pickerStyle(.menu)
-                    .fixedSize()
                 }
+                .labelsHidden()
+                .settingsMenuPickerWidth()
             }
         }
     }
 
     private var backgroundGroup: some View {
-        SettingsGroup(
-            localization.string(.hardwareMonitorSettingsBackground),
-            footnote: localization.string(.hardwareMonitorSettingsBackgroundDescription)
-        ) {
-            SettingsCustomRow {
-                HStack {
-                    Spacer(minLength: 8)
-                    Picker("", selection: Binding(
+        SettingsGroup {
+            SettingsRow(
+                "clock.arrow.circlepath",
+                tint: .green,
+                title: localization.string(.hardwareMonitorSettingsBackground),
+                subtitle: localization.string(.hardwareMonitorSettingsBackgroundDescription)
+            ) {
+                Picker(localization.string(.hardwareMonitorSettingsBackground),
+                       selection: Binding(
                         get: { store.hardwareBackgroundRefreshSeconds },
-                        set: { store.hardwareBackgroundRefreshSeconds = $0 }
-                    )) {
-                        Text(localization.string(.hardwareMonitorBackgroundOff))
-                            .tag(SettingsStore.defaultHardwareBackgroundRefreshSeconds)
-                        ForEach(SettingsStore.hardwareBackgroundRefreshOptions.filter { $0 > 0 }, id: \.self) { seconds in
-                            Text(localization.format(.hardwareMonitorBackgroundSeconds, seconds))
-                                .tag(seconds)
-                        }
+                        set: { store.hardwareBackgroundRefreshSeconds = $0 })) {
+                    Text(localization.string(.hardwareMonitorBackgroundOff))
+                        .tag(SettingsStore.defaultHardwareBackgroundRefreshSeconds)
+                    ForEach(SettingsStore.hardwareBackgroundRefreshOptions.filter { $0 > 0 }, id: \.self) { seconds in
+                        Text(localization.format(.hardwareMonitorBackgroundSeconds, seconds))
+                            .tag(seconds)
                     }
-                    .labelsHidden()
-                    .pickerStyle(.menu)
-                    .fixedSize()
                 }
+                .labelsHidden()
+                .settingsMenuPickerWidth()
             }
         }
     }
