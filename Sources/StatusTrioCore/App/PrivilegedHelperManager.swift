@@ -131,7 +131,15 @@ final class PrivilegedHelperManager: ObservableObject {
     /// How often the system state is re-read once the helper is enabled. Status
     /// only changes through a user action there, so the approval cadence is not
     /// worth an SMAppService round-trip every two seconds.
-    private let enabledStatusPollInterval: Duration
+    private var enabledStatusPollInterval: Duration
+    /// The normal enabled-status cadence, restored when leaving quiescence.
+    private let normalEnabledStatusPollInterval: Duration
+    /// True while the helper stays enabled (registration/approval intact) but no
+    /// visible panel section needs it, so the self-check cadence is stretched.
+    /// This never disables the helper.
+    private(set) var isQuiescent = false
+    /// Slow cadence used while quiescent: 30 minutes.
+    static let quiescentInterval: Duration = .seconds(1800)
     /// How often a pending-but-reachable helper is re-probed. Every probe
     /// starts the root daemon, which then idle-exits about five seconds later,
     /// so this interval is a direct process-churn cost on a machine whose
@@ -142,7 +150,9 @@ final class PrivilegedHelperManager: ObservableObject {
     /// How often a helper the system reports as enabled is re-probed. Long
     /// enough that the daemon's idle-exit cycle is not restarted for a healthy
     /// helper, short enough that a crashed one surfaces within a session.
-    private let enabledHealthCheckInterval: Duration
+    private var enabledHealthCheckInterval: Duration
+    /// The normal enabled health-check cadence, restored when leaving quiescence.
+    private let normalEnabledHealthCheckInterval: Duration
     private var nextPendingHealthCheck: ContinuousClock.Instant?
     /// Due time for the low-frequency re-probe of a helper the system already
     /// reports as enabled.
@@ -208,6 +218,8 @@ final class PrivilegedHelperManager: ObservableObject {
         self.enabledStatusPollInterval = enabledStatusPollInterval
         self.healthCheckInterval = healthCheckInterval
         self.enabledHealthCheckInterval = enabledHealthCheckInterval
+        self.normalEnabledStatusPollInterval = enabledStatusPollInterval
+        self.normalEnabledHealthCheckInterval = enabledHealthCheckInterval
         self.pendingProbeBackoff = pendingProbeBackoff
         // A previous session may have quit while the registration was still
         // waiting for approval, so start watching for the system to accept it.
@@ -278,6 +290,25 @@ final class PrivilegedHelperManager: ObservableObject {
     }
 
     /// Activation and polling observe approval without changing registration.
+    /// Stretches the self-check cadence while no visible panel section needs the
+    /// helper. It only changes timing: registration and system approval stay
+    /// intact, so nothing is uninstalled and re-enabling is instant. Leaving
+    /// quiescence refreshes once and restores the normal 30s/5min cadence.
+    func setQuiescent(_ quiescent: Bool) {
+        let next = quiescent && isEnabled
+        guard next != isQuiescent else { return }
+        isQuiescent = next
+        enabledStatusPollInterval = next ? Self.quiescentInterval : normalEnabledStatusPollInterval
+        enabledHealthCheckInterval = next ? Self.quiescentInterval : normalEnabledHealthCheckInterval
+        if isEnabled {
+            nextEnabledHealthCheck = ContinuousClock.now.advanced(by: enabledHealthCheckInterval)
+        }
+        updateStatusPolling()
+        if !next {
+            refresh()
+        }
+    }
+
     func refresh() {
         publishSystemState()
         updateStatusPolling()

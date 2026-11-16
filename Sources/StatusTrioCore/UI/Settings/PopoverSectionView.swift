@@ -183,33 +183,64 @@ struct PopoverSectionView: View {
     }
 }
 
-/// A miniature status panel used as the background-style preview card. The card
-/// shows the actual material for Liquid Glass and the classic popover style,
-/// and the system window fill (which tracks light / dark) for Solid.
+/// A miniature status panel used as the background-style preview card. It shows
+/// the panel background *and* the card surface that goes with it, so the three
+/// choices cannot look interchangeable: a translucent wash on Liquid Glass, a
+/// material wash on the frosted style, and an opaque system-surface card on
+/// Solid. The real window uses `NSGlassEffectView`, which SwiftUI cannot host in
+/// a settings swatch, so the glass entry is an honest visual approximation.
 private struct PanelBackgroundStylePreview: View {
     let style: PanelBackgroundStyle
 
     var body: some View {
         ZStack(alignment: .topLeading) {
             background
-            VStack(alignment: .leading, spacing: 4) {
-                Capsule()
-                    .fill(Color.primary.opacity(0.55))
-                    .frame(width: 30, height: 4)
-                Capsule()
-                    .fill(Color.primary.opacity(0.28))
-                    .frame(width: 22, height: 3)
-                Capsule()
-                    .fill(Color.primary.opacity(0.28))
-                    .frame(width: 26, height: 3)
-            }
-            .padding(9)
+            cardSwatch.padding(7)
         }
         .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: 8, style: .continuous)
                 .strokeBorder(Color.primary.opacity(0.14), lineWidth: 1)
         )
+    }
+
+    /// The miniature power card. Its surface follows the panel style the same way
+    /// the live cards do, so the preview communicates the card treatment, not just
+    /// the window fill.
+    private var cardSwatch: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Capsule()
+                .fill(Color.primary.opacity(0.55))
+                .frame(width: 30, height: 4)
+            Capsule()
+                .fill(Color.primary.opacity(0.28))
+                .frame(width: 22, height: 3)
+            Capsule()
+                .fill(Color.primary.opacity(0.28))
+                .frame(width: 26, height: 3)
+        }
+        .padding(7)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .background { cardSurface }
+        .overlay(
+            RoundedRectangle(cornerRadius: 6, style: .continuous)
+                .strokeBorder(Color.primary.opacity(0.16), lineWidth: 1)
+        )
+    }
+
+    @ViewBuilder
+    private var cardSurface: some View {
+        switch style {
+        case .liquidGlass:
+            RoundedRectangle(cornerRadius: 6, style: .continuous)
+                .fill(Color.primary.opacity(0.10))
+        case .classicMaterial:
+            RoundedRectangle(cornerRadius: 6, style: .continuous)
+                .fill(.ultraThinMaterial)
+        case .solid:
+            RoundedRectangle(cornerRadius: 6, style: .continuous)
+                .fill(Color(nsColor: .controlBackgroundColor))
+        }
     }
 
     @ViewBuilder

@@ -32,21 +32,63 @@ enum PowerCardSurface: Equatable, Sendable {
     /// The neutral silver family, resolved for the current appearance.
     case silver(PowerCardSilver.Role)
 
-    func fill(tint: Color, scheme: ColorScheme) -> Color {
-        switch self {
-        case let .tint(fillOpacity, _):
-            return tint.opacity(fillOpacity)
-        case let .silver(role):
-            return PowerCardSilver.values(for: role, scheme: scheme).fill
+    /// The fill for the given panel card strategy. The `.glass` recipe is the
+    /// original tuned wash; the other two adapt the same semantic colour to a
+    /// material or an opaque system base.
+    func fill(tint: Color, scheme: ColorScheme, cardStyle: PanelCardSurfaceStyle = .glass) -> Color {
+        switch cardStyle {
+        case .glass:
+            switch self {
+            case let .tint(fillOpacity, _):
+                return tint.opacity(fillOpacity)
+            case let .silver(role):
+                return PowerCardSilver.values(for: role, scheme: scheme).fill
+            }
+        case .material:
+            // The system material already supplies depth, so the wash thins out.
+            switch self {
+            case let .tint(fillOpacity, _):
+                return tint.opacity(fillOpacity * 0.60)
+            case let .silver(role):
+                return PowerCardSilver.values(for: role, scheme: scheme).fill.opacity(0.85)
+            }
+        case .solid:
+            // An opaque base sits underneath (see PanelCardSurfaceModifier); the
+            // tint only has to bias it toward the semantic colour.
+            switch self {
+            case .tint:
+                return tint.opacity(scheme == .dark ? 0.16 : 0.10)
+            case let .silver(role):
+                let silver = PowerCardSilver.values(for: role, scheme: scheme)
+                return silver.fillRGB.color.opacity(scheme == .dark ? 0.30 : 0.55)
+            }
         }
     }
 
-    func stroke(tint: Color, scheme: ColorScheme) -> Color {
-        switch self {
-        case let .tint(_, strokeOpacity):
-            return tint.opacity(strokeOpacity)
-        case let .silver(role):
-            return PowerCardSilver.values(for: role, scheme: scheme).stroke
+    func stroke(tint: Color, scheme: ColorScheme, cardStyle: PanelCardSurfaceStyle = .glass) -> Color {
+        switch cardStyle {
+        case .glass:
+            switch self {
+            case let .tint(_, strokeOpacity):
+                return tint.opacity(strokeOpacity)
+            case let .silver(role):
+                return PowerCardSilver.values(for: role, scheme: scheme).stroke
+            }
+        case .material:
+            switch self {
+            case .tint:
+                return tint.opacity(scheme == .dark ? 0.28 : 0.22)
+            case let .silver(role):
+                return PowerCardSilver.values(for: role, scheme: scheme).stroke.opacity(0.9)
+            }
+        case .solid:
+            switch self {
+            case .tint:
+                return tint.opacity(scheme == .dark ? 0.34 : 0.26)
+            case let .silver(role):
+                let silver = PowerCardSilver.values(for: role, scheme: scheme)
+                return silver.strokeRGB.color.opacity(scheme == .dark ? 0.45 : 0.65)
+            }
         }
     }
 }

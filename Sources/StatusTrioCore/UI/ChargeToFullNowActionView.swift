@@ -15,6 +15,8 @@ extension ChargeToFullNowPresentation {
 struct ChargeToFullNowActionView: View {
     @Environment(\.statusPanelMediumTextEnabled) private var panelMediumText
     @EnvironmentObject private var localization: Localization
+    @Environment(\.panelCardSurfaceStyle) private var cardStyle
+    @Environment(\.colorScheme) private var scheme
     let presentation: ChargeToFullNowPresentation
     let onAction: () -> Void
 
@@ -57,14 +59,7 @@ struct ChargeToFullNowActionView: View {
                     .foregroundStyle(.primary)
                     .padding(.horizontal, 10)
                     .frame(maxWidth: .infinity, minHeight: 28)
-                    .background(
-                        RoundedRectangle(cornerRadius: 7, style: .continuous)
-                            .fill(Color.secondary.opacity(0.08))
-                    )
-                    .overlay {
-                        RoundedRectangle(cornerRadius: 7, style: .continuous)
-                            .strokeBorder(Color.secondary.opacity(0.12))
-                    }
+                    .modifier(ChargeActionSurface(cardStyle: cardStyle, scheme: scheme))
                     .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
@@ -192,5 +187,40 @@ struct ChargeToFullNowActionView: View {
         .font(.caption2)
         .foregroundStyle(color)
         .fixedSize(horizontal: false, vertical: true)
+    }
+}
+
+/// Panel-aware surface for the Charge to Full Now action: interactive native
+/// glass on Liquid Glass, a light wash over the frosted panel, and an opaque
+/// adaptive base on solid — with a 10pt corner aligned to the cards.
+private struct ChargeActionSurface: ViewModifier {
+    let cardStyle: PanelCardSurfaceStyle
+    let scheme: ColorScheme
+
+    private var shape: RoundedRectangle {
+        RoundedRectangle(cornerRadius: 10, style: .continuous)
+    }
+
+    @ViewBuilder
+    func body(content: Content) -> some View {
+        switch cardStyle {
+        case .glass:
+            if #available(macOS 26.0, *), PanelCardSurfaceExperiment.useNative {
+                content.glassEffect(.regular.interactive(), in: shape)
+            } else {
+                content
+                    .background(shape.fill(Color.secondary.opacity(0.08)))
+                    .overlay { shape.strokeBorder(Color.secondary.opacity(0.12)) }
+            }
+        case .material:
+            content
+                .background(shape.fill(Color.secondary.opacity(0.10)))
+                .overlay { shape.strokeBorder(Color.secondary.opacity(0.14)) }
+        case .solid:
+            content
+                .background(shape.fill(Color.secondary.opacity(0.06)))
+                .background(shape.fill(PanelCardSurfaceStyle.solidBase(scheme: scheme)))
+                .overlay { shape.strokeBorder(Color.secondary.opacity(0.18)) }
+        }
     }
 }

@@ -41,6 +41,13 @@ protocol HelperReadinessProviding {
     /// re-evaluate against the current battery snapshot instead of waiting for
     /// the next one.
     var readinessPublisher: AnyPublisher<Bool, Never> { get }
+    /// Re-reads the helper's native status/readiness now (called on user action
+    /// so a click never acts on a stale helper state).
+    func refreshStatus()
+}
+
+extension HelperReadinessProviding {
+    func refreshStatus() {}
 }
 
 /// Production provider. Resolves the shared manager lazily so a store that
@@ -52,11 +59,17 @@ struct SharedHelperReadiness: HelperReadinessProviding {
     var readinessPublisher: AnyPublisher<Bool, Never> {
         PrivilegedHelperManager.shared.readinessPublisher
     }
+
+    func refreshStatus() {
+        PrivilegedHelperManager.shared.refresh()
+    }
 }
 
 extension PrivilegedHelperManager: HelperReadinessProviding {
     /// The same `isReady` rule the UI gates the switches with, re-published so
     /// the automation can re-evaluate when approval or responsiveness lands.
+    func refreshStatus() { refresh() }
+
     var readinessPublisher: AnyPublisher<Bool, Never> {
         Publishers.CombineLatest3($isEnabled, $status, $isHelperResponsive)
             .map { enabled, status, isResponsive in
@@ -166,6 +179,9 @@ final class SystemStatusStore: ObservableObject {
     /// The High Power Mode write path (#235). Same helper as `lowPowerMode`,
     /// dormant for the same reason; the two bridges share the one LaunchDaemon.
     let highPowerMode: HighPowerModeController
+    /// Keep-awake quick actions (#295): display assertion plus the helper-backed
+    /// lid-close toggle. Dormant until the user turns one on.
+    let sleepControl: SleepControlController
     /// The low-battery → Low Power Mode automation (#246).
     private let lowPowerAutoEnable = LowPowerAutoEnableController()
     /// Helper readiness for the #246 automation. Production reads the shared
@@ -195,6 +211,7 @@ final class SystemStatusStore: ObservableObject {
     private var externalVolumeSettingsCancellable: AnyCancellable?
     private weak var boundExternalVolumeSettings: SettingsStore?
     private var externalBrightnessSettingsCancellable: AnyCancellable?
+    private var brightnessScaleSettingsCancellable: AnyCancellable?
     private weak var boundExternalBrightnessSettings: SettingsStore?
     private var localIPSettingsCancellable: AnyCancellable?
     private var applicationEnergySettingsCancellable: AnyCancellable?
@@ -204,6 +221,7 @@ final class SystemStatusStore: ObservableObject {
     private var mobileBatterySettingsCancellable: AnyCancellable?
     private var lowPowerModeSettingsCancellable: AnyCancellable?
     private var lowPowerModeSnapshotCancellable: AnyCancellable?
+    private var sleepControlPowerCancellable: AnyCancellable?
     private var lowPowerAutoEnableCancellable: AnyCancellable?
     /// The threshold and the helper readiness are preconditions of #246 rather
     /// than battery events, so each has its own subscription to re-evaluate.
@@ -275,6 +293,11 @@ final class SystemStatusStore: ObservableObject {
     @Published private(set) var isPopoverVisible = false
     private(set) var popoverOpenGeneration: UInt64 = 0
     @Published private(set) var trustedAppleDeviceCandidates: [AppleDeviceCandidate] = []
+    /// Which Apple identities the last completed discovery actually returned.
+    /// `nil` means no cycle has completed, so an empty list is not proof of
+    /// absence. Used only to bound the display projection, never to delete the
+    /// stored metadata.
+    @Published private(set) var appleDeviceLastSuccessfulIDs: Set<AppleDeviceID>?
     @Published private(set) var trustedAppleDeviceDiscoveryGeneration: UInt64 = 0
     /// True while the display is asleep. The fallback poll skips its work then,
     /// because no menu bar or Dock tile is on screen to keep fresh.
@@ -338,6 +361,7 @@ final class SystemStatusStore: ObservableObject {
         bluetoothListeningModes: BluetoothListeningModeController = BluetoothListeningModeController(),
         lowPowerMode: LowPowerModeController = LowPowerModeController(),
         highPowerMode: HighPowerModeController = HighPowerModeController(),
+        sleepControl: SleepControlController = SleepControlController(),
         helperReadiness: (any HelperReadinessProviding)? = nil,
         powerModeNotifications: any PowerModeNotificationMonitoring = PowerModeNotificationMonitor(),
         vpnConnectionController: any VPNConnectionControlling = SystemVPNConnectionController(),
@@ -375,6 +399,7 @@ final class SystemStatusStore: ObservableObject {
         self.bluetoothListeningModes = bluetoothListeningModes
         self.lowPowerMode = lowPowerMode
         self.highPowerMode = highPowerMode
+        self.sleepControl = sleepControl
         self.helperReadiness = helperReadiness ?? SharedHelperReadiness()
         self.powerModeNotifications = powerModeNotifications
         self.snapshot = initialSnapshot
@@ -533,6 +558,16 @@ final class SystemStatusStore: ObservableObject {
         }
 
         batteryMonitor.start()
+        sleepControl.start()
+        sleepControl.updatePowerState(battery: snapshot.battery)
+        sleepControlPowerCancellable = $snapshot
+            .map(\.battery)
+            .removeDuplicates()
+            .sink { [weak self] battery in
+                Task { @MainActor [weak self] in
+                    self?.sleepControl.updatePowerState(battery: battery)
+                }
+            }
         wifiMonitor.start()
         connectionMonitor?.start()
         volumeMonitor.start()
@@ -636,6 +671,8 @@ final class SystemStatusStore: ObservableObject {
         inputSettingsCancellable = nil
         externalVolumeSettingsCancellable?.cancel()
         externalVolumeSettingsCancellable = nil
+        brightnessScaleSettingsCancellable?.cancel()
+        brightnessScaleSettingsCancellable = nil
         applicationEnergySettingsCancellable?.cancel()
         applicationEnergySettingsCancellable = nil
         batteryDetails.energyApps.stop()
@@ -645,6 +682,9 @@ final class SystemStatusStore: ObservableObject {
         lowPowerModeSettingsCancellable = nil
         lowPowerModeSnapshotCancellable?.cancel()
         lowPowerModeSnapshotCancellable = nil
+        sleepControlPowerCancellable?.cancel()
+        sleepControlPowerCancellable = nil
+        sleepControl.stop()
         lowPowerAutoEnableCancellable?.cancel()
         lowPowerAutoEnableCancellable = nil
         lowPowerAutoEnableThresholdCancellable?.cancel()
@@ -1157,6 +1197,14 @@ final class SystemStatusStore: ObservableObject {
             .sink { [weak self] configurations in
                 self?.brightnessMonitor.setExternalBrightnessConfigurations(configurations)
             }
+        brightnessMonitor.setUseBetterDisplayCombinedBrightness(
+            settings.useBetterDisplayCombinedBrightness
+        )
+        brightnessScaleSettingsCancellable = settings.$useBetterDisplayCombinedBrightness
+            .removeDuplicates()
+            .sink { [weak self] enabled in
+                self?.brightnessMonitor.setUseBetterDisplayCombinedBrightness(enabled)
+            }
     }
 
     func refreshBetterDisplayDevices() {
@@ -1499,10 +1547,14 @@ final class SystemStatusStore: ObservableObject {
                 self?.mobileBattery.setReadingEnabled(enabled)
             }
         appleDeviceSettingsCancellable = settings.$showsAppleDevicesAndBattery
-            .combineLatest(appleDeviceDiscovery.$candidates)
-            .sink { [weak self, weak settings] enabled, candidates in
+            .combineLatest(
+                appleDeviceDiscovery.$candidates,
+                appleDeviceDiscovery.$lastSuccessfulCandidateIDs
+            )
+            .sink { [weak self, weak settings] enabled, candidates, lastSuccessfulIDs in
                 self?.trustedAppleDeviceCandidates = candidates
                 self?.trustedAppleDeviceDiscoveryGeneration = self?.appleDeviceDiscovery.discoveryGeneration ?? 0
+                self?.appleDeviceLastSuccessfulIDs = lastSuccessfulIDs
                 guard enabled else { return }
                 settings?.updateTrustedAppleDeviceMetadata(candidates)
             }
@@ -1549,6 +1601,7 @@ final class SystemStatusStore: ObservableObject {
         self.boundAppleRefreshSettings = settings
         trustedAppleDeviceCandidates = appleDeviceDiscovery.candidates
         trustedAppleDeviceDiscoveryGeneration = appleDeviceDiscovery.discoveryGeneration
+        appleDeviceLastSuccessfulIDs = appleDeviceDiscovery.lastSuccessfulCandidateIDs
         updateAppleRefreshDemand()
     }
 
@@ -1729,8 +1782,12 @@ final class SystemStatusStore: ObservableObject {
             revealedGhostDeviceAddresses: options.revealedGhostDeviceAddresses
         )
         let trustedRows = AppleDeviceCatalog.projection(
-            candidates: AppleDeviceCatalog.candidates(
-                trusted: settings.trustedAppleDeviceMetadata + trustedAppleDeviceCandidates
+            candidates: AppleDeviceCatalog.currentCandidates(
+                history: settings.trustedAppleDeviceMetadata,
+                discovered: trustedAppleDeviceCandidates,
+                lastSuccessfulIDs: appleDeviceLastSuccessfulIDs,
+                trustedSnapshots: mobileBattery.snapshots,
+                now: Date()
             ),
             trustedSnapshots: mobileBattery.snapshots,
             options: unhiddenOptions

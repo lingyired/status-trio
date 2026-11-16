@@ -253,6 +253,13 @@ if [[ -n "${NOTARY_PROFILE:-}" ]]; then
 fi
 
 DMG_FILENAME="$(basename "$DMG_PATH")"
+# Reuse the exact signed/stapled app from this build. This ZIP is an app
+# archive for Sparkle, not a ZIP wrapper around the DMG.
+build_phase app-zip-archive
+ZIP_FILENAME="StatusTrio-$VERSION.zip"
+ZIP_PATH="$OUTPUT_DIR/$ZIP_FILENAME"
+ditto -c -k --sequesterRsrc --keepParent "$APP_DIR" "$ZIP_PATH"
+ACTUAL_ZIP_LENGTH="$(stat -f '%z' "$ZIP_PATH")"
 build_phase sparkle-signature-and-manifest
 ACTUAL_DMG_LENGTH="$(stat -f '%z' "$DMG_PATH")"
 if [[ -n "${SPARKLE_PRIVATE_KEY:-}" ]]; then
@@ -268,18 +275,30 @@ if [[ -n "${SPARKLE_PRIVATE_KEY:-}" ]]; then
         die "Could not parse Sparkle signature output."
     [[ "$DMG_LENGTH" == "$ACTUAL_DMG_LENGTH" ]] ||
         die "Sparkle signature length $DMG_LENGTH differs from the actual DMG length $ACTUAL_DMG_LENGTH."
+    ZIP_SIGN_OUTPUT="$(
+        printf '%s' "$SPARKLE_PRIVATE_KEY" |
+            env -u SPARKLE_PRIVATE_KEY "$SIGN_UPDATE" --ed-key-file - "$ZIP_PATH"
+    )"
+    ZIP_ED_SIGNATURE="$(printf '%s\n' "$ZIP_SIGN_OUTPUT" | sed -n 's/.*sparkle:edSignature="\([^"]*\)".*/\1/p')"
+    ZIP_LENGTH="$(printf '%s\n' "$ZIP_SIGN_OUTPUT" | sed -n 's/.*length="\([0-9][0-9]*\)".*/\1/p')"
+    [[ -n "$ZIP_ED_SIGNATURE" && "$ZIP_LENGTH" == "$ACTUAL_ZIP_LENGTH" ]] ||
+        die "ZIP Sparkle signature or length is invalid."
 else
     [[ "$PUBLISH_MODE" == "false" ]] ||
         die "SPARKLE_PRIVATE_KEY is required for a publishable package."
     ED_SIGNATURE="diagnostic-not-for-publication"
     DMG_LENGTH="$ACTUAL_DMG_LENGTH"
+    ZIP_ED_SIGNATURE="diagnostic-not-for-publication"
+    ZIP_LENGTH="$ACTUAL_ZIP_LENGTH"
     echo "Diagnostic package has no Sparkle signature; manifest is marked non-publishable." >&2
 fi
 (
     cd "$OUTPUT_DIR"
     shasum -a 256 "$DMG_FILENAME" > "$DMG_FILENAME.sha256"
+    shasum -a 256 "$ZIP_FILENAME" > "$ZIP_FILENAME.sha256"
 )
 DMG_SHA256="$(awk '{print $1}' "$OUTPUT_DIR/$DMG_FILENAME.sha256")"
+ZIP_SHA256="$(awk '{print $1}' "$OUTPUT_DIR/$ZIP_FILENAME.sha256")"
 if [[ -n "${NOTARY_PROFILE:-}" ]]; then
     if [[ "${CODE_SIGN_IDENTITY:--}" == "-" ]]; then
         die "NOTARY_PROFILE requires a Developer ID signature."
@@ -302,7 +321,7 @@ ruby -rjson -e '
     require "time"
     output, source_sha, version, build, tag, dmg, sha, length, signature,
       repo, branch, appcast, body, notes, signing, notarization, app_name, bundle_id,
-      minimum_system_version, xcode, swift, sdk = ARGV
+      minimum_system_version, xcode, swift, sdk, zip, zip_sha, zip_length, zip_signature = ARGV
     File.write(
       File.join(output, "release-manifest.json"),
       JSON.pretty_generate(
@@ -322,6 +341,7 @@ ruby -rjson -e '
           length: length,
           ed_signature: signature
         },
+        zip: { filename: zip, sha256: zip_sha, length: zip_length, ed_signature: zip_signature },
         signing: { kind: signing },
         notarization: { status: notarization },
         release: {
@@ -338,6 +358,6 @@ ruby -rjson -e '
     "$RELEASE_BRANCH" "appcast.xml" "release-body.md" "release-notes/$VERSION" \
     "$SIGNING_KIND" "$NOTARIZATION_STATUS" "$APP_NAME" "$BUNDLE_ID" \
     "$MINIMUM_SYSTEM_VERSION" "$XCODE_VERSION" "$SWIFT_VERSION" \
-    "$SDK_VERSION"
+    "$SDK_VERSION" "$ZIP_FILENAME" "$ZIP_SHA256" "$ZIP_LENGTH" "$ZIP_ED_SIGNATURE"
 
 echo "Package ready: $DMG_FILENAME ($DMG_SHA256), signing=$SIGNING_KIND, notarization=$NOTARIZATION_STATUS"

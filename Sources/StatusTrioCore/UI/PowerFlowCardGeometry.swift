@@ -37,25 +37,3 @@ struct PowerFlowRibbonMask: Shape {
         return path
     }
 }
-
-extension View {
-    /// The original rounded card surface, with fill and rim drawn from the same
-    /// rounded outline.
-    func powerFlowCardSurface(fill: Color, stroke: Color) -> some View {
-        modifier(PowerFlowCardSurfaceModifier(fill: fill, stroke: stroke))
-    }
-}
-
-private struct PowerFlowCardSurfaceModifier: ViewModifier {
-    let fill: Color
-    let stroke: Color
-
-    func body(content: Content) -> some View {
-        let shape = RoundedRectangle(cornerRadius: 12)
-        content
-            .background(shape.fill(fill))
-            .overlay {
-                shape.strokeBorder(stroke, lineWidth: 1)
-            }
-    }
-}

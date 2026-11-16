@@ -167,6 +167,24 @@ final class AppleDeviceDiscoveryControllerTests: XCTestCase {
         }
     }
 
+    func testSuccessfulDiscoveryPublishesIDsButFailureLeavesThemUnknown() async {
+        let success = AppleDeviceDiscoveryController(
+            reader: MobileBatteryHelperReader(executor: DiscoveryRouteExecutor(scenario: .empty)))
+        success.request("integration")
+        success.setEnabled(true)
+        await waitUntil { !success.isDiscovering }
+        XCTAssertEqual(success.lastSuccessfulCandidateIDs, [])
+        success.stop()
+
+        let failure = AppleDeviceDiscoveryController(
+            reader: MobileBatteryHelperReader(executor: DiscoveryRouteExecutor(scenario: .badJSON)))
+        failure.request("integration")
+        failure.setEnabled(true)
+        await waitUntil { !failure.isDiscovering }
+        XCTAssertNil(failure.lastSuccessfulCandidateIDs)
+        failure.stop()
+    }
+
     private func candidate(id: String, model: String) -> AppleDeviceCandidate {
         AppleDeviceCandidate(
             id: .trustedDevice(id), name: "Device", model: model,

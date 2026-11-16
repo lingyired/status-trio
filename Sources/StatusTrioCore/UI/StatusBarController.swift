@@ -79,6 +79,9 @@ final class StatusBarController: NSObject {
     private var refreshIntervalCancellable: AnyCancellable?
     private var powerDemandCancellable: AnyCancellable?
     private var panelBackgroundCancellable: AnyCancellable?
+    private var reduceTransparencyCancellable: AnyCancellable?
+    private var helperQuiescenceCancellable: AnyCancellable?
+    private var lidPolicyCancellables: Set<AnyCancellable> = []
     private let openSettings: () -> Void
     /// Opens Status Trio's own Settings window on the Battery tab.
     private let openAppBatterySettings: () -> Void
@@ -360,6 +363,53 @@ final class StatusBarController: NSObject {
                 self?.popover.applyBackgroundStyle(style)
             }
 
+        // Reduce Transparency changes neither the persisted style nor the panel's
+        // own observers, so replay the background through the same effective-style
+        // calculation the SwiftUI cards use. One event updates the window and the
+        // content; no reopen required.
+        reduceTransparencyCancellable = NSWorkspace.shared.notificationCenter
+            .publisher(for: NSWorkspace.accessibilityDisplayOptionsDidChangeNotification)
+            .receive(on: RunLoop.main)
+            .sink { [weak self] _ in
+                self?.popover.refreshBackgroundForAccessibilityChange()
+            }
+
+        // Keep the helper enabled but stretch its self-check cadence to 30 minutes
+        // when no visible panel section needs it. Hiding a section never disables
+        // the helper; a pending lid-sleep recovery keeps the normal cadence so a
+        // residual disablesleep=1 is still noticed.
+        // Drive the lid-sleep battery policy from Settings.
+        store.sleepControl.allowsLidSleepOnBattery = settings.allowLidSleepOnBattery
+        store.sleepControl.autoDisablesLidSleepOnLowBattery = settings.autoDisableLidSleepOnLowBattery
+        settings.$allowLidSleepOnBattery
+            .sink { [weak self] value in
+                guard let self else { return }
+                self.store.sleepControl.allowsLidSleepOnBattery = value
+                self.store.sleepControl.applyLidPowerPolicy()
+            }
+            .store(in: &lidPolicyCancellables)
+        settings.$autoDisableLidSleepOnLowBattery
+            .sink { [weak self] value in
+                guard let self else { return }
+                self.store.sleepControl.autoDisablesLidSleepOnLowBattery = value
+                self.store.sleepControl.applyLidPowerPolicy()
+            }
+            .store(in: &lidPolicyCancellables)
+
+        helperQuiescenceCancellable = Publishers.CombineLatest3(
+            settings.$controlsLowPowerMode,
+            settings.$showsLidSleepButton,
+            settings.$enabledPopupSections
+        )
+        .receive(on: RunLoop.main)
+        .sink { [weak self] batteryOn, lidOn, sections in
+            guard let self else { return }
+            let anyVisible = (batteryOn && sections.contains(.battery))
+                || (lidOn && sections.contains(.quickActions))
+            let pending = self.store.sleepControl.hasPendingLidRecovery
+            PrivilegedHelperManager.shared.setQuiescent(!anyVisible && !pending)
+        }
+
         screenParametersCancellable = NotificationCenter.default.publisher(
             for: NSApplication.didChangeScreenParametersNotification,
             object: NSApp
@@ -620,6 +670,14 @@ final class StatusBarController: NSObject {
 
     /// Shows the same popover for a Dock icon click, above the clicked icon.
     func togglePopover(anchoredAtScreenPoint point: NSPoint) {
+        // Issue #341: a Dock tile click produces the same close-then-reopen pair
+        // as the status item (#224). The outside-click monitor closes the panel
+        // on mouse-down, then the app-reopen callback reaches this method with
+        // `popover.isShown == false`. Honour the same-click suppression before
+        // the toggle gate so the second click hides instead of reopening.
+        if !popover.isShown, reopenSuppression.shouldSuppressReopen(at: Date()) {
+            return
+        }
         guard popoverToggleGate.shouldAccept(at: Date()) else { return }
         if popover.isShown {
             closePopover()
@@ -1132,7 +1190,7 @@ final class StatusBarController: NSObject {
         ) else {
             return false
         }
-        return consumeVolume(event: event)
+        return consumeVolume(event: event, allowsHorizontal: false)
     }
 
     /// Routes a wheel event to the slider directly under the pointer.
@@ -1145,7 +1203,7 @@ final class StatusBarController: NSObject {
             guard store.isVolumeControlAvailable, panelViewModel.volume.canAdjust else {
                 return true // consume so the wheel does not scroll underneath
             }
-            return consumeVolume(event: event)
+            return consumeVolume(event: event, allowsHorizontal: true)
         case .brightness(let displayID):
             // Sliders own the wheel wherever they are; the scope setting only
             // decides whether empty panel areas also adjust the output volume.
@@ -1168,6 +1226,7 @@ final class StatusBarController: NSObject {
             fallback: fallback
         ) else { return false }
         let delta = volumeScrollAdjustment.levelDelta(
+            deltaX: Double(event.scrollingDeltaX),
             deltaY: Double(event.scrollingDeltaY),
             isPrecise: event.hasPreciseScrollingDeltas,
             isDirectionInverted: event.isDirectionInvertedFromDevice,
@@ -1196,6 +1255,7 @@ final class StatusBarController: NSObject {
             fallback: fallback
         ) else { return false }
         let delta = volumeScrollAdjustment.levelDelta(
+            deltaX: Double(event.scrollingDeltaX),
             deltaY: Double(event.scrollingDeltaY),
             isPrecise: event.hasPreciseScrollingDeltas,
             isDirectionInverted: event.isDirectionInvertedFromDevice,
@@ -1210,11 +1270,17 @@ final class StatusBarController: NSObject {
         return true
     }
 
-    private func consumeVolume(event: NSEvent) -> Bool {
+    private func consumeVolume(event: NSEvent, allowsHorizontal: Bool) -> Bool {
         let volumeState = panelViewModel.volume
         guard event.window === popover.contentViewController?.view.window,
               store.isVolumeControlAvailable,
               volumeState.canAdjust else {
+            return false
+        }
+        // The panel-wide fallback only owns vertical scrolling; a horizontal
+        // gesture outside a slider must pass through instead of being swallowed.
+        if !allowsHorizontal,
+           abs(event.scrollingDeltaX) > abs(event.scrollingDeltaY) {
             return false
         }
         guard event.momentumPhase.isEmpty else { return true }
@@ -1227,6 +1293,7 @@ final class StatusBarController: NSObject {
             return false
         }
         let delta = volumeScrollAdjustment.levelDelta(
+            deltaX: allowsHorizontal ? Double(event.scrollingDeltaX) : 0,
             deltaY: Double(event.scrollingDeltaY),
             isPrecise: event.hasPreciseScrollingDeltas,
             isDirectionInverted: event.isDirectionInvertedFromDevice,

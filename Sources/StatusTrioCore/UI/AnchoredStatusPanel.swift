@@ -205,6 +205,13 @@ final class AnchoredStatusPanel: NSPanel {
             .applyBackgroundStyle(style)
     }
 
+    /// Rebuilds the background for a Reduce Transparency change without touching
+    /// the window or its SwiftUI content.
+    func refreshBackgroundForAccessibilityChange() {
+        (contentViewController as? StatusPanelContentViewController)?
+            .refreshBackgroundForAccessibilityChange()
+    }
+
     // MARK: - Presentation
 
     func show(
@@ -794,6 +801,9 @@ final class StatusPanelContentViewController: NSViewController {
     /// has Reduce Transparency turned on.
     private let isReduceTransparencyEnabled: () -> Bool
     private var backgroundView: NSView?
+    /// The style actually installed last, so a Reduce Transparency toggle only
+    /// rebuilds the background when the effective style really changed.
+    private var installedEffectiveStyle: PanelBackgroundStyle?
 
     init(
         hostingController: NSViewController,
@@ -836,6 +846,15 @@ final class StatusPanelContentViewController: NSViewController {
         installBackground(in: view)
     }
 
+    /// Rebuilds the background when the effective style changes because the user
+    /// toggled Reduce Transparency. Driven by the same system notification as the
+    /// SwiftUI card layer so the window and its content never disagree.
+    func refreshBackgroundForAccessibilityChange() {
+        guard isViewLoaded else { return }
+        guard effectiveBackgroundStyle != installedEffectiveStyle else { return }
+        installBackground(in: view)
+    }
+
     /// Reduce Transparency keeps the panel opaque for accessibility; it wins
     /// over the user's choice and forces the solid fill.
     private var effectiveBackgroundStyle: PanelBackgroundStyle {
@@ -846,6 +865,7 @@ final class StatusPanelContentViewController: NSViewController {
     }
 
     private func installBackground(in container: NSView) {
+        installedEffectiveStyle = effectiveBackgroundStyle
         backgroundView?.removeFromSuperview()
         backgroundView = nil
         hostingController.view.removeFromSuperview()

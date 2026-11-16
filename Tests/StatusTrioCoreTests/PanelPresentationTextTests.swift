@@ -80,6 +80,20 @@ final class PresentationTextMapperTests: XCTestCase {
         )
     }
 
+    func testUnpluggedBatteryDoesNotShowChargeToFullPlaceholder() {
+        let localization = makeLocalization(.simplifiedChinese)
+        for action: ChargeToFullNowPresentation in [.applying, .chargingToFull, .cancelling] {
+            XCTAssertEqual(
+                PanelPresentationMapper.batterySubtitle(
+                    makeBattery(isConnectedToPower: false),
+                    localization: localization,
+                    chargeToFullNow: action
+                ),
+                "电池供电"
+            )
+        }
+    }
+
     func testBatteryRuntimeFormattingAndUnknownFallback() {
         let localization = makeLocalization(.simplifiedChinese)
         let cases: [(Int?, String)] = [
@@ -124,13 +138,15 @@ final class PresentationTextMapperTests: XCTestCase {
                 expected
             )
         }
+        // `.applying` on battery (no adapter) must not masquerade as charging;
+        // the real runtime text wins instead.
         XCTAssertEqual(
             PanelPresentationMapper.batterySubtitle(
                 makeBattery(timeToEmptyMinutes: 85),
                 localization: localization,
                 chargeToFullNow: .applying
             ),
-            "正在计算充满时间"
+            "约 1小时25分钟可用"
         )
     }
 
@@ -203,6 +219,98 @@ final class PresentationTextMapperTests: XCTestCase {
                 "minutes: \(String(describing: minutes))"
             )
         }
+    }
+
+    func testBatteryTimeToFullFormattingTargetsChargeLimit() {
+        let localization = makeLocalization(.simplifiedChinese)
+        let cases: [(Int?, String)] = [
+            (1, "预计 1 分钟充到 90%"),
+            (60, "预计 1 小时充到 90%"),
+            (85, "预计 1 小时 25 分钟充到 90%"),
+            (nil, "正在计算充满时间")
+        ]
+
+        for (minutes, expected) in cases {
+            XCTAssertEqual(
+                PanelPresentationMapper.batteryTimeToFullText(
+                    minutes: minutes,
+                    targetPercent: 90,
+                    localization: localization
+                ),
+                expected,
+                "minutes: \(String(describing: minutes))"
+            )
+        }
+    }
+
+    func testChargeTimeEstimateScalesToChargeLimit() {
+        let scaled = PanelPresentationMapper.chargeTimeEstimate(
+            makeBattery(
+                isCharging: true,
+                isConnectedToPower: true,
+                percentage: 82,
+                timeToFullChargeMinutes: 67,
+                chargeLimitPercent: 90
+            ),
+            chargeToFullNow: .hidden
+        )
+        XCTAssertEqual(scaled.minutes, 30)
+        XCTAssertEqual(scaled.targetPercent, 90)
+
+        let alreadyAtLimit = PanelPresentationMapper.chargeTimeEstimate(
+            makeBattery(
+                isCharging: true,
+                isConnectedToPower: true,
+                percentage: 90,
+                timeToFullChargeMinutes: 67,
+                chargeLimitPercent: 90
+            ),
+            chargeToFullNow: .hidden
+        )
+        XCTAssertEqual(alreadyAtLimit.minutes, 67)
+        XCTAssertNil(alreadyAtLimit.targetPercent)
+
+        let override = PanelPresentationMapper.chargeTimeEstimate(
+            makeBattery(
+                isCharging: true,
+                isConnectedToPower: true,
+                percentage: 82,
+                timeToFullChargeMinutes: 67,
+                chargeLimitPercent: 90
+            ),
+            chargeToFullNow: .chargingToFull
+        )
+        XCTAssertEqual(override.minutes, 67)
+        XCTAssertNil(override.targetPercent)
+
+        let noLimit = PanelPresentationMapper.chargeTimeEstimate(
+            makeBattery(
+                isCharging: true,
+                isConnectedToPower: true,
+                percentage: 50,
+                timeToFullChargeMinutes: 85
+            ),
+            chargeToFullNow: .hidden
+        )
+        XCTAssertEqual(noLimit.minutes, 85)
+        XCTAssertNil(noLimit.targetPercent)
+    }
+
+    func testBatterySubtitleUsesChargeLimitEstimate() {
+        let localization = makeLocalization(.simplifiedChinese)
+        XCTAssertEqual(
+            PanelPresentationMapper.batterySubtitle(
+                makeBattery(
+                    isCharging: true,
+                    isConnectedToPower: true,
+                    percentage: 82,
+                    timeToFullChargeMinutes: 67,
+                    chargeLimitPercent: 90
+                ),
+                localization: localization
+            ),
+            "预计 30 分钟充到 90%"
+        )
     }
 
     func testWiFiValueAndSubtitleForEveryState() {
@@ -637,7 +745,8 @@ final class PresentationTextMapperTests: XCTestCase {
         isConnectedToPower: Bool = false,
         percentage: Int = 100,
         timeToFullChargeMinutes: Int? = nil,
-        timeToEmptyMinutes: Int? = nil
+        timeToEmptyMinutes: Int? = nil,
+        chargeLimitPercent: Int? = nil
     ) -> BatteryStatus {
         BatteryStatus(
             rawPercentage: percentage,
@@ -647,7 +756,8 @@ final class PresentationTextMapperTests: XCTestCase {
             timeToFullChargeMinutes: timeToFullChargeMinutes,
             timeToEmptyMinutes: timeToEmptyMinutes,
             isLowPowerMode: isLowPowerMode,
-            isConnectedToPower: isConnectedToPower
+            isConnectedToPower: isConnectedToPower,
+            chargeLimitPercent: chargeLimitPercent
         )
     }
 }

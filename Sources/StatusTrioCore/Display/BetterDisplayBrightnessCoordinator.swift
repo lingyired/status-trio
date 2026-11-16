@@ -19,15 +19,23 @@ protocol BetterDisplayBrightnessHintSource: AnyObject {
 /// and only a matching read-back is reported as `betterDisplay`; a mismatch is
 /// reported as `.unavailable(.writeNotConfirmed)`.
 ///
-/// Request shapes (mirroring the proven `volume` commands):
-/// - get:  `commands: ["get"]`, parameters `UUID`, `brightness`, `value`, `min`,
-///   `max` all present with `brightness`/`value`/`min`/`max` as `nil`.
-///   Response payload is `"current,minimum,maximum"`.
-/// - set:  `commands: ["set"]`, parameters `UUID`, `brightness` (raw value in the
-///   display's native range), plus `min`/`max` from the last known range.
+/// Brightness feature: BetterDisplay exposes `brightness` (auto-selected, which
+/// may be its user-configurable "combined"/software scale), `hardwareBrightness`,
+/// and `softwareBrightness`. We read and write `hardwareBrightness` so the row's
+/// percentage is the display's real hardware brightness — the same scale the OS
+/// uses (DisplayServices for built-in, DDC hardware for external) — rather than
+/// BetterDisplay's combined scale, which only agrees at 100% (issue #344). If a
+/// display has no hardware brightness at all, we fall back to the auto-selected
+/// `brightness` feature so the row stays usable, and keep using it for writes.
 ///
-/// - Warning: The exact BetterDisplay parameter keys for `brightness` (as
-///   opposed to the proven `volume` keys) and the payload framing are
+/// Request shapes (mirroring the proven `volume` commands):
+/// - get:  `commands: ["get"]`, parameters `UUID`, the feature name, `value`,
+///   `min`, `max` all present with the feature/`value`/`min`/`max` as `nil`.
+///   Response payload is `"current,minimum,maximum"`.
+/// - set:  `commands: ["set"]`, parameters `UUID`, the feature name (raw value in
+///   the display's native range), plus `min`/`max` from the last known range.
+///
+/// - Warning: The exact BetterDisplay parameter keys and payload framing are
 ///   **unverified against a live BetterDisplay build in this environment**.
 ///   Real-device behavior is NOT RUN; confirm both against a running app before
 ///   trusting the values.
@@ -78,14 +86,41 @@ final class BetterDisplayBrightnessCoordinator {
     private var requestInFlight = false
     private var pendingScalar: Double?
 
+    /// BetterDisplay brightness features. See the type doc above.
+    enum Feature: String {
+        case hardware = "hardwareBrightness"
+        case combined = "combinedBrightness"
+        /// BetterDisplay's auto-selected feature; the last-resort fallback.
+        case automatic = "brightness"
+    }
+
+    /// The feature the user asked for; also the value `activeFeature` resets to
+    /// on stop. Defaults to the hardware scale.
+    private var preferredFeature: Feature
+    /// Which feature the current read/write cycle uses. Starts at the preferred
+    /// feature; downgrades to `automatic` only when that feature is unavailable.
+    private var activeFeature: Feature
+
     init(
         client: any BetterDisplayRequesting,
         displayUUID: String,
+        preferredFeature: Feature = .hardware,
         onUpdate: @escaping @MainActor (Update) -> Void
     ) {
         self.client = client
         self.displayUUID = displayUUID
+        self.preferredFeature = preferredFeature
+        self.activeFeature = preferredFeature
         self.onUpdate = onUpdate
+    }
+
+    /// Chooses the brightness scale before `start()`. No-op once started so a
+    /// live coordinator is never retargeted mid-flight; the monitor rebuilds
+    /// instead.
+    func setPreferredFeature(_ feature: Feature) {
+        guard !isStarted else { return }
+        preferredFeature = feature
+        activeFeature = feature
     }
 
     // MARK: - Lifecycle
@@ -108,6 +143,7 @@ final class BetterDisplayBrightnessCoordinator {
         requestInFlight = false
         pendingScalar = nil
         lastRange = nil
+        activeFeature = preferredFeature
         (client as? BetterDisplayBrightnessHintSource)?
             .setBrightnessOSDHandler(nil)
         stopClient()
@@ -151,9 +187,8 @@ final class BetterDisplayBrightnessCoordinator {
             do {
                 var range = self.lastRange
                 if range == nil {
-                    let payload = try await self.requestGet()
-                    guard self.accepts(requestGeneration) else { return }
-                    guard let payload, let parsed = Self.parseRange(payload) else {
+                    guard let parsed = try await self.readRangeWithFallback() else {
+                        guard self.accepts(requestGeneration) else { return }
                         self.finish(
                             requestGeneration,
                             scalar: nil,
@@ -163,6 +198,7 @@ final class BetterDisplayBrightnessCoordinator {
                         )
                         return
                     }
+                    guard self.accepts(requestGeneration) else { return }
                     range = parsed
                     self.lastRange = parsed
                 }
@@ -182,14 +218,14 @@ final class BetterDisplayBrightnessCoordinator {
                     commands: ["set"],
                     parameters: [
                         "UUID": self.displayUUID,
-                        "brightness": String(raw),
+                        self.activeFeature.rawValue: String(raw),
                         "min": String(range.minimum),
                         "max": String(range.maximum)
                     ]
                 )
                 guard self.accepts(requestGeneration) else { return }
 
-                let confirmationPayload = try await self.requestGet()
+                let confirmationPayload = try await self.requestGet(feature: self.activeFeature.rawValue)
                 guard self.accepts(requestGeneration) else { return }
                 guard
                     let confirmationPayload,
@@ -249,9 +285,8 @@ final class BetterDisplayBrightnessCoordinator {
         Task { @MainActor [weak self] in
             guard let self else { return }
             do {
-                let payload = try await self.requestGet()
-                guard self.accepts(requestGeneration) else { return }
-                guard let payload, let parsed = Self.parseRange(payload) else {
+                guard let parsed = try await self.readRangeWithFallback() else {
+                    guard self.accepts(requestGeneration) else { return }
                     self.finish(
                         requestGeneration,
                         scalar: nil,
@@ -261,6 +296,7 @@ final class BetterDisplayBrightnessCoordinator {
                     )
                     return
                 }
+                guard self.accepts(requestGeneration) else { return }
                 self.lastRange = parsed
                 self.finish(
                     requestGeneration,
@@ -282,17 +318,46 @@ final class BetterDisplayBrightnessCoordinator {
         }
     }
 
-    private func requestGet() async throws -> String? {
+    private func requestGet(feature: String) async throws -> String? {
         try await client.request(
             commands: ["get"],
             parameters: [
                 "UUID": displayUUID,
-                "brightness": nil,
+                feature: nil,
                 "value": nil,
                 "min": nil,
                 "max": nil
             ]
         )
+    }
+
+    /// Reads the active brightness feature, falling back to BetterDisplay's
+    /// auto-selected brightness only when the hardware feature is rejected
+    /// (unsupported on this display). A successful fallback is remembered for
+    /// later writes. Timeouts and other transport failures are not retried on a
+    /// second feature, so a slow display does not pay two request deadlines.
+    private func readRangeWithFallback() async throws -> BrightnessRange? {
+        do {
+            return try await readRange(feature: activeFeature)
+        } catch {
+            guard
+                activeFeature != Feature.automatic,
+                let integrationError = error as? BetterDisplayIntegrationError,
+                integrationError == .requestFailed || integrationError == .invalidResponse
+            else {
+                throw error
+            }
+            guard let range = try await readRange(feature: Feature.automatic) else {
+                throw error
+            }
+            activeFeature = Feature.automatic
+            return range
+        }
+    }
+
+    private func readRange(feature: Feature) async throws -> BrightnessRange? {
+        let payload = try await requestGet(feature: feature.rawValue)
+        return payload.flatMap(Self.parseRange)
     }
 
     // MARK: - Events
@@ -304,6 +369,7 @@ final class BetterDisplayBrightnessCoordinator {
             refresh()
         case .terminated:
             lastRange = nil
+            activeFeature = preferredFeature
             generation &+= 1
             requestInFlight = false
             emit(

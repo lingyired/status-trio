@@ -62,6 +62,7 @@ struct SettingsView: View {
     enum Section: String, CaseIterable, Identifiable {
         case appIcon
         case battery
+        case keepAwake
         case network
         case bluetooth
         case audio
@@ -82,6 +83,7 @@ struct SettingsView: View {
             switch self {
             case .appIcon: return .symbol("macwindow.on.rectangle")
             case .battery: return .symbol(SymbolFallback.name("battery.100percent", "battery.100"))
+            case .keepAwake: return .symbol("moon.zzz.fill")
             case .network: return .symbol("wifi")
             case .bluetooth: return .bluetoothRune
             case .audio:   return .symbol("speaker.wave.3.fill")
@@ -99,6 +101,7 @@ struct SettingsView: View {
             switch self {
             case .appIcon: return .indigo
             case .battery: return .green
+            case .keepAwake: return .indigo
             case .network: return .blue
             case .bluetooth: return .blue
             case .audio:   return .cyan
@@ -115,6 +118,7 @@ struct SettingsView: View {
             switch self {
             case .appIcon: return localization.string(.settingsTabAppIcon)
             case .battery: return localization.string(.settingsTabBattery)
+            case .keepAwake: return localization.string(.settingsPopupOrderQuickActions)
             case .network: return localization.string(.settingsTabNetwork)
             case .bluetooth: return localization.string(.settingsTabBluetooth)
             case .audio:   return localization.string(.settingsTabAudio)
@@ -177,7 +181,7 @@ struct SettingsView: View {
 
     /// Functional status categories shown in the scrollable top group.
     private static let scrollableSections: [Section] = [
-        .appIcon, .battery, .network, .bluetooth, .audio, .brightness, .monitor, .popover,
+        .appIcon, .battery, .network, .bluetooth, .audio, .brightness, .keepAwake, .monitor, .popover,
     ]
 
     /// App-wide panes pinned below the divider so they stay reachable when the
@@ -450,6 +454,8 @@ struct SettingsView: View {
                 chargeToFullNow: chargeToFullNow,
                 subtopic: subtopicIfSelectionMatches(.battery)
             )
+        case .keepAwake:
+            KeepAwakeSectionView(store: store)
         case .network:
             NetworkSectionView(
                 store: store,

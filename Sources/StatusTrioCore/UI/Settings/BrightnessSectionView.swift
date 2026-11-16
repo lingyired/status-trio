@@ -27,6 +27,7 @@ struct BrightnessSectionView: View {
         SettingsPage {
             panelVisibilityGroup
             displaysGroup
+            scaleGroup
             compatibilityGroup
         }
         .onAppear {
@@ -312,5 +313,32 @@ struct BrightnessSectionView: View {
         guard store.externalBrightnessConfiguration(for: display.id).backend == .betterDisplay
         else { return false }
         return statusStore.betterDisplayAvailability == .appAbsent
+    }
+
+    /// Opt-in: use BetterDisplay's combined-brightness scale (issue #344). Only
+    /// meaningful when BetterDisplay is installed; the toggle is disabled
+    /// otherwise.
+    private var scaleGroup: some View {
+        SettingsGroup(localization.string(.settingsBrightnessBackend)) {
+            SettingsToggleRow(
+                symbol: "circle.lefthalf.filled",
+                tint: .indigo,
+                title: localization.string(.settingsBrightnessUseBetterDisplayCombined),
+                subtitle: isBetterDisplayInstalled
+                    ? localization.string(.settingsBrightnessUseBetterDisplayCombinedDescription)
+                    : localization.string(.settingsBrightnessUseBetterDisplayCombinedNeedsApp),
+                isOn: Binding(
+                    get: { store.useBetterDisplayCombinedBrightness },
+                    set: { store.useBetterDisplayCombinedBrightness = $0 }
+                )
+            )
+            .disabled(!isBetterDisplayInstalled)
+        }
+    }
+
+    private var isBetterDisplayInstalled: Bool {
+        NSWorkspace.shared.urlForApplication(
+            withBundleIdentifier: "pro.betterdisplay.BetterDisplay"
+        ) != nil
     }
 }

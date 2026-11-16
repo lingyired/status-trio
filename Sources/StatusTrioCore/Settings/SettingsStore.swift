@@ -63,6 +63,12 @@ final class SettingsStore: ObservableObject {
     static let showsBatteryPercentageDefaultsKey = "showsBatteryPercentage"
     static let showsBatteryPowerFlowDefaultsKey = "showsBatteryPowerFlow"
     static let showsBatteryPowerInfoBarDefaultsKey = "showsBatteryPowerInfoBar"
+    // Per-button visibility inside the panel's keep-awake section. Display-only
+    // preferences (intentionally not part of the settings transfer document).
+    static let showsKeepScreenButtonDefaultsKey = "showsKeepScreenButton"
+    static let showsLidSleepButtonDefaultsKey = "showsLidSleepButton"
+    static let allowLidSleepOnBatteryDefaultsKey = "allowLidSleepOnBattery"
+    static let autoDisableLidSleepOnLowBatteryDefaultsKey = "autoDisableLidSleepOnLowBattery"
     static let showsHighEnergyAppsDefaultsKey = "showsHighEnergyApps"
     static let highEnergyAppsRefreshIntervalDefaultsKey = "highEnergyAppsRefreshIntervalSeconds"
     static let highEnergyAppsRefreshIntervalRange: ClosedRange<Double> = 10...60
@@ -246,6 +252,11 @@ final class SettingsStore: ObservableObject {
     /// Display IDs the user unchecked in the new Brightness settings tab. The
     /// status panel's brightness section leaves those displays out.
     static let hiddenBrightnessDisplayIDsDefaultsKey = "hiddenBrightnessDisplayIDs"
+    /// When true, displays driven through BetterDisplay read and write its
+    /// "combined brightness" scale (hardware + software dimming + XDR) instead
+    /// of the hardware scale, so the panel matches BetterDisplay's own numbers
+    /// (issue #344). Requires BetterDisplay; off by default.
+    static let useBetterDisplayCombinedBrightnessDefaultsKey = "useBetterDisplayCombinedBrightness"
     static let popupSectionOrderDefaultsKey = "popupSectionOrder"
     static let enabledPopupSectionsDefaultsKey = "enabledPopupSections"
     static let hardwareMonitorMetricOrderDefaultsKey = "hardwareMonitorMetricOrder"
@@ -253,14 +264,14 @@ final class SettingsStore: ObservableObject {
     /// Default order of the status-panel sections. Display brightness sits below
     /// the audio-input row so the two device-level controls stay together.
     static let defaultPopupSectionOrder: [PopupSection] = [
-        .battery, .network, .vpn, .bluetooth, .volume, .audioInput, .brightness, .inputSource,
+        .battery, .quickActions, .network, .vpn, .bluetooth, .volume, .audioInput, .brightness, .inputSource,
         .hardwareMonitor
     ]
     /// Sections enabled for a fresh install. The VPN row is opt-in now: it is a
     /// regular section but is not part of this default set, so a new install
     /// starts with it switched off. An existing stored selection is honoured
     /// as-is, so a user who already has the row keeps it.
-    static let defaultEnabledPopupSections: Set<PopupSection> = [.battery, .network, .volume]
+    static let defaultEnabledPopupSections: Set<PopupSection> = [.battery, .quickActions, .network, .volume]
     /// Metrics shown by the hardware-monitor card, in display order.
     static let defaultHardwareMonitorMetricOrder: [HardwareMonitorMetric] = HardwareMonitorMetric.allCases
     static let defaultEnabledHardwareMonitorMetrics: Set<HardwareMonitorMetric> =
@@ -507,6 +518,22 @@ final class SettingsStore: ObservableObject {
     }
     @Published var showsHighEnergyApps: Bool {
         didSet { defaults.set(showsHighEnergyApps, forKey: Self.showsHighEnergyAppsDefaultsKey) }
+    }
+    /// Whether the panel's keep-awake section shows the "keep screen awake" pill.
+    @Published var showsKeepScreenButton: Bool {
+        didSet { defaults.set(showsKeepScreenButton, forKey: Self.showsKeepScreenButtonDefaultsKey) }
+    }
+    /// Whether the panel's keep-awake section shows the "keep lid-sleep off" pill.
+    @Published var showsLidSleepButton: Bool {
+        didSet { defaults.set(showsLidSleepButton, forKey: Self.showsLidSleepButtonDefaultsKey) }
+    }
+    /// Allow the lid-sleep toggle while on battery (not just external power).
+    @Published var allowLidSleepOnBattery: Bool {
+        didSet { defaults.set(allowLidSleepOnBattery, forKey: Self.allowLidSleepOnBatteryDefaultsKey) }
+    }
+    /// Auto-disable the lid-sleep toggle when the battery gets low.
+    @Published var autoDisableLidSleepOnLowBattery: Bool {
+        didSet { defaults.set(autoDisableLidSleepOnLowBattery, forKey: Self.autoDisableLidSleepOnLowBatteryDefaultsKey) }
     }
     @Published var highEnergyAppsRefreshIntervalSeconds: Double {
         didSet {
@@ -1407,6 +1434,18 @@ final class SettingsStore: ObservableObject {
             defaults.set(
                 Array(hiddenBrightnessDisplayIDs),
                 forKey: Self.hiddenBrightnessDisplayIDsDefaultsKey
+            )
+        }
+    }
+
+    /// Whether BetterDisplay-backed displays should use BetterDisplay's
+    /// combined-brightness scale instead of the hardware scale. See
+    /// `useBetterDisplayCombinedBrightnessDefaultsKey`.
+    @Published var useBetterDisplayCombinedBrightness: Bool {
+        didSet {
+            defaults.set(
+                useBetterDisplayCombinedBrightness,
+                forKey: Self.useBetterDisplayCombinedBrightnessDefaultsKey
             )
         }
     }
@@ -2362,7 +2401,14 @@ final class SettingsStore: ObservableObject {
         // #315 migration inputs: the old two booleans plus the connected choice.
         let legacyShowsPercentage = defaults.object(forKey: Self.showsBatteryPercentageDefaultsKey) as? Bool ?? true
         self.showsBatteryPowerFlow = defaults.object(forKey: Self.showsBatteryPowerFlowDefaultsKey) as? Bool ?? true
+        self.useBetterDisplayCombinedBrightness = defaults.object(
+            forKey: Self.useBetterDisplayCombinedBrightnessDefaultsKey
+        ) as? Bool ?? false
         self.showsBatteryPowerInfoBar = defaults.object(forKey: Self.showsBatteryPowerInfoBarDefaultsKey) as? Bool ?? false
+        self.showsKeepScreenButton = defaults.object(forKey: Self.showsKeepScreenButtonDefaultsKey) as? Bool ?? true
+        self.showsLidSleepButton = defaults.object(forKey: Self.showsLidSleepButtonDefaultsKey) as? Bool ?? true
+        self.allowLidSleepOnBattery = defaults.object(forKey: Self.allowLidSleepOnBatteryDefaultsKey) as? Bool ?? true
+        self.autoDisableLidSleepOnLowBattery = defaults.object(forKey: Self.autoDisableLidSleepOnLowBatteryDefaultsKey) as? Bool ?? true
         self.showsHighEnergyApps = defaults.object(forKey: Self.showsHighEnergyAppsDefaultsKey) as? Bool ?? false
         self.highEnergyAppsRefreshIntervalSeconds = Self.clampedHighEnergyAppsRefreshInterval(
             defaults.object(forKey: Self.highEnergyAppsRefreshIntervalDefaultsKey) as? Double

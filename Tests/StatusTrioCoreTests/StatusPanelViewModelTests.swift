@@ -966,7 +966,7 @@ struct AirPodsDiscoveryTriggerTests {
         fixture.settings.setPopupSection(.volume, enabled: false)
         #expect(
             fixture.settings.visiblePopupSections
-                == [.battery, .network, .bluetooth]
+                == [.battery, .quickActions, .network, .bluetooth]
         )
         let panel = fixture.makePanel()
         panel.start()

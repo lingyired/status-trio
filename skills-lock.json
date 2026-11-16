@@ -1,17 +1,17 @@
 {
-  "version": 1,
+  "version": 2,
   "skills": {
     "brainstorming": {
       "source": "obra/superpowers",
       "sourceType": "github",
       "skillPath": "skills/brainstorming/SKILL.md",
-      "computedHash": "759eaa3b4b3d06d9e1c98c24bcd58eeb4d2faf724b3239f81e8559aa41e28fdd"
+      "computedHash": "68dc20afa48ad6fd41b034a14cbe236adacbe8fb2fdb90fdd5b6efb381e2774e"
     },
     "diagnosing-superpowers": {
       "source": "obra/superpowers",
       "sourceType": "github",
       "skillPath": "skills/diagnosing-superpowers/SKILL.md",
-      "computedHash": "3bb0beb4fce3731bb541bce94a629a053598c4cf3a43e5af992202f2bac729f1"
+      "computedHash": "44d0295c3d59d6418f80c96e40d8e7b7ece99513ab6e63e5d04b1cf87cc5bbab"
     },
     "dispatching-parallel-agents": {
       "source": "obra/superpowers",
@@ -19,13 +19,13 @@
       "sourceUrl": "https://github.com/obra/superpowers.git",
       "skillPath": "skills/dispatching-parallel-agents/SKILL.md",
       "skillFolderHash": "15697cb0726c26a66bff737494e8b5266667ba0c",
-      "computedHash": "b011107f17188e0b2898bb1856b5bac8b49537cc86e737c82126558a235bd62a"
+      "computedHash": "d799e464fdfb0edc80b3b7ad7cce03e64ee07fc5db231c988688a81438503659"
     },
     "executing-plans": {
       "source": "obra/superpowers",
       "sourceType": "github",
       "skillPath": "skills/executing-plans/SKILL.md",
-      "computedHash": "cc778643e7d4cf455da8fab2d435d6ba26e59c0fc4aef29d892540185a54ff60"
+      "computedHash": "10498f7d8f182aa7c20577f979fe56509187ff9621acdeaf41233ba06a0e79d1"
     },
     "finishing-a-development-branch": {
       "source": "obra/superpowers",
@@ -33,13 +33,19 @@
       "sourceUrl": "https://github.com/obra/superpowers.git",
       "skillPath": "skills/finishing-a-development-branch/SKILL.md",
       "skillFolderHash": "3b1205aa5038c71946077dd63b9e71b447729e70",
-      "computedHash": "4f571e7befb8b0946d9d7770232c818812412e9ab1dfb811f847edfba1fc6275"
+      "computedHash": "7e24d821d45b8f10773edd9f1a4be2fac90eedae4f8fc8e70e34e27e44d3f3c0"
     },
     "github-actions-efficiency": {
       "source": "github/awesome-copilot",
       "sourceType": "github",
       "skillPath": "skills/github-actions-efficiency/SKILL.md",
-      "computedHash": "92628da7f3eb2ae5625168f31587712a3cd77ac9ba5a23ffc24e86fd12c4408c"
+      "computedHash": "1e29703ead16150c7a746ba4eaba1680239636f3da1a616adf4a58b06943c874"
+    },
+    "liquid-glass": {
+      "source": "openai/plugins",
+      "sourceType": "github",
+      "skillPath": "plugins/build-macos-apps/skills/liquid-glass/SKILL.md",
+      "computedHash": "215274d911ed92bc7ff645003b6a21a94ac49149ef784dd4f311bce0b77835cf"
     },
     "macos-auto-update": {
       "source": "fayazara/macos-app-skills",
@@ -47,7 +53,7 @@
       "sourceUrl": "https://github.com/fayazara/macos-app-skills.git",
       "skillPath": "auto-update/SKILL.md",
       "skillFolderHash": "1b5b70439fb497e1aeb113ef14345fca67c61726",
-      "computedHash": "704f045635049dcb82380210ec0d337ebce28f41ee9ba28d6211ae3c1c46b190"
+      "computedHash": "51cb90c73ede6235b403dfa70335f8fd25bb39af51f01705032515ca09d79b20"
     },
     "macos-build": {
       "source": "fayazara/macos-app-skills",
@@ -55,7 +61,7 @@
       "sourceUrl": "https://github.com/fayazara/macos-app-skills.git",
       "skillPath": "build/SKILL.md",
       "skillFolderHash": "642028670addbc263a9d19500452da4cf93eea48",
-      "computedHash": "de7a069d100ebb3453269f0d4871401021f3d6eb46bd3dfc1668460bbab0f0bc"
+      "computedHash": "c6d892ea4d16cd0a1627c4f2c816535eecda2b9493b635e03c12d562ff6fbec1"
     },
     "macos-notch-ui": {
       "source": "fayazara/macos-app-skills",
@@ -63,7 +69,7 @@
       "sourceUrl": "https://github.com/fayazara/macos-app-skills.git",
       "skillPath": "notch-ui/SKILL.md",
       "skillFolderHash": "3ca7b83fcd7028bc4bae0b61c5c90d379de9f458",
-      "computedHash": "e39093236fbccf2957182c117af013129000985205a3bf65c39eb42a7606afd4"
+      "computedHash": "851bc1a6e7377401367ea5aaa37fb3a90e537462ad820b810ebd841ab052c300"
     },
     "macos-patterns": {
       "source": "fayazara/macos-app-skills",
@@ -71,7 +77,7 @@
       "sourceUrl": "https://github.com/fayazara/macos-app-skills.git",
       "skillPath": "macos-patterns/SKILL.md",
       "skillFolderHash": "8d729c6b4616b233b7a3ed322d9a8bfc7d7ef269",
-      "computedHash": "ae976dcae49d6a40b131b75104ad58491d9cc076a68c6175f6daba60a266acaf"
+      "computedHash": "112d19cf0a023ff5c8595d54b32db4bc65b69abdf78ae5ab7e2b3f97c09d18a3"
     },
     "macos-release": {
       "source": "fayazara/macos-app-skills",
@@ -79,7 +85,7 @@
       "sourceUrl": "https://github.com/fayazara/macos-app-skills.git",
       "skillPath": "release/SKILL.md",
       "skillFolderHash": "1d7e710fb1855cf223b9da5e506c0aac372833df",
-      "computedHash": "b313d525a5b732d02b889ec3772594d5edbc327ddb7471827df3d9abf7e5a0f9"
+      "computedHash": "4e0af08a3eb7c6efcf8c95b5248e25e14f0d3f27182ee6bb9fa86f715c13b0e2"
     },
     "macos-settings-ui": {
       "source": "fayazara/macos-app-skills",
@@ -87,7 +93,7 @@
       "sourceUrl": "https://github.com/fayazara/macos-app-skills.git",
       "skillPath": "settings-ui/SKILL.md",
       "skillFolderHash": "3ecd3e9bef7b1860cbffa767d6d08e88300865dc",
-      "computedHash": "31d1a4f1d86375291fded0015e93f48e725d24ce72573028eb72902d70aad250"
+      "computedHash": "f031591aba4764458767c42d44848243636fcd81960c6ff027f4a065810cf1c7"
     },
     "receiving-code-review": {
       "source": "obra/superpowers",
@@ -95,19 +101,19 @@
       "sourceUrl": "https://github.com/obra/superpowers.git",
       "skillPath": "skills/receiving-code-review/SKILL.md",
       "skillFolderHash": "b5e154fc3ec7a6a0b1e710eebacc2168620cc428",
-      "computedHash": "59361179fc9225173e0c145ffd9bafbf9fdbf8b43ce3dc308497a0b4f83a6063"
+      "computedHash": "528d336858d6f7d22cfcb887a249409ce682cb7d37a939cb15a82f2576a35876"
     },
     "requesting-code-review": {
       "source": "obra/superpowers",
       "sourceType": "github",
       "skillPath": "skills/requesting-code-review/SKILL.md",
-      "computedHash": "b095ac8c980339436b41de9989328f3f288f2e2a70452df28452bbeb6531d604"
+      "computedHash": "32bcc25e8c3315d0150f646ee0067c9d4bfbc7719c34012db9c202e17cce8a14"
     },
     "subagent-driven-development": {
       "source": "obra/superpowers",
       "sourceType": "github",
       "skillPath": "skills/subagent-driven-development/SKILL.md",
-      "computedHash": "92a9fefb8e11bfc77e95bb1557a1b01b390261a53fa71b3aa773a5c8aa2cf3a9"
+      "computedHash": "3719e43307c2f1a30020f78ae3e7f4020fbe33c523a862612dca984ba526cd58"
     },
     "swift-testing-pro": {
       "source": "twostraws/Swift-Testing-Agent-Skill",
@@ -115,13 +121,13 @@
       "sourceUrl": "https://github.com/twostraws/Swift-Testing-Agent-Skill.git",
       "skillPath": "swift-testing-pro/SKILL.md",
       "skillFolderHash": "809f32e9abf0369b2460286cc87f0aad205ee26c",
-      "computedHash": "576d9b4705c76262095e2470e99bb9a89324ac4467e7ee54b7032697a8789b3d"
+      "computedHash": ""
     },
     "swiftui-pro": {
       "source": "twostraws/SwiftUI-Agent-Skill",
       "sourceType": "github",
       "skillPath": "swiftui-pro/SKILL.md",
-      "computedHash": "88fefb2239299c8815366b89737ba15e91358ab3e9a6fb69af2436ed4a704299"
+      "computedHash": "5ae476da16f2b0af60385b856cdcb121a4f4675ddc06c27e81259f12e987aeb1"
     },
     "swiftui-ui-patterns": {
       "source": "dimillian/skills",
@@ -129,13 +135,13 @@
       "sourceUrl": "https://github.com/dimillian/skills.git",
       "skillPath": "swiftui-ui-patterns/SKILL.md",
       "skillFolderHash": "c980bf057e992cf8087fcbc9f66c0f83921c15f7",
-      "computedHash": "f58d51fe4569f9eff10c45a4ed6859c9f5e3eefca7827e819de840141da67995"
+      "computedHash": "e23fe9ebf7353b70408a9582c90b7bb2eb8ccdf1ed53e704aff00af45add9986"
     },
     "systematic-debugging": {
       "source": "obra/superpowers",
       "sourceType": "github",
       "skillPath": "skills/systematic-debugging/SKILL.md",
-      "computedHash": "276fb0aadb002ab930cc2a56de89e16995a2e3e70b33587652bf0a5fb123148d"
+      "computedHash": "ceb6a7a4cb02402360846cd466df67a8c6eaa3c5b1e97d1b419b5ba2ceeb734c"
     },
     "test-driven-development": {
       "source": "obra/superpowers",
@@ -143,7 +149,7 @@
       "sourceUrl": "https://github.com/obra/superpowers.git",
       "skillPath": "skills/test-driven-development/SKILL.md",
       "skillFolderHash": "847144cf0824095922c0d4875648b9fa74877e1a",
-      "computedHash": "3cfe4ebb6fa7288f668d87880d279c8e48f7a92b63415e296857060f5ce22e05"
+      "computedHash": "2782702b2cf69ace085ed30d067b6f8bfd2d777ad51770fc5bdae9cb5c1b5c04"
     },
     "using-git-worktrees": {
       "source": "obra/superpowers",
@@ -151,7 +157,7 @@
       "sourceUrl": "https://github.com/obra/superpowers.git",
       "skillPath": "skills/using-git-worktrees/SKILL.md",
       "skillFolderHash": "d2b8357b922667a091bfe967840abf5ae84ce99c",
-      "computedHash": "48c8a1040e378e0cb7208107294e3afa9067b9370c3f33b49a443eb6b7528b0d"
+      "computedHash": "b69324cb5e5ba5b846fc2ae2811616008dc6f19858245100e472713190d4c9e4"
     },
     "using-superpowers": {
       "source": "obra/superpowers",
@@ -159,7 +165,7 @@
       "sourceUrl": "https://github.com/obra/superpowers.git",
       "skillPath": "skills/using-superpowers/SKILL.md",
       "skillFolderHash": "4c777432715fe58984d212a36aedc6a18472e512",
-      "computedHash": "ef8670c2a2d8e2f6ed52d6f3219759903300ca13afc5ec2e25826a735112562b"
+      "computedHash": "6a9104fac7e16c3cec2bc118943aefd331cac35b4cfabd427cea4dc16337c6a5"
     },
     "verification-before-completion": {
       "source": "obra/superpowers",
@@ -167,19 +173,19 @@
       "sourceUrl": "https://github.com/obra/superpowers.git",
       "skillPath": "skills/verification-before-completion/SKILL.md",
       "skillFolderHash": "a4cb0b69aaefeab540947a7f1642bdaad810e37a",
-      "computedHash": "b529822bdac4b197b180fe12225cff86b930b65910435103c10622df7f041651"
+      "computedHash": "09b0e3a4689c1c38a3b8fc6ef57a1d4165aa33c0013d546dbde9dd348941a319"
     },
     "writing-plans": {
       "source": "obra/superpowers",
       "sourceType": "github",
       "skillPath": "skills/writing-plans/SKILL.md",
-      "computedHash": "c2647b5bf067be353a893e5a39a632cbbeb7ad81e61fa5ae227ece5490029073"
+      "computedHash": "ef082ddb5354d736059397133b3682e8a0c85c57906affe47c9da354cbb7c91e"
     },
     "writing-skills": {
       "source": "obra/superpowers",
       "sourceType": "github",
       "skillPath": "skills/writing-skills/SKILL.md",
-      "computedHash": "5dfeb4768effae27e94cc7ce27420f461a09fbca4c6e3846cf7acb1765d5d3d7"
+      "computedHash": "50d87a4c2c6a9d60156ccfdbe844e0a11678968157e494a8a8c02377c273483a"
     }
   }
 }

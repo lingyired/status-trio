@@ -180,9 +180,11 @@ struct BatteryPowerFlowView: View {
                     // not a bare `.primary` shape style: the leading-dot form
                     // resolves to the hierarchical foreground, follows the vibrant
                     // detail-page text and nearly vanishes over the glass.
-                    .powerFlowCardSurface(
-                        fill: inputSurface.fill(tint: inputColor, scheme: colorScheme),
-                        stroke: inputSurface.stroke(tint: inputColor, scheme: colorScheme)
+                    .panelCardSurface(
+                        inputSurface,
+                        tint: inputColor,
+                        cornerRadius: 12,
+                        cornerStyle: .circular
                     )
                     .position(x: destinations.isEmpty ? width / 2 : 31, y: center)
             }
@@ -194,9 +196,11 @@ struct BatteryPowerFlowView: View {
                        iconSize: !showsLabel(index) && rowHeight(index) <= Self.denseRow
                            ? 10 : Self.iconSize(for: item.kind))
                     .frame(width: state.input == nil ? width : 94)
-                    .powerFlowCardSurface(
-                        fill: Self.color(for: item.kind).opacity(Self.cardFill),
-                        stroke: Self.color(for: item.kind).opacity(Self.cardStroke)
+                    .panelCardSurface(
+                        .tint(fillOpacity: Self.cardFill, strokeOpacity: Self.cardStroke),
+                        tint: Self.color(for: item.kind),
+                        cornerRadius: 12,
+                        cornerStyle: .circular
                     )
                     .position(x: state.input == nil ? width / 2 : width - 47, y: centerY(index))
             }

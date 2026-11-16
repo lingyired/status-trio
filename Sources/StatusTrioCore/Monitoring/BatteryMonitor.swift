@@ -107,6 +107,12 @@ final class BatteryMonitor: BatteryMonitoring {
     private let reader: any BatteryReadingProviding
     private let lowPowerModeProvider: () -> Bool
     private let iopsRunLoopSourceFactory: IOPSRunLoopSourceFactory
+    /// Reads macOS's effective charge limit. The plist read is cached: the
+    /// limit changes only when the user edits it, while refreshes arrive every
+    /// few seconds during charging.
+    private let chargeLimitProvider: () -> Int?
+    private let chargeLimitMaxAge: TimeInterval
+    private var chargeLimitCache: (value: Int?, readAt: Date)?
     nonisolated(unsafe) private var runLoopSource: CFRunLoopSource?
     nonisolated(unsafe) private var lowPowerObserver: NSObjectProtocol?
     nonisolated(unsafe) private var callbackContext: Unmanaged<BatteryCallbackContext>?
@@ -119,11 +125,15 @@ final class BatteryMonitor: BatteryMonitoring {
         },
         iopsRunLoopSourceFactory: @escaping IOPSRunLoopSourceFactory = { context, callback in
             IOPSNotificationCreateRunLoopSource(callback, context)?.takeRetainedValue()
-        }
+        },
+        chargeLimitProvider: @escaping () -> Int? = { SystemChargeLimitReader.chargeLimit() },
+        chargeLimitMaxAge: TimeInterval = 60
     ) {
         self.reader = reader
         self.lowPowerModeProvider = lowPowerModeProvider
         self.iopsRunLoopSourceFactory = iopsRunLoopSourceFactory
+        self.chargeLimitProvider = chargeLimitProvider
+        self.chargeLimitMaxAge = chargeLimitMaxAge
         (updates, continuation) = MonitorStream.make(of: BatteryStatus.self)
     }
 
@@ -221,7 +231,8 @@ final class BatteryMonitor: BatteryMonitoring {
                     ? reading.timeToEmptyMinutes.flatMap { $0 > 0 ? $0 : nil }
                     : nil,
                 isLowPowerMode: lowPowerModeProvider(),
-                isConnectedToPower: reading.isConnectedToPower
+                isConnectedToPower: reading.isConnectedToPower,
+                chargeLimitPercent: currentChargeLimit()
             )
         } else {
             status = BatteryStatus(
@@ -231,11 +242,25 @@ final class BatteryMonitor: BatteryMonitoring {
                 isCharged: false,
                 timeToFullChargeMinutes: nil,
                 isLowPowerMode: lowPowerModeProvider(),
-                isConnectedToPower: false
+                isConnectedToPower: false,
+                chargeLimitPercent: nil
             )
         }
 
         continuation.yield(status)
+    }
+
+    /// The effective charge limit, memoized for chargeLimitMaxAge so a
+    /// charging battery's frequent refreshes do not re-decode the private plist
+    /// on every notification. A failed read stays nil (no limit).
+    private func currentChargeLimit(now: Date = Date()) -> Int? {
+        if let cache = chargeLimitCache,
+           now.timeIntervalSince(cache.readAt) < chargeLimitMaxAge {
+            return cache.value
+        }
+        let value = chargeLimitProvider()
+        chargeLimitCache = (value, now)
+        return value
     }
 
     private func teardownNotifications() {
