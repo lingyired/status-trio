@@ -1182,6 +1182,7 @@
 "hardware.monitor.settings.panelRefresh" = "تحديث اللوحة";
 "hardware.monitor.settings.panelRefresh.description" = "مدى تكرار تحديث اللوحة أثناء فتحها. الأسرع أكثر حيوية لكنه يقرأ أكثر؛ الأبطأ يوفر الطاقة.";
 "hardware.monitor.settings.showRings" = "أربع حلقات";
+"hardware.monitor.settings.colorTitle" = "الألوان";
 "hardware.monitor.settings.showRings.description" = "إظهار حلقات CPU / GPU / RAM / SSD.";
 "hardware.monitor.settings.showSummaryRow" = "بيانات سفلية";
 "hardware.monitor.settings.showSummaryRow.description" = "إظهار التنزيل والرفع والمروحة وإدخال/إخراج القرص أسفل الحلقات.";

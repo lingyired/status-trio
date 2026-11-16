@@ -1182,6 +1182,7 @@
 "hardware.monitor.settings.panelRefresh" = "Aggiornamento pannello";
 "hardware.monitor.settings.panelRefresh.description" = "Ogni quanto si aggiorna il pannello mentre è aperto. Più veloce è più in tempo reale ma legge di più; più lento risparmia energia.";
 "hardware.monitor.settings.showRings" = "Quattro anelli";
+"hardware.monitor.settings.colorTitle" = "Colori";
 "hardware.monitor.settings.showRings.description" = "Mostra gli anelli CPU / GPU / RAM / SSD.";
 "hardware.monitor.settings.showSummaryRow" = "Dati in basso";
 "hardware.monitor.settings.showSummaryRow.description" = "Mostra download, upload, ventola e I/O disco sotto gli anelli.";

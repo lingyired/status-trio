@@ -105,6 +105,7 @@ enum LocalizationKey: String, CaseIterable, Hashable, Sendable {
     case hardwareMonitorBackgroundSeconds = "hardware.monitor.background.seconds"
     case hardwareMonitorSettingsPanelRefresh = "hardware.monitor.settings.panelRefresh"
     case hardwareMonitorSettingsPanelRefreshDescription = "hardware.monitor.settings.panelRefresh.description"
+    case hardwareMonitorSettingsColorTitle = "hardware.monitor.settings.colorTitle"
     case hardwareMonitorSettingsShowRings = "hardware.monitor.settings.showRings"
     case hardwareMonitorSettingsShowRingsDescription = "hardware.monitor.settings.showRings.description"
     case hardwareMonitorSettingsShowSummaryRow = "hardware.monitor.settings.showSummaryRow"

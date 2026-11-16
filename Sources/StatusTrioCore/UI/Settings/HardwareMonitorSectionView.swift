@@ -13,6 +13,7 @@ struct HardwareMonitorSectionView: View {
             placementGroup
             refreshGroup
             displayGroup
+            colorGroup
         }
     }
 
@@ -76,6 +77,44 @@ struct HardwareMonitorSectionView: View {
                 .settingsMenuPickerWidth()
             }
         }
+    }
+
+    private var colorGroup: some View {
+        SettingsGroup(localization.string(.hardwareMonitorSettingsColorTitle)) {
+            SettingsCustomRow {
+                List {
+                    ForEach(HardwareMonitorMetric.allCases) { metric in
+                        HStack(alignment: .center, spacing: 8) {
+                            HardwareMetricSymbolView(symbol: metric.systemImage, box: 20, glyph: 14)
+                            Text(localization.string(metric.titleKey))
+                                .font(.system(size: 13))
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                            IconDesignerColorWell(
+                                selection: colorBinding(for: metric),
+                                onEditingChanged: { _ in }
+                            )
+                            .frame(width: 40, height: 20)
+                            .accessibilityLabel(localization.string(metric.titleKey))
+                        }
+                        .padding(.vertical, 3)
+                    }
+                }
+                .listStyle(.inset)
+                .frame(height: colorListHeight)
+            }
+        }
+    }
+
+    /// The shared metric colour, editable here and in the ring's colour rows.
+    private func colorBinding(for metric: HardwareMonitorMetric) -> Binding<Color> {
+        Binding(
+            get: { IconAppearanceColorConversion.color(from: store.hardwareColor(for: metric)) },
+            set: { store.setHardwareColor(IconAppearanceColorConversion.iconRGBA(from: $0), for: metric) }
+        )
+    }
+
+    private var colorListHeight: CGFloat {
+        min(max(CGFloat(HardwareMonitorMetric.allCases.count) * 32 + 12, 48), 360)
     }
 
     private var displayGroup: some View {
