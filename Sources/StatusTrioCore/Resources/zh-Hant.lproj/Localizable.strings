@@ -270,6 +270,9 @@
 "battery.timeToFull.minutes" = "預計 %d 分鐘充滿";
 "battery.timeToFull.hours" = "預計 %d 小時充滿";
 "battery.timeToFull.hoursMinutes" = "預計 %d 小時 %d 分鐘充滿";
+"battery.timeToChargeLimit.minutes" = "預計 %d 分鐘充到 %d%%";
+"battery.timeToChargeLimit.hours" = "預計 %d 小時充到 %d%%";
+"battery.timeToChargeLimit.hoursMinutes" = "預計 %d 小時 %d 分鐘充到 %d%%";
 "battery.state.lowPowerMode" = "低耗電模式";
 "battery.state.connectedToPower" = "已連接電源";
 "battery.state.onBattery" = "電池供電";

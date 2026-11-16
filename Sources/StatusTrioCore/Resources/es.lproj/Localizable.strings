@@ -270,6 +270,9 @@
 "battery.timeToFull.minutes" = "Unos %d min para carga completa";
 "battery.timeToFull.hours" = "Unas %d h para carga completa";
 "battery.timeToFull.hoursMinutes" = "Unas %d h %d min para carga completa";
+"battery.timeToChargeLimit.minutes" = "Unos %d min hasta %d%%";
+"battery.timeToChargeLimit.hours" = "Unas %d h hasta %d%%";
+"battery.timeToChargeLimit.hoursMinutes" = "Unas %d h %d min hasta %d%%";
 "battery.state.lowPowerMode" = "Modo de bajo consumo";
 "battery.state.connectedToPower" = "Conectado a la corriente";
 "battery.state.onBattery" = "Con batería";

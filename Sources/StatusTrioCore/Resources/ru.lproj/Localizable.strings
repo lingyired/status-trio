@@ -270,6 +270,9 @@
 "battery.timeToFull.minutes" = "До полного заряда около %d мин";
 "battery.timeToFull.hours" = "До полного заряда около %d ч";
 "battery.timeToFull.hoursMinutes" = "До полного заряда около %d ч %d мин";
+"battery.timeToChargeLimit.minutes" = "Около %d мин до %d%%";
+"battery.timeToChargeLimit.hours" = "Около %d ч до %d%%";
+"battery.timeToChargeLimit.hoursMinutes" = "Около %d ч %d мин до %d%%";
 "battery.state.lowPowerMode" = "Режим энергосбережения";
 "battery.state.connectedToPower" = "Питание от сети";
 "battery.state.onBattery" = "От батареи";

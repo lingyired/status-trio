@@ -270,6 +270,9 @@
 "battery.timeToFull.minutes" = "완전 충전까지 약 %d분";
 "battery.timeToFull.hours" = "완전 충전까지 약 %d시간";
 "battery.timeToFull.hoursMinutes" = "완전 충전까지 약 %d시간 %d분";
+"battery.timeToChargeLimit.minutes" = "약 %d분 후 %d%%까지 충전";
+"battery.timeToChargeLimit.hours" = "약 %d시간 후 %d%%까지 충전";
+"battery.timeToChargeLimit.hoursMinutes" = "약 %d시간 %d분 후 %d%%까지 충전";
 "battery.state.lowPowerMode" = "저전력 모드";
 "battery.state.connectedToPower" = "전원 연결됨";
 "battery.state.onBattery" = "배터리 사용 중";

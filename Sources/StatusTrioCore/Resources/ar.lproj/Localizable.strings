@@ -253,6 +253,9 @@
 "battery.timeToFull.minutes" = "نحو %d دقيقة حتى الامتلاء";
 "battery.timeToFull.hours" = "نحو %d ساعة حتى الامتلاء";
 "battery.timeToFull.hoursMinutes" = "نحو %d ساعة و%d دقيقة حتى الامتلاء";
+"battery.timeToChargeLimit.minutes" = "نحو %d دقيقة حتى %d%%";
+"battery.timeToChargeLimit.hours" = "نحو %d ساعة حتى %d%%";
+"battery.timeToChargeLimit.hoursMinutes" = "نحو %d ساعة و%d دقيقة حتى %d%%";
 "battery.state.lowPowerMode" = "وضع الطاقة المنخفضة";
 "battery.state.connectedToPower" = "متصل بالطاقة";
 "battery.state.onBattery" = "على البطارية";

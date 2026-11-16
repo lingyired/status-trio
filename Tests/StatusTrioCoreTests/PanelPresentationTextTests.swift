@@ -221,6 +221,98 @@ final class PresentationTextMapperTests: XCTestCase {
         }
     }
 
+    func testBatteryTimeToFullFormattingTargetsChargeLimit() {
+        let localization = makeLocalization(.simplifiedChinese)
+        let cases: [(Int?, String)] = [
+            (1, "预计 1 分钟充到 90%"),
+            (60, "预计 1 小时充到 90%"),
+            (85, "预计 1 小时 25 分钟充到 90%"),
+            (nil, "正在计算充满时间")
+        ]
+
+        for (minutes, expected) in cases {
+            XCTAssertEqual(
+                PanelPresentationMapper.batteryTimeToFullText(
+                    minutes: minutes,
+                    targetPercent: 90,
+                    localization: localization
+                ),
+                expected,
+                "minutes: \(String(describing: minutes))"
+            )
+        }
+    }
+
+    func testChargeTimeEstimateScalesToChargeLimit() {
+        let scaled = PanelPresentationMapper.chargeTimeEstimate(
+            makeBattery(
+                isCharging: true,
+                isConnectedToPower: true,
+                percentage: 82,
+                timeToFullChargeMinutes: 67,
+                chargeLimitPercent: 90
+            ),
+            chargeToFullNow: .hidden
+        )
+        XCTAssertEqual(scaled.minutes, 30)
+        XCTAssertEqual(scaled.targetPercent, 90)
+
+        let alreadyAtLimit = PanelPresentationMapper.chargeTimeEstimate(
+            makeBattery(
+                isCharging: true,
+                isConnectedToPower: true,
+                percentage: 90,
+                timeToFullChargeMinutes: 67,
+                chargeLimitPercent: 90
+            ),
+            chargeToFullNow: .hidden
+        )
+        XCTAssertEqual(alreadyAtLimit.minutes, 67)
+        XCTAssertNil(alreadyAtLimit.targetPercent)
+
+        let override = PanelPresentationMapper.chargeTimeEstimate(
+            makeBattery(
+                isCharging: true,
+                isConnectedToPower: true,
+                percentage: 82,
+                timeToFullChargeMinutes: 67,
+                chargeLimitPercent: 90
+            ),
+            chargeToFullNow: .chargingToFull
+        )
+        XCTAssertEqual(override.minutes, 67)
+        XCTAssertNil(override.targetPercent)
+
+        let noLimit = PanelPresentationMapper.chargeTimeEstimate(
+            makeBattery(
+                isCharging: true,
+                isConnectedToPower: true,
+                percentage: 50,
+                timeToFullChargeMinutes: 85
+            ),
+            chargeToFullNow: .hidden
+        )
+        XCTAssertEqual(noLimit.minutes, 85)
+        XCTAssertNil(noLimit.targetPercent)
+    }
+
+    func testBatterySubtitleUsesChargeLimitEstimate() {
+        let localization = makeLocalization(.simplifiedChinese)
+        XCTAssertEqual(
+            PanelPresentationMapper.batterySubtitle(
+                makeBattery(
+                    isCharging: true,
+                    isConnectedToPower: true,
+                    percentage: 82,
+                    timeToFullChargeMinutes: 67,
+                    chargeLimitPercent: 90
+                ),
+                localization: localization
+            ),
+            "预计 30 分钟充到 90%"
+        )
+    }
+
     func testWiFiValueAndSubtitleForEveryState() {
         let localization = makeLocalization(.simplifiedChinese)
         let cases: [(WiFiStatus, String, String)] = [
@@ -653,7 +745,8 @@ final class PresentationTextMapperTests: XCTestCase {
         isConnectedToPower: Bool = false,
         percentage: Int = 100,
         timeToFullChargeMinutes: Int? = nil,
-        timeToEmptyMinutes: Int? = nil
+        timeToEmptyMinutes: Int? = nil,
+        chargeLimitPercent: Int? = nil
     ) -> BatteryStatus {
         BatteryStatus(
             rawPercentage: percentage,
@@ -663,7 +756,8 @@ final class PresentationTextMapperTests: XCTestCase {
             timeToFullChargeMinutes: timeToFullChargeMinutes,
             timeToEmptyMinutes: timeToEmptyMinutes,
             isLowPowerMode: isLowPowerMode,
-            isConnectedToPower: isConnectedToPower
+            isConnectedToPower: isConnectedToPower,
+            chargeLimitPercent: chargeLimitPercent
         )
     }
 }
