@@ -447,6 +447,7 @@
 "quickActions.timer.choose" = "Choisir la durée";
 "quickActions.lidSleep.external" = "« Garder éveillé capot fermé » est déjà activé par une autre app. Status Trio ne le remplacera pas.";
 "quickActions.lidSleep.unreadable" = "Impossible de lire l’état « Garder éveillé capot fermé » ; inchangé.";
+"quickActions.lidSleep.externalNamed" = "« Garder éveillé capot fermé » est déjà activé, peut-être par : %@. Status Trio ne le remplacera pas.";
 "quickActions.timer.thirtyMinutes" = "30 minutes";
 "quickActions.timer.oneHour" = "1 heure";
 "quickActions.timer.twoHours" = "2 heures";

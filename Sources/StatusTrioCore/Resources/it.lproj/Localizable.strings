@@ -447,6 +447,7 @@
 "quickActions.timer.choose" = "Scegli durata";
 "quickActions.lidSleep.external" = "«Resta attivo a coperchio chiuso» è già attivo tramite un’altra app. Status Trio non lo sovrascriverà.";
 "quickActions.lidSleep.unreadable" = "Impossibile leggere lo stato «Resta attivo a coperchio chiuso»; invariato.";
+"quickActions.lidSleep.externalNamed" = "«Resta attivo a coperchio chiuso» è già attivo, forse da: %@. Status Trio non lo sovrascriverà.";
 "quickActions.timer.thirtyMinutes" = "30 minuti";
 "quickActions.timer.oneHour" = "1 ora";
 "quickActions.timer.twoHours" = "2 ore";

@@ -210,6 +210,17 @@ struct QuickActionsCardView: View {
             )
         }
         if shouldShowLid, let external = control.lidSleepExternalState {
+            if external == .managedExternally, !control.lidExternalOwnerNames.isEmpty {
+                let names = control.lidExternalOwnerNames.joined(separator: ", ")
+                return (
+                    String(
+                        format: localization.string(.quickActionsLidSleepExternalNamed),
+                        locale: localization.resolvedLanguage.locale,
+                        arguments: [names]
+                    ),
+                    .secondary
+                )
+            }
             return (localization.string(external.localizationKey), .secondary)
         }
         if shouldShowLid, !control.isPreventingLidSleep,

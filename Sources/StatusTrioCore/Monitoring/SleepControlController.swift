@@ -1,3 +1,4 @@
+import AppKit
 import Combine
 import Foundation
 import IOKit.pwr_mgt
@@ -206,6 +207,11 @@ final class SleepControlController: ObservableObject {
     @Published private(set) var isHelperReady = false
     /// Non-error explanation for the lid toggle (external ownership / unreadable).
     @Published private(set) var lidSleepExternalState: LidSleepExternalState?
+    /// Best-effort names of processes currently holding a sleep-preventing power
+    /// assertion, shown as "possibly X" when an external disablesleep is found.
+    @Published private(set) var lidExternalOwnerNames: [String] = []
+    /// Injectable for tests; defaults to reading the system IOPM assertions.
+    var lidAssertionOwnerProvider: () -> [String] = SleepControlController.systemLidSleepAssertionOwners
 
     /// Kept for the existing "needs update" copy; derived from the capability.
     var helperNeedsUpdate: Bool { helperCapability == .needsUpdate }
@@ -519,6 +525,7 @@ final class SleepControlController: ObservableObject {
                 return .applied
             }
             lidForeignActive = true
+            lidExternalOwnerNames = lidAssertionOwnerProvider()
             lidSleepExternalState = .managedExternally
             return .failed
         }
@@ -535,6 +542,7 @@ final class SleepControlController: ObservableObject {
             isPreventingLidSleep = true
             lidForeignActive = false
             lidSleepExternalState = nil
+            lidExternalOwnerNames = []
             lidPendingRecovery = false
             scheduleLidAutoOff()
             return .applied
@@ -561,6 +569,7 @@ final class SleepControlController: ObservableObject {
             isPreventingLidSleep = false
             ownership.ownsDisableSleep = false
             lidSleepExternalState = nil
+            lidExternalOwnerNames = []
             lidPendingRecovery = false
             lidDisableAttempts = 0
             cancelLidTimer()
@@ -679,6 +688,37 @@ final class SleepControlController: ObservableObject {
     }
 
     // MARK: - Notices
+
+    /// Best-effort list of app names holding a sleep-preventing power assertion.
+    /// macOS does not record who set `disablesleep`, so this is only a hint.
+    nonisolated static func systemLidSleepAssertionOwners() -> [String] {
+        var assertionRef: Unmanaged<CFDictionary>?
+        guard IOPMCopyAssertionsByProcess(&assertionRef) == kIOReturnSuccess,
+              let cf = assertionRef?.takeRetainedValue() else { return [] }
+        let dict = cf as NSDictionary
+        let ownPID = ProcessInfo.processInfo.processIdentifier
+        var names: [String] = []
+        for case let key as NSNumber in dict.allKeys {
+            let pid = pid_t(key.intValue)
+            if pid == ownPID { continue }
+            guard let assertions = dict[key] as? [[String: Any]] else { continue }
+            let prevents = assertions.contains { item in
+                (item[kIOPMAssertionTypeKey as String] as? String)?.contains("Prevent") == true
+            }
+            guard prevents else { continue }
+            if let name = NSRunningApplication(processIdentifier: pid)?.localizedName,
+               !name.isEmpty {
+                names.append(name)
+            }
+        }
+        var seen = Set<String>()
+        var unique: [String] = []
+        for name in names where !seen.contains(name) {
+            seen.insert(name)
+            unique.append(name)
+        }
+        return Array(unique.prefix(3))
+    }
 
     private func showNotice(_ value: SleepControlNotice) {
         notice = value

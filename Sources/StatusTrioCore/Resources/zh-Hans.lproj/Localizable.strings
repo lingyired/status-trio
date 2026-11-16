@@ -447,6 +447,7 @@
 "quickActions.timer.choose" = "选择持续时间";
 "quickActions.lidSleep.external" = "系统里的「合盖不睡眠」已被其他程序开启，Status Trio 不会覆盖它。";
 "quickActions.lidSleep.unreadable" = "暂时无法读取「合盖不睡眠」状态，未做修改。";
+"quickActions.lidSleep.externalNamed" = "系统里的「合盖不睡眠」已被其他程序开启（可能是：%@），Status Trio 不会覆盖它。";
 "quickActions.timer.thirtyMinutes" = "30 分钟";
 "quickActions.timer.oneHour" = "1 小时";
 "quickActions.timer.twoHours" = "2 小时";
