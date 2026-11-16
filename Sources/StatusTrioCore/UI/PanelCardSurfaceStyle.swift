@@ -81,20 +81,27 @@ private struct PanelCardSurfaceModifier: ViewModifier {
         switch cardStyle {
         case .glass:
             if #available(macOS 26.0, *), PanelCardSurfaceExperiment.useNative, cardStyle == .glass {
-                content
-                    .glassEffect(
+                // Skill: tint only when the colour carries meaning. Neutral
+                // charger-input cards stay plain glass; semantic cards tint.
+                if case .silver = surface {
+                    content.glassEffect(.regular, in: shape)
+                } else {
+                    content.glassEffect(
                         .regular.tint(surface.fill(tint: tint, scheme: scheme, cardStyle: .glass)),
                         in: shape
                     )
+                }
             } else {
                 content
                     .background(shape.fill(surface.fill(tint: tint, scheme: scheme, cardStyle: .glass)))
                     .overlay { shape.strokeBorder(surface.stroke(tint: tint, scheme: scheme, cardStyle: .glass), lineWidth: 1) }
             }
         case .material:
+            // The panel already draws the popover material; adding another
+            // ultraThinMaterial here double-frosted the cards. Keep only the
+            // semantic wash + hairline rim.
             content
                 .background(shape.fill(surface.fill(tint: tint, scheme: scheme, cardStyle: .material)))
-                .background(shape.fill(.ultraThinMaterial))
                 .overlay { shape.strokeBorder(surface.stroke(tint: tint, scheme: scheme, cardStyle: .material), lineWidth: 1) }
         case .solid:
             content

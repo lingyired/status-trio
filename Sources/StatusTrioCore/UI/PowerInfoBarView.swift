@@ -10,6 +10,21 @@ struct PowerInfoBarView: View {
     let state: PowerInfoBarState
 
     var body: some View {
+        cardRow
+            .accessibilityElement(children: .contain)
+    }
+
+    /// Group the adjacent glass cards in one GlassEffectContainer (skill rule:
+    /// nearby custom glass must share a container or their refraction diverges).
+    @ViewBuilder private var cardRow: some View {
+        if #available(macOS 26.0, *) {
+            GlassEffectContainer(spacing: 8) { rowContent }
+        } else {
+            rowContent
+        }
+    }
+
+    private var rowContent: some View {
         HStack(spacing: 8) {
             if state.items.isEmpty {
                 ForEach(state.placeholderKinds, id: \.self) { kind in
@@ -21,7 +36,6 @@ struct PowerInfoBarView: View {
                 }
             }
         }
-        .accessibilityElement(children: .contain)
     }
 
     private func card(kind: PowerInfoBarKind, value: String?) -> some View {

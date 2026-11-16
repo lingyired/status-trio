@@ -65,7 +65,17 @@ struct QuickActionsCardView: View {
             || (control.isPreventingLidSleep && control.lidExpiry != nil)
     }
 
-    private func pillRow(now: Date) -> some View {
+    @ViewBuilder private func pillRow(now: Date) -> some View {
+        if #available(macOS 26.0, *) {
+            // One container for the adjacent glass capsules so they sample each
+            // other's glass consistently (skill group rule).
+            GlassEffectContainer(spacing: 8) { pillStack(now: now) }
+        } else {
+            pillStack(now: now)
+        }
+    }
+
+    private func pillStack(now: Date) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             if showsDisplay {
                 displayPill(now: now)
