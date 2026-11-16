@@ -916,3 +916,8 @@
 
 "settings.popup.scrollWheelStep" = "滾輪調整幅度";
 "settings.popup.scrollWheelStep.description" = "每格調整音量、亮度和麥克風的幅度。觸控板維持連續調整。";
+
+"settings.brightness.useBetterDisplayCombined" = "使用 BetterDisplay 的組合亮度";
+"settings.brightness.useBetterDisplayCombined.description" = "BetterDisplay 的組合亮度把硬體亮度、軟體壓暗（和 XDR 提升）合併成一條滑桿：能比硬體最低亮度更暗，只有在 100% 時才與系統百分比一致。";
+"settings.brightness.useBetterDisplayCombined.needsApp" = "需要先安裝 BetterDisplay 才能使用。";
+

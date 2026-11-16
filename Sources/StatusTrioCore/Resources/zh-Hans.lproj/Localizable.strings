@@ -916,3 +916,8 @@
 
 "settings.popup.scrollWheelStep" = "滚轮调节步长";
 "settings.popup.scrollWheelStep.description" = "每格调节音量、亮度和麦克风的幅度。触控板保持连续调节。";
+
+"settings.brightness.useBetterDisplayCombined" = "使用 BetterDisplay 的组合亮度";
+"settings.brightness.useBetterDisplayCombined.description" = "BetterDisplay 的组合亮度把硬件亮度、软件压暗（和 XDR 提升）合并成一条滑块：能比硬件最低亮度更暗，只有 100% 时才和系统百分比一致。";
+"settings.brightness.useBetterDisplayCombined.needsApp" = "需要先安装 BetterDisplay 才能使用。";
+

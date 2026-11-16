@@ -78,6 +78,9 @@ protocol BrightnessMonitoring: AnyObject {
     func setExternalBrightnessConfigurations(
         _ configurations: [String: ExternalBrightnessConfiguration]
     )
+    /// Switches BetterDisplay-backed displays between the hardware scale and
+    /// BetterDisplay's combined-brightness scale (issue #344).
+    func setUseBetterDisplayCombinedBrightness(_ enabled: Bool)
     func setBrightness(_ scalar: Double, forDisplayID displayID: String)
     func finishBrightnessAdjustment(displayID: String)
 }
@@ -92,6 +95,7 @@ extension BrightnessMonitoring {
     func setExternalBrightnessConfigurations(
         _ configurations: [String: ExternalBrightnessConfiguration]
     ) {}
+    func setUseBetterDisplayCombinedBrightness(_ enabled: Bool) {}
     func setBrightness(_ scalar: Double, forDisplayID displayID: String) {}
     func finishBrightnessAdjustment(displayID: String) {}
 }

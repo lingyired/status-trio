@@ -915,3 +915,8 @@
 
 "settings.popup.scrollWheelStep" = "Wheel adjustment step";
 "settings.popup.scrollWheelStep.description" = "Change per notch for volume, brightness, and microphone. Trackpad scrolling stays continuous.";
+
+"settings.brightness.useBetterDisplayCombined" = "Use BetterDisplay Combined Brightness";
+"settings.brightness.useBetterDisplayCombined.description" = "BetterDisplay's combined brightness merges hardware brightness, software dimming and XDR headroom into one slider. It can go darker than the hardware minimum and only matches the system percentage at 100%.";
+"settings.brightness.useBetterDisplayCombined.needsApp" = "Install BetterDisplay to use this option.";
+

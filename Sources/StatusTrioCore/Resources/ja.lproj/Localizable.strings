@@ -916,3 +916,8 @@
 
 "settings.popup.scrollWheelStep" = "ホイールの調整幅";
 "settings.popup.scrollWheelStep.description" = "1目盛りあたりの音量・明るさ・マイクの調整幅。トラックパッドは連続調整のままです。";
+
+"settings.brightness.useBetterDisplayCombined" = "BetterDisplay の合成輝度を使用";
+"settings.brightness.useBetterDisplayCombined.description" = "BetterDisplay の合成輝度は、ハードウェア輝度・ソフトウェア減光・XDR の余裕を 1 本のスライダーにまとめたものです。ハードウェアの最小より暗くでき、システムのパーセントと一致するのは 100% のときだけです。";
+"settings.brightness.useBetterDisplayCombined.needsApp" = "この項目を使うには BetterDisplay のインストールが必要です。";
+

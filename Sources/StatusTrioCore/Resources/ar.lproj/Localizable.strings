@@ -916,3 +916,8 @@
 
 "settings.popup.scrollWheelStep" = "خطوة ضبط العجلة";
 "settings.popup.scrollWheelStep.description" = "مقدار تغيير الصوت والسطوع والميكروفون لكل نقرة. تظل لوحة التعقب سلسة.";
+
+"settings.brightness.useBetterDisplayCombined" = "استخدام السطوع المركّب من BetterDisplay";
+"settings.brightness.useBetterDisplayCombined.description" = "يجمع السطوع المركّب في BetterDisplay سطوع العتاد والتعتيم البرمجي وهامش XDR في شريط تمرير واحد. يمكن أن يصبح أغمق من الحد الأدنى للعتاد، ولا يطابق نسبة النظام إلا عند 100%.";
+"settings.brightness.useBetterDisplayCombined.needsApp" = "يلزم تثبيت BetterDisplay لاستخدام هذا الخيار.";
+

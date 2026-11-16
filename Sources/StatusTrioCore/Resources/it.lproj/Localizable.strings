@@ -916,3 +916,8 @@
 
 "settings.popup.scrollWheelStep" = "Incremento della rotella";
 "settings.popup.scrollWheelStep.description" = "Variazione per scatto di volume, luminosità e microfono. Il trackpad resta continuo.";
+
+"settings.brightness.useBetterDisplayCombined" = "Usa la luminosità combinata di BetterDisplay";
+"settings.brightness.useBetterDisplayCombined.description" = "La luminosità combinata di BetterDisplay unisce luminosità hardware, oscuramento software e margine XDR in un unico cursore. Può scendere sotto il minimo hardware e coincide con la percentuale di sistema solo al 100%.";
+"settings.brightness.useBetterDisplayCombined.needsApp" = "Installa BetterDisplay per usare questa opzione.";
+

@@ -916,3 +916,8 @@
 
 "settings.popup.scrollWheelStep" = "Шаг колеса прокрутки";
 "settings.popup.scrollWheelStep.description" = "Изменение громкости, яркости и микрофона за щелчок. Трекпад сохраняет плавную регулировку.";
+
+"settings.brightness.useBetterDisplayCombined" = "Использовать комбинированную яркость BetterDisplay";
+"settings.brightness.useBetterDisplayCombined.description" = "Комбинированная яркость BetterDisplay объединяет аппаратную яркость, программное затемнение и запас XDR в одном регуляторе. Она может быть ниже аппаратного минимума и совпадает с системным процентом только при 100 %.";
+"settings.brightness.useBetterDisplayCombined.needsApp" = "Для этой опции требуется установить BetterDisplay.";
+

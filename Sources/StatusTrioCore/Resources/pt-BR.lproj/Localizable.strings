@@ -916,3 +916,8 @@
 
 "settings.popup.scrollWheelStep" = "Incremento da roda";
 "settings.popup.scrollWheelStep.description" = "Variação por passo de volume, brilho e microfone. O trackpad continua com ajuste contínuo.";
+
+"settings.brightness.useBetterDisplayCombined" = "Usar o brilho combinado do BetterDisplay";
+"settings.brightness.useBetterDisplayCombined.description" = "O brilho combinado do BetterDisplay reúne brilho de hardware, escurecimento por software e margem XDR em um único controle. Pode ficar mais escuro que o mínimo do hardware e só coincide com a porcentagem do sistema em 100%.";
+"settings.brightness.useBetterDisplayCombined.needsApp" = "Instale o BetterDisplay para usar esta opção.";
+

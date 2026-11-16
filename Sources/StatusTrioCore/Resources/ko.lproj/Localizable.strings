@@ -916,3 +916,8 @@
 
 "settings.popup.scrollWheelStep" = "휠 조절 간격";
 "settings.popup.scrollWheelStep.description" = "휠 한 칸당 음량, 밝기, 마이크 조절량입니다. 트랙패드는 연속 조절을 유지합니다.";
+
+"settings.brightness.useBetterDisplayCombined" = "BetterDisplay 통합 밝기 사용";
+"settings.brightness.useBetterDisplayCombined.description" = "BetterDisplay의 통합 밝기는 하드웨어 밝기, 소프트웨어 디밍, XDR 여유분을 하나의 슬라이더로 합칩니다. 하드웨어 최저값보다 더 어둡게 할 수 있고, 시스템 퍼센트와는 100%에서만 일치합니다.";
+"settings.brightness.useBetterDisplayCombined.needsApp" = "이 옵션을 사용하려면 BetterDisplay를 설치해야 합니다.";
+

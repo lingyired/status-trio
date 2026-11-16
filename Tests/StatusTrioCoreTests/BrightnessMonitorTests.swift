@@ -122,6 +122,57 @@ final class BrightnessMonitorTests: XCTestCase {
         )
     }
 
+    func testBuiltInUsesDisplayServicesByDefault() {
+        let builtin = DisplayDescriptor(id: "cg-uuid", name: "Built-in", isBuiltin: true, displayID: 5)
+        var madeDisplayServices = 0
+        var madeBetterDisplay: [String] = []
+        let monitor = BrightnessMonitor(
+            catalog: FakeCatalog([builtin]),
+            makeDisplayServices: { id, onUpdate in
+                madeDisplayServices += 1
+                return DisplayServicesBrightnessController(displayID: id) { onUpdate($0) }
+            },
+            makeBetterDisplay: { uuid, update in
+                madeBetterDisplay.append(uuid)
+                return BetterDisplayBrightnessCoordinator(
+                    client: QuietBetterDisplayClient(), displayUUID: uuid, onUpdate: update
+                )
+            },
+            isBetterDisplayRunning: { true }
+        )
+        monitor.start()
+        monitor.setDetailsVisible(true)
+        XCTAssertEqual(madeDisplayServices, 1)
+        XCTAssertTrue(madeBetterDisplay.isEmpty)
+        monitor.stop()
+    }
+
+    func testBuiltInUsesBetterDisplayWhenCombinedOptionOn() {
+        let builtin = DisplayDescriptor(id: "cg-uuid", name: "Built-in", isBuiltin: true, displayID: 5)
+        var madeDisplayServices = 0
+        var madeBetterDisplay: [String] = []
+        let monitor = BrightnessMonitor(
+            catalog: FakeCatalog([builtin]),
+            makeDisplayServices: { id, onUpdate in
+                madeDisplayServices += 1
+                return DisplayServicesBrightnessController(displayID: id) { onUpdate($0) }
+            },
+            makeBetterDisplay: { uuid, update in
+                madeBetterDisplay.append(uuid)
+                return BetterDisplayBrightnessCoordinator(
+                    client: QuietBetterDisplayClient(), displayUUID: uuid, onUpdate: update
+                )
+            },
+            isBetterDisplayRunning: { true }
+        )
+        monitor.setUseBetterDisplayCombinedBrightness(true)
+        monitor.start()
+        monitor.setDetailsVisible(true)
+        XCTAssertEqual(madeBetterDisplay, ["cg-uuid"])
+        XCTAssertEqual(madeDisplayServices, 0)
+        monitor.stop()
+    }
+
     func testExternalDisplayResolvesTheCGUUIDNotTheEDIDUUID() {
         let external = DisplayDescriptor(
             id: "EDID-UUID",

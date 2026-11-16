@@ -916,3 +916,8 @@
 
 "settings.popup.scrollWheelStep" = "Schrittweite des Mausrads";
 "settings.popup.scrollWheelStep.description" = "Änderung pro Raste für Lautstärke, Helligkeit und Mikrofon. Trackpad bleibt stufenlos.";
+
+"settings.brightness.useBetterDisplayCombined" = "BetterDisplay-Kombinationshelligkeit verwenden";
+"settings.brightness.useBetterDisplayCombined.description" = "Die Kombinationshelligkeit von BetterDisplay fasst Hardware-Helligkeit, Software-Dimmung und XDR-Reserve in einem Regler zusammen. Sie kann dunkler als das Hardware-Minimum werden und stimmt nur bei 100 % mit dem Systemprozentsatz überein.";
+"settings.brightness.useBetterDisplayCombined.needsApp" = "BetterDisplay muss installiert sein, um diese Option zu nutzen.";
+

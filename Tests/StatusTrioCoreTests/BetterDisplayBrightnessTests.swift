@@ -157,6 +157,56 @@ final class BetterDisplayBrightnessTests: XCTestCase {
         coordinator.stop()
     }
 
+    func testPreferredCombinedFeatureIsUsedForReadAndWrite() async {
+        let client = BrightnessRecordingClient()
+        client.responder = { _, commands, parameters in
+            if commands == ["get"] {
+                XCTAssertTrue(parameters.keys.contains("combinedBrightness"))
+                return "0.50,0.0,1.0"
+            }
+            if commands == ["set"] {
+                XCTAssertEqual(parameters["combinedBrightness"] ?? nil, "0.8")
+                return nil
+            }
+            return "0.80,0.0,1.0"
+        }
+        var updates: [BetterDisplayBrightnessCoordinator.Update] = []
+        let coordinator = BetterDisplayBrightnessCoordinator(
+            client: client, displayUUID: "combined-uuid", preferredFeature: .combined
+        ) { updates.append($0) }
+
+        coordinator.start()
+        await waitUntil { updates.count == 1 }
+        XCTAssertEqual(updates[0].scalar ?? -1, 0.50, accuracy: 0.0001)
+        XCTAssertEqual(updates[0].source, .betterDisplay)
+
+        coordinator.setBrightness(0.8)
+        await waitUntil { updates.count >= 2 }
+        let setRequest = client.requests.first { $0.commands == ["set"] }
+        XCTAssertEqual(setRequest?.parameters["combinedBrightness"] ?? nil, "0.8")
+        coordinator.stop()
+    }
+
+    func testCombinedFeatureFallsBackToAutomaticWhenRejected() async {
+        let client = BrightnessRecordingClient()
+        client.responder = { _, commands, parameters in
+            if commands == ["get"], parameters.keys.contains("combinedBrightness") {
+                throw BetterDisplayIntegrationError.requestFailed
+            }
+            return "0.50,0.0,1.0"
+        }
+        var updates: [BetterDisplayBrightnessCoordinator.Update] = []
+        let coordinator = BetterDisplayBrightnessCoordinator(
+            client: client, displayUUID: "combined-uuid", preferredFeature: .combined
+        ) { updates.append($0) }
+
+        coordinator.start()
+        await waitUntil { updates.count == 1 }
+        XCTAssertEqual(updates[0].scalar ?? -1, 0.50, accuracy: 0.0001)
+        XCTAssertTrue(client.requests.contains { $0.parameters.keys.contains("brightness") })
+        coordinator.stop()
+    }
+
     // MARK: - Write + read-back
 
     func testSetWritesThenReadsBackConfirmed() async {

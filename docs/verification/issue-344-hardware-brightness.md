@@ -20,6 +20,13 @@ BetterDisplay 的「亮度（组合）」= 硬件亮度 + 软件压暗 + HDR 余
 - 停止 / BetterDisplay 退出时重置为硬件特性。
 - 更新 `display-286.md` 的“已知数值差异”说明。
 
+## 选项：使用 BetterDisplay 的组合亮度
+
+- 设置 → 亮度 → 「Brightness Backend」组新增开关「使用 BetterDisplay 的组合亮度」，默认关。
+- 只有安装了 BetterDisplay（`NSWorkspace` 能找到其 bundle）才可开启；未安装时开关置灰并提示。
+- 开启后：BetterDisplay 正在运行时，走 BetterDisplay 的 Display（含内建屏）改用 `combinedBrightness` 读写，数字与 BetterDisplay 面板一致；BetterDisplay 没在运行或未安装时，自动回落系统/硬件值（内建 DisplayServices，外接 DDC/hardwareBrightness）。
+- 已计入设置导出/导入目录（`useBetterDisplayCombinedBrightness`）。
+
 ## 未验证 / 待人工验收
 
 - 内建屏 + 外接屏同时在线的真机对比：两条滑块的百分比应与 macOS 控制中心一致（本机为合盖单外屏，内建屏不可测）。
