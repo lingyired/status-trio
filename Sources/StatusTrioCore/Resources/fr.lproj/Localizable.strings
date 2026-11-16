@@ -1183,6 +1183,7 @@
 "hardware.monitor.settings.panelRefresh.description" = "Fréquence de mise à jour du panneau lorsqu’il est ouvert. Plus rapide = plus direct mais lit davantage ; plus lent = économise l’énergie.";
 "hardware.monitor.settings.showRings" = "Quatre anneaux";
 "hardware.monitor.settings.colorTitle" = "Couleurs";
+"hardware.monitor.settings.resetColors" = "Réinitialiser les couleurs";
 "hardware.monitor.settings.showRings.description" = "Affiche les anneaux CPU / GPU / RAM / SSD.";
 "hardware.monitor.settings.showSummaryRow" = "Données du bas";
 "hardware.monitor.settings.showSummaryRow.description" = "Affiche téléchargement, envoi, ventilateur et E/S disque sous les anneaux.";

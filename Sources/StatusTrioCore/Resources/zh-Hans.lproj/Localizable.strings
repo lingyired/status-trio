@@ -1183,6 +1183,7 @@
 "hardware.monitor.settings.panelRefresh.description" = "面板打开时的更新频率。越快越实时但读取更多，越慢越省电。";
 "hardware.monitor.settings.showRings" = "四圆环";
 "hardware.monitor.settings.colorTitle" = "颜色";
+"hardware.monitor.settings.resetColors" = "恢复默认颜色";
 "hardware.monitor.settings.showRings.description" = "显示 CPU / GPU / 内存 / 磁盘 四个圆环。";
 "hardware.monitor.settings.showSummaryRow" = "底部数据";
 "hardware.monitor.settings.showSummaryRow.description" = "在圆环下方显示下载、上传、风扇和磁盘 I/O。";

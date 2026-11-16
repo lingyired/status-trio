@@ -1183,6 +1183,7 @@
 "hardware.monitor.settings.panelRefresh.description" = "Com que frequência o painel é atualizado enquanto aberto. Mais rápido é mais ao vivo mas lê mais; mais lento economiza energia.";
 "hardware.monitor.settings.showRings" = "Quatro anéis";
 "hardware.monitor.settings.colorTitle" = "Cores";
+"hardware.monitor.settings.resetColors" = "Redefinir cores";
 "hardware.monitor.settings.showRings.description" = "Mostra os anéis de CPU / GPU / RAM / SSD.";
 "hardware.monitor.settings.showSummaryRow" = "Dados inferiores";
 "hardware.monitor.settings.showSummaryRow.description" = "Mostra download, upload, ventoinha e E/S de disco sob os anéis.";

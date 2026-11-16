@@ -1183,6 +1183,7 @@
 "hardware.monitor.settings.panelRefresh.description" = "패널이 열려 있는 동안 업데이트 빈도입니다. 빠를수록 더 실시간이지만 더 많이 읽고, 느릴수록 전력을 절약합니다.";
 "hardware.monitor.settings.showRings" = "네 개의 링";
 "hardware.monitor.settings.colorTitle" = "색상";
+"hardware.monitor.settings.resetColors" = "색상 초기화";
 "hardware.monitor.settings.showRings.description" = "CPU / GPU / RAM / SSD 링을 표시합니다.";
 "hardware.monitor.settings.showSummaryRow" = "하단 데이터";
 "hardware.monitor.settings.showSummaryRow.description" = "링 아래에 다운로드, 업로드, 팬, 디스크 I/O를 표시합니다.";

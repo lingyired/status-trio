@@ -102,6 +102,18 @@ struct HardwareMonitorSectionView: View {
                 .listStyle(.inset)
                 .frame(height: colorListHeight)
             }
+
+            SettingsDivider()
+            HStack {
+                Button(localization.string(.hardwareMonitorSettingsResetColors)) {
+                    store.hardwareMonitorMetricColors = [:]
+                }
+                .disabled(store.hardwareMonitorMetricColors.isEmpty)
+                Spacer()
+            }
+            .padding(.leading, SettingsMetrics.dividerInset)
+            .padding(.trailing, SettingsMetrics.rowPaddingH)
+            .padding(.vertical, SettingsMetrics.rowPaddingV)
         }
     }
 

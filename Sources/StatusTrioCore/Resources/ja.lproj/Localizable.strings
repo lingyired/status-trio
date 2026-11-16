@@ -1183,6 +1183,7 @@
 "hardware.monitor.settings.panelRefresh.description" = "パネルを開いている間の更新頻度です。速いほどリアルタイムですが読み取りが増え、遅いほど省電力です。";
 "hardware.monitor.settings.showRings" = "4つのリング";
 "hardware.monitor.settings.colorTitle" = "色";
+"hardware.monitor.settings.resetColors" = "色をリセット";
 "hardware.monitor.settings.showRings.description" = "CPU / GPU / RAM / SSD のリングを表示します。";
 "hardware.monitor.settings.showSummaryRow" = "下部データ";
 "hardware.monitor.settings.showSummaryRow.description" = "リングの下にダウンロード・アップロード・ファン・ディスク I/O を表示します。";
