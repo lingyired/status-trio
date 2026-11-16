@@ -470,14 +470,16 @@ private struct KeepAwakeIconPalette {
             return KeepAwakeIconPalette(circle: Color.primary.opacity(0.12), glyph: .secondary)
         }
         switch (role, isDark) {
+        // Active glyphs are deliberately dark so they stay legible on the now
+        // saturated gold/blue fill; the pale disc keeps a clear separation ring.
         case (.displayAwake, true):
-            return KeepAwakeIconPalette(circle: srgb(0xFFF4DB), glyph: srgb(0xF5BD35))
+            return KeepAwakeIconPalette(circle: srgb(0xFFF4DB), glyph: srgb(0x6B4A00))
         case (.displayAwake, false):
-            return KeepAwakeIconPalette(circle: srgb(0xFFF0CC), glyph: srgb(0xD4920E))
+            return KeepAwakeIconPalette(circle: srgb(0xFFF0CC), glyph: srgb(0x7A5200))
         case (.lidAwake, true):
-            return KeepAwakeIconPalette(circle: srgb(0xEFF3F5), glyph: srgb(0x65AEBB))
+            return KeepAwakeIconPalette(circle: srgb(0xEFF3F5), glyph: srgb(0x0B4A80))
         case (.lidAwake, false):
-            return KeepAwakeIconPalette(circle: srgb(0xE6F1F3), glyph: srgb(0x4E97A3))
+            return KeepAwakeIconPalette(circle: srgb(0xE6F1F3), glyph: srgb(0x0E5A8A))
         }
     }
 
@@ -488,8 +490,8 @@ private struct KeepAwakeIconPalette {
     /// sticker look.
     func circle(for style: PanelCardSurfaceStyle) -> Color {
         switch style {
-        case .glass: return circle.opacity(0.55)
-        case .material: return circle.opacity(0.80)
+        case .glass: return circle.opacity(0.70)
+        case .material: return circle.opacity(0.85)
         case .solid: return circle
         }
     }
