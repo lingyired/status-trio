@@ -249,7 +249,7 @@ struct AppIconRingView: View {
             )
             if hardwareTopMode == .value {
                 SettingsDivider()
-                SettingsMenuRow(
+                SettingsGroupedMenuRow(
                     symbol: hardwareTopMetric.systemImage,
                     tint: .gray,
                     title: localization.string(.settingsHardwareRingTopMetric),
@@ -257,7 +257,7 @@ struct AppIconRingView: View {
                         get: { hardwareTopMetric },
                         set: { setTopMetric($0) }
                     ),
-                    options: HardwareMonitorMetric.allCases,
+                    groups: hardwareRingMetricGroups,
                     label: { metricLabel($0) }
                 )
             }
