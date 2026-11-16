@@ -80,7 +80,7 @@ private struct PanelCardSurfaceModifier: ViewModifier {
     func body(content: Content) -> some View {
         switch cardStyle {
         case .glass:
-            if #available(macOS 26.0, *), PanelCardSurfaceExperiment.useNative {
+            if #available(macOS 26.0, *), PanelCardSurfaceExperiment.useNative, cardStyle == .glass {
                 content
                     .glassEffect(
                         .regular.tint(surface.fill(tint: tint, scheme: scheme, cardStyle: .glass)),

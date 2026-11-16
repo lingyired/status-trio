@@ -231,6 +231,7 @@ private struct UnifiedCountdownControl: View {
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.panelCardSurfaceStyle) private var cardStyle
     @State private var isHoveringTime = false
+    @State private var isHoveringCapsule = false
 
     private static let height: CGFloat = 54
     private static let cornerRadius: CGFloat = 13
@@ -251,6 +252,19 @@ private struct UnifiedCountdownControl: View {
             RoundedRectangle(cornerRadius: Self.cornerRadius, style: .continuous)
                 .stroke(Color.primary.opacity(0.10), lineWidth: 1)
         }
+        // System-like hover glow: the interactive glass lights up as the pointer
+        // enters, without needing a click (matches Control Center modules).
+        .overlay {
+            RoundedRectangle(cornerRadius: Self.cornerRadius, style: .continuous)
+                .fill(Color.white.opacity(isHoveringCapsule ? 0.06 : 0))
+                .allowsHitTesting(false)
+        }
+        .overlay {
+            RoundedRectangle(cornerRadius: Self.cornerRadius, style: .continuous)
+                .strokeBorder(Color.white.opacity(isHoveringCapsule ? 0.22 : 0), lineWidth: 1)
+                .allowsHitTesting(false)
+        }
+        .onHover { isHoveringCapsule = $0 }
         .opacity(isEnabled ? 1 : 0.55)
         .help(help)
     }

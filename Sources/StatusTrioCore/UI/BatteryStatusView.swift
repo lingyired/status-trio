@@ -73,7 +73,6 @@ struct BatteryStatusView: View {
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
-            .modifier(InteractiveGlassExperiment(cornerRadius: 12))
             .disabled(!hasDetails)
             .accessibilityLabel(state.accessibilityLabel)
             .accessibilityValue(state.accessibilityValue)

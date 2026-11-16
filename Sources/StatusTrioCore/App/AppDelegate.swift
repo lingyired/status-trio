@@ -17,6 +17,10 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     public func applicationDidFinishLaunching(_ notification: Notification) {
+        // macOS 26+ defaults to the native glass surfaces; the key can opt out.
+        // Registered here (not in the view) so ImageRenderer/unit-test hosts that
+        // never launch the app keep the deterministic translucent wash.
+        UserDefaults.standard.register(defaults: [PanelCardSurfaceExperiment.defaultsKey: true])
         let backgroundUITesting = BackgroundUITestingConfiguration(
             arguments: ProcessInfo.processInfo.arguments
         )

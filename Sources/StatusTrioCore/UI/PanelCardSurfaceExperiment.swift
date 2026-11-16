@@ -17,7 +17,12 @@ enum PanelCardSurfaceExperiment {
         if #available(macOS 26.0, *) { return true } else { return false }
     }
 
-    static var useNative: Bool { isNativeGlassEnabled && nativeGlassAvailable }
+    /// Default on for macOS 26+ (the chosen look); set the key to false to fall
+    /// back to the tuned translucent wash without rebuilding.
+    static var useNative: Bool {
+        nativeGlassAvailable
+            && (UserDefaults.standard.object(forKey: defaultsKey) as? Bool ?? false)
+    }
 }
 
 /// Applies interactive native glass to a tappable control when the experiment is
