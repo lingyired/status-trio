@@ -439,6 +439,7 @@
 "settings.keepAwake.helperHint" = "開啟「合蓋不睡眠」（或低電量模式控制）後，會自動安裝並請求授權。";
 "settings.keepAwake.allowBattery" = "允許僅用電池時開啟";
 "settings.keepAwake.autoOff" = "低電量時自動關閉";
+"settings.keepAwake.onlyLid" = "僅作用於「合蓋不睡眠」";
 "quickActions.displaySleep" = "保持螢幕常亮";
 "quickActions.displaySleep.description" = "閒置時防止顯示器休眠。";
 "quickActions.lidSleep" = "闔蓋時保持喚醒";

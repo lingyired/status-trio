@@ -439,6 +439,7 @@
 "settings.keepAwake.helperHint" = "Ativar «Manter ativo com a tampa fechada» (ou o controle de modo de baixo consumo) instala e solicita autorização automaticamente.";
 "settings.keepAwake.allowBattery" = "Permitir na bateria";
 "settings.keepAwake.autoOff" = "Desativar com bateria fraca";
+"settings.keepAwake.onlyLid" = "Aplica-se apenas a «Manter ativo com a tampa fechada»";
 "quickActions.displaySleep" = "Manter a tela ativa";
 "quickActions.displaySleep.description" = "Impede que a tela entre em repouso quando ociosa.";
 "quickActions.lidSleep" = "Manter ativo com a tampa fechada";

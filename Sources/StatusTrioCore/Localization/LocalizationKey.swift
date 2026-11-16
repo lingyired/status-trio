@@ -154,6 +154,7 @@ enum LocalizationKey: String, CaseIterable, Hashable, Sendable {
     case settingsKeepAwakeHelperHint = "settings.keepAwake.helperHint"
     case settingsKeepAwakeAllowBattery = "settings.keepAwake.allowBattery"
     case settingsKeepAwakeAutoOff = "settings.keepAwake.autoOff"
+    case settingsKeepAwakeOnlyLid = "settings.keepAwake.onlyLid"
 
     // Quick actions: keep-awake toggles (issue #295).
     case quickActionsDisplaySleep = "quickActions.displaySleep"

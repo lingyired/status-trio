@@ -438,6 +438,7 @@
 "settings.keepAwake.helperHint" = "Turning on “keep awake with lid closed” (or Low Power Mode control) installs and requests approval automatically.";
 "settings.keepAwake.allowBattery" = "Allow while on battery";
 "settings.keepAwake.autoOff" = "Turn off when battery is low";
+"settings.keepAwake.onlyLid" = "Applies only to “keep awake with lid closed”";
 "quickActions.displaySleep" = "Keep Screen Awake";
 "quickActions.displaySleep.description" = "Prevent the display from sleeping while idle.";
 "quickActions.lidSleep" = "Keep Awake With Lid Closed";

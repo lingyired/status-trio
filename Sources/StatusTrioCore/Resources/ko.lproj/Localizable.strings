@@ -439,6 +439,7 @@
 "settings.keepAwake.helperHint" = "「덮개를 닫아도 잠자지 않기」(또는 저전력 모드 제어)를 켜면 자동으로 설치 및 승인을 요청합니다.";
 "settings.keepAwake.allowBattery" = "배터리 사용 중 허용";
 "settings.keepAwake.autoOff" = "배터리 부족 시 자동 끄기";
+"settings.keepAwake.onlyLid" = "「덮개를 닫아도 잠자지 않기」에만 적용";
 "quickActions.displaySleep" = "화면 켜두기";
 "quickActions.displaySleep.description" = "유휴 상태에서 디스플레이가 잠자기로 전환되지 않도록 합니다.";
 "quickActions.lidSleep" = "덮개를 닫아도 깨어 있게 유지";

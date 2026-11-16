@@ -48,6 +48,7 @@ struct KeepAwakeSectionView: View {
                 symbol: "powerplug",
                 tint: .green,
                 title: localization.string(.settingsKeepAwakeAllowBattery),
+                subtitle: localization.string(.settingsKeepAwakeOnlyLid),
                 isOn: $store.allowLidSleepOnBattery
             )
             .disabled(!sectionEnabled)
@@ -55,6 +56,7 @@ struct KeepAwakeSectionView: View {
                 symbol: "battery.25",
                 tint: .orange,
                 title: localization.string(.settingsKeepAwakeAutoOff),
+                subtitle: localization.string(.settingsKeepAwakeOnlyLid),
                 isOn: $store.autoDisableLidSleepOnLowBattery
             )
             .disabled(!sectionEnabled)

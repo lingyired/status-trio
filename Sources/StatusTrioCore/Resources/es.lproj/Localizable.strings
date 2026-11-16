@@ -439,6 +439,7 @@
 "settings.keepAwake.helperHint" = "Activar «seguir despierto con la tapa cerrada» (o el control de modo de bajo consumo) instala y solicita autorización automáticamente.";
 "settings.keepAwake.allowBattery" = "Permitir con batería";
 "settings.keepAwake.autoOff" = "Desactivar con batería baja";
+"settings.keepAwake.onlyLid" = "Solo se aplica a «seguir despierto con la tapa cerrada»";
 "quickActions.displaySleep" = "Mantener la pantalla activa";
 "quickActions.displaySleep.description" = "Evita que la pantalla entre en reposo cuando está inactiva.";
 "quickActions.lidSleep" = "Mantener activo con la tapa cerrada";

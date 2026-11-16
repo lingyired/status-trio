@@ -439,6 +439,7 @@
 "settings.keepAwake.helperHint" = "Включение «Не спать при закрытой крышке» (или управления режимом низкого энергопотребления) автоматически устанавливает помощник и запрашивает разрешение.";
 "settings.keepAwake.allowBattery" = "Разрешить при работе от батареи";
 "settings.keepAwake.autoOff" = "Отключать при низком заряде";
+"settings.keepAwake.onlyLid" = "Относится только к «Не спать при закрытой крышке»";
 "quickActions.displaySleep" = "Не давать экрану засыпать";
 "quickActions.displaySleep.description" = "Не позволяет дисплею переходить в спящий режим при простое.";
 "quickActions.lidSleep" = "Не давать засыпать при закрытой крышке";
