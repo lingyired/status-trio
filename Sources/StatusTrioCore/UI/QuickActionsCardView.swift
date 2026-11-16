@@ -174,7 +174,9 @@ struct QuickActionsCardView: View {
             now: now
         )
         if !control.isPreventingLidSleep, control.lidUnavailableReason == .requiresPower {
-            return base + "\n" + localization.string(.quickActionsRequiresPower)
+            // Replace 已关闭 with the actionable reason instead of stacking a
+            // second line inside the fixed-height capsule.
+            return localization.string(.quickActionsRequiresPower)
         }
         return base
     }
