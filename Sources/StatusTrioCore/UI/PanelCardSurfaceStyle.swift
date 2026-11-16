@@ -80,9 +80,17 @@ private struct PanelCardSurfaceModifier: ViewModifier {
     func body(content: Content) -> some View {
         switch cardStyle {
         case .glass:
-            content
-                .background(shape.fill(surface.fill(tint: tint, scheme: scheme, cardStyle: .glass)))
-                .overlay { shape.strokeBorder(surface.stroke(tint: tint, scheme: scheme, cardStyle: .glass), lineWidth: 1) }
+            if #available(macOS 26.0, *), PanelCardSurfaceExperiment.useNative {
+                content
+                    .glassEffect(
+                        .regular.tint(surface.fill(tint: tint, scheme: scheme, cardStyle: .glass)),
+                        in: shape
+                    )
+            } else {
+                content
+                    .background(shape.fill(surface.fill(tint: tint, scheme: scheme, cardStyle: .glass)))
+                    .overlay { shape.strokeBorder(surface.stroke(tint: tint, scheme: scheme, cardStyle: .glass), lineWidth: 1) }
+            }
         case .material:
             content
                 .background(shape.fill(surface.fill(tint: tint, scheme: scheme, cardStyle: .material)))

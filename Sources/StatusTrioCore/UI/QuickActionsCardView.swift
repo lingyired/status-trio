@@ -275,7 +275,13 @@ private struct UnifiedCountdownControl: View {
     private var baseLayer: some View {
         switch cardStyle {
         case .glass:
-            Color.primary.opacity(0.06)
+            if #available(macOS 26.0, *), PanelCardSurfaceExperiment.useNative {
+                Rectangle()
+                    .fill(.clear)
+                    .glassEffect(.regular.interactive(), in: .rect(cornerRadius: 13))
+            } else {
+                Color.primary.opacity(0.06)
+            }
         case .material:
             Color.primary.opacity(0.08)
         case .solid:
