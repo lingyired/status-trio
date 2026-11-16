@@ -83,21 +83,31 @@ struct HardwareMonitorSectionView: View {
         SettingsGroup(localization.string(.hardwareMonitorSettingsColorTitle)) {
             SettingsCustomRow {
                 VStack(spacing: 0) {
-                    ForEach(Array(HardwareMonitorMetric.allCases.enumerated()), id: \.element) { index, metric in
-                        if index > 0 { SettingsDivider() }
-                        HStack(alignment: .center, spacing: 8) {
-                            HardwareMetricSymbolView(symbol: metric.systemImage, box: 20, glyph: 14)
-                            Text(localization.string(metric.titleKey))
-                                .font(.system(size: 13))
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                            IconDesignerColorWell(
-                                selection: colorBinding(for: metric),
-                                onEditingChanged: { _ in }
-                            )
-                            .frame(width: 40, height: 20)
-                            .accessibilityLabel(localization.string(metric.titleKey))
+                    ForEach(Array(colorMetricGroups.enumerated()), id: \.offset) { groupIndex, group in
+                        if groupIndex > 0 { SettingsDivider() }
+                        Text(group.title)
+                            .font(.system(size: 11, weight: .semibold))
+                            .foregroundStyle(.secondary)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(.leading, SettingsMetrics.dividerInset)
+                            .padding(.top, 8)
+                            .padding(.bottom, 2)
+                        ForEach(Array(group.options.enumerated()), id: \.element) { rowIndex, metric in
+                            if rowIndex > 0 { SettingsDivider() }
+                            HStack(alignment: .center, spacing: 8) {
+                                HardwareMetricSymbolView(symbol: metric.systemImage, box: 20, glyph: 14)
+                                Text(localization.string(metric.titleKey))
+                                    .font(.system(size: 13))
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                                IconDesignerColorWell(
+                                    selection: colorBinding(for: metric),
+                                    onEditingChanged: { _ in }
+                                )
+                                .frame(width: 40, height: 20)
+                                .accessibilityLabel(localization.string(metric.titleKey))
+                            }
+                            .padding(.vertical, 6)
                         }
-                        .padding(.vertical, 6)
                     }
                 }
             }
@@ -114,6 +124,15 @@ struct HardwareMonitorSectionView: View {
             .padding(.trailing, SettingsMetrics.rowPaddingH)
             .padding(.vertical, SettingsMetrics.rowPaddingV)
         }
+    }
+
+    private var colorMetricGroups: [(title: String, options: [HardwareMonitorMetric])] {
+        [
+            ("CPU", [.cpuUsage, .cpuTemperature]),
+            ("GPU", [.gpuUsage, .gpuTemperature]),
+            (localization.string(.settingsHardwareRingGroupOther),
+             [.memoryUsage, .batteryTemperature, .fan, .downloadSpeed, .uploadSpeed])
+        ]
     }
 
     /// The shared metric colour, editable here and in the ring's colour rows.
