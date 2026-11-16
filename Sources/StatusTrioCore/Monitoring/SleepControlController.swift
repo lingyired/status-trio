@@ -40,8 +40,8 @@ enum SleepTimerDuration: String, CaseIterable, Identifiable, Sendable {
         switch self {
         case .thirtyMinutes: "30m"
         case .oneHour: "1h"
-        case .twoHours: "2h"
-        case .fourHours: "4h"
+        case .twoHours: "2\u{2009}h"
+        case .fourHours: "4\u{2009}h"
         case .unlimited: "∞"
         }
     }
