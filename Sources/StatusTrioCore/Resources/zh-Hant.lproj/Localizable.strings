@@ -434,6 +434,7 @@
 "settings.popup.order.inputSource" = "輸入法";
 "settings.popup.order.quickActions" = "保持喚醒";
 "settings.keepAwake.showInPanel" = "在狀態面板顯示「保持喚醒」";
+"settings.keepAwake.showButton" = "在狀態面板顯示";
 "settings.keepAwake.helper" = "啟用特權輔助程式";
 "settings.keepAwake.helperReady" = "特權輔助程式已就緒。";
 "settings.keepAwake.helperHint" = "開啟「合蓋不睡眠」（或低電量模式控制）後，會自動安裝並請求授權。";

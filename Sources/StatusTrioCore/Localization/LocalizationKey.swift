@@ -149,6 +149,7 @@ enum LocalizationKey: String, CaseIterable, Hashable, Sendable {
     case settingsPopupOrderInputSource = "settings.popup.order.inputSource"
     case settingsPopupOrderQuickActions = "settings.popup.order.quickActions"
     case settingsKeepAwakeShowInPanel = "settings.keepAwake.showInPanel"
+    case settingsKeepAwakeShowButton = "settings.keepAwake.showButton"
     case settingsKeepAwakeHelper = "settings.keepAwake.helper"
     case settingsKeepAwakeHelperReady = "settings.keepAwake.helperReady"
     case settingsKeepAwakeHelperHint = "settings.keepAwake.helperHint"

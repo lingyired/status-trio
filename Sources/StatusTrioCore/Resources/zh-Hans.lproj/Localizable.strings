@@ -434,6 +434,7 @@
 "settings.popup.order.inputSource" = "输入法";
 "settings.popup.order.quickActions" = "保持唤醒";
 "settings.keepAwake.showInPanel" = "在状态面板显示「保持唤醒」";
+"settings.keepAwake.showButton" = "在状态面板显示";
 "settings.keepAwake.helper" = "启用特权辅助程序";
 "settings.keepAwake.helperReady" = "特权辅助程序已就绪。";
 "settings.keepAwake.helperHint" = "打开「盒盖不睡眠」（或低电量模式控制）后，会自动安装并请求授权。";

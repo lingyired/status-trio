@@ -434,6 +434,7 @@
 "settings.popup.order.inputSource" = "入力ソース";
 "settings.popup.order.quickActions" = "スリープ防止";
 "settings.keepAwake.showInPanel" = "「スリープ防止」をステータスパネルに表示";
+"settings.keepAwake.showButton" = "ステータスパネルに表示";
 "settings.keepAwake.helper" = "特権ヘルパーを有効にする";
 "settings.keepAwake.helperReady" = "特権ヘルパーの準備ができています。";
 "settings.keepAwake.helperHint" = "「蓋を閉じてもスリープしない」（または低電力モード制御）をオンにすると、自動でインストールと承認を求めます。";

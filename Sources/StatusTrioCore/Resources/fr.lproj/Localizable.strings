@@ -434,6 +434,7 @@
 "settings.popup.order.inputSource" = "Source de saisie";
 "settings.popup.order.quickActions" = "Maintenir éveillé";
 "settings.keepAwake.showInPanel" = "Afficher « Garder éveillé » dans le panneau d’état";
+"settings.keepAwake.showButton" = "Afficher dans le panneau d’état";
 "settings.keepAwake.helper" = "Activer l’assistant privilégié";
 "settings.keepAwake.helperReady" = "L’assistant privilégié est prêt.";
 "settings.keepAwake.helperHint" = "Activer « Garder éveillé capot fermé » (ou le contrôle du mode économie d’énergie) installe et demande l’autorisation automatiquement.";
