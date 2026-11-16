@@ -146,10 +146,6 @@ struct StatusPopoverView: View {
         return VStack(alignment: .leading, spacing: 12) {
             ForEach(sections) { section in
                 popupSection(section)
-
-                if section != sections.last {
-                    Divider()
-                }
             }
         }
         // The volume device list is summary-only: keep its lifecycle tied to
