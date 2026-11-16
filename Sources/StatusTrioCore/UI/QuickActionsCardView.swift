@@ -309,17 +309,17 @@ private struct UnifiedCountdownControl: View {
     private var progressColor: Color {
         switch (role, cardStyle) {
         case (.displayAwake, .glass):
-            return srgb(0xFFBE45).opacity(colorScheme == .dark ? 0.42 : 0.37)
+            return srgb(0xFFBE45).opacity(colorScheme == .dark ? 0.66 : 0.58)
         case (.lidAwake, .glass):
-            return Color.blue.opacity(colorScheme == .dark ? 0.62 : 0.30)
+            return Color.blue.opacity(colorScheme == .dark ? 0.78 : 0.58)
         case (.displayAwake, .material):
-            return srgb(0xFFBE45).opacity(colorScheme == .dark ? 0.34 : 0.30)
+            return srgb(0xFFBE45).opacity(colorScheme == .dark ? 0.55 : 0.48)
         case (.lidAwake, .material):
-            return Color.blue.opacity(colorScheme == .dark ? 0.50 : 0.26)
+            return Color.blue.opacity(colorScheme == .dark ? 0.66 : 0.46)
         case (.displayAwake, .solid):
-            return srgb(0xFFBE45).opacity(colorScheme == .dark ? 0.55 : 0.60)
+            return srgb(0xFFBE45).opacity(colorScheme == .dark ? 0.85 : 0.85)
         case (.lidAwake, .solid):
-            return Color.blue.opacity(colorScheme == .dark ? 0.55 : 0.55)
+            return Color.blue.opacity(colorScheme == .dark ? 0.85 : 0.85)
         }
     }
 
