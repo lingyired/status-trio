@@ -272,6 +272,11 @@ private struct UnifiedCountdownControl: View {
     /// One neutral layer and one blue layer spanning the whole capsule. The
     /// blue is drawn at the container width, so a full countdown also tints the
     /// time region — it is the same continuous background, not a second block.
+    /// The full-strength role colour used to tint the native glass base.
+    private var semanticTint: Color {
+        role == .displayAwake ? srgb(0xFFBE45) : Color.blue
+    }
+
     private var progressBackground: some View {
         GeometryReader { geometry in
             ZStack(alignment: .leading) {
@@ -290,9 +295,18 @@ private struct UnifiedCountdownControl: View {
         switch cardStyle {
         case .glass:
             if #available(macOS 26.0, *), PanelCardSurfaceExperiment.useNative {
-                Rectangle()
-                    .fill(.clear)
-                    .glassEffect(.regular.interactive(), in: .rect(cornerRadius: 13))
+                if isOn {
+                    Rectangle()
+                        .fill(.clear)
+                        .glassEffect(
+                            .regular.tint(semanticTint.opacity(colorScheme == .dark ? 0.32 : 0.26)).interactive(),
+                            in: .rect(cornerRadius: 13)
+                        )
+                } else {
+                    Rectangle()
+                        .fill(.clear)
+                        .glassEffect(.regular.interactive(), in: .rect(cornerRadius: 13))
+                }
             } else {
                 Color.primary.opacity(0.06)
             }
@@ -309,9 +323,9 @@ private struct UnifiedCountdownControl: View {
     private var progressColor: Color {
         switch (role, cardStyle) {
         case (.displayAwake, .glass):
-            return srgb(0xFFBE45).opacity(colorScheme == .dark ? 0.66 : 0.58)
+            return srgb(0xFFBE45).opacity(colorScheme == .dark ? 0.55 : 0.50)
         case (.lidAwake, .glass):
-            return Color.blue.opacity(colorScheme == .dark ? 0.78 : 0.58)
+            return Color.blue.opacity(colorScheme == .dark ? 0.62 : 0.50)
         case (.displayAwake, .material):
             return srgb(0xFFBE45).opacity(colorScheme == .dark ? 0.55 : 0.48)
         case (.lidAwake, .material):
