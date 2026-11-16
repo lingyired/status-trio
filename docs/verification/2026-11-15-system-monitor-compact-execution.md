@@ -85,3 +85,11 @@
 - 颜色沿用温度青色；颜色来源仍集中于 HardwareRingColorConfiguration。
 - 修正受指标顺序影响的设置/面板测试为按名称定位，未放宽断言。
 
+
+
+## 合并 main（2026-11-16）
+
+- 合并 origin/main（ca595302）到 system-monitor-compact-panel；冲突文件：LocalizationKey、12 个 Localizable.strings、SettingsStore、SettingsView、SettingsStoreTests、SettingsViewTests。
+- 解决原则：文案/键两边都保留（无重复键、plutil 通过）；分区顺序与默认同时保留 main 的 quickActions 与本分支的 hardwareMonitor；Section 同时保留 keepAwake 与 monitor。
+- 合并提交 c012496a。完整验证结果见下。
+
