@@ -13,6 +13,11 @@ struct HardwareRingStrip: View {
     /// Opens the matching detail page when a carded ring is tapped. Nil keeps the
     /// cards non-interactive (design preview).
     var onSelectSlot: ((HardwareDetailKind) -> Void)? = nil
+    /// Which rings to draw, in order. In carded mode the visible cards share the
+    /// full width in equal columns, so two take half each and three take a third
+    /// each. Card height and ring diameter stay fixed as in the four-up layout;
+    /// the ring is centred inside its (wider) card.
+    var visibleSlots: [HardwareRingSlot] = HardwareRingSlot.allCases
     /// Carded mode lifts the top percentage by this many points for optical
     /// centring inside the arc's top opening; other surfaces keep 0.
     static let cardedTopTextAdjustment: CGFloat = -3
@@ -20,70 +25,83 @@ struct HardwareRingStrip: View {
     @State private var disk: DiskCapacitySample = .current()
     /// Pointer-enter glow so a clickable glass card reads as interactive
     /// (matches the keep-awake capsule in QuickActionsCardView).
-    @State private var hoveredSlot: Slot?
+    @State private var hoveredSlot: HardwareRingSlot?
 
     private var snapshot: HardwareMetricsSnapshot { hardware.snapshot }
 
     var body: some View {
-        HStack(alignment: .top, spacing: carded ? 6 : 10) {
-            ForEach(Slot.allCases) { slot in
-                let spec = spec(for: slot)
-                let ring = AnimatedSceneIcon(
-                    label: slot.label,
-                    top: spec.top,
-                    center: spec.center,
-                    centerScale: spec.centerScale,
-                    color: spec.color,
-                    progress: spec.progress,
-                    topTextVerticalAdjustment: carded ? Self.cardedTopTextAdjustment : 0
-                )
-                .animation(.easeOut(duration: 0.55), value: spec.progress)
-                .frame(maxWidth: .infinity)
-                .aspectRatio(1, contentMode: .fit)
-                if carded {
-                    let card = ring
-                        .padding(5)
+        if carded {
+            // Keep a fixed four-column card width; the visible cards centre and
+            // never grow when one is hidden.
+            HardwareRingRowLayout(spacing: 6, referenceCount: HardwareRingSlot.allCases.count) {
+                ForEach(visibleSlots) { slot in
+                    interactiveCard(slot)
+                }
+            }
+        } else {
+            HStack(alignment: .top, spacing: 10) {
+                ForEach(visibleSlots) { slot in
+                    ringBase(slot, topAdjustment: 0)
                         .frame(maxWidth: .infinity)
-                        .panelCardSurface(.silver(.connected), tint: .clear, cornerRadius: 13)
-                    if let onSelectSlot {
-                        Button { onSelectSlot(Self.detailKind(for: slot)) } label: {
-                            card.contentShape(RoundedRectangle(cornerRadius: 13, style: .continuous))
-                        }
-                        .buttonStyle(.plain)
-                        .overlay {
-                            RoundedRectangle(cornerRadius: 13, style: .continuous)
-                                .fill(Color.white.opacity(hoveredSlot == slot ? 0.06 : 0))
-                                .allowsHitTesting(false)
-                        }
-                        .overlay {
-                            RoundedRectangle(cornerRadius: 13, style: .continuous)
-                                .strokeBorder(Color.white.opacity(hoveredSlot == slot ? 0.22 : 0), lineWidth: 1)
-                                .allowsHitTesting(false)
-                        }
-                        .onHover { inside in
-                            if inside { hoveredSlot = slot }
-                            else if hoveredSlot == slot { hoveredSlot = nil }
-                        }
-                        .accessibilityLabel(slot.label)
-                    } else {
-                        card
-                    }
-                } else {
-                    ring
+                        .aspectRatio(1, contentMode: .fit)
                 }
             }
         }
     }
 
-    // MARK: - Slots
-
-    private enum Slot: String, CaseIterable, Identifiable {
-        case cpu, gpu, ram, ssd
-        var id: String { rawValue }
-        var label: String { rawValue.uppercased() }
+    /// The ring scene for one slot, with the carded-mode top-text fix.
+    private func ringBase(_ slot: HardwareRingSlot, topAdjustment: CGFloat) -> some View {
+        let spec = spec(for: slot)
+        return AnimatedSceneIcon(
+            label: slot.label,
+            top: spec.top,
+            center: spec.center,
+            centerScale: spec.centerScale,
+            color: spec.color,
+            progress: spec.progress,
+            topTextVerticalAdjustment: topAdjustment
+        )
+        .animation(.easeOut(duration: 0.55), value: spec.progress)
     }
 
-    private static func detailKind(for slot: Slot) -> HardwareDetailKind {
+    /// One ring wrapped in its own glass card (status panel).
+    private func ringCard(_ slot: HardwareRingSlot) -> some View {
+        ringBase(slot, topAdjustment: Self.cardedTopTextAdjustment)
+            .padding(5)
+            .panelCardSurface(.silver(.connected), tint: .clear, cornerRadius: 13)
+    }
+
+    /// Carded ring plus pointer-enter glow and detail tap. Non-interactive when
+    /// no callback is supplied (design preview).
+    @ViewBuilder
+    private func interactiveCard(_ slot: HardwareRingSlot) -> some View {
+        if let onSelectSlot {
+            Button { onSelectSlot(Self.detailKind(for: slot)) } label: {
+                ringCard(slot)
+                    .contentShape(RoundedRectangle(cornerRadius: 13, style: .continuous))
+            }
+            .buttonStyle(.plain)
+            .overlay {
+                RoundedRectangle(cornerRadius: 13, style: .continuous)
+                    .fill(Color.white.opacity(hoveredSlot == slot ? 0.06 : 0))
+                    .allowsHitTesting(false)
+            }
+            .overlay {
+                RoundedRectangle(cornerRadius: 13, style: .continuous)
+                    .strokeBorder(Color.white.opacity(hoveredSlot == slot ? 0.22 : 0), lineWidth: 1)
+                    .allowsHitTesting(false)
+            }
+            .onHover { inside in
+                if inside { hoveredSlot = slot }
+                else if hoveredSlot == slot { hoveredSlot = nil }
+            }
+            .accessibilityLabel(slot.label)
+        } else {
+            ringCard(slot)
+        }
+    }
+
+    private static func detailKind(for slot: HardwareRingSlot) -> HardwareDetailKind {
         switch slot {
         case .cpu: return .cpu
         case .gpu: return .gpu
@@ -92,7 +110,9 @@ struct HardwareRingStrip: View {
         }
     }
 
-    private func spec(for slot: Slot) -> (top: String, center: String, progress: Double, color: IconRGBA, centerScale: Double) {
+    // MARK: - Slots
+
+    private func spec(for slot: HardwareRingSlot) -> (top: String, center: String, progress: Double, color: IconRGBA, centerScale: Double) {
         switch slot {
         case .cpu:
             let center = temperatureText(.cpuTemperature)

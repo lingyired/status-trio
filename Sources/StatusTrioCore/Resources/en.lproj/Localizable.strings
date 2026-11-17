@@ -1225,12 +1225,17 @@
 "hardware.monitor.background.seconds" = "%d s";
 "hardware.monitor.settings.panelRefresh" = "Panel refresh";
 "hardware.monitor.settings.panelRefresh.description" = "How often the panel updates while open. Faster is more live but reads more; slower saves power.";
-"hardware.monitor.settings.showRings" = "Four rings";
+"hardware.monitor.settings.showRings" = "Show rings";
 "hardware.monitor.settings.colorTitle" = "Colors";
 "hardware.monitor.settings.resetColors" = "Reset colors";
-"hardware.monitor.settings.showRings.description" = "Show the CPU / GPU / RAM / SSD rings.";
-"hardware.monitor.settings.showSummaryRow" = "Bottom data";
-"hardware.monitor.settings.showSummaryRow.description" = "Show download, upload, fan and disk I/O below the rings.";
+"hardware.monitor.settings.showRings.description" = "Show the CPU, GPU, memory and disk-capacity rings; each can be turned off independently.";
+"hardware.monitor.settings.showSummaryRow" = "Show bottom bar";
+
+/* Status-panel per-item visibility */
+"hardware.monitor.settings.group.rings" = "Rings";
+"hardware.monitor.settings.group.bottomBar" = "Bottom bar";
+"hardware.monitor.settings.item.diskCapacity" = "Disk capacity";
+"hardware.monitor.settings.showSummaryRow.description" = "Show download, upload, fan speed and disk I/O below the rings; each can be turned off independently.";
 "hardware.monitor.fan.average" = "Avg fan";
 "hardware.monitor.fan.average.help" = "Average of the fan speeds the Mac is currently reporting. Stale or unreadable fans are excluded; a fanless Mac shows \"Fanless\".";
 "hardware.monitor.disk" = "Disk I/O";

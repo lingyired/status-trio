@@ -1226,11 +1226,16 @@
 "hardware.monitor.background.seconds" = "%d 秒";
 "hardware.monitor.settings.panelRefresh" = "パネル更新";
 "hardware.monitor.settings.panelRefresh.description" = "パネルを開いている間の更新頻度です。速いほどリアルタイムですが読み取りが増え、遅いほど省電力です。";
-"hardware.monitor.settings.showRings" = "4つのリング";
+"hardware.monitor.settings.showRings" = "リングを表示";
 "hardware.monitor.settings.colorTitle" = "色";
 "hardware.monitor.settings.resetColors" = "色をリセット";
 "hardware.monitor.settings.showRings.description" = "CPU / GPU / RAM / SSD のリングを表示します。";
-"hardware.monitor.settings.showSummaryRow" = "下部データ";
+"hardware.monitor.settings.showSummaryRow" = "下部バーを表示";
+
+/* Status-panel per-item visibility */
+"hardware.monitor.settings.group.rings" = "リング指標";
+"hardware.monitor.settings.group.bottomBar" = "下部バー";
+"hardware.monitor.settings.item.diskCapacity" = "ディスク容量";
 "hardware.monitor.settings.showSummaryRow.description" = "リングの下にダウンロード・アップロード・ファン・ディスク I/O を表示します。";
 "hardware.monitor.fan.average" = "ファン平均";
 "hardware.monitor.fan.average.help" = "現在報告されているファン回転数の平均です。古い、または読み取れないファンは除外されます。ファンのない Mac ではファンなしと表示します。";

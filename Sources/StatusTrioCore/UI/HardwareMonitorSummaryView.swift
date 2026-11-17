@@ -12,25 +12,41 @@ struct HardwareMonitorSummaryView: View {
     /// Routes a ring card or info-bar cell to its detail page. Nil disables taps
     /// (previews, design grid) without changing any drawing.
     var onOpenHardwareDetail: ((HardwareDetailKind) -> Void)? = nil
+    /// Ring cards the user kept enabled, in their canonical order.
+    var ringSlots: [HardwareRingSlot] = HardwareRingSlot.allCases
+    /// Bottom info-bar metrics the user kept enabled.
+    var summaryMetrics: Set<HardwareSummaryMetric> = Set(HardwareSummaryMetric.allCases)
 
     @EnvironmentObject private var localization: Localization
 
     var body: some View {
-        if showsRings || showsSummaryRow {
+        if showsAnyBlock {
             content
         }
     }
 
+    /// A block only counts as shown when the user enabled it and it still has at
+    /// least one item; hiding every item makes that block disappear so the other
+    /// block can use the full width.
+    private var showsAnyBlock: Bool {
+        (showsRings && !ringSlots.isEmpty) || (showsSummaryRow && !visibleItems.isEmpty)
+    }
+
+    private var visibleItems: [HardwareSummaryMetricPresentation] {
+        HardwareMonitorSummaryPresentation.items(
+            snapshot: model.summarySnapshot, localization: localization
+        ).filter { summaryMetrics.contains($0.metric) }
+    }
+
     private var content: some View {
-        let items = HardwareMonitorSummaryPresentation.items(
-            snapshot: model.summarySnapshot, localization: localization)
-        return VStack(spacing: 6) {
-            if showsRings {
+        VStack(spacing: 6) {
+            if showsRings, !ringSlots.isEmpty {
                 HardwareRingStrip(hardware: model, colors: metricColors, carded: true,
-                                  onSelectSlot: onOpenHardwareDetail)
+                                  onSelectSlot: onOpenHardwareDetail,
+                                  visibleSlots: ringSlots)
             }
-            if showsSummaryRow {
-                CompactSummaryInfoBar(items: items) { metric in
+            if showsSummaryRow, !visibleItems.isEmpty {
+                CompactSummaryInfoBar(items: visibleItems) { metric in
                     switch metric {
                     case .download, .upload: onOpenHardwareDetail?(.network)
                     case .disk: onOpenHardwareDetail?(.disk)

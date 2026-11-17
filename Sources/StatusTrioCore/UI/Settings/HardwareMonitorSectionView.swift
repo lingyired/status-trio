@@ -1,9 +1,9 @@
 import SwiftUI
 
-/// Settings → 监控: whether the module appears, its refresh cadence, and which
-/// of the two blocks (the four rings / the bottom data row) are shown. The
-/// individual-metric toggles are gone because the panel always samples a fixed
-/// set; only the two blocks are user-selectable.
+/// Settings → 监控: whether the module appears, its refresh cadence, and two
+/// display groups — the rings and the bottom bar — each with a master switch and
+/// per-item toggles. Hiding an item collapses it so the remaining items share the
+/// width evenly.
 struct HardwareMonitorSectionView: View {
     @ObservedObject var store: SettingsStore
     @EnvironmentObject private var localization: Localization
@@ -12,7 +12,8 @@ struct HardwareMonitorSectionView: View {
         SettingsPage {
             placementGroup
             refreshGroup
-            displayGroup
+            ringGroup
+            bottomBarGroup
             colorGroup
         }
     }
@@ -143,8 +144,8 @@ struct HardwareMonitorSectionView: View {
         )
     }
 
-    private var displayGroup: some View {
-        SettingsGroup {
+    private var ringGroup: some View {
+        SettingsGroup(localization.string(.hardwareMonitorSettingsGroupRings)) {
             SettingsToggleRow(
                 symbol: "circle.dashed",
                 tint: .blue,
@@ -155,6 +156,24 @@ struct HardwareMonitorSectionView: View {
                     set: { store.showsHardwareRings = $0 }
                 )
             )
+            if store.showsHardwareRings {
+                itemToggleRows {
+                    ForEach(Array(HardwareRingSlot.allCases.enumerated()), id: \.element) { index, slot in
+                        if index > 0 { SettingsDivider() }
+                        perItemToggleRow(
+                            title: localization.string(slot.titleKey),
+                            isOn: store.enabledHardwareRingSlots.contains(slot),
+                            canTurnOff: store.enabledHardwareRingSlots.count > 1,
+                            set: { store.setHardwareRingSlot(slot, enabled: $0) }
+                        )
+                    }
+                }
+            }
+        }
+    }
+
+    private var bottomBarGroup: some View {
+        SettingsGroup(localization.string(.hardwareMonitorSettingsGroupBottomBar)) {
             SettingsToggleRow(
                 symbol: "chart.bar",
                 tint: .green,
@@ -165,6 +184,44 @@ struct HardwareMonitorSectionView: View {
                     set: { store.showsHardwareSummaryRow = $0 }
                 )
             )
+            if store.showsHardwareSummaryRow {
+                itemToggleRows {
+                    ForEach(Array(HardwareSummaryMetric.allCases.enumerated()), id: \.element) { index, metric in
+                        if index > 0 { SettingsDivider() }
+                        perItemToggleRow(
+                            title: localization.string(metric.titleKey),
+                            isOn: store.enabledHardwareSummaryMetrics.contains(metric),
+                            canTurnOff: store.enabledHardwareSummaryMetrics.count > 1,
+                            set: { store.setHardwareSummaryMetric(metric, enabled: $0) }
+                        )
+                    }
+                }
+            }
         }
+    }
+
+    /// The indented list of per-item toggles under an enabled block.
+    private func itemToggleRows<Content: View>(@ViewBuilder _ content: () -> Content) -> some View {
+        VStack(spacing: 0) { content() }
+    }
+
+    /// A compact indented toggle for one item inside an enabled block. Texts sit
+    /// in the same column as the parent rows' titles; the switch sits at the
+    /// trailing edge. The last remaining item of a block cannot be turned off.
+    private func perItemToggleRow(title: String, isOn: Bool, canTurnOff: Bool,
+                                  set: @escaping (Bool) -> Void) -> some View {
+        HStack(spacing: 8) {
+            Text(title)
+                .font(.system(size: 13))
+                .frame(maxWidth: .infinity, alignment: .leading)
+            Toggle("", isOn: Binding(get: { isOn }, set: { set($0) }))
+                .toggleStyle(.switch)
+                .controlSize(.small)
+                .labelsHidden()
+                .disabled(isOn && !canTurnOff)
+        }
+        .padding(.leading, SettingsMetrics.dividerInset)
+        .padding(.trailing, SettingsMetrics.rowPaddingH)
+        .padding(.vertical, 7)
     }
 }
