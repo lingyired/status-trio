@@ -158,6 +158,23 @@ final class HardwareDetailTests: XCTestCase {
         XCTAssertEqual(store.points.first?.values.first ?? nil, 0)
     }
 
+    @MainActor
+    func testHistorySurvivesStaleAndPayloadClear() {
+        let observable = HardwareMonitorObservable(snapshot: .empty)
+        var snapshot = HardwareMetricsSnapshot.empty
+        snapshot.samples[.cpuUsage] = HardwareMetricSample(value: 30, unit: .percent,
+                                                           sampledAt: start, source: .mach, availability: .measured)
+        observable.update(snapshot, now: start)
+        XCTAssertEqual(observable.historyRowsForDetail.count, 1)
+        // Closing the panel / switching pages stales samples and clears payloads,
+        // but must keep the session history for the next detail page.
+        observable.markStale(now: start.addingTimeInterval(1))
+        observable.clearDetailPayloads(except: nil)
+        XCTAssertEqual(observable.historyRowsForDetail.count, 1)
+        observable.clearHistory()
+        XCTAssertTrue(observable.historyRowsForDetail.isEmpty)
+    }
+
     // MARK: - Formatting
 
     func testFormatFallsBackToDash() {

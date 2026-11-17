@@ -36,6 +36,10 @@ struct HardwareDetailHistoryChart: View {
                     HardwareDetailLineShape(points: points, series: index, now: now, yMaximum: maximum)
                         .stroke(colors[index],
                                 style: StrokeStyle(lineWidth: 1.5, lineCap: .round, lineJoin: .round))
+                    // A single background sample drawn as a line would be
+                    // invisible (path has only a move), so show it as a dot.
+                    HardwareDetailChartDot(points: points, series: index, now: now,
+                                           yMaximum: maximum, color: colors[index])
                 }
             }
             .frame(height: 54)
@@ -47,6 +51,43 @@ struct HardwareDetailHistoryChart: View {
             .font(.system(size: 8))
             .foregroundStyle(.tertiary)
         }
+    }
+}
+
+/// Draws one dot when a series has exactly one visible sample.
+struct HardwareDetailChartDot: View {
+    let points: [HardwareDetailHistoryPoint]
+    let series: Int
+    let now: Date
+    let yMaximum: Double
+    let color: Color
+
+    var body: some View {
+        GeometryReader { geometry in
+            let coordinates = visibleCoordinates(size: geometry.size)
+            if coordinates.count == 1, let point = coordinates.first {
+                Circle()
+                    .fill(color)
+                    .frame(width: 3, height: 3)
+                    .position(point)
+            }
+        }
+    }
+
+    private func visibleCoordinates(size: CGSize) -> [CGPoint] {
+        guard size.width > 0, size.height > 0, yMaximum > 0 else { return [] }
+        let window = HardwareDetailHistoryStore.window
+        let start = now.addingTimeInterval(-window)
+        var result: [CGPoint] = []
+        for point in points {
+            guard series < point.values.count, let value = point.values[series], value.isFinite else { continue }
+            let elapsed = point.date.timeIntervalSince(start)
+            guard elapsed >= 0, elapsed <= window else { continue }
+            let x = size.width * CGFloat(elapsed / window)
+            let y = size.height * CGFloat(1 - min(yMaximum, max(0, value)) / yMaximum)
+            result.append(CGPoint(x: x, y: y))
+        }
+        return result
     }
 }
 

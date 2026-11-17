@@ -323,7 +323,9 @@ final class HardwareMetricsService: ObservableObject {
         forcedIDs.removeAll()
         observable.markStale(now: now())
         observable.clearDetailPayloads(except: nil)
-        observable.clearHistory()
+        // History is deliberately NOT cleared here: a background sample collected
+        // while the panel was closed must survive the hand-off to the panel/detail
+        // page. It stays bounded to the last 60 s and is pruned on the next sample.
         // `inFlight` deliberately stays true until the outstanding read exits.
     }
 
