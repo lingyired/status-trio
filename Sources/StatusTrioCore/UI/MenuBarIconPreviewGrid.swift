@@ -10,6 +10,9 @@ struct HardwareRingStrip: View {
     let colors: [HardwareMonitorMetric: IconRGBA]
     /// When true each ring is wrapped in its own glass card (status panel).
     var carded: Bool = false
+    /// Carded mode lifts the top percentage by this many points for optical
+    /// centring inside the arc's top opening; other surfaces keep 0.
+    static let cardedTopTextAdjustment: CGFloat = -3
 
     @State private var disk: DiskCapacitySample = .current()
 
@@ -25,7 +28,8 @@ struct HardwareRingStrip: View {
                     center: spec.center,
                     centerScale: spec.centerScale,
                     color: spec.color,
-                    progress: spec.progress
+                    progress: spec.progress,
+                    topTextVerticalAdjustment: carded ? Self.cardedTopTextAdjustment : 0
                 )
                 .animation(.easeOut(duration: 0.55), value: spec.progress)
                 .frame(maxWidth: .infinity)
@@ -195,13 +199,14 @@ private struct AnimatedRingLayer: View, Animatable {
 
 /// Static text layer over the animated app ring: top percentage, centre value
 /// and bottom label. These never animate with the ring progress.
-private struct AnimatedSceneIcon: View {
+struct AnimatedSceneIcon: View {
     let label: String
     let top: String
     let center: String
     let centerScale: Double
     let color: IconRGBA
     let progress: Double
+    var topTextVerticalAdjustment: CGFloat = 0
 
     var body: some View {
         GeometryReader { proxy in
@@ -213,7 +218,7 @@ private struct AnimatedSceneIcon: View {
                     .font(.system(size: side * 0.166 * 1.1, weight: .regular))
                     .monospacedDigit()
                     .foregroundStyle(.primary)
-                    .offset(y: -side * 0.33)
+                    .offset(y: -side * 0.33 + topTextVerticalAdjustment)
                 centerValueText(side: side)
                 Text(label)
                     .font(.system(size: side * 0.14, weight: .regular))

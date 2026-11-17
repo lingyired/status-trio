@@ -193,6 +193,41 @@ final class HardwareMonitorSummaryLayoutTests: XCTestCase {
         }
     }
 
+
+    private func topTextTopRow(adjustment: CGFloat, side: CGFloat = 80) throws -> (row: Double, scale: Double) {
+        let icon = AnimatedSceneIcon(
+            label: "CPU", top: "61%", center: "61°", centerScale: 1.05,
+            color: IconRGBA(red: 0.2, green: 0.5, blue: 0.9, alpha: 1),
+            progress: 0.6, topTextVerticalAdjustment: adjustment)
+            .frame(width: side, height: side)
+            .background(Color.black)
+            .environment(\.colorScheme, .dark)
+        let host = NSHostingView(rootView: icon)
+        host.frame = NSRect(x: 0, y: 0, width: side, height: side)
+        host.layoutSubtreeIfNeeded()
+        let bitmap = try XCTUnwrap(host.bitmapImageRepForCachingDisplay(in: host.bounds))
+        host.cacheDisplay(in: host.bounds, to: bitmap)
+        let scale = Double(bitmap.pixelsWide) / Double(side)
+        for y in 0..<bitmap.pixelsHigh {
+            for x in 0..<bitmap.pixelsWide {
+                guard let c = bitmap.colorAt(x: x, y: y)?.usingColorSpace(.deviceRGB) else { continue }
+                if c.redComponent > 0.6, c.greenComponent > 0.6, c.blueComponent > 0.6 {
+                    return (Double(y), scale)
+                }
+            }
+        }
+        return (0, scale)
+    }
+
+    func testTopPercentageAdjustmentOnlyInCardedMode() throws {
+        XCTAssertEqual(HardwareRingStrip.cardedTopTextAdjustment, -3)
+        let base = try topTextTopRow(adjustment: 0)
+        let lifted = try topTextTopRow(adjustment: HardwareRingStrip.cardedTopTextAdjustment)
+        let deltaPoints = (base.row - lifted.row) / base.scale
+        XCTAssertGreaterThan(deltaPoints, 2.0, "top percentage should move up ~3 pt")
+        XCTAssertLessThan(deltaPoints, 4.0)
+    }
+
     private func fittingHeight(_ snapshot: HardwareMetricsSnapshot) -> CGFloat {
         let host = NSHostingView(rootView: HardwareMonitorSummaryView(model: HardwareMonitorObservable(snapshot: snapshot))
             .environmentObject(makeLocalization())
