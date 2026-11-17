@@ -16,6 +16,7 @@ actor TopAppsSampler: TopAppsSampling {
     private let gpuQueue = DispatchQueue(label: "StatusTrio.TopApps.GPU", qos: .utility)
     private var networkTracker = NetworkAppUsageTracker()
     private var gpuTracker = GPUAppUsageTracker()
+    private var lastMetric: TopAppMetric?
 
     init(executor: any TopAppCommandExecuting = SystemTopAppCommandExecutor(),
          metadataReader: any ProcessMetadataReading = SystemProcessMetadataReader(),
@@ -31,9 +32,15 @@ actor TopAppsSampler: TopAppsSampling {
     func reset() async {
         networkTracker.reset()
         gpuTracker.reset()
+        lastMetric = nil
     }
 
     func read(_ metric: TopAppMetric, applications: [ProcessApplication]) async -> TopAppsReadResult {
+        if lastMetric != metric {
+            networkTracker.reset()
+            gpuTracker.reset()
+            lastMetric = metric
+        }
         switch metric {
         case .cpu:
             return await aggregate(.cpu, result: cpuReader.read(), applications: applications)

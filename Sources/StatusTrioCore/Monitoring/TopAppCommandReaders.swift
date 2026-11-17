@@ -165,16 +165,14 @@ enum TopAppTopParser {
         guard index < characters.count, characters[index].isWhitespace else { return nil }
         while index < characters.count, characters[index].isWhitespace { index += 1 }
         let commandStart = index
-        var lastTokenStart: Int? = nil
         var scan = characters.count - 1
         while scan >= commandStart, characters[scan].isWhitespace { scan -= 1 }
         guard scan >= commandStart else { return nil }
-        var tokenEnd = scan + 1
+        let tokenEnd = scan + 1
         var tokenStart = scan
         while tokenStart >= commandStart, !characters[tokenStart].isWhitespace { tokenStart -= 1 }
         let memoryToken = String(characters[(tokenStart + 1)..<tokenEnd])
         guard let memory = memoryBytes(memoryToken) else { return nil }
-        lastTokenStart = tokenStart + 1
         while tokenStart >= commandStart, characters[tokenStart].isWhitespace { tokenStart -= 1 }
         guard tokenStart >= commandStart else { return nil }
         let command = String(characters[commandStart...tokenStart]).trimmingCharacters(in: .whitespaces)
