@@ -461,6 +461,26 @@ final class PanelLevelSliderView: NSSlider {
         min(1, max(0, doubleValue))
     }
 
+    /// Maps a view-space x to a 0...1 value using the same thumb travel as the
+    /// drawing, so a track click lands the thumb where the pointer did.
+    func value(forPointX x: CGFloat) -> Double {
+        let width = effectiveTrackWidth
+        let inset = PanelLevelSliderMetrics.horizontalInset
+        let usable = width - inset * 2
+        guard usable > 0 else { return clampedDoubleValue }
+        let clampedX = min(width - inset, max(inset, x))
+        return Double((clampedX - inset) / usable)
+    }
+
+    /// Whether a click started on the knob itself (a drag) rather than on the
+    /// empty track (a jump that should glide).
+    private func isPointOnThumb(_ point: NSPoint) -> Bool {
+        let center = knobCenter(in: bounds)
+        let dx = point.x - center.x
+        let dy = point.y - center.y
+        return (dx * dx + dy * dy).squareRoot() <= PanelLevelSliderMetrics.thumbRadius
+    }
+
     func barRect(in bounds: NSRect) -> NSRect {
         // The capsule spans the full control width so its leading edge lines up
         // with the row's other components; the thumb still travels between the
@@ -564,7 +584,10 @@ final class PanelLevelSliderView: NSSlider {
 
     private func startLabelAnimationTimerIfNeeded() {
         guard labelAnimationTimer == nil else { return }
-        let timer = Timer(timeInterval: 1.0 / 60.0, repeats: true) { [weak self] timer in
+        let timer = Timer(
+            timeInterval: Self.animationFrameInterval,
+            repeats: true
+        ) { [weak self] timer in
             guard let self else { timer.invalidate(); return }
             self.needsDisplay = true
             if let animation = self.labelAnimation {
@@ -576,6 +599,7 @@ final class PanelLevelSliderView: NSSlider {
                 }
             }
         }
+        timer.tolerance = 0
         RunLoop.main.add(timer, forMode: .common)
         labelAnimationTimer = timer
     }
@@ -617,6 +641,31 @@ final class PanelLevelSliderView: NSSlider {
         needsDisplay = true
     }
 
+    /// Glides the drawn thumb from an explicit start to the target. Used for a
+    /// track click: the model already holds the target, but easing the pixels
+    /// across makes the change read as motion instead of a snap. Drags never
+    /// use this — the pointer owns the position while tracking.
+    func animateValue(from start: Double, to target: Double) {
+        guard start.isFinite, target.isFinite else { return }
+        let from = min(1, max(0, start))
+        let to = min(1, max(0, target))
+        guard abs(to - from) > 0.000_1 else {
+            doubleValue = to
+            refreshLabel(animated: true)
+            needsDisplay = true
+            return
+        }
+        valueAnimation = ValueAnimation(
+            fromValue: from,
+            toValue: to,
+            startTime: ProcessInfo.processInfo.systemUptime
+        )
+        doubleValue = from
+        startValueAnimationTimerIfNeeded()
+        refreshLabel(animated: true)
+        needsDisplay = true
+    }
+
     /// Stops any in-flight glide and leaves the native value where it is. Used
     /// when a pointer/keyboard gesture takes over the control.
     func cancelValueAnimation() {
@@ -631,12 +680,21 @@ final class PanelLevelSliderView: NSSlider {
         return animation.fromValue + (animation.toValue - animation.fromValue) * Self.easeOut(progress)
     }
 
+    /// Drives both the value and label animations. 120 Hz tracks ProMotion
+    /// displays and halves the per-frame step on 60 Hz panels; zero tolerance
+    /// stops the run loop from coalescing ticks into a choppier cadence.
+    private static let animationFrameInterval: TimeInterval = 1.0 / 120.0
+
     private func startValueAnimationTimerIfNeeded() {
         guard valueAnimationTimer == nil else { return }
-        let timer = Timer(timeInterval: 1.0 / 60.0, repeats: true) { [weak self] timer in
+        let timer = Timer(
+            timeInterval: Self.animationFrameInterval,
+            repeats: true
+        ) { [weak self] timer in
             guard let self else { timer.invalidate(); return }
             self.stepValueAnimation()
         }
+        timer.tolerance = 0
         RunLoop.main.add(timer, forMode: .common)
         valueAnimationTimer = timer
     }
@@ -973,10 +1031,35 @@ final class PanelLevelSliderView: NSSlider {
     override func mouseDown(with event: NSEvent) {
         guard !isGestureActive else { return }
         cancelValueAnimation()
+        let point = convert(event.locationInWindow, from: nil)
         isGestureActive = true
         startGestureTracking()
         onEditingChanged?(true)
-        super.mouseDown(with: event)
+        if isPointOnThumb(point) {
+            // Pressing the thumb is a drag: the native tracker keeps the value
+            // under the pointer, so there is no jump to animate.
+            super.mouseDown(with: event)
+            finishActiveGesture()
+            return
+        }
+        // Track click: take over the tracking so the model jumps to the clicked
+        // value while the drawn thumb eases across, instead of the native snap.
+        _ = window?.makeFirstResponder(self)
+        let startValue = clampedDoubleValue
+        let clickedValue = value(forPointX: point.x)
+        onValueChanged?(clickedValue)
+        animateValue(from: startValue, to: clickedValue)
+        var didDrag = false
+        while let next = window?.nextEvent(matching: [.leftMouseDragged, .leftMouseUp]) {
+            if next.type == .leftMouseUp { break }
+            if !didDrag {
+                didDrag = true
+                cancelValueAnimation()
+            }
+            doubleValue = value(forPointX: convert(next.locationInWindow, from: nil).x)
+            valueDidChange(nil)
+            needsDisplay = true
+        }
         finishActiveGesture()
     }
 
