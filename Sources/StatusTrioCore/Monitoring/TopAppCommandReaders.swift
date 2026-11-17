@@ -187,6 +187,7 @@ enum TopAppTopParser {
         let suffix = text.last?.uppercased() ?? ""
         let multiplier: Double
         switch suffix {
+        case "B": multiplier = 1
         case "K": multiplier = 1024
         case "M": multiplier = 1024 * 1024
         case "G": multiplier = 1024 * 1024 * 1024
@@ -194,7 +195,7 @@ enum TopAppTopParser {
         case "P": multiplier = 1024 * 1024 * 1024 * 1024 * 1024
         default: multiplier = 1
         }
-        if multiplier > 1 { text.removeLast() }
+        if ["B", "K", "M", "G", "T", "P"].contains(suffix) { text.removeLast() }
         guard let value = Double(text), value.isFinite, value >= 0 else { return nil }
         return value * multiplier
     }
