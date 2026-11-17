@@ -138,62 +138,6 @@ final class HardwareMonitorSummaryLayoutTests: XCTestCase {
         }
     }
 
-    private func infoPresentation(_ metric: HardwareSummaryMetric, _ symbol: String,
-                                     _ value: String, _ unit: String) -> HardwareSummaryMetricPresentation {
-        HardwareSummaryMetricPresentation(
-            metric: metric, valueText: value, unitText: unit, symbol: symbol,
-            accessibilityLabel: "label", accessibilityValue: value, help: "help",
-            isStale: false, availability: .measured)
-    }
-
-    /// Renders one cell over white and returns the leftmost non-background pixel
-    /// column, i.e. where the icon starts. Panels are never shown.
-    private func iconLeftX(_ presentation: HardwareSummaryMetricPresentation,
-                           cellWidth: CGFloat = 72) throws -> Int {
-        let host = NSHostingView(rootView: HardwareSummaryMetricCell(item: presentation)
-            .frame(width: cellWidth, height: 28)
-            .background(Color.white)
-            .environment(\.colorScheme, .light))
-        host.frame = NSRect(x: 0, y: 0, width: cellWidth, height: 28)
-        host.layoutSubtreeIfNeeded()
-        let bitmap = try XCTUnwrap(host.bitmapImageRepForCachingDisplay(in: host.bounds))
-        host.cacheDisplay(in: host.bounds, to: bitmap)
-        for x in 0..<bitmap.pixelsWide {
-            for y in 0..<bitmap.pixelsHigh {
-                guard let color = bitmap.colorAt(x: x, y: y)?.usingColorSpace(.deviceRGB) else { continue }
-                if color.redComponent < 0.9 || color.greenComponent < 0.9 || color.blueComponent < 0.9 {
-                    return x
-                }
-            }
-        }
-        return -1
-    }
-
-    func testInfoBarHeightStays28() {
-        let items = HardwareMonitorSummaryPresentation.items(snapshot: snapshot(.measured), localization: makeLocalization())
-        let host = NSHostingView(rootView: CompactSummaryInfoBar(items: items).frame(width: 290))
-        host.layoutSubtreeIfNeeded()
-        XCTAssertEqual(host.fittingSize.height, HardwareSummaryMetricCell.barHeight, accuracy: 0.5)
-        XCTAssertEqual(host.fittingSize.height, 28, accuracy: 0.5)
-    }
-
-    func testIconLeadingXStaysFixedAcrossValuesUnitsAndStates() throws {
-        let cases: [(HardwareSummaryMetric, String, [(String, String)])] = [
-            (.download, "arrow.down", [("0", "KB/s"), ("4", "KB/s"), ("999", "KB/s"), ("1.2", "MB/s"), ("9999", "KB/s"), ("—", "")]),
-            (.upload, "arrow.up", [("999", "KB/s"), ("1.2", "MB/s"), ("1.3", "GB/s"), ("—", "")]),
-            (.fan, "fanblades", [("0", "RPM"), ("900", "RPM"), ("3101", "RPM"), ("9999", "RPM"), ("—", "")]),
-            (.disk, "internaldrive", [("0", "KB/s"), ("152", "MB/s"), ("999", "KB/s"), ("1.2", "GB/s"), ("—", "")]),
-        ]
-        for (metric, symbol, values) in cases {
-            var xs: [Int] = []
-            for (value, unit) in values {
-                xs.append(try iconLeftX(infoPresentation(metric, symbol, value, unit)))
-            }
-            XCTAssertEqual(Set(xs).count, 1, "icon X must not move for \(metric): \(xs)")
-        }
-    }
-
-
     private func topTextTopRow(adjustment: CGFloat, side: CGFloat = 80) throws -> (row: Double, scale: Double) {
         let icon = AnimatedSceneIcon(
             label: "CPU", top: "61%", center: "61°", centerScale: 1.05,

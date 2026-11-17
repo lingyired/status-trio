@@ -41,7 +41,12 @@ struct CompactSummaryInfoBar: View {
 
     var body: some View {
         HStack(spacing: 0) {
-            ForEach(items, id: \.metric) { item in
+            ForEach(Array(items.enumerated()), id: \.element.metric) { index, item in
+                if index > 0 {
+                    Rectangle()
+                        .fill(Color.primary.opacity(0.06))
+                        .frame(width: 1, height: 14)
+                }
                 HardwareSummaryMetricCell(item: item)
                     .frame(maxWidth: .infinity)
             }
@@ -58,19 +63,14 @@ struct CompactSummaryInfoBar: View {
 struct HardwareSummaryMetricCell: View {
     let item: HardwareSummaryMetricPresentation
 
-    static let iconWidth: CGFloat = 12
-    static let valueWidth: CGFloat = 30
-    static let unitWidth: CGFloat = 20
-    static let slotSpacing: CGFloat = 2
     static let barHeight: CGFloat = 28
     static let contentHeight: CGFloat = 26
 
     var body: some View {
-        HStack(spacing: Self.slotSpacing) {
+        HStack(spacing: 3) {
             Image(systemName: item.symbol)
                 .font(.system(size: 9, weight: .medium))
                 .foregroundStyle(.secondary)
-                .frame(width: Self.iconWidth, height: Self.iconWidth)
                 .accessibilityHidden(true)
             Text(item.valueText)
                 .font(.system(size: 12, weight: .regular, design: .monospaced))
@@ -78,13 +78,12 @@ struct HardwareSummaryMetricCell: View {
                 .opacity(item.isStale ? 0.45 : 1)
                 .lineLimit(1)
                 .minimumScaleFactor(0.6)
-                .frame(width: Self.valueWidth, alignment: .center)
-            Text(item.unitText)
-                .font(.system(size: 9, design: .monospaced))
-                .foregroundStyle(.secondary)
-                .lineLimit(1)
-                .minimumScaleFactor(0.7)
-                .frame(width: Self.unitWidth, alignment: .center)
+            if !item.unitText.isEmpty {
+                Text(item.unitText)
+                    .font(.system(size: 9, design: .monospaced))
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+            }
         }
         .frame(maxWidth: .infinity)
         .frame(height: Self.contentHeight)
