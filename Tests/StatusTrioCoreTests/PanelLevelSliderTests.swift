@@ -254,6 +254,27 @@ final class PanelLevelSliderTests: XCTestCase {
         )
     }
 
+    func testDetachedSliderSnapsAndSettlingWindowSnapsThenAnimates() {
+        let slider = PanelLevelSliderView()
+        XCTAssertFalse(
+            slider.shouldAnimateProgrammaticChange(
+                at: ProcessInfo.processInfo.systemUptime
+            ),
+            "a detached slider must never animate"
+        )
+        let window = NSWindow(
+            contentRect: NSRect(x: 0, y: 0, width: controlWidth, height: 30),
+            styleMask: [], backing: .buffered, defer: false
+        )
+        window.contentView?.addSubview(slider)
+        let now = ProcessInfo.processInfo.systemUptime
+        slider.animateProgrammaticChangesAfter = now + 0.35
+        XCTAssertFalse(slider.shouldAnimateProgrammaticChange(at: now))
+        XCTAssertTrue(slider.shouldAnimateProgrammaticChange(at: now + 0.5))
+        slider.setProgrammaticValue(0.7, animated: false)
+        XCTAssertEqual(slider.doubleValue, 0.7, accuracy: 0.001)
+    }
+
     func testClickGlideStartsFromThePreviousValue() {
         let slider = PanelLevelSliderView()
         slider.frame = NSRect(x: 0, y: 0, width: controlWidth, height: 30)

@@ -275,10 +275,13 @@ private extension PanelLevelSlider {
             // the gesture; a late system echo outside a drag applies normally
             // (the panel-level state owns echo suppression).
             if !nsView.isTracking {
-                // Glide to the new target instead of snapping, so a stream of
-                // discrete wheel notches (or a system echo) reads as continuous
-                // motion rather than a stutter.
-                nsView.animateValue(to: clamped(currentValue))
+                // A rebuilt row gets a burst of initial values; snap them until
+                // the row settles. Later programmatic changes (wheel notches,
+                // system echoes) glide so they read as continuous motion.
+                let animated = nsView.shouldAnimateProgrammaticChange(
+                    at: ProcessInfo.processInfo.systemUptime
+                )
+                nsView.setProgrammaticValue(clamped(currentValue), animated: animated)
             }
             nsView.refreshLabel(animated: true)
         }
@@ -347,6 +350,17 @@ final class PanelLevelSliderView: NSSlider {
 
     private var valueAnimation: ValueAnimation?
     private var valueAnimationTimer: Timer?
+    /// Programmatic value changes snap until this uptime, so the burst of
+    /// initial values a rebuilt row receives (draft default 0, then the real
+    /// state) lands without gliding from 0. Set when the view enters a window.
+    var animateProgrammaticChangesAfter: TimeInterval = .greatestFiniteMagnitude
+
+    func shouldAnimateProgrammaticChange(at time: TimeInterval) -> Bool {
+        // Never glide while the view is detached or still settling: a row that
+        // is being rebuilt receives its real value before it enters the window.
+        guard window != nil else { return false }
+        return time >= animateProgrammaticChangesAfter
+    }
 
     /// Marks tracking session boundaries so `mouseDown`/`mouseUp` around a
     /// super call always pair, including for keyboard navigation.
@@ -424,7 +438,14 @@ final class PanelLevelSliderView: NSSlider {
 
     override func viewWillMove(toWindow newWindow: NSWindow?) {
         super.viewWillMove(toWindow: newWindow)
+        if newWindow != nil {
+            // Rebuilt rows receive their initial values right after this; snap
+            // them instead of gliding from the local default.
+            animateProgrammaticChangesAfter =
+                ProcessInfo.processInfo.systemUptime + 0.35
+        }
         if newWindow == nil {
+            animateProgrammaticChangesAfter = .greatestFiniteMagnitude
             stopLabelAnimationTimer()
             stopValueAnimationTimer()
             // If the control is torn down mid-gesture (row rebuilt, panel
@@ -456,6 +477,7 @@ final class PanelLevelSliderView: NSSlider {
     var clampedDoubleValue: Double {
         min(1, max(0, doubleValue))
     }
+
 
     /// Maps a view-space x to a 0...1 value using the same thumb travel as the
     /// drawing, so a track click lands the thumb where the pointer did.
@@ -606,6 +628,22 @@ final class PanelLevelSliderView: NSSlider {
     }
 
     // MARK: Value animation.
+
+    /// Applies a programmatic value. `animated == false` snaps: used for the
+    /// first value a freshly created view receives, so returning from a detail
+    /// page cannot glide from 0 to the restored level.
+    func setProgrammaticValue(_ target: Double, animated: Bool) {
+        guard target.isFinite else { return }
+        if animated {
+            animateValue(to: target)
+            return
+        }
+        valueAnimation = nil
+        stopValueAnimationTimer()
+        doubleValue = min(1, max(0, target))
+        refreshLabel(animated: false)
+        needsDisplay = true
+    }
 
     /// Eases the drawn position toward a programmatic target. Drags never use
     /// this — the pointer owns the position while `isTracking` — so only wheel
