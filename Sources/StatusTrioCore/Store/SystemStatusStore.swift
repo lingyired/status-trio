@@ -151,6 +151,8 @@ final class SystemStatusStore: ObservableObject {
     /// temperature, fan RPM). Consumers register a demand; with no consumer it
     /// does no work at all.
     let hardwareMetrics: HardwareMetricsService
+    /// The visible hardware detail page's on-demand top-application list.
+    let topApps: TopAppsService
     let wifiNetworks: WiFiNetworkController
     /// The wired link's address configuration. Read while the popover is open on
     /// an Ethernet connection and dropped when either stops being true, so the
@@ -350,6 +352,7 @@ final class SystemStatusStore: ObservableObject {
         batteryDetails: BatteryDetailsController = BatteryDetailsController(),
         powerSampling: PowerSamplingService = PowerSamplingService(),
         hardwareMetrics: HardwareMetricsService = HardwareMetricsService(),
+        topApps: TopAppsService = TopAppsService(),
         wifiNetworks: WiFiNetworkController = WiFiNetworkController(),
         primaryLink: PrimaryLinkController = PrimaryLinkController(),
         localIP: LocalIPController = LocalIPController(),
@@ -385,6 +388,7 @@ final class SystemStatusStore: ObservableObject {
         self.batteryDetails = batteryDetails
         self.powerSampling = powerSampling
         self.hardwareMetrics = hardwareMetrics
+        self.topApps = topApps
         batteryDetails.powerSampling = powerSampling
         self.wifiNetworks = wifiNetworks
         self.primaryLink = primaryLink
@@ -467,6 +471,7 @@ final class SystemStatusStore: ObservableObject {
                 // Rebuild the CPU tick baseline and refresh hardware metrics once
                 // a card consumer exists again.
                 self.hardwareMetrics.wake()
+                self.topApps.wake()
                 // Unlike the icon fallback poll, an energy scan must stay
                 // paused through a dark wake while the display is still off.
                 self.isApplicationEnergySystemAsleep = false
@@ -499,6 +504,7 @@ final class SystemStatusStore: ObservableObject {
                 // Stop hardware sampling and discard any in-flight read while
                 // the machine is asleep.
                 self?.hardwareMetrics.sleep()
+                self?.topApps.sleep()
             }
         }
 
@@ -735,6 +741,7 @@ final class SystemStatusStore: ObservableObject {
         highPowerMode.onSuccessfulWrite = nil
 
         powerSampling.stopAll()
+        topApps.stop()
         batteryDetails.deactivate()
         mobileBattery.stop()
         lowPowerMode.stop()

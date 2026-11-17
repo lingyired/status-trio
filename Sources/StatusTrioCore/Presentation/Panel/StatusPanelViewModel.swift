@@ -168,6 +168,7 @@ final class StatusPanelViewModel: ObservableObject {
     /// panel's @Published snapshot: a 2-second tick must not re-render other
     /// sections or the icon.
     var hardwareMonitor: HardwareMonitorObservable { store.hardwareMetrics.observable }
+    var topApps: TopAppsObservable { store.topApps.observable }
     /// Card tiles in the user's chosen order, filtered to enabled metrics.
     @Published private(set) var hardwareMonitorMetrics: [HardwareMonitorMetric]
     /// Shared per-metric colours shown on the card bars (same field as the ring).
@@ -566,6 +567,7 @@ final class StatusPanelViewModel: ObservableObject {
         store.powerSampling.end(.panel)
         store.powerSampling.end(.powerInfoBar)
         store.hardwareMetrics.end(.panel)
+        store.topApps.setDemand(nil)
         cancellables.removeAll()
     }
 
@@ -1012,6 +1014,7 @@ final class StatusPanelViewModel: ObservableObject {
         // Only the visible detail page pays for its structured payload and the
         // per-page expensive work (frequency for CPU, session totals for network).
         store.hardwareMetrics.setDetailDemand(detailVisible ? detailKind : nil)
+        store.topApps.setDemand(detailVisible ? detailKind?.topAppMetric : nil)
         if summaryVisible {
             // The compact summary is fixed: four rings plus download/upload,
             // average fan and disk read/write. It no longer follows the card

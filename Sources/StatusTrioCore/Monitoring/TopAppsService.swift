@@ -179,3 +179,16 @@ final class TopAppsService {
         Task { await sampler.reset() }
     }
 }
+
+extension HardwareDetailKind {
+    /// The detail page's matching ranked metric; disk has no ranked list.
+    var topAppMetric: TopAppMetric? {
+        switch self {
+        case .cpu: return .cpu
+        case .gpu: return .gpu
+        case .memory: return .memory
+        case .network: return .network
+        case .disk: return nil
+        }
+    }
+}
