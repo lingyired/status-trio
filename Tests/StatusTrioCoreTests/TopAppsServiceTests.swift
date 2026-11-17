@@ -40,6 +40,15 @@ private actor FakeTopAppsSampler: TopAppsSampling {
     func lastMetric() -> TopAppMetric? { reads.last }
 }
 
+private actor SleepRecorder {
+    private(set) var durations: [Duration] = []
+
+    var count: Int { durations.count }
+    var last: Duration? { durations.last }
+
+    func record(_ duration: Duration) { durations.append(duration) }
+}
+
 @MainActor
 struct TopAppsServiceTests {
     private let app = ProcessApplication(pid: 1, path: "/Applications/A.app", bundleID: "a", name: "A")
@@ -139,6 +148,46 @@ struct TopAppsServiceTests {
             try await Task.sleep(for: .milliseconds(5))
         }
         #expect(await sampler.resetCount == 2)
+    }
+
+    @Test func testMemoryPollsLessOftenThanOtherMetrics() async throws {
+        let sampler = FakeTopAppsSampler()
+        let recorder = SleepRecorder()
+        let service = TopAppsService(sampler: sampler,
+                                     applications: { [] },
+                                     automaticScheduling: true,
+                                     sleepFor: { duration in
+                                         await recorder.record(duration)
+                                         try await Task.sleep(for: .seconds(60))
+                                     },
+                                     clock: { 0 })
+        service.setDemand(.memory)
+        for _ in 0..<100 {
+            if await recorder.count > 0 { break }
+            try await Task.sleep(for: .milliseconds(5))
+        }
+        let memorySleep = await recorder.last
+        #expect(memorySleep?.components.seconds == 3)
+        service.stop()
+
+        let cpuSampler = FakeTopAppsSampler()
+        let cpuRecorder = SleepRecorder()
+        let cpuService = TopAppsService(sampler: cpuSampler,
+                                        applications: { [] },
+                                        automaticScheduling: true,
+                                        sleepFor: { duration in
+                                            await cpuRecorder.record(duration)
+                                            try await Task.sleep(for: .seconds(60))
+                                        },
+                                        clock: { 0 })
+        cpuService.setDemand(.cpu)
+        for _ in 0..<100 {
+            if await cpuRecorder.count > 0 { break }
+            try await Task.sleep(for: .milliseconds(5))
+        }
+        let cpuSleep = await cpuRecorder.last
+        #expect(cpuSleep?.components.seconds == 1)
+        cpuService.stop()
     }
 
     @Test func testFailureDoesNotKeepNumbersAsLive() async {

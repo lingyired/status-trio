@@ -24,6 +24,8 @@ final class TopAppsService {
     private let automaticScheduling: Bool
     private let sleepFor: @Sendable (Duration) async throws -> Void
     private let clock: @Sendable () -> UInt64
+    /// `top` costs far more than the syscall readers, so memory polls less often.
+    private let intervalSeconds: @Sendable (TopAppMetric) -> Double
 
     private(set) var demand: TopAppMetric?
     private(set) var isAsleep = false
@@ -36,12 +38,14 @@ final class TopAppsService {
          applications: @escaping @MainActor () -> [ProcessApplication] = TopAppsService.runningApplications,
          automaticScheduling: Bool = true,
          sleepFor: @escaping @Sendable (Duration) async throws -> Void = { try await Task.sleep(for: $0) },
-         clock: @escaping @Sendable () -> UInt64 = { clock_gettime_nsec_np(CLOCK_UPTIME_RAW) }) {
+         clock: @escaping @Sendable () -> UInt64 = { clock_gettime_nsec_np(CLOCK_UPTIME_RAW) },
+         intervalSeconds: @escaping @Sendable (TopAppMetric) -> Double = { $0 == .memory ? 3 : 1 }) {
         self.sampler = sampler
         self.applications = applications
         self.automaticScheduling = automaticScheduling
         self.sleepFor = sleepFor
         self.clock = clock
+        self.intervalSeconds = intervalSeconds
     }
 
     deinit { loopTask?.cancel() }
@@ -130,13 +134,15 @@ final class TopAppsService {
             while !Task.isCancelled {
                 guard let self else { return }
                 let started = self.clock()
+                let metric = self.demand ?? .cpu
                 await self.sampleOnce()
                 guard !Task.isCancelled else { return }
                 let now = self.clock()
                 let elapsed = now >= started ? now - started : 0
-                let remaining = elapsed < 1_000_000_000 ? 1_000_000_000 - elapsed : 0
+                let interval = max(0.1, self.intervalSeconds(metric))
+                let remaining = interval - Double(elapsed) / 1_000_000_000
                 if remaining > 0 {
-                    try? await self.sleepFor(.nanoseconds(remaining))
+                    try? await self.sleepFor(.seconds(remaining))
                 } else {
                     await Task.yield()
                 }
