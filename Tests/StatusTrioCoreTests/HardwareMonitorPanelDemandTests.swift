@@ -143,6 +143,51 @@ final class HardwareMonitorPanelDemandTests: XCTestCase {
                        "the compact summary samples a fixed set regardless of card metrics")
     }
 
+    func testEachDetailRouteRequestsOnlyItsMetricsAndPayload() {
+        let fixture = makeFixture()
+        let panel = startVisible(fixture)
+        defer {
+            panel.showSummaryPage()
+            panel.stop()
+            fixture.store.setPopoverVisible(false)
+            fixture.store.stop()
+        }
+        let service = fixture.store.hardwareMetrics
+        XCTAssertEqual(service.demands[.panel], HardwareMetricsService.hardwareSummaryMetricIDs)
+        XCTAssertNil(service.detailKind)
+
+        for kind in HardwareDetailKind.allCases {
+            panel.showHardwareDetail(kind)
+            XCTAssertEqual(panel.route, .hardwareDetail(kind))
+            XCTAssertEqual(service.demands[.panel], HardwareMetricsService.detailMetricIDs(for: kind))
+            XCTAssertEqual(service.detailKind, kind)
+        }
+
+        panel.showSummaryPage()
+        XCTAssertEqual(panel.route, .summary)
+        XCTAssertEqual(service.demands[.panel], HardwareMetricsService.hardwareSummaryMetricIDs)
+        XCTAssertNil(service.detailKind)
+    }
+
+    func testClosingPanelOnDetailEndsDemandAndDetailPayload() {
+        let fixture = makeFixture()
+        let panel = startVisible(fixture)
+        defer {
+            panel.stop()
+            fixture.store.setPopoverVisible(false)
+            fixture.store.stop()
+        }
+        let service = fixture.store.hardwareMetrics
+        panel.showHardwareDetail(.network)
+        XCTAssertEqual(service.demands[.panel], HardwareMetricsService.detailMetricIDs(for: .network))
+        XCTAssertEqual(service.detailKind, .network)
+
+        fixture.store.setPopoverVisible(false)
+        XCTAssertNil(service.demands[.panel])
+        XCTAssertNil(service.detailKind)
+        XCTAssertFalse(service.isRunning)
+    }
+
     func testDefaultSettingsKeepCardOffAndSampleNothing() {
         let fixture = makeFixture()
         // No explicit enable: a fresh install must not sample hardware at all.

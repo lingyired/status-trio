@@ -127,6 +127,10 @@ struct StatusPopoverView: View {
                     onSelect: { panel.actions.selectInputSource($0) },
                     onOpenKeyboardSettings: openKeyboardSettings
                 )
+            case let .hardwareDetail(kind):
+                HardwareDetailView(kind: kind,
+                                   hardware: panel.hardwareMonitor,
+                                   onBack: { panel.showSummaryPage() })
             }
         }
         .padding(.top, 14)
@@ -306,7 +310,8 @@ struct StatusPopoverView: View {
             HardwareMonitorSummaryView(model: panel.hardwareMonitor,
                                        metricColors: panel.hardwareMonitorMetricColors,
                                        showsRings: panel.showsHardwareRings,
-                                       showsSummaryRow: panel.showsHardwareSummaryRow)
+                                       showsSummaryRow: panel.showsHardwareSummaryRow,
+                                       onOpenHardwareDetail: { panel.showHardwareDetail($0) })
         }
     }
 

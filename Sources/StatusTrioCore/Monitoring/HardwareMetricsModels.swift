@@ -139,12 +139,34 @@ struct HardwareMetricSample: Equatable, Sendable {
     }
 }
 
+/// Structured CPU detail for the dedicated CPU page. Carried alongside the
+/// plain `cpuUsage` metric so the page subscribes to one leaf snapshot without
+/// widening the panel's `@Published` surface.
+struct CPUDetailReading: Equatable, Sendable {
+    var usage: Double
+    var breakdown: CPUTimeBreakdown
+    var perCoreUsage: [Double]
+    var topology: CPUCoreTopology?
+    var groupUsage: CPUCoreGroupUsage?
+    /// Estimated cluster frequency; `nil` when IOReport/tables are unavailable.
+    var frequency: CPUFrequencyReading?
+    var sampledAt: Date
+
+    var coreCount: Int { perCoreUsage.count }
+}
+
 /// One refresh's aggregate snapshot. UI layers observe this, never a broad
 /// panel snapshot, so a metric tick cannot re-render unrelated sections.
 struct HardwareMetricsSnapshot: Equatable, Sendable {
     var samples: [HardwareMetricID: HardwareMetricSample] = [:]
     /// Fan controller count when known; `nil` until read, `0` on fanless Macs.
     var fanCount: Int?
+    /// Structured per-page detail, populated only while that detail page is open.
+    var cpuDetail: CPUDetailReading?
+    var gpuDetail: GPUDetailReading?
+    var memoryDetail: MemoryDetailReading?
+    var networkDetail: NetworkDetailReading?
+    var diskDetail: DiskDetailReading?
 
     static let empty = Self()
 

@@ -212,6 +212,12 @@ final class StatusPanelViewModel: ObservableObject {
 
     var isShowingDetailPage: Bool { route != .summary }
 
+    /// The open system-monitor detail page, if the route is one.
+    private var activeDetailKind: HardwareDetailKind? {
+        if case let .hardwareDetail(kind) = route { return kind }
+        return nil
+    }
+
     init(
         store: SystemStatusStore,
         settings: SettingsStore,
@@ -584,6 +590,16 @@ final class StatusPanelViewModel: ObservableObject {
         transition(to: .inputSource)
     }
 
+    /// Opens one unified system-monitor detail page. Requires the hardware
+    /// monitor section to be visible (same gate as the summary).
+    func showHardwareDetail(_ kind: HardwareDetailKind) {
+        guard settings.visiblePopupSections.contains(.hardwareMonitor) else {
+            showSummaryPage()
+            return
+        }
+        transition(to: .hardwareDetail(kind))
+    }
+
     func showSummaryPage() {
         closeCurrentPage()
     }
@@ -626,7 +642,7 @@ final class StatusPanelViewModel: ObservableObject {
         case .ethernet:
             actions.wiredDetailsOpened()
             refreshWiredDetailsAndNetwork()
-        case .inputSource:
+        case .inputSource, .hardwareDetail:
             break
         }
     }
@@ -961,23 +977,29 @@ final class StatusPanelViewModel: ObservableObject {
         // `@Published` publishes in willSet, so a subscriber must pass the new
         // value in rather than read `store.isPopoverVisible` (still the old one).
         let sectionOn = visiblePopupSections.contains(.hardwareMonitor)
-        let visible = isStarted
-            && (popoverVisible ?? store.isPopoverVisible)
-            && route == .summary
-            && sectionOn
+        let panelOpen = isStarted && (popoverVisible ?? store.isPopoverVisible) && sectionOn
+        let detailKind = activeDetailKind
+        let summaryVisible = panelOpen && route == .summary
+        let detailVisible = panelOpen && detailKind != nil
         // @Published fires in willSet, so a settings subscriber must pass the new
         // value in rather than read the not-yet-committed stored property.
         let background = backgroundSeconds ?? settings.hardwareBackgroundRefreshSeconds
         store.hardwareMetrics.backgroundIntervalSeconds = TimeInterval(background)
         let panelRefresh = panelSeconds ?? settings.hardwarePanelRefreshSeconds
         store.hardwareMetrics.panelIntervalSeconds = TimeInterval(panelRefresh)
-        if visible {
+        // Only the visible detail page pays for its structured payload and the
+        // per-page expensive work (frequency for CPU, session totals for network).
+        store.hardwareMetrics.setDetailDemand(detailVisible ? detailKind : nil)
+        if summaryVisible {
             // The compact summary is fixed: four rings plus download/upload,
             // average fan and disk read/write. It no longer follows the card
             // metric order, so every group has data even when the user's card
             // selection changed.
             store.hardwareMetrics.end(.background)
             store.hardwareMetrics.begin(.panel, metrics: HardwareMetricsService.hardwareSummaryMetricIDs)
+        } else if let detailKind, detailVisible {
+            store.hardwareMetrics.end(.background)
+            store.hardwareMetrics.begin(.panel, metrics: HardwareMetricsService.detailMetricIDs(for: detailKind))
         } else {
             store.hardwareMetrics.end(.panel)
             // Optional low-frequency background sampling keeps the summary warm
@@ -1328,7 +1350,7 @@ final class StatusPanelViewModel: ObservableObject {
             actions.wifiDetailsClosed()
         case .ethernet:
             actions.wiredDetailsClosed()
-        case .inputSource:
+        case .inputSource, .hardwareDetail:
             break
         case .summary:
             return
@@ -1351,6 +1373,8 @@ final class StatusPanelViewModel: ObservableObject {
                 && store.popupSnapshot.connection == .ethernet
         case .inputSource:
             return sections.contains(.inputSource)
+        case .hardwareDetail:
+            return sections.contains(.hardwareMonitor)
         }
     }
 

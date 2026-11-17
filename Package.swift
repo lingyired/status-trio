@@ -41,7 +41,9 @@ let package = Package(
                 .linkedFramework("Network"),
                 .linkedFramework("Security"),
                 .linkedFramework("ServiceManagement"),
-                .linkedFramework("SystemConfiguration")
+                .linkedFramework("SystemConfiguration"),
+                // IOReport (private system stub) for estimated CPU cluster frequency.
+                .linkedLibrary("IOReport")
             ]
         ),
         // Shared between the app and the privileged daemon so the daemon does

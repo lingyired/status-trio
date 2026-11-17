@@ -74,6 +74,20 @@ final class HardwareMonitorObservable: ObservableObject {
         stored = .empty
         snapshotSubject.send(stored)
     }
+
+    /// Drops every detail payload that does not belong to the page now on screen,
+    /// so switching pages cannot show another page's stale per-core/breakdown data.
+    func clearDetailPayloads(except kind: HardwareDetailKind?) {
+        var changed = false
+        if kind != .cpu, stored.cpuDetail != nil { stored.cpuDetail = nil; changed = true }
+        if kind != .gpu, stored.gpuDetail != nil { stored.gpuDetail = nil; changed = true }
+        if kind != .memory, stored.memoryDetail != nil { stored.memoryDetail = nil; changed = true }
+        if kind != .network, stored.networkDetail != nil { stored.networkDetail = nil; changed = true }
+        if kind != .disk, stored.diskDetail != nil { stored.diskDetail = nil; changed = true }
+        guard changed else { return }
+        objectWillChange.send()
+        snapshotSubject.send(stored)
+    }
 }
 
 /// One demand-driven schedule shared by all hardware consumers. Only `.panel`
@@ -110,6 +124,18 @@ final class HardwareMetricsService: ObservableObject {
         .networkDownload, .networkUpload,
         .diskRead, .diskWrite
     ]
+
+    /// The metrics each detail page needs. GPU/memory/network/disk request only
+    /// what that page shows; CPU also enables the separately-throttled frequency.
+    static func detailMetricIDs(for kind: HardwareDetailKind) -> Set<HardwareMetricID> {
+        switch kind {
+        case .cpu: return [.cpuUsage, .cpuTemperature]
+        case .gpu: return [.gpuUsage, .gpuTemperature]
+        case .memory: return [.memoryUsage]
+        case .network: return [.networkDownload, .networkUpload]
+        case .disk: return [.diskRead, .diskWrite]
+        }
+    }
     typealias Reader = @Sendable (Set<HardwareMetricID>, Date) async -> HardwareMetricsSnapshot
 
     let observable = HardwareMonitorObservable()
@@ -133,6 +159,9 @@ final class HardwareMetricsService: ObservableObject {
     private var needReaderReset = true
     private var lastRead: [HardwareMetricID: Date] = [:]
     private var forcedIDs: Set<HardwareMetricID> = []
+    /// Which detail page (if any) is open; drives the structured payloads and
+    /// the per-page expensive work (CPU frequency, network session totals).
+    private(set) var detailKind: HardwareDetailKind?
 
     init(automaticScheduling: Bool = true,
          now: @escaping () -> Date = Date.init,
@@ -146,6 +175,17 @@ final class HardwareMetricsService: ObservableObject {
 
     private var requestedIDs: Set<HardwareMetricID> {
         demands.values.reduce(into: []) { $0.formUnion($1) }
+    }
+
+    /// Sets which detail payload the sampler should build. Clears the other
+    /// payloads immediately and stops the expensive per-page work it owned.
+    func setDetailDemand(_ kind: HardwareDetailKind?) {
+        guard kind != detailKind else { return }
+        let previous = detailKind
+        detailKind = kind
+        if previous == .cpu, kind != .cpu { sampler.releaseFrequencyReader() }
+        if previous == .network, kind != .network { sampler.resetNetworkSession() }
+        observable.clearDetailPayloads(except: kind)
     }
 
     func begin(_ demand: Demand, metrics: Set<HardwareMetricID> = defaultMetricIDs) {
@@ -198,6 +238,9 @@ final class HardwareMetricsService: ObservableObject {
         lastRead.removeAll()
         forcedIDs = requestedIDs
         observable.markStale(now: now())
+        observable.clearDetailPayloads(except: nil)
+        sampler.releaseFrequencyReader()
+        sampler.resetNetworkSession()
     }
 
     func wake() {
@@ -218,6 +261,7 @@ final class HardwareMetricsService: ObservableObject {
         lastRead.removeAll()
         forcedIDs.removeAll()
         observable.markStale(now: now())
+        observable.clearDetailPayloads(except: nil)
         // `inFlight` deliberately stays true until the outstanding read exits.
     }
 
@@ -255,6 +299,7 @@ final class HardwareMetricsService: ObservableObject {
         let reset = needReaderReset
         needReaderReset = false
         let sampler = self.sampler
+        let includeDetail = detailKind
         let injected = reader
         Task { [weak self] in
             // A surface can close before this task reaches its first suspension.
@@ -269,7 +314,11 @@ final class HardwareMetricsService: ObservableObject {
             }
             let snapshot: HardwareMetricsSnapshot
             if let injected { snapshot = await injected(due, date) }
-            else { snapshot = await sampler.read(ids: due, at: date) }
+            else {
+                snapshot = await sampler.read(ids: due, at: date,
+                                              includeCPUFrequency: includeDetail == .cpu,
+                                              details: includeDetail.map { [$0] } ?? [])
+            }
             guard let self else { return }
             self.inFlight = false
             guard self.canRead(token: token) else {
@@ -315,6 +364,11 @@ final class HardwareMetricsService: ObservableObject {
                     return true
                 }
             }
+            if let detail = snapshot.cpuDetail { merged.cpuDetail = detail }
+            if let detail = snapshot.gpuDetail { merged.gpuDetail = detail }
+            if let detail = snapshot.memoryDetail { merged.memoryDetail = detail }
+            if let detail = snapshot.networkDetail { merged.networkDetail = detail }
+            if let detail = snapshot.diskDetail { merged.diskDetail = detail }
             self.observable.update(merged, now: self.now())
             self.refreshIfNeeded(forceFamilies: [])
         }

@@ -9,6 +9,9 @@ struct HardwareMonitorSummaryView: View {
     var metricColors: [HardwareMonitorMetric: IconRGBA] = [:]
     var showsRings: Bool = true
     var showsSummaryRow: Bool = true
+    /// Routes a ring card or info-bar cell to its detail page. Nil disables taps
+    /// (previews, design grid) without changing any drawing.
+    var onOpenHardwareDetail: ((HardwareDetailKind) -> Void)? = nil
 
     @EnvironmentObject private var localization: Localization
 
@@ -23,10 +26,17 @@ struct HardwareMonitorSummaryView: View {
             snapshot: model.summarySnapshot, localization: localization)
         return VStack(spacing: 6) {
             if showsRings {
-                HardwareRingStrip(hardware: model, colors: metricColors, carded: true)
+                HardwareRingStrip(hardware: model, colors: metricColors, carded: true,
+                                  onSelectSlot: onOpenHardwareDetail)
             }
             if showsSummaryRow {
-                CompactSummaryInfoBar(items: items)
+                CompactSummaryInfoBar(items: items) { metric in
+                    switch metric {
+                    case .download, .upload: onOpenHardwareDetail?(.network)
+                    case .disk: onOpenHardwareDetail?(.disk)
+                    case .fan: break
+                    }
+                }
             }
         }
         .padding(.vertical, 1)
@@ -38,6 +48,9 @@ struct HardwareMonitorSummaryView: View {
 /// One low-weight glass bar holding the four auxiliary metrics on one line.
 struct CompactSummaryInfoBar: View {
     let items: [HardwareSummaryMetricPresentation]
+    var onSelect: ((HardwareSummaryMetric) -> Void)? = nil
+
+    @State private var hoveredMetric: HardwareSummaryMetric?
 
     var body: some View {
         HStack(spacing: 0) {
@@ -47,13 +60,35 @@ struct CompactSummaryInfoBar: View {
                         .fill(Color.primary.opacity(0.06))
                         .frame(width: 1, height: 14)
                 }
-                HardwareSummaryMetricCell(item: item)
+                cell(item)
                     .frame(maxWidth: .infinity)
             }
         }
         .padding(.horizontal, 6)
         .frame(height: HardwareSummaryMetricCell.barHeight)
         .panelCardSurface(.silver(.disconnected), tint: .clear, cornerRadius: 10)
+    }
+
+    @ViewBuilder
+    private func cell(_ item: HardwareSummaryMetricPresentation) -> some View {
+        if let onSelect, item.metric != .fan {
+            Button { onSelect(item.metric) } label: {
+                HardwareSummaryMetricCell(item: item)
+                    .contentShape(RoundedRectangle(cornerRadius: 7, style: .continuous))
+            }
+            .buttonStyle(.plain)
+            .overlay {
+                RoundedRectangle(cornerRadius: 7, style: .continuous)
+                    .fill(Color.white.opacity(hoveredMetric == item.metric ? 0.08 : 0))
+                    .allowsHitTesting(false)
+            }
+            .onHover { inside in
+                if inside { hoveredMetric = item.metric }
+                else if hoveredMetric == item.metric { hoveredMetric = nil }
+            }
+        } else {
+            HardwareSummaryMetricCell(item: item)
+        }
     }
 }
 

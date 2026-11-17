@@ -10,12 +10,15 @@ final class HardwareSampler: @unchecked Sendable {
     private let sensorReader = SensorSMCReader()
     private let networkReader = NetworkThroughputReader()
     private let diskReader = DiskThroughputReader()
+    private let cpuFrequencyReader = CPUFrequencyReader()
     private var hasAttemptedCPURead = false
 
     func reset() async {
         await withCheckedContinuation { continuation in
             queue.async {
                 self.cpuReader.reset()
+                self.cpuFrequencyReader.reset()
+                self.networkReader.resetSession()
                 self.diskReader.reset()
                 self.hasAttemptedCPURead = false
                 continuation.resume()
@@ -23,12 +26,30 @@ final class HardwareSampler: @unchecked Sendable {
         }
     }
 
-    func read(ids: Set<HardwareMetricID>, at date: Date) async -> HardwareMetricsSnapshot {
+    /// Releases the IOReport subscription when frequency sampling is no longer
+    /// needed (CPU detail closed/hidden). Idempotent and cheap.
+    func releaseFrequencyReader() {
+        queue.async { self.cpuFrequencyReader.reset() }
+    }
+
+    /// Drops the network session counters when the network detail page closes.
+    func resetNetworkSession() {
+        queue.async { self.networkReader.resetSession() }
+    }
+
+    /// `details` selects which structured detail payloads to build this tick; the
+    /// plain metric samples still follow `ids`, so summary consumers are unaffected.
+    func read(ids: Set<HardwareMetricID>, at date: Date,
+              includeCPUFrequency: Bool = false,
+              details: Set<HardwareDetailKind> = []) async -> HardwareMetricsSnapshot {
         await withCheckedContinuation { continuation in
             queue.async {
                 let first = !self.hasAttemptedCPURead
-                let snapshot = Self.collect(ids: ids, isFirstCPURead: first, at: date,
+                let wantsFrequency = includeCPUFrequency && ids.contains(.cpuUsage)
+                var snapshot = Self.collect(ids: ids, isFirstCPURead: first, at: date,
                                             cpuProvider: { self.cpuReader.read(at: $0) },
+                                            frequencyProvider: { wantsFrequency ? self.cpuFrequencyReader.read(at: $0) : nil },
+                                            includeCPUFrequency: wantsFrequency,
                                             gpuProvider: { self.gpuReader.read(at: $0) },
                                             memoryProvider: { self.memoryReader.read(at: $0) },
                                             sensorProvider: { temperature, gpuTemperature, batteryTemperature, fans, date in
@@ -39,6 +60,23 @@ final class HardwareSampler: @unchecked Sendable {
                 },
                                             networkProvider: { self.networkReader.read(at: $0) },
                                             diskProvider: { self.diskReader.read(at: $0) })
+                if details.contains(.gpu) {
+                    snapshot.gpuDetail = self.gpuReader.readDetail(at: date)
+                }
+                if details.contains(.memory) {
+                    snapshot.memoryDetail = self.memoryReader.readDetail(at: date)
+                }
+                if details.contains(.network) {
+                    snapshot.networkDetail = self.networkReader.detailReading(from: nil, at: date)
+                }
+                if details.contains(.disk) {
+                    let capacity = DiskCapacityReader.read(at: date)
+                    snapshot.diskDetail = DiskDetailReading(
+                        capacity: capacity,
+                        readBytesPerSecond: snapshot.samples[.diskRead]?.value,
+                        writeBytesPerSecond: snapshot.samples[.diskWrite]?.value,
+                        sampledAt: date)
+                }
                 if ids.contains(.cpuUsage) { self.hasAttemptedCPURead = true }
                 continuation.resume(returning: snapshot)
             }
@@ -49,6 +87,8 @@ final class HardwareSampler: @unchecked Sendable {
     /// path: temperature never triggers GPU usage, and CPU-only never opens SMC.
     static func collect(ids: Set<HardwareMetricID>, isFirstCPURead: Bool, at date: Date,
                         cpuProvider: (Date) -> CPUReading?,
+                        frequencyProvider: (Date) -> CPUFrequencyReading? = { _ in nil },
+                        includeCPUFrequency: Bool = false,
                         gpuProvider: (Date) -> GPUReading?,
                         memoryProvider: (Date) -> MemoryReader.Reading?,
                         sensorProvider: (Bool, Bool, Bool, Bool, Date) -> SensorReading,
@@ -59,6 +99,7 @@ final class HardwareSampler: @unchecked Sendable {
         let batteryTemperature = ids.contains(.batteryTemperature)
         let fans = ids.contains { if case .fanRPM = $0 { return true }; return false }
         let cpu = ids.contains(.cpuUsage) ? cpuProvider(date) : nil
+        let frequency = (cpu != nil && includeCPUFrequency) ? frequencyProvider(date) : nil
         let gpu = ids.contains(.gpuUsage) ? gpuProvider(date) : nil
         let memory = ids.contains(.memoryUsage) ? memoryProvider(date) : nil
         let needsNetwork = ids.contains(.networkDownload) || ids.contains(.networkUpload)
@@ -68,7 +109,7 @@ final class HardwareSampler: @unchecked Sendable {
         let needsDisk = ids.contains(.diskRead) || ids.contains(.diskWrite)
         let disk = needsDisk ? diskProvider(date) : nil
         return map(ids: ids, cpu: cpu, gpu: gpu, memory: memory, sensors: sensors, network: network,
-                   disk: disk, isFirstCPURead: isFirstCPURead, at: date)
+                   disk: disk, cpuFrequency: frequency, isFirstCPURead: isFirstCPURead, at: date)
     }
 
     /// Pure mapping of one read attempt. Reader nil alone cannot establish lack
@@ -79,6 +120,7 @@ final class HardwareSampler: @unchecked Sendable {
                     memory: MemoryReader.Reading? = nil, sensors: SensorReading?,
                     network: NetworkThroughputReading? = nil,
                     disk: DiskThroughputReading? = nil,
+                    cpuFrequency: CPUFrequencyReading? = nil,
                     isFirstCPURead: Bool, at date: Date) -> HardwareMetricsSnapshot {
         var snapshot = HardwareMetricsSnapshot.empty
         for id in ids {
@@ -136,6 +178,16 @@ final class HardwareSampler: @unchecked Sendable {
                     value: value, unit: .bytesPerSecond, sampledAt: disk?.sampledAt ?? date,
                     source: .ioStorage, availability: value != nil ? .measured : .collecting)
             }
+        }
+        if let cpu {
+            snapshot.cpuDetail = CPUDetailReading(
+                usage: cpu.usage,
+                breakdown: cpu.breakdown,
+                perCoreUsage: cpu.perCoreUsage,
+                topology: cpu.topology,
+                groupUsage: cpu.groupUsage,
+                frequency: cpuFrequency,
+                sampledAt: cpu.sampledAt)
         }
         let requestedFans = ids.compactMap { id -> Int? in
             if case .fanRPM(let index) = id { return index }

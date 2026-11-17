@@ -1,0 +1,147 @@
+import XCTest
+@testable import StatusTrioCore
+
+final class HardwareDetailTests: XCTestCase {
+    private let start = Date(timeIntervalSince1970: 20_000)
+
+    // MARK: - Memory
+
+    func testMemoryDetailKeepsGaugeSemanticsAndSeparatesCache() {
+        let stats = MemoryReader.MemoryStatistics(
+            activeBytes: 500, purgeableBytes: 100, wiredBytes: 200, compressedBytes: 50,
+            internalBytes: 600, externalBytes: 300, freeBytes: 400, totalBytes: 1_600)
+        let detail = MemoryReader.detail(from: stats, swapUsedBytes: 10, swapTotalBytes: 20,
+                                         pressure: .warning, at: start)
+        XCTAssertEqual(detail.appBytes, 400)
+        XCTAssertEqual(detail.usedBytes, 650) // app + wired + compressed
+        XCTAssertEqual(detail.percent, 650.0 / 1_600 * 100, accuracy: 0.0001)
+        XCTAssertEqual(detail.cachedBytes, 400) // external + purgeable, NOT in usedBytes
+        XCTAssertNotEqual(detail.usedBytes, detail.usedBytes + detail.cachedBytes)
+        XCTAssertEqual(detail.pressure, .warning)
+    }
+
+    func testMemoryPressureMapping() {
+        XCTAssertEqual(MemoryPressureLevel.from(rawLevel: 1), .normal)
+        XCTAssertEqual(MemoryPressureLevel.from(rawLevel: 2), .warning)
+        XCTAssertEqual(MemoryPressureLevel.from(rawLevel: 4), .critical)
+        XCTAssertEqual(MemoryPressureLevel.from(rawLevel: 9), .unknown)
+    }
+
+    // MARK: - GPU
+
+    func testGPUSelectsBusiestOnlineDeviceAndKeepsMissingFieldsNil() {
+        let sources = [
+            GPUReader.GPUDetailSource(deviceName: "A", statistics: ["Device Utilization %": 40,
+                                                                    "Renderer Utilization %": 66,
+                                                                    "Tiler Utilization %": 61],
+                                      inUseMemoryBytes: 1_000, isOnline: true),
+            GPUReader.GPUDetailSource(deviceName: "B", statistics: ["Device Utilization %": 75],
+                                      inUseMemoryBytes: nil, isOnline: true),
+            GPUReader.GPUDetailSource(deviceName: "off", statistics: ["Device Utilization %": 99],
+                                      inUseMemoryBytes: nil, isOnline: false)
+        ]
+        let detail = try? XCTUnwrap(GPUReader.selectDetail(sources, at: start))
+        XCTAssertEqual(detail?.deviceName, "B")
+        XCTAssertEqual(detail?.usage, 75)
+        XCTAssertNil(detail?.rendererUtilization) // B does not report it
+        XCTAssertNil(detail?.tilerUtilization)
+        XCTAssertNil(detail?.inUseSystemMemoryBytes)
+    }
+
+    func testGPUDetailReturnsNilWithoutOnlineDevices() {
+        let sources = [GPUReader.GPUDetailSource(deviceName: "off",
+                                                 statistics: ["Device Utilization %": 10],
+                                                 inUseMemoryBytes: nil, isOnline: false)]
+        XCTAssertNil(GPUReader.selectDetail(sources, at: start))
+    }
+
+    // MARK: - CPU grouping (from CPUReader)
+
+    func testCPUCoreGroupingExcludesUnknownFromPerformance() {
+        let topology = CPUCoreTopology(kinds: [.efficiency, .unknown, .performance])
+        let group = CPUReader.groupUsage(cores: [10, 999, 40], topology: topology)
+        XCTAssertEqual(group?.efficiencyAverage ?? -1, 10, accuracy: 0.0001)
+        XCTAssertEqual(group?.performanceAverage ?? -1, 40, accuracy: 0.0001)
+    }
+
+    // MARK: - Demand metric map
+
+    @MainActor
+    func testDetailMetricIDsCoverEachPage() {
+        XCTAssertEqual(HardwareMetricsService.detailMetricIDs(for: .cpu), [.cpuUsage, .cpuTemperature])
+        XCTAssertEqual(HardwareMetricsService.detailMetricIDs(for: .gpu), [.gpuUsage, .gpuTemperature])
+        XCTAssertEqual(HardwareMetricsService.detailMetricIDs(for: .memory), [.memoryUsage])
+        XCTAssertEqual(HardwareMetricsService.detailMetricIDs(for: .network), [.networkDownload, .networkUpload])
+        XCTAssertEqual(HardwareMetricsService.detailMetricIDs(for: .disk), [.diskRead, .diskWrite])
+    }
+
+    // MARK: - Network
+
+    func testNetworkDetailNilWithoutReadingOrSession() {
+        let reader = NetworkThroughputReader()
+        XCTAssertNil(reader.detailReading(from: nil, at: start))
+    }
+
+    // MARK: - Disk capacity (host dependent)
+
+    func testDiskCapacityReaderReturnsConsistentTotals() throws {
+        guard let capacity = DiskCapacityReader.read(at: start) else {
+            throw XCTSkip("volume capacity unavailable on this host")
+        }
+        XCTAssertGreaterThan(capacity.totalBytes, 0)
+        XCTAssertLessThanOrEqual(capacity.freeBytes, capacity.totalBytes)
+        XCTAssertEqual(capacity.usedBytes, capacity.totalBytes - capacity.freeBytes)
+        XCTAssertTrue((0...1).contains(capacity.usedFraction))
+    }
+
+    // MARK: - History store
+
+    private func usageSnapshot(_ value: Double, at date: Date) -> HardwareMetricsSnapshot {
+        var snapshot = HardwareMetricsSnapshot.empty
+        snapshot.samples[.cpuUsage] = HardwareMetricSample(value: value, unit: .percent,
+                                                          sampledAt: date, source: .mach, availability: .measured)
+        return snapshot
+    }
+
+    @MainActor
+    func testHistoryStoreDeduplicatesAndPrunes() {
+        let observable = HardwareMonitorObservable(snapshot: usageSnapshot(10, at: start))
+        let store = HardwareDetailHistoryStore(seriesCount: 1)
+        store.start(observable: observable,
+                    timestamp: { $0[.cpuUsage].sampledAt },
+                    values: { [$0[.cpuUsage].value] })
+        // start ingested the first point.
+        XCTAssertEqual(store.points.count, 1)
+        // Same timestamp must not append a duplicate.
+        store.ingest(usageSnapshot(99, at: start))
+        XCTAssertEqual(store.points.count, 1)
+        store.ingest(usageSnapshot(20, at: start.addingTimeInterval(30)))
+        store.ingest(usageSnapshot(30, at: start.addingTimeInterval(70)))
+        XCTAssertEqual(store.points.count, 2)
+        XCTAssertEqual(store.points.first?.date, start.addingTimeInterval(30))
+        store.stop()
+        XCTAssertTrue(store.points.isEmpty)
+    }
+
+    @MainActor
+    func testHistoryStoreIsBounded() {
+        let observable = HardwareMonitorObservable(snapshot: usageSnapshot(0, at: start))
+        let store = HardwareDetailHistoryStore(seriesCount: 1)
+        store.start(observable: observable,
+                    timestamp: { $0[.cpuUsage].sampledAt },
+                    values: { [$0[.cpuUsage].value] })
+        for index in 0..<600 {
+            store.ingest(usageSnapshot(Double(index % 100), at: start.addingTimeInterval(Double(index) * 0.05)))
+        }
+        XCTAssertLessThanOrEqual(store.points.count, HardwareDetailHistoryStore.maxPoints)
+    }
+
+    // MARK: - Formatting
+
+    func testFormatFallsBackToDash() {
+        XCTAssertEqual(HardwareDetailFormat.percent(nil), "—")
+        XCTAssertEqual(HardwareDetailFormat.frequency(0), "—")
+        XCTAssertEqual(HardwareDetailFormat.bytes(nil as UInt64?), "—")
+        XCTAssertEqual(HardwareDetailFormat.rate(nil), "—")
+    }
+}

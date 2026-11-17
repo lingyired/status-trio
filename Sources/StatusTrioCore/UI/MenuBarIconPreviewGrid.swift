@@ -10,11 +10,17 @@ struct HardwareRingStrip: View {
     let colors: [HardwareMonitorMetric: IconRGBA]
     /// When true each ring is wrapped in its own glass card (status panel).
     var carded: Bool = false
+    /// Opens the matching detail page when a carded ring is tapped. Nil keeps the
+    /// cards non-interactive (design preview).
+    var onSelectSlot: ((HardwareDetailKind) -> Void)? = nil
     /// Carded mode lifts the top percentage by this many points for optical
     /// centring inside the arc's top opening; other surfaces keep 0.
     static let cardedTopTextAdjustment: CGFloat = -3
 
     @State private var disk: DiskCapacitySample = .current()
+    /// Pointer-enter glow so a clickable glass card reads as interactive
+    /// (matches the keep-awake capsule in QuickActionsCardView).
+    @State private var hoveredSlot: Slot?
 
     private var snapshot: HardwareMetricsSnapshot { hardware.snapshot }
 
@@ -35,10 +41,33 @@ struct HardwareRingStrip: View {
                 .frame(maxWidth: .infinity)
                 .aspectRatio(1, contentMode: .fit)
                 if carded {
-                    ring
+                    let card = ring
                         .padding(5)
                         .frame(maxWidth: .infinity)
                         .panelCardSurface(.silver(.connected), tint: .clear, cornerRadius: 13)
+                    if let onSelectSlot {
+                        Button { onSelectSlot(Self.detailKind(for: slot)) } label: {
+                            card.contentShape(RoundedRectangle(cornerRadius: 13, style: .continuous))
+                        }
+                        .buttonStyle(.plain)
+                        .overlay {
+                            RoundedRectangle(cornerRadius: 13, style: .continuous)
+                                .fill(Color.white.opacity(hoveredSlot == slot ? 0.06 : 0))
+                                .allowsHitTesting(false)
+                        }
+                        .overlay {
+                            RoundedRectangle(cornerRadius: 13, style: .continuous)
+                                .strokeBorder(Color.white.opacity(hoveredSlot == slot ? 0.22 : 0), lineWidth: 1)
+                                .allowsHitTesting(false)
+                        }
+                        .onHover { inside in
+                            if inside { hoveredSlot = slot }
+                            else if hoveredSlot == slot { hoveredSlot = nil }
+                        }
+                        .accessibilityLabel(slot.label)
+                    } else {
+                        card
+                    }
                 } else {
                     ring
                 }
@@ -52,6 +81,15 @@ struct HardwareRingStrip: View {
         case cpu, gpu, ram, ssd
         var id: String { rawValue }
         var label: String { rawValue.uppercased() }
+    }
+
+    private static func detailKind(for slot: Slot) -> HardwareDetailKind {
+        switch slot {
+        case .cpu: return .cpu
+        case .gpu: return .gpu
+        case .ram: return .memory
+        case .ssd: return .disk
+        }
     }
 
     private func spec(for slot: Slot) -> (top: String, center: String, progress: Double, color: IconRGBA, centerScale: Double) {

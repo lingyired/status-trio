@@ -32,16 +32,60 @@ final class NetworkThroughputReader: @unchecked Sendable {
     ]
 
     private var previous: (totals: [String: InterfaceByteTotals], at: Date)?
+    private var lastReading: NetworkThroughputReading?
+    /// Cumulative counters for the current monitoring session. Only valid,
+    /// interval-bounded deltas of an unchanged interface set are added; a reset
+    /// or topology change drops the baseline instead of fabricating a spike.
+    private var sessionReceived: UInt64 = 0
+    private var sessionSent: UInt64 = 0
+    private(set) var interfaces: [String] = []
 
     func read(at date: Date) -> NetworkThroughputReading? {
         guard let current = Self.readPerInterfaceTotals() else {
             previous = nil
             return nil
         }
+        let prior = previous
         defer { previous = (current, date) }
-        guard let previous else { return nil }
-        return Self.rates(previous: previous.totals, previousAt: previous.at,
-                          current: current, currentAt: date)
+        guard let prior,
+              let reading = Self.rates(previous: prior.totals, previousAt: prior.at,
+                                       current: current, currentAt: date) else { return nil }
+        interfaces = current.keys.sorted()
+        var receivedDelta: UInt64 = 0
+        var sentDelta: UInt64 = 0
+        for key in prior.totals.keys {
+            guard let p = prior.totals[key], let c = current[key],
+                  c.received >= p.received, c.sent >= p.sent else { continue }
+            receivedDelta &+= c.received - p.received
+            sentDelta &+= c.sent - p.sent
+        }
+        sessionReceived &+= receivedDelta
+        sessionSent &+= sentDelta
+        lastReading = reading
+        return reading
+    }
+
+    /// Clears the session counters and baseline; called when the network detail
+    /// page stops being visible.
+    func resetSession() {
+        previous = nil
+        lastReading = nil
+        sessionReceived = 0
+        sessionSent = 0
+        interfaces = []
+    }
+
+    /// Detail captured from this tick's reading (or the last valid one), plus the
+    /// session totals and the interface set that produced them.
+    func detailReading(from reading: NetworkThroughputReading?, at date: Date) -> NetworkDetailReading? {
+        guard let reading = reading ?? lastReading else { return nil }
+        return NetworkDetailReading(
+            downloadBytesPerSecond: reading.downloadBytesPerSecond,
+            uploadBytesPerSecond: reading.uploadBytesPerSecond,
+            sessionReceivedBytes: sessionReceived,
+            sessionSentBytes: sessionSent,
+            interfaces: interfaces,
+            sampledAt: reading.sampledAt)
     }
 
     /// Aggregate rate math (kept for callers/tests that already have totals).
