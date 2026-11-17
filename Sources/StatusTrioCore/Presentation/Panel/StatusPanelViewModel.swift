@@ -1000,6 +1000,9 @@ final class StatusPanelViewModel: ObservableObject {
         } else if let detailKind, detailVisible {
             store.hardwareMetrics.end(.background)
             store.hardwareMetrics.begin(.panel, metrics: HardwareMetricsService.detailMetricIDs(for: detailKind))
+            // Read immediately so the page's structured payload appears on open
+            // instead of waiting for the next scheduled interval.
+            store.hardwareMetrics.forceRefresh()
         } else {
             store.hardwareMetrics.end(.panel)
             // Optional low-frequency background sampling keeps the summary warm

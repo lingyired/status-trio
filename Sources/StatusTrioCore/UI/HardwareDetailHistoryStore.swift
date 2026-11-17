@@ -38,14 +38,34 @@ final class HardwareDetailHistoryStore: ObservableObject {
 
     func start(observable: HardwareMonitorObservable,
                timestamp: @escaping (HardwareMetricsSnapshot) -> Date?,
-               values: @escaping (HardwareMetricsSnapshot) -> [Double?]) {
+               values: @escaping (HardwareMetricsSnapshot) -> [Double?],
+               seedRows: [HardwareHistoryRow] = [],
+               seedMetricIDs: [HardwareMetricID] = []) {
         stop()
         timestampProvider = timestamp
         valuesProvider = values
+        if !seedRows.isEmpty, !seedMetricIDs.isEmpty {
+            seedFromHistory(seedRows, metricIDs: seedMetricIDs)
+        }
         cancellable = observable.snapshotPublisher
             .receive(on: DispatchQueue.main)
             .sink { [weak self] snapshot in self?.ingest(snapshot) }
         ingest(observable.snapshot)
+    }
+
+    /// Prefills the buffer from the panel-session history the summary already
+    /// collected, so opening a detail page shows the last ~60 s immediately.
+    func seedFromHistory(_ rows: [HardwareHistoryRow], metricIDs: [HardwareMetricID]) {
+        var seeded: [HardwareDetailHistoryPoint] = []
+        for row in rows {
+            let values = metricIDs.map { row.values[$0] }
+            guard values.contains(where: { $0 != nil }) else { continue }
+            seeded.append(HardwareDetailHistoryPoint(id: seeded.count, date: row.date, values: values))
+        }
+        guard !seeded.isEmpty else { return }
+        points = seeded
+        lastDate = seeded.last?.date
+        sequence = seeded.count
     }
 
     func stop() {

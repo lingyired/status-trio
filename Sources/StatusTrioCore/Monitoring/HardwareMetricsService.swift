@@ -1,6 +1,14 @@
 import Combine
 import Foundation
 
+/// One panel-session sample row used to prefill detail charts. Primary metrics
+/// are sampled on the summary already, so recording them here adds no sampling
+/// cost; rows are bounded to the last 60 s and dropped when the panel closes.
+struct HardwareHistoryRow: Equatable, Sendable {
+    let date: Date
+    let values: [HardwareMetricID: Double]
+}
+
 /// A leaf observer: metric updates never enter the broad panel/icon snapshots.
 @MainActor
 final class HardwareMonitorObservable: ObservableObject {
@@ -14,6 +22,13 @@ final class HardwareMonitorObservable: ObservableObject {
     /// the panel can show the previous reading instead of flashing an em dash.
     private var lastKnown: [HardwareMetricID: HardwareMetricSample] = [:]
     private let snapshotSubject = PassthroughSubject<HardwareMetricsSnapshot, Never>()
+    /// Panel-session history of the primary hardware metrics (last 60 s).
+    private var historyRows: [HardwareHistoryRow] = []
+    static let historyWindow: TimeInterval = 60
+    static let historyMetricIDs: [HardwareMetricID] = [
+        .cpuUsage, .gpuUsage, .memoryUsage,
+        .networkDownload, .networkUpload, .diskRead, .diskWrite
+    ]
 
     init(snapshot: HardwareMetricsSnapshot = .empty) { self.stored = snapshot }
 
@@ -55,6 +70,43 @@ final class HardwareMonitorObservable: ObservableObject {
         objectWillChange.send()
         stored = next
         snapshotSubject.send(next)
+        recordHistory(from: next)
+    }
+
+    /// Records measured primary samples once per timestamp. Shared by every
+    /// detail page so opening one shows the trend already accumulating on the
+    /// summary instead of starting from empty.
+    private func recordHistory(from snapshot: HardwareMetricsSnapshot) {
+        // Only metrics sampled in *this* tick form a row. A merged snapshot also
+        // carries older samples; including those at the newest timestamp would
+        // fabricate points for metrics the current page is not sampling.
+        var newest: Date?
+        for id in Self.historyMetricIDs {
+            guard let sample = snapshot.samples[id], sample.availability == .measured,
+                  let value = sample.value, value.isFinite else { continue }
+            _ = value
+            if newest == nil || sample.sampledAt > newest! { newest = sample.sampledAt }
+        }
+        guard let newest else { return }
+        var values: [HardwareMetricID: Double] = [:]
+        for id in Self.historyMetricIDs {
+            guard let sample = snapshot.samples[id], sample.availability == .measured,
+                  let value = sample.value, value.isFinite,
+                  abs(sample.sampledAt.timeIntervalSince(newest)) < 0.001 else { continue }
+            values[id] = value
+        }
+        guard !values.isEmpty else { return }
+        if let last = historyRows.last, newest <= last.date { return }
+        historyRows.append(HardwareHistoryRow(date: newest, values: values))
+        let cutoff = newest.addingTimeInterval(-Self.historyWindow)
+        historyRows.removeAll { $0.date < cutoff }
+    }
+
+    /// Copy of the panel-session history for seeding a detail chart.
+    var historyRowsForDetail: [HardwareHistoryRow] { historyRows }
+
+    func clearHistory() {
+        historyRows.removeAll()
     }
 
     /// Keep the last frame as cached, non-fresh values instead of blanking it,
@@ -69,6 +121,7 @@ final class HardwareMonitorObservable: ObservableObject {
     }
 
     func clear() {
+        historyRows.removeAll()
         guard stored != .empty else { return }
         objectWillChange.send()
         stored = .empty
@@ -188,6 +241,14 @@ final class HardwareMetricsService: ObservableObject {
         observable.clearDetailPayloads(except: kind)
     }
 
+    /// Forces the next tick to read every currently demanded ID (used when a
+    /// detail page opens, so its first payload is not delayed behind an interval).
+    func forceRefresh() {
+        guard isRunning, !isAsleep else { return }
+        forcedIDs.formUnion(requestedIDs)
+        refreshIfNeeded(forceFamilies: [])
+    }
+
     func begin(_ demand: Demand, metrics: Set<HardwareMetricID> = defaultMetricIDs) {
         guard !metrics.isEmpty else { end(demand); return }
         guard demands[demand] != metrics else { return }
@@ -262,6 +323,7 @@ final class HardwareMetricsService: ObservableObject {
         forcedIDs.removeAll()
         observable.markStale(now: now())
         observable.clearDetailPayloads(except: nil)
+        observable.clearHistory()
         // `inFlight` deliberately stays true until the outstanding read exits.
     }
 

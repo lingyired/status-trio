@@ -136,6 +136,28 @@ final class HardwareDetailTests: XCTestCase {
         XCTAssertLessThanOrEqual(store.points.count, HardwareDetailHistoryStore.maxPoints)
     }
 
+    @MainActor
+    func testHistorySeedsFromPanelSessionRows() {
+        let observable = HardwareMonitorObservable(snapshot: .empty)
+        for index in 0..<5 {
+            let date = start.addingTimeInterval(Double(index) * 2)
+            var snapshot = HardwareMetricsSnapshot.empty
+            snapshot.samples[.cpuUsage] = HardwareMetricSample(value: Double(index) * 10, unit: .percent,
+                                                               sampledAt: date, source: .mach, availability: .measured)
+            observable.update(snapshot, now: date)
+        }
+        XCTAssertEqual(observable.historyRowsForDetail.count, 5)
+
+        let store = HardwareDetailHistoryStore(seriesCount: 1)
+        store.start(observable: observable,
+                    timestamp: { $0[.cpuUsage].sampledAt },
+                    values: { [$0[.cpuUsage].value] },
+                    seedRows: observable.historyRowsForDetail,
+                    seedMetricIDs: [.cpuUsage])
+        XCTAssertEqual(store.points.count, 5)
+        XCTAssertEqual(store.points.first?.values.first ?? nil, 0)
+    }
+
     // MARK: - Formatting
 
     func testFormatFallsBackToDash() {

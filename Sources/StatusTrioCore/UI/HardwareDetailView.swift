@@ -36,7 +36,11 @@ struct HardwareDetailView: View {
         }
         .onAppear {
             guard previewHistory == nil else { return }
-            history.start(observable: hardware, timestamp: kind.sampleDate, values: kind.sampleValues)
+            history.start(observable: hardware,
+                          timestamp: kind.sampleDate,
+                          values: kind.sampleValues,
+                          seedRows: hardware.historyRowsForDetail,
+                          seedMetricIDs: kind.historyMetricIDs)
         }
         .onDisappear { history.stop() }
     }
@@ -393,6 +397,17 @@ extension HardwareDetailKind {
         switch self {
         case .network, .disk: return 2
         case .cpu, .gpu, .memory: return 1
+        }
+    }
+
+    /// Primary metrics the summary already samples, used to prefill the chart.
+    var historyMetricIDs: [HardwareMetricID] {
+        switch self {
+        case .cpu: return [.cpuUsage]
+        case .gpu: return [.gpuUsage]
+        case .memory: return [.memoryUsage]
+        case .network: return [.networkDownload, .networkUpload]
+        case .disk: return [.diskRead, .diskWrite]
         }
     }
 
