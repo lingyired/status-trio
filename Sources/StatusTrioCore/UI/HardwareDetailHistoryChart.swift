@@ -28,14 +28,6 @@ struct HardwareDetailHistoryChart: View {
         }
     }
 
-    private var maximumLabel: String {
-        scale == .percent ? "100%" : HardwareDetailFormat.rateAxis(yMaximum)
-    }
-
-    private var minimumLabel: String {
-        scale == .percent ? "0%" : "0"
-    }
-
     var body: some View {
         let maximum = yMaximum
         return VStack(spacing: 2) {
@@ -43,7 +35,7 @@ struct HardwareDetailHistoryChart: View {
                 HardwareDetailGrid()
                 ForEach(colors.indices, id: \.self) { index in
                     HardwareDetailAreaShape(points: points, series: index, now: now, yMaximum: maximum)
-                        .fill(LinearGradient(colors: [colors[index].opacity(0.38), colors[index].opacity(0.03)],
+                        .fill(LinearGradient(colors: [colors[index].opacity(0.78), colors[index].opacity(0.16)],
                                              startPoint: .top, endPoint: .bottom))
                     HardwareDetailLineShape(points: points, series: index, now: now, yMaximum: maximum)
                         .stroke(colors[index],
@@ -53,17 +45,6 @@ struct HardwareDetailHistoryChart: View {
                     HardwareDetailChartDot(points: points, series: index, now: now,
                                            yMaximum: maximum, color: colors[index])
                 }
-                // Value-axis labels sit on the left edge.
-                VStack(alignment: .leading) {
-                    Text(maximumLabel)
-                    Spacer(minLength: 0)
-                    Text(minimumLabel)
-                }
-                .font(.system(size: 8))
-                .foregroundStyle(.tertiary)
-                .padding(.leading, 2)
-                .padding(.vertical, 1)
-                .allowsHitTesting(false)
             }
             .frame(height: 54)
         }
