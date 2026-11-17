@@ -63,13 +63,6 @@ struct HardwareDetailHistoryChart: View {
                 .allowsHitTesting(false)
             }
             .frame(height: 54)
-            HStack {
-                Text("-60s")
-                Spacer()
-                Text("0s")
-            }
-            .font(.system(size: 8))
-            .foregroundStyle(.tertiary)
         }
     }
 }
