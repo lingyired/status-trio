@@ -36,7 +36,7 @@ struct HardwareMonitorSummaryView: View {
 }
 
 /// One low-weight glass bar holding the four auxiliary metrics on one line.
-private struct CompactSummaryInfoBar: View {
+struct CompactSummaryInfoBar: View {
     let items: [HardwareSummaryMetricPresentation]
 
     var body: some View {
@@ -52,21 +52,30 @@ private struct CompactSummaryInfoBar: View {
             }
         }
         .padding(.horizontal, 6)
-        .frame(height: 28)
+        .frame(height: HardwareSummaryMetricCell.barHeight)
         .panelCardSurface(.silver(.disconnected), tint: .clear, cornerRadius: 10)
     }
 }
 
-/// One info-bar group: icon + value + unit on a single line, centred in its
-/// equal column. Fixed height keeps the bar stable when a long value shrinks.
+/// One info-bar group with fixed slots: [icon][value right-aligned][unit].
+/// Every slot has a constant width so a value or unit change can never shift the
+/// icon or the neighbouring metrics, and an empty unit keeps its reserved space.
 struct HardwareSummaryMetricCell: View {
     let item: HardwareSummaryMetricPresentation
 
+    static let iconWidth: CGFloat = 12
+    static let valueWidth: CGFloat = 30
+    static let unitWidth: CGFloat = 22
+    static let slotSpacing: CGFloat = 2
+    static let barHeight: CGFloat = 28
+    static let contentHeight: CGFloat = 26
+
     var body: some View {
-        HStack(spacing: 3) {
+        HStack(spacing: Self.slotSpacing) {
             Image(systemName: item.symbol)
                 .font(.system(size: 9, weight: .medium))
                 .foregroundStyle(.secondary)
+                .frame(width: Self.iconWidth, height: Self.iconWidth)
                 .accessibilityHidden(true)
             Text(item.valueText)
                 .font(.system(size: 12, weight: .regular, design: .monospaced))
@@ -74,15 +83,16 @@ struct HardwareSummaryMetricCell: View {
                 .opacity(item.isStale ? 0.45 : 1)
                 .lineLimit(1)
                 .minimumScaleFactor(0.6)
-            if !item.unitText.isEmpty {
-                Text(item.unitText)
-                    .font(.system(size: 9, design: .monospaced))
-                    .foregroundStyle(.secondary)
-                    .lineLimit(1)
-            }
+                .frame(width: Self.valueWidth, alignment: .trailing)
+            Text(item.unitText)
+                .font(.system(size: 9, design: .monospaced))
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
+                .frame(width: Self.unitWidth, alignment: .leading)
         }
         .frame(maxWidth: .infinity)
-        .frame(height: 26)
+        .frame(height: Self.contentHeight)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(item.accessibilityLabel)
         .accessibilityValue(item.accessibilityValue)
