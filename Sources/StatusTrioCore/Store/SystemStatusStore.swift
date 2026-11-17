@@ -281,6 +281,12 @@ final class SystemStatusStore: ObservableObject {
     /// (slider drag/wheel). While active, a stale read-back must not move the
     /// target; the pointer's value wins until the gesture ends.
     private var brightnessGestureDisplayIDs: Set<String> = []
+    /// True while a pointer drag/click owns the volume slider. The panel reads
+    /// this to skip its 10 Hz level coalescer so the row follows the gesture
+    /// instead of lagging behind it. Wheel gestures are tracked separately by
+    /// the panel view model; background monitor reads never set it, so those
+    /// still coalesce.
+    private(set) var isVolumeGestureActive = false
     /// Optimistic input gain while the input monitor confirms the write.
     private var pendingInputScalar: Double?
     private var pendingInputDeviceID: AudioDeviceID?
@@ -737,6 +743,7 @@ final class SystemStatusStore: ObservableObject {
         pendingBrightnessScalars.removeAll()
         pendingBrightnessSequences.removeAll()
         brightnessGestureDisplayIDs.removeAll()
+        isVolumeGestureActive = false
         monitorTasks.forEach { $0.cancel() }
         monitorTasks.removeAll()
         refreshTask?.cancel()
@@ -779,7 +786,17 @@ final class SystemStatusStore: ObservableObject {
         }
     }
 
-    func finishVolumeAdjustment() { volumeController?.flushPendingVolume() }
+    /// Marks the start of a pointer drag/click on the volume slider so the
+    /// panel can publish level changes without coalescing them.
+    func beginVolumeAdjustment() {
+        guard !hasStopped else { return }
+        isVolumeGestureActive = true
+    }
+
+    func finishVolumeAdjustment() {
+        isVolumeGestureActive = false
+        volumeController?.flushPendingVolume()
+    }
 
     func toggleMute() {
         guard !hasStopped,
@@ -1223,6 +1240,9 @@ final class SystemStatusStore: ObservableObject {
         // and an open into a single visible snapshot.
         if visible && !isPopoverVisible { popoverOpenGeneration &+= 1 }
         isPopoverVisible = visible
+        // Closing can interrupt a drag before its end callback runs; never leave
+        // the panel bypassing the level coalescer past the gesture.
+        if !visible { isVolumeGestureActive = false }
         // The system's own state may have changed while the popover was closed
         // (Control Center, the battery menu), so re-read it through the helper
         // before the battery row shows a stale Low Power Mode value.
@@ -2093,6 +2113,10 @@ final class SystemStatusStore: ObservableObject {
         // Interactive writes (wheel/drag) must not wait for the popup debounce:
         // a burst of wheel events keeps cancelling it, so the panel only updated
         // after the gesture stopped.
+        //
+        // setPopoverVisible(true) runs before presentPopover calls popover.show,
+        // so this stays true through the open animation: an interaction that
+        // starts while the panel is appearing is applied, never dropped.
         guard isPopoverVisible else { return }
         popupPublishTask?.cancel()
         popupPublishTask = nil

@@ -179,10 +179,10 @@ final class StatusPanelViewModel: ObservableObject {
     /// enough that the drag-tuning coalescer would only make the row lag behind
     /// the pointer, so those level changes publish on the same runloop.
     private var isWheelAdjustingVolume = false
-    /// A drag emits levels far faster than the row can usefully draw them.
-    /// Coalescing to 10 Hz stops the panel hosting view from laying out the
-    /// whole tree on every tick (#263); the slider's local draft keeps the
-    /// gesture responsive in between.
+    /// Coalesces non-gesture (background monitor) level changes to 10 Hz so the
+    /// panel hosting view does not lay out the whole tree on every poll (#263).
+    /// A user gesture — wheel or slider drag/click — bypasses this entirely and
+    /// publishes each 30 Hz slider report, so the row stays glued to the pointer.
     static let levelVolumePublishInterval: Duration = .milliseconds(100)
     private var pendingRefreshRegions: RefreshRegions = []
     private var lastPanelSettingsFingerprint: PanelSettingsFingerprint?
@@ -1268,12 +1268,19 @@ final class StatusPanelViewModel: ObservableObject {
     /// availability, control source, external transition) publishes at once; a
     /// pure level change is coalesced so a drag cannot invalidate the panel on
     /// every tick (#263).
+    ///
+    /// An active user gesture — a wheel event here, or a slider drag/click
+    /// flagged on the store — bypasses the coalescer entirely so the row
+    /// follows at the slider's 30 Hz report rate instead of the 10 Hz coalesced
+    /// rate. Background monitor reads never set either flag, so they still
+    /// coalesce.
     private func receiveLiveVolume(_ status: VolumeStatus) {
         let previous = lastLiveVolumeStatus
         lastLiveVolumeStatus = status
         if let previous,
            status.changesOnlyLevel(comparedTo: previous),
-           !isWheelAdjustingVolume {
+           !isWheelAdjustingVolume,
+           !store.isVolumeGestureActive {
             pendingLevelVolumeStatus = status
             scheduleLevelVolumePublish()
         } else {

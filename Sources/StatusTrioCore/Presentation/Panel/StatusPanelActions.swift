@@ -8,6 +8,7 @@ final class StatusPanelActions {
     private let inputDevices: () -> [AudioInputDevice]
     private let selectInputDevice: (AudioInputDevice) -> Void
     private let setVolumeCommand: (Double) -> Void
+    private let beginVolumeCommand: () -> Void
     private let finishVolumeCommand: () -> Void
     private let setBrightnessCommand: (String, Double) -> Void
     private let finishBrightnessCommand: (String) -> Void
@@ -66,6 +67,7 @@ final class StatusPanelActions {
         inputDevices: @escaping () -> [AudioInputDevice] = { [] },
         selectInput: @escaping (AudioInputDevice) -> Void = { _ in },
         setVolume: @escaping (Double) -> Void = { _ in },
+        beginVolumeAdjustment: @escaping () -> Void = {},
         finishVolumeAdjustment: @escaping () -> Void = {},
         setBrightness: @escaping (String, Double) -> Void = { _, _ in },
         finishBrightnessAdjustment: @escaping (String) -> Void = { _ in },
@@ -114,6 +116,7 @@ final class StatusPanelActions {
         self.inputDevices = inputDevices
         self.selectInputDevice = selectInput
         self.setVolumeCommand = setVolume
+        self.beginVolumeCommand = beginVolumeAdjustment
         self.finishVolumeCommand = finishVolumeAdjustment
         self.setBrightnessCommand = setBrightness
         self.finishBrightnessCommand = finishBrightnessAdjustment
@@ -170,6 +173,7 @@ final class StatusPanelActions {
             inputDevices: { store.liveInput.devices },
             selectInput: { device in store.selectInputDevice(device.id) },
             setVolume: { scalar in store.setVolume(scalar) },
+            beginVolumeAdjustment: { store.beginVolumeAdjustment() },
             finishVolumeAdjustment: { store.finishVolumeAdjustment() },
             setBrightness: { id, scalar in store.setBrightness(scalar, forDisplayID: id) },
             finishBrightnessAdjustment: { id in store.finishBrightnessAdjustment(displayID: id) },
@@ -266,6 +270,10 @@ final class StatusPanelActions {
     func setVolume(_ scalar: Double) {
         guard scalar.isFinite else { return }
         setVolumeCommand(min(1, max(0, scalar)))
+    }
+
+    func beginVolumeAdjustment() {
+        beginVolumeCommand()
     }
 
     func finishVolumeAdjustment() {
