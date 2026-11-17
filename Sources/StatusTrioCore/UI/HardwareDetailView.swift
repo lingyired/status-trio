@@ -107,8 +107,6 @@ struct HardwareDetailView: View {
                                       value: HardwareDetailFormat.percent(detail?.breakdown.system))
                     HardwareDetailRow(label: localization.string(.hardwareDetailIdle),
                                       value: HardwareDetailFormat.percent(detail?.breakdown.idle))
-                    HardwareDetailRow(label: localization.string(.hardwareDetailNice),
-                                      value: HardwareDetailFormat.percent(detail?.breakdown.nice))
                     divider
                     HardwareDetailRow(label: localization.string(.hardwareDetailComposition),
                                       value: coreComposition(detail?.topology))
