@@ -8,8 +8,18 @@ enum HardwareRingSlot: String, CaseIterable, Identifiable, Sendable {
 
     var id: Self { self }
 
-    /// Ring label drawn on the arc, reused as the per-item settings title.
+    /// Ring label drawn on the arc.
     var label: String { rawValue.uppercased() }
+
+    /// Localized title shown in the per-item settings toggles.
+    var titleKey: LocalizationKey {
+        switch self {
+        case .cpu: .hardwareMonitorCPU
+        case .gpu: .hardwareMonitorGPU
+        case .ram: .hardwareMonitorMemory
+        case .ssd: .hardwareMonitorSettingsItemDiskCapacity
+        }
+    }
 }
 
 /// Fixed identity of one of the four compact summary slots under the rings.

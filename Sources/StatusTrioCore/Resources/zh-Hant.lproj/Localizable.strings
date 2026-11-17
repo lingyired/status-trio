@@ -1226,11 +1226,16 @@
 "hardware.monitor.background.seconds" = "%d 秒";
 "hardware.monitor.settings.panelRefresh" = "面板重新整理";
 "hardware.monitor.settings.panelRefresh.description" = "面板開啟時的更新頻率。越快越即時但讀取更多，越慢越省電。";
-"hardware.monitor.settings.showRings" = "四圓環";
+"hardware.monitor.settings.showRings" = "顯示圓環";
 "hardware.monitor.settings.colorTitle" = "顏色";
 "hardware.monitor.settings.resetColors" = "恢復預設顏色";
 "hardware.monitor.settings.showRings.description" = "顯示 CPU / GPU / 記憶體 / 磁碟 四個圓環。";
-"hardware.monitor.settings.showSummaryRow" = "底部資料";
+"hardware.monitor.settings.showSummaryRow" = "顯示底部資訊列";
+
+/* Status-panel per-item visibility */
+"hardware.monitor.settings.group.rings" = "圓環指標";
+"hardware.monitor.settings.group.bottomBar" = "底部資訊列";
+"hardware.monitor.settings.item.diskCapacity" = "磁碟容量";
 "hardware.monitor.settings.showSummaryRow.description" = "在圓環下方顯示下載、上傳、風扇與磁碟 I/O。";
 "hardware.monitor.fan.average" = "風扇均速";
 "hardware.monitor.fan.average.help" = "目前可讀風扇轉速的平均值。已過期或無法讀取的風扇不計入；無風扇的 Mac 顯示「無風扇」。";

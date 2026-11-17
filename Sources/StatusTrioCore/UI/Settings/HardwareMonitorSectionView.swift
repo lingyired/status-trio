@@ -1,9 +1,9 @@
 import SwiftUI
 
-/// Settings → 监控: whether the module appears, its refresh cadence, which of
-/// the two blocks (the four rings / the bottom data row) are shown, and which
-/// individual items inside each block are enabled. Hiding an item collapses it
-/// so the remaining items share the width evenly.
+/// Settings → 监控: whether the module appears, its refresh cadence, and two
+/// display groups — the rings and the bottom bar — each with a master switch and
+/// per-item toggles. Hiding an item collapses it so the remaining items share the
+/// width evenly.
 struct HardwareMonitorSectionView: View {
     @ObservedObject var store: SettingsStore
     @EnvironmentObject private var localization: Localization
@@ -12,7 +12,8 @@ struct HardwareMonitorSectionView: View {
         SettingsPage {
             placementGroup
             refreshGroup
-            displayGroup
+            ringGroup
+            bottomBarGroup
             colorGroup
         }
     }
@@ -143,8 +144,8 @@ struct HardwareMonitorSectionView: View {
         )
     }
 
-    private var displayGroup: some View {
-        SettingsGroup {
+    private var ringGroup: some View {
+        SettingsGroup(localization.string(.hardwareMonitorSettingsGroupRings)) {
             SettingsToggleRow(
                 symbol: "circle.dashed",
                 tint: .blue,
@@ -160,7 +161,7 @@ struct HardwareMonitorSectionView: View {
                     ForEach(Array(HardwareRingSlot.allCases.enumerated()), id: \.element) { index, slot in
                         if index > 0 { SettingsDivider() }
                         perItemToggleRow(
-                            title: slot.label,
+                            title: localization.string(slot.titleKey),
                             isOn: store.enabledHardwareRingSlots.contains(slot),
                             canTurnOff: store.enabledHardwareRingSlots.count > 1,
                             set: { store.setHardwareRingSlot(slot, enabled: $0) }
@@ -168,7 +169,11 @@ struct HardwareMonitorSectionView: View {
                     }
                 }
             }
-            SettingsDivider()
+        }
+    }
+
+    private var bottomBarGroup: some View {
+        SettingsGroup(localization.string(.hardwareMonitorSettingsGroupBottomBar)) {
             SettingsToggleRow(
                 symbol: "chart.bar",
                 tint: .green,
