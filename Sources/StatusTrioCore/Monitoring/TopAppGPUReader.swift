@@ -1,3 +1,6 @@
+// Collection strategy adapted from Stats (MIT License):
+// https://github.com/exelban/stats
+
 import Foundation
 import IOKit
 

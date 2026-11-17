@@ -1,3 +1,6 @@
+// Collection strategy adapted from Stats (MIT License):
+// https://github.com/exelban/stats
+
 import Darwin
 import Foundation
 
@@ -77,14 +80,14 @@ struct SystemProcessMetadataReader: ProcessMetadataReading {
         var buffer = [CChar](repeating: 0, count: 4096)
         let length = proc_pidpath(pid, &buffer, UInt32(buffer.count))
         guard length > 0 else { return nil }
-        return String(cString: buffer)
+        return String(decoding: buffer.prefix(Int(length)).map { UInt8(bitPattern: $0) }, as: UTF8.self)
     }
 
     static func name(for pid: Int32) -> String? {
         var buffer = [CChar](repeating: 0, count: 1024)
         let length = proc_name(pid, &buffer, UInt32(buffer.count))
         guard length > 0 else { return nil }
-        return String(cString: buffer)
+        return String(decoding: buffer.prefix(Int(length)).map { UInt8(bitPattern: $0) }, as: UTF8.self)
     }
 
     static func responsiblePID(for pid: Int32) -> Int32? {
@@ -146,12 +149,15 @@ enum TopAppTopParser {
         }
 
         var rows: [TopProcessRow] = []
+        var sawDataLine = false
         for line in lines[(headerIndex + 1)...] {
             let trimmed = line.trimmingCharacters(in: .whitespaces)
             guard !trimmed.isEmpty else { continue }
+            sawDataLine = true
             guard let row = parseRow(trimmed) else { continue }
             rows.append(row)
         }
+        if sawDataLine && rows.isEmpty { return .failure(.malformedOutput) }
         return .success(rows)
     }
 
