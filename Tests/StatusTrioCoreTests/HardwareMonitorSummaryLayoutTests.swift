@@ -54,6 +54,58 @@ final class HardwareMonitorSummaryLayoutTests: XCTestCase {
     }
 
 
+
+    func testFourCardLayoutFits302WidthAndVisibilityCombinations() {
+        let localization = makeLocalization()
+        let base = snapshot(.measured)
+        func host(rings: Bool, row: Bool) -> NSHostingView<AnyView> {
+            NSHostingView(rootView: AnyView(
+                HardwareMonitorSummaryView(model: HardwareMonitorObservable(snapshot: base),
+                                           showsRings: rings, showsSummaryRow: row)
+                    .environmentObject(localization)
+                    .frame(width: 302)))
+        }
+        let both = host(rings: true, row: true)
+        both.layoutSubtreeIfNeeded()
+        XCTAssertEqual(both.fittingSize.width, 302, accuracy: 0.5, "four cards must fit 302 pt without scrolling")
+        XCTAssertGreaterThan(both.fittingSize.height, 90)
+        XCTAssertLessThan(both.fittingSize.height, 170)
+
+        let ringsOnly = host(rings: true, row: false)
+        ringsOnly.layoutSubtreeIfNeeded()
+        XCTAssertEqual(ringsOnly.fittingSize.width, 302, accuracy: 0.5)
+        XCTAssertGreaterThan(ringsOnly.fittingSize.height, 60)
+
+        let rowOnly = host(rings: false, row: true)
+        rowOnly.layoutSubtreeIfNeeded()
+        XCTAssertEqual(rowOnly.fittingSize.width, 302, accuracy: 0.5)
+        XCTAssertGreaterThan(rowOnly.fittingSize.height, 20)
+        XCTAssertLessThan(rowOnly.fittingSize.height, 60)
+
+        let none = host(rings: false, row: false)
+        none.layoutSubtreeIfNeeded()
+        XCTAssertLessThan(none.fittingSize.height, 5, "both blocks hidden renders nothing")
+    }
+
+    func testCardSurfacesAndAppearancesKeepStableSize() {
+        let localization = makeLocalization()
+        let base = snapshot(.measured)
+        for style in [PanelCardSurfaceStyle.glass, .material, .solid] {
+            for dark in [false, true] {
+                let host = NSHostingView(rootView: AnyView(
+                    HardwareMonitorSummaryView(model: HardwareMonitorObservable(snapshot: base))
+                        .environmentObject(localization)
+                        .environment(\.panelCardSurfaceStyle, style)
+                        .environment(\.colorScheme, dark ? .dark : .light)
+                        .frame(width: 302)))
+                host.layoutSubtreeIfNeeded()
+                XCTAssertEqual(host.fittingSize.width, 302, accuracy: 0.5, "\(style) \(dark)")
+                XCTAssertGreaterThan(host.fittingSize.height, 90, "\(style) \(dark)")
+                XCTAssertLessThan(host.fittingSize.height, 170, "\(style) \(dark)")
+            }
+        }
+    }
+
     func testHeightStableAcrossRateBoundariesZeroAndDash() {
         let ts = Date(timeIntervalSince1970: 1_000)
         func snap(_ net: Double?, _ availability: HardwareMetricAvailability = .measured) -> HardwareMetricsSnapshot {

@@ -8,16 +8,18 @@ import SwiftUI
 struct HardwareRingStrip: View {
     @ObservedObject var hardware: HardwareMonitorObservable
     let colors: [HardwareMonitorMetric: IconRGBA]
+    /// When true each ring is wrapped in its own glass card (status panel).
+    var carded: Bool = false
 
     @State private var disk: DiskCapacitySample = .current()
 
     private var snapshot: HardwareMetricsSnapshot { hardware.snapshot }
 
     var body: some View {
-        HStack(alignment: .top, spacing: 10) {
+        HStack(alignment: .top, spacing: carded ? 6 : 10) {
             ForEach(Slot.allCases) { slot in
                 let spec = spec(for: slot)
-                AnimatedSceneIcon(
+                let ring = AnimatedSceneIcon(
                     label: slot.label,
                     top: spec.top,
                     center: spec.center,
@@ -28,6 +30,14 @@ struct HardwareRingStrip: View {
                 .animation(.easeOut(duration: 0.55), value: spec.progress)
                 .frame(maxWidth: .infinity)
                 .aspectRatio(1, contentMode: .fit)
+                if carded {
+                    ring
+                        .padding(5)
+                        .frame(maxWidth: .infinity)
+                        .panelCardSurface(.silver(.connected), tint: .clear, cornerRadius: 13)
+                } else {
+                    ring
+                }
             }
         }
     }
