@@ -1325,6 +1325,11 @@
 "hardware.detail.swapUsed" = "已用 Swap";
 "hardware.detail.download" = "下载";
 "hardware.detail.upload" = "上传";
+"hardware.detail.topApps.title" = "高占用应用";
+"hardware.detail.topApps.collecting" = "采集中…";
+"hardware.detail.topApps.empty" = "暂无活跃应用";
+"hardware.detail.topApps.unsupported" = "暂不支持";
+"hardware.detail.topApps.failed" = "读取失败";
 "hardware.detail.sessionDownload" = "本次下载";
 "hardware.detail.sessionUpload" = "本次上传";
 "hardware.detail.interfaces" = "网络接口";

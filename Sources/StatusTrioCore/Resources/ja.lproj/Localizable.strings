@@ -1325,6 +1325,11 @@
 "hardware.detail.swapUsed" = "Swap使用量";
 "hardware.detail.download" = "ダウンロード";
 "hardware.detail.upload" = "アップロード";
+"hardware.detail.topApps.title" = "上位アプリ";
+"hardware.detail.topApps.collecting" = "収集中…";
+"hardware.detail.topApps.empty" = "アクティブなアプリなし";
+"hardware.detail.topApps.unsupported" = "未対応";
+"hardware.detail.topApps.failed" = "読み取り失敗";
 "hardware.detail.sessionDownload" = "今回のダウンロード";
 "hardware.detail.sessionUpload" = "今回のアップロード";
 "hardware.detail.interfaces" = "インターフェース";

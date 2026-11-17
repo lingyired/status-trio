@@ -11,6 +11,8 @@ struct HardwareDetailView: View {
     var previewHistory: [HardwareDetailHistoryPoint]? = nil
     /// Ring/card colours from settings; the chart uses the matching metric colour.
     var metricColors: [HardwareMonitorMetric: IconRGBA] = [:]
+    /// The visible page's ranked list; nil keeps offscreen previews static.
+    var topApps: TopAppsObservable? = nil
 
     @EnvironmentObject private var localization: Localization
     @StateObject private var history: HardwareDetailHistoryStore
@@ -18,11 +20,13 @@ struct HardwareDetailView: View {
     init(kind: HardwareDetailKind, hardware: HardwareMonitorObservable,
          onBack: @escaping () -> Void,
          metricColors: [HardwareMonitorMetric: IconRGBA] = [:],
+         topApps: TopAppsObservable? = nil,
          previewHistory: [HardwareDetailHistoryPoint]? = nil) {
         self.kind = kind
         _hardware = ObservedObject(wrappedValue: hardware)
         self.onBack = onBack
         self.metricColors = metricColors
+        self.topApps = topApps
         self.previewHistory = previewHistory
         _history = StateObject(wrappedValue: HardwareDetailHistoryStore(seriesCount: kind.historySeriesCount,
                                                                         seeded: previewHistory))
@@ -37,6 +41,9 @@ struct HardwareDetailView: View {
                               title: localization.string(kind.titleKey),
                               action: onBack)
             content
+            if let topApps, let metric = kind.topAppMetric {
+                TopAppsListView(metric: metric, observable: topApps)
+            }
         }
         .onAppear {
             guard previewHistory == nil else { return }

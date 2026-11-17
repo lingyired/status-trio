@@ -1325,6 +1325,11 @@
 "hardware.detail.swapUsed" = "Swap المستخدم";
 "hardware.detail.download" = "التنزيل";
 "hardware.detail.upload" = "الرفع";
+"hardware.detail.topApps.title" = "التطبيقات الأكثر استخدامًا";
+"hardware.detail.topApps.collecting" = "جارٍ الجمع…";
+"hardware.detail.topApps.empty" = "لا توجد تطبيقات نشطة";
+"hardware.detail.topApps.unsupported" = "غير مدعوم";
+"hardware.detail.topApps.failed" = "تعذرت القراءة";
 "hardware.detail.sessionDownload" = "تنزيل الجلسة";
 "hardware.detail.sessionUpload" = "رفع الجلسة";
 "hardware.detail.interfaces" = "الواجهات";

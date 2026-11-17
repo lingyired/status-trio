@@ -1325,6 +1325,11 @@
 "hardware.detail.swapUsed" = "Исп. Swap";
 "hardware.detail.download" = "Загрузка";
 "hardware.detail.upload" = "Отдача";
+"hardware.detail.topApps.title" = "Основные приложения";
+"hardware.detail.topApps.collecting" = "Сбор данных…";
+"hardware.detail.topApps.empty" = "Нет активных приложений";
+"hardware.detail.topApps.unsupported" = "Не поддерживается";
+"hardware.detail.topApps.failed" = "Ошибка чтения";
 "hardware.detail.sessionDownload" = "Загрузка (сеанс)";
 "hardware.detail.sessionUpload" = "Отдача (сеанс)";
 "hardware.detail.interfaces" = "Интерфейсы";

@@ -1325,6 +1325,11 @@
 "hardware.detail.swapUsed" = "Swap usado";
 "hardware.detail.download" = "Download";
 "hardware.detail.upload" = "Upload";
+"hardware.detail.topApps.title" = "Apps principais";
+"hardware.detail.topApps.collecting" = "Coletando…";
+"hardware.detail.topApps.empty" = "Nenhum app ativo";
+"hardware.detail.topApps.unsupported" = "Não suportado";
+"hardware.detail.topApps.failed" = "Falha ao ler";
 "hardware.detail.sessionDownload" = "Download (sessão)";
 "hardware.detail.sessionUpload" = "Upload (sessão)";
 "hardware.detail.interfaces" = "Interfaces";

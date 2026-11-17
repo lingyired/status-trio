@@ -1325,6 +1325,11 @@
 "hardware.detail.swapUsed" = "已用 Swap";
 "hardware.detail.download" = "下載";
 "hardware.detail.upload" = "上傳";
+"hardware.detail.topApps.title" = "高佔用應用";
+"hardware.detail.topApps.collecting" = "採集中…";
+"hardware.detail.topApps.empty" = "尚無活躍應用";
+"hardware.detail.topApps.unsupported" = "暫不支援";
+"hardware.detail.topApps.failed" = "讀取失敗";
 "hardware.detail.sessionDownload" = "本次下載";
 "hardware.detail.sessionUpload" = "本次上傳";
 "hardware.detail.interfaces" = "網路介面";

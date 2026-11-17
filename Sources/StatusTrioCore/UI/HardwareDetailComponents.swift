@@ -15,6 +15,13 @@ enum HardwareDetailFormat {
         return "\(Int((min(1, max(0, fraction)) * 100).rounded()))%"
     }
 
+    /// Application CPU/GPU percentages may exceed 100% on multi-core machines,
+    /// so they must not use the whole-machine 0–100 clamping above.
+    static func appPercent(_ value: Double) -> String {
+        guard value.isFinite, value >= 0 else { return dash }
+        return String(format: "%.1f%%", value)
+    }
+
     static func temperature(_ value: Double?) -> String {
         guard let value, value.isFinite else { return dash }
         return "\(Int(value.rounded()))°C"

@@ -131,7 +131,8 @@ struct StatusPopoverView: View {
                 HardwareDetailView(kind: kind,
                                    hardware: panel.hardwareMonitor,
                                    onBack: { panel.showSummaryPage() },
-                                   metricColors: panel.hardwareMonitorMetricColors)
+                                   metricColors: panel.hardwareMonitorMetricColors,
+                                   topApps: panel.topApps)
             }
         }
         .padding(.top, 14)
