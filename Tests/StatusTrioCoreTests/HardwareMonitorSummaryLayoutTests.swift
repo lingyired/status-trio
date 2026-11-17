@@ -88,6 +88,39 @@ final class HardwareMonitorSummaryLayoutTests: XCTestCase {
         XCTAssertLessThan(none.fittingSize.height, 5, "both blocks hidden renders nothing")
     }
 
+    func testRingAndInfoSubsetsCollapseEmptyBlocks() {
+        let localization = makeLocalization()
+        let base = snapshot(.measured)
+        func host(rings: [HardwareRingSlot], info: Set<HardwareSummaryMetric>) -> NSHostingView<AnyView> {
+            NSHostingView(rootView: AnyView(
+                HardwareMonitorSummaryView(model: HardwareMonitorObservable(snapshot: base),
+                                           ringSlots: rings, summaryMetrics: info)
+                    .environmentObject(localization)
+                    .frame(width: 302)))
+        }
+
+        let threeEach = host(rings: [.cpu, .ram, .ssd], info: [.download, .upload, .disk])
+        threeEach.layoutSubtreeIfNeeded()
+        XCTAssertEqual(threeEach.fittingSize.width, 302, accuracy: 0.5,
+                       "three cards and three info items still fit without scrolling")
+        XCTAssertGreaterThan(threeEach.fittingSize.height, 90)
+
+        let ringsGone = host(rings: [], info: Set(HardwareSummaryMetric.allCases))
+        ringsGone.layoutSubtreeIfNeeded()
+        XCTAssertLessThan(ringsGone.fittingSize.height, 60,
+                          "hiding every ring collapses the ring block")
+
+        let infoGone = host(rings: HardwareRingSlot.allCases, info: [])
+        infoGone.layoutSubtreeIfNeeded()
+        XCTAssertGreaterThan(infoGone.fittingSize.height, 60)
+        XCTAssertLessThan(infoGone.fittingSize.height, 170,
+                          "hiding every info item collapses only the info bar")
+
+        let allGone = host(rings: [], info: [])
+        allGone.layoutSubtreeIfNeeded()
+        XCTAssertLessThan(allGone.fittingSize.height, 5, "nothing to draw renders nothing")
+    }
+
     func testCardSurfacesAndAppearancesKeepStableSize() {
         let localization = makeLocalization()
         let base = snapshot(.measured)

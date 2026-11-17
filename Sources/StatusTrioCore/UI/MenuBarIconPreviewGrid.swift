@@ -10,6 +10,9 @@ struct HardwareRingStrip: View {
     let colors: [HardwareMonitorMetric: IconRGBA]
     /// When true each ring is wrapped in its own glass card (status panel).
     var carded: Bool = false
+    /// Which rings to draw, in order. Remaining rings share the full width, so
+    /// hiding one makes the others evenly fill the row.
+    var visibleSlots: [HardwareRingSlot] = HardwareRingSlot.allCases
     /// Carded mode lifts the top percentage by this many points for optical
     /// centring inside the arc's top opening; other surfaces keep 0.
     static let cardedTopTextAdjustment: CGFloat = -3
@@ -20,7 +23,7 @@ struct HardwareRingStrip: View {
 
     var body: some View {
         HStack(alignment: .top, spacing: carded ? 6 : 10) {
-            ForEach(Slot.allCases) { slot in
+            ForEach(visibleSlots) { slot in
                 let spec = spec(for: slot)
                 let ring = AnimatedSceneIcon(
                     label: slot.label,
@@ -48,13 +51,7 @@ struct HardwareRingStrip: View {
 
     // MARK: - Slots
 
-    private enum Slot: String, CaseIterable, Identifiable {
-        case cpu, gpu, ram, ssd
-        var id: String { rawValue }
-        var label: String { rawValue.uppercased() }
-    }
-
-    private func spec(for slot: Slot) -> (top: String, center: String, progress: Double, color: IconRGBA, centerScale: Double) {
+    private func spec(for slot: HardwareRingSlot) -> (top: String, center: String, progress: Double, color: IconRGBA, centerScale: Double) {
         switch slot {
         case .cpu:
             let center = temperatureText(.cpuTemperature)

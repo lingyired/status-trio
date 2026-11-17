@@ -179,6 +179,10 @@ final class StatusPanelViewModel: ObservableObject {
     /// Which hardware-summary blocks are visible.
     @Published private(set) var showsHardwareRings: Bool
     @Published private(set) var showsHardwareSummaryRow: Bool
+    /// Which ring cards and bottom info-bar items the summary draws; hidden
+    /// items collapse so the rest divide the width evenly.
+    @Published private(set) var enabledHardwareRingSlots: Set<HardwareRingSlot>
+    @Published private(set) var enabledHardwareSummaryMetrics: Set<HardwareSummaryMetric>
 
     private var isStarted = false
     private var bluetoothIsExpanded = false
@@ -239,6 +243,8 @@ final class StatusPanelViewModel: ObservableObject {
         statusPanelMediumTextEnabled = settings.statusPanelMediumTextEnabled
         showsHardwareRings = settings.showsHardwareRings
         showsHardwareSummaryRow = settings.showsHardwareSummaryRow
+        enabledHardwareRingSlots = settings.enabledHardwareRingSlots
+        enabledHardwareSummaryMetrics = settings.enabledHardwareSummaryMetrics
         hardwareSpeedCapsMbps = [
             .downloadSpeed: settings.hardwareDownloadCapMbps,
             .uploadSpeed: settings.hardwareUploadCapMbps
@@ -448,6 +454,22 @@ final class StatusPanelViewModel: ObservableObject {
             .sink { [weak self] value in
                 guard let self, self.showsHardwareSummaryRow != value else { return }
                 self.showsHardwareSummaryRow = value
+            }
+            .store(in: &cancellables)
+
+        settings.$enabledHardwareRingSlots
+            .removeDuplicates()
+            .sink { [weak self] slots in
+                guard let self, self.enabledHardwareRingSlots != slots else { return }
+                self.enabledHardwareRingSlots = slots
+            }
+            .store(in: &cancellables)
+
+        settings.$enabledHardwareSummaryMetrics
+            .removeDuplicates()
+            .sink { [weak self] metrics in
+                guard let self, self.enabledHardwareSummaryMetrics != metrics else { return }
+                self.enabledHardwareSummaryMetrics = metrics
             }
             .store(in: &cancellables)
 

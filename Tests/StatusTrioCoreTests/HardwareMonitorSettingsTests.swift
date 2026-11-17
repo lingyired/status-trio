@@ -85,4 +85,58 @@ final class HardwareMonitorSettingsTests: XCTestCase {
         store.setPopupSection(.hardwareMonitor, enabled: true)
         XCTAssertTrue(store.enabledPopupSections.contains(.hardwareMonitor))
     }
+
+    // MARK: - Status-panel per-item visibility
+
+    func testPanelItemsDefaultToAllEnabled() {
+        let (defaults, name) = makeSuite()
+        defer { defaults.removePersistentDomain(forName: name) }
+        let store = SettingsStore(defaults: defaults)
+        XCTAssertEqual(store.enabledHardwareRingSlots, Set(HardwareRingSlot.allCases))
+        XCTAssertEqual(store.enabledHardwareSummaryMetrics, Set(HardwareSummaryMetric.allCases))
+    }
+
+    func testDisablingOneRingKeepsTheRestAndPersists() {
+        let (defaults, name) = makeSuite()
+        defer { defaults.removePersistentDomain(forName: name) }
+        let store = SettingsStore(defaults: defaults)
+        store.setHardwareRingSlot(.gpu, enabled: false)
+        XCTAssertEqual(store.enabledHardwareRingSlots, [.cpu, .ram, .ssd])
+
+        let reopened = SettingsStore(defaults: defaults)
+        XCTAssertEqual(reopened.enabledHardwareRingSlots, [.cpu, .ram, .ssd],
+                       "the hidden ring must survive a relaunch")
+        reopened.setHardwareRingSlot(.gpu, enabled: true)
+        XCTAssertEqual(reopened.enabledHardwareRingSlots, Set(HardwareRingSlot.allCases))
+    }
+
+    func testLastRingAndLastInfoItemCannotBeTurnedOff() {
+        let (defaults, name) = makeSuite()
+        defer { defaults.removePersistentDomain(forName: name) }
+        let store = SettingsStore(defaults: defaults)
+        for slot in HardwareRingSlot.allCases.dropLast() {
+            store.setHardwareRingSlot(slot, enabled: false)
+        }
+        XCTAssertEqual(store.enabledHardwareRingSlots, [.ssd])
+        store.setHardwareRingSlot(.ssd, enabled: false)
+        XCTAssertEqual(store.enabledHardwareRingSlots, [.ssd], "the final ring stays on")
+
+        for metric in HardwareSummaryMetric.allCases.dropLast() {
+            store.setHardwareSummaryMetric(metric, enabled: false)
+        }
+        XCTAssertEqual(store.enabledHardwareSummaryMetrics, [.disk])
+        store.setHardwareSummaryMetric(.disk, enabled: false)
+        XCTAssertEqual(store.enabledHardwareSummaryMetrics, [.disk], "the final info item stays on")
+    }
+
+    func testEmptyStoredPanelSetsFallBackToDefaults() {
+        let (defaults, name) = makeSuite()
+        defer { defaults.removePersistentDomain(forName: name) }
+        defaults.set([String](), forKey: SettingsStore.enabledHardwareRingSlotsDefaultsKey)
+        defaults.set(["bogus"], forKey: SettingsStore.enabledHardwareSummaryMetricsDefaultsKey)
+        let store = SettingsStore(defaults: defaults)
+        XCTAssertEqual(store.enabledHardwareRingSlots, Set(HardwareRingSlot.allCases))
+        XCTAssertEqual(store.enabledHardwareSummaryMetrics, Set(HardwareSummaryMetric.allCases),
+                       "an all-invalid set must not leave an empty block")
+    }
 }

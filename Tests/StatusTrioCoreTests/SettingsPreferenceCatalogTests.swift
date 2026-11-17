@@ -27,7 +27,7 @@ final class SettingsPreferenceCatalogTests: XCTestCase {
                 "autoEnablesLowPowerMode", "showsAppleDevicesAndBattery",
                 "refreshesAppleBatteriesInBackground", "appleBatteryRefreshIntervalMinutes",
                 "showsBluetoothListeningMode", "bluetoothAudioIconChoiceRawValue", "wifiSymbolScale",
-                "volumeDisplayStyle", "ringStrokeStyle", "hardwareBackgroundRefreshSeconds", "hardwarePanelRefreshSeconds", "showsHardwareRings", "showsHardwareSummaryRow", "refreshIntervalOnBatterySeconds",
+                "volumeDisplayStyle", "ringStrokeStyle", "hardwareBackgroundRefreshSeconds", "hardwarePanelRefreshSeconds", "showsHardwareRings", "showsHardwareSummaryRow", "enabledHardwareRingSlots", "enabledHardwareSummaryMetrics", "refreshIntervalOnBatterySeconds",
                 "refreshIntervalOnPowerSeconds", "maxVisibleOutputDevices", "alwaysShowsAllOutputDevices",
                 "maxVisibleInputDevices", "alwaysShowsAllInputDevices", "showsBluetoothDeviceList",
                 "maxVisibleBluetoothDevices", "hidesGhostBluetoothDevices", "popupSectionOrder",
@@ -52,6 +52,8 @@ final class SettingsPreferenceCatalogTests: XCTestCase {
             source.bluetoothAudioIconChoice = .airpods
             source.setPopupSection(.brightness, enabled: true)
             source.movePopupSections(fromOffsets: IndexSet(integer: 7), toOffset: 0)
+            source.setHardwareRingSlot(.gpu, enabled: false)
+            source.setHardwareSummaryMetric(.fan, enabled: false)
             let snapshot = SettingsPreferenceCatalog.snapshot(source)
             let prepared = SettingsPreferenceCatalog.prepare(snapshot)
             XCTAssertTrue(prepared.warnings.isEmpty)

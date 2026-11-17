@@ -306,7 +306,11 @@ struct StatusPopoverView: View {
             HardwareMonitorSummaryView(model: panel.hardwareMonitor,
                                        metricColors: panel.hardwareMonitorMetricColors,
                                        showsRings: panel.showsHardwareRings,
-                                       showsSummaryRow: panel.showsHardwareSummaryRow)
+                                       showsSummaryRow: panel.showsHardwareSummaryRow,
+                                       ringSlots: HardwareRingSlot.allCases.filter {
+                                           panel.enabledHardwareRingSlots.contains($0)
+                                       },
+                                       summaryMetrics: panel.enabledHardwareSummaryMetrics)
         }
     }
 

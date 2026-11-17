@@ -184,6 +184,8 @@ final class SettingsStore: ObservableObject {
     static let hardwarePanelRefreshSecondsDefaultsKey = "hardwarePanelRefreshSeconds"
     static let showsHardwareRingsDefaultsKey = "showsHardwareRings"
     static let showsHardwareSummaryRowDefaultsKey = "showsHardwareSummaryRow"
+    static let enabledHardwareRingSlotsDefaultsKey = "enabledHardwareRingSlotsV1"
+    static let enabledHardwareSummaryMetricsDefaultsKey = "enabledHardwareSummaryMetricsV1"
     static let hardwareSpeedCapRange: ClosedRange<Double> = 1...100000
     static let defaultHardwareDownloadCapMbps: Double = 1000
     static let defaultHardwareUploadCapMbps: Double = 100
@@ -276,6 +278,11 @@ final class SettingsStore: ObservableObject {
     static let defaultHardwareMonitorMetricOrder: [HardwareMonitorMetric] = HardwareMonitorMetric.allCases
     static let defaultEnabledHardwareMonitorMetrics: Set<HardwareMonitorMetric> =
         HardwareMonitorMetric.defaultEnabledMetrics
+    /// Status-panel summary: every ring card and every bottom info-bar item is
+    /// shown until the user switches one off.
+    static let defaultEnabledHardwareRingSlots: Set<HardwareRingSlot> = Set(HardwareRingSlot.allCases)
+    static let defaultEnabledHardwareSummaryMetrics: Set<HardwareSummaryMetric> =
+        Set(HardwareSummaryMetric.allCases)
     /// Legacy keys kept only as migration sources for the single panel-scroll
     /// option this change introduces. They are never written again.
     static let legacyPopupScrollAdjustsVolumeDefaultsKey = "popupScrollAdjustsVolume"
@@ -1242,6 +1249,59 @@ final class SettingsStore: ObservableObject {
 
     @Published var showsHardwareSummaryRow: Bool = true {
         didSet { defaults.set(showsHardwareSummaryRow, forKey: Self.showsHardwareSummaryRowDefaultsKey) }
+    }
+
+    /// Which ring cards the status-panel hardware summary shows. Hiding one lets
+    /// the rest divide the row width evenly; at least one stays on so a block
+    /// never collapses silently while its master toggle is on.
+    @Published private(set) var enabledHardwareRingSlots: Set<HardwareRingSlot> {
+        didSet {
+            defaults.set(
+                enabledHardwareRingSlots.map(\.rawValue).sorted(),
+                forKey: Self.enabledHardwareRingSlotsDefaultsKey
+            )
+        }
+    }
+
+    /// Which bottom info-bar metrics the status-panel hardware summary shows.
+    @Published private(set) var enabledHardwareSummaryMetrics: Set<HardwareSummaryMetric> {
+        didSet {
+            defaults.set(
+                enabledHardwareSummaryMetrics.map(\.rawValue).sorted(),
+                forKey: Self.enabledHardwareSummaryMetricsDefaultsKey
+            )
+        }
+    }
+
+    /// Turn one ring card on or off. The final remaining ring cannot be removed.
+    func setHardwareRingSlot(_ slot: HardwareRingSlot, enabled: Bool) {
+        if enabled {
+            enabledHardwareRingSlots.insert(slot)
+        } else if enabledHardwareRingSlots.count > 1 {
+            enabledHardwareRingSlots.remove(slot)
+        }
+    }
+
+    /// Turn one bottom info-bar metric on or off. The final remaining item
+    /// cannot be removed.
+    func setHardwareSummaryMetric(_ metric: HardwareSummaryMetric, enabled: Bool) {
+        if enabled {
+            enabledHardwareSummaryMetrics.insert(metric)
+        } else if enabledHardwareSummaryMetrics.count > 1 {
+            enabledHardwareSummaryMetrics.remove(metric)
+        }
+    }
+
+    /// Replace the whole enabled set (settings import). Ignores an empty set so a
+    /// transfer can never leave a block with nothing to draw.
+    func setEnabledHardwareRingSlots(_ slots: Set<HardwareRingSlot>) {
+        guard !slots.isEmpty else { return }
+        enabledHardwareRingSlots = slots
+    }
+
+    func setEnabledHardwareSummaryMetrics(_ metrics: Set<HardwareSummaryMetric>) {
+        guard !metrics.isEmpty else { return }
+        enabledHardwareSummaryMetrics = metrics
     }
 
     @Published var bluetoothAudioIconChoiceRawValue: String {
@@ -2902,6 +2962,10 @@ final class SettingsStore: ObservableObject {
             ? storedPanel : Self.defaultHardwarePanelRefreshSeconds
         self.showsHardwareRings = defaults.object(forKey: Self.showsHardwareRingsDefaultsKey) as? Bool ?? true
         self.showsHardwareSummaryRow = defaults.object(forKey: Self.showsHardwareSummaryRowDefaultsKey) as? Bool ?? true
+        self.enabledHardwareRingSlots = Self.sanitizedEnabledHardwareRingSlots(
+            defaults.array(forKey: Self.enabledHardwareRingSlotsDefaultsKey) as? [String])
+        self.enabledHardwareSummaryMetrics = Self.sanitizedEnabledHardwareSummaryMetrics(
+            defaults.array(forKey: Self.enabledHardwareSummaryMetricsDefaultsKey) as? [String])
         bootstrapIconConfiguration()
     }
 
@@ -3174,6 +3238,18 @@ final class SettingsStore: ObservableObject {
         // An empty/corrupt stored set would leave an enabled card with nothing to
         // draw; fall back to the defaults instead of an empty section.
         return parsed.isEmpty ? Self.defaultEnabledHardwareMonitorMetrics : parsed
+    }
+
+    static func sanitizedEnabledHardwareRingSlots(_ rawValues: [String]?) -> Set<HardwareRingSlot> {
+        guard let rawValues else { return Self.defaultEnabledHardwareRingSlots }
+        let parsed = Set(rawValues.compactMap(HardwareRingSlot.init(rawValue:)))
+        return parsed.isEmpty ? Self.defaultEnabledHardwareRingSlots : parsed
+    }
+
+    static func sanitizedEnabledHardwareSummaryMetrics(_ rawValues: [String]?) -> Set<HardwareSummaryMetric> {
+        guard let rawValues else { return Self.defaultEnabledHardwareSummaryMetrics }
+        let parsed = Set(rawValues.compactMap(HardwareSummaryMetric.init(rawValue:)))
+        return parsed.isEmpty ? Self.defaultEnabledHardwareSummaryMetrics : parsed
     }
 
     static func sanitizedPopupSectionOrder(_ rawValues: [String]) -> [PopupSection] {

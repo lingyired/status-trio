@@ -1,8 +1,32 @@
 import Foundation
 
+/// Identity of one of the four ring cards (CPU, GPU, RAM, SSD) in the
+/// status-panel hardware summary. The stored preference is a stable string so
+/// unknown future values can be filtered safely on downgrade.
+enum HardwareRingSlot: String, CaseIterable, Identifiable, Sendable {
+    case cpu, gpu, ram, ssd
+
+    var id: Self { self }
+
+    /// Ring label drawn on the arc, reused as the per-item settings title.
+    var label: String { rawValue.uppercased() }
+}
+
 /// Fixed identity of one of the four compact summary slots under the rings.
-enum HardwareSummaryMetric: String, CaseIterable, Sendable {
+enum HardwareSummaryMetric: String, CaseIterable, Identifiable, Sendable {
     case download, upload, fan, disk
+
+    var id: Self { self }
+
+    /// Localized title shown in the per-item settings toggles.
+    var titleKey: LocalizationKey {
+        switch self {
+        case .download: .hardwareMonitorDownload
+        case .upload: .hardwareMonitorUpload
+        case .fan: .hardwareMonitorFan
+        case .disk: .hardwareMonitorDisk
+        }
+    }
 }
 
 /// Everything the compact summary row needs to draw one slot, with formatting
