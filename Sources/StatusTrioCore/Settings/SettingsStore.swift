@@ -192,7 +192,7 @@ final class SettingsStore: ObservableObject {
     /// Background sampling cadence for the status-panel hardware summary while
     /// the panel is closed. 0 means off (no background reads); the default keeps
     /// the app idle-when-closed unless the user opts in.
-    static let hardwareBackgroundRefreshOptions: [Int] = [0, 5, 10, 15, 30, 60]
+    static let hardwareBackgroundRefreshOptions: [Int] = [0, 2, 5, 10, 15, 30, 60]
     static let defaultHardwareBackgroundRefreshSeconds: Int = 0
     /// Refresh cadence for the status-panel hardware summary while it is open.
     /// 1 s preserves the historical fastest cadence; slower options trade
