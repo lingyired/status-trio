@@ -92,21 +92,13 @@ enum HardwareDetailChartGeometry {
         return result
     }
 
-    /// Break a gap only when it is both above the 8 s floor and well above the
-    /// series' own median interval, so a uniformly slow cadence still connects
-    /// while a real pause breaks. This is the main difference from a fixed
-    /// threshold, which turns every slow sample into an isolated dot.
+    /// The chart window is 60 s, so any two visible samples are at most 60 s
+    /// apart. Keep the curve continuous across normal cadence changes (1 s ↔ 15 s
+    /// ↔ 60 s) instead of turning slow samples into isolated dots; a lone sample
+    /// is still drawn as a dot. Gaps larger than the window simply contain no
+    /// points, so nothing is fabricated.
     static func breakThreshold(for samples: [HardwareDetailChartSample]) -> TimeInterval {
-        guard samples.count > 2 else { return HardwareDetailHistoryStore.maximumGap }
-        var intervals: [TimeInterval] = []
-        for index in 1..<samples.count {
-            let gap = samples[index].date.timeIntervalSince(samples[index - 1].date)
-            if gap > 0 { intervals.append(gap) }
-        }
-        guard !intervals.isEmpty else { return HardwareDetailHistoryStore.maximumGap }
-        intervals.sort()
-        let median = intervals[intervals.count / 2]
-        return max(HardwareDetailHistoryStore.maximumGap, median * 2.5)
+        HardwareDetailHistoryStore.window
     }
 
     static func segments(for samples: [HardwareDetailChartSample],

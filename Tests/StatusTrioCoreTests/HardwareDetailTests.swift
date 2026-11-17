@@ -189,21 +189,21 @@ final class HardwareDetailTests: XCTestCase {
         let samples = HardwareDetailChartGeometry.samples(points: points, series: 0, now: now,
                                                           yMaximum: 100, size: CGSize(width: 300, height: 50))
         let threshold = HardwareDetailChartGeometry.breakThreshold(for: samples)
-        XCTAssertEqual(threshold, 25, accuracy: 0.001) // 2.5 × 10 s median
+        XCTAssertEqual(threshold, HardwareDetailHistoryStore.window, accuracy: 0.001)
         XCTAssertEqual(HardwareDetailChartGeometry.segments(for: samples, threshold: threshold).count, 1)
         XCTAssertTrue(HardwareDetailChartGeometry.isolatedPoints(for: samples, threshold: threshold).isEmpty)
     }
 
-    func testChartGeometryBreaksAGenuinePause() {
+    func testChartGeometryKeepsMixedCadenceContinuous() {
         let now = Date()
-        let points = geometryPoints([-40, -39, -38, -20], now: now)
+        // 1 s samples, then a 19 s slow gap, then more 1 s samples.
+        let points = geometryPoints([-40, -39, -38, -19, -18, -17], now: now)
         let samples = HardwareDetailChartGeometry.samples(points: points, series: 0, now: now,
                                                           yMaximum: 100, size: CGSize(width: 300, height: 50))
         let threshold = HardwareDetailChartGeometry.breakThreshold(for: samples)
-        XCTAssertEqual(threshold, HardwareDetailHistoryStore.maximumGap, accuracy: 0.001)
-        XCTAssertEqual(HardwareDetailChartGeometry.segments(for: samples, threshold: threshold).count, 2)
-        // The lone sample after the pause is drawn as a dot.
-        XCTAssertEqual(HardwareDetailChartGeometry.isolatedPoints(for: samples, threshold: threshold).count, 1)
+        XCTAssertEqual(threshold, HardwareDetailHistoryStore.window, accuracy: 0.001)
+        XCTAssertEqual(HardwareDetailChartGeometry.segments(for: samples, threshold: threshold).count, 1)
+        XCTAssertTrue(HardwareDetailChartGeometry.isolatedPoints(for: samples, threshold: threshold).isEmpty)
     }
 
     func testChartGeometrySinglePointIsIsolated() {
