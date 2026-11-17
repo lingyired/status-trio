@@ -175,6 +175,46 @@ final class HardwareDetailTests: XCTestCase {
         XCTAssertTrue(observable.historyRowsForDetail.isEmpty)
     }
 
+    // MARK: - Chart geometry
+
+    private func geometryPoints(_ offsets: [TimeInterval], now: Date) -> [HardwareDetailHistoryPoint] {
+        offsets.enumerated().map { index, offset in
+            HardwareDetailHistoryPoint(id: index, date: now.addingTimeInterval(offset), values: [25])
+        }
+    }
+
+    func testChartGeometryKeepsUniformSlowCadenceConnected() {
+        let now = Date()
+        let points = geometryPoints([-40, -30, -20, -10], now: now)
+        let samples = HardwareDetailChartGeometry.samples(points: points, series: 0, now: now,
+                                                          yMaximum: 100, size: CGSize(width: 300, height: 50))
+        let threshold = HardwareDetailChartGeometry.breakThreshold(for: samples)
+        XCTAssertEqual(threshold, 25, accuracy: 0.001) // 2.5 × 10 s median
+        XCTAssertEqual(HardwareDetailChartGeometry.segments(for: samples, threshold: threshold).count, 1)
+        XCTAssertTrue(HardwareDetailChartGeometry.isolatedPoints(for: samples, threshold: threshold).isEmpty)
+    }
+
+    func testChartGeometryBreaksAGenuinePause() {
+        let now = Date()
+        let points = geometryPoints([-40, -39, -38, -20], now: now)
+        let samples = HardwareDetailChartGeometry.samples(points: points, series: 0, now: now,
+                                                          yMaximum: 100, size: CGSize(width: 300, height: 50))
+        let threshold = HardwareDetailChartGeometry.breakThreshold(for: samples)
+        XCTAssertEqual(threshold, HardwareDetailHistoryStore.maximumGap, accuracy: 0.001)
+        XCTAssertEqual(HardwareDetailChartGeometry.segments(for: samples, threshold: threshold).count, 2)
+        // The lone sample after the pause is drawn as a dot.
+        XCTAssertEqual(HardwareDetailChartGeometry.isolatedPoints(for: samples, threshold: threshold).count, 1)
+    }
+
+    func testChartGeometrySinglePointIsIsolated() {
+        let now = Date()
+        let points = geometryPoints([-10], now: now)
+        let samples = HardwareDetailChartGeometry.samples(points: points, series: 0, now: now,
+                                                          yMaximum: 100, size: CGSize(width: 300, height: 50))
+        XCTAssertEqual(HardwareDetailChartGeometry.isolatedPoints(
+            for: samples, threshold: HardwareDetailHistoryStore.maximumGap).count, 1)
+    }
+
     // MARK: - Formatting
 
     func testFormatFallsBackToDash() {
