@@ -50,17 +50,23 @@ final class HardwareSampler: @unchecked Sendable {
                 // last query; querying IOAccelerator twice in a row makes the
                 // second read see an empty interval and report 0%. Read once and
                 // derive both the plain sample and the detail from it.
-                let gpuDetail: GPUDetailReading? = details.contains(.gpu)
+                let wantsGPUDetail = details.contains(.gpu)
+                let gpuDetail: GPUDetailReading? = wantsGPUDetail
                     ? self.gpuReader.readDetail(at: date) : nil
                 let gpuReading: GPUReading? = gpuDetail.flatMap { detail in
                     guard let usage = detail.usage else { return nil }
                     return GPUReading(usage: usage, deviceName: detail.deviceName, sampledAt: date)
                 }
+                // Read IOAccelerator exactly once per tick: reuse the detail read
+                // when the GPU page is open, otherwise fall back to the plain read.
+                let gpuProvider: (Date) -> GPUReading? = { sampleDate in
+                    wantsGPUDetail ? gpuReading : self.gpuReader.read(at: sampleDate)
+                }
                 var snapshot = Self.collect(ids: ids, isFirstCPURead: first, at: date,
                                             cpuProvider: { self.cpuReader.read(at: $0) },
                                             frequencyProvider: { wantsFrequency ? self.cpuFrequencyReader.read(at: $0) : nil },
                                             includeCPUFrequency: wantsFrequency,
-                                            gpuProvider: { _ in gpuReading },
+                                            gpuProvider: gpuProvider,
                                             memoryProvider: { self.memoryReader.read(at: $0) },
                                             sensorProvider: { temperature, gpuTemperature, batteryTemperature, fans, date in
                     self.sensorReader.read(includeTemperature: temperature,
