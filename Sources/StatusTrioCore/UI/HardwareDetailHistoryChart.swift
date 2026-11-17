@@ -27,10 +27,18 @@ struct HardwareDetailHistoryChart: View {
         }
     }
 
+    private var maximumLabel: String {
+        scale == .percent ? "100%" : HardwareDetailFormat.rateAxis(yMaximum)
+    }
+
+    private var minimumLabel: String {
+        scale == .percent ? "0%" : "0"
+    }
+
     var body: some View {
         let maximum = yMaximum
         return VStack(spacing: 2) {
-            ZStack {
+            ZStack(alignment: .topLeading) {
                 HardwareDetailGrid()
                 ForEach(colors.indices, id: \.self) { index in
                     HardwareDetailLineShape(points: points, series: index, now: now, yMaximum: maximum)
@@ -41,12 +49,24 @@ struct HardwareDetailHistoryChart: View {
                     HardwareDetailChartDot(points: points, series: index, now: now,
                                            yMaximum: maximum, color: colors[index])
                 }
+                // Vertical (value) axis labels sit on the left edge, so the
+                // bottom row can describe time instead of repeating 0/100.
+                VStack(alignment: .leading) {
+                    Text(maximumLabel)
+                    Spacer(minLength: 0)
+                    Text(minimumLabel)
+                }
+                .font(.system(size: 8))
+                .foregroundStyle(.tertiary)
+                .padding(.leading, 2)
+                .padding(.vertical, 1)
+                .allowsHitTesting(false)
             }
             .frame(height: 54)
             HStack {
-                Text(scale == .percent ? "0%" : "0")
+                Text("-60s")
                 Spacer()
-                Text(scale == .percent ? "100%" : HardwareDetailFormat.rateAxis(maximum))
+                Text("0s")
             }
             .font(.system(size: 8))
             .foregroundStyle(.tertiary)
