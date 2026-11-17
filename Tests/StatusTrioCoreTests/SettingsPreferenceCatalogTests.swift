@@ -92,11 +92,11 @@ final class SettingsPreferenceCatalogTests: XCTestCase {
     func testHardwarePanelRefreshValidatesOptionsAndRoundTrips() {
         withStore { store, defaults in
             XCTAssertEqual(store.hardwarePanelRefreshSeconds, 1)
-            for value in [2, 3, 5, 10] {
+            for value in [2, 3, 4, 5, 6, 7, 8] {
                 store.hardwarePanelRefreshSeconds = value
                 XCTAssertEqual(SettingsStore(defaults: defaults).hardwarePanelRefreshSeconds, value)
             }
-            for invalid in [0, 4, 11, -1] {
+            for invalid in [0, 9, 11, -1] {
                 store.hardwarePanelRefreshSeconds = invalid
                 XCTAssertEqual(store.hardwarePanelRefreshSeconds, 1, "only shipped options are accepted")
             }

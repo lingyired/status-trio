@@ -197,7 +197,7 @@ final class SettingsStore: ObservableObject {
     /// Refresh cadence for the status-panel hardware summary while it is open.
     /// 1 s preserves the historical fastest cadence; slower options trade
     /// freshness for fewer reads.
-    static let hardwarePanelRefreshOptions: [Int] = [1, 2, 3, 5, 10]
+    static let hardwarePanelRefreshOptions: [Int] = Array(1...8)
     static let defaultHardwarePanelRefreshSeconds: Int = 1
 
     static func clampedHardwareSpeedCap(_ value: Double, fallback: Double) -> Double {
