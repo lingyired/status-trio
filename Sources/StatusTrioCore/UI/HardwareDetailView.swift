@@ -391,13 +391,22 @@ struct HardwareDetailView: View {
         return IconAppearanceColorConversion.color(from: rgba)
     }
 
+    /// The trend card removes the inner content padding so the chart runs to the
+    /// card edges; the title keeps its own inset and the fill is clipped to the
+    /// rounded card shape.
     private func trendCard(title: String, scale: HardwareDetailChartScale) -> some View {
-        HardwareDetailCard {
-            VStack(alignment: .leading, spacing: 6) {
-                Text(title).font(.subheadline).foregroundStyle(.secondary)
-                HardwareDetailHistoryChart(points: history.points, colors: trendColors, scale: scale, now: now)
-            }
+        VStack(alignment: .leading, spacing: 6) {
+            Text(title)
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+                .padding(.horizontal, 10)
+                .padding(.top, 10)
+            HardwareDetailHistoryChart(points: history.points, colors: trendColors, scale: scale, now: now)
+                .padding(.bottom, 2)
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .panelCardSurface(.silver(.connected), tint: .clear, cornerRadius: 13)
+        .clipShape(RoundedRectangle(cornerRadius: 13, style: .continuous))
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(title)
     }
