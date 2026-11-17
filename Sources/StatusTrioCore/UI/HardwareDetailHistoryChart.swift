@@ -42,6 +42,9 @@ struct HardwareDetailHistoryChart: View {
             ZStack(alignment: .topLeading) {
                 HardwareDetailGrid()
                 ForEach(colors.indices, id: \.self) { index in
+                    HardwareDetailAreaShape(points: points, series: index, now: now, yMaximum: maximum)
+                        .fill(LinearGradient(colors: [colors[index].opacity(0.38), colors[index].opacity(0.03)],
+                                             startPoint: .top, endPoint: .bottom))
                     HardwareDetailLineShape(points: points, series: index, now: now, yMaximum: maximum)
                         .stroke(colors[index],
                                 style: StrokeStyle(lineWidth: 1.5, lineCap: .round, lineJoin: .round))
@@ -175,6 +178,33 @@ struct HardwareDetailGrid: View {
             }
             .stroke(Color.primary.opacity(0.06), lineWidth: 0.5)
         }
+    }
+}
+
+/// Filled area under the connected segments (gradient from the series colour),
+/// matching the "solid" look while keeping the same time-axis geometry.
+struct HardwareDetailAreaShape: Shape {
+    let points: [HardwareDetailHistoryPoint]
+    let series: Int
+    let now: Date
+    let yMaximum: Double
+
+    func path(in rect: CGRect) -> Path {
+        var path = Path()
+        let samples = HardwareDetailChartGeometry.samples(points: points, series: series,
+                                                          now: now, yMaximum: yMaximum,
+                                                          size: rect.size)
+        let threshold = HardwareDetailChartGeometry.breakThreshold(for: samples)
+        for segment in HardwareDetailChartGeometry.segments(for: samples, threshold: threshold)
+        where segment.count > 1 {
+            guard let first = segment.first, let last = segment.last else { continue }
+            path.move(to: CGPoint(x: first.x, y: rect.height))
+            path.addLine(to: first)
+            for point in segment.dropFirst() { path.addLine(to: point) }
+            path.addLine(to: CGPoint(x: last.x, y: rect.height))
+            path.closeSubpath()
+        }
+        return path
     }
 }
 

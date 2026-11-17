@@ -130,7 +130,8 @@ struct StatusPopoverView: View {
             case let .hardwareDetail(kind):
                 HardwareDetailView(kind: kind,
                                    hardware: panel.hardwareMonitor,
-                                   onBack: { panel.showSummaryPage() })
+                                   onBack: { panel.showSummaryPage() },
+                                   metricColors: panel.hardwareMonitorMetricColors)
             }
         }
         .padding(.top, 14)

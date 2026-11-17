@@ -9,16 +9,20 @@ struct HardwareDetailView: View {
     let onBack: () -> Void
     /// Static history for an offscreen render; nil in the live app.
     var previewHistory: [HardwareDetailHistoryPoint]? = nil
+    /// Ring/card colours from settings; the chart uses the matching metric colour.
+    var metricColors: [HardwareMonitorMetric: IconRGBA] = [:]
 
     @EnvironmentObject private var localization: Localization
     @StateObject private var history: HardwareDetailHistoryStore
 
     init(kind: HardwareDetailKind, hardware: HardwareMonitorObservable,
          onBack: @escaping () -> Void,
+         metricColors: [HardwareMonitorMetric: IconRGBA] = [:],
          previewHistory: [HardwareDetailHistoryPoint]? = nil) {
         self.kind = kind
         _hardware = ObservedObject(wrappedValue: hardware)
         self.onBack = onBack
+        self.metricColors = metricColors
         self.previewHistory = previewHistory
         _history = StateObject(wrappedValue: HardwareDetailHistoryStore(seriesCount: kind.historySeriesCount,
                                                                         seeded: previewHistory))
@@ -94,7 +98,7 @@ struct HardwareDetailView: View {
                          frequency: detail?.frequency?.performanceGHz)
             }
             trendCard(title: localization.string(.hardwareDetailUsageTrend),
-                      colors: [Color.accentColor], scale: .percent)
+                      scale: .percent)
             HardwareDetailCard {
                 VStack(alignment: .leading, spacing: 6) {
                     HardwareDetailRow(label: localization.string(.hardwareDetailUser),
@@ -174,7 +178,7 @@ struct HardwareDetailView: View {
                 }
             }
             trendCard(title: localization.string(.hardwareDetailUsageTrend),
-                      colors: [Color.accentColor], scale: .percent)
+                      scale: .percent)
             HardwareDetailCard {
                 VStack(alignment: .leading, spacing: 6) {
                     HardwareDetailRow(label: localization.string(.hardwareDetailRenderer),
@@ -218,7 +222,7 @@ struct HardwareDetailView: View {
                 }
             }
             trendCard(title: localization.string(.hardwareDetailUsageTrend),
-                      colors: [Color.accentColor], scale: .percent)
+                      scale: .percent)
             HardwareDetailCard {
                 VStack(alignment: .leading, spacing: 6) {
                     HardwareDetailRow(label: localization.string(.hardwareDetailAppMemory),
@@ -262,7 +266,7 @@ struct HardwareDetailView: View {
                                   value: HardwareDetailFormat.rate(upload), color: .green)
             }
             trendCard(title: localization.string(.hardwareDetailSpeedTrend),
-                      colors: [.blue, .green], scale: .auto)
+                      scale: .auto)
             HardwareDetailCard {
                 VStack(alignment: .leading, spacing: 6) {
                     HardwareDetailRow(label: localization.string(.hardwareDetailInterfaces),
@@ -314,7 +318,7 @@ struct HardwareDetailView: View {
                 }
             }
             trendCard(title: localization.string(.hardwareDetailSpeedTrend),
-                      colors: [.orange, .purple], scale: .auto)
+                      scale: .auto)
             HardwareDetailCard {
                 VStack(alignment: .leading, spacing: 6) {
                     HardwareDetailRow(label: localization.string(.hardwareDetailUsedSpace),
@@ -370,11 +374,28 @@ struct HardwareDetailView: View {
         Rectangle().fill(Color.primary.opacity(0.08)).frame(width: 1, height: 26)
     }
 
-    private func trendCard(title: String, colors: [Color], scale: HardwareDetailChartScale) -> some View {
+    /// Colour(s) for the trend chart, taken from the user's hardware-metric
+    /// colours so the CPU page uses the CPU colour (green by default).
+    private var trendColors: [Color] {
+        switch kind {
+        case .cpu: return [metricColor(.cpuUsage)]
+        case .gpu: return [metricColor(.gpuUsage)]
+        case .memory: return [metricColor(.memoryUsage)]
+        case .network: return [metricColor(.downloadSpeed), metricColor(.uploadSpeed)]
+        case .disk: return [.orange, .purple]
+        }
+    }
+
+    private func metricColor(_ metric: HardwareMonitorMetric) -> Color {
+        let rgba = metricColors[metric] ?? HardwareRingColorConfiguration.recommendedBaseColor(for: metric)
+        return IconAppearanceColorConversion.color(from: rgba)
+    }
+
+    private func trendCard(title: String, scale: HardwareDetailChartScale) -> some View {
         HardwareDetailCard {
             VStack(alignment: .leading, spacing: 6) {
                 Text(title).font(.subheadline).foregroundStyle(.secondary)
-                HardwareDetailHistoryChart(points: history.points, colors: colors, scale: scale, now: now)
+                HardwareDetailHistoryChart(points: history.points, colors: trendColors, scale: scale, now: now)
             }
         }
         .accessibilityElement(children: .ignore)
