@@ -10,8 +10,10 @@ struct HardwareRingStrip: View {
     let colors: [HardwareMonitorMetric: IconRGBA]
     /// When true each ring is wrapped in its own glass card (status panel).
     var carded: Bool = false
-    /// Which rings to draw, in order. Remaining rings share the full width, so
-    /// hiding one makes the others evenly fill the row.
+    /// Which rings to draw, in order. In carded mode the visible cards share the
+    /// full width in equal columns, so two take half each and three take a third
+    /// each. Card height and ring diameter stay fixed as in the four-up layout;
+    /// the ring is centred inside its (wider) card.
     var visibleSlots: [HardwareRingSlot] = HardwareRingSlot.allCases
     /// Carded mode lifts the top percentage by this many points for optical
     /// centring inside the arc's top opening; other surfaces keep 0.
@@ -22,31 +24,45 @@ struct HardwareRingStrip: View {
     private var snapshot: HardwareMetricsSnapshot { hardware.snapshot }
 
     var body: some View {
-        HStack(alignment: .top, spacing: carded ? 6 : 10) {
-            ForEach(visibleSlots) { slot in
-                let spec = spec(for: slot)
-                let ring = AnimatedSceneIcon(
-                    label: slot.label,
-                    top: spec.top,
-                    center: spec.center,
-                    centerScale: spec.centerScale,
-                    color: spec.color,
-                    progress: spec.progress,
-                    topTextVerticalAdjustment: carded ? Self.cardedTopTextAdjustment : 0
-                )
-                .animation(.easeOut(duration: 0.55), value: spec.progress)
-                .frame(maxWidth: .infinity)
-                .aspectRatio(1, contentMode: .fit)
-                if carded {
-                    ring
-                        .padding(5)
+        if carded {
+            // Keep a fixed four-column card width; the visible cards centre and
+            // never grow when one is hidden.
+            HardwareRingRowLayout(spacing: 6, referenceCount: HardwareRingSlot.allCases.count) {
+                ForEach(visibleSlots) { slot in
+                    ringCard(slot)
+                }
+            }
+        } else {
+            HStack(alignment: .top, spacing: 10) {
+                ForEach(visibleSlots) { slot in
+                    ringBase(slot, topAdjustment: 0)
                         .frame(maxWidth: .infinity)
-                        .panelCardSurface(.silver(.connected), tint: .clear, cornerRadius: 13)
-                } else {
-                    ring
+                        .aspectRatio(1, contentMode: .fit)
                 }
             }
         }
+    }
+
+    /// The ring scene for one slot, with the carded-mode top-text fix.
+    private func ringBase(_ slot: HardwareRingSlot, topAdjustment: CGFloat) -> some View {
+        let spec = spec(for: slot)
+        return AnimatedSceneIcon(
+            label: slot.label,
+            top: spec.top,
+            center: spec.center,
+            centerScale: spec.centerScale,
+            color: spec.color,
+            progress: spec.progress,
+            topTextVerticalAdjustment: topAdjustment
+        )
+        .animation(.easeOut(duration: 0.55), value: spec.progress)
+    }
+
+    /// One ring wrapped in its own glass card (status panel).
+    private func ringCard(_ slot: HardwareRingSlot) -> some View {
+        ringBase(slot, topAdjustment: Self.cardedTopTextAdjustment)
+            .padding(5)
+            .panelCardSurface(.silver(.connected), tint: .clear, cornerRadius: 13)
     }
 
     // MARK: - Slots

@@ -88,6 +88,28 @@ final class HardwareMonitorSummaryLayoutTests: XCTestCase {
         XCTAssertLessThan(none.fittingSize.height, 5, "both blocks hidden renders nothing")
     }
 
+    func testHidingRingsKeepsCardSizeConstant() {
+        let localization = makeLocalization()
+        let base = snapshot(.measured)
+        func height(_ slots: [HardwareRingSlot]) -> CGFloat {
+            let host = NSHostingView(rootView: AnyView(
+                HardwareMonitorSummaryView(model: HardwareMonitorObservable(snapshot: base),
+                                           showsSummaryRow: false,
+                                           ringSlots: slots)
+                    .environmentObject(localization)
+                    .frame(width: 302)))
+            host.layoutSubtreeIfNeeded()
+            return host.fittingSize.height
+        }
+        let four = height(HardwareRingSlot.allCases)
+        let three = height([.cpu, .ram, .ssd])
+        let two = height([.cpu, .ssd])
+        let one = height([.ssd])
+        XCTAssertEqual(three, four, accuracy: 0.5, "hiding a ring must not grow the remaining cards")
+        XCTAssertEqual(two, four, accuracy: 0.5)
+        XCTAssertEqual(one, four, accuracy: 0.5)
+    }
+
     func testRingAndInfoSubsetsCollapseEmptyBlocks() {
         let localization = makeLocalization()
         let base = snapshot(.measured)
