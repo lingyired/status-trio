@@ -41,12 +41,7 @@ struct CompactSummaryInfoBar: View {
 
     var body: some View {
         HStack(spacing: 0) {
-            ForEach(Array(items.enumerated()), id: \.element.metric) { index, item in
-                if index > 0 {
-                    Rectangle()
-                        .fill(Color.primary.opacity(0.06))
-                        .frame(width: 1, height: 14)
-                }
+            ForEach(items, id: \.metric) { item in
                 HardwareSummaryMetricCell(item: item)
                     .frame(maxWidth: .infinity)
             }
@@ -65,7 +60,7 @@ struct HardwareSummaryMetricCell: View {
 
     static let iconWidth: CGFloat = 12
     static let valueWidth: CGFloat = 30
-    static let unitWidth: CGFloat = 22
+    static let unitWidth: CGFloat = 20
     static let slotSpacing: CGFloat = 2
     static let barHeight: CGFloat = 28
     static let contentHeight: CGFloat = 26
@@ -83,13 +78,13 @@ struct HardwareSummaryMetricCell: View {
                 .opacity(item.isStale ? 0.45 : 1)
                 .lineLimit(1)
                 .minimumScaleFactor(0.6)
-                .frame(width: Self.valueWidth, alignment: .trailing)
+                .frame(width: Self.valueWidth, alignment: .center)
             Text(item.unitText)
                 .font(.system(size: 9, design: .monospaced))
                 .foregroundStyle(.secondary)
                 .lineLimit(1)
                 .minimumScaleFactor(0.7)
-                .frame(width: Self.unitWidth, alignment: .leading)
+                .frame(width: Self.unitWidth, alignment: .center)
         }
         .frame(maxWidth: .infinity)
         .frame(height: Self.contentHeight)
