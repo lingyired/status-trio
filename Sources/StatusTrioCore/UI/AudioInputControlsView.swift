@@ -165,7 +165,7 @@ struct AudioInputControlsView: View {
                 PanelLevelSlider(
                     value: sliderValue,
                     isEnabled: state.canAdjust,
-                    tint: state.muteState == .muted ? Color.secondary : Color.accentColor,
+                    tint: state.muteState == .muted ? Color.secondary : Color.primary,
                     accessibilityLabel: state.sliderLabel,
                     accessibilityValue: sliderAccessibilityValue,
                     accessibilityHint: state.canAdjust

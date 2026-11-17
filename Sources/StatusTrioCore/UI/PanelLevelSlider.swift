@@ -9,10 +9,11 @@ enum PanelLevelSliderMetrics {
     /// Shorter height used by the volume and mic rows so those two sliders sit
     /// tighter vertically while the brightness rows keep `controlHeight`.
     static let compactSlotHeight: CGFloat = 20
-    /// Slim capsule height for compact (volume/mic) rows.
-    static let compactBarHeight: CGFloat = 12
-    /// Visible capsule height.
-    static let barHeight: CGFloat = 16
+    /// Slim capsule height for compact (volume/mic) rows (matches the system
+    /// small slider track, 4pt).
+    static let compactBarHeight: CGFloat = 4
+    /// Visible capsule height for rows whose label lives inside the capsule.
+    static let barHeight: CGFloat = 13
     /// White thumb circle diameter.
     static let thumbDiameter: CGFloat = 18
     static var thumbRadius: CGFloat { thumbDiameter / 2 }
@@ -25,7 +26,7 @@ enum PanelLevelSliderMetrics {
     /// Gap kept between the thumb and the inline label.
     static let labelGap: CGFloat = 7
     /// Font used by the inline label.
-    static let labelFontSize: CGFloat = 9
+    static let labelFontSize: CGFloat = 8
     /// How long the label takes to move between the two sides.
     static let labelAnimationDuration: TimeInterval = 0.16
     /// How long a programmatic value change (wheel, system echo) takes to glide
@@ -110,7 +111,7 @@ enum PanelLevelSliderLabelLayout {
         return (text as NSString).size(withAttributes: attrs).width
     }
 
-    /// Decides the parked side. The leading (blue) side always wins when the
+    /// Decides the parked side. The leading (filled) side always wins when the
     /// whole text fits there; only then does the label move to the trailing
     /// side of the thumb, and if neither side fits it truncates on the roomier
     /// one.
@@ -178,11 +179,6 @@ enum PanelLevelSliderLabelLayout {
         }
     }
 
-    /// White ink over the accent fill (leading side), primary over the unfilled
-    /// track (trailing side).
-    static func usesLightText(side: Side) -> Bool {
-        side == .leading
-    }
 }
 
 /// SwiftUI wrapper exposing the reusable panel level slider.
@@ -198,7 +194,7 @@ struct PanelLevelSlider: View {
     @Binding var value: Double
     var label: String? = nil
     var isEnabled: Bool = true
-    var tint: Color = .accentColor
+    var tint: Color = .primary
     var accessibilityLabel: String? = nil
     var accessibilityValue: String? = nil
     var accessibilityHint: String? = nil
@@ -309,7 +305,7 @@ private extension PanelLevelSlider {
 final class PanelLevelSliderView: NSSlider {
     var onValueChanged: ((Double) -> Void)?
     var onEditingChanged: ((Bool) -> Void)?
-    var fillColor: NSColor = .controlAccentColor {
+    var fillColor: NSColor = .labelColor {
         didSet {
             if !fillColor.isEqual(oldValue) { invalidateRaster() }
         }
@@ -735,6 +731,36 @@ final class PanelLevelSliderView: NSSlider {
     /// Whether the slider currently owns a pointer/keyboard gesture.
     var isTracking: Bool { isGestureActive }
 
+    /// Whether the pointer is over the control. The thumb is only painted while
+    /// the pointer is inside (matching the macOS 26 slider) or a gesture owns
+    /// the control, so it stays visible for the whole drag.
+    private var isHovering = false
+    private var trackingAreaRef: NSTrackingArea?
+
+    var isThumbVisible: Bool { isHovering || isGestureActive }
+
+    func setHovering(_ hovering: Bool) {
+        guard isHovering != hovering else { return }
+        isHovering = hovering
+        needsDisplay = true
+    }
+
+    override func updateTrackingAreas() {
+        super.updateTrackingAreas()
+        if let trackingAreaRef { removeTrackingArea(trackingAreaRef) }
+        let area = NSTrackingArea(
+            rect: .zero,
+            options: [.mouseEnteredAndExited, .activeInActiveApp, .inVisibleRect],
+            owner: self,
+            userInfo: nil
+        )
+        addTrackingArea(area)
+        trackingAreaRef = area
+    }
+
+    override func mouseEntered(with event: NSEvent) { setHovering(true) }
+    override func mouseExited(with event: NSEvent) { setHovering(false) }
+
     /// Reports at most 30 times a second while a gesture is active. The native
     /// control keeps drawing every frame; writing the SwiftUI binding on each
     /// pointer event made the panel hosting view commit a transaction per event
@@ -803,6 +829,7 @@ final class PanelLevelSliderView: NSSlider {
 
         drawLabel()
 
+        guard isThumbVisible else { return }
         let center = knobCenter(in: bounds)
         let margin = PanelLevelSliderMetrics.knobRasterMargin
         knobImage?.draw(
@@ -841,7 +868,9 @@ final class PanelLevelSliderView: NSSlider {
         let trackColor = dark
             ? NSColor(white: 1.0, alpha: 0.14)
             : NSColor(white: 0.0, alpha: 0.10)
-        let barRadius = barCornerRadius
+        // Clamp to the actual bar height so a slim compact track stays a true
+        // capsule instead of inheriting the taller named-row radius.
+        let barRadius = min(barCornerRadius, bar.height / 2)
         let barSize = bar.size
 
         trackImage = Self.rasterized(size: barSize, scale: scale) { _ in
@@ -997,9 +1026,16 @@ final class PanelLevelSliderView: NSSlider {
 
     private func labelColor(side: PanelLevelSliderLabelLayout.Side) -> NSColor {
         guard isEnabled else { return .secondaryLabelColor }
-        return PanelLevelSliderLabelLayout.usesLightText(side: side)
-            ? NSColor.white.withAlphaComponent(0.95)
-            : NSColor.labelColor.withAlphaComponent(0.9)
+        // The filled (leading) portion is painted in `labelColor`, so its ink
+        // must invert it: dark text on the white fill of a dark appearance,
+        // light text on the dark fill of a light appearance. The unfilled track
+        // keeps primary label ink.
+        if side == .leading {
+            return isDarkAppearance
+                ? NSColor.black.withAlphaComponent(0.82)
+                : NSColor.white.withAlphaComponent(0.95)
+        }
+        return NSColor.labelColor.withAlphaComponent(0.9)
     }
 
     private func drawKnob() {

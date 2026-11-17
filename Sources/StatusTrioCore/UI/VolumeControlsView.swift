@@ -80,7 +80,7 @@ struct VolumeControlsView: View {
                 PanelLevelSlider(
                     value: volumeBinding,
                     isEnabled: state.canAdjust,
-                    tint: state.muted ? Color.secondary : Color.accentColor,
+                    tint: state.muted ? Color.secondary : Color.primary,
                     accessibilityLabel: state.sliderLabel,
                     accessibilityValue: percentageText,
                     onEditingChanged: { isEditing in

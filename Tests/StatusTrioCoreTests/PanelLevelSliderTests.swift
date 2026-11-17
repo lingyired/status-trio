@@ -266,6 +266,16 @@ final class PanelLevelSliderTests: XCTestCase {
         slider.cancelValueAnimation()
     }
 
+    func testThumbHiddenUntilHover() {
+        let slider = PanelLevelSliderView()
+        slider.frame = NSRect(x: 0, y: 0, width: controlWidth, height: 30)
+        XCTAssertFalse(slider.isThumbVisible, "the thumb starts hidden")
+        slider.setHovering(true)
+        XCTAssertTrue(slider.isThumbVisible, "hover reveals the thumb")
+        slider.setHovering(false)
+        XCTAssertFalse(slider.isThumbVisible, "leaving hides the thumb again")
+    }
+
     func testDisabledControlDoesNotAcceptUserInput() {
         let slider = PanelLevelSliderView()
         slider.isEnabled = false
