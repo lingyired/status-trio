@@ -95,6 +95,25 @@ final class HardwareMetricsServiceTests: XCTestCase {
         for _ in 0..<count { await Task.yield() }
     }
 
+    func testBackgroundSamplesPopulateHistoryAndSurvivePanelHandoff() async {
+        let clock = Clock()
+        let recorder = Recorder()
+        let service = HardwareMetricsService(automaticScheduling: false, now: { clock.date },
+                                             reader: recorder.countingReader(usage: 42))
+        service.begin(.background, metrics: [.cpuUsage])
+        await awaitSettled(service, recorderCalls: { recorder.calls.count }, expected: 1)
+        XCTAssertGreaterThan(service.observable.historyRowsForDetail.count, 0,
+                             "background sampling must be recorded into session history")
+
+        // Opening the panel ends the background demand first; history must survive.
+        service.end(.background)
+        XCTAssertGreaterThan(service.observable.historyRowsForDetail.count, 0)
+        service.begin(.panel, metrics: [.cpuUsage])
+        await awaitSettled(service, recorderCalls: { recorder.calls.count }, expected: 2)
+        XCTAssertGreaterThan(service.observable.historyRowsForDetail.count, 0)
+        service.stopAll()
+    }
+
     func testTickIntervalFollowsFastestDemandedMetric() async {
         let clock = Clock()
         let service = HardwareMetricsService(automaticScheduling: false,
