@@ -46,11 +46,21 @@ final class HardwareSampler: @unchecked Sendable {
             queue.async {
                 let first = !self.hasAttemptedCPURead
                 let wantsFrequency = includeCPUFrequency && ids.contains(.cpuUsage)
+                // GPU utilisation counts render work over the interval since the
+                // last query; querying IOAccelerator twice in a row makes the
+                // second read see an empty interval and report 0%. Read once and
+                // derive both the plain sample and the detail from it.
+                let gpuDetail: GPUDetailReading? = details.contains(.gpu)
+                    ? self.gpuReader.readDetail(at: date) : nil
+                let gpuReading: GPUReading? = gpuDetail.flatMap { detail in
+                    guard let usage = detail.usage else { return nil }
+                    return GPUReading(usage: usage, deviceName: detail.deviceName, sampledAt: date)
+                }
                 var snapshot = Self.collect(ids: ids, isFirstCPURead: first, at: date,
                                             cpuProvider: { self.cpuReader.read(at: $0) },
                                             frequencyProvider: { wantsFrequency ? self.cpuFrequencyReader.read(at: $0) : nil },
                                             includeCPUFrequency: wantsFrequency,
-                                            gpuProvider: { self.gpuReader.read(at: $0) },
+                                            gpuProvider: { _ in gpuReading },
                                             memoryProvider: { self.memoryReader.read(at: $0) },
                                             sensorProvider: { temperature, gpuTemperature, batteryTemperature, fans, date in
                     self.sensorReader.read(includeTemperature: temperature,
@@ -60,8 +70,8 @@ final class HardwareSampler: @unchecked Sendable {
                 },
                                             networkProvider: { self.networkReader.read(at: $0) },
                                             diskProvider: { self.diskReader.read(at: $0) })
-                if details.contains(.gpu) {
-                    snapshot.gpuDetail = self.gpuReader.readDetail(at: date)
+                if let gpuDetail {
+                    snapshot.gpuDetail = gpuDetail
                 }
                 if details.contains(.memory) {
                     snapshot.memoryDetail = self.memoryReader.readDetail(at: date)
