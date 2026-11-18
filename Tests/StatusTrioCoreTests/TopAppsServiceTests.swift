@@ -202,4 +202,21 @@ struct TopAppsServiceTests {
         await service.sampleNowForTesting()
         #expect(service.observable.state == .measured(.memory, []))
     }
+
+    @Test func testZeroRowsStayUntilANewAppReplacesThem() {
+        func row(_ name: String, _ value: Double) -> TopAppRow {
+            TopAppRow(id: .process(ProcessIdentity(pid: Int32(abs(name.hashValue % 10_000)), startedAt: 1)),
+                      name: name, applicationPath: nil, value: value, upload: nil)
+        }
+        let two = TopAppsService.mergedRows(previous: [], incoming: [row("A", 10), row("B", 5)], limit: 8)
+        #expect(two.map(\.name) == ["A", "B"])
+
+        let dropped = TopAppsService.mergedRows(previous: two, incoming: [row("A", 10)], limit: 8)
+        #expect(dropped.map(\.name) == ["A", "B"])
+        #expect(dropped.last?.value == 0)
+
+        let replaced = TopAppsService.mergedRows(previous: dropped,
+                                                 incoming: [row("A", 10), row("C", 3)], limit: 2)
+        #expect(replaced.map(\.name) == ["A", "C"])
+    }
 }

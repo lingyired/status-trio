@@ -34,6 +34,10 @@ final class TopAppsService {
     private(set) var sessionGeneration: UInt64 = 0
     private var loopTask: Task<Void, Never>?
     private var inFlight = false
+    /// Keeps the list height stable: a row that drops to zero stays until a new
+    /// application replaces it.
+    private var retainedRows: [TopAppRow] = []
+    private var retainedMetric: TopAppMetric?
 
     /// Per-metric default cadence for the top-app list.
     nonisolated static func defaultInterval(for metric: TopAppMetric) -> Double {
@@ -80,6 +84,10 @@ final class TopAppsService {
         guard metric != demand else { return }
 
         demand = metric
+        if metric != retainedMetric {
+            retainedRows = []
+            retainedMetric = metric
+        }
         sessionGeneration &+= 1
         loopTask?.cancel()
         loopTask = nil
@@ -118,6 +126,8 @@ final class TopAppsService {
         guard !isStopped else { return }
         isStopped = true
         demand = nil
+        retainedRows = []
+        retainedMetric = nil
         sessionGeneration &+= 1
         loopTask?.cancel()
         loopTask = nil
@@ -181,12 +191,49 @@ final class TopAppsService {
         case .collecting:
             observable.update(.collecting(metric))
         case .measured(let rows):
-            observable.update(.measured(metric, rows))
+            retainedRows = Self.mergedRows(previous: retainedRows, incoming: rows,
+                                           limit: Self.maximumRows)
+            observable.update(.measured(metric, retainedRows))
         case .unsupported:
             observable.update(.unsupported(metric))
         case .failed:
             observable.update(.failed(metric))
         }
+    }
+
+    static let maximumRows = 8
+
+    /// Stable merge: previous order first (updated values, or zeroed when the app
+    /// stopped using the resource), then newly seen apps. A new app displaces a
+    /// zero row instead of growing the list.
+    static func mergedRows(previous: [TopAppRow], incoming: [TopAppRow],
+                           limit: Int) -> [TopAppRow] {
+        guard limit > 0 else { return [] }
+        var byID = Dictionary(uniqueKeysWithValues: incoming.map { ($0.id, $0) })
+        var result: [TopAppRow] = []
+        for old in previous {
+            if let updated = byID.removeValue(forKey: old.id) {
+                result.append(updated)
+            } else {
+                result.append(TopAppRow(id: old.id, name: old.name,
+                                        applicationPath: old.applicationPath,
+                                        value: 0, upload: old.upload == nil ? nil : 0))
+            }
+        }
+        for row in incoming where byID[row.id] != nil {
+            result.append(row)
+            byID.removeValue(forKey: row.id)
+        }
+        while result.count > limit {
+            if let zeroIndex = result.lastIndex(where: {
+                $0.value == 0 && ($0.upload ?? 0) == 0
+            }) {
+                result.remove(at: zeroIndex)
+            } else {
+                result.removeLast()
+            }
+        }
+        return result
     }
 
     private func requestTrackerReset() {
