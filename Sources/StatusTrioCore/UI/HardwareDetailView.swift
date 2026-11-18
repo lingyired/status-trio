@@ -406,8 +406,10 @@ struct HardwareDetailView: View {
                 .foregroundStyle(.secondary)
                 .padding(.horizontal, 10)
                 .padding(.top, 10)
+            // No bottom inset: the area fill runs into the card's rounded bottom
+            // edge so the chart reads as one continuous surface instead of
+            // leaving a strip of card material underneath.
             HardwareDetailHistoryChart(points: history.points, colors: trendColors, scale: scale, now: now)
-                .padding(.bottom, 2)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .panelCardSurface(.silver(.connected), tint: .clear, cornerRadius: 13)
