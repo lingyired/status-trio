@@ -29,6 +29,9 @@ struct TopAppsListView: View {
                 message(.hardwareDetailTopAppsEmpty)
             } else {
                 VStack(alignment: .leading, spacing: 6) {
+                    if metric == .network {
+                        networkHeader
+                    }
                     ForEach(rows) { row in
                         rowView(row)
                     }
@@ -51,10 +54,10 @@ struct TopAppsListView: View {
             Text(row.name)
                 .font(.caption)
                 .lineLimit(1)
-                .truncationMode(.middle)
+                .truncationMode(.tail)
             Spacer(minLength: 6)
             if metric == .network {
-                networkValue(row)
+                networkColumns(row)
             } else {
                 Text(valueText(row.value))
                     .font(.caption)
@@ -66,30 +69,40 @@ struct TopAppsListView: View {
         .accessibilityElement(children: .combine)
     }
 
-    private func networkValue(_ row: TopAppRow) -> some View {
-        VStack(alignment: .trailing, spacing: 1) {
-            HStack(spacing: 3) {
-                Text("↓")
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
-                Text(HardwareDetailFormat.rate(row.value))
-                    .font(.caption)
-                    .monospacedDigit()
-            }
-            .accessibilityLabel("\(localization.string(.hardwareDetailDownload)) \(HardwareDetailFormat.rate(row.value))")
+    private var networkColumnWidth: CGFloat { 68 }
 
-            HStack(spacing: 3) {
-                Text("↑")
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
-                Text(HardwareDetailFormat.rate(row.upload ?? 0))
-                    .font(.caption)
-                    .monospacedDigit()
-            }
-            .accessibilityLabel("\(localization.string(.hardwareDetailUpload)) \(HardwareDetailFormat.rate(row.upload ?? 0))")
+    /// Matches Stats' process list: download and upload are two side-by-side
+    /// columns, not two stacked lines per application.
+    private var networkHeader: some View {
+        HStack(spacing: 8) {
+            Color.clear.frame(width: 16, height: 10)
+            Spacer(minLength: 0)
+            Image(systemName: "arrow.down")
+                .font(.caption2.weight(.semibold))
+                .foregroundStyle(.blue)
+                .frame(width: networkColumnWidth, alignment: .trailing)
+                .accessibilityLabel(localization.string(.hardwareDetailDownload))
+            Image(systemName: "arrow.up")
+                .font(.caption2.weight(.semibold))
+                .foregroundStyle(.red)
+                .frame(width: networkColumnWidth, alignment: .trailing)
+                .accessibilityLabel(localization.string(.hardwareDetailUpload))
         }
+    }
+
+    private func networkColumns(_ row: TopAppRow) -> some View {
+        HStack(spacing: 8) {
+            Text(HardwareDetailFormat.rate(row.value))
+                .frame(width: networkColumnWidth, alignment: .trailing)
+                .accessibilityLabel("\(localization.string(.hardwareDetailDownload)) \(HardwareDetailFormat.rate(row.value))")
+            Text(HardwareDetailFormat.rate(row.upload ?? 0))
+                .frame(width: networkColumnWidth, alignment: .trailing)
+                .accessibilityLabel("\(localization.string(.hardwareDetailUpload)) \(HardwareDetailFormat.rate(row.upload ?? 0))")
+        }
+        .font(.caption)
+        .monospacedDigit()
         .lineLimit(1)
-        .minimumScaleFactor(0.8)
+        .minimumScaleFactor(0.75)
     }
 
     @ViewBuilder
