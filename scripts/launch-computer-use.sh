@@ -7,7 +7,7 @@ PANEL_MODE="settings"
 HARDWARE_DETAIL=""
 REUSE=0
 usage() {
-    echo "Usage: bash scripts/launch-computer-use.sh [--reuse] [--display secondary] [--panel] [--hardware-detail cpu|gpu|memory|network|disk]" >&2
+    echo "Usage: bash scripts/launch-computer-use.sh [--reuse] [--display secondary] [--panel] [--test-open-hardware-detail cpu|gpu|memory|network|disk]" >&2
     exit 2
 }
 while [[ $# -gt 0 ]]; do
@@ -27,7 +27,7 @@ while [[ $# -gt 0 ]]; do
             PANEL_MODE="panel"
             shift
             ;;
-        --hardware-detail=*)
+        --test-open-hardware-detail=*)
             [[ "$PANEL_MODE" == panel && -z "$HARDWARE_DETAIL" ]] || usage
             HARDWARE_DETAIL="${1#*=}"
             case "$HARDWARE_DETAIL" in

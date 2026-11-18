@@ -83,9 +83,9 @@ expect_failure bash "$TEST_ROOT/scripts/launch-computer-use.sh" --display primar
 expect_failure bash "$TEST_ROOT/scripts/launch-computer-use.sh" --reuse --reuse
 expect_failure bash "$TEST_ROOT/scripts/launch-computer-use.sh" --display secondary --display secondary
 expect_failure bash "$TEST_ROOT/scripts/launch-computer-use.sh" --panel --panel
-expect_failure bash "$TEST_ROOT/scripts/launch-computer-use.sh" --hardware-detail=memory
-expect_failure bash "$TEST_ROOT/scripts/launch-computer-use.sh" --panel --hardware-detail=bogus
-expect_failure bash "$TEST_ROOT/scripts/launch-computer-use.sh" --panel --hardware-detail=memory --hardware-detail=cpu
+expect_failure bash "$TEST_ROOT/scripts/launch-computer-use.sh" --test-open-hardware-detail=memory
+expect_failure bash "$TEST_ROOT/scripts/launch-computer-use.sh" --panel --test-open-hardware-detail=bogus
+expect_failure bash "$TEST_ROOT/scripts/launch-computer-use.sh" --panel --test-open-hardware-detail=memory --test-open-hardware-detail=cpu
 expect_failure env ST_CUA_FIXTURE_REUSE_MISSING=1 bash "$TEST_ROOT/scripts/launch-computer-use.sh" --reuse
 [[ "$(cat "$ST_CUA_FIXTURE_LOG")" == "reuse" ]]
 for display in automatic secondary; do
@@ -102,7 +102,7 @@ done
 for detail in cpu gpu memory network disk; do
     for detailMode in launch reuse; do
         : > "$ST_CUA_FIXTURE_LOG"
-        args=(--panel --hardware-detail="$detail")
+        args=(--panel --test-open-hardware-detail="$detail")
         [[ "$detailMode" == reuse ]] && args=(--reuse "${args[@]}")
         ST_CUA_FIXTURE_PANEL_MODE=panel ST_CUA_FIXTURE_DETAIL="$detail" \
             bash "$TEST_ROOT/scripts/launch-computer-use.sh" ${args[@]+"${args[@]}"} > "$FIXTURE/output"
