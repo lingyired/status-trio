@@ -39,7 +39,34 @@ extension SettingsStore {
             (groups, style.scale)
         }
         .combineLatest($wifiSymbolScale) { pair, centerScale in
-            pair.0.appearance(ringStrokeScale: pair.1, centerScale: centerScale)
+            (pair.0, pair.1, centerScale)
+        }
+        .combineLatest(
+            Publishers.CombineLatest4(
+                $outerRingContent,
+                $airPodsRingUsesDualRing,
+                $showsAirPodsTopSymbolInRing,
+                $airPodsRingFallsBackToBattery
+            )
+            .combineLatest($hardwareRingConfiguration) { ring, hardwareRing in
+                (ring.0, ring.1, ring.2, ring.3, hardwareRing)
+            }
+            .combineLatest(
+                Publishers.CombineLatest3($hardwareMonitorMetricColors, $hardwareDownloadCapMbps, $hardwareUploadCapMbps)
+            ) { ring, extras in
+                (ring.0, ring.1, ring.2, ring.3, ring.4, extras.0, extras.1, extras.2)
+            }
+        ) { triple, ring in
+            var appearance = triple.0.appearance(ringStrokeScale: triple.1, centerScale: triple.2)
+            appearance.outerRingContent = ring.0
+            appearance.airPodsRingUsesDualRing = ring.1
+            appearance.showsAirPodsTopSymbolInRing = ring.2
+            appearance.airPodsRingFallsBackToBattery = ring.3
+            appearance.hardwareRingConfiguration = ring.4
+            appearance.hardwareMetricColors = ring.5
+            appearance.hardwareDownloadCapMbps = ring.6
+            appearance.hardwareUploadCapMbps = ring.7
+            return appearance
         }
         .removeDuplicates()
         .eraseToAnyPublisher()

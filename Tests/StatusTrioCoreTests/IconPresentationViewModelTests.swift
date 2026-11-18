@@ -18,7 +18,7 @@ final class IconPresentationViewModelTests: XCTestCase {
             snapshots: snapshots.eraseToAnyPublisher(),
             preferences: preferences.eraseToAnyPublisher(),
             resolveInputs: { IconPresentationInputs(snapshot: $0, audioIcon: nil) },
-            mapScene: { inputs, configuration in
+            mapScene: { inputs, configuration, _ in
                 mapped.append((inputs, configuration))
                 return customScene
             },
@@ -74,7 +74,7 @@ final class IconPresentationViewModelTests: XCTestCase {
             snapshots: snapshots.eraseToAnyPublisher(),
             preferences: preferences.eraseToAnyPublisher(),
             resolveInputs: { IconPresentationInputs(snapshot: $0, audioIcon: nil) },
-            mapScene: { inputs, _ in
+            mapScene: { inputs, _, _ in
                 mappedSnapshots.append(inputs.snapshot)
                 return customScene
             }
@@ -125,7 +125,7 @@ final class IconPresentationViewModelTests: XCTestCase {
             snapshots: snapshots.eraseToAnyPublisher(),
             preferences: preferences.eraseToAnyPublisher(),
             resolveInputs: { IconPresentationInputs(snapshot: $0, audioIcon: nil) },
-            mapScene: { inputs, _ in
+            mapScene: { inputs, _, _ in
                 mappedSnapshots.append(inputs.snapshot)
                 return constantScene
             },
@@ -623,6 +623,141 @@ final class IconPresentationViewModelTests: XCTestCase {
 
         let highPowerColors = model.output.scene.outerRing?.segments.map(\.color) ?? []
         XCTAssertTrue(highPowerColors.contains(.highPower))
+        model.stop()
+    }
+
+    /// The view model must pass `runtimeOptions` and `sources` from
+    /// `resolveInputs` through to the mapper. Dropping `runtimeOptions` made the
+    /// Bluetooth-audio glyph choice change the preview but not the menu bar.
+    func testMapperReceivesRuntimeOptionsAndSourcesFromResolveInputs() throws {
+        let snapshot = PresentationFixtures.snapshot(rssi: -55, scalar: 0.4)
+        let runtimeOptions = IconPresentationRuntimeOptions(
+            connectionCenterSource: .bluetoothDevice,
+            prioritizesNetworkErrorsOverInputSource: false,
+            batteryFullThreshold: 100,
+            bluetoothAudioIconChoice: .headphones
+        )
+        let sources = IconSourceSnapshot(
+            availability: [CenterSource.connectedBluetoothDevice.rawValue: .available],
+            airPodsBattery: nil,
+            connectedBluetoothDeviceSymbol: "airpods",
+            connectedBluetoothDeviceIsAudio: true
+        )
+        var mappedInputs: IconPresentationInputs?
+        let model = IconPresentationViewModel(
+            snapshot: snapshot,
+            settings: IconPresentationSettings(configuration: .standard, menuBarSize: 28, testsChargingEffect: false),
+            snapshots: Just(snapshot).eraseToAnyPublisher(),
+            preferences: Just(IconPresentationSettings(configuration: .standard, menuBarSize: 28, testsChargingEffect: false)).eraseToAnyPublisher(),
+            resolveInputs: { snap in
+                IconPresentationInputs(snapshot: snap, audioIcon: nil, runtimeOptions: runtimeOptions, sources: sources)
+            },
+            mapScene: { inputs, _, _ in
+                mappedInputs = inputs
+                return IconSceneState(center: .text(IconTextState(text: "X", color: .primary, scale: 1)))
+            },
+            snapshotScheduler: ManualIconPresentationScheduler()
+        )
+        model.start()
+        let received = try XCTUnwrap(mappedInputs)
+        XCTAssertEqual(received.runtimeOptions, runtimeOptions)
+        XCTAssertEqual(received.sources.connectedBluetoothDeviceSymbol, "airpods")
+        model.stop()
+    }
+
+    /// Changing a runtime-only option (the Bluetooth-audio glyph choice) must
+    /// re-render immediately. `@Published` emits during willSet, so a mapper that
+    /// reads the store live publishes the previous value one edit late; the
+    /// settings snapshot must carry the runtime options instead.
+    func testRuntimeOptionChangeRendersImmediatelyWithoutALag() throws {
+        let suite = "StatusTrioCoreTests.VMLive.\\(UUID().uuidString)"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
+        defaults.removePersistentDomain(forName: suite)
+        addTeardownBlock { defaults.removePersistentDomain(forName: suite) }
+
+        let store = SettingsStore(defaults: defaults)
+        store.connectionCenterSource = .bluetoothDevice
+        let device = AudioOutputDevice(id: 1, name: "AirPods Pro", isCurrent: true, transport: .bluetooth)
+        let snapshot = StatusSnapshot(
+            battery: BatteryStatus(rawPercentage: 55, isPresent: true, isCharging: false, isLowPowerMode: false, isConnectedToPower: false),
+            wifi: WiFiStatus(state: .connected, rssi: -52),
+            connection: .wifi,
+            volume: VolumeStatus(scalar: 0.6, isMuted: false, deviceName: device.name, currentDevice: device)
+        )
+        func centerSymbol(_ scene: IconSceneState) -> String? {
+            if case let .symbol(symbol) = scene.center, case let .symbol(name, _, _) = symbol.source { return name }
+            return nil
+        }
+        var initial: IconPresentationSettings?
+        let seed = store.iconPresentationPublisher.first().sink { initial = $0 }
+        seed.cancel()
+
+        let model = IconPresentationViewModel(
+            snapshot: snapshot,
+            settings: try XCTUnwrap(initial),
+            snapshots: CurrentValueSubject(snapshot).eraseToAnyPublisher(),
+            preferences: store.iconPresentationPublisher,
+            resolveInputs: { [store] snap in
+                var inputs = IconPresentationResourceResolver.inputs(
+                    snapshot: snap,
+                    runtimeOptions: store.iconRuntimePresentationOptions
+                )
+                inputs.sources = IconPresentationResourceResolver.sourceSnapshot(snapshot: snap)
+                return inputs
+            },
+            mapScene: { inputs, _, iconConfiguration in
+                IconCompositionResolver.resolve(
+                    inputs: IconResolutionInputs(system: inputs, sources: inputs.sources),
+                    configuration: iconConfiguration
+                ).scene
+            },
+            snapshotScheduler: ManualIconPresentationScheduler()
+        )
+        model.start()
+
+        store.bluetoothAudioIconChoiceRawValue = "headset"
+        XCTAssertEqual(centerSymbol(model.output.scene), "headset", "first change must render immediately")
+        store.bluetoothAudioIconChoiceRawValue = "earbuds"
+        XCTAssertEqual(centerSymbol(model.output.scene), "earbuds", "second change must render immediately")
+        model.stop()
+    }
+
+    func testHardwareTickDoesNotReprojectNonHardwareRing() {
+        let snapshot = PresentationFixtures.snapshot()
+        let snapshots = CurrentValueSubject<StatusSnapshot, Never>(snapshot)
+        var settings = IconPresentationSettings(configuration: .standard, menuBarSize: 28, testsChargingEffect: false)
+        settings.iconConfiguration = .classic // system battery ring
+        let preferences = CurrentValueSubject<IconPresentationSettings, Never>(settings)
+        let hardware = CurrentValueSubject<HardwareMetricsSnapshot, Never>(.empty)
+        let scheduler = ManualIconPresentationScheduler()
+        let scene = IconSceneState(center: .text(IconTextState(text: "X", color: .primary, scale: 1)))
+        var mapCount = 0
+        let model = IconPresentationViewModel(
+            snapshot: snapshot,
+            settings: settings,
+            snapshots: snapshots.eraseToAnyPublisher(),
+            preferences: preferences.eraseToAnyPublisher(),
+            hardwareMetrics: hardware.eraseToAnyPublisher(),
+            resolveInputs: { IconPresentationInputs(snapshot: $0, audioIcon: nil) },
+            mapScene: { _, _, _ in mapCount += 1; return scene },
+            snapshotScheduler: scheduler
+        )
+        model.start()
+        mapCount = 0
+
+        var tick = HardwareMetricsSnapshot()
+        tick.samples[.cpuUsage] = HardwareMetricSample(value: 50, unit: .percent, sampledAt: Date(), source: .mach, availability: .measured)
+        hardware.send(tick)
+        XCTAssertEqual(mapCount, 0, "battery ring must ignore hardware ticks")
+
+        var hardwareSettings = settings
+        hardwareSettings.iconConfiguration.composition.outerRing = SlotSelection(primary: .hardwareMonitor)
+        hardwareSettings.iconConfiguration.behaviors.hardwareRing = HardwareRingConfiguration(
+            layout: .single, primaryMetric: .cpuUsage)
+        preferences.send(hardwareSettings)
+        let afterSwitch = mapCount
+        hardware.send(tick)
+        XCTAssertEqual(mapCount, afterSwitch + 1, "hardware ring must reproject on a hardware tick")
         model.stop()
     }
 }

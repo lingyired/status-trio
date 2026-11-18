@@ -189,6 +189,48 @@ final class StatusPanelLayoutIntegrationTests: VisibleUITestCase {
     }
 
     @MainActor
+    func testAttachedDetailWindowKeepsItsTopEdgeAndClosesOnEscape() throws {
+        _ = NSApplication.shared
+        let screen = try XCTUnwrap(NSScreen.main)
+        let summary = NSRect(
+            x: screen.visibleFrame.minX + 40,
+            y: screen.visibleFrame.midY,
+            width: 330,
+            height: 400
+        )
+        let placement = try XCTUnwrap(
+            StatusPanelDetailPlacement.frame(
+                summaryFrame: summary,
+                detailHeight: 200,
+                screens: [StatusPanelScreen(screen)]
+            )
+        )
+
+        let panel = AnchoredStatusPanel()
+        let host = StatusPanelHostingController(
+            rootView: AnyView(Color.blue.frame(width: 330, height: 200))
+        )
+        panel.installContent(host, backgroundStyle: .solid)
+        panel.disablesKeyWindowForTesting = true
+        panel.avoidsOrderFrontRegardlessForTesting = true
+        panel.showAsDetail(in: placement)
+        panel.contentViewController?.view.layoutSubtreeIfNeeded()
+
+        XCTAssertEqual(panel.frame.minX, placement.frame.minX, accuracy: 1)
+        XCTAssertEqual(panel.frame.maxY, placement.frame.maxY, accuracy: 1)
+        XCTAssertEqual(panel.frame.width, 330, accuracy: 1)
+
+        var consumesEscape = true
+        panel.onUnhandledEscape = { consumesEscape }
+        panel.cancelOperation(nil)
+        XCTAssertTrue(panel.isShown)
+
+        consumesEscape = false
+        panel.cancelOperation(nil)
+        XCTAssertFalse(panel.isShown)
+    }
+
+    @MainActor
     private final class Fixture {
         let panel: AnchoredStatusPanel
         let state: DisclosureState

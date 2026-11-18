@@ -413,6 +413,7 @@ final class AirPodsSystemControlsModel: ObservableObject {
 /// The output row owns this model while its disclosure is open.
 /// Operations are bounded; collapsing the disclosure explicitly cancels them.
 struct AirPodsSystemControlsView: View {
+    @Environment(\.statusPanelBoldTextEnabled) private var panelBoldText
     @ObservedObject var model: AirPodsSystemControlsModel
     var listeningMode: BluetoothListeningModePresentation? = nil
     var onSelectListeningMode: (BluetoothListeningMode) -> Void = { _ in }
@@ -469,7 +470,7 @@ struct AirPodsSystemControlsView: View {
     }
 
     private func heading(_ key: LocalizationKey) -> some View {
-        Text(localization.string(key)).font(.callout.weight(.semibold))
+        Text(localization.string(key)).font(.callout.weight(panelBoldText ? .semibold : .regular))
             .padding(.top, 6)
             .padding(.bottom, 4)
     }

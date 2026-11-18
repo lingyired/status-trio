@@ -3080,6 +3080,12 @@ private final class StoreIntervalScannerSpy: BluetoothLEBatteryScanning {
     func stop() { isRunning = false; isScanning = false; stopCount += 1 }
 }
 
+private final class StoreBluetoothPairedDeviceReader: BluetoothPairedDeviceReading {
+    func read(completion: @escaping @Sendable (BluetoothWorkerResult) -> Void) {
+        completion(.success([]))
+    }
+}
+
 @MainActor
 private final class StoreBluetoothStateMonitorSpy: BluetoothStateMonitoring {
     var onStateChange: ((BluetoothAuthorizationStatus, BluetoothManagerState) -> Void)?

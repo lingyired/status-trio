@@ -171,6 +171,13 @@ do not copy long reports for repeated runs.
 - If a setting is intentionally menu-bar-only, state that in the issue/spec,
   document the limitation, and add a test.
 
+- Icon Designer dimension controls and rendering follow
+  `docs/icon-sizing-standard.md`: one measured 100–180% center-size scale for
+  every primary and fallback source, the shared 80–120% outer/footer stroke
+  scale, and the existing outer battery text percentage baseline. Keep legacy
+  storage and rendering unchanged until the user explicitly edits them; do not
+  reintroduce per-source UI ranges.
+
 See `.agents/rules/rendering.md` and
 `docs/issue-30-wifi-centering-analysis.md`.
 

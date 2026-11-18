@@ -1088,6 +1088,7 @@ final class PanelStoreFixture {
     let volume = PanelVolumeMonitor()
     let input = PanelInputMonitor()
     let popupSleeper: ManualEventSleeper
+    let wakeCenter = NotificationCenter()
     let scanner = PanelWiFiScanner()
     let vpn = PanelVPNMonitor()
     let updateScheduler = ManualPanelUpdateScheduler()
@@ -1103,6 +1104,8 @@ final class PanelStoreFixture {
         outputDevices: [AudioOutputDevice] = [],
         pairedDevices: [BluetoothDevice] = [],
         wifiScanner: PanelWiFiScanner = PanelWiFiScanner(),
+        hardwareMetrics: HardwareMetricsService = HardwareMetricsService(),
+        topApps: TopAppsService = TopAppsService(automaticScheduling: false),
         isDevelopmentBuild: Bool = true
     ) {
         let suiteName = "StatusPanelViewModelTests.\(UUID().uuidString)"
@@ -1147,7 +1150,10 @@ final class PanelStoreFixture {
             volumeMonitor: volume,
             inputMonitor: input,
             popupDebounceSleep: { duration in await sleeper.sleep(duration) },
+            wakeNotificationCenter: wakeCenter,
             powerSampling: PowerSamplingService(reader: { _ in .empty }),
+            hardwareMetrics: hardwareMetrics,
+            topApps: topApps,
             wifiNetworks: WiFiNetworkController(scanWorker: wifiScanner),
             bluetoothDevices: bluetoothDevices,
             bluetoothListeningModes: bluetoothListeningModes,

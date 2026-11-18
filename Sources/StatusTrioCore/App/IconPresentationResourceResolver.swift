@@ -14,6 +14,7 @@ enum IconPresentationResourceResolver {
         inputSource: InputSourceDescriptor? = nil,
         systemPower: SystemPowerSample? = nil,
         isHighPowerMode: Bool = false,
+        runtimeOptions: IconPresentationRuntimeOptions? = nil,
         fileExists: (URL) -> Bool = { FileManager.default.fileExists(atPath: $0.path) },
         isSymbolAvailable: (String) -> Bool = { symbol in
             NSImage(systemSymbolName: symbol, accessibilityDescription: nil) != nil
@@ -25,8 +26,10 @@ enum IconPresentationResourceResolver {
                 snapshot: snapshot,
                 audioIcon: nil,
                 inputSource: resolvedInputSource,
+                runtimeOptions: runtimeOptions,
                 systemPower: systemPower,
-                isHighPowerMode: isHighPowerMode
+                isHighPowerMode: isHighPowerMode,
+                bottomIndicatorSource: runtimeOptions?.bottomIndicatorSource ?? .volume
             )
         }
 
@@ -43,8 +46,10 @@ enum IconPresentationResourceResolver {
             snapshot: snapshot,
             audioIcon: source,
             inputSource: resolvedInputSource,
+            runtimeOptions: runtimeOptions,
             systemPower: systemPower,
-            isHighPowerMode: isHighPowerMode
+            isHighPowerMode: isHighPowerMode,
+            bottomIndicatorSource: runtimeOptions?.bottomIndicatorSource ?? .volume
         )
     }
 }

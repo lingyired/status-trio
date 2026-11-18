@@ -4,6 +4,7 @@ import SwiftUI
 /// while the address belongs in the details panel. A restricted path adds one
 /// clause to the subtitle.
 struct EthernetStatusView: View {
+    @Environment(\.statusPanelBoldTextEnabled) private var panelBoldText
     @EnvironmentObject private var localization: Localization
     @ObservedObject var primaryLink: PrimaryLinkController
     /// A property of the path rather than of the port, so it is passed in from
@@ -21,7 +22,7 @@ struct EthernetStatusView: View {
                     EthernetStatusIcon()
                     VStack(alignment: .leading, spacing: 2) {
                         Text(title)
-                            .font(.headline)
+                            .font(.headline.weight(panelBoldText ? .semibold : .regular))
                             .lineLimit(1)
                             .truncationMode(.tail)
                         Text(subtitle)

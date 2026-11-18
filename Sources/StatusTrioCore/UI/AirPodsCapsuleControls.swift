@@ -63,6 +63,7 @@ struct AirPodsOptionCapsuleGroup: View {
 /// wide to share a row, `ViewThatFits` falls back to two stacked rows — Spatial
 /// Audio first, then Conversation Awareness.
 struct AirPodsSpatialConversationView: View {
+    @Environment(\.statusPanelBoldTextEnabled) private var panelBoldText
     @ObservedObject var model: AirPodsSystemControlsModel
     @EnvironmentObject private var localization: Localization
 
@@ -128,7 +129,7 @@ struct AirPodsSpatialConversationView: View {
         if visible {
             VStack(alignment: .leading, spacing: 4) {
                 Text(localization.string(group == .spatial ? .airPodsSpatial : .airPodsConversation))
-                    .font(.caption2.weight(.semibold))
+                    .font(.caption2.weight(panelBoldText ? .semibold : .regular))
                     .foregroundStyle(.secondary)
                 // Reserve the width of the full option set even while showing
                 // the loading or "unavailable" stand-in. `ViewThatFits` must

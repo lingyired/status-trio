@@ -3,7 +3,8 @@ import Foundation
 
 typealias IconSceneMapper = @MainActor (
     IconPresentationInputs,
-    IconPresentationConfiguration
+    IconPresentationConfiguration,
+    IconConfigurationV1
 ) -> IconSceneState
 
 @MainActor
@@ -40,6 +41,25 @@ struct IconPresentationSettings: Equatable, Sendable {
     let configuration: IconPresentationConfiguration
     let menuBarSize: Double
     let testsChargingEffect: Bool
+    /// The V1 icon configuration this settings snapshot was built from.
+    ///
+    /// The merged runtime renders through `IconCompositionResolver`, which needs
+    /// the V1 schema. Carrying it in the published settings (rather than reading
+    /// the store from inside `mapScene`) keeps the scene and the settings that
+    /// produced it in the same snapshot, so a settings change is rendered once
+    /// instead of showing a stale scene first.
+    var iconConfiguration: IconConfigurationV1 = .classic
+    /// Runtime-only icon options carried in the same snapshot as the appearance
+    /// they were derived from. Using this (instead of reading the store inside
+    /// `resolveInputs`) avoids the `@Published` willSet race that made a live
+    /// change publish the *previous* value one step late.
+    var runtimeOptions: IconPresentationRuntimeOptions? = nil
+    /// Delivered with the settings snapshot so colour/cap edits are read from the
+    /// value that produced this publication, not from the live store during
+    /// `@Published` willSet (which lags one edit).
+    var hardwareMetricColors: [HardwareMonitorMetric: IconRGBA] = [:]
+    var hardwareDownloadCapMbps: Double = 1000
+    var hardwareUploadCapMbps: Double = 100
 }
 
 struct IconPresentationOutput: Equatable, Sendable {
@@ -59,6 +79,9 @@ final class IconPresentationViewModel: ObservableObject {
     private let inputSources: AnyPublisher<InputSourceDescriptor?, Never>
     private let systemPowers: AnyPublisher<SystemPowerSample?, Never>
     private let highPowerModes: AnyPublisher<Bool, Never>
+    /// Hardware-metric ticks repaint the icon only while a hardware ring is on
+    /// screen; `resolveInputs` reads the live snapshot from the store.
+    private let hardwareMetrics: AnyPublisher<HardwareMetricsSnapshot, Never>
     private let resolveInputs: @MainActor (StatusSnapshot) -> IconPresentationInputs
     private let mapScene: IconSceneMapper
     private let snapshotScheduler: any IconPresentationScheduling
@@ -67,6 +90,7 @@ final class IconPresentationViewModel: ObservableObject {
     private var inputSourcesSubscription: AnyCancellable?
     private var systemPowersSubscription: AnyCancellable?
     private var highPowerModesSubscription: AnyCancellable?
+    private var hardwareMetricsSubscription: AnyCancellable?
     private var latestSnapshot: StatusSnapshot
     private var latestSettings: IconPresentationSettings
     private var latestInputSource: InputSourceDescriptor?
@@ -85,8 +109,9 @@ final class IconPresentationViewModel: ObservableObject {
         inputSources: AnyPublisher<InputSourceDescriptor?, Never> = Empty<InputSourceDescriptor?, Never>().eraseToAnyPublisher(),
         systemPowers: AnyPublisher<SystemPowerSample?, Never> = Empty<SystemPowerSample?, Never>().eraseToAnyPublisher(),
         highPowerModes: AnyPublisher<Bool, Never> = Empty<Bool, Never>().eraseToAnyPublisher(),
+        hardwareMetrics: AnyPublisher<HardwareMetricsSnapshot, Never> = Empty<HardwareMetricsSnapshot, Never>().eraseToAnyPublisher(),
         resolveInputs: @escaping @MainActor (StatusSnapshot) -> IconPresentationInputs,
-        mapScene: @escaping IconSceneMapper = { inputs, configuration in
+        mapScene: @escaping IconSceneMapper = { inputs, configuration, _ in
             IconPresentationMapper.scene(inputs: inputs, configuration: configuration)
         },
         snapshotScheduler: any IconPresentationScheduling = TaskIconPresentationScheduler()
@@ -96,6 +121,7 @@ final class IconPresentationViewModel: ObservableObject {
         self.inputSources = inputSources
         self.systemPowers = systemPowers
         self.highPowerModes = highPowerModes
+        self.hardwareMetrics = hardwareMetrics
         self.resolveInputs = resolveInputs
         self.mapScene = mapScene
         self.snapshotScheduler = snapshotScheduler
@@ -144,6 +170,11 @@ final class IconPresentationViewModel: ObservableObject {
                 self?.receive(highPowerMode: isHighPowerMode)
             }
         }
+        hardwareMetricsSubscription = hardwareMetrics.sink { [weak self] snapshot in
+            MainActor.assumeIsolated {
+                self?.receive(hardwareMetrics: snapshot)
+            }
+        }
     }
 
     func stop() {
@@ -153,11 +184,13 @@ final class IconPresentationViewModel: ObservableObject {
         inputSourcesSubscription?.cancel()
         systemPowersSubscription?.cancel()
         highPowerModesSubscription?.cancel()
+        hardwareMetricsSubscription?.cancel()
         snapshotSubscription = nil
         preferencesSubscription = nil
         inputSourcesSubscription = nil
         systemPowersSubscription = nil
         highPowerModesSubscription = nil
+        hardwareMetricsSubscription = nil
         receivedSnapshotForStart = false
         receivedSettingsForStart = false
         receivedInputSourceForStart = false
@@ -233,6 +266,23 @@ final class IconPresentationViewModel: ObservableObject {
         publishLatestOutput()
     }
 
+    /// A hardware-metric tick only affects the icon while a hardware ring is on
+    /// screen; when it is not, the resolved scene is unchanged and `output`
+    /// equality short-circuits the publish, so this is cheap for battery/AirPods
+    /// users. Sampling itself is demand-driven elsewhere.
+    private func receive(hardwareMetrics: HardwareMetricsSnapshot) {
+        guard synchronizedStart else { return }
+        // Only re-resolve when the hardware ring is actually selected (primary or
+        // fallback). Panel/card hardware ticks must not re-parse an icon that is
+        // drawing the Mac battery, AirPods or another source.
+        let composition = latestSettings.iconConfiguration.composition.outerRing
+        guard composition.primary == .hardwareMonitor || composition.fallback == .hardwareMonitor else {
+            return
+        }
+        snapshotScheduler.cancel()
+        publishLatestOutput()
+    }
+
     private func publishWhenStartInputsAreReady() {
         guard receivedSnapshotForStart, receivedSettingsForStart else { return }
         synchronizedStart = true
@@ -269,9 +319,14 @@ final class IconPresentationViewModel: ObservableObject {
                 inputSource: inputSource,
                 systemPower: systemPower,
                 isHighPowerMode: isHighPowerMode,
+                settingsRuntimeOptions: settings.runtimeOptions,
+                hardwareMetricColors: settings.hardwareMetricColors,
+                hardwareDownloadCapMbps: settings.hardwareDownloadCapMbps,
+                hardwareUploadCapMbps: settings.hardwareUploadCapMbps,
                 resolveInputs: resolveInputs
             ),
-            settings.configuration
+            settings.configuration,
+            settings.iconConfiguration
         )
         let menuBarTestScene: IconSceneState?
         if settings.testsChargingEffect {
@@ -282,9 +337,14 @@ final class IconPresentationViewModel: ObservableObject {
                     inputSource: inputSource,
                     systemPower: systemPower,
                     isHighPowerMode: isHighPowerMode,
+                    settingsRuntimeOptions: settings.runtimeOptions,
+                    hardwareMetricColors: settings.hardwareMetricColors,
+                    hardwareDownloadCapMbps: settings.hardwareDownloadCapMbps,
+                    hardwareUploadCapMbps: settings.hardwareUploadCapMbps,
                     resolveInputs: resolveInputs
                 ),
-                settings.configuration
+                settings.configuration,
+                settings.iconConfiguration
             )
         } else {
             menuBarTestScene = nil
@@ -307,15 +367,32 @@ final class IconPresentationViewModel: ObservableObject {
         inputSource: InputSourceDescriptor?,
         systemPower: SystemPowerSample?,
         isHighPowerMode: Bool,
+        settingsRuntimeOptions: IconPresentationRuntimeOptions?,
+        hardwareMetricColors: [HardwareMonitorMetric: IconRGBA],
+        hardwareDownloadCapMbps: Double,
+        hardwareUploadCapMbps: Double,
         resolveInputs: @MainActor (StatusSnapshot) -> IconPresentationInputs
     ) -> IconPresentationInputs {
-        let inputs = resolveInputs(snapshot)
+        var inputs = resolveInputs(snapshot)
+        // Carry every field the resolver needs. Colours, caps and runtime options
+        // come from the published settings snapshot: reading them live here would
+        // read the pre-change value during `@Published`'s willSet emission and lag
+        // one edit behind.
+        inputs.sources.hardwareMetricColors = hardwareMetricColors
+        inputs.sources.hardwareSpeedCapsMbps = [
+            .downloadSpeed: hardwareDownloadCapMbps,
+            .uploadSpeed: hardwareUploadCapMbps
+        ]
         return IconPresentationInputs(
             snapshot: inputs.snapshot,
             audioIcon: inputs.audioIcon,
             inputSource: inputSource?.resolvedForDrawing(),
+            runtimeOptions: settingsRuntimeOptions ?? inputs.runtimeOptions,
             systemPower: systemPower,
-            isHighPowerMode: isHighPowerMode
+            isHighPowerMode: isHighPowerMode,
+            sources: inputs.sources,
+            bottomIndicatorSource: settingsRuntimeOptions?.bottomIndicatorSource
+                ?? inputs.bottomIndicatorSource
         )
     }
 }

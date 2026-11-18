@@ -208,7 +208,7 @@ enum StatusIconRenderer {
                 miterLimit: 10
             )
             let transparent = highlightColor.copy(alpha: 0) ?? highlightColor
-            let bright = highlightColor.copy(alpha: min(1, max(0, frame.tailAlpha))) ?? highlightColor
+            let bright = highlightColor.copy(alpha: min(1, max(0, frame.tailAlpha)) * highlightColor.alpha) ?? highlightColor
             if let gradient = CGGradient(
                 colorsSpace: CGColorSpaceCreateDeviceRGB(),
                 colors: [transparent, bright, transparent] as CFArray,
@@ -230,7 +230,7 @@ enum StatusIconRenderer {
         if frame.headIsVisible, frame.beadAlpha > 0 {
             let center = StatusIconGeometry.batteryPoint(forProgress: frame.headProgress)
             let radius = lineWidth * 0.5 * 1.18
-            context.setFillColor(highlightColor.copy(alpha: min(1, frame.beadAlpha)) ?? highlightColor)
+            context.setFillColor(highlightColor.copy(alpha: min(1, frame.beadAlpha) * highlightColor.alpha) ?? highlightColor)
             context.fillEllipse(in: CGRect(
                 x: center.x - radius,
                 y: center.y - radius,
@@ -242,7 +242,7 @@ enum StatusIconRenderer {
         if frame.headIsVisible, frame.heartbeatAlpha > 0 {
             let center = StatusIconGeometry.batteryPoint(forProgress: frame.headProgress)
             let radius = lineWidth * 0.95 * frame.heartbeatScale
-            context.setFillColor(highlightColor.copy(alpha: min(1, frame.heartbeatAlpha)) ?? highlightColor)
+            context.setFillColor(highlightColor.copy(alpha: min(1, frame.heartbeatAlpha) * highlightColor.alpha) ?? highlightColor)
             context.fillEllipse(in: CGRect(
                 x: center.x - radius,
                 y: center.y - radius,
@@ -318,6 +318,9 @@ enum StatusIconRenderer {
     /// half-height. Anchoring the ink centre itself makes the position
     /// independent of the text's size, which is what a label that follows the
     /// Wi-Fi size control needs.
+    // Centre text shares the SF Symbol anchor so a label sits on the same slot
+    // centre as the Wi-Fi glyph at every scale (issue #30). The ink-bounds
+    // compensation below then keeps it optically centred.
     private static let centerTextInkCenter = wifiSymbolCenter
 
     /// Uses the middle connection position for a large, label-free percentage.
@@ -1117,12 +1120,108 @@ extension StatusIconRenderer {
     }
 
     private static func supports(_ scene: IconSceneState) -> Bool {
-        if let ring = scene.outerRing, ring.segments.count != 1 { return false }
+        if let ring = scene.outerRing {
+            switch ring.layout {
+            case .standard:
+                guard ring.segments.count == 1 else { return false }
+            case .leftRight:
+                let positions = ring.segments.compactMap(\.position)
+                guard ring.segments.count == 2,
+                      positions.count == 2,
+                      Set(positions) == Set([.left, .right]) else { return false }
+            }
+        }
         if case let .dots(dots) = scene.footer,
            dots.count > StatusIconGeometry.volumeDots().count {
             return false
         }
         return true
+    }
+
+    private static func drawAirPodsRing(
+        _ ring: OuterRingState,
+        in context: CGContext,
+        foreground: CGColor,
+        statusPalette: BatteryStatusColorPalette,
+        regions: IconSceneRegion
+    ) {
+        let sharedTopGapWidth: CGFloat? = ring.accessory == nil
+            ? nil
+            : StatusIconGeometry.batteryValueTopGapWidth
+        let lineWidth = min(12, 8 * CGFloat(ring.strokeScale))
+        if regions.contains(.ringTrack) {
+            context.setLineWidth(lineWidth)
+            context.setStrokeColor(sceneColor(for: ring.inactiveColor, foreground: foreground, statusPalette: statusPalette))
+            for position in [RingSegmentPosition.left, .right] {
+                context.addPath(StatusIconGeometry.airPodsTrack(position: position, topGapWidth: sharedTopGapWidth))
+            }
+            context.strokePath()
+        }
+        if regions.contains(.ringFill) {
+            for segment in ring.segments {
+                guard let position = segment.position else { continue }
+                context.setLineWidth(lineWidth)
+                context.setStrokeColor(sceneColor(for: segment.color, foreground: foreground, statusPalette: statusPalette))
+                context.addPath(StatusIconGeometry.airPodsArc(
+                    position: position,
+                    progress: segment.progress,
+                    topGapWidth: sharedTopGapWidth
+                ))
+                context.strokePath()
+            }
+        }
+    }
+
+    private static func resolvedCenterSymbolName(name: String, fallback: String?, color: IconColorRole) -> String {
+        if availableSymbol(name) { return name }
+        if let fallback, availableSymbol(fallback) { return fallback }
+        return color == .bluetooth ? BluetoothDeviceRowIcon.genericSymbol : "wifi"
+    }
+
+    private static let airPodsTopSymbolHeightsPerPoint: [String: CGFloat] = {
+        ["airpods", "headphones"].reduce(into: [:]) { heights, name in
+            let referencePointSize: CGFloat = 200
+            if let height = configuredSymbol(
+                name: name, pointSize: referencePointSize, foreground: .labelColor
+            )?.image.size.height, height.isFinite, height > 0 {
+                heights[name] = height / referencePointSize
+            }
+        }
+    }()
+
+    private static func airPodsTopSymbolPointSize(name: String, targetHeight: CGFloat) -> CGFloat {
+        let heightPerPoint = airPodsTopSymbolHeightsPerPoint[name] ?? 1.34
+        let pointSize = targetHeight / heightPerPoint
+        return pointSize.isFinite && pointSize > 0 ? pointSize : 18
+    }
+
+    private static func drawAirPodsTopSymbol(
+        _ symbol: IconSymbolState,
+        foreground: CGColor,
+        statusPalette: BatteryStatusColorPalette,
+        in context: CGContext
+    ) {
+        guard case let .symbol(name, variableValue, fallback) = symbol.source else { return }
+        let resolvedName = resolvedCenterSymbolName(name: name, fallback: fallback, color: symbol.color)
+        let usesFallback = !availableSymbol(name)
+        let indicatorTextScale = symbol.scale
+        let center = StatusIconGeometry.batteryTopIndicatorCenter(
+            boltScale: batteryChargingBoltScale(textScale: indicatorTextScale)
+        )
+        let calibratedHeight = batteryTopIndicatorHeight(textScale: indicatorTextScale)
+        let availableHeight = max(1, center.y * 2 - 2)
+        let pointSize = airPodsTopSymbolPointSize(
+            name: resolvedName,
+            targetHeight: min(calibratedHeight, availableHeight)
+        )
+        drawOfficialSymbol(
+            name: resolvedName,
+            variableValue: usesFallback ? 1 : (variableValue ?? 1),
+            pointSize: pointSize,
+            center: center,
+            foreground: sceneColor(for: symbol.color, foreground: foreground, statusPalette: statusPalette),
+            in: context
+        )
     }
 
     private static func drawSceneRing(
@@ -1136,6 +1235,33 @@ extension StatusIconRenderer {
         let drawsRing = !regions.isDisjoint(with: [.ringTrack, .ringFill, .ringEffect])
         let drawsAccessory = regions.contains(.ringAccessory) && ring.accessory != nil
         guard drawsRing || drawsAccessory else { return }
+
+        if ring.layout == .leftRight {
+            drawAirPodsRing(ring, in: context, foreground: foreground, statusPalette: statusPalette, regions: regions)
+            if regions.contains(.ringAccessory), let accessory = ring.accessory {
+                context.saveGState()
+                context.setShadow(
+                    offset: CGSize(width: 0, height: 0.75),
+                    blur: 0.75,
+                    color: CGColor(gray: 0, alpha: 0.38)
+                )
+                switch accessory {
+                case let .symbol(symbol):
+                    drawAirPodsTopSymbol(symbol, foreground: foreground, statusPalette: statusPalette, in: context)
+                case let .text(text):
+                    let fontSize = batteryValueFontSize(scale: text.scale)
+                    drawSceneAccessoryText(
+                        text.text,
+                        color: sceneColor(for: text.color, foreground: foreground, statusPalette: statusPalette),
+                        fontSize: fontSize,
+                        baseline: StatusIconGeometry.batteryValueBaseline(fontSize: fontSize),
+                        in: context
+                    )
+                }
+                context.restoreGState()
+            }
+            return
+        }
 
         guard let segment = ring.segments.first else { return }
         let hasTopGap = ring.gap != .closed
@@ -1170,7 +1296,7 @@ extension StatusIconRenderer {
 
         if regions.contains(.ringTrack) {
             context.setLineWidth(lineWidth)
-            context.setStrokeColor(foreground.copy(alpha: inactiveTrackAlpha) ?? foreground)
+            context.setStrokeColor(sceneColor(for: ring.inactiveColor, foreground: foreground, statusPalette: statusPalette))
             context.addPath(StatusIconGeometry.batteryTrack(hasTopGap: hasTopGap, topGapWidth: topGapWidth))
             context.strokePath()
         }
@@ -1208,7 +1334,7 @@ extension StatusIconRenderer {
 
         switch accessory {
         case let .text(text):
-            drawSceneText(
+            drawSceneAccessoryText(
                 text.text,
                 color: sceneColor(for: text.color, foreground: foreground, statusPalette: statusPalette),
                 fontSize: batteryValueFontSize(scale: text.scale),
@@ -1261,6 +1387,35 @@ extension StatusIconRenderer {
         }
     }
 
+    /// Reference-calibrated multiplier for an explicitly-sized centre.
+    ///
+    /// The V1 schema sizes the centre by *visible ink height* percentage
+    /// (`IconCenterSizingPolicy`), not by the raw point-size multiplier the
+    /// legacy path uses. The multiplier is derived from the policy's shared
+    /// raster calibration so every source (battery text, Wi-Fi, glyphs) lands on
+    /// the same visible height.
+    static func normalizedCenterCalibration(
+        for center: CenterState,
+        percentage: Double,
+        environment: StatusIconRenderEnvironment
+    ) -> (identity: String, multiplier: CGFloat)? {
+        _ = environment
+        guard percentage.isFinite else { return nil }
+        let policyPercentage = IconCenterSizingPolicy.normalizedPercentage(percentage)
+        let multiplier = IconCenterSizingPolicy.drawingMultiplier(
+            percentage: policyPercentage,
+            referenceVisibleHeight: IconCenterSizingPolicy.baselineVisibleHeight
+        )
+        guard multiplier.isFinite, multiplier > 0 else { return nil }
+        let identity = [
+            "normalized",
+            center.kindIdentity,
+            "p=" + String(policyPercentage.bitPattern, radix: 16),
+            "baseline=" + String(IconCenterSizingPolicy.baselineVisibleHeight.bitPattern, radix: 16)
+        ].joined(separator: "|")
+        return (identity: identity, multiplier: CGFloat(multiplier))
+    }
+
     private static func drawSceneCenter(
         _ center: CenterState,
         in context: CGContext,
@@ -1269,8 +1424,26 @@ extension StatusIconRenderer {
     ) {
         switch center {
         case let .text(text):
-            let fontSize = centerTextPointSize(for: text.scale)
+            let fontSize = centerTextPointSize(for: centerScale(of: text.scale, normalized: text.normalizedSizePercentage))
             let color = sceneColor(for: text.color, foreground: foreground, statusPalette: statusPalette)
+            if text.text.count > 1, text.text.hasSuffix("°") {
+                // Keep the number optically centred and let the degree symbol sit
+                // to its right without shifting the digits left.
+                let numberLine = sceneTextLine(String(text.text.dropLast()), color: color, fontSize: fontSize)
+                let numberBounds = CTLineGetBoundsWithOptions(numberLine, [.useGlyphPathBounds])
+                drawSceneAccessoryText(
+                    text.text,
+                    color: color,
+                    fontSize: fontSize,
+                    baseline: CGPoint(
+                        x: centerTextInkCenter.x,
+                        y: centerTextInkCenter.y + numberBounds.midY
+                    ),
+                    degreeLift: -fontSize * 0.42,
+                    in: context
+                )
+                return
+            }
             let line = sceneTextLine(text.text, color: color, fontSize: fontSize)
             let bounds = CTLineGetBoundsWithOptions(line, [.useGlyphPathBounds])
             context.setFillColor(color)
@@ -1289,9 +1462,24 @@ extension StatusIconRenderer {
                 center: wifiSymbolCenter,
                 foreground: foreground,
                 statusPalette: statusPalette,
-                in: context
+                in: context,
+                normalizedSizePercentage: symbol.normalizedSizePercentage
             )
         }
+    }
+
+    /// Applies the V1 explicit visible-size percentage when present.
+    ///
+    /// The scale arriving here is already the final one: `IconPaletteResolver`
+    /// multiplied it by the appearance's centre factor. Only an explicit
+    /// `normalizedSizePercentage` replaces it (that is an absolute visible-ink
+    /// height), so the legacy path must not scale again.
+    private static func centerScale(of scale: Double, normalized: Double?) -> Double {
+        guard let normalized else { return scale }
+        return IconCenterSizingPolicy.drawingMultiplier(
+            percentage: normalized,
+            referenceVisibleHeight: IconCenterSizingPolicy.baselineVisibleHeight
+        )
     }
 
     private static func drawSceneSymbol(
@@ -1299,10 +1487,13 @@ extension StatusIconRenderer {
         center: CGPoint,
         foreground: CGColor,
         statusPalette: BatteryStatusColorPalette,
-        in context: CGContext
+        in context: CGContext,
+        normalizedSizePercentage: Double? = nil
     ) {
         let tint = sceneColor(for: symbol.color, foreground: foreground, statusPalette: statusPalette)
-        let pointSize = centerSymbolPointSize(for: symbol.scale)
+        let pointSize = centerSymbolPointSize(
+            for: centerScale(of: symbol.scale, normalized: normalizedSizePercentage)
+        )
         switch symbol.source {
         case let .primitive(primitive):
             switch primitive {
@@ -1395,7 +1586,7 @@ extension StatusIconRenderer {
             let dotRadiusScale = 1 + (dots.strokeScale - 1) * 0.5
             let radius = StatusIconGeometry.volumeDotRadius * CGFloat(dotRadiusScale)
             let active = sceneColor(for: dots.color, foreground: foreground, statusPalette: statusPalette)
-            let inactive = foreground.copy(alpha: inactiveTrackAlpha) ?? foreground
+            let inactive = sceneColor(for: dots.inactiveColor, foreground: foreground, statusPalette: statusPalette)
             for (index, point) in points.prefix(dots.count).enumerated() {
                 let isActive = index < dots.activeCount
                 guard isActive ? regions.contains(.footerFill) : regions.contains(.footerTrack) else {
@@ -1410,7 +1601,7 @@ extension StatusIconRenderer {
                 ))
             }
         case let .arc(arc):
-            let hidden = foreground.copy(alpha: inactiveTrackAlpha) ?? foreground
+            let hidden = sceneColor(for: arc.inactiveColor, foreground: foreground, statusPalette: statusPalette)
             let active = sceneColor(for: arc.color, foreground: foreground, statusPalette: statusPalette)
             if regions.contains(.footerTrack) {
                 context.setLineWidth(7 * CGFloat(arc.strokeScale))
@@ -1450,6 +1641,13 @@ extension StatusIconRenderer {
             bluetoothColor(foreground: foreground)
         case .bluetoothIcon:
             statusPalette.bluetoothIcon
+        case .custom(let rgba):
+            CGColor(
+                red: rgba.normalized().red,
+                green: rgba.normalized().green,
+                blue: rgba.normalized().blue,
+                alpha: rgba.normalized().alpha
+            )
         }
     }
 
@@ -1473,6 +1671,40 @@ extension StatusIconRenderer {
         context.textMatrix = CGAffineTransform(scaleX: 1, y: -1)
         context.textPosition = CGPoint(x: baseline.x - inkBounds.midX, y: baseline.y)
         CTLineDraw(line, context)
+    }
+
+    /// Draws a top-gap accessory value. A trailing degree glyph is split off so
+    /// the numeric part stays optically centred on the artwork axis and the "°"
+    /// sits to its right (it may run slightly toward the gap edge by design).
+    /// Any other string falls back to the ordinary centred draw.
+    private static func drawSceneAccessoryText(
+        _ text: String,
+        color: CGColor,
+        fontSize: CGFloat,
+        baseline: CGPoint,
+        degreeLift: CGFloat = 0,
+        in context: CGContext
+    ) {
+        guard text.count > 1, text.hasSuffix("°") else {
+            drawSceneText(text, color: color, fontSize: fontSize, baseline: baseline, in: context)
+            return
+        }
+        let number = String(text.dropLast())
+        let numberLine = sceneTextLine(number, color: color, fontSize: fontSize)
+        let numberInk = CTLineGetBoundsWithOptions(numberLine, [.useGlyphPathBounds])
+        context.setFillColor(color)
+        context.textMatrix = CGAffineTransform(scaleX: 1, y: -1)
+        let numberX = baseline.x - numberInk.midX
+        context.textPosition = CGPoint(x: numberX, y: baseline.y)
+        CTLineDraw(numberLine, context)
+
+        let degreeFont = fontSize * 0.72
+        let degreeLine = sceneTextLine("°", color: color, fontSize: degreeFont)
+        let degreeInk = CTLineGetBoundsWithOptions(degreeLine, [.useGlyphPathBounds])
+        let gap = fontSize * 0.06
+        let degreeX = numberX + numberInk.maxX + gap - degreeInk.minX
+        context.textPosition = CGPoint(x: degreeX, y: baseline.y + degreeLift)
+        CTLineDraw(degreeLine, context)
     }
 
     private static func sceneTextLine(_ text: String, color: CGColor, fontSize: CGFloat) -> CTLine {

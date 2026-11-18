@@ -2,6 +2,13 @@ import AppKit
 import SwiftUI
 
 struct StatusPopoverView: View {
+    /// Which window hosts this view. The primary window keeps the summary while
+    /// a detail is shown beside it; the detail window renders only the page.
+    enum Host {
+        case primary
+        case detail
+    }
+
     @ObservedObject var panel: StatusPanelViewModel
     /// Observed so the Low Power Mode control appears the moment the helper is
     /// approved — reading `.isReady` off the shared manager without observing
@@ -33,6 +40,7 @@ struct StatusPopoverView: View {
     var dismissPanel: () -> Void = {}
     /// Reject measurements from a retained tree after its hosting controller is replaced.
     var contentMeasurementID: UUID? = nil
+    var host: Host = .primary
 
     var body: some View {
         // One scroll surface for every route (#237). The area measures the page
@@ -54,12 +62,15 @@ struct StatusPopoverView: View {
                 .environment(\.airPodsConversationCache, panel.store.airPodsConversationCache)
                 .environment(\.statusPanelVisibility, layoutMetrics.visibilityPublisher)
         } footer: {
-            if panel.route == .summary {
+            if host == .primary, panel.isSummaryVisible {
                 pinnedFooter
             }
         }
         .environment(\.panelCardSurfaceStyle, PanelCardSurfaceStyle.resolve(panel.effectivePanelBackgroundStyle))
+        .environment(\.statusPanelDetailHost, host == .detail)
         .frame(width: 330)
+        .environment(\.statusPanelBoldTextEnabled, panel.statusPanelBoldTextEnabled)
+        .environment(\.statusPanelMediumTextEnabled, panel.statusPanelMediumTextEnabled)
     }
 
     /// The current route, inset for the panel's fixed width.
@@ -68,7 +79,26 @@ struct StatusPopoverView: View {
     /// reproduces the old in-page `VStack` spacing before the footer's rule.
     private var routeContent: some View {
         Group {
-            switch panel.route {
+            switch host {
+            case .detail:
+                if panel.route != .summary { pageContent }
+            case .primary:
+                if panel.isShowingDetailPage && panel.detailPresentation == .alongside {
+                    summary
+                } else {
+                    pageContent
+                }
+            }
+        }
+        .padding(.top, host == .detail ? 8 : 14)
+        .padding(.horizontal, 14)
+        .padding(.bottom, routeBottomPadding)
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    @ViewBuilder
+    private var pageContent: some View {
+        switch panel.route {
             case .summary:
                 summary
             case .battery:
@@ -125,19 +155,20 @@ struct StatusPopoverView: View {
                     onSelect: { panel.actions.selectInputSource($0) },
                     onOpenKeyboardSettings: openKeyboardSettings
                 )
-            }
+            case let .hardwareDetail(kind):
+                HardwareDetailView(kind: kind,
+                                   hardware: panel.hardwareMonitor,
+                                   onBack: { panel.showSummaryPage() },
+                                   metricColors: panel.hardwareMonitorMetricColors,
+                                   topApps: panel.topApps)
         }
-        .padding(.top, 14)
-        .padding(.horizontal, 14)
-        .padding(.bottom, routeBottomPadding)
-        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     /// The gap between the route content and the pinned footer. The summary
     /// keeps 12pt so the footer's rule sits where the old in-page spacing put
     /// it; an empty summary lets the footer own the whole inset.
     private var routeBottomPadding: CGFloat {
-        guard panel.route == .summary else { return 14 }
+        guard host == .primary, panel.isSummaryVisible else { return 14 }
         return displayedSections.isEmpty ? 0 : 12
     }
 
@@ -298,6 +329,19 @@ struct StatusPopoverView: View {
                 onOpen: { panel.showInputSourcePage() },
                 onOpenKeyboardSettings: openKeyboardSettings
             )
+        case .hardwareMonitor:
+            // Fixed compact summary: the existing four rings plus one aligned
+            // four-column data row. Card metric order/colour settings still feed
+            // the ring colours; the summary no longer depends on card metrics.
+            HardwareMonitorSummaryView(model: panel.hardwareMonitor,
+                                       metricColors: panel.hardwareMonitorMetricColors,
+                                       showsRings: panel.showsHardwareRings,
+                                       showsSummaryRow: panel.showsHardwareSummaryRow,
+                                       onOpenHardwareDetail: { panel.showHardwareDetail($0) },
+                                       ringSlots: HardwareRingSlot.allCases.filter {
+                                           panel.enabledHardwareRingSlots.contains($0)
+                                       },
+                                       summaryMetrics: panel.enabledHardwareSummaryMetrics)
         }
     }
 

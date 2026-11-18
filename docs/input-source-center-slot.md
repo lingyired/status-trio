@@ -59,20 +59,35 @@ there is no new cache and the delayed work is bounded to one task per scheduler.
 
 ## Priority and fallback
 
-`ConnectionCenterSource.network` is the shipped default and its decision is
-byte-identical to the previous release. With any non-network source selected,
-the centre slot resolves in this order, and each step is pinned by
-`IconPresentationMapperTests` and `InputSourceIconPresentationTests`:
+The centre source is now the explicit V1 `CenterSource.inputSource`. The legacy
+runtime input-source swap (`usesInputSourceInCenter` / `connectionCenterSource`)
+no longer implicitly rewrites a V1 `.network` or `.automaticLegacy` centre; old
+preferences are migrated once at the storage read boundary instead (see the
+execution plan and the designer spec §9). First load only migrates the old
+`network` / `automaticLegacy` selection, never an explicit
+`bluetooth` / `batteryPercentage` / `none`, and a persisted V1 `centerOverride`
+bool (even `false`) wins over the old default-`true` priority flag.
+
+With `.inputSource` selected and the global network rule off, the centre slot
+resolves in this order, and each step is pinned by
+`InputSourceIconPresentationTests` and `IconSlotResolverTests`:
 
 | Priority | Condition | Drawn |
 | --- | --- | --- |
-| 1 | Genuine network outage, when the warning toggle is on (default) | Wi-Fi error glyph |
-| 2 | Chosen source: battery percentage, power, input source, or Bluetooth device | that source's content |
-| 3 | Chosen content cannot be drawn (no input source, no Bluetooth output) | network fallback below |
-| 4 | Network | Wi-Fi / wired as before |
+| 1 | Global "prioritize the network icon when the network is down" on and the network is offline | Wi-Fi error glyph (`overridden(networkProblem)`) |
+| 2 | Current input source | its icon, else its short label, else `keyboard` |
+| 3 | Configured fallback source | the fallback's own resolution |
 
 A live wired link is never an outage, so a wired user with Wi-Fi switched off
 keeps their chosen content (`StatusMappings.isNetworkOffline`).
+
+The global network rule is independent of the centre source: it is checked
+before the `.automaticLegacy` early return and before the primary/fallback
+nil-return, so it also covers `.none`, input source, battery percentage, and
+every Bluetooth source. The old Bluetooth-audio-only
+`prioritizesNetworkErrors` toggle is inert for the V1 scene; the single designer
+switch named "Prioritize the network icon when the network is down" (中文：
+「网络异常时优先显示网络图标」) is the only control.
 
 ## Icon rendering
 

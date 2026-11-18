@@ -233,7 +233,7 @@ struct AudioInputControlsView: View {
             Image(systemName: "mic.fill")
                 .overlay(alignment: .topTrailing) {
                     Image(systemName: "minus.circle.fill")
-                        .font(.system(size: 9, weight: .bold))
+                        .font(.system(size: 9, weight: .regular))
                 }
         } else {
             Image(systemName: state.muteSymbol)

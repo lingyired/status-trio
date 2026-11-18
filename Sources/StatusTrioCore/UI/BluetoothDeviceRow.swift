@@ -37,6 +37,7 @@ enum BluetoothDeviceRowExternalStatusPresentation {
 /// the row does not also spell it out or repeat it with a checkmark, which leaves
 /// its trailing space to the battery level and to whatever an action is doing.
 struct BluetoothDeviceRow: View {
+    @Environment(\.statusPanelBoldTextEnabled) private var panelBoldText
     @EnvironmentObject private var localization: Localization
     let device: BluetoothDevice
     let batteryLevels: [String: BluetoothBatteryLevel]
@@ -83,7 +84,7 @@ struct BluetoothDeviceRow: View {
                     .lineLimit(1)
                 Button(localization.string(.bluetoothActionDisconnect), action: onPerformAction)
                     .buttonStyle(.plain)
-                    .font(.caption.weight(.semibold))
+                    .font(.caption.weight(panelBoldText ? .semibold : .regular))
                     .foregroundStyle(.red)
                     .lineLimit(1)
                 Button(localization.string(.bluetoothActionCancel), action: onCancelDisconnect)
@@ -220,7 +221,7 @@ struct BluetoothDeviceRow: View {
 
     private var name: some View {
         Text(device.name)
-            .font(.body.weight(device.isConnected ? .semibold : .regular))
+            .font(.body.weight(device.isConnected && panelBoldText ? .semibold : .regular))
             .lineLimit(1)
             .truncationMode(.tail)
     }

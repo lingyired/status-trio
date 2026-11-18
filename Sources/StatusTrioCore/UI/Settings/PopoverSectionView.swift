@@ -61,11 +61,30 @@ struct PopoverSectionView: View {
     private var openBehaviorGroup: some View {
         SettingsGroup(localization.string(.settingsPanelOpenBehaviorTitle)) {
             SettingsToggleRow(
+                symbol: "rectangle.split.2x1",
+                tint: .purple,
+                title: localization.string(.settingsPanelShowsDetailsAlongside),
+                subtitle: localization.string(.settingsPanelShowsDetailsAlongsideDescription),
+                isOn: $store.showsPanelDetailsAlongside
+            )
+            SettingsDivider()
+            SettingsToggleRow(
                 symbol: "arrow.uturn.backward",
                 tint: .purple,
                 title: localization.string(.settingsPanelReturnsToSummaryOnOpen),
                 subtitle: localization.string(.settingsPanelReturnsToSummaryOnOpenDescription),
-                isOn: $store.returnsToSummaryOnOpen
+                isOn: Binding(
+                    get: { store.restoresPanelDetailsOnOpen },
+                    set: { store.restoresPanelDetailsOnOpen = $0 }
+                )
+            )
+            SettingsDivider()
+            SettingsToggleRow(
+                symbol: "macwindow.on.rectangle",
+                tint: .purple,
+                title: localization.string(.settingsPanelKeepOpenForComparison),
+                subtitle: localization.string(.settingsPanelKeepOpenForComparisonDescription),
+                isOn: $store.keepsPanelOpenWhenOpeningSettings
             )
         }
     }

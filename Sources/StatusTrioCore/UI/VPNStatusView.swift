@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct VPNStatusView: View {
+    @Environment(\.statusPanelBoldTextEnabled) private var panelBoldText
     let state: PanelSummaryState
     var onSetPower: (Bool) -> Void = { _ in }
 
@@ -13,7 +14,7 @@ struct VPNStatusView: View {
 
             VStack(alignment: .leading, spacing: 2) {
                 Text(state.title)
-                    .font(.headline)
+                    .font(.headline.weight(panelBoldText ? .semibold : .regular))
                     .lineLimit(1)
                     .truncationMode(.tail)
                 Text(state.subtitle)

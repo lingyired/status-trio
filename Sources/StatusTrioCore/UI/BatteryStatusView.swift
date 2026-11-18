@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct BatteryStatusView: View {
+    @Environment(\.statusPanelBoldTextEnabled) private var panelBoldText
     @EnvironmentObject private var localization: Localization
     let state: PanelSummaryState
     var cautionColor: Color = .yellow
@@ -59,7 +60,7 @@ struct BatteryStatusView: View {
                     } else {
                         VStack(alignment: .leading, spacing: 2) {
                             Text(state.title)
-                                .font(.headline)
+                                .font(.headline.weight(panelBoldText ? .semibold : .regular))
                                 .monospacedDigit()
                             Text(state.subtitle)
                                 .font(.caption)
@@ -131,6 +132,7 @@ struct BatteryStatusView: View {
 /// into the subtitle. Observed through the controller so a state that arrives
 /// after the row was built (the helper answers asynchronously) still redraws it.
 private struct BatterySummaryLabel: View {
+    @Environment(\.statusPanelBoldTextEnabled) private var panelBoldText
     @EnvironmentObject private var localization: Localization
     @ObservedObject var controller: HighPowerModeController
     let title: String
@@ -139,7 +141,7 @@ private struct BatterySummaryLabel: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 2) {
             Text(title)
-                .font(.headline)
+                .font(.headline.weight(panelBoldText ? .semibold : .regular))
                 .monospacedDigit()
             Text(
                 controller.isHighPowerMode

@@ -30,6 +30,7 @@ final class AppEnvironment {
 
     private var chargingEffectCancellables = Set<AnyCancellable>()
     private var inputSourceLifecycleCancellables = Set<AnyCancellable>()
+    private var hardwareRingDemandCancellable: AnyCancellable?
     private var previewResourceLifecycleCancellables = Set<AnyCancellable>()
     private var hasSubscribedToChargingEffectInputs = false
     private var isPreviewResourceLifecycleStarted = false
@@ -93,6 +94,7 @@ final class AppEnvironment {
         }
         memoryPressureMonitor.start()
         iconPresentation.start()
+        startHardwareRingDemand()
         startInputSourceMonitoringIfNeeded()
         // A panel test must not be blocked by first-run onboarding. The
         // Settings background route keeps its existing onboarding policy.
@@ -179,11 +181,42 @@ final class AppEnvironment {
         appIconController.stop()
         mainMenuController.stop()
         store.stop()
+        hardwareRingDemandCancellable?.cancel()
+        hardwareRingDemandCancellable = nil
+        store.hardwareMetrics.end(.menuBarArc)
+        store.hardwareMetrics.end(.dock)
         // Both profiler consumers belong to the stopped store. A pressure
         // warning alone must not invalidate a report another reader is using.
         bluetoothProfilerCache.resetIfUnused()
         iconPresentation.stop()
         releaseRebuildableResources()
+    }
+
+    /// Demand the hardware metrics only while the System Monitoring ring is the
+    /// selected outer-ring source. This keeps the low-power contract: battery /
+    /// AirPods users never start the metric sampling loop.
+    private func startHardwareRingDemand() {
+        hardwareRingDemandCancellable = Publishers.CombineLatest(
+            settings.iconPresentationPublisher.map(\.iconConfiguration),
+            settings.$appIconPlacement
+        )
+        .removeDuplicates { $0.0 == $1.0 && $0.1 == $1.1 }
+        .sink { [weak self] configuration, placement in
+            self?.reconcileHardwareRingDemand(configuration, placement: placement)
+        }
+    }
+
+    /// Demand the hardware metrics only on the surfaces that actually show the
+    /// System Monitoring ring, and only while that source is selected (or is the
+    /// fallback so a switch does not start from cold). Panel demand stays owned by
+    /// the panel view model.
+    private func reconcileHardwareRingDemand(_ configuration: IconConfigurationV1,
+                                             placement: AppIconPlacement) {
+        let demands = IconSourceDemandPolicy.hardwareRingDemands(configuration: configuration, placement: placement)
+        if let menuBar = demands.menuBar { store.hardwareMetrics.begin(.menuBarArc, metrics: menuBar) }
+        else { store.hardwareMetrics.end(.menuBarArc) }
+        if let dock = demands.dock { store.hardwareMetrics.begin(.dock, metrics: dock) }
+        else { store.hardwareMetrics.end(.dock) }
     }
 
     private func startPreviewResourceLifecycleIfNeeded() {
@@ -446,6 +479,7 @@ final class AppEnvironment {
         // stay untouched; turning the toggle off restores the live battery.
         let noBatteryPreview = settings.isNoBatterySimulationActive
         let isDevelopmentBuild = settings.isDevelopmentBuild
+        let hardwareRingTracker = HardwareRingStatusTracker()
         let iconPresentation = IconPresentationViewModel(
             snapshot: noBatteryPreview
                 ? store.snapshot.replacingBattery(
@@ -482,8 +516,39 @@ final class AppEnvironment {
             highPowerModes: store.highPowerMode.$isHighPowerMode
                 .removeDuplicates()
                 .eraseToAnyPublisher(),
-            resolveInputs: { snapshot in
-                IconPresentationResourceResolver.inputs(snapshot: snapshot)
+            hardwareMetrics: store.hardwareMetrics.observable.snapshotPublisher,
+            resolveInputs: { [store, settings, hardwareRingTracker] snapshot in
+                var inputs = IconPresentationResourceResolver.inputs(
+                    snapshot: snapshot,
+                    runtimeOptions: settings.iconRuntimePresentationOptions
+                )
+                inputs.sources = IconPresentationResourceResolver.sourceSnapshot(
+                    snapshot: snapshot,
+                    bluetoothDevices: store.bluetoothDevices.devices,
+                    batteryLevels: store.bluetoothDevices.batteryLevels,
+                    batteryLevelsUpdatedAt: store.bluetoothDevices.batteryLevelsUpdatedAt,
+                    selectedAirPodsAddress: settings.airPodsIconDeviceAddress,
+                    selectedConnectedDeviceAddress: settings.bluetoothNetworkIconDeviceAddress
+                )
+                let hardwareSnapshot = store.hardwareMetrics.observable.snapshot
+                inputs.sources.hardwareMetrics = hardwareSnapshot
+                inputs.sources.hardwareMetricColors = settings.hardwareMonitorMetricColors
+                inputs.sources.hardwareSpeedCapsMbps = [
+                    .downloadSpeed: settings.hardwareDownloadCapMbps,
+                    .uploadSpeed: settings.hardwareUploadCapMbps
+                ]
+                inputs.sources.hardwareRingLevels = hardwareRingTracker.levels(
+                    snapshot: hardwareSnapshot,
+                    configuration: settings.hardwareRingConfiguration,
+                    now: .now
+                )
+                return inputs
+            },
+            mapScene: { inputs, _, iconConfiguration in
+                IconCompositionResolver.resolve(
+                    inputs: IconResolutionInputs(system: inputs, sources: inputs.sources),
+                    configuration: iconConfiguration
+                ).scene
             }
         )
         let chargingEffectClock = ChargingEffectClock()

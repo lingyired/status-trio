@@ -7,6 +7,7 @@ final class MacOS13UICompatibilityTests: XCTestCase {
             "Sources/StatusTrioCore/UI/AudioInputControlsView.swift",
             "Sources/StatusTrioCore/UI/BluetoothDeviceList.swift",
             "Sources/StatusTrioCore/UI/BluetoothStatusView.swift",
+            "Sources/StatusTrioCore/UI/HardwareMonitorCardView.swift",
             "Sources/StatusTrioCore/UI/IconGuideView.swift",
             "Sources/StatusTrioCore/UI/Settings/StatusIconPreviewCard.swift",
             "Sources/StatusTrioCore/UI/VolumeControlsView.swift"
@@ -171,6 +172,7 @@ final class MacOS13UICompatibilityTests: XCTestCase {
     /// available. `translate` is the one row the resolver still downgrades, to
     /// `character.bubble`.
     private static let auditedPostVenturaSymbols: Set<String> = [
+        "ring", // Plugin presentation ID, never an SF Symbol name.
         "airpods.gen4",
         "airpods.max",
         "airpods.pro",
@@ -185,6 +187,7 @@ final class MacOS13UICompatibilityTests: XCTestCase {
         "beats.solobuds",
         "beats.studiobuds.plus",
         "flask.fill",
+        "gauge.with.dots.needle.bottom.50percent",
         "headphones.over.ear",
         "headset",
         "homepod.mini",

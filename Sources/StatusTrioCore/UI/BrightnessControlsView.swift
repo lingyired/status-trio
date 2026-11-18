@@ -4,6 +4,7 @@ import SwiftUI
 /// Each row is a single inline capsule whose display name lives inside the bar
 /// (no separate title line).
 struct BrightnessControlsView: View {
+    @Environment(\.statusPanelMediumTextEnabled) private var panelMediumText
     let state: BrightnessPanelState
     let actions: StatusPanelActions
     let scrollTargets: PopoverScrollTargets
@@ -24,6 +25,7 @@ struct BrightnessControlsView: View {
 }
 
 private struct BrightnessRowView: View {
+    @Environment(\.statusPanelMediumTextEnabled) private var panelMediumText
     let row: BrightnessRowState
     let actions: StatusPanelActions
     let scrollTargets: PopoverScrollTargets
@@ -132,7 +134,7 @@ private struct BrightnessRowView: View {
                 .frame(height: PanelLevelSliderMetrics.barHeight)
             HStack(spacing: 8) {
                 Text(row.name)
-                    .font(.system(size: 10, weight: .medium))
+                    .font(.system(size: 10, weight: panelMediumText ? .medium : .regular))
                     .lineLimit(1)
                     .truncationMode(.middle)
                     .foregroundStyle(.primary.opacity(0.6))

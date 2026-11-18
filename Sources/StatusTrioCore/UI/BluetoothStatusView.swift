@@ -50,6 +50,7 @@ enum BluetoothSummaryActionAvailability {
 /// here instead: the refresh button beside the gear, and the one-line report of
 /// a level read that failed.
 struct BluetoothStatusView: View {
+    @Environment(\.statusPanelBoldTextEnabled) private var panelBoldText
     @ObservedObject var controller: BluetoothDeviceController
     @ObservedObject var radioPower: BluetoothRadioPowerController
     @ObservedObject var mobileBatteryController: MobileBatteryController
@@ -508,7 +509,7 @@ struct BluetoothStatusView: View {
                 .foregroundStyle(titleIconColor)
             VStack(alignment: .leading, spacing: 2) {
                 Text(localization.string(.bluetoothTitle))
-                    .font(.headline)
+                    .font(.headline.weight(panelBoldText ? .semibold : .regular))
                 subtitle
             }
             Spacer()

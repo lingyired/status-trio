@@ -42,8 +42,8 @@ final class SleepProgressTests: XCTestCase {
 
         XCTAssertEqual(SleepTimerDuration.thirtyMinutes.shortLabel, "30m")
         XCTAssertEqual(SleepTimerDuration.oneHour.shortLabel, "1h")
-        XCTAssertEqual(SleepTimerDuration.twoHours.shortLabel, "2h")
-        XCTAssertEqual(SleepTimerDuration.fourHours.shortLabel, "4h")
+        XCTAssertEqual(SleepTimerDuration.twoHours.shortLabel, "2\u{2009}h")
+        XCTAssertEqual(SleepTimerDuration.fourHours.shortLabel, "4\u{2009}h")
         XCTAssertEqual(SleepTimerDuration.unlimited.shortLabel, "∞")
     }
 }

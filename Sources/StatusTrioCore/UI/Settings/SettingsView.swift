@@ -67,6 +67,7 @@ struct SettingsView: View {
         case bluetooth
         case audio
         case brightness
+        case monitor
         case popover
         case general
         case about
@@ -87,6 +88,7 @@ struct SettingsView: View {
             case .bluetooth: return .bluetoothRune
             case .audio:   return .symbol("speaker.wave.3.fill")
             case .brightness: return .symbol(SymbolFallback.name("sun.max.fill", "sun.max"))
+            case .monitor: return .symbol(SymbolFallback.name("gauge.with.dots.needle.bottom.50percent", "gauge"))
             case .popover: return .symbol("list.bullet.rectangle")
             case .general: return .symbol("gearshape.fill")
             case .about:   return .symbol("info.circle.fill")
@@ -104,6 +106,7 @@ struct SettingsView: View {
             case .bluetooth: return .blue
             case .audio:   return .cyan
             case .brightness: return .orange
+            case .monitor: return .teal
             case .popover: return .purple
             case .general: return .gray
             case .about:   return .orange
@@ -120,6 +123,7 @@ struct SettingsView: View {
             case .bluetooth: return localization.string(.settingsTabBluetooth)
             case .audio:   return localization.string(.settingsTabAudio)
             case .brightness: return localization.string(.settingsTabBrightness)
+            case .monitor: return localization.string(.settingsTabMonitor)
             case .popover: return localization.string(.settingsTabPanel)
             case .general: return localization.string(.settingsPageGeneral)
             case .about:   return localization.string(.settingsTabAbout)
@@ -177,7 +181,7 @@ struct SettingsView: View {
 
     /// Functional status categories shown in the scrollable top group.
     private static let scrollableSections: [Section] = [
-        .appIcon, .battery, .network, .bluetooth, .audio, .brightness, .keepAwake, .popover,
+        .appIcon, .battery, .network, .bluetooth, .audio, .brightness, .keepAwake, .monitor, .popover,
     ]
 
     /// App-wide panes pinned below the divider so they stay reachable when the
@@ -477,6 +481,8 @@ struct SettingsView: View {
             )
         case .brightness:
             BrightnessSectionView(store: store, statusStore: statusStore)
+        case .monitor:
+            HardwareMonitorSectionView(store: store)
         case .popover:
             PopoverSectionView(store: store, statusStore: statusStore)
         case .general:

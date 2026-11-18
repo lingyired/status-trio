@@ -41,26 +41,9 @@ struct SystemPowerReader: Sendable {
                      temperature: Bool = false) -> PowerSensorReadings {
         var readings = PowerSensorReadings.empty
         guard system || input || battery || breakdown || temperature else { return readings }
-        let service = IOServiceGetMatchingService(kIOMainPortDefault, IOServiceMatching("AppleSMC"))
-        guard service != 0 else { return readings }
-        defer { IOObjectRelease(service) }
-        var connection: io_connect_t = 0
-        guard IOServiceOpen(service, mach_task_self_, 0, &connection) == KERN_SUCCESS else { return readings }
-        defer { IOServiceClose(connection) }
-        // SMC supplies no hardware timestamp. Record the start of the read so
-        // an IPC call that stalls cannot make an old result appear fresh.
-        let readAt = Date()
-        let exchange: ([UInt8]) -> [UInt8]? = { request in
-            var response = [UInt8](repeating: 0, count: 80)
-            var size = response.count
-            let result = request.withUnsafeBytes { input in
-                response.withUnsafeMutableBytes { output in
-                    IOConnectCallStructMethod(connection, 2, input.baseAddress, input.count,
-                                              output.baseAddress, &size)
-                }
-            }
-            return result == KERN_SUCCESS && size == 80 ? response : nil
-        }
+        // Share the read-only SMC transport/decoder with the hardware readers.
+        return SMCReadOnlyClient.withConnection { exchange in
+            let readAt = Date()
         if system, let watts = Self.readValue(sensor: .system, exchange: exchange) {
             readings.system = SystemPowerSample(watts: watts, readAt: readAt)
         }
@@ -89,6 +72,7 @@ struct SystemPowerReader: Sendable {
                 smcType: raw.type, bytes: raw.bytes)
         }
         return readings
+        } ?? .empty
     }
 
     static let batteryTemperatureKey: UInt32 = 0x54423054 // TB0T

@@ -38,6 +38,29 @@ final class LocalizationParityTests: XCTestCase {
 
     // MARK: - Tests
 
+    func testPreviewDataEditActionIsModeNeutralInEveryLanguage() throws {
+        let expectedByLanguage = [
+            "ar": "تعديل بيانات المعاينة…",
+            "de": "Vorschaudaten bearbeiten…",
+            "en": "Edit Preview Data…",
+            "es": "Editar datos de vista previa…",
+            "fr": "Modifier les données de l’aperçu…",
+            "it": "Modifica dati di anteprima…",
+            "ja": "プレビューデータを編集…",
+            "ko": "미리보기 데이터 편집…",
+            "pt-BR": "Editar dados da prévia…",
+            "ru": "Изменить данные предпросмотра…",
+            "zh-Hans": "编辑预览数据…",
+            "zh-Hant": "編輯預覽資料…"
+        ]
+        XCTAssertEqual(Set(expectedByLanguage.keys), Set(AppLanguage.allCases.map(\.rawValue)))
+        for language in AppLanguage.allCases {
+            let values = Dictionary(uniqueKeysWithValues: try entries(for: language).map { ($0.key, $0.value) })
+            XCTAssertEqual(values[LocalizationKey.iconPreviewEditData.rawValue], expectedByLanguage[language.rawValue],
+                           "The panel launcher must describe preview data without implying a switch to simulated mode.")
+        }
+    }
+
     func testEveryLanguageDeclaresExactlyTheEnglishKeys() throws {
         let baseKeys = try entries(for: .english).map(\.key)
         XCTAssertFalse(baseKeys.isEmpty, "en.lproj must define the base key list")
@@ -211,6 +234,40 @@ final class LocalizationParityTests: XCTestCase {
         }
     }
 
+    func testIconDesignerControlTranslationsArePresentInEveryLanguage() throws {
+        let keys = LocalizationKey.allCases.map(\.rawValue).filter { $0.hasPrefix("iconDesigner.control.") }
+        XCTAssertGreaterThanOrEqual(keys.count, 30, "Designer control labels must be explicitly catalogued")
+        for language in AppLanguage.allCases {
+            let values = Dictionary(uniqueKeysWithValues: try entries(for: language).map { ($0.key, $0.value) })
+            for key in keys {
+                XCTAssertFalse(
+                    (values[key] ?? "").trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+                    "\(language.rawValue).lproj: \(key) is missing or empty"
+                )
+            }
+        }
+    }
+
+    func testDeviceSettingsDesignerEntriesAndMacBatteryClarificationAreLocalized() throws {
+        let keys = [
+            LocalizationKey.settingsBatteryMacBehavior.rawValue,
+            LocalizationKey.settingsBatteryMacBehaviorDescription.rawValue,
+            LocalizationKey.settingsBatteryDesignerEntry.rawValue,
+            LocalizationKey.settingsNetworkDesignerEntry.rawValue,
+            LocalizationKey.settingsBluetoothDesignerEntry.rawValue,
+            LocalizationKey.settingsAudioDesignerEntry.rawValue
+        ]
+
+        for language in AppLanguage.allCases {
+            let values = Dictionary(uniqueKeysWithValues: try entries(for: language).map { ($0.key, $0.value) })
+            for key in keys {
+                let value = try XCTUnwrap(values[key], "\(language.rawValue).lproj is missing \(key)")
+                XCTAssertFalse(value.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                XCTAssertNotEqual(value, key)
+            }
+        }
+    }
+
     func testEveryLocalizedValueDiffersFromItsKeyPlaceholder() throws {
         for language in AppLanguage.allCases {
             for entry in try entries(for: language) {
@@ -218,6 +275,62 @@ final class LocalizationParityTests: XCTestCase {
                     entry.value,
                     entry.key,
                     "\(language.rawValue).lproj leaves \(entry.key) as a raw key at line \(entry.line)"
+                )
+            }
+        }
+    }
+
+    /// The 2026-10-16 input-source / global-network strings are separate
+    /// controls with distinct meaning. A generator bug once wrote the help
+    /// sentence into all three keys; pin the exact control labels for en and
+    /// zh-Hans, and require distinct, non-empty values for the rest.
+    func testInputSourceAndGlobalNetworkStringsKeepTheirControlMeaning() throws {
+        let expected: [String: (toggle: String, available: String, shortLabel: String, liveNotice: String)] = [
+            "en": (
+                toggle: "Prioritize the network icon when the network is down",
+                available: "Input source available",
+                shortLabel: "Sample short label",
+                liveNotice: "Live input source comes from macOS; simulated values never change the real input source."
+            ),
+            "zh-Hans": (
+                toggle: "网络异常时优先显示网络图标",
+                available: "输入法可用",
+                shortLabel: "样例短标签",
+                liveNotice: "实时输入法来自 macOS；模拟值不会更改真实输入法。"
+            ),
+        ]
+        let keys = [
+            "iconDesigner.control.networkProblemsOverride",
+            "iconPreviewData.inputSource.available",
+            "iconPreviewData.inputSource.shortLabel",
+            "iconPreviewData.inputSource.liveNotice",
+        ]
+
+        for language in AppLanguage.allCases {
+            let values = Dictionary(uniqueKeysWithValues: try entries(for: language).map { ($0.key, $0.value) })
+            for key in keys {
+                let value = try XCTUnwrap(values[key], "\(language.rawValue).lproj is missing \(key)")
+                XCTAssertFalse(value.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+            }
+            if let copy = expected[language.rawValue] {
+                XCTAssertEqual(values["iconDesigner.control.networkProblemsOverride"], copy.toggle,
+                               "\(language.rawValue) toggle label")
+                XCTAssertEqual(values["iconPreviewData.inputSource.available"], copy.available,
+                               "\(language.rawValue) availability label")
+                XCTAssertEqual(values["iconPreviewData.inputSource.shortLabel"], copy.shortLabel,
+                               "\(language.rawValue) short-label caption")
+                XCTAssertEqual(values["iconPreviewData.inputSource.liveNotice"], copy.liveNotice,
+                               "\(language.rawValue) live notice")
+            } else {
+                XCTAssertNotEqual(
+                    values["iconPreviewData.inputSource.available"],
+                    values["iconPreviewData.inputSource.liveNotice"],
+                    "\(language.rawValue) must not reuse the live-notice sentence as the availability label"
+                )
+                XCTAssertNotEqual(
+                    values["iconDesigner.control.networkProblemsOverride"],
+                    values["iconDesigner.control.networkProblemsOverride.help"],
+                    "\(language.rawValue) must not reuse the help sentence as the toggle label"
                 )
             }
         }

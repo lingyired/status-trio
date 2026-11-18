@@ -19,7 +19,14 @@ struct PopoverDismissalPolicy: Equatable {
     /// toggle to protect, so every click is treated as an outside click.
     let statusItemFrame: NSRect?
 
+    /// Frames of every panel the presentation currently shows. A click inside
+    /// any of them belongs to the panel group, never to an outside app.
+    var panelFrames: [NSRect] = []
+
     func shouldDismiss(at point: NSPoint) -> Bool {
+        if panelFrames.contains(where: { Self.containsInclusive($0, point) }) {
+            return false
+        }
         guard let statusItemFrame else { return true }
         return !Self.containsInclusive(statusItemFrame, point)
     }

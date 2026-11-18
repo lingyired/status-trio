@@ -616,14 +616,69 @@ enum StatusIconGeometry {
         return path
     }
 
+    static let airPodsMinimumGapWidth: CGFloat = 16
+    static let airPodsMaximumGapWidth: CGFloat = 24
+    static let airPodsGapWidth: CGFloat = 18
+
+    static func airPodsTrack(
+        position: RingSegmentPosition,
+        gapWidth: CGFloat = airPodsGapWidth,
+        topGapWidth: CGFloat? = nil
+    ) -> CGPath {
+        airPodsArc(position: position, progress: 1, gapWidth: gapWidth, topGapWidth: topGapWidth)
+    }
+
+    static func airPodsArc(
+        position: RingSegmentPosition,
+        progress: Double,
+        gapWidth: CGFloat = airPodsGapWidth,
+        topGapWidth: CGFloat? = nil
+    ) -> CGPath {
+        guard progress.isFinite else { return CGMutablePath() }
+        let fraction = min(1, max(0, progress))
+        guard fraction > 0 else { return CGMutablePath() }
+
+        let safeGap: CGFloat
+        if let topGapWidth {
+            let maximumArcLength = batteryRadius * batterySweep
+            safeGap = topGapWidth.isFinite
+                ? min(maximumArcLength, max(0, topGapWidth))
+                : 0
+        } else {
+            safeGap = gapWidth.isFinite
+                ? min(airPodsMaximumGapWidth, max(airPodsMinimumGapWidth, gapWidth))
+                : 10
+        }
+        let gapAngle = safeGap / batteryRadius
+        let halfSweep = (batterySweep - gapAngle) / 2
+        let start: CGFloat
+        let end: CGFloat
+        switch position {
+        case .left:
+            start = batteryStart
+            end = batteryStart + halfSweep * CGFloat(fraction)
+        case .right:
+            start = batteryStart + batterySweep
+            end = start - halfSweep * CGFloat(fraction)
+        }
+        return arc(
+            center: batteryCenter,
+            radius: batteryRadius,
+            start: start,
+            end: end,
+            clockwise: position == .right
+        )
+    }
+
     private static func arc(
         center: CGPoint,
         radius: CGFloat,
         start: CGFloat,
-        end: CGFloat
+        end: CGFloat,
+        clockwise: Bool = false
     ) -> CGPath {
         let path = CGMutablePath()
-        path.addArc(center: center, radius: radius, startAngle: start, endAngle: end, clockwise: false)
+        path.addArc(center: center, radius: radius, startAngle: start, endAngle: end, clockwise: clockwise)
         return path
     }
 }

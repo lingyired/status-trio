@@ -2,6 +2,7 @@ import AppKit
 import SwiftUI
 
 struct NetworkStatusView: View {
+    @Environment(\.statusPanelBoldTextEnabled) private var panelBoldText
     @EnvironmentObject private var localization: Localization
     var showsWiFiPowerControl = false
     var wifiPowerIsOn = false
@@ -49,7 +50,7 @@ struct NetworkStatusView: View {
 
                     VStack(alignment: .leading, spacing: 2) {
                         Text(state.title)
-                            .font(.headline)
+                            .font(.headline.weight(panelBoldText ? .semibold : .regular))
                             .lineLimit(1)
                             .truncationMode(.tail)
                         subtitle

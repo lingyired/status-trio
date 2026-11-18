@@ -70,6 +70,7 @@ struct DockIconPreviewMetricsTests {
         #expect(DockIconPreviewMetrics.pixelLength(forPointSize: 30) == 60)
         #expect(DockIconPreviewMetrics.pixelLength(forPointSize: 44) == 88)
         #expect(DockIconPreviewMetrics.pixelLength(forPointSize: 56) == 112)
+        #expect(DockIconPreviewMetrics.pixelLength(forPointSize: 128) == 256)
     }
 
     @Test func quantizesFractionalSizesUpIntoFourPixelBuckets() {
@@ -81,9 +82,10 @@ struct DockIconPreviewMetricsTests {
     }
 
     @Test func clampsAnAbsurdPointSize() {
-        #expect(DockIconPreviewMetrics.maximumPixelLength == 128)
+        #expect(DockIconPreviewMetrics.maximumPixelLength == 256)
         #expect(DockIconPreviewMetrics.pixelLength(forPointSize: 0) == 4)
-        #expect(DockIconPreviewMetrics.pixelLength(forPointSize: 10_000) == 128)
+        #expect(DockIconPreviewMetrics.pixelLength(forPointSize: 10_000) == 256)
+        #expect(DockIconPreviewMetrics.pixelLength(forPointSize: .greatestFiniteMagnitude) == 256)
         #expect(
             DockIconPreviewMetrics.pixelLength(forPointSize: 10_000)
                 < DockIconRenderer.pixelSize

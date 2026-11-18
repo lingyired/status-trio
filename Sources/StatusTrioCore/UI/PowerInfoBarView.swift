@@ -5,6 +5,7 @@ import SwiftUI
 /// underneath. Each number is its own reading and the cards are never summed
 /// into a whole-machine total.
 struct PowerInfoBarView: View {
+    @Environment(\.statusPanelBoldTextEnabled) private var panelBoldText
     @EnvironmentObject private var localization: Localization
     @Environment(\.colorScheme) private var colorScheme
     let state: PowerInfoBarState
@@ -35,7 +36,7 @@ struct PowerInfoBarView: View {
                     .accessibilityHidden(true)
                 if let value {
                     Text(value)
-                        .font(.system(size: 13, weight: .semibold, design: .rounded))
+                        .font(.system(size: 13, weight: panelBoldText ? .semibold : .regular, design: .rounded))
                         .monospacedDigit()
                         .lineLimit(1)
                         .minimumScaleFactor(0.8)

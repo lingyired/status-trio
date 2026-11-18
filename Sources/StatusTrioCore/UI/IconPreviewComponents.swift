@@ -9,15 +9,18 @@ enum IconPreviewScene {
         configuration: IconPresentationConfiguration,
         inputSource: InputSourceDescriptor? = nil,
         systemPower: SystemPowerSample? = nil,
-        isHighPowerMode: Bool = false
+        isHighPowerMode: Bool = false,
+        bottomIndicatorSource: BottomIndicatorSource = .volume
     ) -> IconSceneState {
-        IconPresentationMapper.scene(
-            inputs: IconPresentationResourceResolver.inputs(
-                snapshot: snapshot,
-                inputSource: inputSource,
-                systemPower: systemPower,
-                isHighPowerMode: isHighPowerMode
-            ),
+        var inputs = IconPresentationResourceResolver.inputs(
+            snapshot: snapshot,
+            inputSource: inputSource,
+            systemPower: systemPower,
+            isHighPowerMode: isHighPowerMode
+        )
+        inputs.bottomIndicatorSource = bottomIndicatorSource
+        return IconPresentationMapper.scene(
+            inputs: inputs,
             configuration: configuration
         )
     }
@@ -27,14 +30,16 @@ enum IconPreviewScene {
         configuration: IconPresentationConfiguration,
         inputSource: InputSourceDescriptor? = nil,
         systemPower: SystemPowerSample? = nil,
-        isHighPowerMode: Bool = false
+        isHighPowerMode: Bool = false,
+        bottomIndicatorSource: BottomIndicatorSource = .volume
     ) -> IconSceneState {
         make(
             snapshot: snapshot(from: status),
             configuration: configuration,
             inputSource: inputSource,
             systemPower: systemPower,
-            isHighPowerMode: isHighPowerMode
+            isHighPowerMode: isHighPowerMode,
+            bottomIndicatorSource: bottomIndicatorSource
         )
     }
 

@@ -60,6 +60,7 @@ symbol:
 | Newer symbol | Introduced | Ventura behaviour |
 | --- | --- | --- |
 | `battery.100percent` | 14.0 | `battery.100` |
+| `gauge.with.dots.needle.bottom.50percent` | 15.0 | `gauge` |
 | `battery.75percent` | 14.0 | `battery.75` |
 | `beats.fitpro` | 14.0 | `beats.headphones` -> `headphones` |
 | `flask.fill` | 14.0 | `testtube.2` |
@@ -132,8 +133,9 @@ The CSVs used while auditing live outside the repository, in
 `name_availability.plist` with the string literals under `Sources`, and they are
 reproducible on any Mac that still carries the bundle.
 
+## Icon content plugin identifiers (2026-10-19)
+The literal `ring` is an internal presentation ID in `Presentation/Icon/Plugins`, not a name passed to SF Symbols. The source-literal availability audit also sees this ID because CoreGlyphs contains a newer symbol with the same name. It is listed in `auditedPostVenturaSymbols` for this non-rendering use, like the existing parse/class literals. Rendering still uses the established geometric ring and existing Ventura-safe symbols; no `ring` SF Symbol is drawn.
 ## AirPods native control symbols (2026-10-30)
-
 Control Center uses private names `person.open.fill`, `person.closed.fill`, and
 `person.and.sparkles.fill`. The AirPods menu resolves these from the installed
 system using the runtime-checked `imageWithPrivateSystemSymbolName:` selector.
@@ -143,7 +145,6 @@ respectively. Unknown names, including unavailable Spatial Audio artwork, fall
 back to `person.fill`. The menu never passes these newer/private names directly
 to SwiftUI `Image(systemName:)`. This is a static/runtime fallback audit, not a
 Ventura hardware test.
-
 The inline Spatial Audio rows use `person.spatialaudio.stereo.fill` when available,
 with a `person.fill` (macOS 10.15) fallback. Head Tracked loads the installed
 Control Center `spatialize-stereo-head-tracked` template asset at runtime; if the

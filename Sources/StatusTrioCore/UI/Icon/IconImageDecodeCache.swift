@@ -1,13 +1,39 @@
 import AppKit
 
+/// The file version is part of an icon's cache identity. A source can keep the
+/// same URL while replacing its artwork, so URL alone is not a stable image key.
+struct IconImageFileIdentity: Hashable {
+    let url: URL
+    let modificationDate: Date?
+    let fileSize: Int?
+
+    init(url: URL) {
+        let standardizedURL = url.standardizedFileURL
+        let attributes = try? standardizedURL.resourceValues(forKeys: [.contentModificationDateKey, .fileSizeKey])
+        self.url = standardizedURL
+        self.modificationDate = attributes?.contentModificationDate
+        self.fileSize = attributes?.fileSize
+    }
+
+    var hasFileVersion: Bool {
+        modificationDate != nil && fileSize != nil
+    }
+
+    var cacheToken: String {
+        let modified = modificationDate.map { String($0.timeIntervalSince1970.bitPattern, radix: 16) } ?? "missing"
+        let size = fileSize.map { String($0) } ?? "missing"
+        return "\(url.path)|mtime=\(modified)|bytes=\(size)"
+    }
+}
+
 /// Bounded cache of decoded icon images keyed by their file URL and size.
 ///
 /// The menu bar draws through an `NSImage` drawing handler on every display
 /// pass, so without this each pass would re-read and re-decode the same input
-/// source or audio-device icon from disk. Invalidation is identity-based: a
-/// changed URL (or a changed source ID pointing at a new URL) is simply a new
-/// key. Decoded images and their monochrome masks share one entry and bitmap
-/// byte budget; images too large for the budget are returned without retention.
+/// source or audio-device icon from disk. URL plus modification date and file
+/// size identify each version. Decoded images and their monochrome masks share
+/// one bitmap-byte budget; images too large for that budget are returned without
+/// retention.
 final class IconImageDecodeCache: @unchecked Sendable {
     static let shared = IconImageDecodeCache()
 
@@ -17,9 +43,9 @@ final class IconImageDecodeCache: @unchecked Sendable {
     }
 
     private struct Key: Hashable {
-        let url: URL
+        let identity: IconImageFileIdentity
+        let normalizedPixelLength: Int
         let kind: Kind
-        let maximumPixelLength: Int
     }
 
     private struct Entry {
@@ -34,6 +60,7 @@ final class IconImageDecodeCache: @unchecked Sendable {
     private var order: [Key] = []
     private var residentBytes = 0
     private var epoch: UInt64 = 0
+    private var lastKnownFileVersions: [URL: IconImageFileIdentity] = [:]
 
     init(
         maximumEntries: Int = 8,
@@ -58,20 +85,22 @@ final class IconImageDecodeCache: @unchecked Sendable {
     }
 
     /// Returns the cached image for `url`, loading it through `load` once when
-    /// absent. A failed load is not cached.
+    /// absent or when its file version changes. A failed load is not cached.
     func image(
         for url: URL,
         maximumPixelLength: Int = 512,
         load: (URL) -> NSImage?
     ) -> NSImage? {
-        image(
+        let identity = resolvedIdentity(for: url)
+        return image(
             for: Key(
-                url: url,
-                kind: .decoded,
-                maximumPixelLength: maximumPixelLength
+                identity: identity,
+                normalizedPixelLength: maximumPixelLength,
+                kind: .decoded
             ),
-            url: url,
-            load: load
+            load: {
+                load(identity.url)
+            }
         )
     }
 
@@ -84,23 +113,27 @@ final class IconImageDecodeCache: @unchecked Sendable {
         for url: URL,
         maximumPixelLength: Int = InputSourceIconMask.defaultMaximumPixelLength
     ) -> NSImage? {
-        image(
+        let identity = resolvedIdentity(for: url)
+        return image(
             for: Key(
-                url: url,
-                kind: .inputSourceMask,
-                maximumPixelLength: maximumPixelLength
+                identity: identity,
+                normalizedPixelLength: maximumPixelLength,
+                kind: .inputSourceMask
             ),
-            url: url
-        ) { url in
-            guard let image = decodedImage(for: url) else { return nil }
-            return InputSourceIconMask.make(
-                from: image,
-                maximumPixelLength: maximumPixelLength
-            )
-        }
+            load: {
+                guard let image = decodedImage(
+                    for: identity,
+                    maximumPixelLength: maximumPixelLength
+                ) else { return nil }
+                return InputSourceIconMask.make(
+                    from: image,
+                    maximumPixelLength: maximumPixelLength
+                )
+            }
+        )
     }
 
-    private func image(for key: Key, url: URL, load: (URL) -> NSImage?) -> NSImage? {
+    private func image(for key: Key, load: () -> NSImage?) -> NSImage? {
         let loadEpoch: UInt64
         lock.lock()
         if let cached = storage[key] {
@@ -112,8 +145,10 @@ final class IconImageDecodeCache: @unchecked Sendable {
         loadEpoch = epoch
         lock.unlock()
 
-        guard let image = load(url) else { return nil }
+        guard let image = load() else { return nil }
         guard let byteCount = Self.bitmapByteCount(of: image) else { return image }
+
+        guard byteCount <= maximumResidentBytes else { return image }
 
         lock.lock()
         defer { lock.unlock() }
@@ -123,9 +158,6 @@ final class IconImageDecodeCache: @unchecked Sendable {
             return existing.image
         }
 
-        guard byteCount <= maximumResidentBytes else {
-            return image
-        }
         storage[key] = Entry(image: image, byteCount: byteCount)
         residentBytes += byteCount
         order.append(key)
@@ -138,17 +170,34 @@ final class IconImageDecodeCache: @unchecked Sendable {
         return image
     }
 
-    /// Convenience for callers whose loader is `NSImage(contentsOf:)`.
+    /// Convenience for callers whose loader is the bounded image rasterizer.
+    func decodedImage(
+        for identity: IconImageFileIdentity,
+        maximumPixelLength: Int = 512
+    ) -> NSImage? {
+        image(
+            for: Key(
+                identity: identity,
+                normalizedPixelLength: maximumPixelLength,
+                kind: .decoded
+            ),
+            load: {
+                IconImageRasterizer.image(
+                    at: identity.url,
+                    maximumPixelLength: maximumPixelLength
+                )
+            }
+        )
+    }
+
     func decodedImage(
         for url: URL,
         maximumPixelLength: Int = 512
     ) -> NSImage? {
-        image(for: url, maximumPixelLength: maximumPixelLength) { url in
-            IconImageRasterizer.image(
-                at: url,
-                maximumPixelLength: maximumPixelLength
-            )
-        }
+        decodedImage(
+            for: resolvedIdentity(for: url),
+            maximumPixelLength: maximumPixelLength
+        )
     }
 
     func reset() {
@@ -158,6 +207,19 @@ final class IconImageDecodeCache: @unchecked Sendable {
         storage.removeAll(keepingCapacity: false)
         order.removeAll(keepingCapacity: false)
         residentBytes = 0
+        lastKnownFileVersions.removeAll(keepingCapacity: false)
+    }
+
+    func resolvedIdentity(for url: URL) -> IconImageFileIdentity {
+        let standardizedURL = url.standardizedFileURL
+        let current = IconImageFileIdentity(url: standardizedURL)
+        lock.lock()
+        defer { lock.unlock() }
+        if current.hasFileVersion {
+            lastKnownFileVersions[standardizedURL] = current
+            return current
+        }
+        return lastKnownFileVersions[standardizedURL] ?? current
     }
 
     private func touch(_ key: Key) {

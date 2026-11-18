@@ -13,6 +13,7 @@ extension ChargeToFullNowPresentation {
 /// details page. Keeping one view guarantees both surfaces use the same label,
 /// progress, cancel confirmation, and error notices.
 struct ChargeToFullNowActionView: View {
+    @Environment(\.statusPanelMediumTextEnabled) private var panelMediumText
     @EnvironmentObject private var localization: Localization
     @Environment(\.panelCardSurfaceStyle) private var cardStyle
     @Environment(\.colorScheme) private var scheme
@@ -43,12 +44,12 @@ struct ChargeToFullNowActionView: View {
                             Spacer(minLength: 8)
 
                             Text(actionLabel)
-                                .font(.caption.weight(.medium))
+                                .font(.caption.weight(panelMediumText ? .medium : .regular))
                                 .lineLimit(1)
                                 .minimumScaleFactor(0.7)
                         } else {
                             Text(actionLabel)
-                                .font(.caption.weight(.medium))
+                                .font(.caption.weight(panelMediumText ? .medium : .regular))
                                 .lineLimit(1)
                                 .minimumScaleFactor(0.7)
 

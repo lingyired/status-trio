@@ -4,6 +4,32 @@ import Foundation
 
 @MainActor
 final class SettingsStore: ObservableObject {
+    /// Authoritative V1 icon configuration. Persisted under
+    /// `iconConfigurationDefaultsKey`; the runtime renders from the projection
+    /// derived from the individual settings, while the editor/tests read and
+    /// write this value.
+    @Published var iconConfiguration: IconConfigurationV1 = .classic {
+        didSet {
+            guard canPersistIconConfiguration,
+                  !isSyncingIconConfiguration,
+                  let data = try? IconConfigurationCodec.encode(iconConfiguration) else { return }
+            defaults.set(data, forKey: Self.iconConfigurationDefaultsKey)
+        }
+    }
+    @Published var _airPodsIconDeviceAddress: String? {
+        didSet { defaults.set(_airPodsIconDeviceAddress, forKey: "airPodsIconDeviceAddress") }
+    }
+    @Published var _connectedBluetoothIconDeviceAddress: String? {
+        didSet { defaults.set(_connectedBluetoothIconDeviceAddress, forKey: "connectedBluetoothIconDeviceAddress") }
+    }
+    @Published var _refreshesAirPodsBatteryForIcon: Bool = false {
+        didSet { defaults.set(_refreshesAirPodsBatteryForIcon, forKey: "refreshesAirPodsBatteryForIcon") }
+    }
+
+    @Published var iconConfigurationLoadError: IconConfigurationCodecError?
+    var canPersistIconConfiguration = false
+    var isSyncingIconConfiguration = false
+
     static let hasCompletedIconGuideOnboardingDefaultsKey = "hasCompletedIconGuideOnboarding.v1"
     static let hasSeenIconGuideDefaultsKey = "hasSeenIconGuide"
     static let sharesAnonymousAnalyticsDefaultsKey = "sharesAnonymousAnalytics"
@@ -32,7 +58,7 @@ final class SettingsStore: ObservableObject {
     static let chargeToFullRestoreLimitRange: ClosedRange<Double> = 80...95
     static let defaultChargeToFullRestoreLimit: Double = 95
     static let chargeToFullRestoreLimitDefaultsKey = "chargeToFullRestoreLimit"
-    static let batterySymbolScaleRange: ClosedRange<Double> = 0.9...1.1
+    static let batterySymbolScaleRange: ClosedRange<Double> = 0.9...1.2
     static let defaultBatterySymbolScale: Double = 1
     static let showsBatteryPercentageDefaultsKey = "showsBatteryPercentage"
     static let showsBatteryPowerFlowDefaultsKey = "showsBatteryPowerFlow"
@@ -146,8 +172,41 @@ final class SettingsStore: ObservableObject {
     static let wifiSymbolScaleRange = statusCenterSymbolScaleRange
     static let defaultWifiSymbolScale = defaultStatusCenterSymbolScale
     static let wifiSymbolScaleDefaultsKey = "wifiSymbolScale"
+    static let outerRingContentDefaultsKey = "outerRingContent"
+    static let airPodsRingUsesDualRingDefaultsKey = "airPodsRingUsesDualRing"
+    static let showsAirPodsTopSymbolInRingDefaultsKey = "showsAirPodsTopSymbolInRing"
+    static let airPodsRingFallsBackToBatteryDefaultsKey = "airPodsRingFallsBackToBattery"
+    static let hardwareRingConfigurationDefaultsKey = "hardwareRingConfigurationV1"
+    static let hardwareMonitorMetricColorsDefaultsKey = "hardwareMonitorMetricColorsV1"
+    static let hardwareDownloadCapMbpsDefaultsKey = "hardwareDownloadCapMbps"
+    static let hardwareUploadCapMbpsDefaultsKey = "hardwareUploadCapMbps"
+    static let hardwareBackgroundHistoryEnabledDefaultsKey = "hardwareBackgroundHistoryEnabled"
+    static let hardwarePanelRefreshSecondsDefaultsKey = "hardwarePanelRefreshSeconds"
+    static let showsHardwareRingsDefaultsKey = "showsHardwareRings"
+    static let showsHardwareSummaryRowDefaultsKey = "showsHardwareSummaryRow"
+    static let enabledHardwareRingSlotsDefaultsKey = "enabledHardwareRingSlotsV1"
+    static let enabledHardwareSummaryMetricsDefaultsKey = "enabledHardwareSummaryMetricsV1"
+    static let hardwareSpeedCapRange: ClosedRange<Double> = 1...100000
+    static let defaultHardwareDownloadCapMbps: Double = 1000
+    static let defaultHardwareUploadCapMbps: Double = 100
+    /// Keeps the last 60 s of hardware history recording while the panel is
+    /// closed, at the panel refresh cadence, so opening a detail page immediately
+    /// shows a trend. Default on; turning it off leaves only what the menu-bar or
+    /// Dock icon already samples.
+    static let defaultHardwareBackgroundHistoryEnabled: Bool = true
+    /// Refresh cadence for the status-panel hardware summary while it is open.
+    /// 1 s preserves the historical fastest cadence; slower options trade
+    /// freshness for fewer reads.
+    static let hardwarePanelRefreshOptions: [Int] = Array(1...8)
+    static let defaultHardwarePanelRefreshSeconds: Int = 1
+
+    static func clampedHardwareSpeedCap(_ value: Double, fallback: Double) -> Double {
+        value.isFinite ? min(hardwareSpeedCapRange.upperBound, max(hardwareSpeedCapRange.lowerBound, value)) : fallback
+    }
     static let defaultVolumeDisplayStyle: VolumeDisplayStyle = .dots
     static let volumeDisplayStyleDefaultsKey = "volumeDisplayStyle"
+    static let defaultBottomIndicatorSource: BottomIndicatorSource = .volume
+    static let bottomIndicatorSourceDefaultsKey = "bottomIndicatorSource"
     static let defaultRingStrokeStyle: RingStrokeStyle = .regular
     static let ringStrokeStyleDefaultsKey = "ringStrokeStyle"
 
@@ -202,16 +261,28 @@ final class SettingsStore: ObservableObject {
     static let useBetterDisplayCombinedBrightnessDefaultsKey = "useBetterDisplayCombinedBrightness"
     static let popupSectionOrderDefaultsKey = "popupSectionOrder"
     static let enabledPopupSectionsDefaultsKey = "enabledPopupSections"
+    static let hardwareMonitorMetricOrderDefaultsKey = "hardwareMonitorMetricOrder"
+    static let enabledHardwareMonitorMetricsDefaultsKey = "enabledHardwareMonitorMetrics"
     /// Default order of the status-panel sections. Display brightness sits below
     /// the audio-input row so the two device-level controls stay together.
     static let defaultPopupSectionOrder: [PopupSection] = [
-        .battery, .quickActions, .network, .vpn, .bluetooth, .volume, .audioInput, .brightness, .inputSource
+        .hardwareMonitor, .battery, .quickActions, .network, .vpn, .bluetooth, .volume, .audioInput,
+        .brightness, .inputSource
     ]
     /// Sections enabled for a fresh install. The VPN row is opt-in now: it is a
     /// regular section but is not part of this default set, so a new install
     /// starts with it switched off. An existing stored selection is honoured
     /// as-is, so a user who already has the row keeps it.
     static let defaultEnabledPopupSections: Set<PopupSection> = [.battery, .quickActions, .network, .volume]
+    /// Metrics shown by the hardware-monitor card, in display order.
+    static let defaultHardwareMonitorMetricOrder: [HardwareMonitorMetric] = HardwareMonitorMetric.allCases
+    static let defaultEnabledHardwareMonitorMetrics: Set<HardwareMonitorMetric> =
+        HardwareMonitorMetric.defaultEnabledMetrics
+    /// Status-panel summary: every ring card and every bottom info-bar item is
+    /// shown until the user switches one off.
+    static let defaultEnabledHardwareRingSlots: Set<HardwareRingSlot> = Set(HardwareRingSlot.allCases)
+    static let defaultEnabledHardwareSummaryMetrics: Set<HardwareSummaryMetric> =
+        Set(HardwareSummaryMetric.allCases)
     /// Legacy keys kept only as migration sources for the single panel-scroll
     /// option this change introduces. They are never written again.
     static let legacyPopupScrollAdjustsVolumeDefaultsKey = "popupScrollAdjustsVolume"
@@ -244,6 +315,19 @@ final class SettingsStore: ObservableObject {
     /// Issue #262: when on, reopening the status panel starts on the summary
     /// page instead of the last-opened detail page.
     static let returnsToSummaryOnOpenDefaultsKey = "returnsToSummaryOnOpen"
+
+    /// When on, detail pages open in an attached panel beside the status panel
+    /// instead of replacing the summary page inside it.
+    static let showsPanelDetailsAlongsideDefaultsKey = "showsPanelDetailsAlongside"
+
+    /// When false, the status panel renders every title/value in regular weight so
+    /// the no-bold look can be compared. Local appearance preference, not exported.
+    static let statusPanelBoldTextDefaultsKey = "statusPanelBoldTextEnabled.v2"
+    /// When false, medium-weight panel text also renders regular.
+    static let statusPanelMediumTextDefaultsKey = "statusPanelMediumTextEnabled.v2"
+    /// When true, opening Settings from the panel leaves the panel on screen so
+    /// the two can be compared side by side.
+    static let keepsPanelOpenWhenOpeningSettingsDefaultsKey = "keepsStatusPanelOpenWhenOpeningSettings"
 
     @Published private(set) var sharesAnonymousAnalytics: Bool
     @Published private(set) var telemetryConsentVersion: Int
@@ -1058,6 +1142,168 @@ final class SettingsStore: ObservableObject {
     }
 
 
+    /// What the outer ring shows: the Mac battery (default) or the AirPods
+    /// battery. See `OuterRingContent`.
+    @Published var outerRingContent: OuterRingContent = .systemBattery {
+        didSet {
+            defaults.set(outerRingContent.rawValue, forKey: Self.outerRingContentDefaultsKey)
+        }
+    }
+
+    /// Whether the AirPods ring is split into two left/right arcs.
+    @Published var airPodsRingUsesDualRing: Bool = true {
+        didSet { defaults.set(airPodsRingUsesDualRing, forKey: Self.airPodsRingUsesDualRingDefaultsKey) }
+    }
+
+    /// Whether the AirPods ring draws the small AirPods glyph at the top.
+    @Published var showsAirPodsTopSymbolInRing: Bool = true {
+        didSet { defaults.set(showsAirPodsTopSymbolInRing, forKey: Self.showsAirPodsTopSymbolInRingDefaultsKey) }
+    }
+
+    /// Whether an unavailable AirPods ring falls back to the system battery ring
+    /// (the "battery as fallback" choice, like the centre's network fallback).
+    @Published var airPodsRingFallsBackToBattery: Bool = true {
+        didSet { defaults.set(airPodsRingFallsBackToBattery, forKey: Self.airPodsRingFallsBackToBatteryDefaultsKey) }
+    }
+
+    /// Internal configuration of the "System Monitoring" (`hardwareMonitor`)
+    /// ring source. Persisted as JSON; projected into `behaviors.hardwareRing`.
+    @Published var hardwareRingConfiguration: HardwareRingConfiguration = .default {
+        didSet {
+            guard !isSyncingIconConfiguration else { return }
+            if let data = try? JSONEncoder().encode(hardwareRingConfiguration.normalized()) {
+                defaults.set(data, forKey: Self.hardwareRingConfigurationDefaultsKey)
+            }
+        }
+    }
+
+    /// Shared per-metric colours: the status-panel bar and the hardware-ring arc
+    /// both read this one field. Missing metrics fall back to the recommended
+    /// colour. Editing in either surface writes here.
+    @Published var hardwareMonitorMetricColors: [HardwareMonitorMetric: IconRGBA] = [:] {
+        didSet {
+            guard !isSyncingIconConfiguration else { return }
+            if let data = try? JSONEncoder().encode(hardwareMonitorMetricColors) {
+                defaults.set(data, forKey: Self.hardwareMonitorMetricColorsDefaultsKey)
+            }
+        }
+    }
+
+    /// The effective base colour for a metric (shared field, else recommended).
+    func hardwareColor(for metric: HardwareMonitorMetric) -> IconRGBA {
+        hardwareMonitorMetricColors[metric]
+            ?? HardwareRingColorConfiguration.recommendedBaseColor(for: metric)
+    }
+
+    /// Write the shared per-metric colour (used by both the monitor tab and the
+    /// ring's colour rows).
+    func setHardwareColor(_ color: IconRGBA, for metric: HardwareMonitorMetric) {
+        var copy = hardwareMonitorMetricColors
+        copy[metric] = color.normalized()
+        hardwareMonitorMetricColors = copy
+    }
+
+    /// Broadband caps used to turn network throughput into a ring fraction.
+    @Published var hardwareDownloadCapMbps: Double = SettingsStore.defaultHardwareDownloadCapMbps {
+        didSet {
+            let clamped = Self.clampedHardwareSpeedCap(hardwareDownloadCapMbps, fallback: Self.defaultHardwareDownloadCapMbps)
+            guard clamped == hardwareDownloadCapMbps else { hardwareDownloadCapMbps = clamped; return }
+            defaults.set(clamped, forKey: Self.hardwareDownloadCapMbpsDefaultsKey)
+        }
+    }
+
+    @Published var hardwareUploadCapMbps: Double = SettingsStore.defaultHardwareUploadCapMbps {
+        didSet {
+            let clamped = Self.clampedHardwareSpeedCap(hardwareUploadCapMbps, fallback: Self.defaultHardwareUploadCapMbps)
+            guard clamped == hardwareUploadCapMbps else { hardwareUploadCapMbps = clamped; return }
+            defaults.set(clamped, forKey: Self.hardwareUploadCapMbpsDefaultsKey)
+        }
+    }
+
+    /// Whether hardware history keeps recording while the panel is closed, at the
+    /// panel refresh cadence. Default on so a detail page opens with a trend.
+    @Published var hardwareBackgroundHistoryEnabled: Bool = SettingsStore.defaultHardwareBackgroundHistoryEnabled {
+        didSet {
+            guard hardwareBackgroundHistoryEnabled != oldValue else { return }
+            defaults.set(hardwareBackgroundHistoryEnabled, forKey: Self.hardwareBackgroundHistoryEnabledDefaultsKey)
+        }
+    }
+
+    /// Panel-open refresh cadence in whole seconds; one of the shipped options.
+    @Published var hardwarePanelRefreshSeconds: Int = SettingsStore.defaultHardwarePanelRefreshSeconds {
+        didSet {
+            guard Self.hardwarePanelRefreshOptions.contains(hardwarePanelRefreshSeconds) else {
+                hardwarePanelRefreshSeconds = Self.defaultHardwarePanelRefreshSeconds
+                return
+            }
+            defaults.set(hardwarePanelRefreshSeconds, forKey: Self.hardwarePanelRefreshSecondsDefaultsKey)
+        }
+    }
+
+    /// Which blocks the status-panel hardware summary shows. Per-metric toggles
+    /// were removed because the panel samples a fixed set; these two control the
+    /// four rings and the bottom data row independently.
+    @Published var showsHardwareRings: Bool = true {
+        didSet { defaults.set(showsHardwareRings, forKey: Self.showsHardwareRingsDefaultsKey) }
+    }
+
+    @Published var showsHardwareSummaryRow: Bool = true {
+        didSet { defaults.set(showsHardwareSummaryRow, forKey: Self.showsHardwareSummaryRowDefaultsKey) }
+    }
+
+    /// Which ring cards the status-panel hardware summary shows. Hiding one lets
+    /// the rest divide the row width evenly; at least one stays on so a block
+    /// never collapses silently while its master toggle is on.
+    @Published private(set) var enabledHardwareRingSlots: Set<HardwareRingSlot> {
+        didSet {
+            defaults.set(
+                enabledHardwareRingSlots.map(\.rawValue).sorted(),
+                forKey: Self.enabledHardwareRingSlotsDefaultsKey
+            )
+        }
+    }
+
+    /// Which bottom info-bar metrics the status-panel hardware summary shows.
+    @Published private(set) var enabledHardwareSummaryMetrics: Set<HardwareSummaryMetric> {
+        didSet {
+            defaults.set(
+                enabledHardwareSummaryMetrics.map(\.rawValue).sorted(),
+                forKey: Self.enabledHardwareSummaryMetricsDefaultsKey
+            )
+        }
+    }
+
+    /// Turn one ring card on or off. The final remaining ring cannot be removed.
+    func setHardwareRingSlot(_ slot: HardwareRingSlot, enabled: Bool) {
+        if enabled {
+            enabledHardwareRingSlots.insert(slot)
+        } else if enabledHardwareRingSlots.count > 1 {
+            enabledHardwareRingSlots.remove(slot)
+        }
+    }
+
+    /// Turn one bottom info-bar metric on or off. The final remaining item
+    /// cannot be removed.
+    func setHardwareSummaryMetric(_ metric: HardwareSummaryMetric, enabled: Bool) {
+        if enabled {
+            enabledHardwareSummaryMetrics.insert(metric)
+        } else if enabledHardwareSummaryMetrics.count > 1 {
+            enabledHardwareSummaryMetrics.remove(metric)
+        }
+    }
+
+    /// Replace the whole enabled set (settings import). Ignores an empty set so a
+    /// transfer can never leave a block with nothing to draw.
+    func setEnabledHardwareRingSlots(_ slots: Set<HardwareRingSlot>) {
+        guard !slots.isEmpty else { return }
+        enabledHardwareRingSlots = slots
+    }
+
+    func setEnabledHardwareSummaryMetrics(_ metrics: Set<HardwareSummaryMetric>) {
+        guard !metrics.isEmpty else { return }
+        enabledHardwareSummaryMetrics = metrics
+    }
+
     @Published var bluetoothAudioIconChoiceRawValue: String {
         didSet { defaults.set(bluetoothAudioIconChoiceRawValue, forKey: Self.bluetoothAudioIconChoiceDefaultsKey) }
     }
@@ -1092,6 +1338,16 @@ final class SettingsStore: ObservableObject {
     @Published var volumeDisplayStyle: VolumeDisplayStyle {
         didSet {
             defaults.set(volumeDisplayStyle.rawValue, forKey: Self.volumeDisplayStyleDefaultsKey)
+        }
+    }
+
+    /// Which quantity the bottom indicator shows. Independent of
+    /// `volumeDisplayStyle`, which only chooses the dots/arc artwork. Kept as a
+    /// separate persisted key so an upgrade keeps the stored volume style and
+    /// the indicator still defaults to volume.
+    @Published var bottomIndicatorSource: BottomIndicatorSource {
+        didSet {
+            defaults.set(bottomIndicatorSource.rawValue, forKey: Self.bottomIndicatorSourceDefaultsKey)
         }
     }
 
@@ -1357,6 +1613,29 @@ final class SettingsStore: ObservableObject {
         }
     }
 
+    @Published private(set) var hardwareMonitorMetricOrder: [HardwareMonitorMetric] {
+        didSet {
+            defaults.set(
+                hardwareMonitorMetricOrder.map(\.rawValue),
+                forKey: Self.hardwareMonitorMetricOrderDefaultsKey
+            )
+        }
+    }
+
+    @Published private(set) var enabledHardwareMonitorMetrics: Set<HardwareMonitorMetric> {
+        didSet {
+            defaults.set(
+                enabledHardwareMonitorMetrics.map(\.rawValue).sorted(),
+                forKey: Self.enabledHardwareMonitorMetricsDefaultsKey
+            )
+        }
+    }
+
+    /// Card metrics in display order, filtered to the enabled ones.
+    var visibleHardwareMetrics: [HardwareMonitorMetric] {
+        hardwareMonitorMetricOrder.filter { enabledHardwareMonitorMetrics.contains($0) }
+    }
+
     @Published var popupPanelScrollAdjustsVolume: Bool {
         didSet {
             defaults.set(
@@ -1371,6 +1650,50 @@ final class SettingsStore: ObservableObject {
             defaults.set(
                 returnsToSummaryOnOpen,
                 forKey: Self.returnsToSummaryOnOpenDefaultsKey
+            )
+        }
+    }
+
+    /// Positive phrasing of `returnsToSummaryOnOpen` for the settings UI: when
+    /// on, a detail page that was open when the panel closed comes back the
+    /// next time the panel opens, in whichever presentation mode is active.
+    var restoresPanelDetailsOnOpen: Bool {
+        get { !returnsToSummaryOnOpen }
+        set { returnsToSummaryOnOpen = !newValue }
+    }
+
+    @Published var showsPanelDetailsAlongside: Bool {
+        didSet {
+            defaults.set(
+                showsPanelDetailsAlongside,
+                forKey: Self.showsPanelDetailsAlongsideDefaultsKey
+            )
+        }
+    }
+
+    @Published var statusPanelBoldTextEnabled: Bool {
+        didSet {
+            defaults.set(
+                statusPanelBoldTextEnabled,
+                forKey: Self.statusPanelBoldTextDefaultsKey
+            )
+        }
+    }
+
+    @Published var statusPanelMediumTextEnabled: Bool {
+        didSet {
+            defaults.set(
+                statusPanelMediumTextEnabled,
+                forKey: Self.statusPanelMediumTextDefaultsKey
+            )
+        }
+    }
+
+    @Published var keepsPanelOpenWhenOpeningSettings: Bool {
+        didSet {
+            defaults.set(
+                keepsPanelOpenWhenOpeningSettings,
+                forKey: Self.keepsPanelOpenWhenOpeningSettingsDefaultsKey
             )
         }
     }
@@ -1785,6 +2108,30 @@ final class SettingsStore: ObservableObject {
         }
     }
 
+    func moveHardwareMonitorMetrics(fromOffsets source: IndexSet, toOffset destination: Int) {
+        guard !source.isEmpty,
+              source.allSatisfy({ hardwareMonitorMetricOrder.indices.contains($0) }),
+              (0...hardwareMonitorMetricOrder.count).contains(destination) else { return }
+        let moved = source.map { hardwareMonitorMetricOrder[$0] }
+        let remaining = hardwareMonitorMetricOrder.enumerated()
+            .filter { !source.contains($0.offset) }
+            .map(\.element)
+        let insertionOffset = destination - source.filter { $0 < destination }.count
+        var reordered = remaining
+        reordered.insert(contentsOf: moved, at: min(insertionOffset, reordered.count))
+        hardwareMonitorMetricOrder = reordered
+    }
+
+    /// Enabling/disabling one tile. The last enabled tile cannot be turned off,
+    /// so an enabled card always has something to draw.
+    func setHardwareMonitorMetric(_ metric: HardwareMonitorMetric, enabled: Bool) {
+        if enabled {
+            enabledHardwareMonitorMetrics.insert(metric)
+        } else if enabledHardwareMonitorMetrics.count > 1 {
+            enabledHardwareMonitorMetrics.remove(metric)
+        }
+    }
+
     var isBatterySymbolSizeEnabled: Bool {
         [batteryOnBatteryMarker, batteryChargingMarker, batteryConnectedMarker, batteryNoBatteryMarker]
             .contains { $0 != .hidden }
@@ -1887,7 +2234,7 @@ final class SettingsStore: ObservableObject {
         )
     }
 
-    private let defaults: UserDefaults
+    let defaults: UserDefaults
     private let persistCoalescingInterval: Duration
     /// Whether this bundle is a development build (carries a
     /// `STDevelopmentCodename`). Injectable so tests can exercise both the
@@ -2064,6 +2411,7 @@ final class SettingsStore: ObservableObject {
         ) as? NSNumber)?.doubleValue
         let storedWifiSymbolScale = (defaults.object(forKey: Self.wifiSymbolScaleDefaultsKey) as? NSNumber)?.doubleValue
         let storedVolumeDisplayStyle = defaults.string(forKey: Self.volumeDisplayStyleDefaultsKey)
+        let storedBottomIndicatorSource = defaults.string(forKey: Self.bottomIndicatorSourceDefaultsKey)
         let storedRingStrokeStyle = defaults.string(forKey: Self.ringStrokeStyleDefaultsKey)
         let storedOutputDeviceOrder = defaults.stringArray(forKey: Self.outputDeviceOrderDefaultsKey) ?? []
         let storedHiddenOutputDeviceUIDs = Set(
@@ -2084,9 +2432,15 @@ final class SettingsStore: ObservableObject {
         )
         let storedPopupSectionOrder = defaults.stringArray(
             forKey: Self.popupSectionOrderDefaultsKey
-        ) ?? []
+        )
         let storedEnabledPopupSections = defaults.stringArray(
             forKey: Self.enabledPopupSectionsDefaultsKey
+        )
+        let storedHardwareMetricOrder = defaults.stringArray(
+            forKey: Self.hardwareMonitorMetricOrderDefaultsKey
+        )
+        let storedEnabledHardwareMetrics = defaults.stringArray(
+            forKey: Self.enabledHardwareMonitorMetricsDefaultsKey
         )
         let storedLegacyPopupScrollScope = defaults.string(
             forKey: Self.legacyPopupVolumeScrollScopeDefaultsKey
@@ -2453,6 +2807,9 @@ final class SettingsStore: ObservableObject {
         self.volumeDisplayStyle = storedVolumeDisplayStyle
             .flatMap(VolumeDisplayStyle.init(rawValue:))
             ?? Self.defaultVolumeDisplayStyle
+        self.bottomIndicatorSource = storedBottomIndicatorSource
+            .flatMap(BottomIndicatorSource.init(rawValue:))
+            ?? Self.defaultBottomIndicatorSource
         self.ringStrokeStyle = storedRingStrokeStyle
             .flatMap(RingStrokeStyle.init(rawValue:))
             ?? Self.defaultRingStrokeStyle
@@ -2524,7 +2881,7 @@ final class SettingsStore: ObservableObject {
         self.externalVolumeConfigurations = storedExternalVolumeConfigurations
         self.externalBrightnessConfigurations = storedExternalBrightnessConfigurations
         self.popupSectionOrder = Self.sanitizedPopupSectionOrder(
-            storedPopupSectionOrder
+            storedPopupSectionOrder ?? []
         )
         self.enabledPopupSections = Self.sanitizedEnabledPopupSections(
             storedEnabledPopupSections
@@ -2545,8 +2902,29 @@ final class SettingsStore: ObservableObject {
                 forKey: Self.popupPanelScrollAdjustsVolumeDefaultsKey
             )
         }
+        let migratedHardwareMetricOrder = Self.sanitizedHardwareMonitorMetricOrder(storedHardwareMetricOrder ?? [])
+        self.hardwareMonitorMetricOrder = migratedHardwareMetricOrder
+        let migratedHardwareOrderRaw = migratedHardwareMetricOrder.map(\.rawValue)
+        if let storedHardwareMetricOrder, storedHardwareMetricOrder != migratedHardwareOrderRaw {
+            defaults.set(migratedHardwareOrderRaw, forKey: Self.hardwareMonitorMetricOrderDefaultsKey)
+        }
+        self.enabledHardwareMonitorMetrics = Self.sanitizedEnabledHardwareMonitorMetrics(
+            storedEnabledHardwareMetrics
+        )
         self.returnsToSummaryOnOpen = defaults.object(
             forKey: Self.returnsToSummaryOnOpenDefaultsKey
+        ) as? Bool ?? false
+        self.showsPanelDetailsAlongside = defaults.object(
+            forKey: Self.showsPanelDetailsAlongsideDefaultsKey
+        ) as? Bool ?? false
+        self.statusPanelBoldTextEnabled = defaults.object(
+            forKey: Self.statusPanelBoldTextDefaultsKey
+        ) as? Bool ?? false
+        self.statusPanelMediumTextEnabled = defaults.object(
+            forKey: Self.statusPanelMediumTextDefaultsKey
+        ) as? Bool ?? true
+        self.keepsPanelOpenWhenOpeningSettings = defaults.object(
+            forKey: Self.keepsPanelOpenWhenOpeningSettingsDefaultsKey
         ) as? Bool ?? false
         self.popupVolumeScrollDirection = storedPopupVolumeScrollDirection
             .flatMap(PopupVolumeScrollDirection.init(rawValue:))
@@ -2561,6 +2939,53 @@ final class SettingsStore: ObservableObject {
         self.popupVolumeScrollFeedbackOverride = defaults.object(
             forKey: Self.popupVolumeScrollFeedbackDefaultsKey
         ) as? Bool
+        self._airPodsIconDeviceAddress = defaults.string(forKey: "airPodsIconDeviceAddress")
+        self._connectedBluetoothIconDeviceAddress = defaults.string(forKey: "connectedBluetoothIconDeviceAddress")
+        self._refreshesAirPodsBatteryForIcon = defaults.bool(forKey: "refreshesAirPodsBatteryForIcon")
+        self.outerRingContent = OuterRingContent(
+            rawValue: defaults.string(forKey: Self.outerRingContentDefaultsKey) ?? ""
+        ) ?? .systemBattery
+        self.airPodsRingUsesDualRing = defaults.object(
+            forKey: Self.airPodsRingUsesDualRingDefaultsKey
+        ) as? Bool ?? true
+        self.showsAirPodsTopSymbolInRing = defaults.object(
+            forKey: Self.showsAirPodsTopSymbolInRingDefaultsKey
+        ) as? Bool ?? true
+        self.airPodsRingFallsBackToBattery = defaults.object(
+            forKey: Self.airPodsRingFallsBackToBatteryDefaultsKey
+        ) as? Bool ?? true
+        if let data = defaults.data(forKey: Self.hardwareRingConfigurationDefaultsKey),
+           let decoded = try? JSONDecoder().decode(HardwareRingConfiguration.self, from: data) {
+            self.hardwareRingConfiguration = decoded.normalized().migratingLegacyTopIcon()
+        } else {
+            self.hardwareRingConfiguration = HardwareRingConfiguration.default.migratingLegacyTopIcon()
+        }
+        if let data = defaults.data(forKey: Self.hardwareMonitorMetricColorsDefaultsKey),
+           let decoded = try? JSONDecoder().decode([HardwareMonitorMetric: IconRGBA].self, from: data) {
+            self.hardwareMonitorMetricColors = decoded
+        } else {
+            self.hardwareMonitorMetricColors = [:]
+        }
+        self.hardwareDownloadCapMbps = Self.clampedHardwareSpeedCap(
+            defaults.object(forKey: Self.hardwareDownloadCapMbpsDefaultsKey) as? Double ?? Self.defaultHardwareDownloadCapMbps,
+            fallback: Self.defaultHardwareDownloadCapMbps)
+        self.hardwareUploadCapMbps = Self.clampedHardwareSpeedCap(
+            defaults.object(forKey: Self.hardwareUploadCapMbpsDefaultsKey) as? Double ?? Self.defaultHardwareUploadCapMbps,
+            fallback: Self.defaultHardwareUploadCapMbps)
+        self.hardwareBackgroundHistoryEnabled =
+            defaults.object(forKey: Self.hardwareBackgroundHistoryEnabledDefaultsKey) as? Bool
+            ?? Self.defaultHardwareBackgroundHistoryEnabled
+        let storedPanel = defaults.object(forKey: Self.hardwarePanelRefreshSecondsDefaultsKey) as? Int
+            ?? Self.defaultHardwarePanelRefreshSeconds
+        self.hardwarePanelRefreshSeconds = Self.hardwarePanelRefreshOptions.contains(storedPanel)
+            ? storedPanel : Self.defaultHardwarePanelRefreshSeconds
+        self.showsHardwareRings = defaults.object(forKey: Self.showsHardwareRingsDefaultsKey) as? Bool ?? true
+        self.showsHardwareSummaryRow = defaults.object(forKey: Self.showsHardwareSummaryRowDefaultsKey) as? Bool ?? true
+        self.enabledHardwareRingSlots = Self.sanitizedEnabledHardwareRingSlots(
+            defaults.array(forKey: Self.enabledHardwareRingSlotsDefaultsKey) as? [String])
+        self.enabledHardwareSummaryMetrics = Self.sanitizedEnabledHardwareSummaryMetrics(
+            defaults.array(forKey: Self.enabledHardwareSummaryMetricsDefaultsKey) as? [String])
+        bootstrapIconConfiguration()
     }
 
     /// Legacy raw values of the removed `PopupVolumeScrollScope` picker, read
@@ -2816,6 +3241,34 @@ final class SettingsStore: ObservableObject {
 
     static func clampedBluetoothDeviceLimit(_ value: Int) -> Int {
         min(bluetoothDeviceLimitRange.upperBound, max(bluetoothDeviceLimitRange.lowerBound, value))
+    }
+
+    static func sanitizedHardwareMonitorMetricOrder(_ rawValues: [String]) -> [HardwareMonitorMetric] {
+        var seen: Set<HardwareMonitorMetric> = []
+        let stored = rawValues
+            .compactMap(HardwareMonitorMetric.init(rawValue:))
+            .filter { seen.insert($0).inserted }
+        return stored + Self.defaultHardwareMonitorMetricOrder.filter { !seen.contains($0) }
+    }
+
+    static func sanitizedEnabledHardwareMonitorMetrics(_ rawValues: [String]?) -> Set<HardwareMonitorMetric> {
+        guard let rawValues else { return Self.defaultEnabledHardwareMonitorMetrics }
+        let parsed = Set(rawValues.compactMap(HardwareMonitorMetric.init(rawValue:)))
+        // An empty/corrupt stored set would leave an enabled card with nothing to
+        // draw; fall back to the defaults instead of an empty section.
+        return parsed.isEmpty ? Self.defaultEnabledHardwareMonitorMetrics : parsed
+    }
+
+    static func sanitizedEnabledHardwareRingSlots(_ rawValues: [String]?) -> Set<HardwareRingSlot> {
+        guard let rawValues else { return Self.defaultEnabledHardwareRingSlots }
+        let parsed = Set(rawValues.compactMap(HardwareRingSlot.init(rawValue:)))
+        return parsed.isEmpty ? Self.defaultEnabledHardwareRingSlots : parsed
+    }
+
+    static func sanitizedEnabledHardwareSummaryMetrics(_ rawValues: [String]?) -> Set<HardwareSummaryMetric> {
+        guard let rawValues else { return Self.defaultEnabledHardwareSummaryMetrics }
+        let parsed = Set(rawValues.compactMap(HardwareSummaryMetric.init(rawValue:)))
+        return parsed.isEmpty ? Self.defaultEnabledHardwareSummaryMetrics : parsed
     }
 
     static func sanitizedPopupSectionOrder(_ rawValues: [String]) -> [PopupSection] {

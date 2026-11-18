@@ -188,12 +188,21 @@ enum SettingsPreferenceCatalog {
             boolean("popupPanelScrollAdjustsVolume", \.popupPanelScrollAdjustsVolume,
                     default: SettingsStore.defaultPopupPanelScrollAdjustsVolume),
             boolean("returnsToSummaryOnOpen", \.returnsToSummaryOnOpen, default: false),
+            boolean("showsPanelDetailsAlongside", \.showsPanelDetailsAlongside, default: false),
             number("popupScrollWheelStepPercent", \.popupScrollWheelStepPercent,
                    default: SettingsStore.defaultPopupScrollWheelStepPercent,
                    range: SettingsStore.popupScrollWheelStepPercentRange, step: 0.5),
             boolean("popupVolumeNaturalScrolling", \.popupVolumeNaturalScrolling,
                     default: SettingsStore.defaultPopupVolumeNaturalScrolling),
-            optionalBoolean("popupVolumeScrollFeedbackOverride", \.popupVolumeScrollFeedbackOverride)
+            optionalBoolean("popupVolumeScrollFeedbackOverride", \.popupVolumeScrollFeedbackOverride),
+            boolean("hardwareBackgroundHistoryEnabled", \.hardwareBackgroundHistoryEnabled,
+                    default: SettingsStore.defaultHardwareBackgroundHistoryEnabled),
+            integer("hardwarePanelRefreshSeconds", \.hardwarePanelRefreshSeconds,
+                    default: SettingsStore.defaultHardwarePanelRefreshSeconds, range: 1...8),
+            boolean("showsHardwareRings", \.showsHardwareRings, default: true),
+            boolean("showsHardwareSummaryRow", \.showsHardwareSummaryRow, default: true),
+            enabledHardwareRingSlotsPreference,
+            enabledHardwareSummaryMetricsPreference
         ]
     }
 
@@ -381,5 +390,56 @@ enum SettingsPreferenceCatalog {
                            store.setPopupSection(section, enabled: enabled.contains(section))
                        }
                    })
+    }
+
+    /// Per-ring visibility for the status-panel summary, exported so a transfer
+    /// keeps the user's chosen subset. An empty set is invalid on import.
+    private static var enabledHardwareRingSlotsPreference: Preference {
+        Preference(
+            key: "enabledHardwareRingSlots",
+            defaultValue: .array(HardwareRingSlot.allCases.map { $0.rawValue }.sorted().map { .string($0) }),
+            read: { store in
+                .array(store.enabledHardwareRingSlots.map { $0.rawValue }.sorted().map { .string($0) })
+            },
+            isValid: { value in
+                guard case let .array(items) = value, !items.isEmpty else { return false }
+                return items.allSatisfy { item in
+                    guard case let .string(raw) = item else { return false }
+                    return HardwareRingSlot(rawValue: raw) != nil
+                }
+            },
+            write: { value, store in
+                guard case let .array(items) = value else { return }
+                let slots = Set(items.compactMap { item -> HardwareRingSlot? in
+                    guard case let .string(raw) = item else { return nil }
+                    return HardwareRingSlot(rawValue: raw)
+                })
+                store.setEnabledHardwareRingSlots(slots)
+            })
+    }
+
+    /// Per-info-bar-metric visibility for the status-panel summary.
+    private static var enabledHardwareSummaryMetricsPreference: Preference {
+        Preference(
+            key: "enabledHardwareSummaryMetrics",
+            defaultValue: .array(HardwareSummaryMetric.allCases.map { $0.rawValue }.sorted().map { .string($0) }),
+            read: { store in
+                .array(store.enabledHardwareSummaryMetrics.map { $0.rawValue }.sorted().map { .string($0) })
+            },
+            isValid: { value in
+                guard case let .array(items) = value, !items.isEmpty else { return false }
+                return items.allSatisfy { item in
+                    guard case let .string(raw) = item else { return false }
+                    return HardwareSummaryMetric(rawValue: raw) != nil
+                }
+            },
+            write: { value, store in
+                guard case let .array(items) = value else { return }
+                let metrics = Set(items.compactMap { item -> HardwareSummaryMetric? in
+                    guard case let .string(raw) = item else { return nil }
+                    return HardwareSummaryMetric(rawValue: raw)
+                })
+                store.setEnabledHardwareSummaryMetrics(metrics)
+            })
     }
 }

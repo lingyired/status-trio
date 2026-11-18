@@ -1,3 +1,13 @@
+enum RingLayout: Equatable, Hashable, Sendable {
+    case standard
+    case leftRight
+}
+
+enum RingSegmentPosition: Equatable, Hashable, Sendable {
+    case left
+    case right
+}
+
 enum RingGapStyle: Equatable, Hashable, Sendable {
     case closed
     case indicator
@@ -23,10 +33,12 @@ enum RingAccessoryState: Equatable, Hashable, Sendable {
 struct RingSegmentState: Equatable, Hashable, Sendable {
     let progress: Double
     let color: IconColorRole
+    let position: RingSegmentPosition?
 
-    init(progress: Double, color: IconColorRole) {
+    init(progress: Double, color: IconColorRole, position: RingSegmentPosition? = nil) {
         self.progress = Self.normalizedProgress(progress)
         self.color = color
+        self.position = position
     }
 
     static func normalizedProgress(_ progress: Double) -> Double {
@@ -42,26 +54,35 @@ struct RingEffectState: Equatable, Hashable, Sendable {
 
 struct OuterRingState: Equatable, Hashable, Sendable {
     let segments: [RingSegmentState]
+    let layout: RingLayout
+    let isPartial: Bool
     let gap: RingGapStyle
     let accessory: RingAccessoryState?
     let effect: RingEffectState?
     let strokeScale: Double
+    let inactiveColor: IconColorRole
     /// Whether a top gap absorbs progress or the visible arc is split across it.
     let gapProgressMode: GapProgressMode
 
     init(
         segments: [RingSegmentState],
         gap: RingGapStyle,
+        layout: RingLayout = .standard,
+        isPartial: Bool = false,
         accessory: RingAccessoryState? = nil,
         effect: RingEffectState? = nil,
         strokeScale: Double = 1.25,
+        inactiveColor: IconColorRole = .inactive,
         gapProgressMode: GapProgressMode = .absorbed
     ) {
         self.segments = segments
+        self.layout = layout
+        self.isPartial = isPartial
         self.gap = gap
         self.accessory = accessory
         self.effect = effect
         self.strokeScale = Self.normalizedStrokeScale(strokeScale)
+        self.inactiveColor = inactiveColor
         self.gapProgressMode = gapProgressMode
     }
 
