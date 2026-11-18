@@ -1225,7 +1225,7 @@
 "hardware.monitor.background.off" = "オフ";
 "hardware.monitor.background.seconds" = "%d 秒";
 "hardware.monitor.settings.panelRefresh" = "パネル更新";
-"hardware.monitor.settings.panelRefresh.description" = "パネルを開いている間の更新頻度です。速いほどリアルタイムですが読み取りが増え、遅いほど省電力です。";
+"hardware.monitor.settings.panelRefresh.description" = "パネルを開いている間の更新頻度です。使用率とネットワーク・ディスク速度がこれに従い、温度とファンは最大4秒間隔です。速いほどリアルタイムですが読み取りが増え、遅いほど省電力です。";
 "hardware.monitor.settings.showRings" = "リングを表示";
 "hardware.monitor.settings.colorTitle" = "色";
 "hardware.monitor.settings.resetColors" = "色をリセット";

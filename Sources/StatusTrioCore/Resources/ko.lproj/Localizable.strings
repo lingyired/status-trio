@@ -1225,7 +1225,7 @@
 "hardware.monitor.background.off" = "끔";
 "hardware.monitor.background.seconds" = "%d초";
 "hardware.monitor.settings.panelRefresh" = "패널 새로 고침";
-"hardware.monitor.settings.panelRefresh.description" = "패널이 열려 있는 동안 업데이트 빈도입니다. 빠를수록 더 실시간이지만 더 많이 읽고, 느릴수록 전력을 절약합니다.";
+"hardware.monitor.settings.panelRefresh.description" = "패널을 열어 둔 동안의 업데이트 빈도입니다. 사용률과 네트워크·디스크 속도가 이를 따르며, 온도와 팬은 최대 4초 간격입니다. 빠를수록 더 실시간이지만 더 많이 읽고, 느릴수록 전력을 절약합니다.";
 "hardware.monitor.settings.showRings" = "링 표시";
 "hardware.monitor.settings.colorTitle" = "색상";
 "hardware.monitor.settings.resetColors" = "색상 초기화";

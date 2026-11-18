@@ -1225,7 +1225,7 @@
 "hardware.monitor.background.off" = "Выкл.";
 "hardware.monitor.background.seconds" = "%d с";
 "hardware.monitor.settings.panelRefresh" = "Обновление панели";
-"hardware.monitor.settings.panelRefresh.description" = "Как часто обновляется панель, пока открыта. Быстрее — актуальнее, но больше чтений; медленнее — экономит энергию.";
+"hardware.monitor.settings.panelRefresh.description" = "Как часто обновляется панель, пока открыта. Загрузка и скорости сети/диска следуют этому; температура и вентилятор — не чаще раза в 4 секунды. Быстрее — актуальнее, но больше чтений; медленнее — экономит энергию.";
 "hardware.monitor.settings.showRings" = "Показывать кольца";
 "hardware.monitor.settings.colorTitle" = "Цвета";
 "hardware.monitor.settings.resetColors" = "Сбросить цвета";

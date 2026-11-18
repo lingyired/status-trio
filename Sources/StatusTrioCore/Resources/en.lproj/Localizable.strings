@@ -1224,7 +1224,7 @@
 "hardware.monitor.background.off" = "Off";
 "hardware.monitor.background.seconds" = "%d s";
 "hardware.monitor.settings.panelRefresh" = "Panel refresh";
-"hardware.monitor.settings.panelRefresh.description" = "How often the panel updates while open. Faster is more live but reads more; slower saves power.";
+"hardware.monitor.settings.panelRefresh.description" = "How often the panel updates while open. Usage and network/disk speeds follow this; temperature and fan stay at most every 4 seconds. Faster is more live but reads more; slower saves power.";
 "hardware.monitor.settings.showRings" = "Show rings";
 "hardware.monitor.settings.colorTitle" = "Colors";
 "hardware.monitor.settings.resetColors" = "Reset colors";

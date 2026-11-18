@@ -1225,7 +1225,7 @@
 "hardware.monitor.background.off" = "關閉";
 "hardware.monitor.background.seconds" = "%d 秒";
 "hardware.monitor.settings.panelRefresh" = "面板重新整理";
-"hardware.monitor.settings.panelRefresh.description" = "面板開啟時的更新頻率。越快越即時但讀取更多，越慢越省電。";
+"hardware.monitor.settings.panelRefresh.description" = "面板開啟時的更新頻率。佔用率與網速、磁碟讀寫跟隨此頻率；溫度、風扇最多每 4 秒讀取一次。越快越即時但讀取更多，越慢越省電。";
 "hardware.monitor.settings.showRings" = "顯示圓環";
 "hardware.monitor.settings.colorTitle" = "顏色";
 "hardware.monitor.settings.resetColors" = "恢復預設顏色";

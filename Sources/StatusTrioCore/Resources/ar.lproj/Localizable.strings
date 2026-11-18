@@ -1225,7 +1225,7 @@
 "hardware.monitor.background.off" = "إيقاف";
 "hardware.monitor.background.seconds" = "%d ث";
 "hardware.monitor.settings.panelRefresh" = "تحديث اللوحة";
-"hardware.monitor.settings.panelRefresh.description" = "مدى تكرار تحديث اللوحة أثناء فتحها. الأسرع أكثر حيوية لكنه يقرأ أكثر؛ الأبطأ يوفر الطاقة.";
+"hardware.monitor.settings.panelRefresh.description" = "مدى تكرار تحديث اللوحة أثناء فتحها. يتبع معدل الاستخدام وسرعات الشبكة/القرص هذا التكرار؛ أما الحرارة والمراوح فبحد أقصى كل 4 ثوانٍ. الأسرع أكثر حيوية لكنه يقرأ أكثر؛ الأبطأ يوفر الطاقة.";
 "hardware.monitor.settings.showRings" = "إظهار الحلقات";
 "hardware.monitor.settings.colorTitle" = "الألوان";
 "hardware.monitor.settings.resetColors" = "إعادة تعيين الألوان";

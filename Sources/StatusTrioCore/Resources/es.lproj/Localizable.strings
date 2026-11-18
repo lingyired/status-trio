@@ -1225,7 +1225,7 @@
 "hardware.monitor.background.off" = "Desactivado";
 "hardware.monitor.background.seconds" = "%d s";
 "hardware.monitor.settings.panelRefresh" = "Actualización del panel";
-"hardware.monitor.settings.panelRefresh.description" = "Con qué frecuencia se actualiza el panel mientras está abierto. Más rápido es más en vivo pero lee más; más lento ahorra energía.";
+"hardware.monitor.settings.panelRefresh.description" = "Con qué frecuencia se actualiza el panel mientras está abierto. El uso y las velocidades de red/disco siguen esto; la temperatura y el ventilador como máximo cada 4 segundos. Más rápido es más en vivo pero lee más; más lento ahorra energía.";
 "hardware.monitor.settings.showRings" = "Mostrar anillos";
 "hardware.monitor.settings.colorTitle" = "Colores";
 "hardware.monitor.settings.resetColors" = "Restablecer colores";

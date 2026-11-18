@@ -1225,7 +1225,7 @@
 "hardware.monitor.background.off" = "Disattivato";
 "hardware.monitor.background.seconds" = "%d s";
 "hardware.monitor.settings.panelRefresh" = "Aggiornamento pannello";
-"hardware.monitor.settings.panelRefresh.description" = "Ogni quanto si aggiorna il pannello mentre è aperto. Più veloce è più in tempo reale ma legge di più; più lento risparmia energia.";
+"hardware.monitor.settings.panelRefresh.description" = "Ogni quanto si aggiorna il pannello mentre è aperto. Utilizzo e velocità di rete/disco seguono questo valore; temperatura e ventola al massimo ogni 4 secondi. Più veloce è più in tempo reale ma legge di più; più lento risparmia energia.";
 "hardware.monitor.settings.showRings" = "Mostra anelli";
 "hardware.monitor.settings.colorTitle" = "Colori";
 "hardware.monitor.settings.resetColors" = "Ripristina colori";
