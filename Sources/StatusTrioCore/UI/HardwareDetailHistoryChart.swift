@@ -64,14 +64,34 @@ enum HardwareDetailChartGeometry {
         guard size.width > 0, size.height > 0, yMaximum > 0 else { return [] }
         let window = HardwareDetailHistoryStore.window
         let start = now.addingTimeInterval(-window)
-        var result: [HardwareDetailChartSample] = []
+        var visible: [(date: Date, value: Double)] = []
         for point in points {
             guard series < point.values.count, let value = point.values[series], value.isFinite else { continue }
             let elapsed = point.date.timeIntervalSince(start)
             guard elapsed >= 0, elapsed <= window else { continue }
-            let x = size.width * CGFloat(elapsed / window)
-            let y = size.height * CGFloat(1 - min(yMaximum, max(0, value)) / yMaximum)
-            result.append(HardwareDetailChartSample(date: point.date, point: CGPoint(x: x, y: y)))
+            visible.append((point.date, value))
+        }
+        guard !visible.isEmpty else { return [] }
+        // Map the samples actually present across the full width instead of
+        // anchoring to the 60 s window. A freshly opened page (history shorter
+        // than 60 s) no longer leaves a left gap, and a sample up to one refresh
+        // interval behind `now` no longer leaves a right gap.
+        let firstDate = visible[0].date
+        let lastDate = visible[visible.count - 1].date
+        let span = lastDate.timeIntervalSince(firstDate)
+        let inset: CGFloat = 0.75
+        let usable = max(0, size.width - inset * 2)
+        var result: [HardwareDetailChartSample] = []
+        for item in visible {
+            let ratio: CGFloat
+            if visible.count == 1 || span < 0.5 {
+                ratio = 0.5
+            } else {
+                ratio = CGFloat(item.date.timeIntervalSince(firstDate) / span)
+            }
+            let x = inset + usable * ratio
+            let y = size.height * CGFloat(1 - min(yMaximum, max(0, item.value)) / yMaximum)
+            result.append(HardwareDetailChartSample(date: item.date, point: CGPoint(x: x, y: y)))
         }
         return result
     }

@@ -215,6 +215,29 @@ final class HardwareDetailTests: XCTestCase {
             for: samples, threshold: HardwareDetailHistoryStore.maximumGap).count, 1)
     }
 
+    func testChartSpansFullWidthWithoutSideGaps() {
+        let now = Date()
+        let width: CGFloat = 300
+        // History younger than the 60 s window used to leave a left gap.
+        let shortHistory = geometryPoints([-8, -4], now: now)
+        let samples = HardwareDetailChartGeometry.samples(points: shortHistory, series: 0, now: now,
+                                                          yMaximum: 100, size: CGSize(width: width, height: 50))
+        XCTAssertEqual(samples.first?.point.x ?? -1, 0.75, accuracy: 0.01)
+        XCTAssertEqual(samples.last?.point.x ?? -1, width - 0.75, accuracy: 0.01)
+
+        // Newest sample one refresh interval behind `now` used to leave a right gap.
+        let lagging = geometryPoints([-30, -2], now: now)
+        let laggingSamples = HardwareDetailChartGeometry.samples(points: lagging, series: 0, now: now,
+                                                                 yMaximum: 100, size: CGSize(width: width, height: 50))
+        XCTAssertEqual(laggingSamples.last?.point.x ?? -1, width - 0.75, accuracy: 0.01)
+
+        // A single sample sits centred so its dot is visible.
+        let single = HardwareDetailChartGeometry.samples(points: geometryPoints([-10], now: now),
+                                                          series: 0, now: now, yMaximum: 100,
+                                                          size: CGSize(width: width, height: 50))
+        XCTAssertEqual(single.first?.point.x ?? -1, width / 2, accuracy: 0.01)
+    }
+
     // MARK: - Formatting
 
     func testFormatFallsBackToDash() {
