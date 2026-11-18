@@ -81,9 +81,9 @@ struct CompactSummaryInfoBar: View {
                     .frame(maxWidth: .infinity)
             }
         }
-        .padding(.horizontal, 6)
         .frame(height: HardwareSummaryMetricCell.barHeight)
         .panelCardSurface(.silver(.disconnected), tint: .clear, cornerRadius: 10)
+        .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
     }
 
     @ViewBuilder
@@ -91,6 +91,7 @@ struct CompactSummaryInfoBar: View {
         if let onSelect, item.metric != .fan {
             Button { onSelect(item.metric) } label: {
                 HardwareSummaryMetricCell(item: item)
+                    .padding(.horizontal, 6)
                     .contentShape(RoundedRectangle(cornerRadius: 7, style: .continuous))
             }
             .buttonStyle(.plain)
@@ -105,6 +106,7 @@ struct CompactSummaryInfoBar: View {
             }
         } else {
             HardwareSummaryMetricCell(item: item)
+                .padding(.horizontal, 6)
         }
     }
 }
