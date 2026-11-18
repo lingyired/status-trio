@@ -105,6 +105,14 @@ struct CoreAudioInputHardware: AudioInputHardware {
   }
 
   func read(includeDevices: Bool) throws -> AudioInputReading {
+    try read(includeDevices: includeDevices, includeUsage: true)
+  }
+
+  func readInventory() throws -> AudioInputReading {
+    try read(includeDevices: true, includeUsage: false)
+  }
+
+  private func read(includeDevices: Bool, includeUsage: Bool) throws -> AudioInputReading {
     let systemDefaultID = try client.defaultInput()
       .flatMap { $0 == AudioDeviceID(kAudioObjectUnknown) ? nil : $0 }
 
@@ -146,7 +154,7 @@ struct CoreAudioInputHardware: AudioInputHardware {
 
     let volume = readVolume(selectedID)
     let mute = readMute(selectedID)
-    let inputUsage = client.activeInputProcessUsage()?.isInUse(selectedID)
+    let inputUsage = includeUsage ? client.activeInputProcessUsage()?.isInUse(selectedID) : nil
 
     return AudioInputReading(
       devices: devices,

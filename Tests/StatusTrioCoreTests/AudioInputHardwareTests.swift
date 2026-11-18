@@ -5,6 +5,16 @@ import XCTest
 @testable import StatusTrioCore
 
 final class AudioInputHardwareTests: XCTestCase {
+  func testBackgroundInventoryDoesNotInspectActiveMicrophoneProcesses() throws {
+    let client = makeClient()
+    let hardware = CoreAudioInputHardware(client: client)
+    let inventory = try hardware.readInventory()
+    XCTAssertEqual(inventory.devices?.count, 2)
+    XCTAssertNil(inventory.isDefaultInputInUse)
+    XCTAssertEqual(client.usageReads, 0)
+    _ = try hardware.read(includeDevices: true)
+    XCTAssertEqual(client.usageReads, 1)
+  }
   func testFiltersIneligibleDevicesAndPreservesDuplicateNamesAndMissingUID() throws {
     let hardware = CoreAudioInputHardware(client: makeClient())
 
@@ -674,6 +684,7 @@ final class AudioInputHardwareTests: XCTestCase {
 }
 
 private final class FakeAudioInputPropertyClient: AudioInputPropertyClient, @unchecked Sendable {
+  private(set) var usageReads = 0
   let deviceIDs: [AudioDeviceID]
   let devicesError: AudioInputHardwareError?
   let activeInputUsage: AudioInputProcessDeviceUsage?
@@ -708,7 +719,7 @@ private final class FakeAudioInputPropertyClient: AudioInputPropertyClient, @unc
   }
 
   func defaultInput() throws -> AudioDeviceID? { defaultID }
-  func activeInputProcessUsage() -> AudioInputProcessDeviceUsage? { activeInputUsage }
+  func activeInputProcessUsage() -> AudioInputProcessDeviceUsage? { usageReads += 1; return activeInputUsage }
   func isDevice(_ id: AudioDeviceID) -> Bool { devicesByID[id]?.isDevice ?? false }
   func isAlive(_ id: AudioDeviceID) -> Bool? { devicesByID[id]?.isAlive }
   func isHidden(_ id: AudioDeviceID) -> Bool? { devicesByID[id]?.isHidden }

@@ -3,6 +3,11 @@ import Foundation
 
 @MainActor
 protocol AudioInputMonitoring: AnyObject {
+  func setPriorityErrorHandler(_ handler: (@MainActor () -> Void)?)
+  func setPriorityInventoryHandler(_ handler: (@MainActor ([AudioPriorityDevice], UInt32?) -> Void)?)
+  func setPriorityInventoryRequired(_ required: Bool)
+  func selectAutomatically(_ id: AudioDeviceID, request: AudioPriorityRequest,
+                           completion: @escaping @MainActor (Bool) -> Void)
   var updates: AsyncStream<AudioInputStatus> { get }
   func setEnabled(_ enabled: Bool)
   func setVisible(_ visible: Bool)
@@ -15,6 +20,11 @@ protocol AudioInputMonitoring: AnyObject {
 }
 
 extension AudioInputMonitoring {
+  func setPriorityErrorHandler(_ handler: (@MainActor () -> Void)?) {}
+  func setPriorityInventoryHandler(_ handler: (@MainActor ([AudioPriorityDevice], UInt32?) -> Void)?) {}
+  func setPriorityInventoryRequired(_ required: Bool) {}
+  func selectAutomatically(_ id: AudioDeviceID, request: AudioPriorityRequest,
+                           completion: @escaping @MainActor (Bool) -> Void) { completion(false) }
   func setScalar(_ value: Double) {
     setScalar(value, requestID: UUID())
   }
@@ -102,7 +112,7 @@ private final class AudioInputSessionGate: @unchecked Sendable {
 }
 
 private enum AudioInputMonitorCommand: Sendable {
-  case select(AudioDeviceID)
+  case select(AudioDeviceID, AudioPriorityRequest? = nil)
   case scalar(Double)
   case mute(Bool)
 
@@ -157,6 +167,10 @@ final class AudioInputMonitor: AudioInputMonitoring {
   /// Settings surface: keeps the inventory live without usage polling.
   private var isDeviceListVisible = false
   private var isStopped = false
+  private var priorityInventoryRequired = false
+  private var priorityInventoryHandler: (@MainActor ([AudioPriorityDevice], UInt32?) -> Void)?
+  private var priorityErrorHandler: (@MainActor () -> Void)?
+  private var automaticCompletion: (AudioPriorityRequest, @MainActor (Bool) -> Void)?
   private var isDirty = true
   private var observationDegraded = false
   private var sessionGeneration: UInt64 = 0
@@ -223,6 +237,7 @@ final class AudioInputMonitor: AudioInputMonitoring {
   func setEnabled(_ enabled: Bool) {
     guard !isStopped, enabled != isEnabled else { return }
     if !enabled {
+      automaticCompletion = nil
       sessionGate?.invalidate()
       sessionGate = nil
       stopUsagePolling()
@@ -284,7 +299,7 @@ final class AudioInputMonitor: AudioInputMonitoring {
   func setVisible(_ visible: Bool) {
     guard !isStopped, visible != isVisible else { return }
     isVisible = visible
-    visibilityGate.setVisible(panel: visible, deviceList: isDeviceListVisible)
+    visibilityGate.setVisible(panel: visible, deviceList: isDeviceListVisible || priorityInventoryRequired)
     if visible {
       if isEnabled {
         requestRefresh()
@@ -307,7 +322,7 @@ final class AudioInputMonitor: AudioInputMonitoring {
     guard !isStopped, visible != isDeviceListVisible else { return }
     let wasInventoryVisible = isInventoryVisible
     isDeviceListVisible = visible
-    visibilityGate.setVisible(panel: isVisible, deviceList: visible)
+    visibilityGate.setVisible(panel: isVisible, deviceList: visible || priorityInventoryRequired)
     guard isEnabled else { return }
     if visible {
       if !wasInventoryVisible {
@@ -318,6 +333,28 @@ final class AudioInputMonitor: AudioInputMonitoring {
       publish()
       startNextWorkIfPossible()
     }
+  }
+
+  func setPriorityInventoryHandler(_ handler: (@MainActor ([AudioPriorityDevice], UInt32?) -> Void)?) {
+    priorityInventoryHandler = handler
+  }
+
+  func setPriorityErrorHandler(_ handler: (@MainActor () -> Void)?) { priorityErrorHandler = handler }
+
+  func setPriorityInventoryRequired(_ required: Bool) {
+    guard !isStopped, priorityInventoryRequired != required else { return }
+    priorityInventoryRequired = required
+    visibilityGate.setVisible(panel: isVisible, deviceList: isDeviceListVisible || required)
+    if required { requestRefresh() }
+    else if !isInventoryVisible { discardInventoryRead() }
+  }
+
+  func selectAutomatically(_ id: AudioDeviceID, request: AudioPriorityRequest,
+                           completion: @escaping @MainActor (Bool) -> Void) {
+    guard request.isValid, canAcceptAction else { completion(false); return }
+    cancelPendingScalar()
+    automaticCompletion = (request, completion)
+    enqueueOrStart(QueuedCommand(command: .select(id, request), deviceID: id))
   }
 
   func recover() {
@@ -396,6 +433,7 @@ final class AudioInputMonitor: AudioInputMonitoring {
   func stop() {
     guard !isStopped else { return }
     sessionGate?.invalidate()
+    automaticCompletion = nil
     sessionGate = nil
     stopUsagePolling()
     isStopped = true
@@ -421,7 +459,7 @@ final class AudioInputMonitor: AudioInputMonitoring {
   /// The union of the surfaces that render the input device list. Only the popover renders
   /// default-input usage, so this stays separate from `isVisible`.
   private var isInventoryVisible: Bool {
-    isVisible || isDeviceListVisible
+    isVisible || isDeviceListVisible || priorityInventoryRequired
   }
 
   private var canAcceptAction: Bool {
@@ -534,9 +572,11 @@ final class AudioInputMonitor: AudioInputMonitoring {
     case .failure:
       invalidateDefaultControlReadback()
       showError(.refreshFailed)
+      priorityErrorHandler?()
     }
     status.isRefreshing = false
     publish()
+    if case .success = result { notifyPriorityInventory() }
     startNextWorkIfPossible()
   }
 
@@ -613,9 +653,17 @@ final class AudioInputMonitor: AudioInputMonitoring {
     scalarRequestID: UUID? = nil
   ) {
     guard isEnabled, !isStopped, activeCommand == nil else { return }
+    if case let .select(_, request) = command, request?.isValid == false {
+      status.isBusy = false
+      publish()
+      startNextWorkIfPossible()
+      return
+    }
     if case .select = command {
       guard status.devices.contains(where: { $0.id == deviceID }) else {
+        finishAutomaticCommand(command, success: false)
         showError(.switchFailed)
+        startNextWorkIfPossible()
         return
       }
     } else if status.defaultDeviceID != deviceID {
@@ -668,6 +716,7 @@ final class AudioInputMonitor: AudioInputMonitoring {
     finishLatestScalarRequest()
     queuedCommands.removeAll()
     showError(.timedOut)
+    finishAutomaticCommand(active.command, success: false)
   }
 
   private func commandCompleted(_ result: AudioInputCommandResult, commandID: UUID) {
@@ -730,6 +779,7 @@ final class AudioInputMonitor: AudioInputMonitoring {
       }
     }
     let failure = commandError ?? (observationDegraded ? .refreshFailed : nil)
+    finishAutomaticCommand(active.command, success: commandError == nil)
     status.error = failure
     status.isBusy = false
     status.isRefreshing = refreshPending || readInFlight
@@ -741,7 +791,22 @@ final class AudioInputMonitor: AudioInputMonitoring {
     } else {
       clearError()
     }
+    if result.reading != nil, !refreshPending { notifyPriorityInventory() }
     startNextWorkIfPossible()
+  }
+
+  private func notifyPriorityInventory() {
+    guard isEnabled, !isStopped, !status.isBusy, !status.isRefreshing else { return }
+    priorityInventoryHandler?(status.devices.map {
+      AudioPriorityDevice(id: $0.id, uid: $0.uid, name: $0.name)
+    }, status.defaultDeviceID)
+  }
+
+  private func finishAutomaticCommand(_ command: AudioInputMonitorCommand, success: Bool) {
+    guard case let .select(_, request) = command, let request,
+          let (pending, completion) = automaticCompletion, pending === request else { return }
+    automaticCompletion = nil
+    completion(success)
   }
 
   private func commandFailure(
@@ -754,7 +819,7 @@ final class AudioInputMonitor: AudioInputMonitoring {
     else { return command.error }
 
     switch command {
-    case let .select(id):
+    case let .select(id, _):
       return reading.defaultDeviceID == id ? nil : .switchFailed
     case let .scalar(target):
       guard reading.defaultDeviceID == expectedDeviceID,
@@ -1013,7 +1078,8 @@ private final class AudioInputWorker: @unchecked Sendable {
       guard sessionGate.isActive, visibilityGate.isCurrentInventoryVisible(visibilitySnapshot) else { return }
       let reading: AudioInputReading
       do {
-        reading = try self.hardware.read(includeDevices: true)
+        reading = try visibilitySnapshot.isUsageVisible
+          ? self.hardware.read(includeDevices: true) : self.hardware.readInventory()
         guard sessionGate.isActive,
           visibilityGate.isCurrentInventoryVisible(visibilitySnapshot)
         else { return }
@@ -1075,8 +1141,17 @@ private final class AudioInputWorker: @unchecked Sendable {
       var operationError: AudioInputHardwareError?
       do {
         switch command {
-        case let .select(id):
-          try self.hardware.selectDefault(id)
+        case let .select(id, request):
+          if request?.isValid != false {
+            if let expectedUID = request?.expectedUID {
+              let inventory = try self.hardware.readInventory()
+              guard inventory.devices?.contains(where: { $0.id == id && $0.uid == expectedUID }) == true else {
+                throw AudioInputHardwareError.unavailable
+              }
+            }
+            guard request?.isValid != false else { throw AudioInputHardwareError.unavailable }
+            try self.hardware.selectDefault(id)
+          }
         case let .scalar(value):
           try self.hardware.setScalar(value, on: deviceID)
         case let .mute(value):
@@ -1093,7 +1168,11 @@ private final class AudioInputWorker: @unchecked Sendable {
       var readError: AudioInputHardwareError?
       var observationError: AudioInputHardwareError?
       do {
-        reading = try self.hardware.read(includeDevices: false)
+        if case let .select(_, request) = command, request != nil {
+          reading = try self.hardware.readInventory()
+        } else {
+          reading = try self.hardware.read(includeDevices: false)
+        }
         guard sessionGate.isActive else { return }
       } catch {
         guard sessionGate.isActive else { return }

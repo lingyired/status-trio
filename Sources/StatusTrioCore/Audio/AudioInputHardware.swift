@@ -66,10 +66,15 @@ protocol AudioInputObservation: Sendable {
 
 protocol AudioInputHardware: Sendable {
   func read(includeDevices: Bool) throws -> AudioInputReading
+  func readInventory() throws -> AudioInputReading
   func readDefaultInputUsage() throws -> AudioInputUsageReading
   func selectDefault(_ id: AudioDeviceID) throws
   func setScalar(_ scalar: Double, on id: AudioDeviceID) throws
   func setMuted(_ muted: Bool, on id: AudioDeviceID) throws
   func observe(_ notify: @escaping @Sendable (AudioInputEvent) -> Void) throws
     -> any AudioInputObservation
+}
+
+extension AudioInputHardware {
+  func readInventory() throws -> AudioInputReading { try read(includeDevices: true) }
 }

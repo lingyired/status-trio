@@ -1,4 +1,12 @@
 enum LocalizationKey: String, CaseIterable, Hashable, Sendable {
+    case settingsAudioPriorityToggle = "settings.audio.priority.toggle"
+    case settingsAudioPriorityDescription = "settings.audio.priority.description"
+    case settingsAudioPriorityManual = "settings.audio.priority.manual"
+    case settingsAudioPriorityInputManual = "settings.audio.priority.inputManual"
+    case settingsAudioPriorityStopped = "settings.audio.priority.stopped"
+    case settingsAudioPriorityDisconnected = "settings.audio.priority.disconnected"
+    case settingsAudioPriorityForget = "settings.audio.priority.forget"
+    case settingsAudioPriorityFailed = "settings.audio.priority.failed"
     case settingsNetworkPowerControl = "settings.network.powerControl"
     case settingsNetworkPowerControlDescription = "settings.network.powerControlDescription"
     case settingsNetworkConfirmBeforePowerOff = "settings.network.confirmBeforePowerOff"

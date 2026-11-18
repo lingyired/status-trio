@@ -933,6 +933,9 @@ final class VolumeMonitor: VolumeMonitoring, VolumeControlling {
     private var cachedOutputDevices: [AudioOutputDevice] = []
     private var outputDevicesCacheValid = false
     private var detailsVisible = true
+    private var priorityInventoryRequired = false
+    private var priorityInventoryHandler: (@MainActor ([AudioPriorityDevice], UInt32?) -> Void)?
+    private var priorityErrorHandler: (@MainActor () -> Void)?
     private var readInFlight = false
     private var refreshPending = false
     private var pendingRefreshIncludesOutputDevices = false
@@ -1106,13 +1109,38 @@ final class VolumeMonitor: VolumeMonitoring, VolumeControlling {
         if changed { readGeneration &+= 1 }
         outputDevicesCacheValid = false
 
-        if !visible {
+        if !visible && !priorityInventoryRequired {
             cachedOutputDevices = []
             outputDevicesCacheValid = true
         }
 
         if changed, !visible, lifecycle == .running {
             performRefresh(includeOutputDevices: false)
+        }
+    }
+
+    func setPriorityInventoryHandler(_ handler: (@MainActor ([AudioPriorityDevice], UInt32?) -> Void)?) {
+        priorityInventoryHandler = handler
+    }
+
+    func setPriorityErrorHandler(_ handler: (@MainActor () -> Void)?) { priorityErrorHandler = handler }
+
+    func setPriorityInventoryRequired(_ required: Bool) {
+        guard lifecycle != .stopped, priorityInventoryRequired != required else { return }
+        priorityInventoryRequired = required
+        outputDevicesCacheValid = false
+        readGeneration &+= 1
+        if lifecycle == .running { scheduleRefresh(includeOutputDevices: true) }
+    }
+
+    func selectOutputAutomatically(_ deviceID: AudioDeviceID, request: AudioPriorityRequest,
+                                   completion: @escaping AudioPriorityCompletion) {
+        guard lifecycle != .stopped, request.isValid, let outputController else { completion(false); return }
+        outputController.selectAutomatically(deviceID, request: request) { [weak self] success in
+            guard let self, self.lifecycle != .stopped, request.isValid else { return }
+            completion(success)
+            self.clearVolumeForDeviceTransition()
+            self.scheduleRefresh(includeOutputDevices: true)
         }
     }
 
@@ -1207,8 +1235,10 @@ final class VolumeMonitor: VolumeMonitoring, VolumeControlling {
 
     func selectOutputDevice(_ deviceID: AudioDeviceID) {
         guard lifecycle != .stopped else { return }
-        _ = outputController?.selectOutputDevice(deviceID)
         clearVolumeForDeviceTransition()
+        outputController?.enqueueManualSelection(deviceID) { [weak self] _ in
+            self?.scheduleRefresh(includeOutputDevices: true)
+        }
         scheduleRefresh(includeOutputDevices: true)
     }
 
@@ -1281,7 +1311,8 @@ final class VolumeMonitor: VolumeMonitoring, VolumeControlling {
         readToken &+= 1
         let token = readToken
         let generation = readGeneration
-        let enumerateDevices = detailsVisible && (includeOutputDevices || !outputDevicesCacheValid)
+        let enumerateDevices = (detailsVisible || priorityInventoryRequired)
+            && (includeOutputDevices || !outputDevicesCacheValid)
         readWatchdog.arm { [weak self] in
             self?.abandonTimedOutRead(token: token)
         }
@@ -1300,6 +1331,13 @@ final class VolumeMonitor: VolumeMonitoring, VolumeControlling {
 
             if generation == self.readGeneration {
                 self.receive(result)
+                if self.outputDevicesCacheValid, result.volume != nil || result.outputDevices != nil {
+                    self.priorityInventoryHandler?(self.cachedOutputDevices.map {
+                        AudioPriorityDevice(id: $0.id, uid: $0.uid, name: $0.name)
+                    }, result.volume?.currentDevice?.id)
+                } else if result.volume == nil {
+                    self.priorityErrorHandler?()
+                }
             }
             if needsRefresh {
                 if self.scheduledRefreshTask != nil {
@@ -1319,6 +1357,7 @@ final class VolumeMonitor: VolumeMonitoring, VolumeControlling {
     /// transient stall can recover. The reader moves the retry to a fresh queue.
     private func abandonTimedOutRead(token: UInt64) {
         guard token == readToken else { return }
+        priorityErrorHandler?()
         readToken &+= 1
         readInFlight = false
         readGeneration &+= 1
@@ -1337,7 +1376,7 @@ final class VolumeMonitor: VolumeMonitoring, VolumeControlling {
             invalidateBetterDisplaySelection()
             externalBackend = .none
             let devices: [AudioOutputDevice]
-            if !detailsVisible {
+            if !detailsVisible && !priorityInventoryRequired {
                 cachedOutputDevices = []
                 outputDevicesCacheValid = true
                 devices = []
@@ -1382,7 +1421,7 @@ final class VolumeMonitor: VolumeMonitoring, VolumeControlling {
         }
 
         let devices: [AudioOutputDevice]
-        if !detailsVisible {
+        if !detailsVisible && !priorityInventoryRequired {
             cachedOutputDevices = []
             outputDevicesCacheValid = true
             devices = []

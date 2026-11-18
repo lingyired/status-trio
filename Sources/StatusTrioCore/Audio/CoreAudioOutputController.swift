@@ -6,6 +6,7 @@ import Foundation
 @MainActor
 final class CoreAudioOutputController: AudioOutputControlling {
     nonisolated private let systemObjectID = AudioObjectID(kAudioObjectSystemObject)
+    nonisolated private let automaticQueue = DispatchQueue(label: "com.status-trio.audio-output-priority", qos: .utility)
 
     nonisolated init() {}
 
@@ -23,7 +24,7 @@ final class CoreAudioOutputController: AudioOutputControlling {
         return deviceIDs
             .filter(isOutputDevice)
             .compactMap { deviceID -> AudioOutputDevice? in
-                guard !isHidden(deviceID) else { return nil }
+                guard !isHidden(deviceID), isAlive(deviceID) else { return nil }
 
                 return AudioOutputDevice(
                     id: deviceID,
@@ -90,7 +91,7 @@ final class CoreAudioOutputController: AudioOutputControlling {
     }
 
     @discardableResult
-    func selectOutputDevice(_ deviceID: AudioDeviceID) -> Bool {
+    nonisolated func selectOutputDevice(_ deviceID: AudioDeviceID) -> Bool {
         guard deviceID != kAudioObjectUnknown,
               canBeDefaultOutputDevice(deviceID) else {
             return false
@@ -108,6 +109,23 @@ final class CoreAudioOutputController: AudioOutputControlling {
         }
 
         return setLegacyDefaultOutputDevice(deviceID)
+    }
+
+    func selectAutomatically(_ deviceID: AudioDeviceID, request: AudioPriorityRequest,
+                             completion: @escaping AudioPriorityCompletion) {
+        automaticQueue.async { [self] in
+            guard request.isValid else { return }
+            let matches = request.expectedUID == nil || deviceUID(for: deviceID) == request.expectedUID
+            let success = matches && isAlive(deviceID) && request.isValid && selectOutputDevice(deviceID)
+            Task { @MainActor in completion(success) }
+        }
+    }
+
+    func enqueueManualSelection(_ deviceID: AudioDeviceID, completion: @escaping AudioPriorityCompletion) {
+        automaticQueue.async { [self] in
+            let success = selectOutputDevice(deviceID)
+            Task { @MainActor in completion(success) }
+        }
     }
 
     private func setMuted(_ isMuted: Bool, for deviceID: AudioDeviceID) -> Bool {
@@ -154,6 +172,11 @@ final class CoreAudioOutputController: AudioOutputControlling {
 
     nonisolated private func isOutputDevice(_ deviceID: AudioDeviceID) -> Bool {
         hasOutputStreams(deviceID: deviceID) && canBeDefaultOutputDevice(deviceID)
+    }
+
+    nonisolated private func isAlive(_ deviceID: AudioDeviceID) -> Bool {
+        readUInt32Property(objectID: deviceID, selector: kAudioDevicePropertyDeviceIsAlive,
+                           scope: kAudioObjectPropertyScopeGlobal, element: kAudioObjectPropertyElementMain) == 1
     }
 
     nonisolated private func hasOutputStreams(deviceID: AudioDeviceID) -> Bool {
@@ -444,12 +467,12 @@ final class CoreAudioOutputController: AudioOutputControlling {
         return status == noErr && canBeDefault != 0
     }
 
-    private func setLegacyDefaultOutputDevice(_ deviceID: AudioDeviceID) -> Bool {
+    nonisolated private func setLegacyDefaultOutputDevice(_ deviceID: AudioDeviceID) -> Bool {
         setDefaultAudioDevice(deviceID, selector: kAudioHardwarePropertyDefaultOutputDevice)
             && setDefaultAudioDevice(deviceID, selector: kAudioHardwarePropertyDefaultSystemOutputDevice)
     }
 
-    private func setDefaultAudioDevice(
+    nonisolated private func setDefaultAudioDevice(
         _ deviceID: AudioDeviceID,
         selector: AudioObjectPropertySelector
     ) -> Bool {

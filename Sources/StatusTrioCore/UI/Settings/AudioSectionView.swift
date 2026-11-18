@@ -162,122 +162,11 @@ struct AudioSectionView: View {
     }
 
     private var deviceOrderGroup: some View {
-        SettingsGroup(
-            localization.string(.settingsAudioOrderTitle),
-            footnote: localization.string(.settingsAudioActiveDeviceFootnote)
-        ) {
-            SettingsCustomRow(
-                "slider.horizontal.3",
-                tint: .blue,
-                title: localization.string(.settingsAudioOrderTitle),
-                subtitle: localization.string(.settingsAudioOrderDescription)
-            ) {
-                if orderedDevices.isEmpty {
-                    Label(
-                        localization.string(.settingsAudioOrderEmpty),
-                        systemImage: "questionmark.circle"
-                    )
-                    .font(.body)
-                    .foregroundStyle(.secondary)
-                    .padding(.vertical, 8)
-                } else {
-                    List {
-                        ForEach(orderedDevices) { device in
-                            let isHidden = OutputDeviceListPresentation.isHidden(
-                                device,
-                                in: store.hiddenOutputDeviceUIDs
-                            )
-                            AudioDeviceOrderRow(
-                                name: device.name ?? localization.string(.volumeOutputUnknownDevice),
-                                badge: device.isCurrent ? localization.string(.settingsAudioInUse) : nil,
-                                isHidden: isHidden,
-                                canHide: device.uid != nil,
-                                setHidden: { hidden in
-                                    guard let uid = device.uid else { return }
-                                    store.setOutputDeviceHidden(uid, hidden: hidden)
-                                }
-                            ) {
-                                AudioOutputDeviceIconView(source: AudioPanelMapper.iconSource(for: device))
-                                    .foregroundStyle(device.isCurrent ? Color.accentColor : Color.secondary)
-                            }
-                        }
-                        .onMove { source, destination in
-                            store.moveOutputDevices(
-                                fromOffsets: source,
-                                toOffset: destination,
-                                in: orderedDevices
-                            )
-                        }
-                    }
-                    .listStyle(.inset)
-                    .frame(height: orderListHeight(for: orderedDevices.count))
-                }
-            }
-        }
+        AudioPrioritySettingsView(store: store, statusStore: statusStore, input: false)
     }
 
     private var inputDeviceOrderGroup: some View {
-        SettingsGroup(localization.string(.settingsAudioInputOrderTitle)) {
-            SettingsCustomRow(
-                "mic",
-                tint: .orange,
-                title: localization.string(.settingsAudioInputOrderTitle),
-                subtitle: localization.string(.settingsAudioInputOrderDescription)
-            ) {
-                if !store.enabledPopupSections.contains(.audioInput) {
-                    Label(
-                        localization.string(.settingsAudioInputOrderSectionOff),
-                        systemImage: "info.circle"
-                    )
-                    .font(.body)
-                    .foregroundStyle(.secondary)
-                    .padding(.vertical, 8)
-                } else if orderedInputDevices.isEmpty {
-                    Label(
-                        localization.string(.settingsAudioInputOrderEmpty),
-                        systemImage: "questionmark.circle"
-                    )
-                    .font(.body)
-                    .foregroundStyle(.secondary)
-                    .padding(.vertical, 8)
-                } else {
-                    List {
-                        ForEach(orderedInputDevices) { device in
-                            let isCurrent = device.id == statusStore.liveInput.defaultDeviceID
-                            let isHidden = AudioDeviceOrder.isHidden(
-                                uid: device.uid,
-                                in: store.hiddenInputDeviceUIDs
-                            )
-                            AudioDeviceOrderRow(
-                                name: AudioInputPresentation.displayName(
-                                    for: device,
-                                    unknownName: localization.string(.audioInputUnknownDevice)
-                                ),
-                                badge: isCurrent ? localization.string(.audioInputCurrent) : nil,
-                                isHidden: isHidden,
-                                canHide: device.uid != nil,
-                                setHidden: { hidden in
-                                    guard let uid = device.uid else { return }
-                                    store.setInputDeviceHidden(uid, hidden: hidden)
-                                }
-                            ) {
-                                Image(systemName: isCurrent ? "mic.fill" : "mic")
-                                    .foregroundStyle(isCurrent ? Color.accentColor : Color.secondary)
-                            }
-                        }
-                        .onMove { source, destination in
-                            store.moveInputDevices(
-                                fromOffsets: source,
-                                toOffset: destination,
-                                in: orderedInputDevices
-                            )
-                        }
-                    }
-                    .listStyle(.inset)
-                    .frame(height: orderListHeight(for: orderedInputDevices.count))
-                }
-            }
-        }
+        AudioPrioritySettingsView(store: store, statusStore: statusStore, input: true)
     }
 
     private var externalVolumeGroup: some View {
@@ -456,27 +345,9 @@ struct AudioSectionView: View {
         }
     }
 
-    private var orderedDevices: [AudioOutputDevice] {
-        store.orderedOutputDevices(statusStore.snapshot.volume.outputDevices)
-    }
-
     private var currentOutputDevice: AudioOutputDevice? {
         statusStore.liveVolume.currentDevice
             ?? statusStore.liveVolume.outputDevices.first(where: \.isCurrent)
-    }
-
-    private var orderedInputDevices: [AudioInputDevice] {
-        AudioInputPresentation.ordered(
-            statusStore.liveInput.devices,
-            currentID: statusStore.liveInput.defaultDeviceID,
-            order: store.inputDeviceListPreferences.order,
-            locale: localization.resolvedLanguage.locale,
-            unknownName: localization.string(.audioInputUnknownDevice)
-        )
-    }
-
-    private func orderListHeight(for count: Int) -> CGFloat {
-        min(max(CGFloat(count) * 32 + 12, 48), 180)
     }
 
     private var airPodsInlineControlsGroup: some View {
@@ -503,61 +374,6 @@ struct AudioSectionView: View {
                 isOn: $store.showsConversationAwarenessControls
             )
         }
-    }
-}
-
-/// One row of an audio device order list: the show/hide checkbox, icon, name,
-/// current-device badge, and drag handle. A hidden row is dimmed, but it keeps
-/// its place and stays draggable so ordering never depends on the checkbox.
-private struct AudioDeviceOrderRow<Icon: View>: View {
-    @EnvironmentObject private var localization: Localization
-
-    let name: String
-    let badge: String?
-    let isHidden: Bool
-    let canHide: Bool
-    let setHidden: (Bool) -> Void
-    @ViewBuilder let icon: Icon
-
-    var body: some View {
-        HStack(alignment: .center, spacing: 10) {
-            Toggle(name, isOn: Binding(
-                get: { !isHidden },
-                set: { isShown in setHidden(!isShown) }
-            ))
-            .toggleStyle(.checkbox)
-            .labelsHidden()
-            .disabled(!canHide)
-            .help(localization.string(.settingsAudioShowDevice))
-
-            icon
-                .frame(width: 18, height: 18, alignment: .center)
-                .opacity(isHidden ? 0.45 : 1)
-
-            Text(name)
-                .font(.system(size: 13))
-                .foregroundStyle(isHidden ? Color.secondary : Color.primary)
-                .lineLimit(1)
-                .frame(maxWidth: .infinity, alignment: .leading)
-
-            if let badge {
-                Text(badge)
-                    .font(.system(size: 10, weight: .medium))
-                    .foregroundStyle(Color.accentColor)
-                    .padding(.horizontal, 6)
-                    .padding(.vertical, 2)
-                    .background(Capsule().fill(Color.accentColor.opacity(0.12)))
-            }
-
-            PanelActionGlyph(
-                systemName: "line.3.horizontal",
-                font: .caption,
-                size: 18
-            )
-            .foregroundStyle(.tertiary)
-            .accessibilityHidden(true)
-        }
-        .padding(.vertical, 3)
     }
 }
 
