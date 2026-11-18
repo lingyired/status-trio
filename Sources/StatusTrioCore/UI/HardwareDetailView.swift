@@ -468,7 +468,18 @@ struct HardwareDetailView: View {
         // 100% sample reaches the card's top edge instead of stopping under a
         // separate title row.
         ZStack(alignment: .topLeading) {
-            HardwareDetailHistoryChart(points: history.points, colors: trendColors, scale: scale, now: now)
+            HardwareDetailHistoryChart(
+                points: history.points, colors: trendColors, scale: scale, now: now,
+                seriesLabels: kind == .network
+                    ? [localization.string(.hardwareDetailDownload),
+                       localization.string(.hardwareDetailUpload)]
+                    : [],
+                valueFormatter: { value in
+                    switch scale {
+                    case .percent: return HardwareDetailFormat.percent(value)
+                    case .auto: return HardwareDetailFormat.rate(value)
+                    }
+                })
             Text(title)
                 .font(.subheadline)
                 .foregroundStyle(.secondary)

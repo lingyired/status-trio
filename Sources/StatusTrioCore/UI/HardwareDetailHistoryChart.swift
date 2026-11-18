@@ -14,6 +14,12 @@ struct HardwareDetailHistoryChart: View {
     let colors: [Color]
     var scale: HardwareDetailChartScale = .percent
     let now: Date
+    /// Optional per-series names shown in the hover tooltip.
+    var seriesLabels: [String] = []
+    /// Formats a raw value for the hover tooltip (percent vs bytes/s).
+    var valueFormatter: (Double) -> String = { String(format: "%.0f", $0) }
+
+    @State private var hoverLocation: CGPoint?
 
     private var yMaximum: Double {
         switch scale {
@@ -29,8 +35,13 @@ struct HardwareDetailHistoryChart: View {
     }
 
     var body: some View {
-        let maximum = yMaximum
-        return VStack(spacing: 2) {
+        GeometryReader { proxy in
+            let maximum = yMaximum
+            let size = proxy.size
+            let perSeries = colors.indices.map {
+                HardwareDetailChartGeometry.samples(points: points, series: $0, now: now,
+                                                    yMaximum: maximum, size: size)
+            }
             ZStack(alignment: .topLeading) {
                 HardwareDetailGrid()
                 ForEach(colors.indices, id: \.self) { index in
@@ -40,14 +51,72 @@ struct HardwareDetailHistoryChart: View {
                     HardwareDetailLineShape(points: points, series: index, now: now, yMaximum: maximum)
                         .stroke(colors[index],
                                 style: StrokeStyle(lineWidth: 1.5, lineCap: .round, lineJoin: .round))
-                    // Isolated samples would be invisible on a line path, so
-                    // show them as small dots.
                     HardwareDetailChartDot(points: points, series: index, now: now,
                                            yMaximum: maximum, color: colors[index])
                 }
+                hoverOverlay(size: size, perSeries: perSeries)
             }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .contentShape(Rectangle())
+            .onContinuousHover { phase in
+                switch phase {
+                case .active(let location): hoverLocation = location
+                case .ended: hoverLocation = nil
+                }
+            }
         }
+    }
+
+    @ViewBuilder
+    private func hoverOverlay(size: CGSize, perSeries: [[HardwareDetailChartSample]]) -> some View {
+        if let location = hoverLocation,
+           let reference = perSeries.first,
+           let nearest = reference.min(by: { abs($0.point.x - location.x) < abs($1.point.x - location.x) }) {
+            let x = nearest.point.x
+            Rectangle()
+                .fill(Color.primary.opacity(0.22))
+                .frame(width: 1, height: size.height)
+                .position(x: x, y: size.height / 2)
+            ForEach(colors.indices, id: \.self) { index in
+                if let sample = perSeries[index].first(where: { $0.date == nearest.date }) {
+                    Circle()
+                        .fill(colors[index])
+                        .frame(width: 5, height: 5)
+                        .position(sample.point)
+                }
+            }
+            tooltip(for: nearest, size: size)
+        }
+    }
+
+    private func tooltip(for sample: HardwareDetailChartSample, size: CGSize) -> some View {
+        let row = points.first(where: { $0.date == sample.date })
+        let width: CGFloat = 116
+        let x = min(max(sample.point.x + 8, 4), max(4, size.width - width - 4))
+        return VStack(alignment: .leading, spacing: 1) {
+            Text(sample.date.formatted(date: .omitted, time: .standard))
+                .foregroundStyle(.secondary)
+            ForEach(colors.indices, id: \.self) { index in
+                if let values = row?.values, index < values.count,
+                   let value = values[index] {
+                    HStack(spacing: 4) {
+                        Circle().fill(colors[index]).frame(width: 5, height: 5)
+                        if index < seriesLabels.count {
+                            Text(seriesLabels[index]).foregroundStyle(.secondary)
+                        }
+                        Text(valueFormatter(value))
+                    }
+                }
+            }
+        }
+        .font(.caption2)
+        .monospacedDigit()
+        .padding(.horizontal, 6)
+        .padding(.vertical, 4)
+        .frame(width: width, alignment: .leading)
+        .background(RoundedRectangle(cornerRadius: 6).fill(Color.black.opacity(0.72)))
+        .foregroundStyle(.white)
+        .offset(x: x, y: 4)
+        .allowsHitTesting(false)
     }
 }
 
