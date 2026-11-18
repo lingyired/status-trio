@@ -1494,7 +1494,7 @@ final class SettingsStoreTests: XCTestCase {
 
         XCTAssertEqual(
             store.popupSectionOrder,
-            [.battery, .quickActions, .network, .vpn, .bluetooth, .volume, .audioInput, .brightness, .inputSource]
+            [.menuBarTray, .battery, .quickActions, .network, .vpn, .bluetooth, .volume, .audioInput, .brightness, .inputSource]
         )
     }
 
@@ -1672,7 +1672,7 @@ final class SettingsStoreTests: XCTestCase {
         let store = SettingsStore(defaults: suite.defaults)
         XCTAssertEqual(
             store.popupSectionOrder,
-            [.volume, .battery, .quickActions, .network, .vpn, .bluetooth, .audioInput, .brightness, .inputSource]
+            [.volume, .battery, .menuBarTray, .quickActions, .network, .vpn, .bluetooth, .audioInput, .brightness, .inputSource]
         )
         XCTAssertFalse(store.enabledPopupSections.contains(.audioInput))
         store.setPopupSection(.audioInput, enabled: true)
@@ -1704,7 +1704,7 @@ final class SettingsStoreTests: XCTestCase {
 
         XCTAssertEqual(
             first.popupSectionOrder,
-            [.battery, .quickActions, .network, .vpn, .bluetooth, .volume, .audioInput, .brightness, .inputSource]
+            [.menuBarTray, .battery, .quickActions, .network, .vpn, .bluetooth, .volume, .audioInput, .brightness, .inputSource]
         )
         XCTAssertEqual(
             first.visiblePopupSections,
@@ -1724,17 +1724,17 @@ final class SettingsStoreTests: XCTestCase {
 
         let store = SettingsStore(defaults: suite.defaults)
         store.movePopupSections(
-            fromOffsets: IndexSet(integer: 4),
+            fromOffsets: IndexSet(integer: 5),
             toOffset: 0
         )
 
         XCTAssertEqual(
             store.popupSectionOrder,
-            [.bluetooth, .battery, .quickActions, .network, .vpn, .volume, .audioInput, .brightness, .inputSource]
+            [.bluetooth, .menuBarTray, .battery, .quickActions, .network, .vpn, .volume, .audioInput, .brightness, .inputSource]
         )
         XCTAssertEqual(
             SettingsStore(defaults: suite.defaults).popupSectionOrder,
-            [.bluetooth, .battery, .quickActions, .network, .vpn, .volume, .audioInput, .brightness, .inputSource]
+            [.bluetooth, .menuBarTray, .battery, .quickActions, .network, .vpn, .volume, .audioInput, .brightness, .inputSource]
         )
     }
 
@@ -1751,7 +1751,7 @@ final class SettingsStoreTests: XCTestCase {
 
         XCTAssertEqual(
             store.popupSectionOrder,
-            [.volume, .network, .battery, .quickActions, .vpn, .bluetooth, .audioInput, .brightness, .inputSource]
+            [.volume, .network, .menuBarTray, .battery, .quickActions, .vpn, .bluetooth, .audioInput, .brightness, .inputSource]
         )
     }
 

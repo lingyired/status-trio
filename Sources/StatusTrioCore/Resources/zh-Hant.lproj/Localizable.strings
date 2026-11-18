@@ -961,3 +961,14 @@
 "settings.brightness.useBetterDisplayCombined" = "使用 BetterDisplay 的組合亮度";
 "settings.brightness.useBetterDisplayCombined.description" = "BetterDisplay 的組合亮度把硬體亮度、軟體壓暗（和 XDR 提升）合併成一條滑桿：能比硬體最低亮度更暗，只有在 100% 時才與系統百分比一致。";
 "settings.brightness.useBetterDisplayCombined.needsApp" = "需要先安裝 BetterDisplay 才能使用。";
+"settings.popup.order.menuBarTray" = "選單列收納";
+"menuBarTray.arrange" = "整理";
+"menuBarTray.doneArranging" = "完成摺疊";
+"menuBarTray.refresh" = "重新整理收納圖示";
+"menuBarTray.arrangingHint" = "按住 ⌘ Command 將頂欄中需要收納的圖示拖到「‹」分隔符左側，完成後點擊「完成摺疊」。";
+"menuBarTray.emptyHint" = "暫無收納圖示。點擊右上角「整理」，按住 ⌘ 將頂欄圖示拖到「‹」左側即可收納。";
+"menuBarTray.blockedOwnIconNotice" = "Status Trio 圖示位於「‹」分隔符左側，摺疊後會無法打開面板。請按住 ⌘ 將 Status Trio 拖到「‹」右側。";
+"menuBarTray.screenRecordingPrompt" = "授予「螢幕錄製」權限以即時顯示頂欄圖示畫面";
+"menuBarTray.accessibilityPrompt" = "授予「輔助使用」權限以支援點擊圖示打開對應選單";
+"menuBarTray.grantPermission" = "前往授權";
+"menuBarTray.separatorHelp" = "Status Trio 選單列收納分隔符（點擊完成摺疊，按住 ⌘ 拖曳調整位置）";

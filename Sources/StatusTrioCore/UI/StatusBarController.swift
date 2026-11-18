@@ -276,6 +276,9 @@ final class StatusBarController: NSObject {
         super.init()
 
         statusItem.isVisible = isVisible
+        MenuBarTrayController.shared.ownStatusItemWindow = { [weak self] in
+            self?.statusItem.button?.window
+        }
         configureButton()
         #if DEBUG
         alignmentDiagnostics?.didChange = { [weak self] in

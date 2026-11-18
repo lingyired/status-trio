@@ -1,6 +1,7 @@
 import Foundation
 
 enum PopupSection: String, CaseIterable, Identifiable, Sendable {
+    case menuBarTray
     case battery
     case quickActions
     case network
@@ -15,6 +16,7 @@ enum PopupSection: String, CaseIterable, Identifiable, Sendable {
 
     var titleKey: LocalizationKey {
         switch self {
+        case .menuBarTray: .settingsPopupOrderMenuBarTray
         case .battery: .settingsPopupOrderBattery
         case .quickActions: .settingsPopupOrderQuickActions
         case .network: .settingsPopupOrderNetwork
@@ -29,6 +31,7 @@ enum PopupSection: String, CaseIterable, Identifiable, Sendable {
 
     var systemImage: String {
         switch self {
+        case .menuBarTray: SymbolFallback.name("menubar.rectangle", "rectangle.topthird.inset.filled")
         case .battery: SymbolFallback.name("battery.100percent", "battery.100")
         case .quickActions: "moon.zzz"
         case .network: "wifi"

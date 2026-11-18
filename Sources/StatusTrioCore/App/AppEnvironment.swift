@@ -147,6 +147,11 @@ final class AppEnvironment {
         store.bindBluetoothSettings(settings)
         store.bindExternalVolumeSettings(settings)
         store.bindExternalBrightnessSettings(settings)
+        MenuBarTrayController.shared.start(
+            settings: settings,
+            popoverVisible: store.$isPopoverVisible.eraseToAnyPublisher(),
+            localization: localization
+        )
         store.start()
         telemetryReporter.start()
     }
@@ -176,6 +181,7 @@ final class AppEnvironment {
         lowPowerModeControlSynchronizer.stop()
         inputSourceLifecycleCancellables.removeAll()
         inputSourceController.stop()
+        MenuBarTrayController.shared.stop()
         appIconController.stop()
         mainMenuController.stop()
         store.stop()
@@ -221,6 +227,7 @@ final class AppEnvironment {
     private func releaseRebuildableResources() {
         appIconController.releaseCachedImages()
         statusBarController.trimForMemoryPressure()
+        MenuBarTrayController.shared.trimForMemoryPressure()
         dockChargingAnimationPresenter?.trimForMemoryPressure()
         previewResourceLifecycle.releaseIfIdle()
         IconImageDecodeCache.shared.reset()
