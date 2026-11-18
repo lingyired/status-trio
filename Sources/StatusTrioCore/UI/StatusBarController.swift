@@ -60,6 +60,17 @@ final class StatusBarController: NSObject {
         return presentedByHover ? .pin : .close
     }
 
+    /// The side detail window follows the summary's frame through layout
+    /// notifications. A summary drop animation would make it chase and jitter,
+    /// so that mode uses one shared fade for both windows instead.
+    static func resolvedRevealStyle(
+        _ requested: AnchoredStatusPanel.RevealStyle,
+        sideDetailsEnabled: Bool
+    ) -> AnchoredStatusPanel.RevealStyle {
+        guard requested == .hoverDrop, sideDetailsEnabled else { return requested }
+        return .hoverFade
+    }
+
     private let statusItem: NSStatusItem
     private let popover = AnchoredStatusPanel()
     /// The attached detail window shown when "show details alongside" is on.
@@ -112,8 +123,20 @@ final class StatusBarController: NSObject {
     /// auto-hide form. Clicking the status item pins it into the normal,
     /// click-opened state instead of closing it.
     private var popoverPresentedByHover = false
+    /// The reveal animation the current presentation actually uses, so the
+    /// attached detail can fade for exactly as long as the summary.
+    private var activeRevealStyle: AnchoredStatusPanel.RevealStyle = .fade
     private var statusItemHoverTracking: PopoverHoverTracking?
     private var panelHoverTrackings: [PopoverHoverTracking] = []
+    /// Event-driven hover detection across mirrored menu-bar items. The real
+    /// status item only tracks the display that owns it; the global monitor
+    /// covers the system-drawn clones on the other displays. Both are removed
+    /// when the setting turns off.
+    private var hoverMouseLocalMonitor: Any?
+    private var hoverMouseGlobalMonitor: Any?
+    /// Debounces enter/exit so duplicate tracking/monitor signals do not restart
+    /// the dwell timer on every mouse move.
+    private var isPointerInStatusItemRegion = false
     private let openSettings: () -> Void
     /// Opens Status Trio's own Settings window on the Battery tab.
     private let openAppBatterySettings: () -> Void
@@ -614,6 +637,11 @@ final class StatusBarController: NSObject {
         popover.onClose = { [weak self] in
             self?.handlePanelDidClose()
         }
+        // Issue #355: any click inside the panel adopts the normal click
+        // presentation, so pointer movement no longer closes it.
+        popover.onPointerDown = { [weak self] in
+            self?.pinHoverPresentedPopover()
+        }
         // Issue #224 follow-up: while the app is active (regular mode), the
         // panel's focus-loss observers would close it on the status-item
         // mouse-down and the item's mouse-up toggle would reopen it. Defer that
@@ -648,9 +676,11 @@ final class StatusBarController: NSObject {
         isHoverPresentationEnabled = enabled
         if enabled {
             installStatusItemHoverTracking()
+            installHoverMouseMonitors()
             refreshPanelHoverTracking()
         } else {
             removeStatusItemHoverTracking()
+            removeHoverMouseMonitors()
             removePanelHoverTracking()
             cancelHoverTransition()
         }
@@ -662,14 +692,89 @@ final class StatusBarController: NSObject {
               isStatusItemVisible,
               let button = statusItem.button else { return }
         let tracking = PopoverHoverTracking(view: button)
-        tracking.onEnter = { [weak self] in self?.statusItemHoverDidEnter() }
-        tracking.onExit = { [weak self] in self?.statusItemHoverDidExit() }
+        tracking.onEnter = { [weak self] in self?.refreshStatusItemHoverState() }
+        tracking.onExit = { [weak self] in self?.refreshStatusItemHoverState() }
         statusItemHoverTracking = tracking
     }
 
     private func removeStatusItemHoverTracking() {
         statusItemHoverTracking?.invalidate()
         statusItemHoverTracking = nil
+        isPointerInStatusItemRegion = false
+    }
+
+    private func installHoverMouseMonitors() {
+        guard hoverMouseLocalMonitor == nil, hoverMouseGlobalMonitor == nil else { return }
+        // Local events cover our own windows (the real status item when this app
+        // is active); global events cover the mirrored items on other displays.
+        hoverMouseLocalMonitor = NSEvent.addLocalMonitorForEvents(matching: [.mouseMoved]) {
+            [weak self] event in
+            MainActor.assumeIsolated {
+                self?.refreshStatusItemHoverState()
+            }
+            return event
+        }
+        hoverMouseGlobalMonitor = NSEvent.addGlobalMonitorForEvents(matching: [.mouseMoved]) {
+            [weak self] _ in
+            Task { @MainActor [weak self] in
+                self?.refreshStatusItemHoverState()
+            }
+        }
+    }
+
+    private func removeHoverMouseMonitors() {
+        if let hoverMouseLocalMonitor {
+            NSEvent.removeMonitor(hoverMouseLocalMonitor)
+            self.hoverMouseLocalMonitor = nil
+        }
+        if let hoverMouseGlobalMonitor {
+            NSEvent.removeMonitor(hoverMouseGlobalMonitor)
+            self.hoverMouseGlobalMonitor = nil
+        }
+        isPointerInStatusItemRegion = false
+    }
+
+    private func refreshStatusItemHoverState() {
+        let point = NSEvent.mouseLocation
+        let inside = statusItemHoverRegions().contains {
+            PopoverHoverPresentation.containsInclusive($0, point)
+        }
+        setPointerInsideStatusItemRegion(inside)
+    }
+
+    private func setPointerInsideStatusItemRegion(_ inside: Bool) {
+        guard inside != isPointerInStatusItemRegion else { return }
+        isPointerInStatusItemRegion = inside
+        if inside {
+            statusItemHoverDidEnter()
+        } else {
+            statusItemHoverDidExit()
+        }
+    }
+
+    /// The real status item's screen rectangle plus its equivalent on every other
+    /// menu bar. The clones are laid out right-aligned like the real item, so the
+    /// right inset and the menu-bar centring are shared.
+    private func statusItemHoverRegions() -> [NSRect] {
+        guard isStatusItemVisible,
+              let real = statusItemButtonScreenFrame(),
+              real.width > 0, real.height > 0 else { return [] }
+        let screens = NSScreen.screens
+        guard let home = screens.first(where: { $0.frame.intersects(real) }) else {
+            return [real]
+        }
+        let rightInset = home.frame.maxX - real.maxX
+        var regions = [real]
+        for screen in screens where !screen.frame.equalTo(home.frame) {
+            let menuBarHeight = screen.frame.maxY - screen.visibleFrame.maxY
+            guard menuBarHeight > 1 else { continue }
+            let x = screen.frame.maxX - rightInset - real.width
+            let y = screen.frame.maxY - menuBarHeight + (menuBarHeight - real.height) / 2
+            let rect = NSRect(x: x, y: y, width: real.width, height: real.height)
+            guard rect.width > 0, rect.height > 0 else { continue }
+            regions.append(rect)
+        }
+        return regions
     }
 
     /// Every currently visible panel gets its own tracking area so moving from
@@ -761,23 +866,36 @@ final class StatusBarController: NSObject {
     private func performHoverShow() {
         guard isHoverPresentationEnabled,
               !popover.isShown,
-              isStatusItemVisible,
-              let button = statusItem.button else { return }
-        let presentation = PopoverHoverPresentation(
-            statusItemFrame: statusItemButtonScreenFrame(),
-            panelFrames: panelWindowFrames
-        )
+              isStatusItemVisible else { return }
+        let point = NSEvent.mouseLocation
         // The pointer may have moved during the dwell; only present from a live
-        // hover over the item.
-        guard presentation.containsStatusItem(NSEvent.mouseLocation) else { return }
-        presentPopover(
-            relativeTo: button.bounds,
-            of: button,
-            preferredEdge: .minY,
-            activatesApplication: false,
-            revealStyle: .hoverDrop,
-            presentedByHover: true
-        )
+        // hover over an item (the real one or a mirrored clone).
+        guard let region = statusItemHoverRegions().first(where: {
+            PopoverHoverPresentation.containsInclusive($0, point)
+        }) else { return }
+        let realFrame = statusItemButtonScreenFrame()
+        if let realFrame, region.equalTo(realFrame), let button = statusItem.button {
+            presentPopover(
+                relativeTo: button.bounds,
+                of: button,
+                preferredEdge: .minY,
+                activatesApplication: false,
+                revealStyle: .hoverDrop,
+                presentedByHover: true
+            )
+        } else {
+            // A mirrored item on another display has no real view; anchor an
+            // invisible 1×1 helper window under that icon's bottom centre.
+            let anchor = popoverAnchorView(at: NSPoint(x: region.midX, y: region.minY))
+            presentPopover(
+                relativeTo: anchor.bounds,
+                of: anchor,
+                preferredEdge: .minY,
+                activatesApplication: false,
+                revealStyle: .hoverDrop,
+                presentedByHover: true
+            )
+        }
     }
 
     private func performHoverHide() {
@@ -792,7 +910,7 @@ final class StatusBarController: NSObject {
             return
         }
         let presentation = PopoverHoverPresentation(
-            statusItemFrame: statusItemButtonScreenFrame(),
+            statusItemFrames: statusItemHoverRegions(),
             panelFrames: panelWindowFrames
         )
         guard !presentation.isWithinHoverArea(NSEvent.mouseLocation) else { return }
@@ -802,6 +920,9 @@ final class StatusBarController: NSObject {
     /// Wires the attached detail window: its close path, the panel group's
     /// Escape order, and the observations that re-evaluate presentation.
     private func configureDetailPanel() {
+        detailPanel.onPointerDown = { [weak self] in
+            self?.pinHoverPresentedPopover()
+        }
         detailPanel.onClose = { [weak self] in
             guard let self, !self.isDetailPanelClosing else { return }
             // Escape in the detail window ends the detail page, not the group,
@@ -817,7 +938,9 @@ final class StatusBarController: NSObject {
         // A restored side detail fades in together with the summary so the
         // group reads as one surface instead of two windows taking turns.
         popover.onRevealBegin = { [weak self] in
-            self?.detailPanel.revealDetail()
+            guard let self else { return }
+            let duration: TimeInterval = self.activeRevealStyle == .fade ? 0.08 : 0.18
+            self.detailPanel.revealDetail(duration: duration)
         }
 
         settings.$showsPanelDetailsAlongside
@@ -1166,12 +1289,20 @@ final class StatusBarController: NSObject {
         panelViewModel.setDetailPresentation(
             settings.showsPanelDetailsAlongside ? .alongside : .inline
         )
+        // With the side detail visible, a summary frame animation would make
+        // the detail chase it through layout notifications; use one shared fade
+        // so the two windows stay in step (#355).
+        let effectiveRevealStyle = Self.resolvedRevealStyle(
+            revealStyle,
+            sideDetailsEnabled: settings.showsPanelDetailsAlongside
+        )
+        activeRevealStyle = effectiveRevealStyle
         popover.show(
             relativeTo: rect,
             of: view,
             preferredEdge: preferredEdge,
             dockInset: dockInset,
-            revealStyle: revealStyle
+            revealStyle: effectiveRevealStyle
         )
         // The popover's backing window only exists once it has been shown, and
         // without a Spaces behavior it stays on this app's desktop Space while

@@ -40,6 +40,10 @@ final class AnchoredStatusPanel: NSPanel {
     /// appears as one surface.
     var onRevealBegin: (() -> Void)?
 
+    /// Called for a mouse-down delivered inside this panel. The controller uses
+    /// it to turn a hover-opened group into the normal click presentation.
+    var onPointerDown: (() -> Void)?
+
     /// Set for the Debug background-testing route so the panel stays visible
     /// while another application remains active. The controller owns this
     /// value and leaves it false for normal interaction.
@@ -89,6 +93,10 @@ final class AnchoredStatusPanel: NSPanel {
     /// extending out of the menu bar rather than blinking on.
     enum RevealStyle {
         case fade
+        /// Hover with the attached detail window visible: a slightly longer
+        /// fade, shared with the detail, so the two windows stay in step and
+        /// no frame movement can make the detail chase the summary.
+        case hoverFade
         case hoverDrop
     }
 
@@ -318,14 +326,14 @@ final class AnchoredStatusPanel: NSPanel {
     /// Fades the attached detail in with the same curve as the summary, so a
     /// restored group appears as one surface instead of one window after the
     /// other.
-    func revealDetail() {
+    func revealDetail(duration: TimeInterval = 0.08) {
         guard isVisible else { return }
         guard !NSWorkspace.shared.accessibilityDisplayShouldReduceMotion else {
             alphaValue = 1
             return
         }
         NSAnimationContext.runAnimationGroup { context in
-            context.duration = 0.08
+            context.duration = duration
             context.allowsImplicitAnimation = true
             self.animator().alphaValue = 1
         }
@@ -363,6 +371,13 @@ final class AnchoredStatusPanel: NSPanel {
         case .fade:
             NSAnimationContext.runAnimationGroup { context in
                 context.duration = 0.08
+                context.allowsImplicitAnimation = true
+                self.animator().alphaValue = 1
+            }
+        case .hoverFade:
+            NSAnimationContext.runAnimationGroup { context in
+                context.duration = 0.18
+                context.timingFunction = CAMediaTimingFunction(name: .easeOut)
                 context.allowsImplicitAnimation = true
                 self.animator().alphaValue = 1
             }
@@ -410,6 +425,13 @@ final class AnchoredStatusPanel: NSPanel {
         super.close()
         NotificationCenter.default.post(name: Self.didCloseNotification, object: self)
         onClose?()
+    }
+
+    override func sendEvent(_ event: NSEvent) {
+        if event.type == .leftMouseDown {
+            onPointerDown?()
+        }
+        super.sendEvent(event)
     }
 
     override func keyDown(with event: NSEvent) {

@@ -444,6 +444,18 @@ struct PopoverHoverPresentationTests {
         #expect(presentation.isWithinHoverArea(gap))
     }
 
+    @Test func anyMirroredStatusItemCountsAsInside() {
+        let mirrored = NSRect(x: 1500, y: 900, width: 30, height: 24)
+        let presentation = PopoverHoverPresentation(
+            statusItemFrames: [statusFrame, mirrored],
+            panelFrames: [panelFrame]
+        )
+        let point = NSPoint(x: mirrored.midX, y: mirrored.midY)
+
+        #expect(presentation.containsStatusItem(point))
+        #expect(presentation.isWithinHoverArea(point))
+    }
+
     @Test func aFarAwayPointerIsOutsideTheHoverArea() {
         let presentation = PopoverHoverPresentation(
             statusItemFrame: statusFrame,
@@ -487,6 +499,32 @@ struct StatusItemClickActionTests {
             isShown: true,
             presentedByHover: false
         ) == .close)
+    }
+}
+
+/// Issue #355: with the side detail visible the summary and detail must share
+/// one fade; otherwise the detail chases the summary frame and jitters.
+@MainActor
+struct PopoverRevealStyleTests {
+    @Test func hoverDropStaysWithoutSideDetail() {
+        #expect(StatusBarController.resolvedRevealStyle(
+            .hoverDrop,
+            sideDetailsEnabled: false
+        ) == .hoverDrop)
+    }
+
+    @Test func hoverDropBecomesSharedFadeWithSideDetail() {
+        #expect(StatusBarController.resolvedRevealStyle(
+            .hoverDrop,
+            sideDetailsEnabled: true
+        ) == .hoverFade)
+    }
+
+    @Test func clickFadeIsUnchanged() {
+        #expect(StatusBarController.resolvedRevealStyle(
+            .fade,
+            sideDetailsEnabled: true
+        ) == .fade)
     }
 }
 

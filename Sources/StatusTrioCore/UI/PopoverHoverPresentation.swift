@@ -18,14 +18,26 @@ struct PopoverHoverPresentation: Equatable {
     /// panel.
     static let bridgeInset: CGFloat = 8
 
-    /// The status item button's rectangle in screen coordinates, when visible.
-    let statusItemFrame: NSRect?
+    /// The status item's rectangle on every screen that mirrors it. The system
+    /// draws a clone of the item on each display's menu bar but only the real
+    /// button receives tracking events, so hover on another display is matched
+    /// against the mirrored rectangles too.
+    let statusItemFrames: [NSRect]
     /// Frames of every panel the presentation currently shows.
     var panelFrames: [NSRect] = []
 
+    init(statusItemFrame: NSRect?, panelFrames: [NSRect] = []) {
+        self.statusItemFrames = statusItemFrame.map { [$0] } ?? []
+        self.panelFrames = panelFrames
+    }
+
+    init(statusItemFrames: [NSRect], panelFrames: [NSRect] = []) {
+        self.statusItemFrames = statusItemFrames
+        self.panelFrames = panelFrames
+    }
+
     func containsStatusItem(_ point: NSPoint) -> Bool {
-        guard let statusItemFrame else { return false }
-        return Self.containsInclusive(statusItemFrame, point)
+        statusItemFrames.contains { Self.containsInclusive($0, point) }
     }
 
     func containsPanel(_ point: NSPoint) -> Bool {
@@ -38,8 +50,9 @@ struct PopoverHoverPresentation: Equatable {
         if containsStatusItem(point) || containsPanel(point) {
             return true
         }
-        if let statusItemFrame,
-           Self.containsInclusive(statusItemFrame.insetBy(dx: -Self.bridgeInset, dy: -Self.bridgeInset), point) {
+        if statusItemFrames.contains(where: {
+            Self.containsInclusive($0.insetBy(dx: -Self.bridgeInset, dy: -Self.bridgeInset), point)
+        }) {
             return true
         }
         return panelFrames.contains {
@@ -48,7 +61,7 @@ struct PopoverHoverPresentation: Equatable {
     }
 
     /// Covers the right and top edges, which `NSRect.contains(_:)` excludes.
-    private static func containsInclusive(_ rect: NSRect, _ point: NSPoint) -> Bool {
+    static func containsInclusive(_ rect: NSRect, _ point: NSPoint) -> Bool {
         point.x >= rect.minX && point.x <= rect.maxX
             && point.y >= rect.minY && point.y <= rect.maxY
     }
