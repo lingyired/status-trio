@@ -10,9 +10,10 @@ struct BackgroundUITestingConfiguration: Equatable, Sendable {
     let isEnabled: Bool
     let display: Display
     let opensStatusPanel: Bool
-    /// Optional detail page to open inside the test status panel, for measuring
-    /// per-page cost without any pointer input.
-    let opensHardwareDetail: HardwareDetailKind?
+    /// Optional detail page (raw kind: cpu/gpu/memory/network/disk) to open in
+    /// the test status panel, for measuring per-page cost without pointer input.
+    /// Kept as a String so this file compiles on its own in the native contract.
+    let opensHardwareDetailRaw: String?
     let diagnostics: [String]
 
     var rejectsLaunch: Bool { !diagnostics.isEmpty }
@@ -26,8 +27,10 @@ struct BackgroundUITestingConfiguration: Equatable, Sendable {
         let statusPanelArguments = arguments.filter { $0.hasPrefix("--test-open-status-panel") }
         let detailPrefix = "--test-open-hardware-detail="
         let detailArguments = arguments.filter { $0.hasPrefix(detailPrefix) }
-        let detailValues = detailArguments.compactMap {
-            HardwareDetailKind(rawValue: String($0.dropFirst(detailPrefix.count)))
+        let validDetails: Set<String> = ["cpu", "gpu", "memory", "network", "disk"]
+        let detailValues = detailArguments.compactMap { argument -> String? in
+            let value = String(argument.dropFirst(detailPrefix.count))
+            return validDetails.contains(value) ? value : nil
         }
         var problems = arguments.filter {
             $0.hasPrefix("--background-ui-testing") && $0 != "--background-ui-testing"
@@ -57,13 +60,13 @@ struct BackgroundUITestingConfiguration: Equatable, Sendable {
         isEnabled = enabledCount == 1 && problems.isEmpty
         display = isEnabled && !displays.isEmpty ? .secondary : .automatic
         opensStatusPanel = isEnabled && statusPanelArguments.count == 1
-        opensHardwareDetail = isEnabled ? detailValues.first : nil
+        opensHardwareDetailRaw = isEnabled ? detailValues.first : nil
         diagnostics = problems
         #else
         isEnabled = false
         display = .automatic
         opensStatusPanel = false
-        opensHardwareDetail = nil
+        opensHardwareDetailRaw = nil
         diagnostics = []
         #endif
     }

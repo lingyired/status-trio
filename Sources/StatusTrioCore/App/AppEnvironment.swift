@@ -105,7 +105,8 @@ final class AppEnvironment {
         if backgroundUITesting.isEnabled, !presentedOnboarding {
             if backgroundUITesting.opensStatusPanel {
                 statusBarController.presentStatusPanelForBackgroundTesting()
-                if let detail = backgroundUITesting.opensHardwareDetail {
+                if let raw = backgroundUITesting.opensHardwareDetailRaw,
+                   let detail = HardwareDetailKind(rawValue: raw) {
                     statusBarController.panelForTesting.showHardwareDetail(detail)
                 }
             } else {

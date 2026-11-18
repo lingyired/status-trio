@@ -48,7 +48,7 @@ final class BackgroundUITestingTests: XCTestCase {
         ])
         #if DEBUG
         XCTAssertTrue(valid.isEnabled)
-        XCTAssertEqual(valid.opensHardwareDetail, .memory)
+        XCTAssertEqual(valid.opensHardwareDetailRaw, "memory")
         XCTAssertFalse(valid.rejectsLaunch)
 
         let unknown = BackgroundUITestingConfiguration(arguments: [
@@ -62,7 +62,7 @@ final class BackgroundUITestingTests: XCTestCase {
         ])
         XCTAssertTrue(withoutPanel.rejectsLaunch)
         #else
-        XCTAssertNil(valid.opensHardwareDetail)
+        XCTAssertNil(valid.opensHardwareDetailRaw)
         #endif
     }
 
