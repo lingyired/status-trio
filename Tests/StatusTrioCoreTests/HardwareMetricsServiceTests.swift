@@ -604,4 +604,34 @@ final class HardwareMetricsServiceTests: XCTestCase {
         XCTAssertEqual(recorder.calls.count, callCount, "ended disk demand must stop reads")
         service.stopAll()
     }
+
+    /// A fast CPU icon (2 s) must not speed up disk I/O that only the slow panel
+    /// (5 s) asked for, while the shared CPU metric follows the icon.
+    func testSharedCPUAndIndependentPanelDeadlines() async {
+        let clock = Clock()
+        let recorder = Recorder()
+        let service = HardwareMetricsService(automaticScheduling: false, now: { clock.date },
+                                             reader: recorder.countingReader(usage: 10))
+        service.panelIntervalSeconds = 5
+        service.begin(.menuBarArc, metrics: [.cpuUsage])
+        service.begin(.dock, metrics: [.cpuUsage])
+        service.begin(.panel, metrics: [.cpuUsage, .diskRead, .diskWrite])
+
+        XCTAssertEqual(service.intervalForTesting(.cpuUsage), 2,
+                       "a 2 s icon consumer keeps the shared CPU metric fast")
+        XCTAssertEqual(service.intervalForTesting(.diskRead), 5,
+                       "disk is only read by the 5 s panel")
+        XCTAssertEqual(service.currentTickIntervalForTesting, 2)
+        service.stopAll()
+
+        // A slow panel sensor that no icon needs stays at the panel cadence even
+        // while an unrelated fast metric is also demanded.
+        service.panelIntervalSeconds = 3
+        service.begin(.panel, metrics: [.cpuTemperature])
+        service.begin(.menuBarCenter, metrics: [.networkDownload])
+        XCTAssertEqual(service.intervalForTesting(.cpuTemperature), 4,
+                       "a 3 s panel cannot push a 4 s sensor faster")
+        XCTAssertEqual(service.intervalForTesting(.networkDownload), 1)
+        service.stopAll()
+    }
 }

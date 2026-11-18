@@ -57,26 +57,16 @@ struct HardwareMonitorSectionView: View {
                 .settingsMenuPickerWidth()
             }
 
-            SettingsRow(
-                "clock.arrow.circlepath",
+            SettingsToggleRow(
+                symbol: "clock.arrow.circlepath",
                 tint: .green,
                 title: localization.string(.hardwareMonitorSettingsBackground),
-                subtitle: localization.string(.hardwareMonitorSettingsBackgroundDescription)
-            ) {
-                Picker(localization.string(.hardwareMonitorSettingsBackground),
-                       selection: Binding(
-                        get: { store.hardwareBackgroundRefreshSeconds },
-                        set: { store.hardwareBackgroundRefreshSeconds = $0 })) {
-                    Text(localization.string(.hardwareMonitorBackgroundOff))
-                        .tag(SettingsStore.defaultHardwareBackgroundRefreshSeconds)
-                    ForEach(SettingsStore.hardwareBackgroundRefreshOptions.filter { $0 > 0 }, id: \.self) { seconds in
-                        Text(localization.format(.hardwareMonitorBackgroundSeconds, seconds))
-                            .tag(seconds)
-                    }
-                }
-                .labelsHidden()
-                .settingsMenuPickerWidth()
-            }
+                subtitle: localization.string(.hardwareMonitorSettingsBackgroundDescription),
+                isOn: Binding(
+                    get: { store.hardwareBackgroundHistoryEnabled },
+                    set: { store.hardwareBackgroundHistoryEnabled = $0 }
+                )
+            )
         }
     }
 

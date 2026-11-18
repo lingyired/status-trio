@@ -1223,12 +1223,12 @@
 "hardware.monitor.kbps" = "KB/s";
 "hardware.monitor.mbps" = "MB/s";
 "hardware.monitor.gbps" = "GB/s";
-"hardware.monitor.settings.background" = "Monitorización en segundo plano";
-"hardware.monitor.settings.background.description" = "Sigue muestreando métricas de hardware con el panel cerrado para que se abra con datos en vivo. Desactivado por defecto para ahorrar energía.";
+"hardware.monitor.settings.background" = "Mantener historial";
+"hardware.monitor.settings.background.description" = "Registra los últimos 60 segundos de historial de hardware con el panel cerrado, al ritmo del panel, para abrir el detalle con tendencia.";
 "hardware.monitor.background.off" = "Desactivado";
 "hardware.monitor.background.seconds" = "%d s";
 "hardware.monitor.settings.panelRefresh" = "Actualización del panel";
-"hardware.monitor.settings.panelRefresh.description" = "Con qué frecuencia se actualiza el panel mientras está abierto. Más rápido es más en vivo pero lee más; más lento ahorra energía.";
+"hardware.monitor.settings.panelRefresh.description" = "Con qué frecuencia se actualiza el panel mientras está abierto. El uso y las velocidades de red/disco siguen esto; la temperatura y el ventilador como máximo cada 4 segundos. Más rápido es más en vivo pero lee más; más lento ahorra energía.";
 "hardware.monitor.settings.showRings" = "Mostrar anillos";
 "hardware.monitor.settings.colorTitle" = "Colores";
 "hardware.monitor.settings.resetColors" = "Restablecer colores";

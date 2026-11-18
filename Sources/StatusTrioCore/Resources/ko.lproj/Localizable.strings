@@ -1223,12 +1223,12 @@
 "hardware.monitor.kbps" = "KB/s";
 "hardware.monitor.mbps" = "MB/s";
 "hardware.monitor.gbps" = "GB/s";
-"hardware.monitor.settings.background" = "백그라운드 모니터링";
-"hardware.monitor.settings.background.description" = "패널이 닫혀 있는 동안에도 하드웨어 지표를 계속 샘플링하여 열 때 실시간 데이터를 표시합니다. 전력 절약을 위해 기본적으로 꺼져 있습니다.";
+"hardware.monitor.settings.background" = "백그라운드 기록 유지";
+"hardware.monitor.settings.background.description" = "패널이 닫혀 있어도 패널 갱신 주기로 최근 60초 하드웨어 기록을 저장해 세부 페이지에서 추세를 볼 수 있습니다.";
 "hardware.monitor.background.off" = "끔";
 "hardware.monitor.background.seconds" = "%d초";
 "hardware.monitor.settings.panelRefresh" = "패널 새로 고침";
-"hardware.monitor.settings.panelRefresh.description" = "패널이 열려 있는 동안 업데이트 빈도입니다. 빠를수록 더 실시간이지만 더 많이 읽고, 느릴수록 전력을 절약합니다.";
+"hardware.monitor.settings.panelRefresh.description" = "패널을 열어 둔 동안의 업데이트 빈도입니다. 사용률과 네트워크·디스크 속도가 이를 따르며, 온도와 팬은 최대 4초 간격입니다. 빠를수록 더 실시간이지만 더 많이 읽고, 느릴수록 전력을 절약합니다.";
 "hardware.monitor.settings.showRings" = "링 표시";
 "hardware.monitor.settings.colorTitle" = "색상";
 "hardware.monitor.settings.resetColors" = "색상 초기화";

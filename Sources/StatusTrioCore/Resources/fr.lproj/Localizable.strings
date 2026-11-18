@@ -1223,12 +1223,12 @@
 "hardware.monitor.kbps" = "Ko/s";
 "hardware.monitor.mbps" = "Mo/s";
 "hardware.monitor.gbps" = "Go/s";
-"hardware.monitor.settings.background" = "Surveillance en arrière-plan";
-"hardware.monitor.settings.background.description" = "Continue d’échantillonner les mesures matérielles lorsque le panneau est fermé afin qu’il s’ouvre avec des données en direct. Désactivé par défaut pour économiser l’énergie.";
+"hardware.monitor.settings.background" = "Conserver l’historique";
+"hardware.monitor.settings.background.description" = "Enregistre les 60 dernières secondes d’historique matériel panneau fermé, au rythme du panneau, pour ouvrir une page détaillée avec une tendance.";
 "hardware.monitor.background.off" = "Désactivé";
 "hardware.monitor.background.seconds" = "%d s";
 "hardware.monitor.settings.panelRefresh" = "Actualisation du panneau";
-"hardware.monitor.settings.panelRefresh.description" = "Fréquence de mise à jour du panneau lorsqu’il est ouvert. Plus rapide = plus direct mais lit davantage ; plus lent = économise l’énergie.";
+"hardware.monitor.settings.panelRefresh.description" = "Fréquence de mise à jour du panneau lorsqu’il est ouvert. L’utilisation et les débits réseau/disque suivent ce rythme ; température et ventilateur au plus toutes les 4 secondes. Plus rapide = plus direct mais lit davantage ; plus lent = économise l’énergie.";
 "hardware.monitor.settings.showRings" = "Afficher les anneaux";
 "hardware.monitor.settings.colorTitle" = "Couleurs";
 "hardware.monitor.settings.resetColors" = "Réinitialiser les couleurs";

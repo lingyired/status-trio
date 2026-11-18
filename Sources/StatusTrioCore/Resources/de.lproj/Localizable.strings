@@ -1223,12 +1223,12 @@
 "hardware.monitor.kbps" = "KB/s";
 "hardware.monitor.mbps" = "MB/s";
 "hardware.monitor.gbps" = "GB/s";
-"hardware.monitor.settings.background" = "Hardware-Überwachung im Hintergrund";
-"hardware.monitor.settings.background.description" = "Sammelt Hardware-Messwerte weiter, während das Panel geschlossen ist, damit es mit Live-Daten öffnet. Standardmäßig aus, um Energie zu sparen.";
+"hardware.monitor.settings.background" = "Hintergrundverlauf behalten";
+"hardware.monitor.settings.background.description" = "Zeichnet bei geschlossenem Panel die letzten 60 Sekunden Hardwareverlauf im Panel-Intervall auf, sodass eine Detailseite mit Trend öffnet.";
 "hardware.monitor.background.off" = "Aus";
 "hardware.monitor.background.seconds" = "%d s";
 "hardware.monitor.settings.panelRefresh" = "Panel-Aktualisierung";
-"hardware.monitor.settings.panelRefresh.description" = "Wie oft das Panel bei geöffnetem Zustand aktualisiert wird. Schneller ist aktueller, liest aber mehr; langsamer spart Energie.";
+"hardware.monitor.settings.panelRefresh.description" = "Wie oft das Panel bei geöffnetem Zustand aktualisiert wird. Auslastung sowie Netzwerk- und Disk-Geschwindigkeit folgen dem; Temperatur und Lüfter höchstens alle 4 Sekunden. Schneller ist aktueller, liest aber mehr; langsamer spart Energie.";
 "hardware.monitor.settings.showRings" = "Ringe anzeigen";
 "hardware.monitor.settings.colorTitle" = "Farben";
 "hardware.monitor.settings.resetColors" = "Farben zurücksetzen";

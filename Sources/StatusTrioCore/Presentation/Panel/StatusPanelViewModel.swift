@@ -455,9 +455,9 @@ final class StatusPanelViewModel: ObservableObject {
             }
             .store(in: &cancellables)
 
-        settings.$hardwareBackgroundRefreshSeconds
+        settings.$hardwareBackgroundHistoryEnabled
             .removeDuplicates()
-            .sink { [weak self] seconds in self?.updateHardwareMetricsDemand(backgroundSeconds: seconds) }
+            .sink { [weak self] enabled in self?.updateHardwareMetricsDemand(backgroundHistoryEnabled: enabled) }
             .store(in: &cancellables)
 
         settings.$hardwarePanelRefreshSeconds
@@ -1024,7 +1024,7 @@ final class StatusPanelViewModel: ObservableObject {
     /// and the section is visible. Switching pages, hiding the module or
     /// closing the panel ends the demand immediately, so a closed panel never
     /// keeps a hardware timer alive.
-    private func updateHardwareMetricsDemand(popoverVisible: Bool? = nil, backgroundSeconds: Int? = nil,
+    private func updateHardwareMetricsDemand(popoverVisible: Bool? = nil, backgroundHistoryEnabled: Bool? = nil,
                                              panelSeconds: Int? = nil) {
         // `@Published` publishes in willSet, so a subscriber must pass the new
         // value in rather than read `store.isPopoverVisible` (still the old one).
@@ -1035,9 +1035,11 @@ final class StatusPanelViewModel: ObservableObject {
         let detailVisible = panelOpen && detailKind != nil
         // @Published fires in willSet, so a settings subscriber must pass the new
         // value in rather than read the not-yet-committed stored property.
-        let background = backgroundSeconds ?? settings.hardwareBackgroundRefreshSeconds
-        store.hardwareMetrics.backgroundIntervalSeconds = TimeInterval(background)
+        let backgroundHistory = backgroundHistoryEnabled ?? settings.hardwareBackgroundHistoryEnabled
         let panelRefresh = panelSeconds ?? settings.hardwarePanelRefreshSeconds
+        // Background history follows the panel cadence, so opening a detail page
+        // shows the same resolution the panel would have recorded.
+        store.hardwareMetrics.backgroundIntervalSeconds = TimeInterval(panelRefresh)
         store.hardwareMetrics.panelIntervalSeconds = TimeInterval(panelRefresh)
         // Only the visible detail page pays for its structured payload and the
         // per-page expensive work (frequency for CPU, session totals for network).
@@ -1067,7 +1069,7 @@ final class StatusPanelViewModel: ObservableObject {
             store.hardwareMetrics.end(.panel)
             // Optional low-frequency background sampling keeps the summary warm
             // while the panel is closed (off by default to preserve idle power).
-            if isStarted, sectionOn, background > 0 {
+            if isStarted, sectionOn, backgroundHistory {
                 store.hardwareMetrics.begin(.background, metrics: HardwareMetricsService.hardwareSummaryMetricIDs)
             } else {
                 store.hardwareMetrics.end(.background)

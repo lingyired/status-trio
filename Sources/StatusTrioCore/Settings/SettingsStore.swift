@@ -180,7 +180,7 @@ final class SettingsStore: ObservableObject {
     static let hardwareMonitorMetricColorsDefaultsKey = "hardwareMonitorMetricColorsV1"
     static let hardwareDownloadCapMbpsDefaultsKey = "hardwareDownloadCapMbps"
     static let hardwareUploadCapMbpsDefaultsKey = "hardwareUploadCapMbps"
-    static let hardwareBackgroundRefreshSecondsDefaultsKey = "hardwareBackgroundRefreshSeconds"
+    static let hardwareBackgroundHistoryEnabledDefaultsKey = "hardwareBackgroundHistoryEnabled"
     static let hardwarePanelRefreshSecondsDefaultsKey = "hardwarePanelRefreshSeconds"
     static let showsHardwareRingsDefaultsKey = "showsHardwareRings"
     static let showsHardwareSummaryRowDefaultsKey = "showsHardwareSummaryRow"
@@ -189,11 +189,11 @@ final class SettingsStore: ObservableObject {
     static let hardwareSpeedCapRange: ClosedRange<Double> = 1...100000
     static let defaultHardwareDownloadCapMbps: Double = 1000
     static let defaultHardwareUploadCapMbps: Double = 100
-    /// Background sampling cadence for the status-panel hardware summary while
-    /// the panel is closed. 0 means off (no background reads); the default keeps
-    /// the app idle-when-closed unless the user opts in.
-    static let hardwareBackgroundRefreshOptions: [Int] = [0, 1, 2, 5, 10, 15, 30, 60]
-    static let defaultHardwareBackgroundRefreshSeconds: Int = 0
+    /// Keeps the last 60 s of hardware history recording while the panel is
+    /// closed, at the panel refresh cadence, so opening a detail page immediately
+    /// shows a trend. Default on; turning it off leaves only what the menu-bar or
+    /// Dock icon already samples.
+    static let defaultHardwareBackgroundHistoryEnabled: Bool = true
     /// Refresh cadence for the status-panel hardware summary while it is open.
     /// 1 s preserves the historical fastest cadence; slower options trade
     /// freshness for fewer reads.
@@ -1220,16 +1220,12 @@ final class SettingsStore: ObservableObject {
         }
     }
 
-    /// Off (0) or a 5–60 s cadence for background hardware sampling while the
-    /// status panel is closed. Only one of the shipped option values is allowed.
-    @Published var hardwareBackgroundRefreshSeconds: Int = SettingsStore.defaultHardwareBackgroundRefreshSeconds {
+    /// Whether hardware history keeps recording while the panel is closed, at the
+    /// panel refresh cadence. Default on so a detail page opens with a trend.
+    @Published var hardwareBackgroundHistoryEnabled: Bool = SettingsStore.defaultHardwareBackgroundHistoryEnabled {
         didSet {
-            let staysInOptions = Self.hardwareBackgroundRefreshOptions.contains(hardwareBackgroundRefreshSeconds)
-            guard staysInOptions else {
-                hardwareBackgroundRefreshSeconds = Self.defaultHardwareBackgroundRefreshSeconds
-                return
-            }
-            defaults.set(hardwareBackgroundRefreshSeconds, forKey: Self.hardwareBackgroundRefreshSecondsDefaultsKey)
+            guard hardwareBackgroundHistoryEnabled != oldValue else { return }
+            defaults.set(hardwareBackgroundHistoryEnabled, forKey: Self.hardwareBackgroundHistoryEnabledDefaultsKey)
         }
     }
 
@@ -2976,10 +2972,9 @@ final class SettingsStore: ObservableObject {
         self.hardwareUploadCapMbps = Self.clampedHardwareSpeedCap(
             defaults.object(forKey: Self.hardwareUploadCapMbpsDefaultsKey) as? Double ?? Self.defaultHardwareUploadCapMbps,
             fallback: Self.defaultHardwareUploadCapMbps)
-        let storedBackground = defaults.object(forKey: Self.hardwareBackgroundRefreshSecondsDefaultsKey) as? Int
-            ?? Self.defaultHardwareBackgroundRefreshSeconds
-        self.hardwareBackgroundRefreshSeconds = Self.hardwareBackgroundRefreshOptions.contains(storedBackground)
-            ? storedBackground : Self.defaultHardwareBackgroundRefreshSeconds
+        self.hardwareBackgroundHistoryEnabled =
+            defaults.object(forKey: Self.hardwareBackgroundHistoryEnabledDefaultsKey) as? Bool
+            ?? Self.defaultHardwareBackgroundHistoryEnabled
         let storedPanel = defaults.object(forKey: Self.hardwarePanelRefreshSecondsDefaultsKey) as? Int
             ?? Self.defaultHardwarePanelRefreshSeconds
         self.hardwarePanelRefreshSeconds = Self.hardwarePanelRefreshOptions.contains(storedPanel)

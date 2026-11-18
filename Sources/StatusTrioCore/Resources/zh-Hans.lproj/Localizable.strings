@@ -1223,12 +1223,12 @@
 "hardware.monitor.kbps" = "KB/s";
 "hardware.monitor.mbps" = "MB/s";
 "hardware.monitor.gbps" = "GB/s";
-"hardware.monitor.settings.background" = "后台监控";
-"hardware.monitor.settings.background.description" = "面板关闭时仍持续采集硬件指标，打开面板即为实时数据。为省电默认关闭。";
+"hardware.monitor.settings.background" = "保留后台历史";
+"hardware.monitor.settings.background.description" = "面板关闭时按面板刷新频率继续记录最近 60 秒的硬件历史，打开详情页即可看到趋势。";
 "hardware.monitor.background.off" = "关闭";
 "hardware.monitor.background.seconds" = "%d 秒";
 "hardware.monitor.settings.panelRefresh" = "面板刷新";
-"hardware.monitor.settings.panelRefresh.description" = "面板打开时的更新频率。越快越实时但读取更多，越慢越省电。";
+"hardware.monitor.settings.panelRefresh.description" = "面板打开时的更新频率。占用率与网速、磁盘读写跟随此频率；温度、风扇最多每 4 秒读取一次。越快越实时但读取更多，越慢越省电。";
 "hardware.monitor.settings.showRings" = "显示圆环";
 "hardware.monitor.settings.colorTitle" = "颜色";
 "hardware.monitor.settings.resetColors" = "恢复默认颜色";

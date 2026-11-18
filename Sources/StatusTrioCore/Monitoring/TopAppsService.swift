@@ -14,7 +14,8 @@ final class TopAppsObservable: ObservableObject {
     }
 }
 
-/// Owns the one-second, on-demand top-app sampling session.
+/// Owns the on-demand top-app sampling session. `top` is expensive, so the
+/// default cadence is 2 s for CPU/GPU/network and 6 s for memory.
 @MainActor
 final class TopAppsService {
     let observable = TopAppsObservable()
@@ -34,12 +35,20 @@ final class TopAppsService {
     private var loopTask: Task<Void, Never>?
     private var inFlight = false
 
+    /// Per-metric default cadence for the top-app list.
+    nonisolated static func defaultInterval(for metric: TopAppMetric) -> Double {
+        switch metric {
+        case .cpu, .gpu, .network: return 2
+        case .memory: return 6
+        }
+    }
+
     init(sampler: any TopAppsSampling = TopAppsSampler(),
          applications: @escaping @MainActor () -> [ProcessApplication] = TopAppsService.runningApplications,
          automaticScheduling: Bool = true,
          sleepFor: @escaping @Sendable (Duration) async throws -> Void = { try await Task.sleep(for: $0) },
          clock: @escaping @Sendable () -> UInt64 = { clock_gettime_nsec_np(CLOCK_UPTIME_RAW) },
-         intervalSeconds: @escaping @Sendable (TopAppMetric) -> Double = { $0 == .memory ? 3 : 1 }) {
+         intervalSeconds: @escaping @Sendable (TopAppMetric) -> Double = TopAppsService.defaultInterval(for:)) {
         self.sampler = sampler
         self.applications = applications
         self.automaticScheduling = automaticScheduling
