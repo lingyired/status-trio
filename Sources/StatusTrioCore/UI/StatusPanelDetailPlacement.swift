@@ -71,8 +71,13 @@ struct StatusPanelDetailPlacement {
         }
         let originX = side == .right ? rightX : leftX
 
-        var originY = min(summaryFrame.maxY, inner.maxY) - height
-        if originY < inner.minY { originY = inner.minY }
+        // Follow the summary's top edge even when it sits inside the 8pt
+        // screen margin: two windows read as one when their tops align. Only
+        // the bottom keeps the margin, so a tall page slides up instead.
+        let highestTop = usable.maxY
+        let lowestTop = usable.minY + edgeMargin + height
+        let top = min(max(summaryFrame.maxY, lowestTop), highestTop)
+        let originY = top - height
 
         return Placement(
             side: side,

@@ -53,6 +53,12 @@ struct StatusPanelDetailPlacementTests {
         #expect(place(summaryX: 345) == nil)
     }
 
+    @Test func topFollowsTheSummaryEvenInsideTheTopMargin() {
+        let placement = place(summaryX: 0, summaryTop: 695, detailHeight: 200)
+
+        #expect(placement?.frame.maxY == 695)
+    }
+
     @Test func topAlignsWithTheSummaryWhenItFits() {
         let placement = place(summaryX: 0, detailHeight: 200)
 
