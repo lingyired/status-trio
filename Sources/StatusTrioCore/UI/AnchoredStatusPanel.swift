@@ -432,7 +432,17 @@ final class AnchoredStatusPanel: NSPanel {
                           height: ceil(capped.height * scale) / scale)
         let target = placementFrame(for: size)
         guard target != frame else { return }
-        setFrame(target, display: false)
+        if detailPlacement != nil, isVisible {
+            // A page switch changes the side window's height; easing the frame
+            // keeps the glass from snapping without animating its contents.
+            NSAnimationContext.runAnimationGroup { context in
+                context.duration = 0.16
+                context.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
+                self.animator().setFrame(target, display: true)
+            }
+        } else {
+            setFrame(target, display: false)
+        }
 #if DEBUG
         frameWriteCount += 1
 #endif
