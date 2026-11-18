@@ -202,7 +202,7 @@ struct HardwareCPUCoreGroupRow: View {
                                         frequencyLabel: frequencyLabel, valueSize: 18)
                 }
             }
-        } else {
+        } else if groups.count == 3 {
             // Three classes do not fit on one row at this width; give the first
             // (super) core a full row and put the other two side by side.
             VStack(alignment: .leading, spacing: 5) {
@@ -212,6 +212,22 @@ struct HardwareCPUCoreGroupRow: View {
                     ForEach(groups.dropFirst()) { group in
                         HardwareCPUCoreCard(group: group, coresLabel: coresLabel,
                                             frequencyLabel: frequencyLabel, valueSize: 18)
+                    }
+                }
+            }
+        } else {
+            // Four or more classes wrap two per row, keeping every card readable.
+            let rows: [[HardwareCPUCoreGroup]] = stride(from: 0, to: groups.count, by: 2).map {
+                Array(groups[$0..<min($0 + 2, groups.count)])
+            }
+            VStack(alignment: .leading, spacing: 8) {
+                ForEach(Array(rows.enumerated()), id: \.offset) { _, row in
+                    HStack(alignment: .top, spacing: 8) {
+                        ForEach(row) { group in
+                            HardwareCPUCoreCard(group: group, coresLabel: coresLabel,
+                                                frequencyLabel: frequencyLabel, valueSize: 18)
+                        }
+                        if row.count == 1 { Spacer(minLength: 0) }
                     }
                 }
             }
