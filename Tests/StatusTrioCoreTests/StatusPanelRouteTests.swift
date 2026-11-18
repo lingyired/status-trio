@@ -205,6 +205,32 @@ final class StatusPanelRouteTests: XCTestCase {
         fixture.store.stop()
     }
 
+    func testRouteObserverSeesOnlyCommittedNonSummaryTransitions() {
+        let fixture = PanelStoreFixture()
+        let panel = fixture.makePanel()
+        panel.start()
+        fixture.store.start()
+        fixture.store.setPopoverVisible(true)
+        defer {
+            panel.showSummaryPage()
+            panel.stop()
+            fixture.store.setPopoverVisible(false)
+            fixture.store.stop()
+        }
+
+        var observed: [StatusPanelRoute] = []
+        panel.routeDidChange = { observed.append($0) }
+
+        panel.showBatteryPage()
+        XCTAssertEqual(observed, [.battery])
+
+        panel.showWiFiPage(showsDetailsInitially: false)
+        XCTAssertEqual(observed, [.battery, .wifi])
+
+        panel.showSummaryPage()
+        XCTAssertEqual(observed, [.battery, .wifi, .summary])
+    }
+
     func testAllDetailRoutesUseOneSummaryVisibilityRule() {
         let fixture = PanelStoreFixture()
         fixture.settings.setPopupSection(.inputSource, enabled: true)

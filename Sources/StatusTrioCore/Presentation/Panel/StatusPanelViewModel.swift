@@ -121,8 +121,18 @@ final class StatusPanelViewModel: ObservableObject {
     /// the ungated `chargeToFullNowPresentation` above.
     @Published private(set) var summaryChargeToFullNowPresentation: ChargeToFullNowPresentation = .hidden
     @Published private(set) var visiblePopupSections: [PopupSection]
-    @Published private(set) var route: StatusPanelRoute = .summary
+    @Published private(set) var route: StatusPanelRoute = .summary {
+        didSet {
+            guard route != oldValue else { return }
+            routeDidChange?(route)
+        }
+    }
     @Published private(set) var detailPresentation: StatusPanelDetailPresentation = .inline
+
+    /// Called after `route` commits a new value, before the next render pass.
+    /// The window owner places the attached detail from here; reading route
+    /// from a `@Published` subscriber would see the not-yet-committed value.
+    var routeDidChange: ((StatusPanelRoute) -> Void)?
     @Published private(set) var wifiDisclosure = WiFiPanelDisclosureState()
     /// The panel background actually drawn, after Reduce Transparency collapses
     /// it to `.solid`. The SwiftUI card layer reads this to pick the matching
@@ -1390,7 +1400,10 @@ final class StatusPanelViewModel: ObservableObject {
     @discardableResult
     private func transition(to next: StatusPanelRoute) -> Bool {
         guard route != next else { return false }
-        if route != .summary { closeCurrentPage() }
+        // Release the previous page without publishing a summary route in
+        // between: one committed change keeps an attached detail window from
+        // closing and reopening when the user switches pages beside it.
+        if route != .summary { endCurrentPageActions() }
         route = next
         updateHardwareMetricsDemand()
         return true
@@ -1398,6 +1411,12 @@ final class StatusPanelViewModel: ObservableObject {
 
     private func closeCurrentPage() {
         guard route != .summary else { return }
+        endCurrentPageActions()
+        route = .summary
+        updateHardwareMetricsDemand()
+    }
+
+    private func endCurrentPageActions() {
         switch route {
         case .battery:
             actions.batteryDetailsClosed()
@@ -1408,10 +1427,8 @@ final class StatusPanelViewModel: ObservableObject {
         case .inputSource, .hardwareDetail:
             break
         case .summary:
-            return
+            break
         }
-        route = .summary
-        updateHardwareMetricsDemand()
     }
 
     private func isRouteAvailable(_ route: StatusPanelRoute) -> Bool {

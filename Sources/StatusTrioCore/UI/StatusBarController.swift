@@ -621,10 +621,9 @@ final class StatusBarController: NSObject {
             .dropFirst()
             .sink { [weak self] _ in self?.syncDetailPresentation() }
             .store(in: &detailCancellables)
-        panelViewModel.$route
-            .dropFirst()
-            .sink { [weak self] _ in self?.syncDetailPresentation() }
-            .store(in: &detailCancellables)
+        panelViewModel.routeDidChange = { [weak self] _ in
+            self?.syncDetailPresentation()
+        }
         NotificationCenter.default.publisher(for: NSApplication.didChangeScreenParametersNotification)
             .sink { [weak self] _ in self?.syncDetailPresentation() }
             .store(in: &detailCancellables)
@@ -941,9 +940,7 @@ final class StatusBarController: NSObject {
         // Render the summary on the first frame when a restored detail will be
         // hosted beside it; a geometry fallback corrects this right after show.
         panelViewModel.setDetailPresentation(
-            settings.showsPanelDetailsAlongside && panelViewModel.isShowingDetailPage
-                ? .alongside
-                : .inline
+            settings.showsPanelDetailsAlongside ? .alongside : .inline
         )
         popover.show(
             relativeTo: rect,
