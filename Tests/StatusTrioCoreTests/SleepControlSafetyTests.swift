@@ -335,6 +335,7 @@ final class SleepControlSafetyTests: XCTestCase {
         XCTAssertTrue(ownership.ownsDisableSleep)
         XCTAssertTrue(control.needsTerminationCleanup)
         XCTAssertFalse(control.isPreventingLidSleep)
+        control.stop()
 
         // The next launch must confirm the system is off before dropping the
         // durable recovery marker.

@@ -439,6 +439,19 @@ final class SleepControlController: ObservableObject {
         startLidWorkerIfNeeded()
     }
 
+    /// One bounded in-session retry for an unconfirmed enable. It runs after the
+    /// current worker has returned; if the helper is still unreachable the
+    /// durable marker waits for quit/relaunch instead of looping forever.
+    private func scheduleLidRecoveryRetry() {
+        guard !isStopped else { return }
+        Task { [weak self] in
+            try? await Task.sleep(for: .seconds(2))
+            guard let self, !self.isStopped, self.lidPendingRecovery,
+                  !self.lidWorkerRunning else { return }
+            self.startLidWorkerIfNeeded()
+        }
+    }
+
     private func startLidWorkerIfNeeded() {
         guard !lidWorkerRunning, !isStopped else { return }
         lidWorkerRunning = true
@@ -573,6 +586,7 @@ final class SleepControlController: ObservableObject {
             lidPendingRecovery = true
             lidSleepExternalState = .stateUnreadable
             lastError = "The helper did not confirm lid sleep prevention; cleanup will be retried."
+            scheduleLidRecoveryRetry()
             return .retryableFailure
         }
         ownership.ownsDisableSleep = false
