@@ -67,6 +67,17 @@ struct HardwareMonitorSectionView: View {
                     set: { store.hardwareBackgroundHistoryEnabled = $0 }
                 )
             )
+
+            SettingsToggleRow(
+                symbol: "list.number",
+                tint: .orange,
+                title: localization.string(.hardwareMonitorSettingsTopApps),
+                subtitle: localization.string(.hardwareMonitorSettingsTopAppsDescription),
+                isOn: Binding(
+                    get: { store.showsHardwareTopApps },
+                    set: { store.showsHardwareTopApps = $0 }
+                )
+            )
         }
     }
 

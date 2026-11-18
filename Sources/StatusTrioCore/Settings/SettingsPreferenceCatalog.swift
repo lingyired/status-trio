@@ -202,6 +202,7 @@ enum SettingsPreferenceCatalog {
                     default: SettingsStore.defaultHardwarePanelRefreshSeconds, range: 1...8),
             boolean("showsHardwareRings", \.showsHardwareRings, default: true),
             boolean("showsHardwareSummaryRow", \.showsHardwareSummaryRow, default: true),
+            boolean("showsHardwareTopApps", \.showsHardwareTopApps, default: true),
             enabledHardwareRingSlotsPreference,
             enabledHardwareSummaryMetricsPreference
         ]

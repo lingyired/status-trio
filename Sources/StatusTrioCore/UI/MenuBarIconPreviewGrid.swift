@@ -21,8 +21,16 @@ struct HardwareRingStrip: View {
     /// Carded mode lifts the top percentage by this many points for optical
     /// centring inside the arc's top opening; other surfaces keep 0.
     static let cardedTopTextAdjustment: CGFloat = -3
+    /// When false the live rings snap to each sample instead of tweening. The
+    /// status panel refreshes as often as every second, and a 0.55 s tween per
+    /// update kept the display link busy almost continuously on Debug builds.
+    var animatesProgress: Bool = true
 
-    @State private var disk: DiskCapacitySample = .current()
+    /// Capacity is read once when the strip appears, not on every redraw: the
+    /// volume query is a real filesystem/APFS lookup and was running on every
+    /// parent body evaluation because a `@State` default expression is still
+    /// evaluated each time the view struct is created.
+    @State private var disk: DiskCapacitySample = .empty
     /// Pointer-enter glow so a clickable glass card reads as interactive
     /// (matches the keep-awake capsule in QuickActionsCardView).
     @State private var hoveredSlot: HardwareRingSlot?
@@ -30,22 +38,27 @@ struct HardwareRingStrip: View {
     private var snapshot: HardwareMetricsSnapshot { hardware.snapshot }
 
     var body: some View {
-        if carded {
-            // Keep a fixed four-column card width; the visible cards centre and
-            // never grow when one is hidden.
-            HardwareRingRowLayout(spacing: 6, referenceCount: HardwareRingSlot.allCases.count) {
-                ForEach(visibleSlots) { slot in
-                    interactiveCard(slot)
+        Group {
+            if carded {
+                // Keep a fixed four-column card width; the visible cards centre and
+                // never grow when one is hidden.
+                HardwareRingRowLayout(spacing: 6, referenceCount: HardwareRingSlot.allCases.count) {
+                    ForEach(visibleSlots) { slot in
+                        interactiveCard(slot)
+                    }
+                }
+            } else {
+                HStack(alignment: .top, spacing: 10) {
+                    ForEach(visibleSlots) { slot in
+                        ringBase(slot, topAdjustment: 0)
+                            .frame(maxWidth: .infinity)
+                            .aspectRatio(1, contentMode: .fit)
+                    }
                 }
             }
-        } else {
-            HStack(alignment: .top, spacing: 10) {
-                ForEach(visibleSlots) { slot in
-                    ringBase(slot, topAdjustment: 0)
-                        .frame(maxWidth: .infinity)
-                        .aspectRatio(1, contentMode: .fit)
-                }
-            }
+        }
+        .task {
+            if disk.freeBytes == nil { disk = DiskCapacitySample.current() }
         }
     }
 
@@ -59,9 +72,10 @@ struct HardwareRingStrip: View {
             centerScale: spec.centerScale,
             color: spec.color,
             progress: spec.progress,
-            topTextVerticalAdjustment: topAdjustment
+            topTextVerticalAdjustment: topAdjustment,
+            animatesProgress: animatesProgress
         )
-        .animation(.easeOut(duration: 0.55), value: spec.progress)
+        .animation(animatesProgress ? .easeOut(duration: 0.35) : nil, value: spec.progress)
     }
 
     /// One ring wrapped in its own glass card (status panel).
@@ -265,13 +279,15 @@ struct AnimatedSceneIcon: View {
     let color: IconRGBA
     let progress: Double
     var topTextVerticalAdjustment: CGFloat = 0
+    /// Snap to new values instead of tweening when updated every second.
+    var animatesProgress: Bool = true
 
     var body: some View {
         GeometryReader { proxy in
             let side = min(proxy.size.width, proxy.size.height)
             ZStack {
                 AnimatedRingLayer(color: color, progress: progress)
-                    .animation(.easeOut(duration: 0.55), value: progress)
+                    .animation(animatesProgress ? .easeOut(duration: 0.35) : nil, value: progress)
                 Text(top)
                     .font(.system(size: side * 0.166 * 1.1, weight: .regular))
                     .monospacedDigit()
@@ -317,6 +333,9 @@ struct AnimatedSceneIcon: View {
 struct DiskCapacitySample {
     let usedFraction: Double?
     let freeBytes: Int64?
+
+    /// Placeholder used until the one-shot capacity read completes.
+    static let empty = DiskCapacitySample(usedFraction: nil, freeBytes: nil)
 
     var freeText: String {
         guard let freeBytes else { return "--" }

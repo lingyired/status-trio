@@ -160,7 +160,7 @@ struct StatusPopoverView: View {
                                    hardware: panel.hardwareMonitor,
                                    onBack: { panel.showSummaryPage() },
                                    metricColors: panel.hardwareMonitorMetricColors,
-                                   topApps: panel.topApps)
+                                   topApps: panel.showsHardwareTopApps ? panel.topApps : nil)
         }
     }
 

@@ -1225,6 +1225,8 @@
 "hardware.monitor.kbps" = "KB/s";
 "hardware.monitor.mbps" = "MB/s";
 "hardware.monitor.gbps" = "GB/s";
+"hardware.monitor.settings.topApps" = "顯示高佔用應用";
+"hardware.monitor.settings.topApps.description" = "在詳情頁底部顯示佔用最高的處理程序；關閉可減少 CPU 佔用。";
 "hardware.monitor.settings.background" = "保留後台歷史";
 "hardware.monitor.settings.background.description" = "面板關閉時依面板重新整理頻率持續記錄最近 60 秒的硬體歷史，開啟詳情頁即可看到趨勢。";
 "hardware.monitor.background.off" = "關閉";

@@ -40,6 +40,32 @@ final class BackgroundUITestingTests: XCTestCase {
         #endif
     }
 
+
+    func testHardwareDetailArgumentOpensInsideTestPanel() {
+        let valid = BackgroundUITestingConfiguration(arguments: [
+            "--background-ui-testing", "--test-open-status-panel",
+            "--test-open-hardware-detail=memory"
+        ])
+        #if DEBUG
+        XCTAssertTrue(valid.isEnabled)
+        XCTAssertEqual(valid.opensHardwareDetailRaw, "memory")
+        XCTAssertFalse(valid.rejectsLaunch)
+
+        let unknown = BackgroundUITestingConfiguration(arguments: [
+            "--background-ui-testing", "--test-open-status-panel",
+            "--test-open-hardware-detail=disk2"
+        ])
+        XCTAssertTrue(unknown.rejectsLaunch)
+
+        let withoutPanel = BackgroundUITestingConfiguration(arguments: [
+            "--background-ui-testing", "--test-open-hardware-detail=cpu"
+        ])
+        XCTAssertTrue(withoutPanel.rejectsLaunch)
+        #else
+        XCTAssertNil(valid.opensHardwareDetailRaw)
+        #endif
+    }
+
     @MainActor
     func testBackgroundStatusPanelRefusesKeyWindowStatus() {
         let panel = AnchoredStatusPanel()

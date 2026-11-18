@@ -131,6 +131,41 @@ enum TopAppPSParser {
     }
 }
 
+struct PSMemoryRow: Equatable, Sendable {
+    let pid: Int32
+    let memoryBytes: UInt64
+    let name: String
+}
+
+/// Parses `ps -Aceo pid,rss,comm` output. RSS is reported in KiB; bytes are
+/// derived so the ranking matches the old `top` MEM column without paying for
+/// `top`'s one-second sampling loop.
+enum TopAppPSMemoryParser {
+    static func parse(_ data: Data) -> Result<[PSMemoryRow], TopAppReadError> {
+        let text = String(decoding: data, as: UTF8.self)
+        let lines = text.split(whereSeparator: \.isNewline).map(String.init)
+        guard let headerIndex = lines.firstIndex(where: { line in
+            let upper = line.uppercased()
+            return upper.contains("PID") && upper.contains("RSS") && upper.contains("COMM")
+        }) else { return .failure(.malformedOutput) }
+
+        var rows: [PSMemoryRow] = []
+        for line in lines[(headerIndex + 1)...] {
+            let trimmed = line.trimmingCharacters(in: .whitespaces)
+            guard !trimmed.isEmpty else { continue }
+            let fields = trimmed.split(maxSplits: 2, whereSeparator: \.isWhitespace)
+            guard fields.count == 3,
+                  let pid = Int32(fields[0]),
+                  let rssKiB = UInt64(fields[1]) else { continue }
+            let name = String(fields[2]).trimmingCharacters(in: .whitespaces)
+            guard !name.isEmpty else { continue }
+            rows.append(PSMemoryRow(pid: pid, memoryBytes: rssKiB * 1024, name: name))
+        }
+        guard !rows.isEmpty else { return .failure(.malformedOutput) }
+        return .success(rows)
+    }
+}
+
 struct TopProcessRow: Equatable, Sendable {
     let pid: Int32
     let name: String
@@ -253,15 +288,18 @@ struct TopAppMemoryReader: Sendable {
     }
 
     func read() async -> Result<[ProcessUsageSample], TopAppReadError> {
+        // `top -l 1` burns about one CPU-second per sample (it runs a full
+        // sampling interval). `ps` is ~25x cheaper and gives the same ranking
+        // via RSS, so the memory detail page no longer costs a core every tick.
         let result = await executor.run(
-            executableURL: URL(fileURLWithPath: "/usr/bin/top"),
-            arguments: ["-l", "1", "-o", "mem", "-stats", "pid,command,mem"]
+            executableURL: URL(fileURLWithPath: "/bin/ps"),
+            arguments: ["-Aceo", "pid,rss,comm"]
         )
         switch result {
         case .failure(let error):
             return .failure(error)
         case .success(let data):
-            switch TopAppTopParser.parse(data) {
+            switch TopAppPSMemoryParser.parse(data) {
             case .failure(let error):
                 return .failure(error)
             case .success(let rows):
@@ -270,7 +308,7 @@ struct TopAppMemoryReader: Sendable {
                           let metadata = metadataReader.metadata(for: row.pid, fallbackName: row.name) else {
                         return nil
                     }
-                    return ProcessUsageSample(metadata: metadata, value: row.memoryBytes)
+                    return ProcessUsageSample(metadata: metadata, value: Double(row.memoryBytes))
                 }
                 return .success(samples)
             }
