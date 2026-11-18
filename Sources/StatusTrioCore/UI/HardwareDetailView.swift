@@ -131,7 +131,7 @@ struct HardwareDetailView: View {
                 average: detail?.groupUsage?.superAverage,
                 count: topology.superCoreCount,
                 frequency: nil,
-                tint: .pink))
+                tint: HardwareCPUCorePalette.superCore))
         }
         if topology.performanceCoreCount > 0 {
             groups.append(HardwareCPUCoreGroup(
@@ -140,7 +140,7 @@ struct HardwareDetailView: View {
                 average: detail?.groupUsage?.performanceAverage,
                 count: topology.performanceCoreCount,
                 frequency: detail?.frequency?.performanceGHz,
-                tint: .orange))
+                tint: HardwareCPUCorePalette.performance))
         }
         if topology.efficiencyCoreCount > 0 {
             groups.append(HardwareCPUCoreGroup(
@@ -149,7 +149,16 @@ struct HardwareDetailView: View {
                 average: detail?.groupUsage?.efficiencyAverage,
                 count: topology.efficiencyCoreCount,
                 frequency: detail?.frequency?.efficiencyGHz,
-                tint: .teal))
+                tint: HardwareCPUCorePalette.efficiency))
+        }
+        if topology.otherCoreCount > 0 {
+            groups.append(HardwareCPUCoreGroup(
+                id: "other",
+                title: localization.string(.hardwareDetailOtherCores),
+                average: detail?.groupUsage?.otherAverage,
+                count: topology.otherCoreCount,
+                frequency: nil,
+                tint: HardwareCPUCorePalette.other))
         }
         return groups
     }
@@ -175,18 +184,25 @@ struct HardwareDetailView: View {
         return VStack(alignment: .leading, spacing: 10) {
             Text("1").font(.caption).foregroundStyle(.secondary)
             HardwareCPUCoreGroupRow(
-                groups: [group("e", efficiency, 42, 4, 1.79, .teal)],
+                groups: [group("e", efficiency, 42, 4, 1.79, HardwareCPUCorePalette.efficiency)],
                 coresLabel: cores, frequencyLabel: frequency)
             Text("2").font(.caption).foregroundStyle(.secondary)
             HardwareCPUCoreGroupRow(
-                groups: [group("p", performance, 24, 12, 4.01, .orange),
-                         group("e", efficiency, 42, 4, 1.79, .teal)],
+                groups: [group("p", performance, 24, 12, 4.01, HardwareCPUCorePalette.performance),
+                         group("e", efficiency, 42, 4, 1.79, HardwareCPUCorePalette.efficiency)],
                 coresLabel: cores, frequencyLabel: frequency)
             Text("3").font(.caption).foregroundStyle(.secondary)
             HardwareCPUCoreGroupRow(
-                groups: [group("s", superCore, 65, 4, nil, .pink),
-                         group("p", performance, 24, 12, 4.01, .orange),
-                         group("e", efficiency, 42, 4, 1.79, .teal)],
+                groups: [group("s", superCore, 65, 4, nil, HardwareCPUCorePalette.superCore),
+                         group("p", performance, 24, 12, 4.01, HardwareCPUCorePalette.performance),
+                         group("e", efficiency, 42, 4, 1.79, HardwareCPUCorePalette.efficiency)],
+                coresLabel: cores, frequencyLabel: frequency)
+            Text("4").font(.caption).foregroundStyle(.secondary)
+            HardwareCPUCoreGroupRow(
+                groups: [group("s", superCore, 65, 4, nil, HardwareCPUCorePalette.superCore),
+                         group("p", performance, 24, 12, 4.01, HardwareCPUCorePalette.performance),
+                         group("e", efficiency, 42, 4, 1.79, HardwareCPUCorePalette.efficiency),
+                         group("o", localization.string(.hardwareDetailOtherCores), 18, 2, nil, HardwareCPUCorePalette.other)],
                 coresLabel: cores, frequencyLabel: frequency)
         }
     }
@@ -198,6 +214,7 @@ struct HardwareDetailView: View {
         if topology.performanceCoreCount > 0 { parts.append("\(topology.performanceCoreCount)P") }
         if topology.efficiencyCoreCount > 0 { parts.append("\(topology.efficiencyCoreCount)E") }
         if topology.superCoreCount > 0 { parts.append("\(topology.superCoreCount)S") }
+        if topology.otherCoreCount > 0 { parts.append("\(topology.otherCoreCount)O") }
         return parts.isEmpty ? HardwareDetailFormat.dash : parts.joined(separator: " + ")
     }
 

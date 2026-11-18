@@ -1308,6 +1308,7 @@
 "hardware.detail.efficiencyCores" = "효율 코어";
 "hardware.detail.performanceCores" = "성능 코어";
 "hardware.detail.superCores" = "슈퍼 코어";
+"hardware.detail.otherCores" = "기타 코어";
 "hardware.detail.average" = "평균";
 "hardware.detail.estimatedFrequency" = "예상 주파수";
 "hardware.detail.cores" = "코어 수";

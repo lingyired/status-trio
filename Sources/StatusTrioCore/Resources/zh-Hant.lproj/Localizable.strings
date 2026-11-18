@@ -1308,6 +1308,7 @@
 "hardware.detail.efficiencyCores" = "能效核心";
 "hardware.detail.performanceCores" = "效能核心";
 "hardware.detail.superCores" = "超級核心";
+"hardware.detail.otherCores" = "其他核心";
 "hardware.detail.average" = "平均";
 "hardware.detail.estimatedFrequency" = "估算頻率";
 "hardware.detail.cores" = "核心數";

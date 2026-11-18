@@ -20,7 +20,7 @@ final class HardwareDetailSnapshotTests: XCTestCase {
                 breakdown: CPUTimeBreakdown(user: 15.2, system: 4.1, idle: 79.6, nice: 1.1),
                 perCoreUsage: [8, 12, 15, 9, 22, 28, 31, 26, 35, 40, 33, 29, 24, 38, 30, 27],
                 topology: CPUCoreTopology(kinds: kinds),
-                groupUsage: CPUCoreGroupUsage(efficiencyAverage: 11, performanceAverage: 29.6, superAverage: nil),
+                groupUsage: CPUCoreGroupUsage(efficiencyAverage: 11, performanceAverage: 29.6, superAverage: nil, otherAverage: nil),
                 frequency: CPUFrequencyReading(efficiencyGHz: 1.94, performanceGHz: 2.41, superGHz: nil, sampledAt: date),
                 sampledAt: date)
             snapshot.samples[.cpuUsage] = HardwareMetricSample(value: 26.4, unit: .percent, sampledAt: date, source: .mach, availability: .measured)

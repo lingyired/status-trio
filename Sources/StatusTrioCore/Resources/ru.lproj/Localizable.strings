@@ -1308,6 +1308,7 @@
 "hardware.detail.efficiencyCores" = "Ядра эффективности";
 "hardware.detail.performanceCores" = "Ядра производительности";
 "hardware.detail.superCores" = "Суперъядра";
+"hardware.detail.otherCores" = "Другие ядра";
 "hardware.detail.average" = "Среднее";
 "hardware.detail.estimatedFrequency" = "Оцен. частота";
 "hardware.detail.cores" = "Ядра";

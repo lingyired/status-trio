@@ -1308,6 +1308,7 @@
 "hardware.detail.efficiencyCores" = "Effizienzkerne";
 "hardware.detail.performanceCores" = "Performance-Kerne";
 "hardware.detail.superCores" = "Super-Kerne";
+"hardware.detail.otherCores" = "Andere Kerne";
 "hardware.detail.average" = "Durchschnitt";
 "hardware.detail.estimatedFrequency" = "Geschätzte Frequenz";
 "hardware.detail.cores" = "Kerne";

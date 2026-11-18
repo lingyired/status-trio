@@ -197,6 +197,7 @@ enum LocalizationKey: String, CaseIterable, Hashable, Sendable {
     case hardwareDetailEfficiencyCores = "hardware.detail.efficiencyCores"
     case hardwareDetailPerformanceCores = "hardware.detail.performanceCores"
     case hardwareDetailSuperCores = "hardware.detail.superCores"
+    case hardwareDetailOtherCores = "hardware.detail.otherCores"
     case hardwareDetailAverage = "hardware.detail.average"
     case hardwareDetailEstimatedFrequency = "hardware.detail.estimatedFrequency"
     case hardwareDetailCores = "hardware.detail.cores"

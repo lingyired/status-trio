@@ -1308,6 +1308,7 @@
 "hardware.detail.efficiencyCores" = "Cœurs d’efficacité";
 "hardware.detail.performanceCores" = "Cœurs de performance";
 "hardware.detail.superCores" = "Cœurs super";
+"hardware.detail.otherCores" = "Autres cœurs";
 "hardware.detail.average" = "Moyenne";
 "hardware.detail.estimatedFrequency" = "Fréquence est.";
 "hardware.detail.cores" = "Cœurs";

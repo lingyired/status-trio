@@ -1308,6 +1308,7 @@
 "hardware.detail.efficiencyCores" = "Núcleos de eficiencia";
 "hardware.detail.performanceCores" = "Núcleos de rendimiento";
 "hardware.detail.superCores" = "Núcleos super";
+"hardware.detail.otherCores" = "Otros núcleos";
 "hardware.detail.average" = "Promedio";
 "hardware.detail.estimatedFrequency" = "Frecuencia est.";
 "hardware.detail.cores" = "Núcleos";

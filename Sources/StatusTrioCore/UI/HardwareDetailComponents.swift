@@ -135,6 +135,15 @@ struct HardwareDetailProgressBar: View {
     }
 }
 
+/// Fixed per-class colours for the CPU detail page.
+enum HardwareCPUCorePalette {
+    static let superCore = Color(red: 0xA8 / 255, green: 0x55 / 255, blue: 0xF7 / 255)
+    static let performance = Color(red: 0x3B / 255, green: 0x82 / 255, blue: 0xF6 / 255)
+    static let efficiency = Color(red: 0x10 / 255, green: 0xB9 / 255, blue: 0x81 / 255)
+    /// A future class we do not name yet.
+    static let other = Color(red: 0xF5 / 255, green: 0x9E / 255, blue: 0x0B / 255)
+}
+
 /// One CPU core class group shown on the CPU detail page.
 struct HardwareCPUCoreGroup: Identifiable {
     let id: String

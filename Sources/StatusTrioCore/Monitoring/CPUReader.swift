@@ -11,6 +11,8 @@ enum CPUCoreKind: String, Equatable, Sendable {
     case efficiency
     case performance
     case superCore
+    /// A clustered class newer than the ones we name today.
+    case other
     case unknown
 }
 
@@ -30,6 +32,7 @@ struct CPUCoreTopology: Equatable, Sendable {
     var efficiencyCoreCount: Int { kinds.filter { $0 == .efficiency }.count }
     var performanceCoreCount: Int { kinds.filter { $0 == .performance }.count }
     var superCoreCount: Int { kinds.filter { $0 == .superCore }.count }
+    var otherCoreCount: Int { kinds.filter { $0 == .other }.count }
     /// True when at least one core was positively classified. A topology made
     /// only of `.unknown` is not usable and must be treated as unavailable.
     var isRecognized: Bool { kinds.contains { $0 != .unknown } }
@@ -42,9 +45,10 @@ struct CPUCoreGroupUsage: Equatable, Sendable {
     var efficiencyAverage: Double?
     var performanceAverage: Double?
     var superAverage: Double?
+    var otherAverage: Double?
 
     var hasAny: Bool {
-        efficiencyAverage != nil || performanceAverage != nil || superAverage != nil
+        efficiencyAverage != nil || performanceAverage != nil || superAverage != nil || otherAverage != nil || superAverage != nil
     }
 }
 
@@ -175,6 +179,7 @@ struct CPUReader: Sendable {
         var eSum = 0.0, eCount = 0
         var pSum = 0.0, pCount = 0
         var sSum = 0.0, sCount = 0
+        var oSum = 0.0, oCount = 0
         for (index, core) in cores.enumerated() {
             switch topology.kinds[index] {
             case .efficiency:
@@ -183,6 +188,8 @@ struct CPUReader: Sendable {
                 pSum += core; pCount += 1
             case .superCore:
                 sSum += core; sCount += 1
+            case .other:
+                oSum += core; oCount += 1
             case .unknown:
                 continue
             }
@@ -190,7 +197,8 @@ struct CPUReader: Sendable {
         let group = CPUCoreGroupUsage(
             efficiencyAverage: eCount > 0 ? eSum / Double(eCount) : nil,
             performanceAverage: pCount > 0 ? pSum / Double(pCount) : nil,
-            superAverage: sCount > 0 ? sSum / Double(sCount) : nil
+            superAverage: sCount > 0 ? sSum / Double(sCount) : nil,
+            otherAverage: oCount > 0 ? oSum / Double(oCount) : nil
         )
         return group.hasAny ? group : nil
     }
@@ -263,7 +271,8 @@ struct CPUReader: Sendable {
         case "E": return .efficiency
         case "P": return .performance
         case "M": return .performance
-        default: return token.isEmpty ? .unknown : .superCore
+        case "S": return .superCore
+        default: return token.isEmpty ? .unknown : .other
         }
     }
 
