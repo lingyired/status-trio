@@ -1307,6 +1307,7 @@
 "hardware.detail.logicalCores" = "Core logici";
 "hardware.detail.efficiencyCores" = "Core a efficienza";
 "hardware.detail.performanceCores" = "Core a prestazioni";
+"hardware.detail.superCores" = "Core super";
 "hardware.detail.average" = "Media";
 "hardware.detail.estimatedFrequency" = "Frequenza stim.";
 "hardware.detail.cores" = "Core";

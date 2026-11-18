@@ -94,18 +94,12 @@ struct HardwareDetailView: View {
                     }
                 }
             }
-            HStack(alignment: .top, spacing: 8) {
-                coreCard(title: localization.string(.hardwareDetailPerformanceCores),
-                         average: detail?.groupUsage?.performanceAverage,
-                         count: detail?.topology?.performanceCoreCount,
-                         frequency: detail?.frequency?.performanceGHz,
-                         tint: .orange)
-                coreCard(title: localization.string(.hardwareDetailEfficiencyCores),
-                         average: detail?.groupUsage?.efficiencyAverage,
-                         count: detail?.topology?.efficiencyCoreCount,
-                         frequency: detail?.frequency?.efficiencyGHz,
-                         tint: .teal)
-            }
+            HardwareCPUCoreGroupRow(groups: coreGroups(detail),
+                                    coresLabel: localization.string(.hardwareDetailCores),
+                                    frequencyLabel: localization.string(.hardwareDetailEstimatedFrequency))
+            #if DEBUG
+            if showsCoreLayoutSamples { coreLayoutSamples }
+            #endif
             trendCard(title: localization.string(.hardwareDetailUsageTrend),
                       scale: .percent)
             HardwareDetailCard {
@@ -124,30 +118,76 @@ struct HardwareDetailView: View {
         }
     }
 
-    private func coreCard(title: String, average: Double?, count: Int?, frequency: Double?,
-                          tint: Color) -> some View {
-        HardwareDetailCard {
-            VStack(alignment: .leading, spacing: 6) {
-                HStack(alignment: .firstTextBaseline) {
-                    Text(title).font(.subheadline.weight(.medium)).lineLimit(1).minimumScaleFactor(0.7)
-                    Spacer(minLength: 4)
-                    Text("\(localization.string(.hardwareDetailCores)) \(HardwareDetailFormat.integer(count))")
-                        .font(.caption2).foregroundStyle(.secondary).lineLimit(1)
-                }
-                Text(HardwareDetailFormat.percent(average))
-                    .font(.system(size: 18, weight: .semibold, design: .rounded))
-                    .monospacedDigit()
-                HStack(spacing: 3) {
-                    Text(localization.string(.hardwareDetailEstimatedFrequency))
-                        .font(.caption2).foregroundStyle(.secondary)
-                    Text(HardwareDetailFormat.frequency(frequency))
-                        .font(.caption2).monospacedDigit().foregroundStyle(.secondary)
-                }
-                .lineLimit(1).minimumScaleFactor(0.7)
-                HardwareDetailProgressBar(fraction: (average ?? 0) / 100, tint: tint)
-            }
+    /// One group per core class the topology actually reports. A machine with
+    /// only efficiency cores shows one card, M1–M4 show two, and a topology
+    /// with super cores shows three.
+    private func coreGroups(_ detail: CPUDetailReading?) -> [HardwareCPUCoreGroup] {
+        guard let topology = detail?.topology, topology.isRecognized else { return [] }
+        var groups: [HardwareCPUCoreGroup] = []
+        if topology.superCoreCount > 0 {
+            groups.append(HardwareCPUCoreGroup(
+                id: "super",
+                title: localization.string(.hardwareDetailSuperCores),
+                average: detail?.groupUsage?.superAverage,
+                count: topology.superCoreCount,
+                frequency: nil,
+                tint: .pink))
+        }
+        if topology.performanceCoreCount > 0 {
+            groups.append(HardwareCPUCoreGroup(
+                id: "performance",
+                title: localization.string(.hardwareDetailPerformanceCores),
+                average: detail?.groupUsage?.performanceAverage,
+                count: topology.performanceCoreCount,
+                frequency: detail?.frequency?.performanceGHz,
+                tint: .orange))
+        }
+        if topology.efficiencyCoreCount > 0 {
+            groups.append(HardwareCPUCoreGroup(
+                id: "efficiency",
+                title: localization.string(.hardwareDetailEfficiencyCores),
+                average: detail?.groupUsage?.efficiencyAverage,
+                count: topology.efficiencyCoreCount,
+                frequency: detail?.frequency?.efficiencyGHz,
+                tint: .teal))
+        }
+        return groups
+    }
+
+    #if DEBUG
+    private var showsCoreLayoutSamples: Bool {
+        ProcessInfo.processInfo.arguments.contains("--test-show-cpu-core-layouts")
+    }
+
+    /// Debug-only layout preview: renders the one/two/three-group rows at once
+    /// so their widths can be compared in the real panel.
+    private var coreLayoutSamples: some View {
+        let cores = localization.string(.hardwareDetailCores)
+        let frequency = localization.string(.hardwareDetailEstimatedFrequency)
+        func group(_ id: String, _ title: String, _ average: Double?, _ count: Int?,
+                   _ ghz: Double?, _ tint: Color) -> HardwareCPUCoreGroup {
+            HardwareCPUCoreGroup(id: id, title: title, average: average, count: count,
+                                 frequency: ghz, tint: tint)
+        }
+        return VStack(alignment: .leading, spacing: 10) {
+            Text("单核").font(.caption).foregroundStyle(.secondary)
+            HardwareCPUCoreGroupRow(
+                groups: [group("e", "能效核", 42, 4, 1.79, .teal)],
+                coresLabel: cores, frequencyLabel: frequency)
+            Text("双核").font(.caption).foregroundStyle(.secondary)
+            HardwareCPUCoreGroupRow(
+                groups: [group("p", "性能核", 24, 12, 4.01, .orange),
+                         group("e", "能效核", 42, 4, 1.79, .teal)],
+                coresLabel: cores, frequencyLabel: frequency)
+            Text("三核").font(.caption).foregroundStyle(.secondary)
+            HardwareCPUCoreGroupRow(
+                groups: [group("s", "超级核", 65, 4, nil, .pink),
+                         group("p", "性能核", 24, 12, 4.01, .orange),
+                         group("e", "能效核", 42, 4, 1.79, .teal)],
+                coresLabel: cores, frequencyLabel: frequency)
         }
     }
+    #endif
 
     private func coreComposition(_ topology: CPUCoreTopology?) -> String {
         guard let topology, topology.isRecognized else { return HardwareDetailFormat.dash }

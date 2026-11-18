@@ -135,6 +135,71 @@ struct HardwareDetailProgressBar: View {
     }
 }
 
+/// One CPU core class group shown on the CPU detail page.
+struct HardwareCPUCoreGroup: Identifiable {
+    let id: String
+    let title: String
+    let average: Double?
+    let count: Int?
+    let frequency: Double?
+    let tint: Color
+}
+
+struct HardwareCPUCoreCard: View {
+    let group: HardwareCPUCoreGroup
+    let coresLabel: String
+    let frequencyLabel: String
+    var valueSize: CGFloat = 18
+
+    var body: some View {
+        HardwareDetailCard {
+            VStack(alignment: .leading, spacing: 6) {
+                HStack(alignment: .firstTextBaseline) {
+                    Text(group.title).font(.subheadline.weight(.medium)).lineLimit(1).minimumScaleFactor(0.7)
+                    Spacer(minLength: 4)
+                    Text("\(coresLabel) \(HardwareDetailFormat.integer(group.count))")
+                        .font(.caption2).foregroundStyle(.secondary).lineLimit(1)
+                }
+                Text(HardwareDetailFormat.percent(group.average))
+                    .font(.system(size: valueSize, weight: .semibold, design: .rounded))
+                    .monospacedDigit()
+                HStack(spacing: 3) {
+                    Text(frequencyLabel)
+                        .font(.caption2).foregroundStyle(.secondary)
+                    Text(HardwareDetailFormat.frequency(group.frequency))
+                        .font(.caption2).monospacedDigit().foregroundStyle(.secondary)
+                }
+                .lineLimit(1).minimumScaleFactor(0.7)
+                HardwareDetailProgressBar(fraction: (group.average ?? 0) / 100, tint: group.tint)
+            }
+        }
+    }
+}
+
+/// Lays out one, two or three core groups without leaving an empty card.
+struct HardwareCPUCoreGroupRow: View {
+    let groups: [HardwareCPUCoreGroup]
+    let coresLabel: String
+    let frequencyLabel: String
+
+    var body: some View {
+        if groups.isEmpty {
+            EmptyView()
+        } else if groups.count == 1 {
+            HardwareCPUCoreCard(group: groups[0], coresLabel: coresLabel,
+                                frequencyLabel: frequencyLabel, valueSize: 20)
+        } else {
+            HStack(alignment: .top, spacing: groups.count >= 3 ? 5 : 8) {
+                ForEach(groups) { group in
+                    HardwareCPUCoreCard(group: group, coresLabel: coresLabel,
+                                        frequencyLabel: frequencyLabel,
+                                        valueSize: groups.count >= 3 ? 15 : 18)
+                }
+            }
+        }
+    }
+}
+
 /// A label/value row used by the detail sections.
 struct HardwareDetailRow: View {
     let label: String

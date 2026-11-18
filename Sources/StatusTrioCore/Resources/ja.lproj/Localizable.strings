@@ -1307,6 +1307,7 @@
 "hardware.detail.logicalCores" = "論理コア";
 "hardware.detail.efficiencyCores" = "効率コア";
 "hardware.detail.performanceCores" = "高性能コア";
+"hardware.detail.superCores" = "スーパーコア";
 "hardware.detail.average" = "平均";
 "hardware.detail.estimatedFrequency" = "推定周波数";
 "hardware.detail.cores" = "コア数";

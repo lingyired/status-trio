@@ -1307,6 +1307,7 @@
 "hardware.detail.logicalCores" = "逻辑核心";
 "hardware.detail.efficiencyCores" = "能效核心";
 "hardware.detail.performanceCores" = "性能核心";
+"hardware.detail.superCores" = "超级核";
 "hardware.detail.average" = "平均";
 "hardware.detail.estimatedFrequency" = "估算频率";
 "hardware.detail.cores" = "核心数";

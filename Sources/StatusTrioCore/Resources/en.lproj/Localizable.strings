@@ -1306,6 +1306,7 @@
 "hardware.detail.logicalCores" = "Logical cores";
 "hardware.detail.efficiencyCores" = "Efficiency cores";
 "hardware.detail.performanceCores" = "Performance cores";
+"hardware.detail.superCores" = "Super cores";
 "hardware.detail.average" = "Average";
 "hardware.detail.estimatedFrequency" = "Est. frequency";
 "hardware.detail.cores" = "Cores";

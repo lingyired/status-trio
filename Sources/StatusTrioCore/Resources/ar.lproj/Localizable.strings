@@ -1307,6 +1307,7 @@
 "hardware.detail.logicalCores" = "الأنوية المنطقية";
 "hardware.detail.efficiencyCores" = "أنوية الكفاءة";
 "hardware.detail.performanceCores" = "أنوية الأداء";
+"hardware.detail.superCores" = "أنوية فائقة";
 "hardware.detail.average" = "المتوسط";
 "hardware.detail.estimatedFrequency" = "التردد المقدّر";
 "hardware.detail.cores" = "الأنوية";
