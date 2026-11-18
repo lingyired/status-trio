@@ -42,6 +42,24 @@ final class SettingsViewTests: XCTestCase {
         )
     }
 
+    func testDefaultHeightFitsTheFullSidebarWithoutScrolling() {
+        // Nine scrollable categories (App Icon carries four leaves) plus the
+        // pinned General/About group; mirrors the fixed metrics in the sidebar.
+        let scrollableGroups: CGFloat = 9
+        let appIconLeaves: CGFloat = 4
+        let contentHeight = SettingsSidebarMetrics.topInset
+            + scrollableGroups * SettingsSidebarMetrics.categoryRowHeight
+            + appIconLeaves * SettingsSidebarMetrics.subtopicRowHeight
+            + (scrollableGroups - 1) * SettingsSidebarMetrics.categoryGroupSpacing
+            + 6 // scroll content bottom padding
+            + 1 // separator hairline
+            + 2 * SettingsSidebarMetrics.categoryRowHeight
+            + SettingsSidebarMetrics.categoryGroupSpacing
+            + 2 * SettingsSidebarMetrics.pinnedGroupVerticalPadding
+            + 2 // pinned bottom padding
+        XCTAssertGreaterThanOrEqual(SettingsView.height, contentHeight)
+    }
+
     func testDefaultContentSizeShowsTheSidebarAndClampsOnShortScreens() {
         let normal = NSRect(x: 0, y: 0, width: 1440, height: 900)
         let short = NSRect(x: 0, y: 0, width: 1440, height: 500)
