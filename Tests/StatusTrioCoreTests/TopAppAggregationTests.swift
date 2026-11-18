@@ -14,7 +14,7 @@ struct TopAppAggregationTests {
         ProcessApplication(pid: pid, path: path, bundleID: "bundle.\(pid)", name: name)
     }
 
-    @Test func testMergeBeforeTakingFive() {
+    @Test func testMergeBeforeTakingTopEight() {
         var applications: [ProcessApplication] = []
         var samples: [ProcessUsageSample] = []
         for index in 0..<6 {
@@ -34,7 +34,7 @@ struct TopAppAggregationTests {
         }
 
         let rows = TopAppAggregator.rows(metric: .cpu, samples: samples, applications: applications)
-        #expect(rows.count == 5)
+        #expect(rows.count == 7)
         #expect(rows.first?.name == "Chrome")
         #expect(rows.first?.value == 12)
         #expect(rows.first?.applicationPath == "/Applications/Chrome.app")
