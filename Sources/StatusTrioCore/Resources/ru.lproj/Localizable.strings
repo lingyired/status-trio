@@ -1220,8 +1220,8 @@
 "hardware.monitor.kbps" = "КБ/с";
 "hardware.monitor.mbps" = "МБ/с";
 "hardware.monitor.gbps" = "ГБ/с";
-"hardware.monitor.settings.background" = "Фоновый мониторинг";
-"hardware.monitor.settings.background.description" = "Продолжать опрос показателей оборудования при закрытой панели, чтобы она открывалась с актуальными данными. По умолчанию выключено для экономии энергии.";
+"hardware.monitor.settings.background" = "Хранить историю";
+"hardware.monitor.settings.background.description" = "Записывает последние 60 секунд истории оборудования при закрытой панели с частотой панели, чтобы детали открывались с трендом.";
 "hardware.monitor.background.off" = "Выкл.";
 "hardware.monitor.background.seconds" = "%d с";
 "hardware.monitor.settings.panelRefresh" = "Обновление панели";

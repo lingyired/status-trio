@@ -1220,8 +1220,8 @@
 "hardware.monitor.kbps" = "KB/s";
 "hardware.monitor.mbps" = "MB/s";
 "hardware.monitor.gbps" = "GB/s";
-"hardware.monitor.settings.background" = "后台监控";
-"hardware.monitor.settings.background.description" = "面板关闭时仍持续采集硬件指标，打开面板即为实时数据。为省电默认关闭。";
+"hardware.monitor.settings.background" = "保留后台历史";
+"hardware.monitor.settings.background.description" = "面板关闭时按面板刷新频率继续记录最近 60 秒的硬件历史，打开详情页即可看到趋势。";
 "hardware.monitor.background.off" = "关闭";
 "hardware.monitor.background.seconds" = "%d 秒";
 "hardware.monitor.settings.panelRefresh" = "面板刷新";

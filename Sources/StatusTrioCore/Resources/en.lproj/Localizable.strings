@@ -1219,8 +1219,8 @@
 "hardware.monitor.kbps" = "KB/s";
 "hardware.monitor.mbps" = "MB/s";
 "hardware.monitor.gbps" = "GB/s";
-"hardware.monitor.settings.background" = "Background monitoring";
-"hardware.monitor.settings.background.description" = "Keep sampling hardware metrics while the panel is closed so it opens with live data. Off by default to save power.";
+"hardware.monitor.settings.background" = "Keep background history";
+"hardware.monitor.settings.background.description" = "Keep the last 60 seconds of hardware history while the panel is closed, at the panel refresh rate, so a detail page opens with a trend.";
 "hardware.monitor.background.off" = "Off";
 "hardware.monitor.background.seconds" = "%d s";
 "hardware.monitor.settings.panelRefresh" = "Panel refresh";

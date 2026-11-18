@@ -96,12 +96,12 @@ final class TopAppsPanelDemandTests: XCTestCase {
             fixture.store.stop()
         }
 
-        fixture.settings.hardwareBackgroundRefreshSeconds = 5
+        fixture.settings.hardwareBackgroundHistoryEnabled = true
         XCTAssertNil(service.demand)
 
         panel.showHardwareDetail(.network)
         XCTAssertEqual(service.demand, .network)
-        fixture.settings.hardwareBackgroundRefreshSeconds = 1
+        fixture.settings.hardwareBackgroundHistoryEnabled = false
         XCTAssertEqual(service.demand, .network)
     }
 

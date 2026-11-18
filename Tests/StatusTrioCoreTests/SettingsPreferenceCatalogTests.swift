@@ -27,7 +27,7 @@ final class SettingsPreferenceCatalogTests: XCTestCase {
                 "autoEnablesLowPowerMode", "showsAppleDevicesAndBattery",
                 "refreshesAppleBatteriesInBackground", "appleBatteryRefreshIntervalMinutes",
                 "showsBluetoothListeningMode", "bluetoothAudioIconChoiceRawValue", "wifiSymbolScale",
-                "volumeDisplayStyle", "ringStrokeStyle", "hardwareBackgroundRefreshSeconds", "hardwarePanelRefreshSeconds", "showsHardwareRings", "showsHardwareSummaryRow", "enabledHardwareRingSlots", "enabledHardwareSummaryMetrics", "refreshIntervalOnBatterySeconds",
+                "volumeDisplayStyle", "ringStrokeStyle", "hardwareBackgroundHistoryEnabled", "hardwarePanelRefreshSeconds", "showsHardwareRings", "showsHardwareSummaryRow", "enabledHardwareRingSlots", "enabledHardwareSummaryMetrics", "refreshIntervalOnBatterySeconds",
                 "refreshIntervalOnPowerSeconds", "maxVisibleOutputDevices", "alwaysShowsAllOutputDevices",
                 "maxVisibleInputDevices", "alwaysShowsAllInputDevices", "showsBluetoothDeviceList",
                 "maxVisibleBluetoothDevices", "hidesGhostBluetoothDevices", "popupSectionOrder",
@@ -105,22 +105,16 @@ final class SettingsPreferenceCatalogTests: XCTestCase {
         }
     }
 
-    func testHardwareBackgroundRefreshValidatesOptionsAndRoundTrips() {
+    func testHardwareBackgroundHistoryDefaultsOnAndRoundTrips() {
         withStore { store, defaults in
-            XCTAssertEqual(store.hardwareBackgroundRefreshSeconds, 0)
-            for value in [5, 15, 30, 60] {
-                store.hardwareBackgroundRefreshSeconds = value
-                XCTAssertEqual(SettingsStore(defaults: defaults).hardwareBackgroundRefreshSeconds, value)
-            }
-            for invalid in [7, 61, -5] {
-                store.hardwareBackgroundRefreshSeconds = invalid
-                XCTAssertEqual(store.hardwareBackgroundRefreshSeconds, 0, "only shipped options are accepted")
-            }
-            store.hardwareBackgroundRefreshSeconds = 30
+            XCTAssertTrue(store.hardwareBackgroundHistoryEnabled, "background history is on by default")
+            store.hardwareBackgroundHistoryEnabled = false
+            XCTAssertFalse(SettingsStore(defaults: defaults).hardwareBackgroundHistoryEnabled)
             let snapshot = SettingsPreferenceCatalog.snapshot(store)
-            XCTAssertEqual(snapshot["hardwareBackgroundRefreshSeconds"], .number(30))
+            XCTAssertEqual(snapshot["hardwareBackgroundHistoryEnabled"], .bool(false))
+            XCTAssertNil(snapshot["hardwareBackgroundRefreshSeconds"], "the old seconds key is retired")
             let reloaded = SettingsStore(defaults: defaults, systemChargeLimit: { nil })
-            XCTAssertEqual(reloaded.hardwareBackgroundRefreshSeconds, 30)
+            XCTAssertFalse(reloaded.hardwareBackgroundHistoryEnabled)
         }
     }
 

@@ -1220,8 +1220,8 @@
 "hardware.monitor.kbps" = "KB/s";
 "hardware.monitor.mbps" = "MB/s";
 "hardware.monitor.gbps" = "GB/s";
-"hardware.monitor.settings.background" = "Monitoraggio in background";
-"hardware.monitor.settings.background.description" = "Continua a campionare le metriche hardware mentre il pannello è chiuso, così si apre con dati in tempo reale. Disattivato per impostazione predefinita per risparmiare energia.";
+"hardware.monitor.settings.background" = "Mantieni cronologia";
+"hardware.monitor.settings.background.description" = "Registra gli ultimi 60 secondi di cronologia hardware a pannello chiuso, al ritmo del pannello, così il dettaglio si apre con un andamento.";
 "hardware.monitor.background.off" = "Disattivato";
 "hardware.monitor.background.seconds" = "%d s";
 "hardware.monitor.settings.panelRefresh" = "Aggiornamento pannello";

@@ -199,6 +199,8 @@ final class HardwareMetricsService: ObservableObject {
     /// The loop only needs to wake as often as the fastest demanded metric.
     /// With only slow sensors visible this doubles the sleep and halves wakeups.
     var currentTickIntervalForTesting: TimeInterval { tickInterval }
+    /// Effective cadence for one metric after mixing every active consumer.
+    func intervalForTesting(_ id: HardwareMetricID) -> TimeInterval { interval(for: id) }
 
     private let reader: Reader?
     private let now: () -> Date
@@ -333,12 +335,27 @@ final class HardwareMetricsService: ObservableObject {
         guard automaticScheduling, isRunning, !isAsleep, loopTask == nil else { return }
         loopTask = Task { [weak self] in
             while !Task.isCancelled {
-                let interval = self?.tickInterval ?? 2
-                try? await Task.sleep(nanoseconds: UInt64(interval * 1_000_000_000))
+                let delay = self?.nextWakeDelay() ?? 2
+                try? await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
                 guard !Task.isCancelled, let self else { return }
                 self.refreshIfNeeded(forceFamilies: [])
             }
         }
+    }
+
+    /// Wakes when the earliest-demanded metric next comes due instead of on a
+    /// fixed heartbeat, so a 4 s sensor is not repeatedly pushed to 6 s by a 2 s
+    /// tick. A pending read (inFlight) parks the loop until it finishes, which
+    /// then re-enters through the completion path.
+    private func nextWakeDelay() -> TimeInterval {
+        let ids = requestedIDs
+        guard !ids.isEmpty else { return 2 }
+        let current = now()
+        let soonest = ids.map { id -> TimeInterval in
+            let last = lastRead[id] ?? current
+            return last.addingTimeInterval(interval(for: id)).timeIntervalSince(current)
+        }.min() ?? 2
+        return min(max(soonest, 0.05), 30)
     }
 
     func refreshIfNeeded(forceFamilies: Set<HardwareMetricFamily>) {
@@ -453,17 +470,37 @@ final class HardwareMetricsService: ObservableObject {
     private var tickInterval: TimeInterval {
         let ids = requestedIDs
         guard !ids.isEmpty else { return 2 }
-        let nonBackground = Set(demands.keys.filter { $0 != .background })
-        if nonBackground.isEmpty, backgroundIntervalSeconds > 0 {
-            return max(1, backgroundIntervalSeconds)
-        }
-        if nonBackground == [.panel], panelIntervalSeconds > 0 {
-            return max(1, panelIntervalSeconds)
-        }
         return ids.map(interval(for:)).min() ?? 2
     }
 
+    /// A metric is read as often as its most demanding active consumer needs it.
+    /// A slow panel therefore never drags an icon's fast metric slower, and a
+    /// fast icon never speeds up a metric only the slow panel asked for.
     private func interval(for id: HardwareMetricID) -> TimeInterval {
+        let base = defaultMetricInterval(for: id)
+        var result: TimeInterval?
+        for (demand, metrics) in demands {
+            let owns = metrics.contains(id)
+                || (Self.isFanMetric(id) && metrics.contains(where: Self.isFanMetric))
+            guard owns else { continue }
+            let cadence: TimeInterval
+            switch demand {
+            case .panel: cadence = panelIntervalSeconds
+            case .background: cadence = backgroundIntervalSeconds
+            default: cadence = 0
+            }
+            let candidate = cadence > 0 ? cadence : base
+            result = min(result ?? candidate, candidate)
+        }
+        return max(0.2, result ?? base)
+    }
+
+    private static func isFanMetric(_ id: HardwareMetricID) -> Bool {
+        if case .fanRPM = id { return true }
+        return false
+    }
+
+    private func defaultMetricInterval(for id: HardwareMetricID) -> TimeInterval {
         switch id {
         case .cpuUsage, .gpuUsage, .memoryUsage: 2
         case .cpuTemperature, .gpuTemperature, .batteryTemperature, .fanRPM: 4

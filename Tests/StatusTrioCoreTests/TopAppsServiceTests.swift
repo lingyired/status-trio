@@ -167,7 +167,7 @@ struct TopAppsServiceTests {
             try await Task.sleep(for: .milliseconds(5))
         }
         let memorySleep = await recorder.last
-        #expect(memorySleep?.components.seconds == 3)
+        #expect(memorySleep?.components.seconds == 6)
         service.stop()
 
         let cpuSampler = FakeTopAppsSampler()
@@ -186,7 +186,7 @@ struct TopAppsServiceTests {
             try await Task.sleep(for: .milliseconds(5))
         }
         let cpuSleep = await cpuRecorder.last
-        #expect(cpuSleep?.components.seconds == 1)
+        #expect(cpuSleep?.components.seconds == 2)
         cpuService.stop()
     }
 

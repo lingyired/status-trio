@@ -1220,8 +1220,8 @@
 "hardware.monitor.kbps" = "KB/s";
 "hardware.monitor.mbps" = "MB/s";
 "hardware.monitor.gbps" = "GB/s";
-"hardware.monitor.settings.background" = "المراقبة في الخلفية";
-"hardware.monitor.settings.background.description" = "متابعة أخذ عينات مؤشرات العتاد أثناء إغلاق اللوحة حتى تُفتح ببيانات حيّة. معطّلة افتراضيًا لتوفير الطاقة.";
+"hardware.monitor.settings.background" = "الاحتفاظ بالسجل";
+"hardware.monitor.settings.background.description" = "يسجّل آخر 60 ثانية من سجل العتاد أثناء إغلاق اللوحة بمعدل تحديث اللوحة، لتُفتح صفحة التفاصيل مع اتجاه.";
 "hardware.monitor.background.off" = "إيقاف";
 "hardware.monitor.background.seconds" = "%d ث";
 "hardware.monitor.settings.panelRefresh" = "تحديث اللوحة";

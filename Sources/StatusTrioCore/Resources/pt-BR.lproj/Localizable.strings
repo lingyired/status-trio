@@ -1220,8 +1220,8 @@
 "hardware.monitor.kbps" = "KB/s";
 "hardware.monitor.mbps" = "MB/s";
 "hardware.monitor.gbps" = "GB/s";
-"hardware.monitor.settings.background" = "Monitoramento em segundo plano";
-"hardware.monitor.settings.background.description" = "Continua amostrando métricas de hardware com o painel fechado para que ele abra com dados ao vivo. Desativado por padrão para economizar energia.";
+"hardware.monitor.settings.background" = "Manter histórico";
+"hardware.monitor.settings.background.description" = "Registra os últimos 60 segundos de histórico de hardware com o painel fechado, no ritmo do painel, para abrir o detalhe com tendência.";
 "hardware.monitor.background.off" = "Desativado";
 "hardware.monitor.background.seconds" = "%d s";
 "hardware.monitor.settings.panelRefresh" = "Atualização do painel";
