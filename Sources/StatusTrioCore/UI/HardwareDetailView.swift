@@ -84,7 +84,7 @@ struct HardwareDetailView: View {
                             .font(.system(size: 22, weight: .semibold, design: .rounded))
                             .monospacedDigit()
                     }
-                    HardwareDetailProgressBar(fraction: (usage ?? 0) / 100)
+                    HardwareDetailProgressBar(fraction: (usage ?? 0) / 100, tint: accentColor)
                     HStack(spacing: 0) {
                         topMetric(localization.string(.hardwareDetailTemperature),
                                   HardwareDetailFormat.temperature(temperature))
@@ -98,11 +98,13 @@ struct HardwareDetailView: View {
                 coreCard(title: localization.string(.hardwareDetailEfficiencyCores),
                          average: detail?.groupUsage?.efficiencyAverage,
                          count: detail?.topology?.efficiencyCoreCount,
-                         frequency: detail?.frequency?.efficiencyGHz)
+                         frequency: detail?.frequency?.efficiencyGHz,
+                         tint: accentColor)
                 coreCard(title: localization.string(.hardwareDetailPerformanceCores),
                          average: detail?.groupUsage?.performanceAverage,
                          count: detail?.topology?.performanceCoreCount,
-                         frequency: detail?.frequency?.performanceGHz)
+                         frequency: detail?.frequency?.performanceGHz,
+                         tint: accentColor)
             }
             trendCard(title: localization.string(.hardwareDetailUsageTrend),
                       scale: .percent)
@@ -122,7 +124,8 @@ struct HardwareDetailView: View {
         }
     }
 
-    private func coreCard(title: String, average: Double?, count: Int?, frequency: Double?) -> some View {
+    private func coreCard(title: String, average: Double?, count: Int?, frequency: Double?,
+                          tint: Color) -> some View {
         HardwareDetailCard {
             VStack(alignment: .leading, spacing: 6) {
                 HStack(alignment: .firstTextBaseline) {
@@ -141,7 +144,7 @@ struct HardwareDetailView: View {
                         .font(.caption2).monospacedDigit().foregroundStyle(.secondary)
                 }
                 .lineLimit(1).minimumScaleFactor(0.7)
-                HardwareDetailProgressBar(fraction: (average ?? 0) / 100)
+                HardwareDetailProgressBar(fraction: (average ?? 0) / 100, tint: tint)
             }
         }
     }
@@ -172,7 +175,7 @@ struct HardwareDetailView: View {
                             .font(.system(size: 22, weight: .semibold, design: .rounded))
                             .monospacedDigit()
                     }
-                    HardwareDetailProgressBar(fraction: (usage ?? 0) / 100)
+                    HardwareDetailProgressBar(fraction: (usage ?? 0) / 100, tint: accentColor)
                     HStack(spacing: 0) {
                         topMetric(localization.string(.hardwareDetailTemperature),
                                   HardwareDetailFormat.temperature(temperature))
@@ -216,7 +219,7 @@ struct HardwareDetailView: View {
                             .font(.system(size: 22, weight: .semibold, design: .rounded))
                             .monospacedDigit()
                     }
-                    HardwareDetailProgressBar(fraction: (percent ?? 0) / 100)
+                    HardwareDetailProgressBar(fraction: (percent ?? 0) / 100, tint: accentColor)
                     HStack(spacing: 0) {
                         topMetric(localization.string(.hardwareDetailUsed),
                                   HardwareDetailFormat.bytes(detail?.usedBytes))
@@ -312,7 +315,7 @@ struct HardwareDetailView: View {
                             .font(.system(size: 22, weight: .semibold, design: .rounded))
                             .monospacedDigit()
                     }
-                    HardwareDetailProgressBar(fraction: capacity?.usedFraction ?? 0)
+                    HardwareDetailProgressBar(fraction: capacity?.usedFraction ?? 0, tint: accentColor)
                     HStack(spacing: 0) {
                         topMetric(localization.string(.hardwareDetailTotal),
                                   HardwareDetailFormat.bytes(capacity?.totalBytes))
@@ -390,6 +393,9 @@ struct HardwareDetailView: View {
         case .disk: return [.orange, .purple]
         }
     }
+
+    /// Page accent taken from the same hardware-metric colour as the trend.
+    private var accentColor: Color { trendColors.first ?? .accentColor }
 
     private func metricColor(_ metric: HardwareMonitorMetric) -> Color {
         let rgba = metricColors[metric] ?? HardwareRingColorConfiguration.recommendedBaseColor(for: metric)

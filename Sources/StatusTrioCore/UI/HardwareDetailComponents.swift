@@ -85,6 +85,7 @@ struct HardwareDetailMetricCard: View {
     let value: String
     var tertiary: String? = nil
     var progress: Double? = nil
+    var progressTint: Color = .accentColor
     var valueSize: CGFloat = 20
 
     var body: some View {
@@ -109,7 +110,7 @@ struct HardwareDetailMetricCard: View {
                         .minimumScaleFactor(0.7)
                 }
                 if let progress {
-                    HardwareDetailProgressBar(fraction: progress)
+                    HardwareDetailProgressBar(fraction: progress, tint: progressTint)
                 }
             }
         }
@@ -118,13 +119,14 @@ struct HardwareDetailMetricCard: View {
 
 struct HardwareDetailProgressBar: View {
     let fraction: Double
+    var tint: Color = .accentColor
 
     var body: some View {
         GeometryReader { geometry in
             ZStack(alignment: .leading) {
                 Capsule().fill(Color.primary.opacity(0.10))
                 Capsule()
-                    .fill(Color.accentColor.opacity(0.85))
+                    .fill(tint.opacity(0.85))
                     .frame(width: max(0, min(1, fraction)) * geometry.size.width)
             }
         }
