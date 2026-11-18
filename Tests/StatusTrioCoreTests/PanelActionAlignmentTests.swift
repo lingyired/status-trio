@@ -87,7 +87,10 @@ final class PanelActionAlignmentTests: XCTestCase {
         XCTAssertEqual(actions.count, 2, "input mute and Settings glyphs must render")
         guard actions.count == 2 else { return }
 
-        let rowCenter = probe.controlRowCenterY(excluding: actions)
+        // Measure the row center from the embedded slider control, not from the
+        // bitmap ink: with the thumb hidden until hover the slider's ink no
+        // longer anchors the vertical bounds.
+        let rowCenter = probe.subviewCenterY(where: { $0 is NSSlider })
         for (name, rect) in zip(["mute", "settings"], actions) {
             let center = try XCTUnwrap(probe.glyphCenterY(in: rect))
             XCTAssertEqual(

@@ -25,6 +25,12 @@ struct PanelAudioDeviceRow: Equatable, Identifiable, Sendable {
     /// the group can report "not available" once the read settles.
     var airPodsSpatialSupported: Bool = false
     var airPodsConversationSupported: Bool = false
+    /// True while AirPods listening-mode discovery is still running for this row
+    /// and no control has arrived yet. The row renders its final layout (a
+    /// listening-row placeholder plus chevron) instead of the "listening mode
+    /// unavailable" fallback, so the panel height does not jump when the control
+    /// arrives (#354).
+    var listeningModeIsBeingDiscovered: Bool = false
 
     var id: PanelAudioDeviceID { key }
 }

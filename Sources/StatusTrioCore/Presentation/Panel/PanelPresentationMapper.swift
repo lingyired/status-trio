@@ -158,12 +158,27 @@ enum PanelPresentationMapper {
             subtitle: subtitle,
             measurements: nil,
             symbol: .symbol(name: "cable.connector", variableValue: nil, fallback: nil),
-            tint: .secondary,
+            tint: .primary,
             accessibilityLabel: title,
             accessibilityValue: subtitle,
             showsSettings: true,
             intent: .wiredDetails
         )
+    }
+
+    /// The summary icon follows the connection state (#352): a usable link uses
+    /// the primary foreground ink (white in dark mode), an associated network
+    /// without internet warns in caution, and a radio that is off, unassociated
+    /// or unavailable stays secondary so it reads as muted rather than "on".
+    private static func wifiTint(for state: WiFiState) -> PanelTint {
+        switch state {
+        case .connected, .hotspot, .temporary, .shared:
+            return .primary
+        case .noInternet:
+            return .caution
+        case .notAssociated, .off, .unavailable:
+            return .secondary
+        }
     }
 
     private static func nonEmpty(_ value: String?) -> String? {
@@ -559,7 +574,7 @@ enum PanelPresentationMapper {
             subtitle: subtitle,
             measurements: measurements,
             symbol: wifiSymbol(wifi),
-            tint: .secondary,
+            tint: wifiTint(for: wifi.state),
             accessibilityLabel: accessibilityLabel,
             accessibilityValue: measurements ?? "",
             showsSettings: true,

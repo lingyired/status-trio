@@ -9,10 +9,11 @@ enum PanelLevelSliderMetrics {
     /// Shorter height used by the volume and mic rows so those two sliders sit
     /// tighter vertically while the brightness rows keep `controlHeight`.
     static let compactSlotHeight: CGFloat = 20
-    /// Slim capsule height for compact (volume/mic) rows.
-    static let compactBarHeight: CGFloat = 12
-    /// Visible capsule height.
-    static let barHeight: CGFloat = 16
+    /// Slim capsule height for compact (volume/mic) rows (matches the system
+    /// small slider track, 4pt).
+    static let compactBarHeight: CGFloat = 4
+    /// Visible capsule height for rows whose label lives inside the capsule.
+    static let barHeight: CGFloat = 13
     /// White thumb circle diameter.
     static let thumbDiameter: CGFloat = 18
     static var thumbRadius: CGFloat { thumbDiameter / 2 }
@@ -25,7 +26,7 @@ enum PanelLevelSliderMetrics {
     /// Gap kept between the thumb and the inline label.
     static let labelGap: CGFloat = 7
     /// Font used by the inline label.
-    static let labelFontSize: CGFloat = 9
+    static let labelFontSize: CGFloat = 8
     /// How long the label takes to move between the two sides.
     static let labelAnimationDuration: TimeInterval = 0.16
     /// How long a programmatic value change (wheel, system echo) takes to glide
@@ -110,7 +111,7 @@ enum PanelLevelSliderLabelLayout {
         return (text as NSString).size(withAttributes: attrs).width
     }
 
-    /// Decides the parked side. The leading (blue) side always wins when the
+    /// Decides the parked side. The leading (filled) side always wins when the
     /// whole text fits there; only then does the label move to the trailing
     /// side of the thumb, and if neither side fits it truncates on the roomier
     /// one.
@@ -178,11 +179,6 @@ enum PanelLevelSliderLabelLayout {
         }
     }
 
-    /// White ink over the accent fill (leading side), primary over the unfilled
-    /// track (trailing side).
-    static func usesLightText(side: Side) -> Bool {
-        side == .leading
-    }
 }
 
 /// SwiftUI wrapper exposing the reusable panel level slider.
@@ -198,7 +194,7 @@ struct PanelLevelSlider: View {
     @Binding var value: Double
     var label: String? = nil
     var isEnabled: Bool = true
-    var tint: Color = .accentColor
+    var tint: Color = .primary
     var accessibilityLabel: String? = nil
     var accessibilityValue: String? = nil
     var accessibilityHint: String? = nil
@@ -279,10 +275,13 @@ private extension PanelLevelSlider {
             // the gesture; a late system echo outside a drag applies normally
             // (the panel-level state owns echo suppression).
             if !nsView.isTracking {
-                // Glide to the new target instead of snapping, so a stream of
-                // discrete wheel notches (or a system echo) reads as continuous
-                // motion rather than a stutter.
-                nsView.animateValue(to: clamped(currentValue))
+                // A rebuilt row gets a burst of initial values; snap them until
+                // the row settles. Later programmatic changes (wheel notches,
+                // system echoes) glide so they read as continuous motion.
+                let animated = nsView.shouldAnimateProgrammaticChange(
+                    at: ProcessInfo.processInfo.systemUptime
+                )
+                nsView.setProgrammaticValue(clamped(currentValue), animated: animated)
             }
             nsView.refreshLabel(animated: true)
         }
@@ -309,7 +308,7 @@ private extension PanelLevelSlider {
 final class PanelLevelSliderView: NSSlider {
     var onValueChanged: ((Double) -> Void)?
     var onEditingChanged: ((Bool) -> Void)?
-    var fillColor: NSColor = .controlAccentColor {
+    var fillColor: NSColor = .labelColor {
         didSet {
             if !fillColor.isEqual(oldValue) { invalidateRaster() }
         }
@@ -351,6 +350,17 @@ final class PanelLevelSliderView: NSSlider {
 
     private var valueAnimation: ValueAnimation?
     private var valueAnimationTimer: Timer?
+    /// Programmatic value changes snap until this uptime, so the burst of
+    /// initial values a rebuilt row receives (draft default 0, then the real
+    /// state) lands without gliding from 0. Set when the view enters a window.
+    var animateProgrammaticChangesAfter: TimeInterval = .greatestFiniteMagnitude
+
+    func shouldAnimateProgrammaticChange(at time: TimeInterval) -> Bool {
+        // Never glide while the view is detached or still settling: a row that
+        // is being rebuilt receives its real value before it enters the window.
+        guard window != nil else { return false }
+        return time >= animateProgrammaticChangesAfter
+    }
 
     /// Marks tracking session boundaries so `mouseDown`/`mouseUp` around a
     /// super call always pair, including for keyboard navigation.
@@ -428,7 +438,14 @@ final class PanelLevelSliderView: NSSlider {
 
     override func viewWillMove(toWindow newWindow: NSWindow?) {
         super.viewWillMove(toWindow: newWindow)
+        if newWindow != nil {
+            // Rebuilt rows receive their initial values right after this; snap
+            // them instead of gliding from the local default.
+            animateProgrammaticChangesAfter =
+                ProcessInfo.processInfo.systemUptime + 0.35
+        }
         if newWindow == nil {
+            animateProgrammaticChangesAfter = .greatestFiniteMagnitude
             stopLabelAnimationTimer()
             stopValueAnimationTimer()
             // If the control is torn down mid-gesture (row rebuilt, panel
@@ -459,6 +476,27 @@ final class PanelLevelSliderView: NSSlider {
 
     var clampedDoubleValue: Double {
         min(1, max(0, doubleValue))
+    }
+
+
+    /// Maps a view-space x to a 0...1 value using the same thumb travel as the
+    /// drawing, so a track click lands the thumb where the pointer did.
+    func value(forPointX x: CGFloat) -> Double {
+        let width = effectiveTrackWidth
+        let inset = PanelLevelSliderMetrics.horizontalInset
+        let usable = width - inset * 2
+        guard usable > 0 else { return clampedDoubleValue }
+        let clampedX = min(width - inset, max(inset, x))
+        return Double((clampedX - inset) / usable)
+    }
+
+    /// Whether a click started on the knob itself (a drag) rather than on the
+    /// empty track (a jump that should glide).
+    private func isPointOnThumb(_ point: NSPoint) -> Bool {
+        let center = knobCenter(in: bounds)
+        let dx = point.x - center.x
+        let dy = point.y - center.y
+        return (dx * dx + dy * dy).squareRoot() <= PanelLevelSliderMetrics.thumbRadius
     }
 
     func barRect(in bounds: NSRect) -> NSRect {
@@ -564,7 +602,10 @@ final class PanelLevelSliderView: NSSlider {
 
     private func startLabelAnimationTimerIfNeeded() {
         guard labelAnimationTimer == nil else { return }
-        let timer = Timer(timeInterval: 1.0 / 60.0, repeats: true) { [weak self] timer in
+        let timer = Timer(
+            timeInterval: Self.animationFrameInterval,
+            repeats: true
+        ) { [weak self] timer in
             guard let self else { timer.invalidate(); return }
             self.needsDisplay = true
             if let animation = self.labelAnimation {
@@ -576,6 +617,7 @@ final class PanelLevelSliderView: NSSlider {
                 }
             }
         }
+        timer.tolerance = 0
         RunLoop.main.add(timer, forMode: .common)
         labelAnimationTimer = timer
     }
@@ -586,6 +628,22 @@ final class PanelLevelSliderView: NSSlider {
     }
 
     // MARK: Value animation.
+
+    /// Applies a programmatic value. `animated == false` snaps: used for the
+    /// first value a freshly created view receives, so returning from a detail
+    /// page cannot glide from 0 to the restored level.
+    func setProgrammaticValue(_ target: Double, animated: Bool) {
+        guard target.isFinite else { return }
+        if animated {
+            animateValue(to: target)
+            return
+        }
+        valueAnimation = nil
+        stopValueAnimationTimer()
+        doubleValue = min(1, max(0, target))
+        refreshLabel(animated: false)
+        needsDisplay = true
+    }
 
     /// Eases the drawn position toward a programmatic target. Drags never use
     /// this — the pointer owns the position while `isTracking` — so only wheel
@@ -617,6 +675,31 @@ final class PanelLevelSliderView: NSSlider {
         needsDisplay = true
     }
 
+    /// Glides the drawn thumb from an explicit start to the target. Used for a
+    /// track click: the model already holds the target, but easing the pixels
+    /// across makes the change read as motion instead of a snap. Drags never
+    /// use this — the pointer owns the position while tracking.
+    func animateValue(from start: Double, to target: Double) {
+        guard start.isFinite, target.isFinite else { return }
+        let from = min(1, max(0, start))
+        let to = min(1, max(0, target))
+        guard abs(to - from) > 0.000_1 else {
+            doubleValue = to
+            refreshLabel(animated: true)
+            needsDisplay = true
+            return
+        }
+        valueAnimation = ValueAnimation(
+            fromValue: from,
+            toValue: to,
+            startTime: ProcessInfo.processInfo.systemUptime
+        )
+        doubleValue = from
+        startValueAnimationTimerIfNeeded()
+        refreshLabel(animated: true)
+        needsDisplay = true
+    }
+
     /// Stops any in-flight glide and leaves the native value where it is. Used
     /// when a pointer/keyboard gesture takes over the control.
     func cancelValueAnimation() {
@@ -631,12 +714,21 @@ final class PanelLevelSliderView: NSSlider {
         return animation.fromValue + (animation.toValue - animation.fromValue) * Self.easeOut(progress)
     }
 
+    /// Drives both the value and label animations. 120 Hz tracks ProMotion
+    /// displays and halves the per-frame step on 60 Hz panels; zero tolerance
+    /// stops the run loop from coalescing ticks into a choppier cadence.
+    private static let animationFrameInterval: TimeInterval = 1.0 / 120.0
+
     private func startValueAnimationTimerIfNeeded() {
         guard valueAnimationTimer == nil else { return }
-        let timer = Timer(timeInterval: 1.0 / 60.0, repeats: true) { [weak self] timer in
+        let timer = Timer(
+            timeInterval: Self.animationFrameInterval,
+            repeats: true
+        ) { [weak self] timer in
             guard let self else { timer.invalidate(); return }
             self.stepValueAnimation()
         }
+        timer.tolerance = 0
         RunLoop.main.add(timer, forMode: .common)
         valueAnimationTimer = timer
     }
@@ -676,6 +768,36 @@ final class PanelLevelSliderView: NSSlider {
 
     /// Whether the slider currently owns a pointer/keyboard gesture.
     var isTracking: Bool { isGestureActive }
+
+    /// Whether the pointer is over the control. The thumb is only painted while
+    /// the pointer is inside (matching the macOS 26 slider) or a gesture owns
+    /// the control, so it stays visible for the whole drag.
+    private var isHovering = false
+    private var trackingAreaRef: NSTrackingArea?
+
+    var isThumbVisible: Bool { isHovering || isGestureActive }
+
+    func setHovering(_ hovering: Bool) {
+        guard isHovering != hovering else { return }
+        isHovering = hovering
+        needsDisplay = true
+    }
+
+    override func updateTrackingAreas() {
+        super.updateTrackingAreas()
+        if let trackingAreaRef { removeTrackingArea(trackingAreaRef) }
+        let area = NSTrackingArea(
+            rect: .zero,
+            options: [.mouseEnteredAndExited, .activeInActiveApp, .inVisibleRect],
+            owner: self,
+            userInfo: nil
+        )
+        addTrackingArea(area)
+        trackingAreaRef = area
+    }
+
+    override func mouseEntered(with event: NSEvent) { setHovering(true) }
+    override func mouseExited(with event: NSEvent) { setHovering(false) }
 
     /// Reports at most 30 times a second while a gesture is active. The native
     /// control keeps drawing every frame; writing the SwiftUI binding on each
@@ -745,6 +867,7 @@ final class PanelLevelSliderView: NSSlider {
 
         drawLabel()
 
+        guard isThumbVisible else { return }
         let center = knobCenter(in: bounds)
         let margin = PanelLevelSliderMetrics.knobRasterMargin
         knobImage?.draw(
@@ -783,7 +906,9 @@ final class PanelLevelSliderView: NSSlider {
         let trackColor = dark
             ? NSColor(white: 1.0, alpha: 0.14)
             : NSColor(white: 0.0, alpha: 0.10)
-        let barRadius = barCornerRadius
+        // Clamp to the actual bar height so a slim compact track stays a true
+        // capsule instead of inheriting the taller named-row radius.
+        let barRadius = min(barCornerRadius, bar.height / 2)
         let barSize = bar.size
 
         trackImage = Self.rasterized(size: barSize, scale: scale) { _ in
@@ -939,9 +1064,16 @@ final class PanelLevelSliderView: NSSlider {
 
     private func labelColor(side: PanelLevelSliderLabelLayout.Side) -> NSColor {
         guard isEnabled else { return .secondaryLabelColor }
-        return PanelLevelSliderLabelLayout.usesLightText(side: side)
-            ? NSColor.white.withAlphaComponent(0.95)
-            : NSColor.labelColor.withAlphaComponent(0.9)
+        // The filled (leading) portion is painted in `labelColor`, so its ink
+        // must invert it: dark text on the white fill of a dark appearance,
+        // light text on the dark fill of a light appearance. The unfilled track
+        // keeps primary label ink.
+        if side == .leading {
+            return isDarkAppearance
+                ? NSColor.black.withAlphaComponent(0.82)
+                : NSColor.white.withAlphaComponent(0.95)
+        }
+        return NSColor.labelColor.withAlphaComponent(0.9)
     }
 
     private func drawKnob() {
@@ -973,10 +1105,35 @@ final class PanelLevelSliderView: NSSlider {
     override func mouseDown(with event: NSEvent) {
         guard !isGestureActive else { return }
         cancelValueAnimation()
+        let point = convert(event.locationInWindow, from: nil)
         isGestureActive = true
         startGestureTracking()
         onEditingChanged?(true)
-        super.mouseDown(with: event)
+        if isPointOnThumb(point) {
+            // Pressing the thumb is a drag: the native tracker keeps the value
+            // under the pointer, so there is no jump to animate.
+            super.mouseDown(with: event)
+            finishActiveGesture()
+            return
+        }
+        // Track click: take over the tracking so the model jumps to the clicked
+        // value while the drawn thumb eases across, instead of the native snap.
+        _ = window?.makeFirstResponder(self)
+        let startValue = clampedDoubleValue
+        let clickedValue = value(forPointX: point.x)
+        onValueChanged?(clickedValue)
+        animateValue(from: startValue, to: clickedValue)
+        var didDrag = false
+        while let next = window?.nextEvent(matching: [.leftMouseDragged, .leftMouseUp]) {
+            if next.type == .leftMouseUp { break }
+            if !didDrag {
+                didDrag = true
+                cancelValueAnimation()
+            }
+            doubleValue = value(forPointX: convert(next.locationInWindow, from: nil).x)
+            valueDidChange(nil)
+            needsDisplay = true
+        }
         finishActiveGesture()
     }
 

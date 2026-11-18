@@ -254,6 +254,49 @@ final class StatusPanelViewModelTests: XCTestCase {
         )
     }
 
+    /// While a pointer gesture owns the volume slider, the store flags it so the
+    /// panel skips the 10 Hz level coalescer and publishes each step the slider
+    /// reports (30 Hz). Non-gesture readings still coalesce, covered above.
+    func testDraggingVolumeBypassesTheLevelCoalescer() async throws {
+        let fixture = PanelStoreFixture()
+        let panel = fixture.makePanel()
+        panel.start()
+        defer { panel.stop(); fixture.store.stop() }
+        fixture.store.start()
+        fixture.store.setPopoverVisible(true)
+
+        var publications: [Double] = []
+        var cancellables: Set<AnyCancellable> = []
+        panel.volumeControl.$volume
+            .dropFirst()
+            .sink { state in
+                if let scalar = state.scalar { publications.append(scalar) }
+            }
+            .store(in: &cancellables)
+
+        fixture.store.beginVolumeAdjustment()
+        defer { fixture.store.finishVolumeAdjustment() }
+        let levels = stride(from: 0.30, through: 0.79, by: 0.01).map { $0 }
+        for level in levels {
+            fixture.volume.send(
+                VolumeStatus(scalar: level, isMuted: false, deviceName: "Desk speakers")
+            )
+        }
+
+        let latest = try XCTUnwrap(levels.last)
+        let deadline = ContinuousClock.now + .seconds(3)
+        while panel.volume.scalar != latest, ContinuousClock.now < deadline {
+            await Task.yield()
+        }
+
+        XCTAssertEqual(panel.volume.scalar, latest)
+        XCTAssertGreaterThanOrEqual(
+            publications.count,
+            levels.count - 1,
+            "a pointer drag must publish each step instead of coalescing to ~10 Hz"
+        )
+    }
+
     func testBatteryRuntimeUpdatesTheOpenPanelWithoutPercentageChanges() async throws {
         let fixture = PanelStoreFixture()
         let panel = fixture.makePanel()

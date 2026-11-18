@@ -41,7 +41,7 @@ struct NetworkStatusView: View {
             Button(action: { activateRow() }) {
                 HStack(alignment: .center, spacing: 10) {
                     PanelSymbolView(source: state.symbol)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(state.tint.color(caution: .orange))
                         .frame(
                             width: PanelSummaryActionMetrics.hitTarget,
                             height: PanelSummaryActionMetrics.hitTarget

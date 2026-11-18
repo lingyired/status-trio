@@ -24,4 +24,14 @@ enum BluetoothIconColorResolver {
             ).color
         }
     }
+
+    /// The status panel's Bluetooth title icon uses the configured colour only
+    /// while the radio is on (#352). Every other power state returns `nil` so the
+    /// caller draws secondary ink, matching the menu bar's on/off semantics.
+    static func summarySelection(
+        for power: BluetoothRadioPower,
+        configured: BluetoothIconColorSelection
+    ) -> BluetoothIconColorSelection? {
+        power == .on ? configured : nil
+    }
 }

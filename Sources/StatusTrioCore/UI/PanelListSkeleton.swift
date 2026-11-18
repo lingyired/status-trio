@@ -14,7 +14,7 @@ enum VolumeDeviceRowMetrics {
     static let listeningModeExtraHeight: CGFloat = 22
 
     static func estimatedHeight(for row: PanelAudioDeviceRow) -> CGFloat {
-        row.listeningMode?.isControllable == true
+        row.listeningMode?.isControllable == true || row.listeningModeIsBeingDiscovered
             ? singleLineHeight + listeningModeExtraHeight
             : singleLineHeight
     }

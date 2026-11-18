@@ -112,6 +112,20 @@ final class BluetoothIconColorTests: XCTestCase {
         XCTAssertNotEqual(custom, foreground)
     }
 
+    func testSummarySelectionUsesConfiguredColourOnlyWhileRadioIsOn() {
+        for power: BluetoothRadioPower in [.on, .off, .unknown, .unavailable] {
+            let selection = BluetoothIconColorResolver.summarySelection(
+                for: power,
+                configured: .primary
+            )
+            if power == .on {
+                XCTAssertEqual(selection, .primary, "an on radio shows the configured colour")
+            } else {
+                XCTAssertNil(selection, "\(power) falls back to secondary ink")
+            }
+        }
+    }
+
     func testStorageRoundTripsAllModes() {
         for selection: BluetoothIconColorSelection in [
             .systemBlue,

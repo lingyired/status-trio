@@ -80,7 +80,7 @@ struct VolumeControlsView: View {
                 PanelLevelSlider(
                     value: volumeBinding,
                     isEnabled: state.canAdjust,
-                    tint: state.muted ? Color.secondary : Color.accentColor,
+                    tint: state.muted ? Color.secondary : Color.primary,
                     accessibilityLabel: state.sliderLabel,
                     accessibilityValue: percentageText,
                     onEditingChanged: { isEditing in
@@ -150,9 +150,17 @@ struct VolumeControlsView: View {
 
     private func handleVolumeEditing(_ isEditing: Bool) {
         if isEditing {
+            // Tell the store a pointer gesture owns the slider so the panel
+            // publishes level changes without its 10 Hz coalescer.
+            actions.beginVolumeAdjustment()
             interaction.beginEditing()
         } else {
             interaction.endEditing(identity: state.interactionIdentity)
+            // endEditing flushes the draft only on some paths; calling the
+            // finish command unconditionally also clears the gesture flag so a
+            // cancelled/invalidated drag cannot leave the panel bypassing the
+            // coalescer forever.
+            actions.finishVolumeAdjustment()
         }
     }
 

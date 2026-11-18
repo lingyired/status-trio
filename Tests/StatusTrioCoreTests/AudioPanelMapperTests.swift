@@ -631,9 +631,19 @@ final class AudioPanelMapperListeningControlTests: XCTestCase {
         let controller = BluetoothListeningModeController(
             hal: BluetoothListeningModeHAL(backend: FakeListeningModeBackend()),
             endpointProvider: EndpointProvider([]),
-            listenerBackend: FakeListeningModeListenerBackend()
+            listenerBackend: FakeListeningModeListenerBackend(),
+            // No retry budget: one attempt settles discovery immediately, so the
+            // row can reach the "unavailable" fallback in this synchronous test.
+            airPodsDiscoveryRetryDelays: []
         )
         defer { controller.stop() }
+        controller.refresh(devices: [
+            BluetoothDevice(
+                id: "AA:BB:CC:DD:EE:FF", name: "AirPods Pro 2",
+                kind: .audio, isConnected: true
+            )
+        ])
+        XCTAssertEqual(controller.airPodsDiscoveryPhase, .settled)
         let airPods = AudioOutputDevice(
             id: AudioDeviceID(42), name: "AirPods Pro 2", uid: "AA-BB-CC-DD-EE-FF:output",
             isCurrent: true, transport: .bluetooth, modelUID: "2024 4c"
@@ -650,7 +660,150 @@ final class AudioPanelMapperListeningControlTests: XCTestCase {
         XCTAssertTrue(mapped.showsDeviceList, "The unavailable explanation must remain reachable")
         let row = try XCTUnwrap(mapped.rows.first)
         XCTAssertNil(row.listeningMode)
+        XCTAssertFalse(row.listeningModeIsBeingDiscovered)
         XCTAssertFalse(try XCTUnwrap(row.listeningModeUnavailableText).isEmpty)
+    }
+
+    /// Once discovery settles with no control, an AirPods row that still has
+    /// Spatial / Conversation groups falls back to the inline layout and must not
+    /// also print "listening mode unavailable" (the too-wide `!showsExtraToggle`
+    /// condition from #354).
+    func testSettledUnavailableWithExtraGroupsShowsInlineAndNoUnavailableText() throws {
+        let localization = makeLocalization()
+        let controller = BluetoothListeningModeController(
+            hal: BluetoothListeningModeHAL(backend: FakeListeningModeBackend()),
+            endpointProvider: EndpointProvider([]),
+            listenerBackend: FakeListeningModeListenerBackend(),
+            airPodsDiscoveryRetryDelays: []
+        )
+        defer { controller.stop() }
+        controller.refresh(devices: [
+            BluetoothDevice(
+                id: "AA:BB:CC:DD:EE:FF", name: "AirPods Pro 2",
+                kind: .audio, isConnected: true
+            )
+        ])
+        XCTAssertEqual(controller.airPodsDiscoveryPhase, .settled)
+
+        let airPods = AudioOutputDevice(
+            id: AudioDeviceID(42), name: "AirPods Pro 2", uid: "AA-BB-CC-DD-EE-FF:output",
+            isCurrent: true, transport: .bluetooth, modelUID: "2024 4c"
+        )
+        let status = VolumeStatus(
+            scalar: 0.5, isMuted: false, deviceName: "AirPods Pro 2",
+            currentDevice: airPods, outputDevices: [airPods], canSetVolume: true, canMute: true
+        )
+        let row = try XCTUnwrap(
+            AudioPanelMapper.volume(
+                status, controllerAvailable: true, listeningModes: controller,
+                localization: localization
+            ).rows.first
+        )
+        XCTAssertNil(row.listeningMode)
+        XCTAssertFalse(row.listeningModeIsBeingDiscovered)
+        XCTAssertTrue(row.airPodsSpatialSupported)
+        XCTAssertTrue(row.airPodsConversationSupported)
+        XCTAssertNil(row.listeningModeUnavailableText,
+                     "With extra groups present the row goes inline and must not also say unavailable")
+        XCTAssertFalse(OutputDeviceRow.disclosesExtraGroups(
+            hasListeningMode: row.listeningMode?.isControllable == true,
+            spatial: row.airPodsSpatialSupported,
+            conversation: row.airPodsConversationSupported
+        ), "Settled-unavailable with both groups should take the inline layout")
+    }
+
+    /// Regression for #354: while AirPods endpoint discovery is still running the
+    /// row must hold its final layout (listening row placeholder + chevron) and
+    /// must NOT claim the listening mode is unavailable. Otherwise a freshly
+    /// opened panel draws the taller inline fallback and collapses when the
+    /// control arrives, flashing its height.
+    func testDiscoveryInFlightHoldsFinalLayoutAndSuppressesUnavailableText() throws {
+        let localization = makeLocalization()
+        let controller = BluetoothListeningModeController(
+            hal: BluetoothListeningModeHAL(backend: FakeListeningModeBackend()),
+            endpointProvider: EndpointProvider([]),
+            listenerBackend: FakeListeningModeListenerBackend(),
+            // Keep the readiness retry asleep for the whole test so the phase
+            // stays `.discovering` while we assert the mapped row.
+            airPodsDiscoverySleep: { _ in try await Task.sleep(for: .seconds(30)) }
+        )
+        defer { controller.stop() }
+        controller.refresh(devices: [
+            BluetoothDevice(
+                id: "AA:BB:CC:DD:EE:FF", name: "AirPods Pro 2",
+                kind: .audio, isConnected: true
+            )
+        ])
+        XCTAssertEqual(controller.airPodsDiscoveryPhase, .discovering)
+
+        let airPods = AudioOutputDevice(
+            id: AudioDeviceID(42), name: "AirPods Pro 2", uid: "AA-BB-CC-DD-EE-FF:output",
+            isCurrent: true, transport: .bluetooth, modelUID: "2024 4c"
+        )
+        let status = VolumeStatus(
+            scalar: 0.5, isMuted: false, deviceName: "AirPods Pro 2",
+            currentDevice: airPods, outputDevices: [airPods], canSetVolume: true, canMute: true
+        )
+        let mapped = AudioPanelMapper.volume(
+            status, controllerAvailable: true, listeningModes: controller,
+            localization: localization
+        )
+        let row = try XCTUnwrap(mapped.rows.first)
+        XCTAssertNil(row.listeningMode)
+        XCTAssertTrue(row.listeningModeIsBeingDiscovered)
+        XCTAssertNil(row.listeningModeUnavailableText,
+                     "Discovery in flight must not claim the mode is unavailable")
+        XCTAssertTrue(OutputDeviceRow.disclosesExtraGroups(
+            hasListeningMode: row.listeningMode?.isControllable == true
+                || row.listeningModeIsBeingDiscovered,
+            spatial: row.airPodsSpatialSupported,
+            conversation: row.airPodsConversationSupported
+        ), "Discovery must hold the chevron layout instead of the inline fallback")
+    }
+
+    /// The Settings preview is the hardware-free way to exercise this row, so it
+    /// must also hold its final layout while the synthetic control is still
+    /// pending. Otherwise the simulated build would flash exactly like #354.
+    func testPreviewRowHoldsHeightWhileSyntheticControlIsPending() throws {
+        let localization = makeLocalization()
+        let controller = BluetoothListeningModeController(
+            hal: BluetoothListeningModeHAL(backend: FakeListeningModeBackend()),
+            endpointProvider: EndpointProvider([]),
+            listenerBackend: FakeListeningModeListenerBackend()
+        )
+        defer { controller.stop() }
+        controller.previewMode = true
+        let config = ListeningModePreview.Configuration(
+            isEnabled: true, deviceName: "AirPods Pro", deviceCount: 1, languageCode: "en"
+        )
+        let previewDevices = ListeningModePreview.outputRows(for: config)
+        let status = VolumeStatus(
+            scalar: 0.4, isMuted: false, deviceName: "AirPods Pro",
+            outputDevices: previewDevices, canSetVolume: true, canMute: true
+        )
+        func map() -> VolumePanelState {
+            AudioPanelMapper.volume(
+                status, controllerAvailable: true, listeningModes: controller,
+                previewDevices: previewDevices, previewLocalization: localization,
+                localization: localization
+            )
+        }
+
+        // Before the synthetic presentation is published the row is pending.
+        let pendingRow = try XCTUnwrap(map().previewRows.first)
+        XCTAssertTrue(pendingRow.listeningModeIsBeingDiscovered)
+        XCTAssertNil(pendingRow.listeningMode)
+        let pendingHeight = VolumeDeviceRowMetrics.estimatedHeight(for: pendingRow)
+
+        controller.refresh(devices: ListeningModePreview.devices(for: config))
+
+        let resolvedRow = try XCTUnwrap(map().previewRows.first)
+        XCTAssertFalse(resolvedRow.listeningModeIsBeingDiscovered)
+        XCTAssertNotNil(resolvedRow.listeningMode)
+        XCTAssertEqual(
+            VolumeDeviceRowMetrics.estimatedHeight(for: resolvedRow), pendingHeight,
+            "The preview row must not change height when the control arrives"
+        )
     }
 
     func testAirPodsPreviewRowCarriesInlineControlsUnlessThePreferenceIsOff() {
