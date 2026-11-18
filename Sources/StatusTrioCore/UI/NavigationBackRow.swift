@@ -24,11 +24,12 @@ struct NavigationBackRow: View {
     var body: some View {
         Button(action: action) {
             HStack(alignment: .center, spacing: 8) {
-                PanelActionGlyph(systemName: isDetailHost ? "xmark" : "chevron.backward", size: 32)
+                PanelActionGlyph(systemName: isDetailHost ? "xmark" : "chevron.backward", size: isDetailHost ? 24 : 32)
                 Text(title)
                     .font(.headline.weight(panelBoldText ? .semibold : .regular))
                 Spacer(minLength: 0)
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)

@@ -35,6 +35,11 @@ final class AnchoredStatusPanel: NSPanel {
     /// handler consumed the key, for example to close an attached detail first.
     var onUnhandledEscape: (() -> Bool)?
 
+    /// Called once when the panel's fade-in begins. The controller uses it to
+    /// start an attached detail's fade at the same moment, so a restored group
+    /// appears as one surface.
+    var onRevealBegin: (() -> Void)?
+
     /// Set for the Debug background-testing route so the panel stays visible
     /// while another application remains active. The controller owns this
     /// value and leaves it false for normal interaction.
@@ -81,6 +86,7 @@ final class AnchoredStatusPanel: NSPanel {
     /// Set by `show` between ordering the window in transparent and revealing it
     /// once the first layout has settled, so a size correction never flashes.
     private var pendingReveal = false
+    private var hasNotifiedReveal = false
     /// Lock the actual selected side for this presentation. Intermediate layout
     /// heights cannot flip it; only a placement-environment change renews it.
     private var lockedResizeAnchor: StatusPanelAnchor?
@@ -265,6 +271,7 @@ final class AnchoredStatusPanel: NSPanel {
         }
         invalidateShadow()
         pendingReveal = true
+        hasNotifiedReveal = false
         DispatchQueue.main.async { [weak self] in
             self?.revealAfterSettling()
         }
@@ -274,6 +281,7 @@ final class AnchoredStatusPanel: NSPanel {
     /// Placement comes from `StatusPanelDetailPlacement`; the window only
     /// sizes itself to its measured content and keeps its top edge.
     func showAsDetail(in placement: StatusPanelDetailPlacement.Placement) {
+        let wasVisible = isVisible
         detailPlacement = placement
         anchor = nil
         anchorView = nil
@@ -285,7 +293,7 @@ final class AnchoredStatusPanel: NSPanel {
             content.view.layoutSubtreeIfNeeded()
             applyInitialContentSize()
         }
-        alphaValue = 1
+        alphaValue = wasVisible ? 1 : 0
         layoutMetrics.setPresented(true)
         if avoidsOrderFrontRegardlessForTesting {
             orderFront(nil)
@@ -293,6 +301,22 @@ final class AnchoredStatusPanel: NSPanel {
             orderFrontRegardless()
         }
         invalidateShadow()
+    }
+
+    /// Fades the attached detail in with the same curve as the summary, so a
+    /// restored group appears as one surface instead of one window after the
+    /// other.
+    func revealDetail() {
+        guard isVisible else { return }
+        guard !NSWorkspace.shared.accessibilityDisplayShouldReduceMotion else {
+            alphaValue = 1
+            return
+        }
+        NSAnimationContext.runAnimationGroup { context in
+            context.duration = 0.08
+            context.allowsImplicitAnimation = true
+            self.animator().alphaValue = 1
+        }
     }
 
     /// Hides the attached detail without running the close callback. Used when
@@ -316,6 +340,7 @@ final class AnchoredStatusPanel: NSPanel {
         pendingReveal = false
         contentViewController?.view.layoutSubtreeIfNeeded()
         applyInitialContentSize()
+        notifyRevealBegin()
         guard !NSWorkspace.shared.accessibilityDisplayShouldReduceMotion else {
             alphaValue = 1
             return
@@ -325,6 +350,12 @@ final class AnchoredStatusPanel: NSPanel {
             context.allowsImplicitAnimation = true
             self.animator().alphaValue = 1
         }
+    }
+
+    private func notifyRevealBegin() {
+        guard !hasNotifiedReveal else { return }
+        hasNotifiedReveal = true
+        onRevealBegin?()
     }
 
     override func performClose(_ sender: Any?) {

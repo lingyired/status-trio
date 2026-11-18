@@ -616,13 +616,27 @@ final class StatusBarController: NSObject {
             self.detailPanel.performClose(nil)
             return true
         }
+        // A restored side detail fades in together with the summary so the
+        // group reads as one surface instead of two windows taking turns.
+        popover.onRevealBegin = { [weak self] in
+            self?.detailPanel.revealDetail()
+        }
 
         settings.$showsPanelDetailsAlongside
             .dropFirst()
             .sink { [weak self] _ in self?.syncDetailPresentation() }
             .store(in: &detailCancellables)
-        panelViewModel.routeDidChange = { [weak self] _ in
-            self?.syncDetailPresentation()
+        panelViewModel.routeDidChange = { [weak self] route in
+            guard let self else { return }
+            // Switching from one detail to another keeps the same side window.
+            // Its content already observes the shared view model, so touching
+            // the window here would only re-order it and make the group flicker.
+            if self.detailPanel.isShown,
+               route != .summary,
+               self.settings.showsPanelDetailsAlongside {
+                return
+            }
+            self.syncDetailPresentation()
         }
         NotificationCenter.default.publisher(for: NSApplication.didChangeScreenParametersNotification)
             .sink { [weak self] _ in self?.syncDetailPresentation() }
@@ -659,8 +673,8 @@ final class StatusBarController: NSObject {
             detailPanel.avoidsOrderFrontRegardlessForTesting = popover.avoidsOrderFrontRegardlessForTesting
             detailPanel.disablesKeyWindowForTesting = popover.disablesKeyWindowForTesting
             detailPanel.showAsDetail(in: placement)
-            if popover.isKeyWindow, detailPanel.canBecomeKey {
-                detailPanel.makeKey()
+            if popover.alphaValue >= 1 {
+                detailPanel.revealDetail()
             }
         }
     }

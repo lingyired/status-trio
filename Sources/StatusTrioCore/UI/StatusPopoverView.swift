@@ -90,7 +90,7 @@ struct StatusPopoverView: View {
                 }
             }
         }
-        .padding(.top, 14)
+        .padding(.top, host == .detail ? 8 : 14)
         .padding(.horizontal, 14)
         .padding(.bottom, routeBottomPadding)
         .frame(maxWidth: .infinity, alignment: .leading)
