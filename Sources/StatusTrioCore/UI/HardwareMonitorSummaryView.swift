@@ -91,7 +91,7 @@ struct CompactSummaryInfoBar: View {
         if let onSelect, item.metric != .fan {
             Button { onSelect(item.metric) } label: {
                 HardwareSummaryMetricCell(item: item)
-                    .padding(.horizontal, 6)
+                    .padding(.horizontal, 4)
                     .contentShape(RoundedRectangle(cornerRadius: 7, style: .continuous))
             }
             .buttonStyle(.plain)
@@ -106,7 +106,7 @@ struct CompactSummaryInfoBar: View {
             }
         } else {
             HardwareSummaryMetricCell(item: item)
-                .padding(.horizontal, 6)
+                .padding(.horizontal, 4)
         }
     }
 }
@@ -121,7 +121,7 @@ struct HardwareSummaryMetricCell: View {
     static let contentHeight: CGFloat = 26
 
     var body: some View {
-        HStack(spacing: 3) {
+        HStack(spacing: 2) {
             Image(systemName: item.symbol)
                 .font(.system(size: 9, weight: .medium))
                 .foregroundStyle(.secondary)
@@ -137,6 +137,7 @@ struct HardwareSummaryMetricCell: View {
                     .font(.system(size: 9, design: .monospaced))
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
+                    .minimumScaleFactor(0.7)
             }
         }
         .frame(maxWidth: .infinity)
