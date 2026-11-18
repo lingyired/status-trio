@@ -28,6 +28,34 @@ export function validateManifest(m, tag, repo, sha) {
 export function verifyBytes(bytes, entry) {
   if (bytes.length !== Number(entry.length) || hash(bytes) !== entry.sha256) fail('Public attachment length / SHA-256 conflict; refusing overwrite');
 }
+
+/// Highest build advertised by an appcast and the version string that claims
+/// it. Used to keep a mirror from replacing a newer feed with an older tag.
+export function feedIdentity(xml) {
+  let build = null;
+  let version = null;
+  for (const item of String(xml).matchAll(/<item>([\s\S]*?)<\/item>/g)) {
+    const match = /<sparkle:version>\s*([0-9]+)\s*<\/sparkle:version>/.exec(item[1]);
+    if (!match) continue;
+    const candidate = Number(match[1]);
+    if (build === null || candidate > build) {
+      build = candidate;
+      version = /<sparkle:shortVersionString>([^<]+)<\/sparkle:shortVersionString>/.exec(item[1])?.[1] ?? null;
+    }
+  }
+  return { build, version };
+}
+
+function refuseFeedDowngrade(bytes, manifest) {
+  const identity = feedIdentity(bytes);
+  if (identity.build === null) return;
+  if (identity.build > Number(manifest.build)) {
+    fail('Gitee feed already advertises build ' + identity.build + '; refusing to replace it with older build ' + manifest.build);
+  }
+  if (identity.build === Number(manifest.build) && identity.version !== null && identity.version !== manifest.version) {
+    fail('Gitee feed already uses build ' + identity.build + ' for version ' + identity.version + '; refusing identity conflict');
+  }
+}
 export async function request(url, options = {}) {
   const { token, fetch: fetcher = fetch, method = 'GET', body, headers = {}, missing = false } = options;
   let response;
@@ -136,6 +164,7 @@ export async function synchronize(config) {
   // Gitee returns 200 [] for a missing file, unlike GitHub's 404.
   const remoteFile = Array.isArray(remoteFileValue) ? null : remoteFileValue;
   if (remoteFile && remoteFile.encoding !== 'base64') fail('Unsupported Gitee feed encoding');
+  if (remoteFile) refuseFeedDowngrade(Buffer.from(remoteFile.content, 'base64'), manifest);
   if (mode !== 'sync') {
     // Read-only modes still require an already usable public feed.
     await request(feed);
@@ -207,6 +236,7 @@ export async function synchronize(config) {
       ? await json(gt + '/contents/appcast-gitee.xml?ref=main', {missing:true})
       : null;
     const current = Array.isArray(currentValue) ? null : currentValue;
+    if (current) refuseFeedDowngrade(Buffer.from(current.content, 'base64'), manifest);
     if (remoteFile && current?.sha !== remoteFile.sha) fail('Gitee feed changed concurrently; retry same tag');
     if (!current || !Buffer.from(current.content,'base64').equals(derived)) {
       stage = 'writing Gitee feed';
