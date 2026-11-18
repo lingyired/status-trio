@@ -430,10 +430,12 @@
 "accessibility.status" = "%@, %@, %@";
 "accessibility.battery" = "Bateria %d%%";
 "accessibility.volume" = "Volume %@";
+"settings.statusCheck.title" = "Intervalo de verificação";
+"settings.quickActions.title" = "Ações rápidas";
 "settings.refreshInterval" = "Intervalo de atualização";
 "settings.refreshInterval.onBattery" = "Na bateria";
 "settings.refreshInterval.onPower" = "Conectado à energia";
-"settings.refreshInterval.description" = "Com que frequência o Status Trio verifica alterações. Atualizações mais frequentes usam mais CPU.";
+"settings.refreshInterval.description" = "Verifica periodicamente bateria, Wi-Fi e volume. Intervalos menores verificam com mais frequência.";
 "settings.refreshInterval.value" = "%d segundos";
 "settings.popup.order" = "Itens exibidos";
 "settings.popup.order.description" = "Escolha quais itens aparecem no painel de status e arraste para alterar a ordem.";
@@ -455,7 +457,7 @@
 "settings.keepAwake.helperReady" = "O auxiliar privilegiado está pronto.";
 "settings.keepAwake.helperHint" = "Ativar «Manter ativo com a tampa fechada» (ou o controle de modo de baixo consumo) instala e solicita autorização automaticamente.";
 "settings.keepAwake.allowBattery" = "Permitir na bateria";
-"settings.keepAwake.autoOff" = "Desativar com bateria fraca";
+"settings.keepAwake.autoOff" = "Desativar manter ativo com a tampa fechada com bateria fraca";
 "settings.keepAwake.onlyLid" = "Aplica-se apenas a «Manter ativo com a tampa fechada»";
 "quickActions.displaySleep" = "Manter a tela ativa";
 "quickActions.displaySleep.description" = "Impede que a tela entre em repouso quando ociosa.";
@@ -490,11 +492,11 @@
 "settings.panel.background.style.classicMaterial" = "Material clássico";
 "settings.panel.background.style.solid" = "Cor sólida";
 "settings.panel.background.style.liquidGlassUnavailable" = "Liquid Glass requer macOS 26 ou posterior.";
-"settings.panel.openBehavior.title" = "Comportamento ao abrir";
+"settings.panel.openBehavior.title" = "Detalhes e abertura";
 "settings.panel.returnsToSummaryOnOpen" = "Reabrir a última página de detalhe";
 "settings.panel.returnsToSummaryOnOpen.description" = "Quando ativado, reabrir o painel de status retorna à página de detalhe que estava visível ao fechar; caso contrário, sempre começa no resumo.";
 "settings.panel.showsDetailsAlongside" = "Mostrar detalhes ao lado";
-"settings.panel.showsDetailsAlongside.description" = "Quando ativado, as páginas de detalhe abrem à direita do painel de status; se não houver espaço à direita, abrem à esquerda.";
+"settings.panel.showsDetailsAlongside.description" = "Quando ativado, as páginas de detalhe abrem à direita do painel de status e depois à esquerda. Se não couber em nenhum lado, abrem dentro do painel.";
 "settings.popup.volumeScroll.group" = "Rolagem do painel";
 "settings.audio.volumeScroll.group" = "Rolagem do volume";
 "settings.popup.panelScroll" = "Rolar o painel para ajustar o volume";
@@ -1077,7 +1079,7 @@
 "guide.state.chargingBatteryCenter" = "Charging + Battery %";
 "guide.state.fullPowerCenter" = "Full + Power";
 "guide.state.lowBatteryInputCenter" = "Low Battery + Input";
-"settings.menuBarRightClickAction" = "Ação do clique direito";
+"settings.menuBarRightClickAction" = "Clique direito no ícone da barra de menus";
 "settings.menuBarRightClickAction.description" = "O que o ícone da barra de menus faz quando você clica com o botão direito.";
 "settings.menuBarRightClickAction.contextMenu" = "Mostrar menu de contexto";
 "settings.menuBarRightClickAction.toggleLowPowerMode" = "Alternar modo de baixo consumo";
@@ -1169,7 +1171,7 @@
 "hardware.monitor.memory" = "Uso da memória";
 "hardware.monitor.batteryTemperature" = "Temp. bateria";
 "hardware.monitor.batteryTemperature.help" = "Temperatura da bateria. A barra usa uma escala visual de 20–60 °C, não uma porcentagem de segurança.";
-"settings.tab.monitor" = "Monitor";
+"settings.tab.monitor" = "Monitor do sistema";
 "hardware.monitor.settings.showInPanel" = "Mostrar no painel";
 "hardware.monitor.settings.showInPanel.description" = "Adiciona o cartão de monitor de hardware ao painel de status.";
 "hardware.monitor.settings.metrics" = "Métricas";
@@ -1227,8 +1229,8 @@
 "hardware.monitor.settings.background.description" = "Registra os últimos 60 segundos de histórico de hardware com o painel fechado, no ritmo do painel, para abrir o detalhe com tendência.";
 "hardware.monitor.background.off" = "Desativado";
 "hardware.monitor.background.seconds" = "%d s";
-"hardware.monitor.settings.panelRefresh" = "Atualização do painel";
-"hardware.monitor.settings.panelRefresh.description" = "Com que frequência o painel é atualizado enquanto aberto. Uso e velocidades de rede/disco seguem isto; temperatura e ventoinha no máximo a cada 4 segundos. Mais rápido é mais ao vivo mas lê mais; mais lento economiza energia.";
+"hardware.monitor.settings.panelRefresh" = "Intervalo de atualização de dados de hardware";
+"hardware.monitor.settings.panelRefresh.description" = "Com que frequência os dados de hardware são atualizados com o painel aberto. Com o histórico em segundo plano, o painel fechado mantém o mesmo ritmo. Cada métrica ainda tem seu próprio limite de leitura. Mais rápido é mais ao vivo mas lê mais; mais lento economiza energia.";
 "hardware.monitor.settings.showRings" = "Mostrar anéis";
 "hardware.monitor.settings.colorTitle" = "Cores";
 "hardware.monitor.settings.resetColors" = "Redefinir cores";

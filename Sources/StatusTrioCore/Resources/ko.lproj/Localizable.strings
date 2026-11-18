@@ -430,10 +430,12 @@
 "accessibility.status" = "%@, %@, %@";
 "accessibility.battery" = "배터리 %d%%";
 "accessibility.volume" = "볼륨 %@";
+"settings.statusCheck.title" = "상태 확인 간격";
+"settings.quickActions.title" = "빠른 작업";
 "settings.refreshInterval" = "상태 새로 고침 간격";
 "settings.refreshInterval.onBattery" = "배터리 사용 시";
 "settings.refreshInterval.onPower" = "전원 연결 시";
-"settings.refreshInterval.description" = "Status Trio가 변경 사항을 확인하는 빈도입니다. 더 자주 확인하면 CPU 사용량이 늘어납니다.";
+"settings.refreshInterval.description" = "배터리, Wi-Fi, 볼륨 상태를 주기적으로 확인합니다. 간격이 짧을수록 더 자주 확인합니다.";
 "settings.refreshInterval.value" = "%d초";
 "settings.popup.order" = "표시 항목";
 "settings.popup.order.description" = "상태 패널에 표시할 항목을 선택하고 드래그하여 순서를 변경하십시오.";
@@ -455,7 +457,7 @@
 "settings.keepAwake.helperReady" = "권한 도우미가 준비되었습니다.";
 "settings.keepAwake.helperHint" = "「덮개를 닫아도 잠자지 않기」(또는 저전력 모드 제어)를 켜면 자동으로 설치 및 승인을 요청합니다.";
 "settings.keepAwake.allowBattery" = "배터리 사용 중 허용";
-"settings.keepAwake.autoOff" = "배터리 부족 시 자동 끄기";
+"settings.keepAwake.autoOff" = "배터리 부족 시 덮개 닫기 방지 끄기";
 "settings.keepAwake.onlyLid" = "「덮개를 닫아도 잠자지 않기」에만 적용";
 "quickActions.displaySleep" = "화면 켜두기";
 "quickActions.displaySleep.description" = "유휴 상태에서 디스플레이가 잠자기로 전환되지 않도록 합니다.";
@@ -490,11 +492,11 @@
 "settings.panel.background.style.classicMaterial" = "클래식 소재";
 "settings.panel.background.style.solid" = "단색";
 "settings.panel.background.style.liquidGlassUnavailable" = "리퀴드 글래스는 macOS 26 이상이 필요합니다.";
-"settings.panel.openBehavior.title" = "열 때 동작";
+"settings.panel.openBehavior.title" = "세부 정보 및 열기 방식";
 "settings.panel.returnsToSummaryOnOpen" = "마지막 세부 정보 페이지 다시 열기";
 "settings.panel.returnsToSummaryOnOpen.description" = "켜면 상태 패널을 다시 열 때 닫을 때 보던 세부 정보 페이지로 돌아갑니다. 끄면 항상 요약에서 시작합니다.";
 "settings.panel.showsDetailsAlongside" = "세부 정보를 옆에 표시";
-"settings.panel.showsDetailsAlongside.description" = "켜면 세부 정보 페이지가 상태 패널 오른쪽에 열립니다. 오른쪽에 공간이 없으면 왼쪽에 열립니다.";
+"settings.panel.showsDetailsAlongside.description" = "켜면 세부 정보 페이지가 상태 패널 오른쪽, 다음으로 왼쪽에 열립니다. 양쪽에 공간이 없으면 패널 안에 표시합니다.";
 "settings.popup.volumeScroll.group" = "패널 스크롤";
 "settings.audio.volumeScroll.group" = "음량 스크롤";
 "settings.popup.panelScroll" = "패널 스크롤로 음량 조절";
@@ -1077,7 +1079,7 @@
 "guide.state.chargingBatteryCenter" = "Charging + Battery %";
 "guide.state.fullPowerCenter" = "Full + Power";
 "guide.state.lowBatteryInputCenter" = "Low Battery + Input";
-"settings.menuBarRightClickAction" = "우클릭 동작";
+"settings.menuBarRightClickAction" = "메뉴 막대 아이콘 우클릭 동작";
 "settings.menuBarRightClickAction.description" = "메뉴 막대 아이콘을 우클릭할 때 수행할 동작입니다.";
 "settings.menuBarRightClickAction.contextMenu" = "상황 메뉴 표시";
 "settings.menuBarRightClickAction.toggleLowPowerMode" = "저전력 모드 전환";
@@ -1169,7 +1171,7 @@
 "hardware.monitor.memory" = "메모리 사용량";
 "hardware.monitor.batteryTemperature" = "배터리 온도";
 "hardware.monitor.batteryTemperature.help" = "배터리 온도입니다. 막대는 20~60°C 시각 척도이며 안전 비율이 아닙니다.";
-"settings.tab.monitor" = "모니터";
+"settings.tab.monitor" = "시스템 모니터";
 "hardware.monitor.settings.showInPanel" = "상태 패널에 표시";
 "hardware.monitor.settings.showInPanel.description" = "하드웨어 모니터 카드를 상태 패널에 추가합니다.";
 "hardware.monitor.settings.metrics" = "항목";
@@ -1227,8 +1229,8 @@
 "hardware.monitor.settings.background.description" = "패널이 닫혀 있어도 패널 갱신 주기로 최근 60초 하드웨어 기록을 저장해 세부 페이지에서 추세를 볼 수 있습니다.";
 "hardware.monitor.background.off" = "끔";
 "hardware.monitor.background.seconds" = "%d초";
-"hardware.monitor.settings.panelRefresh" = "패널 새로 고침";
-"hardware.monitor.settings.panelRefresh.description" = "패널을 열어 둔 동안의 업데이트 빈도입니다. 사용률과 네트워크·디스크 속도가 이를 따르며, 온도와 팬은 최대 4초 간격입니다. 빠를수록 더 실시간이지만 더 많이 읽고, 느릴수록 전력을 절약합니다.";
+"hardware.monitor.settings.panelRefresh" = "하드웨어 데이터 새로 고침 간격";
+"hardware.monitor.settings.panelRefresh.description" = "패널을 열어 둔 동안 하드웨어 데이터의 업데이트 빈도입니다. 백그라운드 기록이 켜져 있으면 닫힌 패널도 같은 간격을 유지합니다. 각 지표에는 고유한 읽기 하한이 있습니다. 빠를수록 더 실시간이지만 더 많이 읽고, 느릴수록 전력을 절약합니다.";
 "hardware.monitor.settings.showRings" = "링 표시";
 "hardware.monitor.settings.colorTitle" = "색상";
 "hardware.monitor.settings.resetColors" = "색상 초기화";

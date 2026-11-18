@@ -429,10 +429,12 @@
 "accessibility.status" = "%@, %@, %@";
 "accessibility.battery" = "Battery %d%%";
 "accessibility.volume" = "Volume %@";
+"settings.statusCheck.title" = "Status check interval";
+"settings.quickActions.title" = "Quick actions";
 "settings.refreshInterval" = "Status refresh interval";
 "settings.refreshInterval.onBattery" = "On battery";
 "settings.refreshInterval.onPower" = "Plugged in";
-"settings.refreshInterval.description" = "How often Status Trio checks for changes. Faster updates use more CPU.";
+"settings.refreshInterval.description" = "Periodically checks battery, Wi-Fi, and volume status. Shorter intervals check more often.";
 "settings.refreshInterval.value" = "%d seconds";
 "settings.popup.order" = "Displayed Items";
 "settings.popup.order.description" = "Choose which items appear in the status panel and drag to change their order.";
@@ -454,7 +456,7 @@
 "settings.keepAwake.helperReady" = "Privileged helper is ready.";
 "settings.keepAwake.helperHint" = "Turning on “keep awake with lid closed” (or Low Power Mode control) installs and requests approval automatically.";
 "settings.keepAwake.allowBattery" = "Allow while on battery";
-"settings.keepAwake.autoOff" = "Turn off when battery is low";
+"settings.keepAwake.autoOff" = "Turn off lid sleep prevention when battery is low";
 "settings.keepAwake.onlyLid" = "Applies only to “keep awake with lid closed”";
 "quickActions.displaySleep" = "Keep Screen Awake";
 "quickActions.displaySleep.description" = "Prevent the display from sleeping while idle.";
@@ -489,11 +491,11 @@
 "settings.panel.background.style.classicMaterial" = "Classic Material";
 "settings.panel.background.style.solid" = "Solid Color";
 "settings.panel.background.style.liquidGlassUnavailable" = "Liquid Glass requires macOS 26 or later.";
-"settings.panel.openBehavior.title" = "Opening Behavior";
+"settings.panel.openBehavior.title" = "Details & Opening";
 "settings.panel.returnsToSummaryOnOpen" = "Reopen the Last Detail Page";
 "settings.panel.returnsToSummaryOnOpen.description" = "When enabled, reopening the status panel returns to the detail page that was showing when it closed; otherwise it always starts on the summary page.";
 "settings.panel.showsDetailsAlongside" = "Show Details Alongside";
-"settings.panel.showsDetailsAlongside.description" = "When enabled, detail pages open to the right of the status panel; if there is no room on the right, they open on the left.";
+"settings.panel.showsDetailsAlongside.description" = "When enabled, detail pages open to the right of the status panel, then the left. If neither side fits, they open inside the panel.";
 "settings.popup.volumeScroll.group" = "Panel Scrolling";
 "settings.audio.volumeScroll.group" = "Volume Scrolling";
 "settings.popup.panelScroll" = "Scroll Panel to Adjust Volume";
@@ -1076,7 +1078,7 @@
 "guide.state.chargingBatteryCenter" = "Charging + Battery %";
 "guide.state.fullPowerCenter" = "Full + Power";
 "guide.state.lowBatteryInputCenter" = "Low Battery + Input";
-"settings.menuBarRightClickAction" = "Right-click action";
+"settings.menuBarRightClickAction" = "Menu bar icon right-click action";
 "settings.menuBarRightClickAction.description" = "What the menu bar icon does when you right-click it.";
 "settings.menuBarRightClickAction.contextMenu" = "Show context menu";
 "settings.menuBarRightClickAction.toggleLowPowerMode" = "Toggle Low Power Mode";
@@ -1168,7 +1170,7 @@
 "hardware.monitor.memory" = "Memory usage";
 "hardware.monitor.batteryTemperature" = "Battery temp.";
 "hardware.monitor.batteryTemperature.help" = "Battery pack temperature. The bar uses a 20–60°C visual scale, not a safety percentage.";
-"settings.tab.monitor" = "Monitor";
+"settings.tab.monitor" = "System Monitor";
 "hardware.monitor.settings.showInPanel" = "Show in status panel";
 "hardware.monitor.settings.showInPanel.description" = "Adds the hardware monitor card to the status panel.";
 "hardware.monitor.settings.metrics" = "Metrics";
@@ -1226,8 +1228,8 @@
 "hardware.monitor.settings.background.description" = "Keep the last 60 seconds of hardware history while the panel is closed, at the panel refresh rate, so a detail page opens with a trend.";
 "hardware.monitor.background.off" = "Off";
 "hardware.monitor.background.seconds" = "%d s";
-"hardware.monitor.settings.panelRefresh" = "Panel refresh";
-"hardware.monitor.settings.panelRefresh.description" = "How often the panel updates while open. Usage and network/disk speeds follow this; temperature and fan stay at most every 4 seconds. Faster is more live but reads more; slower saves power.";
+"hardware.monitor.settings.panelRefresh" = "Hardware data refresh interval";
+"hardware.monitor.settings.panelRefresh.description" = "How often hardware data updates while the panel is open. With background history on, the closed panel keeps the same cadence. Each metric still has its own read floor. Faster is more live but reads more; slower saves power.";
 "hardware.monitor.settings.showRings" = "Show rings";
 "hardware.monitor.settings.colorTitle" = "Colors";
 "hardware.monitor.settings.resetColors" = "Reset colors";

@@ -430,10 +430,12 @@
 "accessibility.status" = "%@, %@, %@";
 "accessibility.battery" = "Batería %d%%";
 "accessibility.volume" = "Volumen %@";
+"settings.statusCheck.title" = "Intervalo de comprobación";
+"settings.quickActions.title" = "Acciones rápidas";
 "settings.refreshInterval" = "Intervalo de actualización";
 "settings.refreshInterval.onBattery" = "Con batería";
 "settings.refreshInterval.onPower" = "Conectado a la corriente";
-"settings.refreshInterval.description" = "Con qué frecuencia Status Trio comprueba cambios. Una actualización más frecuente consume más CPU.";
+"settings.refreshInterval.description" = "Comprueba periódicamente el estado de la batería, el Wi-Fi y el volumen. Un intervalo más corto comprueba con más frecuencia.";
 "settings.refreshInterval.value" = "%d segundos";
 "settings.popup.order" = "Elementos mostrados";
 "settings.popup.order.description" = "Elige qué elementos aparecen en el panel de estado y arrástralos para cambiar su orden.";
@@ -455,7 +457,7 @@
 "settings.keepAwake.helperReady" = "El asistente con privilegios está listo.";
 "settings.keepAwake.helperHint" = "Activar «seguir despierto con la tapa cerrada» (o el control de modo de bajo consumo) instala y solicita autorización automáticamente.";
 "settings.keepAwake.allowBattery" = "Permitir con batería";
-"settings.keepAwake.autoOff" = "Desactivar con batería baja";
+"settings.keepAwake.autoOff" = "Desactivar el mantener activo con la tapa cerrada con batería baja";
 "settings.keepAwake.onlyLid" = "Solo se aplica a «seguir despierto con la tapa cerrada»";
 "quickActions.displaySleep" = "Mantener la pantalla activa";
 "quickActions.displaySleep.description" = "Evita que la pantalla entre en reposo cuando está inactiva.";
@@ -490,11 +492,11 @@
 "settings.panel.background.style.classicMaterial" = "Material clásico";
 "settings.panel.background.style.solid" = "Color sólido";
 "settings.panel.background.style.liquidGlassUnavailable" = "Liquid Glass requiere macOS 26 o posterior.";
-"settings.panel.openBehavior.title" = "Comportamiento al abrir";
+"settings.panel.openBehavior.title" = "Detalles y apertura";
 "settings.panel.returnsToSummaryOnOpen" = "Reabrir la última página de detalle";
 "settings.panel.returnsToSummaryOnOpen.description" = "Si se activa, al reabrir el panel de estado se vuelve a la página de detalle que estaba visible al cerrarlo; en caso contrario, siempre empieza en el resumen.";
 "settings.panel.showsDetailsAlongside" = "Mostrar detalles al lado";
-"settings.panel.showsDetailsAlongside.description" = "Si se activa, las páginas de detalle se abren a la derecha del panel de estado; si no hay espacio a la derecha, se abren a la izquierda.";
+"settings.panel.showsDetailsAlongside.description" = "Si se activa, las páginas de detalle se abren a la derecha del panel de estado y luego a la izquierda. Si no cabe en ningún lado, se abren dentro del panel.";
 "settings.popup.volumeScroll.group" = "Desplazamiento del panel";
 "settings.audio.volumeScroll.group" = "Desplazamiento de volumen";
 "settings.popup.panelScroll" = "Desplazar el panel para ajustar el volumen";
@@ -1077,7 +1079,7 @@
 "guide.state.chargingBatteryCenter" = "Charging + Battery %";
 "guide.state.fullPowerCenter" = "Full + Power";
 "guide.state.lowBatteryInputCenter" = "Low Battery + Input";
-"settings.menuBarRightClickAction" = "Acción del clic derecho";
+"settings.menuBarRightClickAction" = "Clic derecho en el icono de la barra de menús";
 "settings.menuBarRightClickAction.description" = "Qué hace el icono de la barra de menús al hacer clic derecho.";
 "settings.menuBarRightClickAction.contextMenu" = "Mostrar menú contextual";
 "settings.menuBarRightClickAction.toggleLowPowerMode" = "Alternar modo de bajo consumo";
@@ -1169,7 +1171,7 @@
 "hardware.monitor.memory" = "Uso de memoria";
 "hardware.monitor.batteryTemperature" = "Temp. batería";
 "hardware.monitor.batteryTemperature.help" = "Temperatura de la batería. La barra usa una escala visual de 20–60 °C, no un porcentaje de seguridad.";
-"settings.tab.monitor" = "Monitor";
+"settings.tab.monitor" = "Monitor del sistema";
 "hardware.monitor.settings.showInPanel" = "Mostrar en el panel";
 "hardware.monitor.settings.showInPanel.description" = "Añade la tarjeta de monitor de hardware al panel de estado.";
 "hardware.monitor.settings.metrics" = "Métricas";
@@ -1227,8 +1229,8 @@
 "hardware.monitor.settings.background.description" = "Registra los últimos 60 segundos de historial de hardware con el panel cerrado, al ritmo del panel, para abrir el detalle con tendencia.";
 "hardware.monitor.background.off" = "Desactivado";
 "hardware.monitor.background.seconds" = "%d s";
-"hardware.monitor.settings.panelRefresh" = "Actualización del panel";
-"hardware.monitor.settings.panelRefresh.description" = "Con qué frecuencia se actualiza el panel mientras está abierto. El uso y las velocidades de red/disco siguen esto; la temperatura y el ventilador como máximo cada 4 segundos. Más rápido es más en vivo pero lee más; más lento ahorra energía.";
+"hardware.monitor.settings.panelRefresh" = "Intervalo de actualización de datos de hardware";
+"hardware.monitor.settings.panelRefresh.description" = "Con qué frecuencia se actualizan los datos de hardware mientras el panel está abierto. Con el historial en segundo plano, el panel cerrado mantiene el mismo ritmo. Cada métrica conserva su propio límite de lectura. Más rápido es más en vivo pero lee más; más lento ahorra energía.";
 "hardware.monitor.settings.showRings" = "Mostrar anillos";
 "hardware.monitor.settings.colorTitle" = "Colores";
 "hardware.monitor.settings.resetColors" = "Restablecer colores";

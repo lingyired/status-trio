@@ -430,10 +430,12 @@
 "accessibility.status" = "%@, %@, %@";
 "accessibility.battery" = "البطارية %d%%";
 "accessibility.volume" = "مستوى الصوت %@";
+"settings.statusCheck.title" = "فترة فحص الحالة";
+"settings.quickActions.title" = "إجراءات سريعة";
 "settings.refreshInterval" = "فترة تحديث الحالة";
 "settings.refreshInterval.onBattery" = "على البطارية";
 "settings.refreshInterval.onPower" = "متصل بالطاقة";
-"settings.refreshInterval.description" = "عدد مرات تحقق Status Trio من التغييرات. تؤدي التحديثات الأكثر تكرارًا إلى استخدام CPU أكبر.";
+"settings.refreshInterval.description" = "يفحص حالة البطارية وWi-Fi والصوت دوريًا. الفواصل الأقصر تفحص أكثر.";
 "settings.refreshInterval.value" = "%d ثوانٍ";
 "settings.popup.order" = "عناصر لوحة الحالة";
 "settings.popup.order.description" = "اختر العناصر التي تظهر في لوحة الحالة واسحب لتغيير ترتيبها.";
@@ -455,7 +457,7 @@
 "settings.keepAwake.helperReady" = "المساعد المميز جاهز.";
 "settings.keepAwake.helperHint" = "تشغيل «البقاء مستيقظًا عند إغلاق الغطاء» (أو التحكم في وضع الطاقة المنخفضة) يثبّت المساعد ويطلب الإذن تلقائيًا.";
 "settings.keepAwake.allowBattery" = "السماح أثناء استخدام البطارية";
-"settings.keepAwake.autoOff" = "إيقاف عند انخفاض البطارية";
+"settings.keepAwake.autoOff" = "إيقاف منع النوم عند إغلاق الغطاء عند انخفاض البطارية";
 "settings.keepAwake.onlyLid" = "ينطبق فقط على «البقاء مستيقظًا عند إغلاق الغطاء»";
 "quickActions.displaySleep" = "إبقاء الشاشة مستيقظة";
 "quickActions.displaySleep.description" = "منع الشاشة من الدخول في وضع النوم أثناء الخمول.";
@@ -490,11 +492,11 @@
 "settings.panel.background.style.classicMaterial" = "مادة كلاسيكية";
 "settings.panel.background.style.solid" = "لون موحّد";
 "settings.panel.background.style.liquidGlassUnavailable" = "يتطلب Liquid Glass نظام macOS 26 أو أحدث.";
-"settings.panel.openBehavior.title" = "سلوك الفتح";
+"settings.panel.openBehavior.title" = "التفاصيل وطريقة الفتح";
 "settings.panel.returnsToSummaryOnOpen" = "إعادة فتح آخر صفحة تفاصيل";
 "settings.panel.returnsToSummaryOnOpen.description" = "عند التفعيل، تعود لوحة الحالة عند إعادة فتحها إلى صفحة التفاصيل التي كانت معروضة عند إغلاقها؛ وإلا فتبدأ دائمًا من النظرة العامة.";
 "settings.panel.showsDetailsAlongside" = "إظهار التفاصيل بجانب اللوحة";
-"settings.panel.showsDetailsAlongside.description" = "عند التفعيل، تُفتح صفحات التفاصيل على يمين لوحة الحالة؛ وإذا لم تكن هناك مساحة على اليمين، تُفتح على اليسار.";
+"settings.panel.showsDetailsAlongside.description" = "عند التفعيل، تُفتح صفحات التفاصيل يمين لوحة الحالة ثم يسارها. وإذا لم يتسع أي جانب، تُفتح داخل اللوحة.";
 "settings.popup.volumeScroll.group" = "تمرير اللوحة";
 "settings.audio.volumeScroll.group" = "تمرير مستوى الصوت";
 "settings.popup.panelScroll" = "تمرير اللوحة لضبط مستوى الصوت";
@@ -1077,7 +1079,7 @@
 "guide.state.chargingBatteryCenter" = "Charging + Battery %";
 "guide.state.fullPowerCenter" = "Full + Power";
 "guide.state.lowBatteryInputCenter" = "Low Battery + Input";
-"settings.menuBarRightClickAction" = "إجراء النقر بالزر الأيمن";
+"settings.menuBarRightClickAction" = "النقر بالزر الأيمن على رمز شريط القوائم";
 "settings.menuBarRightClickAction.description" = "ما يفعله رمز شريط القوائم عند النقر عليه بزر الفأرة الأيمن.";
 "settings.menuBarRightClickAction.contextMenu" = "إظهار قائمة السياق";
 "settings.menuBarRightClickAction.toggleLowPowerMode" = "تبديل وضع الطاقة المنخفضة";
@@ -1169,7 +1171,7 @@
 "hardware.monitor.memory" = "استخدام الذاكرة";
 "hardware.monitor.batteryTemperature" = "حرارة البطارية";
 "hardware.monitor.batteryTemperature.help" = "درجة حرارة البطارية. يستخدم الشريط مقياسًا مرئيًا من 20 إلى 60 درجة مئوية وليس نسبة أمان.";
-"settings.tab.monitor" = "المراقبة";
+"settings.tab.monitor" = "مراقبة النظام";
 "hardware.monitor.settings.showInPanel" = "إظهار في لوحة الحالة";
 "hardware.monitor.settings.showInPanel.description" = "يضيف بطاقة مراقبة العتاد إلى لوحة الحالة.";
 "hardware.monitor.settings.metrics" = "المؤشرات";
@@ -1227,8 +1229,8 @@
 "hardware.monitor.settings.background.description" = "يسجّل آخر 60 ثانية من سجل العتاد أثناء إغلاق اللوحة بمعدل تحديث اللوحة، لتُفتح صفحة التفاصيل مع اتجاه.";
 "hardware.monitor.background.off" = "إيقاف";
 "hardware.monitor.background.seconds" = "%d ث";
-"hardware.monitor.settings.panelRefresh" = "تحديث اللوحة";
-"hardware.monitor.settings.panelRefresh.description" = "مدى تكرار تحديث اللوحة أثناء فتحها. يتبع معدل الاستخدام وسرعات الشبكة/القرص هذا التكرار؛ أما الحرارة والمراوح فبحد أقصى كل 4 ثوانٍ. الأسرع أكثر حيوية لكنه يقرأ أكثر؛ الأبطأ يوفر الطاقة.";
+"hardware.monitor.settings.panelRefresh" = "فترة تحديث بيانات العتاد";
+"hardware.monitor.settings.panelRefresh.description" = "عدد مرات تحديث بيانات العتاد أثناء فتح اللوحة. عند تفعيل السجل في الخلفية، تحافظ اللوحة المغلقة على الإيقاع نفسه. ولكل مقياس حد قراءة خاص به. الأسرع أكثر حيوية لكنه يقرأ أكثر؛ الأبطأ يوفر الطاقة.";
 "hardware.monitor.settings.showRings" = "إظهار الحلقات";
 "hardware.monitor.settings.colorTitle" = "الألوان";
 "hardware.monitor.settings.resetColors" = "إعادة تعيين الألوان";
