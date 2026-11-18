@@ -486,10 +486,7 @@ struct HardwareDetailView: View {
                     case .percent: return HardwareDetailFormat.percent(value)
                     case .auto: return HardwareDetailFormat.rate(value)
                     }
-                },
-                seriesMaximums: kind == .network
-                    ? [downloadCapMbps * 125_000, uploadCapMbps * 125_000]
-                    : [])
+                })
             Text(title)
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
