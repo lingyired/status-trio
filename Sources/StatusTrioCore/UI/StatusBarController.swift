@@ -606,8 +606,10 @@ final class StatusBarController: NSObject {
     private func configureDetailPanel() {
         detailPanel.onClose = { [weak self] in
             guard let self, !self.isDetailPanelClosing else { return }
-            // Escape in the detail window ends the detail page, not the group.
+            // Escape in the detail window ends the detail page, not the group,
+            // and returns focus to the summary it came from.
             self.panelViewModel.showSummaryPage()
+            if self.popover.isShown { self.popover.makeKey() }
         }
         popover.onUnhandledEscape = { [weak self] in
             guard let self, self.detailPanel.isShown else { return false }
