@@ -303,6 +303,7 @@ final class AnchoredStatusPanel: NSPanel {
         layoutMetrics.setPresented(false)
         orderOut(nil)
     }
+
     /// Runs one runloop turn after `show`, lays the content out once more, applies
     /// any corrected size while still transparent, and fades the panel in. A
     /// single, short fade reads as the panel simply appearing, rather than a
