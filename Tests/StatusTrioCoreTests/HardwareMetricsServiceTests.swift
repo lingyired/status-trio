@@ -634,4 +634,47 @@ final class HardwareMetricsServiceTests: XCTestCase {
         XCTAssertEqual(service.intervalForTesting(.networkDownload), 1)
         service.stopAll()
     }
+
+    func testSwitchingDetailDropsLatePayloadFromPreviousPage() async {
+        let clock = Clock()
+        let recorder = Recorder()
+        let service = HardwareMetricsService(automaticScheduling: false, now: { clock.date },
+                                             reader: recorder.waitingReader())
+        service.begin(.panel, metrics: [.gpuUsage, .memoryUsage])
+        await awaitReadingStarted(recorder)
+
+        service.setDetailDemand(.gpu)
+        service.setDetailDemand(.memory)
+        var late = HardwareMetricsSnapshot.empty
+        late.gpuDetail = GPUDetailReading(deviceName: "Apple M3 Max", usage: 37,
+                                          rendererUtilization: 42, tilerUtilization: 35,
+                                          inUseSystemMemoryBytes: 4_200_000_000, sampledAt: clock.date)
+        recorder.continuations[0].resume(returning: late)
+        await drain(80)
+
+        XCTAssertNil(service.observable.snapshot.gpuDetail,
+                     "a read started for the previous detail must not restore its payload")
+        XCTAssertNil(service.observable.snapshot.memoryDetail)
+        if recorder.calls.count > 1, recorder.continuations.count > 1 {
+            recorder.continuations[1].resume(returning: .empty)
+            await drain()
+        }
+        service.stopAll()
+    }
+
+    func testSlowReadParksTheLoopInsteadOfPollingEvery50ms() async {
+        let clock = Clock()
+        let recorder = Recorder()
+        let service = HardwareMetricsService(automaticScheduling: false, now: { clock.date },
+                                             reader: recorder.waitingReader())
+        service.begin(.panel, metrics: [.cpuUsage])
+        await awaitReadingStarted(recorder)
+        clock.advance(3)
+
+        XCTAssertEqual(service.currentWakeDelayForTesting, 30,
+                       "an overdue metric must not spin the main actor while the read is outstanding")
+        recorder.continuations[0].resume(returning: .empty)
+        await drain()
+        service.stopAll()
+    }
 }

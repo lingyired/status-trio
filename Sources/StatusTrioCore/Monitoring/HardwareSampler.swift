@@ -37,6 +37,22 @@ final class HardwareSampler: @unchecked Sendable {
         queue.async { self.networkReader.resetSession() }
     }
 
+    /// Detail payloads are only built for families that are actually due this
+    /// tick. Building a page from a tick that did not read its metric would
+    /// overwrite the last good payload with nil (or perturb GPU interval math).
+    static func detailKindsToBuild(_ requested: Set<HardwareDetailKind>,
+                                  ids: Set<HardwareMetricID>) -> Set<HardwareDetailKind> {
+        requested.filter { kind in
+            switch kind {
+            case .cpu: return ids.contains(.cpuUsage)
+            case .gpu: return ids.contains(.gpuUsage)
+            case .memory: return ids.contains(.memoryUsage)
+            case .network: return true
+            case .disk: return ids.contains(.diskRead) || ids.contains(.diskWrite)
+            }
+        }
+    }
+
     /// `details` selects which structured detail payloads to build this tick; the
     /// plain metric samples still follow `ids`, so summary consumers are unaffected.
     func read(ids: Set<HardwareMetricID>, at date: Date,
@@ -46,11 +62,12 @@ final class HardwareSampler: @unchecked Sendable {
             queue.async {
                 let first = !self.hasAttemptedCPURead
                 let wantsFrequency = includeCPUFrequency && ids.contains(.cpuUsage)
+                let detailKinds = Self.detailKindsToBuild(details, ids: ids)
                 // GPU utilisation counts render work over the interval since the
                 // last query; querying IOAccelerator twice in a row makes the
                 // second read see an empty interval and report 0%. Read once and
                 // derive both the plain sample and the detail from it.
-                let wantsGPUDetail = details.contains(.gpu)
+                let wantsGPUDetail = detailKinds.contains(.gpu)
                 let gpuDetail: GPUDetailReading? = wantsGPUDetail
                     ? self.gpuReader.readDetail(at: date) : nil
                 let gpuReading: GPUReading? = gpuDetail.flatMap { detail in
@@ -79,13 +96,13 @@ final class HardwareSampler: @unchecked Sendable {
                 if let gpuDetail {
                     snapshot.gpuDetail = gpuDetail
                 }
-                if details.contains(.memory) {
+                if detailKinds.contains(.memory) {
                     snapshot.memoryDetail = self.memoryReader.readDetail(at: date)
                 }
-                if details.contains(.network) {
+                if detailKinds.contains(.network) {
                     snapshot.networkDetail = self.networkReader.detailReading(from: nil, at: date)
                 }
-                if details.contains(.disk) {
+                if detailKinds.contains(.disk) {
                     let capacity = DiskCapacityReader.read(at: date)
                     snapshot.diskDetail = DiskDetailReading(
                         capacity: capacity,

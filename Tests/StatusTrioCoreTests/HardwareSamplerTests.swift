@@ -173,6 +173,17 @@ final class HardwareSamplerTests: XCTestCase {
         XCTAssertEqual(snapshot[.diskWrite].availability, .collecting)
     }
 
+    func testDetailPayloadsOnlyBuildForThisTicksDueFamilies() {
+        XCTAssertEqual(HardwareSampler.detailKindsToBuild([.gpu, .memory, .disk], ids: [.cpuUsage]), Set<HardwareDetailKind>())
+        XCTAssertEqual(HardwareSampler.detailKindsToBuild([.gpu], ids: [.gpuUsage]), [.gpu])
+        XCTAssertEqual(HardwareSampler.detailKindsToBuild([.gpu], ids: [.gpuTemperature]), Set<HardwareDetailKind>())
+        XCTAssertEqual(HardwareSampler.detailKindsToBuild([.memory], ids: [.memoryUsage]), [.memory])
+        XCTAssertEqual(HardwareSampler.detailKindsToBuild([.disk], ids: [.diskRead]), [.disk])
+        XCTAssertEqual(HardwareSampler.detailKindsToBuild([.disk], ids: [.diskWrite]), [.disk])
+        XCTAssertEqual(HardwareSampler.detailKindsToBuild([.disk], ids: [.cpuUsage]), Set<HardwareDetailKind>())
+        XCTAssertEqual(HardwareSampler.detailKindsToBuild([.network], ids: [.cpuUsage]), [.network])
+    }
+
     private func sensors(cpu: Double? = nil, gpu: Double? = nil, battery: Double? = nil,
                          fanCount: Int? = nil, fans: [FanReading] = []) -> SensorReading {
         SensorReading(cpuTemperature: cpu, cpuTemperatureSource: cpu == nil ? nil : .average(2),

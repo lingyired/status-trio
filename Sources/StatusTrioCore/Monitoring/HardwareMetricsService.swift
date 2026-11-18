@@ -201,6 +201,9 @@ final class HardwareMetricsService: ObservableObject {
     var currentTickIntervalForTesting: TimeInterval { tickInterval }
     /// Effective cadence for one metric after mixing every active consumer.
     func intervalForTesting(_ id: HardwareMetricID) -> TimeInterval { interval(for: id) }
+    /// The delay the scheduler would use next — used to prove a slow read parks
+    /// the loop instead of spinning at the 50 ms floor.
+    var currentWakeDelayForTesting: TimeInterval { nextWakeDelay() }
 
     private let reader: Reader?
     private let now: () -> Date
@@ -238,9 +241,15 @@ final class HardwareMetricsService: ObservableObject {
         guard kind != detailKind else { return }
         let previous = detailKind
         detailKind = kind
+        // A read already in flight captured the previous page. Invalidate its
+        // token so it cannot merge that page's payload back after the clear.
+        generation &+= 1
         if previous == .cpu, kind != .cpu { sampler.releaseFrequencyReader() }
         if previous == .network, kind != .network { sampler.resetNetworkSession() }
         observable.clearDetailPayloads(except: kind)
+        if kind != nil, isRunning, !isAsleep {
+            forcedIDs.formUnion(requestedIDs)
+        }
     }
 
     /// Forces the next tick to read every currently demanded ID (used when a
@@ -348,6 +357,10 @@ final class HardwareMetricsService: ObservableObject {
     /// tick. A pending read (inFlight) parks the loop until it finishes, which
     /// then re-enters through the completion path.
     private func nextWakeDelay() -> TimeInterval {
+        // A pending read is bounded by its own timeout; waking every 50 ms while
+        // its metric is overdue only spins the main actor. Completion restarts
+        // the loop at the freshly computed cadence.
+        if inFlight { return 30 }
         let ids = requestedIDs
         guard !ids.isEmpty else { return 2 }
         let current = now()
@@ -408,6 +421,7 @@ final class HardwareMetricsService: ObservableObject {
                 if self.isRunning, !self.isAsleep {
                     self.forcedIDs.formUnion(self.requestedIDs)
                     self.refreshIfNeeded(forceFamilies: [])
+                    self.restartLoopAfterRead()
                 }
                 return
             }
@@ -452,6 +466,7 @@ final class HardwareMetricsService: ObservableObject {
             if let detail = snapshot.diskDetail { merged.diskDetail = detail }
             self.observable.update(merged, now: self.now())
             self.refreshIfNeeded(forceFamilies: [])
+            self.restartLoopAfterRead()
         }
     }
 
@@ -464,7 +479,17 @@ final class HardwareMetricsService: ObservableObject {
         if isRunning, !isAsleep {
             forcedIDs.formUnion(requestedIDs)
             refreshIfNeeded(forceFamilies: [])
+            restartLoopAfterRead()
         }
+    }
+
+    /// Cancel the sleeping scheduler and let it recompute from the completion
+    /// path. Without this a read that finished early would wait out the parked
+    /// 30 s delay before the next sample.
+    private func restartLoopAfterRead() {
+        loopTask?.cancel()
+        loopTask = nil
+        startLoopIfNeeded()
     }
 
     private var tickInterval: TimeInterval {
