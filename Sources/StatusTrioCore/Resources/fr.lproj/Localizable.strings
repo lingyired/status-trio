@@ -491,8 +491,10 @@
 "settings.panel.background.style.solid" = "Couleur unie";
 "settings.panel.background.style.liquidGlassUnavailable" = "Liquid Glass nécessite macOS 26 ou ultérieur.";
 "settings.panel.openBehavior.title" = "Comportement à l’ouverture";
-"settings.panel.returnsToSummaryOnOpen" = "Toujours s’ouvrir sur la page de résumé";
-"settings.panel.returnsToSummaryOnOpen.description" = "Lorsque cette option est activée, le panneau d’état s’ouvre toujours sur la page de résumé ; sinon, il conserve la dernière page consultée.";
+"settings.panel.returnsToSummaryOnOpen" = "Rouvrir la dernière page de détail";
+"settings.panel.returnsToSummaryOnOpen.description" = "Lorsque cette option est activée, rouvrir le panneau d’état revient à la page de détail affichée lors de sa fermeture ; sinon, il démarre toujours sur la vue d’ensemble.";
+"settings.panel.showsDetailsAlongside" = "Afficher les détails à côté";
+"settings.panel.showsDetailsAlongside.description" = "Lorsque cette option est activée, les pages de détail s’ouvrent à droite du panneau d’état ; s’il n’y a pas de place à droite, elles s’ouvrent à gauche.";
 "settings.popup.volumeScroll.group" = "Défilement du panneau";
 "settings.audio.volumeScroll.group" = "Défilement du volume";
 "settings.popup.panelScroll" = "Faire défiler le panneau pour régler le volume";
@@ -508,6 +510,7 @@
 "settings.popup.volumeScroll.direction.down" = "Vers le bas";
 
 "common.back" = "Retour";
+"common.closeDetail" = "Fermer le détail";
 "common.cancel" = "Annuler";
 "wifi.power" = "Wi-Fi";
 "wifi.refresh" = "Actualiser les réseaux";

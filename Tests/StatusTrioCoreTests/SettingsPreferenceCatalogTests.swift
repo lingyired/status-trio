@@ -13,6 +13,7 @@ final class SettingsPreferenceCatalogTests: XCTestCase {
                 "menuBarRightClickAction", "iconSize", "batteryOnBatteryMarker",
                 "batteryChargingMarker", "batteryConnectedMarker", "batteryNoBatteryMarker",
                 "showsBatteryPowerFlow", "showsBatteryPowerInfoBar", "showsHighEnergyApps",
+                "showsPanelDetailsAlongside",
                 "highEnergyAppsRefreshIntervalSeconds", "showsChargeToFullNowButton",
                 "showsMenuBarChargingEffect", "showsDockChargingEffect", "showsChargingBoltHeartbeat",
                 "batterySplitGapProgress", "usesBatteryStatusColors", "monochromeChargingRing",
@@ -373,6 +374,51 @@ final class SettingsPreferenceCatalogTests: XCTestCase {
             XCTAssertEqual(store.popupSectionOrder, reversed)
             XCTAssertEqual(store.enabledPopupSections, SettingsStore.defaultEnabledPopupSections)
         }
+    }
+
+    func testDetailPresentationPreferencesRoundTrip() {
+        withStore { store, defaults in
+            XCTAssertFalse(store.showsPanelDetailsAlongside)
+            XCTAssertTrue(store.restoresPanelDetailsOnOpen)
+
+            let initial = SettingsPreferenceCatalog.snapshot(store)
+            XCTAssertEqual(initial["showsPanelDetailsAlongside"], .bool(false))
+            XCTAssertEqual(initial["returnsToSummaryOnOpen"], .bool(false))
+
+            store.showsPanelDetailsAlongside = true
+            store.restoresPanelDetailsOnOpen = false
+            XCTAssertTrue(store.returnsToSummaryOnOpen)
+            XCTAssertFalse(store.restoresPanelDetailsOnOpen)
+
+            let saved = SettingsPreferenceCatalog.snapshot(store)
+            let reopened = SettingsStore(defaults: defaults, systemChargeLimit: { nil })
+            XCTAssertTrue(reopened.showsPanelDetailsAlongside)
+            XCTAssertTrue(reopened.returnsToSummaryOnOpen)
+            XCTAssertFalse(reopened.restoresPanelDetailsOnOpen)
+
+            SettingsPreferenceCatalog.apply(saved, to: reopened)
+            XCTAssertTrue(reopened.showsPanelDetailsAlongside)
+            XCTAssertTrue(reopened.returnsToSummaryOnOpen)
+            XCTAssertFalse(reopened.restoresPanelDetailsOnOpen)
+        }
+    }
+
+    func testDetailReopenToggleInvertsLegacyPreference() {
+        withStore { store, _ in
+            XCTAssertTrue(store.restoresPanelDetailsOnOpen)
+            store.restoresPanelDetailsOnOpen = false
+            XCTAssertTrue(store.returnsToSummaryOnOpen)
+
+            store.returnsToSummaryOnOpen = false
+            XCTAssertTrue(store.restoresPanelDetailsOnOpen)
+        }
+    }
+
+    func testSideDetailsPreferenceUsesTheShippedFallbackForInvalidValues() {
+        let result = SettingsPreferenceCatalog.prepare(["showsPanelDetailsAlongside": .string("yes")])
+
+        XCTAssertEqual(result.values["showsPanelDetailsAlongside"], .bool(false))
+        XCTAssertEqual(result.warnings.count, 1)
     }
 
     private func withStore(_ body: (SettingsStore, UserDefaults) -> Void) {

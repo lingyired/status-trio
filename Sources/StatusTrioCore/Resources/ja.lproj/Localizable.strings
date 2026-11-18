@@ -491,8 +491,10 @@
 "settings.panel.background.style.solid" = "単色";
 "settings.panel.background.style.liquidGlassUnavailable" = "リキッドグラスには macOS 26 以降が必要です。";
 "settings.panel.openBehavior.title" = "開くときの動作";
-"settings.panel.returnsToSummaryOnOpen" = "開くたびに常に概要ページへ戻る";
-"settings.panel.returnsToSummaryOnOpen.description" = "有効にすると、ステータスパネルは常に概要ページで開きます。無効の場合は、最後に表示していたページが保持されます。";
+"settings.panel.returnsToSummaryOnOpen" = "最後の詳細ページを再度開く";
+"settings.panel.returnsToSummaryOnOpen.description" = "有効にすると、ステータスパネルを開き直したときに、閉じる前に表示していた詳細ページに戻ります。無効の場合は常に概要から始まります。";
+"settings.panel.showsDetailsAlongside" = "詳細を横に表示";
+"settings.panel.showsDetailsAlongside.description" = "有効にすると、詳細ページがステータスパネルの右側に開きます。右側にスペースがない場合は左側に開きます。";
 "settings.popup.volumeScroll.group" = "パネルのスクロール";
 "settings.audio.volumeScroll.group" = "音量スクロール";
 "settings.popup.panelScroll" = "パネルのスクロールで音量を調整";
@@ -508,6 +510,7 @@
 "settings.popup.volumeScroll.direction.down" = "下スクロール";
 
 "common.back" = "戻る";
+"common.closeDetail" = "詳細を閉じる";
 "common.cancel" = "キャンセル";
 "wifi.power" = "Wi-Fi";
 "wifi.refresh" = "ネットワークを更新";

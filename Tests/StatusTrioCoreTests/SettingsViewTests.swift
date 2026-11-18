@@ -6,6 +6,24 @@ import XCTest
 
 @MainActor
 final class SettingsViewTests: XCTestCase {
+    func testPanelDetailCopyMatchesTheSideBySideBehaviour() throws {
+        let suite = "SettingsViewTests.panelDetailCopy.\(UUID().uuidString)"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let localization = Localization(defaults: defaults, preferredLanguages: ["zh-Hans"])
+        XCTAssertEqual(localization.resolvedLanguage, .simplifiedChinese)
+
+        XCTAssertEqual(localization.string(.settingsPanelShowsDetailsAlongside), "并排显示详情")
+        let alongside = localization.string(.settingsPanelShowsDetailsAlongsideDescription)
+        XCTAssertTrue(alongside.contains("右侧"))
+        XCTAssertTrue(alongside.contains("左侧"))
+        XCTAssertEqual(localization.string(.settingsPanelReturnsToSummaryOnOpen), "重新打开时恢复详情页")
+        let reopen = localization.string(.settingsPanelReturnsToSummaryOnOpenDescription)
+        XCTAssertTrue(reopen.contains("上次收起"))
+        XCTAssertTrue(reopen.contains("详情"))
+        XCTAssertEqual(localization.string(.commonCloseDetail), "关闭详情")
+    }
+
     func testSettingsViewDimensionsAndSections() {
         XCTAssertEqual(SettingsView.Section.allCases.count, 11)
         XCTAssertEqual(SettingsView.sidebarWidth, 196)

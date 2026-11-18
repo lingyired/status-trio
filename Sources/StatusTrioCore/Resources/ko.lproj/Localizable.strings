@@ -491,8 +491,10 @@
 "settings.panel.background.style.solid" = "단색";
 "settings.panel.background.style.liquidGlassUnavailable" = "리퀴드 글래스는 macOS 26 이상이 필요합니다.";
 "settings.panel.openBehavior.title" = "열 때 동작";
-"settings.panel.returnsToSummaryOnOpen" = "열 때마다 항상 요약 페이지로 돌아가기";
-"settings.panel.returnsToSummaryOnOpen.description" = "활성화하면 상태 패널이 항상 요약 페이지에서 열립니다. 비활성화하면 마지막으로 본 페이지가 유지됩니다.";
+"settings.panel.returnsToSummaryOnOpen" = "마지막 세부 정보 페이지 다시 열기";
+"settings.panel.returnsToSummaryOnOpen.description" = "켜면 상태 패널을 다시 열 때 닫을 때 보던 세부 정보 페이지로 돌아갑니다. 끄면 항상 요약에서 시작합니다.";
+"settings.panel.showsDetailsAlongside" = "세부 정보를 옆에 표시";
+"settings.panel.showsDetailsAlongside.description" = "켜면 세부 정보 페이지가 상태 패널 오른쪽에 열립니다. 오른쪽에 공간이 없으면 왼쪽에 열립니다.";
 "settings.popup.volumeScroll.group" = "패널 스크롤";
 "settings.audio.volumeScroll.group" = "음량 스크롤";
 "settings.popup.panelScroll" = "패널 스크롤로 음량 조절";
@@ -508,6 +510,7 @@
 "settings.popup.volumeScroll.direction.down" = "아래로 스크롤";
 
 "common.back" = "뒤로";
+"common.closeDetail" = "세부 정보 닫기";
 "common.cancel" = "취소";
 "wifi.power" = "Wi-Fi";
 "wifi.refresh" = "네트워크 새로 고침";

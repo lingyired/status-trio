@@ -491,8 +491,10 @@
 "settings.panel.background.style.solid" = "لون موحّد";
 "settings.panel.background.style.liquidGlassUnavailable" = "يتطلب Liquid Glass نظام macOS 26 أو أحدث.";
 "settings.panel.openBehavior.title" = "سلوك الفتح";
-"settings.panel.returnsToSummaryOnOpen" = "البدء دائمًا من صفحة الملخص";
-"settings.panel.returnsToSummaryOnOpen.description" = "عند التفعيل، تُفتح لوحة الحالة دائمًا على صفحة الملخص؛ وإلا فإنها تحتفظ بآخر صفحة عرضتها.";
+"settings.panel.returnsToSummaryOnOpen" = "إعادة فتح آخر صفحة تفاصيل";
+"settings.panel.returnsToSummaryOnOpen.description" = "عند التفعيل، تعود لوحة الحالة عند إعادة فتحها إلى صفحة التفاصيل التي كانت معروضة عند إغلاقها؛ وإلا فتبدأ دائمًا من النظرة العامة.";
+"settings.panel.showsDetailsAlongside" = "إظهار التفاصيل بجانب اللوحة";
+"settings.panel.showsDetailsAlongside.description" = "عند التفعيل، تُفتح صفحات التفاصيل على يمين لوحة الحالة؛ وإذا لم تكن هناك مساحة على اليمين، تُفتح على اليسار.";
 "settings.popup.volumeScroll.group" = "تمرير اللوحة";
 "settings.audio.volumeScroll.group" = "تمرير مستوى الصوت";
 "settings.popup.panelScroll" = "تمرير اللوحة لضبط مستوى الصوت";
@@ -508,6 +510,7 @@
 "settings.popup.volumeScroll.direction.down" = "للأسفل";
 
 "common.back" = "رجوع";
+"common.closeDetail" = "إغلاق التفاصيل";
 "common.cancel" = "إلغاء";
 "wifi.power" = "Wi-Fi";
 "wifi.refresh" = "تحديث الشبكات";

@@ -65,7 +65,10 @@ struct PopoverSectionView: View {
                 tint: .purple,
                 title: localization.string(.settingsPanelReturnsToSummaryOnOpen),
                 subtitle: localization.string(.settingsPanelReturnsToSummaryOnOpenDescription),
-                isOn: $store.returnsToSummaryOnOpen
+                isOn: Binding(
+                    get: { store.restoresPanelDetailsOnOpen },
+                    set: { store.restoresPanelDetailsOnOpen = $0 }
+                )
             )
             SettingsDivider()
             SettingsToggleRow(

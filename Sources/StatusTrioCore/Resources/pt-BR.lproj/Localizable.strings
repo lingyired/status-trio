@@ -491,8 +491,10 @@
 "settings.panel.background.style.solid" = "Cor sólida";
 "settings.panel.background.style.liquidGlassUnavailable" = "Liquid Glass requer macOS 26 ou posterior.";
 "settings.panel.openBehavior.title" = "Comportamento ao abrir";
-"settings.panel.returnsToSummaryOnOpen" = "Sempre iniciar na página de resumo";
-"settings.panel.returnsToSummaryOnOpen.description" = "Quando ativado, o painel de status sempre abre na página de resumo; caso contrário, ele lembra a última página visualizada.";
+"settings.panel.returnsToSummaryOnOpen" = "Reabrir a última página de detalhe";
+"settings.panel.returnsToSummaryOnOpen.description" = "Quando ativado, reabrir o painel de status retorna à página de detalhe que estava visível ao fechar; caso contrário, sempre começa no resumo.";
+"settings.panel.showsDetailsAlongside" = "Mostrar detalhes ao lado";
+"settings.panel.showsDetailsAlongside.description" = "Quando ativado, as páginas de detalhe abrem à direita do painel de status; se não houver espaço à direita, abrem à esquerda.";
 "settings.popup.volumeScroll.group" = "Rolagem do painel";
 "settings.audio.volumeScroll.group" = "Rolagem do volume";
 "settings.popup.panelScroll" = "Rolar o painel para ajustar o volume";
@@ -508,6 +510,7 @@
 "settings.popup.volumeScroll.direction.down" = "Para baixo";
 
 "common.back" = "Voltar";
+"common.closeDetail" = "Fechar detalhe";
 "common.cancel" = "Cancelar";
 "wifi.power" = "Wi-Fi";
 "wifi.refresh" = "Atualizar redes";

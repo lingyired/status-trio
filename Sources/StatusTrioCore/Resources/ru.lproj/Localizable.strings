@@ -491,8 +491,10 @@
 "settings.panel.background.style.solid" = "Сплошной цвет";
 "settings.panel.background.style.liquidGlassUnavailable" = "Liquid Glass требует macOS 26 или новее.";
 "settings.panel.openBehavior.title" = "Поведение при открытии";
-"settings.panel.returnsToSummaryOnOpen" = "Всегда начинать со страницы обзора";
-"settings.panel.returnsToSummaryOnOpen.description" = "Когда включено, панель состояния всегда открывается на странице обзора; в противном случае запоминается последняя просмотренная страница.";
+"settings.panel.returnsToSummaryOnOpen" = "Открывать последнюю страницу деталей";
+"settings.panel.returnsToSummaryOnOpen.description" = "Если включено, при повторном открытии панели состояния восстанавливается страница деталей, открытая при закрытии; иначе панель всегда открывается на обзоре.";
+"settings.panel.showsDetailsAlongside" = "Показывать детали рядом";
+"settings.panel.showsDetailsAlongside.description" = "Если включено, страницы деталей открываются справа от панели состояния; если справа нет места — слева.";
 "settings.popup.volumeScroll.group" = "Прокрутка панели";
 "settings.audio.volumeScroll.group" = "Прокрутка громкости";
 "settings.popup.panelScroll" = "Прокрутка панели для изменения громкости";
@@ -508,6 +510,7 @@
 "settings.popup.volumeScroll.direction.down" = "Вниз";
 
 "common.back" = "Назад";
+"common.closeDetail" = "Закрыть детали";
 "common.cancel" = "Отмена";
 "wifi.power" = "Wi-Fi";
 "wifi.refresh" = "Обновить сети";

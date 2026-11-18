@@ -209,4 +209,23 @@ struct SettingsTransferSessionTests {
         #expect(document.preferences["iconSize"] == .number(24))
         #expect(!String(decoding: data, as: UTF8.self).contains("never-export"))
     }
+
+    @Test func legacyImportPreservesSideDetailsAndReopenPolarity() throws {
+        let (store, localization, directory, defaults, name) = try fixture()
+        defer { defaults.removePersistentDomain(forName: name) }
+        store.showsPanelDetailsAlongside = true
+        store.returnsToSummaryOnOpen = true
+        let session = SettingsTransferSession(store: store, localization: localization, backupDirectory: directory)
+        let data = try SettingsTransferDocument(appVersion: "1.9.5", preferences: [
+            "returnsToSummaryOnOpen": .bool(false)
+        ]).encoded()
+
+        _ = try session.stageImport(data)
+        #expect(store.returnsToSummaryOnOpen == true)
+        _ = try session.applyImport()
+
+        #expect(store.showsPanelDetailsAlongside)
+        #expect(store.restoresPanelDetailsOnOpen)
+        #expect(!store.returnsToSummaryOnOpen)
+    }
 }

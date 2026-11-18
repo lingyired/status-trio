@@ -491,8 +491,10 @@
 "settings.panel.background.style.solid" = "纯色";
 "settings.panel.background.style.liquidGlassUnavailable" = "液态玻璃需要 macOS 26 或更高版本。";
 "settings.panel.openBehavior.title" = "打开行为";
-"settings.panel.returnsToSummaryOnOpen" = "每次打开回到主界面";
-"settings.panel.returnsToSummaryOnOpen.description" = "开启后，每次点开状态面板都从主界面开始；关闭时会保留上次查看的详情页。";
+"settings.panel.returnsToSummaryOnOpen" = "重新打开时恢复详情页";
+"settings.panel.returnsToSummaryOnOpen.description" = "开启后，再次打开状态面板会回到上次收起时仍显示的详情页；关闭后，每次只显示主界面。";
+"settings.panel.showsDetailsAlongside" = "并排显示详情";
+"settings.panel.showsDetailsAlongside.description" = "开启后，详情页显示在状态面板右侧；右侧空间不足时显示在左侧。";
 "settings.popup.volumeScroll.group" = "面板滚动";
 "settings.audio.volumeScroll.group" = "音量滚动";
 "settings.popup.panelScroll" = "在面板中滚动调节音量";
@@ -508,6 +510,7 @@
 "settings.popup.volumeScroll.direction.down" = "下滑";
 
 "common.back" = "返回";
+"common.closeDetail" = "关闭详情";
 "common.cancel" = "取消";
 "wifi.power" = "Wi-Fi";
 "wifi.refresh" = "刷新网络";

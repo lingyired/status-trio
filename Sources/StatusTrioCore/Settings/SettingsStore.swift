@@ -316,6 +316,10 @@ final class SettingsStore: ObservableObject {
     /// page instead of the last-opened detail page.
     static let returnsToSummaryOnOpenDefaultsKey = "returnsToSummaryOnOpen"
 
+    /// When on, detail pages open in an attached panel beside the status panel
+    /// instead of replacing the summary page inside it.
+    static let showsPanelDetailsAlongsideDefaultsKey = "showsPanelDetailsAlongside"
+
     /// When false, the status panel renders every title/value in regular weight so
     /// the no-bold look can be compared. Local appearance preference, not exported.
     static let statusPanelBoldTextDefaultsKey = "statusPanelBoldTextEnabled.v2"
@@ -1654,6 +1658,23 @@ final class SettingsStore: ObservableObject {
         }
     }
 
+    /// Positive phrasing of `returnsToSummaryOnOpen` for the settings UI: when
+    /// on, a detail page that was open when the panel closed comes back the
+    /// next time the panel opens, in whichever presentation mode is active.
+    var restoresPanelDetailsOnOpen: Bool {
+        get { !returnsToSummaryOnOpen }
+        set { returnsToSummaryOnOpen = !newValue }
+    }
+
+    @Published var showsPanelDetailsAlongside: Bool {
+        didSet {
+            defaults.set(
+                showsPanelDetailsAlongside,
+                forKey: Self.showsPanelDetailsAlongsideDefaultsKey
+            )
+        }
+    }
+
     @Published var statusPanelBoldTextEnabled: Bool {
         didSet {
             defaults.set(
@@ -2896,6 +2917,9 @@ final class SettingsStore: ObservableObject {
         )
         self.returnsToSummaryOnOpen = defaults.object(
             forKey: Self.returnsToSummaryOnOpenDefaultsKey
+        ) as? Bool ?? false
+        self.showsPanelDetailsAlongside = defaults.object(
+            forKey: Self.showsPanelDetailsAlongsideDefaultsKey
         ) as? Bool ?? false
         self.statusPanelBoldTextEnabled = defaults.object(
             forKey: Self.statusPanelBoldTextDefaultsKey

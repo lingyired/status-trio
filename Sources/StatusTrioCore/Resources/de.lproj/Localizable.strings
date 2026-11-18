@@ -491,8 +491,10 @@
 "settings.panel.background.style.solid" = "Einfarbig";
 "settings.panel.background.style.liquidGlassUnavailable" = "Liquid Glass erfordert macOS 26 oder neuer.";
 "settings.panel.openBehavior.title" = "Öffnungsverhalten";
-"settings.panel.returnsToSummaryOnOpen" = "Beim Öffnen immer zur Übersichtsseite zurückkehren";
-"settings.panel.returnsToSummaryOnOpen.description" = "Wenn diese Option aktiviert ist, öffnet sich das Statuspanel immer auf der Übersichtsseite; andernfalls wird die zuletzt angezeigte Seite beibehalten.";
+"settings.panel.returnsToSummaryOnOpen" = "Letzte Detailseite wieder öffnen";
+"settings.panel.returnsToSummaryOnOpen.description" = "Wenn aktiviert, kehrt das Statuspanel beim erneuten Öffnen zur zuletzt angezeigten Detailseite zurück; andernfalls startet es immer auf der Übersicht.";
+"settings.panel.showsDetailsAlongside" = "Details daneben anzeigen";
+"settings.panel.showsDetailsAlongside.description" = "Wenn aktiviert, öffnen sich Detailseiten rechts neben dem Statuspanel; ist rechts kein Platz, öffnen sie sich links.";
 "settings.popup.volumeScroll.group" = "Panel-Scrollen";
 "settings.audio.volumeScroll.group" = "Lautstärke-Scrollen";
 "settings.popup.panelScroll" = "Durch Scrollen im Panel die Lautstärke ändern";
@@ -508,6 +510,7 @@
 "settings.popup.volumeScroll.direction.down" = "Nach unten";
 
 "common.back" = "Zurück";
+"common.closeDetail" = "Detail schließen";
 "common.cancel" = "Abbrechen";
 "wifi.power" = "Wi-Fi";
 "wifi.refresh" = "Netzwerke aktualisieren";
