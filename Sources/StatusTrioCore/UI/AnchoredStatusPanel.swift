@@ -83,9 +83,19 @@ final class AnchoredStatusPanel: NSPanel {
     /// window reuses the same screen budget.
     var currentDockInset: NSEdgeInsets { dockInset }
     private var showCancellables: Set<AnyCancellable> = []
+
+    /// How the panel first appears. Click/shortcut/Dock keep the historical
+    /// short fade; the hover path (#355) uses a small drop so the panel reads as
+    /// extending out of the menu bar rather than blinking on.
+    enum RevealStyle {
+        case fade
+        case hoverDrop
+    }
+
     /// Set by `show` between ordering the window in transparent and revealing it
     /// once the first layout has settled, so a size correction never flashes.
     private var pendingReveal = false
+    private var pendingRevealStyle: RevealStyle = .fade
     private var hasNotifiedReveal = false
     /// Lock the actual selected side for this presentation. Intermediate layout
     /// heights cannot flip it; only a placement-environment change renews it.
@@ -236,7 +246,8 @@ final class AnchoredStatusPanel: NSPanel {
         relativeTo rect: NSRect,
         of view: NSView,
         preferredEdge: NSRectEdge,
-        dockInset: NSEdgeInsets = DockReveal.noInset
+        dockInset: NSEdgeInsets = DockReveal.noInset,
+        revealStyle: RevealStyle = .fade
     ) {
         anchorView = view
         anchorRectInView = rect
@@ -271,6 +282,7 @@ final class AnchoredStatusPanel: NSPanel {
         }
         invalidateShadow()
         pendingReveal = true
+        pendingRevealStyle = revealStyle
         hasNotifiedReveal = false
         DispatchQueue.main.async { [weak self] in
             self?.revealAfterSettling()
@@ -338,6 +350,8 @@ final class AnchoredStatusPanel: NSPanel {
             return
         }
         pendingReveal = false
+        let style = pendingRevealStyle
+        pendingRevealStyle = .fade
         contentViewController?.view.layoutSubtreeIfNeeded()
         applyInitialContentSize()
         notifyRevealBegin()
@@ -345,10 +359,28 @@ final class AnchoredStatusPanel: NSPanel {
             alphaValue = 1
             return
         }
-        NSAnimationContext.runAnimationGroup { context in
-            context.duration = 0.08
-            context.allowsImplicitAnimation = true
-            self.animator().alphaValue = 1
+        switch style {
+        case .fade:
+            NSAnimationContext.runAnimationGroup { context in
+                context.duration = 0.08
+                context.allowsImplicitAnimation = true
+                self.animator().alphaValue = 1
+            }
+        case .hoverDrop:
+            // Start a few points higher, nearer the menu-bar icon, and settle
+            // down while fading in. The first frame is still fully transparent,
+            // so the offset never paints a jump.
+            let settledFrame = frame
+            var startFrame = settledFrame
+            startFrame.origin.y += 10
+            setFrame(startFrame, display: false)
+            NSAnimationContext.runAnimationGroup { context in
+                context.duration = 0.18
+                context.timingFunction = CAMediaTimingFunction(name: .easeOut)
+                context.allowsImplicitAnimation = true
+                self.animator().setFrame(settledFrame, display: true)
+                self.animator().alphaValue = 1
+            }
         }
     }
 
@@ -369,6 +401,7 @@ final class AnchoredStatusPanel: NSPanel {
         layoutMetrics.setPresented(false)
         detailPlacement = nil
         pendingReveal = false
+        pendingRevealStyle = .fade
         lockedResizeAnchor = nil
         lockedResizeFrame = nil
         lockedResizeEdge = nil

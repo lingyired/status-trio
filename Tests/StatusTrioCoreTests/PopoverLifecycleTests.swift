@@ -464,6 +464,32 @@ struct PopoverHoverTrackingTests {
     }
 }
 
+/// Issue #355: the first click on a hover-shown panel pins it into the normal
+/// click presentation; only a later click closes it.
+@MainActor
+struct StatusItemClickActionTests {
+    @Test func aClosedPanelIsPresented() {
+        #expect(StatusBarController.statusItemClickAction(
+            isShown: false,
+            presentedByHover: false
+        ) == .present)
+    }
+
+    @Test func aHoverShownPanelIsPinnedNotClosed() {
+        #expect(StatusBarController.statusItemClickAction(
+            isShown: true,
+            presentedByHover: true
+        ) == .pin)
+    }
+
+    @Test func aPinnedPanelIsClosedByTheNextClick() {
+        #expect(StatusBarController.statusItemClickAction(
+            isShown: true,
+            presentedByHover: false
+        ) == .close)
+    }
+}
+
 /// Issue #355: a new hover transition supersedes the pending one, so a pointer
 /// that leaves and re-enters during the dwell cannot leave a stale close.
 struct PopoverHoverIntentTests {

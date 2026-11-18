@@ -44,6 +44,22 @@ final class StatusBarController: NSObject {
         case right
     }
 
+    /// What a status-item click should do for the current panel state.
+    /// Hover-presented panels are pinned by the first click, not closed.
+    enum StatusItemClickAction: Equatable {
+        case present
+        case pin
+        case close
+    }
+
+    static func statusItemClickAction(
+        isShown: Bool,
+        presentedByHover: Bool
+    ) -> StatusItemClickAction {
+        guard isShown else { return .present }
+        return presentedByHover ? .pin : .close
+    }
+
     private let statusItem: NSStatusItem
     private let popover = AnchoredStatusPanel()
     /// The attached detail window shown when "show details alongside" is on.
@@ -92,6 +108,10 @@ final class StatusBarController: NSObject {
     private var isHoverPresentationEnabled = false
     private var hoverIntent = PopoverHoverIntent()
     private var hoverTask: Task<Void, Never>?
+    /// True only while the panel was opened by hovering and is still in its
+    /// auto-hide form. Clicking the status item pins it into the normal,
+    /// click-opened state instead of closing it.
+    private var popoverPresentedByHover = false
     private var statusItemHoverTracking: PopoverHoverTracking?
     private var panelHoverTrackings: [PopoverHoverTracking] = []
     private let openSettings: () -> Void
@@ -690,6 +710,9 @@ final class StatusBarController: NSObject {
             cancelHoverTransition()
             return
         }
+        // A panel pinned by a click is the normal presentation now; leaving the
+        // icon must not close it.
+        guard popoverPresentedByHover else { return }
         scheduleHoverTransition(.hide)
     }
 
@@ -699,7 +722,9 @@ final class StatusBarController: NSObject {
     }
 
     private func panelHoverDidExit() {
-        guard isHoverPresentationEnabled, popover.isShown else { return }
+        guard isHoverPresentationEnabled,
+              popover.isShown,
+              popoverPresentedByHover else { return }
         scheduleHoverTransition(.hide)
     }
 
@@ -725,6 +750,14 @@ final class StatusBarController: NSObject {
         hoverIntent.cancel()
     }
 
+    /// Promote a hover-opened panel to the ordinary click presentation: keep it
+    /// on screen, and stop treating pointer movement as a close request.
+    private func pinHoverPresentedPopover() {
+        guard popoverPresentedByHover else { return }
+        popoverPresentedByHover = false
+        cancelHoverTransition()
+    }
+
     private func performHoverShow() {
         guard isHoverPresentationEnabled,
               !popover.isShown,
@@ -741,12 +774,16 @@ final class StatusBarController: NSObject {
             relativeTo: button.bounds,
             of: button,
             preferredEdge: .minY,
-            activatesApplication: false
+            activatesApplication: false,
+            revealStyle: .hoverDrop,
+            presentedByHover: true
         )
     }
 
     private func performHoverHide() {
-        guard isHoverPresentationEnabled, popover.isShown else { return }
+        guard isHoverPresentationEnabled,
+              popover.isShown,
+              popoverPresentedByHover else { return }
         // Keep the panel open while a control is being dragged, or while a menu
         // (a separate window) owns the run loop; the pointer is temporarily
         // outside the panel but the user is still interacting with it.
@@ -909,9 +946,17 @@ final class StatusBarController: NSObject {
         }
         guard popoverToggleGate.shouldAccept(at: Date()) else { return }
         guard let button = statusItem.button else { return }
-        if popover.isShown {
+        switch Self.statusItemClickAction(
+            isShown: popover.isShown,
+            presentedByHover: popoverPresentedByHover
+        ) {
+        case .close:
             closePopover()
-        } else {
+        case .pin:
+            // Issue #355: a click while the panel is merely hover-shown adopts
+            // the normal click presentation instead of closing it.
+            pinHoverPresentedPopover()
+        case .present:
             // The panel is nonactivating and becomes key on its own. Forcing
             // activation here lets the next status-item press deactivate and
             // close it before mouse-up, which would reopen it (#224).
@@ -1063,8 +1108,11 @@ final class StatusBarController: NSObject {
         preferredEdge: NSRectEdge,
         activatesApplication: Bool = true,
         makesKeyWindow: Bool = true,
-        dockInset: NSEdgeInsets = DockReveal.noInset
+        dockInset: NSEdgeInsets = DockReveal.noInset,
+        revealStyle: AnchoredStatusPanel.RevealStyle = .fade,
+        presentedByHover: Bool = false
     ) {
+        popoverPresentedByHover = presentedByHover
         cancelPopoverContentRelease()
         // A fresh presentation is not the tail of a mouse-down dismissal.
         reopenSuppression.reset()
@@ -1122,7 +1170,8 @@ final class StatusBarController: NSObject {
             relativeTo: rect,
             of: view,
             preferredEdge: preferredEdge,
-            dockInset: dockInset
+            dockInset: dockInset,
+            revealStyle: revealStyle
         )
         // The popover's backing window only exists once it has been shown, and
         // without a Spaces behavior it stays on this app's desktop Space while
@@ -1662,6 +1711,7 @@ final class StatusBarController: NSObject {
         )
         popoverWindowFocusCancellables.removeAll()
         isPopoverClosing = false
+        popoverPresentedByHover = false
         cancelHoverTransition()
         removePanelHoverTracking()
         removePopoverDismissMonitor()
