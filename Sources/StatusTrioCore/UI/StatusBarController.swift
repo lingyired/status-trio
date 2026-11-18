@@ -624,7 +624,10 @@ final class StatusBarController: NSObject {
 
         settings.$showsPanelDetailsAlongside
             .dropFirst()
-            .sink { [weak self] _ in self?.syncDetailPresentation() }
+            // Combine publishes this in willSet: the stored property is still
+            // the old value inside the sink. Hand the delivered value through
+            // instead of re-reading it.
+            .sink { [weak self] enabled in self?.syncDetailPresentation(enabled: enabled) }
             .store(in: &detailCancellables)
         panelViewModel.routeDidChange = { [weak self] route in
             guard let self else { return }
@@ -648,16 +651,26 @@ final class StatusBarController: NSObject {
         }
     }
 
+    /// The setting event carries the new value; the stored property may still
+    /// hold the previous one because @Published publishes in willSet.
+    static func detailAlongsidePreference(delivered: Bool?, stored: Bool) -> Bool {
+        delivered ?? stored
+    }
+
     /// Places, moves or hides the attached detail window for the current route
     /// and geometry. The panel's summary stays visible in alongside mode.
-    private func syncDetailPresentation() {
+    private func syncDetailPresentation(enabled delivered: Bool? = nil) {
         guard popover.isShown else {
             detailPanel.hideDetail()
             return
         }
+        let alongside = Self.detailAlongsidePreference(
+            delivered: delivered,
+            stored: settings.showsPanelDetailsAlongside
+        )
         let decision = detailCoordinator.update(
             route: panelViewModel.route,
-            enabled: settings.showsPanelDetailsAlongside,
+            enabled: alongside,
             summaryFrame: popover.frame,
             screens: NSScreen.screens.map { StatusPanelScreen($0) },
             dockInset: popover.currentDockInset
