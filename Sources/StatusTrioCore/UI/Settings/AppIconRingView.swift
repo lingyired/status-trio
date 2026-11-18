@@ -1026,7 +1026,7 @@ enum RingContentPreviewScene {
 /// Numeric broadband-cap field: type a value directly (no stepper). Values are
 /// clamped to the allowed range and rounded on commit; intermediate typing is
 /// preserved so the user can clear/enter freely.
-private struct HardwareCapField: View {
+struct HardwareCapField: View {
     @Binding var value: Double
     let range: ClosedRange<Double>
     @EnvironmentObject private var localization: Localization

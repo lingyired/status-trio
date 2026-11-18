@@ -1227,6 +1227,8 @@
 "hardware.monitor.gbps" = "ГБ/с";
 "hardware.monitor.settings.topApps" = "Показывать топ-приложения";
 "hardware.monitor.settings.topApps.description" = "Показывает самые активные процессы внизу страниц деталей. Отключите, чтобы экономить CPU.";
+"hardware.monitor.settings.speedCaps.title" = "Предел скорости сети";
+"hardware.monitor.settings.speedCaps.description" = "Используется как полная шкала графика скорости и дуг загрузки/отправки кольца.";
 "hardware.monitor.settings.background" = "Хранить историю";
 "hardware.monitor.settings.background.description" = "Записывает последние 60 секунд истории оборудования при закрытой панели с частотой панели, чтобы детали открывались с трендом.";
 "hardware.monitor.background.off" = "Выкл.";
@@ -1309,6 +1311,8 @@
 "hardware.detail.logicalCores" = "Логические ядра";
 "hardware.detail.efficiencyCores" = "Ядра эффективности";
 "hardware.detail.performanceCores" = "Ядра производительности";
+"hardware.detail.superCores" = "Суперъядра";
+"hardware.detail.otherCores" = "Другие ядра";
 "hardware.detail.average" = "Среднее";
 "hardware.detail.estimatedFrequency" = "Оцен. частота";
 "hardware.detail.cores" = "Ядра";

@@ -3,12 +3,12 @@ import Foundation
 /// Groups process samples by application before ranking, then takes the top N.
 ///
 /// Grouping happens before the cut: an application with several helpers that
-/// are individually outside the top five can still be the busiest application.
+/// are individually outside the visible cut can still be the busiest application.
 enum TopAppAggregator {
     static func rows(metric: TopAppMetric,
                      samples: [ProcessUsageSample],
                      applications: [ProcessApplication],
-                     limit: Int = 5) -> [TopAppRow] {
+                     limit: Int = 8) -> [TopAppRow] {
         guard limit > 0 else { return [] }
 
         var accumulated: [TopAppIdentity: AccumulatedRow] = [:]

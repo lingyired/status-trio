@@ -13,6 +13,9 @@ struct HardwareDetailView: View {
     var metricColors: [HardwareMonitorMetric: IconRGBA] = [:]
     /// The visible page's ranked list; nil keeps offscreen previews static.
     var topApps: TopAppsObservable? = nil
+    /// User-editable broadband caps, used as the network chart's full scale.
+    var downloadCapMbps: Double = SettingsStore.defaultHardwareDownloadCapMbps
+    var uploadCapMbps: Double = SettingsStore.defaultHardwareUploadCapMbps
 
     @EnvironmentObject private var localization: Localization
     @StateObject private var history: HardwareDetailHistoryStore
@@ -21,12 +24,16 @@ struct HardwareDetailView: View {
          onBack: @escaping () -> Void,
          metricColors: [HardwareMonitorMetric: IconRGBA] = [:],
          topApps: TopAppsObservable? = nil,
+         downloadCapMbps: Double = SettingsStore.defaultHardwareDownloadCapMbps,
+         uploadCapMbps: Double = SettingsStore.defaultHardwareUploadCapMbps,
          previewHistory: [HardwareDetailHistoryPoint]? = nil) {
         self.kind = kind
         _hardware = ObservedObject(wrappedValue: hardware)
         self.onBack = onBack
         self.metricColors = metricColors
         self.topApps = topApps
+        self.downloadCapMbps = downloadCapMbps
+        self.uploadCapMbps = uploadCapMbps
         self.previewHistory = previewHistory
         _history = StateObject(wrappedValue: HardwareDetailHistoryStore(seriesCount: kind.historySeriesCount,
                                                                         seeded: previewHistory))
@@ -84,7 +91,7 @@ struct HardwareDetailView: View {
                             .font(.system(size: 22, weight: .semibold, design: .rounded))
                             .monospacedDigit()
                     }
-                    HardwareDetailProgressBar(fraction: (usage ?? 0) / 100)
+                    HardwareDetailProgressBar(fraction: (usage ?? 0) / 100, tint: accentColor)
                     HStack(spacing: 0) {
                         topMetric(localization.string(.hardwareDetailTemperature),
                                   HardwareDetailFormat.temperature(temperature))
@@ -94,16 +101,12 @@ struct HardwareDetailView: View {
                     }
                 }
             }
-            HStack(alignment: .top, spacing: 8) {
-                coreCard(title: localization.string(.hardwareDetailEfficiencyCores),
-                         average: detail?.groupUsage?.efficiencyAverage,
-                         count: detail?.topology?.efficiencyCoreCount,
-                         frequency: detail?.frequency?.efficiencyGHz)
-                coreCard(title: localization.string(.hardwareDetailPerformanceCores),
-                         average: detail?.groupUsage?.performanceAverage,
-                         count: detail?.topology?.performanceCoreCount,
-                         frequency: detail?.frequency?.performanceGHz)
-            }
+            HardwareCPUCoreGroupRow(groups: coreGroups(detail),
+                                    coresLabel: localization.string(.hardwareDetailCores),
+                                    frequencyLabel: localization.string(.hardwareDetailEstimatedFrequency))
+            #if DEBUG
+            if showsCoreLayoutSamples { coreLayoutSamples }
+            #endif
             trendCard(title: localization.string(.hardwareDetailUsageTrend),
                       scale: .percent)
             HardwareDetailCard {
@@ -122,29 +125,95 @@ struct HardwareDetailView: View {
         }
     }
 
-    private func coreCard(title: String, average: Double?, count: Int?, frequency: Double?) -> some View {
-        HardwareDetailCard {
-            VStack(alignment: .leading, spacing: 6) {
-                HStack(alignment: .firstTextBaseline) {
-                    Text(title).font(.subheadline.weight(.medium)).lineLimit(1).minimumScaleFactor(0.7)
-                    Spacer(minLength: 4)
-                    Text("\(localization.string(.hardwareDetailCores)) \(HardwareDetailFormat.integer(count))")
-                        .font(.caption2).foregroundStyle(.secondary).lineLimit(1)
-                }
-                Text(HardwareDetailFormat.percent(average))
-                    .font(.system(size: 18, weight: .semibold, design: .rounded))
-                    .monospacedDigit()
-                HStack(spacing: 3) {
-                    Text(localization.string(.hardwareDetailEstimatedFrequency))
-                        .font(.caption2).foregroundStyle(.secondary)
-                    Text(HardwareDetailFormat.frequency(frequency))
-                        .font(.caption2).monospacedDigit().foregroundStyle(.secondary)
-                }
-                .lineLimit(1).minimumScaleFactor(0.7)
-                HardwareDetailProgressBar(fraction: (average ?? 0) / 100)
-            }
+    /// One group per core class the topology actually reports. A machine with
+    /// only efficiency cores shows one card, M1–M4 show two, and a topology
+    /// with super cores shows three.
+    private func coreGroups(_ detail: CPUDetailReading?) -> [HardwareCPUCoreGroup] {
+        guard let topology = detail?.topology, topology.isRecognized else { return [] }
+        var groups: [HardwareCPUCoreGroup] = []
+        if topology.superCoreCount > 0 {
+            groups.append(HardwareCPUCoreGroup(
+                id: "super",
+                title: localization.string(.hardwareDetailSuperCores),
+                average: detail?.groupUsage?.superAverage,
+                count: topology.superCoreCount,
+                frequency: nil,
+                tint: HardwareCPUCorePalette.superCore))
+        }
+        if topology.performanceCoreCount > 0 {
+            groups.append(HardwareCPUCoreGroup(
+                id: "performance",
+                title: localization.string(.hardwareDetailPerformanceCores),
+                average: detail?.groupUsage?.performanceAverage,
+                count: topology.performanceCoreCount,
+                frequency: detail?.frequency?.performanceGHz,
+                tint: HardwareCPUCorePalette.performance))
+        }
+        if topology.efficiencyCoreCount > 0 {
+            groups.append(HardwareCPUCoreGroup(
+                id: "efficiency",
+                title: localization.string(.hardwareDetailEfficiencyCores),
+                average: detail?.groupUsage?.efficiencyAverage,
+                count: topology.efficiencyCoreCount,
+                frequency: detail?.frequency?.efficiencyGHz,
+                tint: HardwareCPUCorePalette.efficiency))
+        }
+        if topology.otherCoreCount > 0 {
+            groups.append(HardwareCPUCoreGroup(
+                id: "other",
+                title: localization.string(.hardwareDetailOtherCores),
+                average: detail?.groupUsage?.otherAverage,
+                count: topology.otherCoreCount,
+                frequency: nil,
+                tint: HardwareCPUCorePalette.other))
+        }
+        return groups
+    }
+
+    #if DEBUG
+    private var showsCoreLayoutSamples: Bool {
+        ProcessInfo.processInfo.arguments.contains("--test-show-cpu-core-layouts")
+    }
+
+    /// Debug-only layout preview: renders the one/two/three-group rows at once
+    /// so their widths can be compared in the real panel.
+    private var coreLayoutSamples: some View {
+        let cores = localization.string(.hardwareDetailCores)
+        let frequency = localization.string(.hardwareDetailEstimatedFrequency)
+        func group(_ id: String, _ title: String, _ average: Double?, _ count: Int?,
+                   _ ghz: Double?, _ tint: Color) -> HardwareCPUCoreGroup {
+            HardwareCPUCoreGroup(id: id, title: title, average: average, count: count,
+                                 frequency: ghz, tint: tint)
+        }
+        let efficiency = localization.string(.hardwareDetailEfficiencyCores)
+        let performance = localization.string(.hardwareDetailPerformanceCores)
+        let superCore = localization.string(.hardwareDetailSuperCores)
+        return VStack(alignment: .leading, spacing: 10) {
+            Text("1").font(.caption).foregroundStyle(.secondary)
+            HardwareCPUCoreGroupRow(
+                groups: [group("e", efficiency, 42, 4, 1.79, HardwareCPUCorePalette.efficiency)],
+                coresLabel: cores, frequencyLabel: frequency)
+            Text("2").font(.caption).foregroundStyle(.secondary)
+            HardwareCPUCoreGroupRow(
+                groups: [group("p", performance, 24, 12, 4.01, HardwareCPUCorePalette.performance),
+                         group("e", efficiency, 42, 4, 1.79, HardwareCPUCorePalette.efficiency)],
+                coresLabel: cores, frequencyLabel: frequency)
+            Text("3").font(.caption).foregroundStyle(.secondary)
+            HardwareCPUCoreGroupRow(
+                groups: [group("s", superCore, 65, 4, nil, HardwareCPUCorePalette.superCore),
+                         group("p", performance, 24, 12, 4.01, HardwareCPUCorePalette.performance),
+                         group("e", efficiency, 42, 4, 1.79, HardwareCPUCorePalette.efficiency)],
+                coresLabel: cores, frequencyLabel: frequency)
+            Text("4").font(.caption).foregroundStyle(.secondary)
+            HardwareCPUCoreGroupRow(
+                groups: [group("s", superCore, 65, 4, nil, HardwareCPUCorePalette.superCore),
+                         group("p", performance, 24, 12, 4.01, HardwareCPUCorePalette.performance),
+                         group("e", efficiency, 42, 4, 1.79, HardwareCPUCorePalette.efficiency),
+                         group("o", localization.string(.hardwareDetailOtherCores), 18, 2, nil, HardwareCPUCorePalette.other)],
+                coresLabel: cores, frequencyLabel: frequency)
         }
     }
+    #endif
 
     private func coreComposition(_ topology: CPUCoreTopology?) -> String {
         guard let topology, topology.isRecognized else { return HardwareDetailFormat.dash }
@@ -152,6 +221,7 @@ struct HardwareDetailView: View {
         if topology.performanceCoreCount > 0 { parts.append("\(topology.performanceCoreCount)P") }
         if topology.efficiencyCoreCount > 0 { parts.append("\(topology.efficiencyCoreCount)E") }
         if topology.superCoreCount > 0 { parts.append("\(topology.superCoreCount)S") }
+        if topology.otherCoreCount > 0 { parts.append("\(topology.otherCoreCount)O") }
         return parts.isEmpty ? HardwareDetailFormat.dash : parts.joined(separator: " + ")
     }
 
@@ -172,7 +242,7 @@ struct HardwareDetailView: View {
                             .font(.system(size: 22, weight: .semibold, design: .rounded))
                             .monospacedDigit()
                     }
-                    HardwareDetailProgressBar(fraction: (usage ?? 0) / 100)
+                    HardwareDetailProgressBar(fraction: (usage ?? 0) / 100, tint: accentColor)
                     HStack(spacing: 0) {
                         topMetric(localization.string(.hardwareDetailTemperature),
                                   HardwareDetailFormat.temperature(temperature))
@@ -216,7 +286,7 @@ struct HardwareDetailView: View {
                             .font(.system(size: 22, weight: .semibold, design: .rounded))
                             .monospacedDigit()
                     }
-                    HardwareDetailProgressBar(fraction: (percent ?? 0) / 100)
+                    HardwareDetailProgressBar(fraction: (percent ?? 0) / 100, tint: accentColor)
                     HStack(spacing: 0) {
                         topMetric(localization.string(.hardwareDetailUsed),
                                   HardwareDetailFormat.bytes(detail?.usedBytes))
@@ -301,6 +371,10 @@ struct HardwareDetailView: View {
     private var diskContent: some View {
         let detail = snapshot.diskDetail
         let capacity = detail?.capacity
+        // Fall back to the shared rate samples so entering the page (or a gap
+        // longer than the reader's 15 s baseline window) does not flash a dash.
+        let readSpeed = detail?.readBytesPerSecond ?? snapshot[.diskRead].value
+        let writeSpeed = detail?.writeBytesPerSecond ?? snapshot[.diskWrite].value
         return VStack(alignment: .leading, spacing: 12) {
             HardwareDetailCard {
                 VStack(alignment: .leading, spacing: 8) {
@@ -312,7 +386,7 @@ struct HardwareDetailView: View {
                             .font(.system(size: 22, weight: .semibold, design: .rounded))
                             .monospacedDigit()
                     }
-                    HardwareDetailProgressBar(fraction: capacity?.usedFraction ?? 0)
+                    HardwareDetailProgressBar(fraction: capacity?.usedFraction ?? 0, tint: accentColor)
                     HStack(spacing: 0) {
                         topMetric(localization.string(.hardwareDetailTotal),
                                   HardwareDetailFormat.bytes(capacity?.totalBytes))
@@ -322,8 +396,6 @@ struct HardwareDetailView: View {
                     }
                 }
             }
-            trendCard(title: localization.string(.hardwareDetailSpeedTrend),
-                      scale: .auto)
             HardwareDetailCard {
                 VStack(alignment: .leading, spacing: 6) {
                     HardwareDetailRow(label: localization.string(.hardwareDetailUsedSpace),
@@ -336,9 +408,9 @@ struct HardwareDetailView: View {
                                       value: capacity?.fileSystem ?? HardwareDetailFormat.dash)
                     divider
                     HardwareDetailRow(label: localization.string(.hardwareDetailReadSpeed),
-                                      value: HardwareDetailFormat.rate(detail?.readBytesPerSecond))
+                                      value: HardwareDetailFormat.rate(readSpeed))
                     HardwareDetailRow(label: localization.string(.hardwareDetailWriteSpeed),
-                                      value: HardwareDetailFormat.rate(detail?.writeBytesPerSecond))
+                                      value: HardwareDetailFormat.rate(writeSpeed))
                 }
             }
         }
@@ -391,6 +463,9 @@ struct HardwareDetailView: View {
         }
     }
 
+    /// Page accent taken from the same hardware-metric colour as the trend.
+    private var accentColor: Color { trendColors.first ?? .accentColor }
+
     private func metricColor(_ metric: HardwareMonitorMetric) -> Color {
         let rgba = metricColors[metric] ?? HardwareRingColorConfiguration.recommendedBaseColor(for: metric)
         return IconAppearanceColorConversion.color(from: rgba)
@@ -400,16 +475,30 @@ struct HardwareDetailView: View {
     /// card edges; the title keeps its own inset and the fill is clipped to the
     /// rounded card shape.
     private func trendCard(title: String, scale: HardwareDetailChartScale) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
+        // The chart fills the whole card and the title floats over it, so a
+        // 100% sample reaches the card's top edge instead of stopping under a
+        // separate title row.
+        ZStack(alignment: .topLeading) {
+            HardwareDetailHistoryChart(
+                points: history.points, colors: trendColors, scale: scale, now: now,
+                seriesLabels: kind == .network
+                    ? [localization.string(.hardwareDetailDownload),
+                       localization.string(.hardwareDetailUpload)]
+                    : [],
+                valueFormatter: { value in
+                    switch scale {
+                    case .percent: return HardwareDetailFormat.percent(value)
+                    case .auto: return HardwareDetailFormat.rate(value)
+                    }
+                })
             Text(title)
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
                 .padding(.horizontal, 10)
                 .padding(.top, 10)
-            HardwareDetailHistoryChart(points: history.points, colors: trendColors, scale: scale, now: now)
-                .padding(.bottom, 2)
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
+        .frame(maxWidth: .infinity)
+        .frame(height: 78, alignment: .topLeading)
         .panelCardSurface(.silver(.connected), tint: .clear, cornerRadius: 13)
         .clipShape(RoundedRectangle(cornerRadius: 13, style: .continuous))
         .accessibilityElement(children: .ignore)

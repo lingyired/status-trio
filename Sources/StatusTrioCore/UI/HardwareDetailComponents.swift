@@ -85,6 +85,7 @@ struct HardwareDetailMetricCard: View {
     let value: String
     var tertiary: String? = nil
     var progress: Double? = nil
+    var progressTint: Color = .accentColor
     var valueSize: CGFloat = 20
 
     var body: some View {
@@ -109,7 +110,7 @@ struct HardwareDetailMetricCard: View {
                         .minimumScaleFactor(0.7)
                 }
                 if let progress {
-                    HardwareDetailProgressBar(fraction: progress)
+                    HardwareDetailProgressBar(fraction: progress, tint: progressTint)
                 }
             }
         }
@@ -118,18 +119,128 @@ struct HardwareDetailMetricCard: View {
 
 struct HardwareDetailProgressBar: View {
     let fraction: Double
+    var tint: Color = .accentColor
 
     var body: some View {
         GeometryReader { geometry in
             ZStack(alignment: .leading) {
                 Capsule().fill(Color.primary.opacity(0.10))
                 Capsule()
-                    .fill(Color.accentColor.opacity(0.85))
+                    .fill(tint.opacity(0.85))
                     .frame(width: max(0, min(1, fraction)) * geometry.size.width)
             }
         }
         .frame(height: 5)
         .accessibilityHidden(true)
+    }
+}
+
+/// Fixed per-class colours for the CPU detail page.
+enum HardwareCPUCorePalette {
+    static let superCore = Color(red: 0xA8 / 255, green: 0x55 / 255, blue: 0xF7 / 255)
+    static let performance = Color(red: 0x3B / 255, green: 0x82 / 255, blue: 0xF6 / 255)
+    static let efficiency = Color(red: 0x10 / 255, green: 0xB9 / 255, blue: 0x81 / 255)
+    /// A future class we do not name yet.
+    static let other = Color(red: 0xF5 / 255, green: 0x9E / 255, blue: 0x0B / 255)
+}
+
+/// One CPU core class group shown on the CPU detail page.
+struct HardwareCPUCoreGroup: Identifiable {
+    let id: String
+    let title: String
+    let average: Double?
+    let count: Int?
+    let frequency: Double?
+    let tint: Color
+}
+
+struct HardwareCPUCoreCard: View {
+    let group: HardwareCPUCoreGroup
+    let coresLabel: String
+    let frequencyLabel: String
+    var valueSize: CGFloat = 18
+    /// Three cards share one row; drop the redundant labels so the localized
+    /// title and the frequency value are not truncated.
+    var compact: Bool = false
+
+    var body: some View {
+        HardwareDetailCard {
+            VStack(alignment: .leading, spacing: 6) {
+                HStack(alignment: .firstTextBaseline) {
+                    Text(group.title).font(.subheadline.weight(.medium)).lineLimit(1).minimumScaleFactor(0.7)
+                    if !compact {
+                        Spacer(minLength: 4)
+                        Text("\(coresLabel) \(HardwareDetailFormat.integer(group.count))")
+                            .font(.caption2).foregroundStyle(.secondary).lineLimit(1)
+                    }
+                }
+                Text(HardwareDetailFormat.percent(group.average))
+                    .font(.system(size: valueSize, weight: .semibold, design: .rounded))
+                    .monospacedDigit()
+                HStack(spacing: 3) {
+                    if !compact {
+                        Text(frequencyLabel)
+                            .font(.caption2).foregroundStyle(.secondary)
+                    }
+                    Text(HardwareDetailFormat.frequency(group.frequency))
+                        .font(.caption2).monospacedDigit().foregroundStyle(.secondary)
+                }
+                .lineLimit(1).minimumScaleFactor(0.7)
+                HardwareDetailProgressBar(fraction: (group.average ?? 0) / 100, tint: group.tint)
+            }
+        }
+    }
+}
+
+/// Lays out one, two or three core groups without leaving an empty card.
+struct HardwareCPUCoreGroupRow: View {
+    let groups: [HardwareCPUCoreGroup]
+    let coresLabel: String
+    let frequencyLabel: String
+
+    var body: some View {
+        if groups.isEmpty {
+            EmptyView()
+        } else if groups.count == 1 {
+            HardwareCPUCoreCard(group: groups[0], coresLabel: coresLabel,
+                                frequencyLabel: frequencyLabel, valueSize: 20)
+        } else if groups.count == 2 {
+            HStack(alignment: .top, spacing: 8) {
+                ForEach(groups) { group in
+                    HardwareCPUCoreCard(group: group, coresLabel: coresLabel,
+                                        frequencyLabel: frequencyLabel, valueSize: 18)
+                }
+            }
+        } else if groups.count == 3 {
+            // Three classes do not fit on one row at this width; give the first
+            // (super) core a full row and put the other two side by side.
+            VStack(alignment: .leading, spacing: 5) {
+                HardwareCPUCoreCard(group: groups[0], coresLabel: coresLabel,
+                                    frequencyLabel: frequencyLabel, valueSize: 18)
+                HStack(alignment: .top, spacing: 8) {
+                    ForEach(groups.dropFirst()) { group in
+                        HardwareCPUCoreCard(group: group, coresLabel: coresLabel,
+                                            frequencyLabel: frequencyLabel, valueSize: 18)
+                    }
+                }
+            }
+        } else {
+            // Four or more classes wrap two per row, keeping every card readable.
+            let rows: [[HardwareCPUCoreGroup]] = stride(from: 0, to: groups.count, by: 2).map {
+                Array(groups[$0..<min($0 + 2, groups.count)])
+            }
+            VStack(alignment: .leading, spacing: 8) {
+                ForEach(Array(rows.enumerated()), id: \.offset) { _, row in
+                    HStack(alignment: .top, spacing: 8) {
+                        ForEach(row) { group in
+                            HardwareCPUCoreCard(group: group, coresLabel: coresLabel,
+                                                frequencyLabel: frequencyLabel, valueSize: 18)
+                        }
+                        if row.count == 1 { Spacer(minLength: 0) }
+                    }
+                }
+            }
+        }
     }
 }
 

@@ -1227,6 +1227,8 @@
 "hardware.monitor.gbps" = "GB/s";
 "hardware.monitor.settings.topApps" = "إظهار التطبيقات الأكثر استهلاكًا";
 "hardware.monitor.settings.topApps.description" = "يعرض العمليات الأكثر نشاطًا أسفل صفحات التفاصيل. أوقفه لتوفير المعالج.";
+"hardware.monitor.settings.speedCaps.title" = "حد سرعة الشبكة";
+"hardware.monitor.settings.speedCaps.description" = "يُستخدم كمقياس كامل لمخطط سرعة الشبكة وأقواس التنزيل/الرفع في الحلقة.";
 "hardware.monitor.settings.background" = "الاحتفاظ بالسجل";
 "hardware.monitor.settings.background.description" = "يسجّل آخر 60 ثانية من سجل العتاد أثناء إغلاق اللوحة بمعدل تحديث اللوحة، لتُفتح صفحة التفاصيل مع اتجاه.";
 "hardware.monitor.background.off" = "إيقاف";
@@ -1309,6 +1311,8 @@
 "hardware.detail.logicalCores" = "الأنوية المنطقية";
 "hardware.detail.efficiencyCores" = "أنوية الكفاءة";
 "hardware.detail.performanceCores" = "أنوية الأداء";
+"hardware.detail.superCores" = "أنوية فائقة";
+"hardware.detail.otherCores" = "أنوية أخرى";
 "hardware.detail.average" = "المتوسط";
 "hardware.detail.estimatedFrequency" = "التردد المقدّر";
 "hardware.detail.cores" = "الأنوية";

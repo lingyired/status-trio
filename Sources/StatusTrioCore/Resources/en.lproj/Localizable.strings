@@ -1226,6 +1226,8 @@
 "hardware.monitor.gbps" = "GB/s";
 "hardware.monitor.settings.topApps" = "Show top apps";
 "hardware.monitor.settings.topApps.description" = "Lists the busiest processes at the bottom of detail pages. Turn off to save CPU.";
+"hardware.monitor.settings.speedCaps.title" = "Network speed cap";
+"hardware.monitor.settings.speedCaps.description" = "Used as the full scale for the network speed trend and the icon ring's download/upload arcs.";
 "hardware.monitor.settings.background" = "Keep background history";
 "hardware.monitor.settings.background.description" = "Keep the last 60 seconds of hardware history while the panel is closed, at the panel refresh rate, so a detail page opens with a trend.";
 "hardware.monitor.background.off" = "Off";
@@ -1308,6 +1310,8 @@
 "hardware.detail.logicalCores" = "Logical cores";
 "hardware.detail.efficiencyCores" = "Efficiency cores";
 "hardware.detail.performanceCores" = "Performance cores";
+"hardware.detail.superCores" = "Super cores";
+"hardware.detail.otherCores" = "Other cores";
 "hardware.detail.average" = "Average";
 "hardware.detail.estimatedFrequency" = "Est. frequency";
 "hardware.detail.cores" = "Cores";

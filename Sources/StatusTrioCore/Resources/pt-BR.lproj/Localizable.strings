@@ -1227,6 +1227,8 @@
 "hardware.monitor.gbps" = "GB/s";
 "hardware.monitor.settings.topApps" = "Mostrar apps mais ativas";
 "hardware.monitor.settings.topApps.description" = "Mostra os processos mais ativos no fim das páginas de detalhe. Desative para economizar CPU.";
+"hardware.monitor.settings.speedCaps.title" = "Limite de velocidade da rede";
+"hardware.monitor.settings.speedCaps.description" = "Usado como escala cheia do gráfico de velocidade e dos arcos de download/upload do anel.";
 "hardware.monitor.settings.background" = "Manter histórico";
 "hardware.monitor.settings.background.description" = "Registra os últimos 60 segundos de histórico de hardware com o painel fechado, no ritmo do painel, para abrir o detalhe com tendência.";
 "hardware.monitor.background.off" = "Desativado";
@@ -1309,6 +1311,8 @@
 "hardware.detail.logicalCores" = "Núcleos lógicos";
 "hardware.detail.efficiencyCores" = "Núcleos de eficiência";
 "hardware.detail.performanceCores" = "Núcleos de desempenho";
+"hardware.detail.superCores" = "Núcleos super";
+"hardware.detail.otherCores" = "Outros núcleos";
 "hardware.detail.average" = "Média";
 "hardware.detail.estimatedFrequency" = "Frequência est.";
 "hardware.detail.cores" = "Núcleos";

@@ -160,7 +160,9 @@ struct StatusPopoverView: View {
                                    hardware: panel.hardwareMonitor,
                                    onBack: { panel.showSummaryPage() },
                                    metricColors: panel.hardwareMonitorMetricColors,
-                                   topApps: panel.showsHardwareTopApps ? panel.topApps : nil)
+                                   topApps: panel.showsHardwareTopApps ? panel.topApps : nil,
+                                   downloadCapMbps: panel.settings.hardwareDownloadCapMbps,
+                                   uploadCapMbps: panel.settings.hardwareUploadCapMbps)
         }
     }
 

@@ -1227,6 +1227,8 @@
 "hardware.monitor.gbps" = "GB/s";
 "hardware.monitor.settings.topApps" = "顯示高佔用應用";
 "hardware.monitor.settings.topApps.description" = "在詳情頁底部顯示佔用最高的處理程序；關閉可減少 CPU 佔用。";
+"hardware.monitor.settings.speedCaps.title" = "網路速率上限";
+"hardware.monitor.settings.speedCaps.description" = "作為網路速度趨勢的滿格，也用於圖示外環的上傳/下載弧。";
 "hardware.monitor.settings.background" = "保留後台歷史";
 "hardware.monitor.settings.background.description" = "面板關閉時依面板重新整理頻率持續記錄最近 60 秒的硬體歷史，開啟詳情頁即可看到趨勢。";
 "hardware.monitor.background.off" = "關閉";
@@ -1309,6 +1311,8 @@
 "hardware.detail.logicalCores" = "邏輯核心";
 "hardware.detail.efficiencyCores" = "能效核心";
 "hardware.detail.performanceCores" = "效能核心";
+"hardware.detail.superCores" = "超級核心";
+"hardware.detail.otherCores" = "其他核心";
 "hardware.detail.average" = "平均";
 "hardware.detail.estimatedFrequency" = "估算頻率";
 "hardware.detail.cores" = "核心數";
