@@ -206,13 +206,14 @@ final class HardwareDetailTests: XCTestCase {
         XCTAssertTrue(HardwareDetailChartGeometry.isolatedPoints(for: samples, threshold: threshold).isEmpty)
     }
 
-    func testChartGeometrySinglePointIsIsolated() {
+    func testChartGeometrySinglePointSpansWidth() {
         let now = Date()
         let points = geometryPoints([-10], now: now)
         let samples = HardwareDetailChartGeometry.samples(points: points, series: 0, now: now,
                                                           yMaximum: 100, size: CGSize(width: 300, height: 50))
-        XCTAssertEqual(HardwareDetailChartGeometry.isolatedPoints(
-            for: samples, threshold: HardwareDetailHistoryStore.maximumGap).count, 1)
+        XCTAssertEqual(samples.count, 2, "a lone sample is drawn as a full-width flat line")
+        XCTAssertTrue(HardwareDetailChartGeometry.isolatedPoints(
+            for: samples, threshold: HardwareDetailHistoryStore.maximumGap).isEmpty)
     }
 
     func testChartSpansFullWidthWithoutSideGaps() {
@@ -222,20 +223,23 @@ final class HardwareDetailTests: XCTestCase {
         let shortHistory = geometryPoints([-8, -4], now: now)
         let samples = HardwareDetailChartGeometry.samples(points: shortHistory, series: 0, now: now,
                                                           yMaximum: 100, size: CGSize(width: width, height: 50))
-        XCTAssertEqual(samples.first?.point.x ?? -1, 0.75, accuracy: 0.01)
-        XCTAssertEqual(samples.last?.point.x ?? -1, width - 0.75, accuracy: 0.01)
+        XCTAssertEqual(samples.first?.point.x ?? -1, 0, accuracy: 0.01)
+        XCTAssertEqual(samples.last?.point.x ?? -1, width, accuracy: 0.01)
 
         // Newest sample one refresh interval behind `now` used to leave a right gap.
         let lagging = geometryPoints([-30, -2], now: now)
         let laggingSamples = HardwareDetailChartGeometry.samples(points: lagging, series: 0, now: now,
                                                                  yMaximum: 100, size: CGSize(width: width, height: 50))
-        XCTAssertEqual(laggingSamples.last?.point.x ?? -1, width - 0.75, accuracy: 0.01)
+        XCTAssertEqual(laggingSamples.last?.point.x ?? -1, width, accuracy: 0.01)
 
-        // A single sample sits centred so its dot is visible.
+        // A single sample fills the width as a flat line instead of leaving
+        // side gaps while the next sample arrives.
         let single = HardwareDetailChartGeometry.samples(points: geometryPoints([-10], now: now),
                                                           series: 0, now: now, yMaximum: 100,
                                                           size: CGSize(width: width, height: 50))
-        XCTAssertEqual(single.first?.point.x ?? -1, width / 2, accuracy: 0.01)
+        XCTAssertEqual(single.count, 2)
+        XCTAssertEqual(single.first?.point.x ?? -1, 0, accuracy: 0.01)
+        XCTAssertEqual(single.last?.point.x ?? -1, width, accuracy: 0.01)
     }
 
     // MARK: - Formatting

@@ -107,7 +107,11 @@ final class AppEnvironment {
                 statusBarController.presentStatusPanelForBackgroundTesting()
                 if let raw = backgroundUITesting.opensHardwareDetailRaw,
                    let detail = HardwareDetailKind(rawValue: raw) {
-                    statusBarController.panelForTesting.showHardwareDetail(detail)
+                    // Present first, then route on the next main turn so the
+                    // panel's own prepare/reset cannot overwrite the page.
+                    DispatchQueue.main.async { [weak self] in
+                        self?.statusBarController.panelForTesting.showHardwareDetail(detail)
+                    }
                 }
             } else {
                 settingsWindowController.show()

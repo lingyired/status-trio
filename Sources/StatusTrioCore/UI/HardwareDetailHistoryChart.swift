@@ -79,19 +79,28 @@ enum HardwareDetailChartGeometry {
         let firstDate = visible[0].date
         let lastDate = visible[visible.count - 1].date
         let span = lastDate.timeIntervalSince(firstDate)
-        let inset: CGFloat = 0.75
-        let usable = max(0, size.width - inset * 2)
+        // Fill edge to edge horizontally, but keep half a stroke of vertical
+        // headroom so a 100% sample is not clipped by the plot boundary.
+        let verticalInset: CGFloat = 0.75
+        let usableHeight = max(0, size.height - verticalInset * 2)
+        func y(for value: Double) -> CGFloat {
+            verticalInset + usableHeight * CGFloat(1 - min(yMaximum, max(0, value)) / yMaximum)
+        }
+        // A single sample (page just opened, or only one point after an idle
+        // gap) is drawn as a flat line across the full width so neither side
+        // shows a gap while the next sample arrives.
+        if visible.count == 1 {
+            let item = visible[0]
+            return [
+                HardwareDetailChartSample(date: item.date, point: CGPoint(x: 0, y: y(for: item.value))),
+                HardwareDetailChartSample(date: item.date, point: CGPoint(x: size.width, y: y(for: item.value)))
+            ]
+        }
         var result: [HardwareDetailChartSample] = []
         for item in visible {
-            let ratio: CGFloat
-            if visible.count == 1 || span < 0.5 {
-                ratio = 0.5
-            } else {
-                ratio = CGFloat(item.date.timeIntervalSince(firstDate) / span)
-            }
-            let x = inset + usable * ratio
-            let y = size.height * CGFloat(1 - min(yMaximum, max(0, item.value)) / yMaximum)
-            result.append(HardwareDetailChartSample(date: item.date, point: CGPoint(x: x, y: y)))
+            let ratio = span < 0.5 ? 0 : CGFloat(item.date.timeIntervalSince(firstDate) / span)
+            let x = span < 0.5 ? size.width / 2 : size.width * ratio
+            result.append(HardwareDetailChartSample(date: item.date, point: CGPoint(x: x, y: y(for: item.value))))
         }
         return result
     }
