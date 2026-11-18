@@ -12,6 +12,7 @@ struct HardwareMonitorSectionView: View {
         SettingsPage {
             placementGroup
             refreshGroup
+            networkCapGroup
             ringGroup
             bottomBarGroup
             colorGroup
@@ -78,6 +79,39 @@ struct HardwareMonitorSectionView: View {
                     set: { store.showsHardwareTopApps = $0 }
                 )
             )
+        }
+    }
+
+    /// Mirrors the icon advanced settings so the network trend and the icon
+    /// ring share one editable speed cap.
+    private var networkCapGroup: some View {
+        SettingsGroup(localization.string(.hardwareMonitorSettingsSpeedCapsTitle),
+                      footnote: localization.string(.hardwareMonitorSettingsSpeedCapsDescription)) {
+            SettingsRow(
+                "arrow.down",
+                tint: .blue,
+                title: localization.string(.hardwareDetailDownload),
+                subtitle: nil
+            ) {
+                HardwareCapField(
+                    value: Binding(
+                        get: { store.hardwareDownloadCapMbps },
+                        set: { store.hardwareDownloadCapMbps = ($0).rounded() }),
+                    range: SettingsStore.hardwareSpeedCapRange)
+            }
+            SettingsDivider()
+            SettingsRow(
+                "arrow.up",
+                tint: .green,
+                title: localization.string(.hardwareDetailUpload),
+                subtitle: nil
+            ) {
+                HardwareCapField(
+                    value: Binding(
+                        get: { store.hardwareUploadCapMbps },
+                        set: { store.hardwareUploadCapMbps = ($0).rounded() }),
+                    range: SettingsStore.hardwareSpeedCapRange)
+            }
         }
     }
 

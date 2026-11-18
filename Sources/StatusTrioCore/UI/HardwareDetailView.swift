@@ -13,6 +13,9 @@ struct HardwareDetailView: View {
     var metricColors: [HardwareMonitorMetric: IconRGBA] = [:]
     /// The visible page's ranked list; nil keeps offscreen previews static.
     var topApps: TopAppsObservable? = nil
+    /// User-editable broadband caps, used as the network chart's full scale.
+    var downloadCapMbps: Double = SettingsStore.defaultHardwareDownloadCapMbps
+    var uploadCapMbps: Double = SettingsStore.defaultHardwareUploadCapMbps
 
     @EnvironmentObject private var localization: Localization
     @StateObject private var history: HardwareDetailHistoryStore
@@ -21,12 +24,16 @@ struct HardwareDetailView: View {
          onBack: @escaping () -> Void,
          metricColors: [HardwareMonitorMetric: IconRGBA] = [:],
          topApps: TopAppsObservable? = nil,
+         downloadCapMbps: Double = SettingsStore.defaultHardwareDownloadCapMbps,
+         uploadCapMbps: Double = SettingsStore.defaultHardwareUploadCapMbps,
          previewHistory: [HardwareDetailHistoryPoint]? = nil) {
         self.kind = kind
         _hardware = ObservedObject(wrappedValue: hardware)
         self.onBack = onBack
         self.metricColors = metricColors
         self.topApps = topApps
+        self.downloadCapMbps = downloadCapMbps
+        self.uploadCapMbps = uploadCapMbps
         self.previewHistory = previewHistory
         _history = StateObject(wrappedValue: HardwareDetailHistoryStore(seriesCount: kind.historySeriesCount,
                                                                         seeded: previewHistory))
@@ -479,7 +486,10 @@ struct HardwareDetailView: View {
                     case .percent: return HardwareDetailFormat.percent(value)
                     case .auto: return HardwareDetailFormat.rate(value)
                     }
-                })
+                },
+                seriesMaximums: kind == .network
+                    ? [downloadCapMbps * 125_000, uploadCapMbps * 125_000]
+                    : [])
             Text(title)
                 .font(.subheadline)
                 .foregroundStyle(.secondary)

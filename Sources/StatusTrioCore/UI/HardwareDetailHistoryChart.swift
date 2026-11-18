@@ -18,6 +18,9 @@ struct HardwareDetailHistoryChart: View {
     var seriesLabels: [String] = []
     /// Formats a raw value for the hover tooltip (percent vs bytes/s).
     var valueFormatter: (Double) -> String = { String(format: "%.0f", $0) }
+    /// Per-series fixed maximum (same unit as the values). Used by the network
+    /// chart so each direction fills against its own user-set cap.
+    var seriesMaximums: [Double] = []
 
     @State private var hoverLocation: CGPoint?
 
@@ -40,19 +43,23 @@ struct HardwareDetailHistoryChart: View {
             let size = proxy.size
             let perSeries = colors.indices.map {
                 HardwareDetailChartGeometry.samples(points: points, series: $0, now: now,
-                                                    yMaximum: maximum, size: size)
+                                                    yMaximum: seriesMaximum($0, fallback: maximum),
+                                                    size: size)
             }
             ZStack(alignment: .topLeading) {
                 HardwareDetailGrid()
                 ForEach(colors.indices, id: \.self) { index in
-                    HardwareDetailAreaShape(points: points, series: index, now: now, yMaximum: maximum)
+                    HardwareDetailAreaShape(points: points, series: index, now: now,
+                                            yMaximum: seriesMaximum(index, fallback: maximum))
                         .fill(LinearGradient(colors: [colors[index].opacity(0.78), colors[index].opacity(0.38)],
                                              startPoint: .top, endPoint: .bottom))
-                    HardwareDetailLineShape(points: points, series: index, now: now, yMaximum: maximum)
+                    HardwareDetailLineShape(points: points, series: index, now: now,
+                                            yMaximum: seriesMaximum(index, fallback: maximum))
                         .stroke(colors[index],
                                 style: StrokeStyle(lineWidth: 1.5, lineCap: .round, lineJoin: .round))
                     HardwareDetailChartDot(points: points, series: index, now: now,
-                                           yMaximum: maximum, color: colors[index])
+                                           yMaximum: seriesMaximum(index, fallback: maximum),
+                                           color: colors[index])
                 }
                 hoverOverlay(size: size, perSeries: perSeries)
             }
@@ -64,6 +71,10 @@ struct HardwareDetailHistoryChart: View {
                 }
             }
         }
+    }
+
+    private func seriesMaximum(_ index: Int, fallback: Double) -> Double {
+        index < seriesMaximums.count ? max(1, seriesMaximums[index]) : fallback
     }
 
     @ViewBuilder
