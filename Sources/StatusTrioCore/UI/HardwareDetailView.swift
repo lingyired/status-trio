@@ -400,18 +400,19 @@ struct HardwareDetailView: View {
     /// card edges; the title keeps its own inset and the fill is clipped to the
     /// rounded card shape.
     private func trendCard(title: String, scale: HardwareDetailChartScale) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
+        // The chart fills the whole card and the title floats over it, so a
+        // 100% sample reaches the card's top edge instead of stopping under a
+        // separate title row.
+        ZStack(alignment: .topLeading) {
+            HardwareDetailHistoryChart(points: history.points, colors: trendColors, scale: scale, now: now)
             Text(title)
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
                 .padding(.horizontal, 10)
                 .padding(.top, 10)
-            // No bottom inset: the area fill runs into the card's rounded bottom
-            // edge so the chart reads as one continuous surface instead of
-            // leaving a strip of card material underneath.
-            HardwareDetailHistoryChart(points: history.points, colors: trendColors, scale: scale, now: now)
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
+        .frame(maxWidth: .infinity)
+        .frame(height: 78, alignment: .topLeading)
         .panelCardSurface(.silver(.connected), tint: .clear, cornerRadius: 13)
         .clipShape(RoundedRectangle(cornerRadius: 13, style: .continuous))
         .accessibilityElement(children: .ignore)

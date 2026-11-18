@@ -46,7 +46,7 @@ struct HardwareDetailHistoryChart: View {
                                            yMaximum: maximum, color: colors[index])
                 }
             }
-            .frame(height: 54)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
     }
 }
@@ -79,9 +79,9 @@ enum HardwareDetailChartGeometry {
         let firstDate = visible[0].date
         let lastDate = visible[visible.count - 1].date
         let span = lastDate.timeIntervalSince(firstDate)
-        // Fill edge to edge horizontally, but keep half a stroke of vertical
-        // headroom so a 100% sample is not clipped by the plot boundary.
-        let verticalInset: CGFloat = 0.75
+        // Fill the whole card: 100% sits on the top edge and 0% on the bottom.
+        // The card clip trims any half-stroke that spills past the edge.
+        let verticalInset: CGFloat = 0
         let usableHeight = max(0, size.height - verticalInset * 2)
         func y(for value: Double) -> CGFloat {
             verticalInset + usableHeight * CGFloat(1 - min(yMaximum, max(0, value)) / yMaximum)
