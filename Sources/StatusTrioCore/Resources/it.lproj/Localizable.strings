@@ -1331,6 +1331,7 @@
 "hardware.detail.download" = "Download";
 "hardware.detail.upload" = "Upload";
 "hardware.detail.topApps.title" = "App principali";
+"hardware.detail.topApps.memoryTitle" = "App per memoria (RSS)";
 "hardware.detail.topApps.collecting" = "Raccolta…";
 "hardware.detail.topApps.empty" = "Nessuna app attiva";
 "hardware.detail.topApps.unsupported" = "Non supportato";

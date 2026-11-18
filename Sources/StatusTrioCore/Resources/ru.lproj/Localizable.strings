@@ -1331,6 +1331,7 @@
 "hardware.detail.download" = "Загрузка";
 "hardware.detail.upload" = "Отдача";
 "hardware.detail.topApps.title" = "Основные приложения";
+"hardware.detail.topApps.memoryTitle" = "Приложения по памяти (RSS)";
 "hardware.detail.topApps.collecting" = "Сбор данных…";
 "hardware.detail.topApps.empty" = "Нет активных приложений";
 "hardware.detail.topApps.unsupported" = "Не поддерживается";

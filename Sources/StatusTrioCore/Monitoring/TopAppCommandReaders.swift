@@ -156,7 +156,8 @@ enum TopAppPSMemoryParser {
             let fields = trimmed.split(maxSplits: 2, whereSeparator: \.isWhitespace)
             guard fields.count == 3,
                   let pid = Int32(fields[0]),
-                  let rssKiB = UInt64(fields[1]) else { continue }
+                  let rssKiB = UInt64(fields[1]),
+                  rssKiB <= UInt64.max / 1024 else { continue }
             let name = String(fields[2]).trimmingCharacters(in: .whitespaces)
             guard !name.isEmpty else { continue }
             rows.append(PSMemoryRow(pid: pid, memoryBytes: rssKiB * 1024, name: name))

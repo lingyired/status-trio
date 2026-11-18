@@ -1347,6 +1347,7 @@
 "hardware.detail.unavailable" = "사용 불가";
 "hardware.detail.estimated" = "예상";
 "hardware.detail.topApps.title" = "상위 앱";
+"hardware.detail.topApps.memoryTitle" = "메모리 사용량 순위(RSS)";
 "hardware.detail.topApps.collecting" = "수집 중…";
 "hardware.detail.topApps.empty" = "활성 앱 없음";
 "hardware.detail.topApps.unsupported" = "지원되지 않음";

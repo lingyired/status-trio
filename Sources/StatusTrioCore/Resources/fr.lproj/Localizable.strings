@@ -1331,6 +1331,7 @@
 "hardware.detail.download" = "Téléchargement";
 "hardware.detail.upload" = "Envoi";
 "hardware.detail.topApps.title" = "Applications principales";
+"hardware.detail.topApps.memoryTitle" = "Applications par mémoire (RSS)";
 "hardware.detail.topApps.collecting" = "Collecte…";
 "hardware.detail.topApps.empty" = "Aucune application active";
 "hardware.detail.topApps.unsupported" = "Non pris en charge";

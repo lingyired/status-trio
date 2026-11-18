@@ -23,6 +23,7 @@ printf '%s\n' "$2" >> "$ST_CUA_FIXTURE_LOG"
 if [[ "$2" == "prepare" && "${ST_CUA_FIXTURE_BUSY:-0}" == 1 ]]; then exit 1; fi
 if [[ ( "$2" == "launch" || "$2" == "reuse" ) && "$5" != "${ST_CUA_FIXTURE_DISPLAY:-automatic}" ]]; then exit 1; fi
 if [[ ( "$2" == "launch" || "$2" == "reuse" ) && "$6" != "${ST_CUA_FIXTURE_PANEL_MODE:-settings}" ]]; then exit 1; fi
+if [[ ( "$2" == "launch" || "$2" == "reuse" ) && "${7:-}" != "${ST_CUA_FIXTURE_DETAIL:-}" ]]; then exit 1; fi
 if [[ "$2" == "reuse" && "${ST_CUA_FIXTURE_REUSE_MISSING:-0}" == 1 ]]; then exit 1; fi
 EOF
 cat > "$TEST_ROOT/scripts/build-worktree.sh" <<'EOF'
@@ -82,6 +83,9 @@ expect_failure bash "$TEST_ROOT/scripts/launch-computer-use.sh" --display primar
 expect_failure bash "$TEST_ROOT/scripts/launch-computer-use.sh" --reuse --reuse
 expect_failure bash "$TEST_ROOT/scripts/launch-computer-use.sh" --display secondary --display secondary
 expect_failure bash "$TEST_ROOT/scripts/launch-computer-use.sh" --panel --panel
+expect_failure bash "$TEST_ROOT/scripts/launch-computer-use.sh" --hardware-detail=memory
+expect_failure bash "$TEST_ROOT/scripts/launch-computer-use.sh" --panel --hardware-detail=bogus
+expect_failure bash "$TEST_ROOT/scripts/launch-computer-use.sh" --panel --hardware-detail=memory --hardware-detail=cpu
 expect_failure env ST_CUA_FIXTURE_REUSE_MISSING=1 bash "$TEST_ROOT/scripts/launch-computer-use.sh" --reuse
 [[ "$(cat "$ST_CUA_FIXTURE_LOG")" == "reuse" ]]
 for display in automatic secondary; do
@@ -93,6 +97,18 @@ for display in automatic secondary; do
         ST_CUA_FIXTURE_DISPLAY="$display" ST_CUA_FIXTURE_PANEL_MODE="$panel" \
             bash "$TEST_ROOT/scripts/launch-computer-use.sh" ${args[@]+"${args[@]}"} > "$FIXTURE/output"
         [[ "$(cat "$ST_CUA_FIXTURE_LOG")" == $'prepare\nbuild\nlaunch' ]]
+    done
+done
+for detail in cpu gpu memory network disk; do
+    for detailMode in launch reuse; do
+        : > "$ST_CUA_FIXTURE_LOG"
+        args=(--panel --hardware-detail="$detail")
+        [[ "$detailMode" == reuse ]] && args=(--reuse "${args[@]}")
+        ST_CUA_FIXTURE_PANEL_MODE=panel ST_CUA_FIXTURE_DETAIL="$detail" \
+            bash "$TEST_ROOT/scripts/launch-computer-use.sh" ${args[@]+"${args[@]}"} > "$FIXTURE/output"
+        expected=$'prepare\nbuild\nlaunch'
+        [[ "$detailMode" == reuse ]] && expected="reuse"
+        [[ "$(cat "$ST_CUA_FIXTURE_LOG")" == "$expected" ]]
     done
 done
 for display in automatic secondary; do

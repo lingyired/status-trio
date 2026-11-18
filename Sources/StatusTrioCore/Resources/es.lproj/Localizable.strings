@@ -1331,6 +1331,7 @@
 "hardware.detail.download" = "Descarga";
 "hardware.detail.upload" = "Subida";
 "hardware.detail.topApps.title" = "Aplicaciones principales";
+"hardware.detail.topApps.memoryTitle" = "Apps con más memoria (RSS)";
 "hardware.detail.topApps.collecting" = "Recopilando…";
 "hardware.detail.topApps.empty" = "Sin aplicaciones activas";
 "hardware.detail.topApps.unsupported" = "No compatible";
