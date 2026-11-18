@@ -232,7 +232,7 @@ enum StatusPanelPlacement {
     /// otherwise let a Dock-anchored panel reach the physical screen edge and
     /// overlap the revealed Dock (issue #229). A visible Dock already reduces
     /// `visibleFrame`, and `DockReveal` returns no inset there.
-    private static func usableFrame(
+    static func usableFrame(
         _ visibleFrame: NSRect,
         dockInset: NSEdgeInsets
     ) -> NSRect {
