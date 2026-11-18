@@ -249,8 +249,9 @@ struct CPUReader: Sendable {
 
     /// Maps the IORegistry `cluster-type` token to a core class. "E" is
     /// efficiency and "P" is performance on M1–M4. "M" (M5+ performance) maps to
-    /// performance and "S" is treated as a super core; anything else stays
-    /// unknown so a future class is never silently counted as a P-core.
+    /// performance. Any other non-empty token ("S" today, a future class
+    /// tomorrow) is reported as a super core rather than folded into P-cores or
+    /// dropped, so the most powerful extra class still gets its own card.
     static func coreKind(fromClusterType raw: String) -> CPUCoreKind {
         // The IORegistry value is a fixed-width buffer and can carry a trailing
         // NUL; strip NULs and surrounding whitespace before matching.
@@ -262,8 +263,7 @@ struct CPUReader: Sendable {
         case "E": return .efficiency
         case "P": return .performance
         case "M": return .performance
-        case "S": return .superCore
-        default: return .unknown
+        default: return token.isEmpty ? .unknown : .superCore
         }
     }
 
