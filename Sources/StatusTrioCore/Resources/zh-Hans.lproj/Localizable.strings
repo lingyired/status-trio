@@ -961,3 +961,14 @@
 "settings.brightness.useBetterDisplayCombined" = "使用 BetterDisplay 的组合亮度";
 "settings.brightness.useBetterDisplayCombined.description" = "BetterDisplay 的组合亮度把硬件亮度、软件压暗（和 XDR 提升）合并成一条滑块：能比硬件最低亮度更暗，只有 100% 时才和系统百分比一致。";
 "settings.brightness.useBetterDisplayCombined.needsApp" = "需要先安装 BetterDisplay 才能使用。";
+"settings.popup.order.menuBarTray" = "菜单栏收纳";
+"menuBarTray.arrange" = "整理";
+"menuBarTray.doneArranging" = "完成折叠";
+"menuBarTray.refresh" = "刷新收纳图标";
+"menuBarTray.arrangingHint" = "按住 ⌘ Command 将顶栏中需要收纳的图标拖到「‹」分隔符左侧，完成后点击「完成折叠」。";
+"menuBarTray.emptyHint" = "暂无收纳图标。点击右上角「整理」，按住 ⌘ 将顶栏图标拖到「‹」左侧即可收纳。";
+"menuBarTray.blockedOwnIconNotice" = "Status Trio 图标位于「‹」分隔符左侧，折叠后会无法打开面板。请按住 ⌘ 将 Status Trio 拖到「‹」右侧。";
+"menuBarTray.screenRecordingPrompt" = "授予「屏幕录制」权限以实时显示顶栏图标画面";
+"menuBarTray.accessibilityPrompt" = "授予「辅助功能」权限以支持点击图标打开对应菜单";
+"menuBarTray.grantPermission" = "去授权";
+"menuBarTray.separatorHelp" = "Status Trio 菜单栏收纳分隔符（点击完成折叠，按住 ⌘ 拖拽调整位置）";

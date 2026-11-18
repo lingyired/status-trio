@@ -7,6 +7,7 @@ struct StatusPopoverView: View {
     /// approved — reading `.isReady` off the shared manager without observing
     /// it left the control invisible until the popover was recreated.
     @ObservedObject private var helper: PrivilegedHelperManager = .shared
+    @ObservedObject private var menuBarTray: MenuBarTrayController = .shared
     let scrollTargets: PopoverScrollTargets
     /// The panel window's current height budget (#237). The content caps and
     /// scrolls itself at the same number the window uses, so the two never
@@ -206,6 +207,11 @@ struct StatusPopoverView: View {
     @ViewBuilder
     private func popupSection(_ section: PopupSection) -> some View {
         switch section {
+        case .menuBarTray:
+            MenuBarTraySectionView(
+                controller: menuBarTray,
+                dismissPanel: dismissPanel
+            )
         case .battery:
             BatteryStatusView(
                 state: panel.battery,

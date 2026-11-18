@@ -961,3 +961,14 @@
 "settings.brightness.useBetterDisplayCombined" = "Использовать комбинированную яркость BetterDisplay";
 "settings.brightness.useBetterDisplayCombined.description" = "Комбинированная яркость BetterDisplay объединяет аппаратную яркость, программное затемнение и запас XDR в одном регуляторе. Она может быть ниже аппаратного минимума и совпадает с системным процентом только при 100 %.";
 "settings.brightness.useBetterDisplayCombined.needsApp" = "Для этой опции требуется установить BetterDisplay.";
+"settings.popup.order.menuBarTray" = "Menu Bar Tray";
+"menuBarTray.arrange" = "Arrange";
+"menuBarTray.doneArranging" = "Collapse";
+"menuBarTray.refresh" = "Refresh Tray Icons";
+"menuBarTray.arrangingHint" = "Hold ⌘ Command and drag menu bar icons to the left of the ‹ divider, then click Collapse.";
+"menuBarTray.emptyHint" = "No hidden icons yet. Click Arrange, then ⌘-drag menu bar icons to the left of ‹.";
+"menuBarTray.blockedOwnIconNotice" = "Status Trio is to the left of ‹ and would be hidden too. ⌘-drag Status Trio to the right of ‹.";
+"menuBarTray.screenRecordingPrompt" = "Grant Screen Recording to capture live menu bar icons";
+"menuBarTray.accessibilityPrompt" = "Grant Accessibility to forward clicks to hidden menu bar icons";
+"menuBarTray.grantPermission" = "Grant";
+"menuBarTray.separatorHelp" = "Status Trio Menu Bar Tray Divider (Click to collapse, ⌘-drag to reposition)";
