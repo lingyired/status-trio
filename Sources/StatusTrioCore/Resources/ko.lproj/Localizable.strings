@@ -1311,6 +1311,10 @@
 "hardware.detail.performanceCores" = "성능 코어";
 "hardware.detail.superCores" = "슈퍼 코어";
 "hardware.detail.otherCores" = "기타 코어";
+"hardware.detail.fanCount" = "팬 수";
+"hardware.detail.fanIndex" = "팬 %d";
+"hardware.detail.temperatures" = "온도";
+"hardware.detail.fanUnavailable" = "팬 속도를 읽을 수 없음";
 "hardware.detail.average" = "평균";
 "hardware.detail.estimatedFrequency" = "예상 주파수";
 "hardware.detail.cores" = "코어 수";

@@ -1310,6 +1310,10 @@
 "hardware.detail.performanceCores" = "Performance cores";
 "hardware.detail.superCores" = "Super cores";
 "hardware.detail.otherCores" = "Other cores";
+"hardware.detail.fanCount" = "Fans";
+"hardware.detail.fanIndex" = "Fan %d";
+"hardware.detail.temperatures" = "Temperatures";
+"hardware.detail.fanUnavailable" = "Fan speed unavailable";
 "hardware.detail.average" = "Average";
 "hardware.detail.estimatedFrequency" = "Est. frequency";
 "hardware.detail.cores" = "Cores";

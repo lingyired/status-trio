@@ -27,7 +27,7 @@ struct BackgroundUITestingConfiguration: Equatable, Sendable {
         let statusPanelArguments = arguments.filter { $0.hasPrefix("--test-open-status-panel") }
         let detailPrefix = "--test-open-hardware-detail="
         let detailArguments = arguments.filter { $0.hasPrefix(detailPrefix) }
-        let validDetails: Set<String> = ["cpu", "gpu", "memory", "network", "disk"]
+        let validDetails: Set<String> = ["cpu", "gpu", "memory", "network", "disk", "fan"]
         let detailValues = detailArguments.compactMap { argument -> String? in
             let value = String(argument.dropFirst(detailPrefix.count))
             return validDetails.contains(value) ? value : nil

@@ -8,6 +8,7 @@ enum HardwareDetailKind: String, CaseIterable, Hashable, Sendable, Identifiable 
     case memory
     case network
     case disk
+    case fan
 
     var id: String { rawValue }
 }

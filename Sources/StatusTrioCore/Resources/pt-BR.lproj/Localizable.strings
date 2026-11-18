@@ -1311,6 +1311,10 @@
 "hardware.detail.performanceCores" = "Núcleos de desempenho";
 "hardware.detail.superCores" = "Núcleos super";
 "hardware.detail.otherCores" = "Outros núcleos";
+"hardware.detail.fanCount" = "Ventoinhas";
+"hardware.detail.fanIndex" = "Ventoinha %d";
+"hardware.detail.temperatures" = "Temperaturas";
+"hardware.detail.fanUnavailable" = "Velocidade da ventoinha indisponível";
 "hardware.detail.average" = "Média";
 "hardware.detail.estimatedFrequency" = "Frequência est.";
 "hardware.detail.cores" = "Núcleos";

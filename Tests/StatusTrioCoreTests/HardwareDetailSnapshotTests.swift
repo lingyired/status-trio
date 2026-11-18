@@ -53,6 +53,18 @@ final class HardwareDetailSnapshotTests: XCTestCase {
                 readBytesPerSecond: 45_000_000, writeBytesPerSecond: 12_000_000, sampledAt: date)
             snapshot.samples[.diskRead] = HardwareMetricSample(value: 45_000_000, unit: .bytesPerSecond, sampledAt: date, source: .ioStorage, availability: .measured)
             snapshot.samples[.diskWrite] = HardwareMetricSample(value: 12_000_000, unit: .bytesPerSecond, sampledAt: date, source: .ioStorage, availability: .measured)
+        case .fan:
+            snapshot.samples[.fanRPM(index: 0)] = HardwareMetricSample(
+                value: 1394, unit: .rpm, sampledAt: date, source: .smc, availability: .measured,
+                sensorLabel: "Left Fan",
+                metadata: .init(maximum: 6000, minimum: 1200))
+            snapshot.samples[.fanRPM(index: 1)] = HardwareMetricSample(
+                value: 1208, unit: .rpm, sampledAt: date, source: .smc, availability: .measured,
+                sensorLabel: "Right Fan",
+                metadata: .init(maximum: 6000, minimum: 1200))
+            snapshot.samples[.cpuTemperature] = HardwareMetricSample(value: 46, unit: .celsius, sampledAt: date, source: .smc, availability: .measured)
+            snapshot.samples[.gpuTemperature] = HardwareMetricSample(value: 52, unit: .celsius, sampledAt: date, source: .smc, availability: .measured)
+            snapshot.samples[.batteryTemperature] = HardwareMetricSample(value: 31, unit: .celsius, sampledAt: date, source: .smc, availability: .measured)
         }
         return snapshot
     }
@@ -72,6 +84,8 @@ final class HardwareDetailSnapshotTests: XCTestCase {
                 values = [12_000_000 + 9_000_000 * sin(phase), 1_000_000 + 700_000 * cos(phase)]
             case .disk:
                 values = [40_000_000 + 25_000_000 * sin(phase), 10_000_000 + 8_000_000 * cos(phase)]
+            case .fan:
+                values = [46 + 4 * sin(phase)]
             }
             return HardwareDetailHistoryPoint(id: index, date: pointDate, values: Array(values.prefix(series)))
         }

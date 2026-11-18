@@ -51,7 +51,7 @@ struct HardwareMonitorSummaryView: View {
                     switch metric {
                     case .download, .upload: onOpenHardwareDetail?(.network)
                     case .disk: onOpenHardwareDetail?(.disk)
-                    case .fan: break
+                    case .fan: onOpenHardwareDetail?(.fan)
                     }
                 }
             }

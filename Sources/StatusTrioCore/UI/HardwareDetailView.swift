@@ -71,6 +71,7 @@ struct HardwareDetailView: View {
         case .memory: memoryContent
         case .network: networkContent
         case .disk: diskContent
+        case .fan: fanContent
         }
     }
 
@@ -366,6 +367,118 @@ struct HardwareDetailView: View {
         return interfaces.joined(separator: ", ")
     }
 
+    // MARK: - Fan
+
+    private struct FanItem {
+        let index: Int
+        let title: String
+        let rpm: Double?
+        let maxRPM: Double?
+        let availability: HardwareMetricAvailability
+    }
+
+    private var fanContent: some View {
+        let fans = fanItems()
+        let measured = fans.compactMap(\.rpm).filter { $0.isFinite }
+        let average = measured.isEmpty ? nil : measured.reduce(0, +) / Double(measured.count)
+        let isFanless = snapshot[.fanRPM(index: 0)].metadata.isFanless
+        return VStack(alignment: .leading, spacing: 12) {
+            HardwareDetailCard {
+                HStack(spacing: 0) {
+                    topMetric(localization.string(.hardwareDetailFanCount),
+                              HardwareDetailFormat.integer(fans.count))
+                    verticalDivider
+                    topMetric(localization.string(.hardwareMonitorFanAverage),
+                              HardwareDetailFormat.rpm(average))
+                }
+            }
+            if fans.isEmpty {
+                HardwareDetailCard {
+                    Text(localization.string(isFanless ? .hardwareMonitorFanless : .hardwareDetailFanUnavailable))
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
+            } else {
+                fanCards(fans)
+            }
+            temperatureCard
+        }
+    }
+
+    private func fanItems() -> [FanItem] {
+        snapshot.samples.compactMap { key, sample in
+            guard case .fanRPM(let index) = key else { return nil }
+            let name = sample.sensorLabel
+                ?? String(format: localization.string(.hardwareDetailFanIndex), index + 1)
+            return FanItem(index: index, title: name, rpm: sample.value,
+                           maxRPM: sample.metadata.maximum, availability: sample.availability)
+        }
+        .sorted { $0.index < $1.index }
+    }
+
+    @ViewBuilder
+    private func fanCards(_ fans: [FanItem]) -> some View {
+        if fans.count == 1 {
+            fanCard(fans[0], valueSize: 26)
+        } else if fans.count == 2 {
+            HStack(alignment: .top, spacing: 8) {
+                ForEach(fans.indices, id: \.self) { fanCard(fans[$0]) }
+            }
+        } else {
+            let rows: [[FanItem]] = stride(from: 0, to: fans.count, by: 2).map {
+                Array(fans[$0..<min($0 + 2, fans.count)])
+            }
+            VStack(alignment: .leading, spacing: 8) {
+                ForEach(Array(rows.enumerated()), id: \.offset) { _, row in
+                    HStack(alignment: .top, spacing: 8) {
+                        ForEach(row.indices, id: \.self) { fanCard(row[$0]) }
+                        if row.count == 1 { Spacer(minLength: 0) }
+                    }
+                }
+            }
+        }
+    }
+
+    private func fanCard(_ fan: FanItem, valueSize: CGFloat = 22) -> some View {
+        HardwareDetailCard {
+            VStack(alignment: .leading, spacing: 6) {
+                Text(fan.title)
+                    .font(.subheadline.weight(.medium))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
+                Text(HardwareDetailFormat.rpm(fan.rpm))
+                    .font(.system(size: valueSize, weight: .semibold, design: .rounded))
+                    .monospacedDigit()
+                    .opacity(fan.availability == .stale ? 0.5 : 1)
+                if let maxRPM = fan.maxRPM, maxRPM > 0 {
+                    HardwareDetailProgressBar(fraction: (fan.rpm ?? 0) / maxRPM, tint: .teal)
+                    Text("0 – \(Int(maxRPM.rounded())) RPM")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                        .monospacedDigit()
+                }
+            }
+        }
+    }
+
+    private var temperatureCard: some View {
+        HardwareDetailCard {
+            VStack(alignment: .leading, spacing: 6) {
+                Text(localization.string(.hardwareDetailTemperatures))
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                HardwareDetailRow(label: localization.string(.hardwareMonitorTemperature),
+                                  value: HardwareDetailFormat.temperature(snapshot[.cpuTemperature].value))
+                divider
+                HardwareDetailRow(label: localization.string(.hardwareMonitorGPUTemperature),
+                                  value: HardwareDetailFormat.temperature(snapshot[.gpuTemperature].value))
+                divider
+                HardwareDetailRow(label: localization.string(.hardwareMonitorBatteryTemperature),
+                                  value: HardwareDetailFormat.temperature(snapshot[.batteryTemperature].value))
+            }
+        }
+    }
+
     // MARK: - Disk
 
     private var diskContent: some View {
@@ -460,6 +573,7 @@ struct HardwareDetailView: View {
         case .memory: return [metricColor(.memoryUsage)]
         case .network: return [metricColor(.downloadSpeed), metricColor(.uploadSpeed)]
         case .disk: return [.orange, .purple]
+        case .fan: return [.teal]
         }
     }
 
@@ -514,13 +628,14 @@ extension HardwareDetailKind {
         case .memory: return .hardwareDetailTitleMemory
         case .network: return .hardwareDetailTitleNetwork
         case .disk: return .hardwareDetailTitleDisk
+        case .fan: return .hardwareMonitorFan
         }
     }
 
     var historySeriesCount: Int {
         switch self {
         case .network, .disk: return 2
-        case .cpu, .gpu, .memory: return 1
+        case .cpu, .gpu, .memory, .fan: return 1
         }
     }
 
@@ -532,6 +647,7 @@ extension HardwareDetailKind {
         case .memory: return [.memoryUsage]
         case .network: return [.networkDownload, .networkUpload]
         case .disk: return [.diskRead, .diskWrite]
+        case .fan: return [.cpuTemperature]
         }
     }
 
@@ -547,6 +663,8 @@ extension HardwareDetailKind {
             return snapshot.networkDetail?.sampledAt ?? snapshot[.networkDownload].sampledAt
         case .disk:
             return snapshot.diskDetail?.sampledAt ?? snapshot[.diskRead].sampledAt
+        case .fan:
+            return snapshot[.cpuTemperature].sampledAt
         }
     }
 
@@ -564,6 +682,8 @@ extension HardwareDetailKind {
         case .disk:
             return [snapshot.diskDetail?.readBytesPerSecond ?? snapshot[.diskRead].value,
                     snapshot.diskDetail?.writeBytesPerSecond ?? snapshot[.diskWrite].value]
+        case .fan:
+            return [snapshot[.cpuTemperature].value]
         }
     }
 }

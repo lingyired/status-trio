@@ -1311,6 +1311,10 @@
 "hardware.detail.performanceCores" = "Núcleos de rendimiento";
 "hardware.detail.superCores" = "Núcleos super";
 "hardware.detail.otherCores" = "Otros núcleos";
+"hardware.detail.fanCount" = "Ventiladores";
+"hardware.detail.fanIndex" = "Ventilador %d";
+"hardware.detail.temperatures" = "Temperaturas";
+"hardware.detail.fanUnavailable" = "Velocidad del ventilador no disponible";
 "hardware.detail.average" = "Promedio";
 "hardware.detail.estimatedFrequency" = "Frecuencia est.";
 "hardware.detail.cores" = "Núcleos";

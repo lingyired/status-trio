@@ -250,7 +250,7 @@ extension HardwareDetailKind {
         case .gpu: return .gpu
         case .memory: return .memory
         case .network: return .network
-        case .disk: return nil
+        case .disk, .fan: return nil
         }
     }
 }

@@ -1311,6 +1311,10 @@
 "hardware.detail.performanceCores" = "Cœurs de performance";
 "hardware.detail.superCores" = "Cœurs super";
 "hardware.detail.otherCores" = "Autres cœurs";
+"hardware.detail.fanCount" = "Nombre de ventilateurs";
+"hardware.detail.fanIndex" = "Ventilateur %d";
+"hardware.detail.temperatures" = "Températures";
+"hardware.detail.fanUnavailable" = "Vitesse du ventilateur indisponible";
 "hardware.detail.average" = "Moyenne";
 "hardware.detail.estimatedFrequency" = "Fréquence est.";
 "hardware.detail.cores" = "Cœurs";

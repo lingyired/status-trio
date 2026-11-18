@@ -1311,6 +1311,10 @@
 "hardware.detail.performanceCores" = "效能核心";
 "hardware.detail.superCores" = "超級核心";
 "hardware.detail.otherCores" = "其他核心";
+"hardware.detail.fanCount" = "風扇數量";
+"hardware.detail.fanIndex" = "風扇 %d";
+"hardware.detail.temperatures" = "溫度";
+"hardware.detail.fanUnavailable" = "無法讀取風扇轉速";
 "hardware.detail.average" = "平均";
 "hardware.detail.estimatedFrequency" = "估算頻率";
 "hardware.detail.cores" = "核心數";
