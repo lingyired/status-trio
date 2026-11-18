@@ -169,21 +169,24 @@ struct HardwareDetailView: View {
             HardwareCPUCoreGroup(id: id, title: title, average: average, count: count,
                                  frequency: ghz, tint: tint)
         }
+        let efficiency = localization.string(.hardwareDetailEfficiencyCores)
+        let performance = localization.string(.hardwareDetailPerformanceCores)
+        let superCore = localization.string(.hardwareDetailSuperCores)
         return VStack(alignment: .leading, spacing: 10) {
-            Text("单核").font(.caption).foregroundStyle(.secondary)
+            Text("1").font(.caption).foregroundStyle(.secondary)
             HardwareCPUCoreGroupRow(
-                groups: [group("e", "能效核", 42, 4, 1.79, .teal)],
+                groups: [group("e", efficiency, 42, 4, 1.79, .teal)],
                 coresLabel: cores, frequencyLabel: frequency)
-            Text("双核").font(.caption).foregroundStyle(.secondary)
+            Text("2").font(.caption).foregroundStyle(.secondary)
             HardwareCPUCoreGroupRow(
-                groups: [group("p", "性能核", 24, 12, 4.01, .orange),
-                         group("e", "能效核", 42, 4, 1.79, .teal)],
+                groups: [group("p", performance, 24, 12, 4.01, .orange),
+                         group("e", efficiency, 42, 4, 1.79, .teal)],
                 coresLabel: cores, frequencyLabel: frequency)
-            Text("三核").font(.caption).foregroundStyle(.secondary)
+            Text("3").font(.caption).foregroundStyle(.secondary)
             HardwareCPUCoreGroupRow(
-                groups: [group("s", "超级核", 65, 4, nil, .pink),
-                         group("p", "性能核", 24, 12, 4.01, .orange),
-                         group("e", "能效核", 42, 4, 1.79, .teal)],
+                groups: [group("s", superCore, 65, 4, nil, .pink),
+                         group("p", performance, 24, 12, 4.01, .orange),
+                         group("e", efficiency, 42, 4, 1.79, .teal)],
                 coresLabel: cores, frequencyLabel: frequency)
         }
     }

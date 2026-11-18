@@ -150,22 +150,29 @@ struct HardwareCPUCoreCard: View {
     let coresLabel: String
     let frequencyLabel: String
     var valueSize: CGFloat = 18
+    /// Three cards share one row; drop the redundant labels so the localized
+    /// title and the frequency value are not truncated.
+    var compact: Bool = false
 
     var body: some View {
         HardwareDetailCard {
             VStack(alignment: .leading, spacing: 6) {
                 HStack(alignment: .firstTextBaseline) {
                     Text(group.title).font(.subheadline.weight(.medium)).lineLimit(1).minimumScaleFactor(0.7)
-                    Spacer(minLength: 4)
-                    Text("\(coresLabel) \(HardwareDetailFormat.integer(group.count))")
-                        .font(.caption2).foregroundStyle(.secondary).lineLimit(1)
+                    if !compact {
+                        Spacer(minLength: 4)
+                        Text("\(coresLabel) \(HardwareDetailFormat.integer(group.count))")
+                            .font(.caption2).foregroundStyle(.secondary).lineLimit(1)
+                    }
                 }
                 Text(HardwareDetailFormat.percent(group.average))
                     .font(.system(size: valueSize, weight: .semibold, design: .rounded))
                     .monospacedDigit()
                 HStack(spacing: 3) {
-                    Text(frequencyLabel)
-                        .font(.caption2).foregroundStyle(.secondary)
+                    if !compact {
+                        Text(frequencyLabel)
+                            .font(.caption2).foregroundStyle(.secondary)
+                    }
                     Text(HardwareDetailFormat.frequency(group.frequency))
                         .font(.caption2).monospacedDigit().foregroundStyle(.secondary)
                 }
@@ -188,12 +195,24 @@ struct HardwareCPUCoreGroupRow: View {
         } else if groups.count == 1 {
             HardwareCPUCoreCard(group: groups[0], coresLabel: coresLabel,
                                 frequencyLabel: frequencyLabel, valueSize: 20)
-        } else {
-            HStack(alignment: .top, spacing: groups.count >= 3 ? 5 : 8) {
+        } else if groups.count == 2 {
+            HStack(alignment: .top, spacing: 8) {
                 ForEach(groups) { group in
                     HardwareCPUCoreCard(group: group, coresLabel: coresLabel,
-                                        frequencyLabel: frequencyLabel,
-                                        valueSize: groups.count >= 3 ? 15 : 18)
+                                        frequencyLabel: frequencyLabel, valueSize: 18)
+                }
+            }
+        } else {
+            // Three classes do not fit on one row at this width; give the first
+            // (super) core a full row and put the other two side by side.
+            VStack(alignment: .leading, spacing: 5) {
+                HardwareCPUCoreCard(group: groups[0], coresLabel: coresLabel,
+                                    frequencyLabel: frequencyLabel, valueSize: 18)
+                HStack(alignment: .top, spacing: 8) {
+                    ForEach(groups.dropFirst()) { group in
+                        HardwareCPUCoreCard(group: group, coresLabel: coresLabel,
+                                            frequencyLabel: frequencyLabel, valueSize: 18)
+                    }
                 }
             }
         }
