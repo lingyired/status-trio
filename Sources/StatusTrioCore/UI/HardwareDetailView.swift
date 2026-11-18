@@ -385,8 +385,6 @@ struct HardwareDetailView: View {
                     }
                 }
             }
-            trendCard(title: localization.string(.hardwareDetailSpeedTrend),
-                      scale: .auto)
             HardwareDetailCard {
                 VStack(alignment: .leading, spacing: 6) {
                     HardwareDetailRow(label: localization.string(.hardwareDetailUsedSpace),
