@@ -95,16 +95,16 @@ struct HardwareDetailView: View {
                 }
             }
             HStack(alignment: .top, spacing: 8) {
-                coreCard(title: localization.string(.hardwareDetailEfficiencyCores),
-                         average: detail?.groupUsage?.efficiencyAverage,
-                         count: detail?.topology?.efficiencyCoreCount,
-                         frequency: detail?.frequency?.efficiencyGHz,
-                         tint: .teal)
                 coreCard(title: localization.string(.hardwareDetailPerformanceCores),
                          average: detail?.groupUsage?.performanceAverage,
                          count: detail?.topology?.performanceCoreCount,
                          frequency: detail?.frequency?.performanceGHz,
                          tint: .orange)
+                coreCard(title: localization.string(.hardwareDetailEfficiencyCores),
+                         average: detail?.groupUsage?.efficiencyAverage,
+                         count: detail?.topology?.efficiencyCoreCount,
+                         frequency: detail?.frequency?.efficiencyGHz,
+                         tint: .teal)
             }
             trendCard(title: localization.string(.hardwareDetailUsageTrend),
                       scale: .percent)
