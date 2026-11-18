@@ -495,6 +495,8 @@
 "settings.panel.returnsToSummaryOnOpen.description" = "Si se activa, al reabrir el panel de estado se vuelve a la página de detalle que estaba visible al cerrarlo; en caso contrario, siempre empieza en el resumen.";
 "settings.panel.showsDetailsAlongside" = "Mostrar detalles al lado";
 "settings.panel.showsDetailsAlongside.description" = "Si se activa, las páginas de detalle se abren a la derecha del panel de estado; si no hay espacio a la derecha, se abren a la izquierda.";
+"settings.panel.showsPanelOnHover" = "Mostrar el panel al pasar el cursor";
+"settings.panel.showsPanelOnHover.description" = "Al activarlo, mantener el puntero sobre el icono de la barra de menús durante unos 0,3 segundos abre el panel de estado. Si el puntero entra en el panel, este permanece abierto; al salir del icono y del panel, se cierra tras una breve pausa. Hacer clic sigue alternando la visibilidad.";
 "settings.popup.volumeScroll.group" = "Desplazamiento del panel";
 "settings.audio.volumeScroll.group" = "Desplazamiento de volumen";
 "settings.popup.panelScroll" = "Desplazar el panel para ajustar el volumen";

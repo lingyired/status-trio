@@ -405,3 +405,94 @@ struct PopoverDismissalPolicyEdgeTests {
         #expect(panelVisible == false)
     }
 }
+
+/// Issue #355: the hover-to-show decisions are pure so the dwell bounds, the
+/// icon+panel hover area, and the delayed-transition cancellation can be tested
+/// without a live status item or a real mouse.
+struct PopoverHoverPresentationTests {
+    private let statusFrame = NSRect(x: 100, y: 900, width: 30, height: 24)
+    private let panelFrame = NSRect(x: 90, y: 700, width: 320, height: 190)
+
+    @Test func dwellDelaysStayInsideTheIssueRange() {
+        #expect(PopoverHoverPresentation.showDelay >= 0.3)
+        #expect(PopoverHoverPresentation.showDelay <= 0.5)
+        #expect(PopoverHoverPresentation.hideDelay >= 0.3)
+        #expect(PopoverHoverPresentation.hideDelay <= 0.5)
+    }
+
+    @Test func iconAndPanelAreInsideTheHoverArea() {
+        let presentation = PopoverHoverPresentation(
+            statusItemFrame: statusFrame,
+            panelFrames: [panelFrame]
+        )
+
+        #expect(presentation.containsStatusItem(NSPoint(x: statusFrame.midX, y: statusFrame.midY)))
+        #expect(presentation.containsPanel(NSPoint(x: panelFrame.midX, y: panelFrame.midY)))
+        #expect(presentation.isWithinHoverArea(NSPoint(x: statusFrame.midX, y: statusFrame.midY)))
+        #expect(presentation.isWithinHoverArea(NSPoint(x: panelFrame.midX, y: panelFrame.midY)))
+    }
+
+    @Test func theGapBetweenIconAndPanelCountsAsInside() {
+        let presentation = PopoverHoverPresentation(
+            statusItemFrame: statusFrame,
+            panelFrames: [panelFrame]
+        )
+        let gap = NSPoint(x: statusFrame.midX, y: (statusFrame.minY + panelFrame.maxY) / 2)
+
+        #expect(presentation.containsStatusItem(gap) == false)
+        #expect(presentation.containsPanel(gap) == false)
+        #expect(presentation.isWithinHoverArea(gap))
+    }
+
+    @Test func aFarAwayPointerIsOutsideTheHoverArea() {
+        let presentation = PopoverHoverPresentation(
+            statusItemFrame: statusFrame,
+            panelFrames: [panelFrame]
+        )
+
+        #expect(presentation.isWithinHoverArea(NSPoint(x: 500, y: 300)) == false)
+    }
+}
+
+/// Issue #355: a new hover transition supersedes the pending one, so a pointer
+/// that leaves and re-enters during the dwell cannot leave a stale close.
+struct PopoverHoverIntentTests {
+    @Test func onlyTheLatestTransitionCanAct() {
+        var intent = PopoverHoverIntent()
+        let showToken = intent.begin(.show)
+        let hideToken = intent.begin(.hide)
+
+        let staleActed = intent.consume(showToken)
+        let latestActed = intent.consume(hideToken)
+        #expect(staleActed == false)
+        #expect(latestActed)
+    }
+
+    @Test func cancelInvalidatesAPendingTransition() {
+        var intent = PopoverHoverIntent()
+        let token = intent.begin(.show)
+
+        let cancelled = intent.cancel()
+        let actedAfterCancel = intent.consume(token)
+        #expect(cancelled)
+        #expect(actedAfterCancel == false)
+        #expect(intent.pending == nil)
+    }
+
+    @Test func cancellingWhenIdleIsANoop() {
+        var intent = PopoverHoverIntent()
+
+        let cancelled = intent.cancel()
+        #expect(cancelled == false)
+    }
+
+    @Test func consumingClearsThePendingTransition() {
+        var intent = PopoverHoverIntent()
+        let token = intent.begin(.show)
+
+        let first = intent.consume(token)
+        let second = intent.consume(token)
+        #expect(first)
+        #expect(second == false)
+    }
+}

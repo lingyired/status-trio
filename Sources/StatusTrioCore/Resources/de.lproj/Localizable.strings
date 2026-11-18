@@ -495,6 +495,8 @@
 "settings.panel.returnsToSummaryOnOpen.description" = "Wenn aktiviert, kehrt das Statuspanel beim erneuten Öffnen zur zuletzt angezeigten Detailseite zurück; andernfalls startet es immer auf der Übersicht.";
 "settings.panel.showsDetailsAlongside" = "Details daneben anzeigen";
 "settings.panel.showsDetailsAlongside.description" = "Wenn aktiviert, öffnen sich Detailseiten rechts neben dem Statuspanel; ist rechts kein Platz, öffnen sie sich links.";
+"settings.panel.showsPanelOnHover" = "Panel beim Überfahren anzeigen";
+"settings.panel.showsPanelOnHover.description" = "Wenn aktiviert, öffnet sich das Statuspanel, wenn der Zeiger etwa 0,3 Sekunden auf dem Menüleisten-Symbol ruht. Beim Bewegen in das Panel bleibt es offen; verlässt der Zeiger Symbol und Panel, schließt es nach kurzer Verzögerung. Klicken schaltet weiterhin um.";
 "settings.popup.volumeScroll.group" = "Panel-Scrollen";
 "settings.audio.volumeScroll.group" = "Lautstärke-Scrollen";
 "settings.popup.panelScroll" = "Durch Scrollen im Panel die Lautstärke ändern";

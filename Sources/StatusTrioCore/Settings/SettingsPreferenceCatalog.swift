@@ -189,6 +189,7 @@ enum SettingsPreferenceCatalog {
                     default: SettingsStore.defaultPopupPanelScrollAdjustsVolume),
             boolean("returnsToSummaryOnOpen", \.returnsToSummaryOnOpen, default: false),
             boolean("showsPanelDetailsAlongside", \.showsPanelDetailsAlongside, default: false),
+            boolean("showsPanelOnHover", \.showsPanelOnHover, default: false),
             number("popupScrollWheelStepPercent", \.popupScrollWheelStepPercent,
                    default: SettingsStore.defaultPopupScrollWheelStepPercent,
                    range: SettingsStore.popupScrollWheelStepPercentRange, step: 0.5),

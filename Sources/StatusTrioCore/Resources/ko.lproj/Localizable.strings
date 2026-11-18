@@ -495,6 +495,8 @@
 "settings.panel.returnsToSummaryOnOpen.description" = "켜면 상태 패널을 다시 열 때 닫을 때 보던 세부 정보 페이지로 돌아갑니다. 끄면 항상 요약에서 시작합니다.";
 "settings.panel.showsDetailsAlongside" = "세부 정보를 옆에 표시";
 "settings.panel.showsDetailsAlongside.description" = "켜면 세부 정보 페이지가 상태 패널 오른쪽에 열립니다. 오른쪽에 공간이 없으면 왼쪽에 열립니다.";
+"settings.panel.showsPanelOnHover" = "가리키면 패널 표시";
+"settings.panel.showsPanelOnHover.description" = "활성화하면 메뉴 막대 아이콘에 포인터를 약 0.3초 올려 두면 상태 패널이 열립니다. 패널 안으로 이동하면 닫히지 않고, 아이콘과 패널에서 벗어나면 잠시 후 닫힙니다. 클릭은 계속 전환으로 동작합니다.";
 "settings.popup.volumeScroll.group" = "패널 스크롤";
 "settings.audio.volumeScroll.group" = "음량 스크롤";
 "settings.popup.panelScroll" = "패널 스크롤로 음량 조절";

@@ -87,6 +87,13 @@ final class StatusBarController: NSObject {
     private var reduceTransparencyCancellable: AnyCancellable?
     private var helperQuiescenceCancellable: AnyCancellable?
     private var lidPolicyCancellables: Set<AnyCancellable> = []
+    private var hoverPreferenceCancellable: AnyCancellable?
+    /// Issue #355: whether hover-to-show is active. Off unless the user opts in.
+    private var isHoverPresentationEnabled = false
+    private var hoverIntent = PopoverHoverIntent()
+    private var hoverTask: Task<Void, Never>?
+    private var statusItemHoverTracking: PopoverHoverTracking?
+    private var panelHoverTrackings: [PopoverHoverTracking] = []
     private let openSettings: () -> Void
     /// Opens Status Trio's own Settings window on the Battery tab.
     private let openAppBatterySettings: () -> Void
@@ -288,6 +295,7 @@ final class StatusBarController: NSObject {
         }
         #endif
         configurePopover()
+        configureHoverPresentation()
         observeApplicationFocusChanges()
         observeAppWindowFrontmostChanges()
         observeAppearanceChanges()
@@ -454,6 +462,7 @@ final class StatusBarController: NSObject {
             statusItem.isVisible = true
             resetStaticPresentation()
             renderLatestScene()
+            installStatusItemHoverTracking()
         } else {
             clearAnimationPresentation()
             // The colored presentation's non-template footprint is transparent.
@@ -474,6 +483,9 @@ final class StatusBarController: NSObject {
                 releasePopoverContentIfPresent()
             }
             statusItem.isVisible = false
+            removeStatusItemHoverTracking()
+            cancelHoverTransition()
+            removePanelHoverTracking()
         }
         visibilityDidChange?()
     }
@@ -601,6 +613,155 @@ final class StatusBarController: NSObject {
         configureDetailPanel()
     }
 
+    // MARK: - Hover presentation (issue #355)
+
+    private func configureHoverPresentation() {
+        hoverPreferenceCancellable = settings.$showsPanelOnHover
+            .removeDuplicates()
+            .sink { [weak self] enabled in
+                self?.setHoverPresentationEnabled(enabled)
+            }
+    }
+
+    private func setHoverPresentationEnabled(_ enabled: Bool) {
+        guard enabled != isHoverPresentationEnabled else { return }
+        isHoverPresentationEnabled = enabled
+        if enabled {
+            installStatusItemHoverTracking()
+            refreshPanelHoverTracking()
+        } else {
+            removeStatusItemHoverTracking()
+            removePanelHoverTracking()
+            cancelHoverTransition()
+        }
+    }
+
+    private func installStatusItemHoverTracking() {
+        guard isHoverPresentationEnabled,
+              statusItemHoverTracking == nil,
+              isStatusItemVisible,
+              let button = statusItem.button else { return }
+        let tracking = PopoverHoverTracking(view: button)
+        tracking.onEnter = { [weak self] in self?.statusItemHoverDidEnter() }
+        tracking.onExit = { [weak self] in self?.statusItemHoverDidExit() }
+        statusItemHoverTracking = tracking
+    }
+
+    private func removeStatusItemHoverTracking() {
+        statusItemHoverTracking?.invalidate()
+        statusItemHoverTracking = nil
+    }
+
+    /// Every currently visible panel gets its own tracking area so moving from
+    /// the summary into an alongside detail window never looks like leaving.
+    private func refreshPanelHoverTracking() {
+        guard isHoverPresentationEnabled else { return }
+        if popover.isShown, let view = popover.contentView {
+            installPanelHoverTracking(on: view)
+        }
+        if detailPanel.isShown, let view = detailPanel.contentView {
+            installPanelHoverTracking(on: view)
+        }
+    }
+
+    private func installPanelHoverTracking(on view: NSView) {
+        guard !panelHoverTrackings.contains(where: { $0.view === view }) else { return }
+        let tracking = PopoverHoverTracking(view: view)
+        tracking.onEnter = { [weak self] in self?.panelHoverDidEnter() }
+        tracking.onExit = { [weak self] in self?.panelHoverDidExit() }
+        panelHoverTrackings.append(tracking)
+    }
+
+    private func removePanelHoverTracking() {
+        panelHoverTrackings.forEach { $0.invalidate() }
+        panelHoverTrackings.removeAll()
+    }
+
+    private func statusItemHoverDidEnter() {
+        guard isHoverPresentationEnabled else { return }
+        cancelHoverTransition()
+        guard !popover.isShown else { return }
+        scheduleHoverTransition(.show)
+    }
+
+    private func statusItemHoverDidExit() {
+        guard isHoverPresentationEnabled else { return }
+        guard popover.isShown else {
+            cancelHoverTransition()
+            return
+        }
+        scheduleHoverTransition(.hide)
+    }
+
+    private func panelHoverDidEnter() {
+        guard isHoverPresentationEnabled else { return }
+        cancelHoverTransition()
+    }
+
+    private func panelHoverDidExit() {
+        guard isHoverPresentationEnabled, popover.isShown else { return }
+        scheduleHoverTransition(.hide)
+    }
+
+    private func scheduleHoverTransition(_ transition: PopoverHoverIntent.Transition) {
+        hoverTask?.cancel()
+        let token = hoverIntent.begin(transition)
+        let delay = transition == .show
+            ? PopoverHoverPresentation.showDelay
+            : PopoverHoverPresentation.hideDelay
+        hoverTask = Task { @MainActor [weak self] in
+            try? await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
+            guard !Task.isCancelled, let self, self.hoverIntent.consume(token) else { return }
+            switch transition {
+            case .show: self.performHoverShow()
+            case .hide: self.performHoverHide()
+            }
+        }
+    }
+
+    private func cancelHoverTransition() {
+        hoverTask?.cancel()
+        hoverTask = nil
+        hoverIntent.cancel()
+    }
+
+    private func performHoverShow() {
+        guard isHoverPresentationEnabled,
+              !popover.isShown,
+              isStatusItemVisible,
+              let button = statusItem.button else { return }
+        let presentation = PopoverHoverPresentation(
+            statusItemFrame: statusItemButtonScreenFrame(),
+            panelFrames: panelWindowFrames
+        )
+        // The pointer may have moved during the dwell; only present from a live
+        // hover over the item.
+        guard presentation.containsStatusItem(NSEvent.mouseLocation) else { return }
+        presentPopover(
+            relativeTo: button.bounds,
+            of: button,
+            preferredEdge: .minY,
+            activatesApplication: false
+        )
+    }
+
+    private func performHoverHide() {
+        guard isHoverPresentationEnabled, popover.isShown else { return }
+        // Keep the panel open while a control is being dragged, or while a menu
+        // (a separate window) owns the run loop; the pointer is temporarily
+        // outside the panel but the user is still interacting with it.
+        if NSEvent.pressedMouseButtons != 0 || RunLoop.current.currentMode == .eventTracking {
+            scheduleHoverTransition(.hide)
+            return
+        }
+        let presentation = PopoverHoverPresentation(
+            statusItemFrame: statusItemButtonScreenFrame(),
+            panelFrames: panelWindowFrames
+        )
+        guard !presentation.isWithinHoverArea(NSEvent.mouseLocation) else { return }
+        closePopover()
+    }
+
     /// Wires the attached detail window: its close path, the panel group's
     /// Escape order, and the observations that re-evaluate presentation.
     private func configureDetailPanel() {
@@ -677,6 +838,7 @@ final class StatusBarController: NSObject {
                 detailPanel.revealDetail()
             }
         }
+        refreshPanelHoverTracking()
     }
 
     private func installDetailContentIfNeeded() {
@@ -969,6 +1131,7 @@ final class StatusBarController: NSObject {
         popoverWindow?.enableDisplayOnFullScreenSpaces()
         installPopoverWindowFocusObservers(popoverWindow)
         syncDetailPresentation()
+        refreshPanelHoverTracking()
         if makesKeyWindow {
             popoverWindow?.makeKey()
             // Do not focus the first row on open. With keyboard navigation enabled,
@@ -1499,6 +1662,8 @@ final class StatusBarController: NSObject {
         )
         popoverWindowFocusCancellables.removeAll()
         isPopoverClosing = false
+        cancelHoverTransition()
+        removePanelHoverTracking()
         removePopoverDismissMonitor()
         removeVolumeScrollMonitor()
         if backgroundUITesting.isEnabled && backgroundUITesting.opensStatusPanel {

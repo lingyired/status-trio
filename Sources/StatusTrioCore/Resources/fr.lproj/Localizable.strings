@@ -495,6 +495,8 @@
 "settings.panel.returnsToSummaryOnOpen.description" = "Lorsque cette option est activée, rouvrir le panneau d’état revient à la page de détail affichée lors de sa fermeture ; sinon, il démarre toujours sur la vue d’ensemble.";
 "settings.panel.showsDetailsAlongside" = "Afficher les détails à côté";
 "settings.panel.showsDetailsAlongside.description" = "Lorsque cette option est activée, les pages de détail s’ouvrent à droite du panneau d’état ; s’il n’y a pas de place à droite, elles s’ouvrent à gauche.";
+"settings.panel.showsPanelOnHover" = "Afficher le panneau au survol";
+"settings.panel.showsPanelOnHover.description" = "Lorsque cette option est activée, maintenir le pointeur sur l’icône de la barre des menus pendant environ 0,3 seconde ouvre le panneau d’état. Entrer dans le panneau le garde ouvert ; quitter l’icône et le panneau le ferme après un court délai. Un clic bascule toujours l’affichage.";
 "settings.popup.volumeScroll.group" = "Défilement du panneau";
 "settings.audio.volumeScroll.group" = "Défilement du volume";
 "settings.popup.panelScroll" = "Faire défiler le panneau pour régler le volume";

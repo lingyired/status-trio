@@ -495,6 +495,8 @@
 "settings.panel.returnsToSummaryOnOpen.description" = "Quando è attivo, riaprendo il pannello di stato si torna alla pagina di dettaglio visualizzata alla chiusura; altrimenti si parte sempre dalla panoramica.";
 "settings.panel.showsDetailsAlongside" = "Mostra i dettagli accanto";
 "settings.panel.showsDetailsAlongside.description" = "Quando è attivo, le pagine di dettaglio si aprono a destra del pannello di stato; se a destra non c’è spazio, si aprono a sinistra.";
+"settings.panel.showsPanelOnHover" = "Mostra il pannello al passaggio del mouse";
+"settings.panel.showsPanelOnHover.description" = "Se attivo, tenendo il puntatore sull’icona della barra dei menu per circa 0,3 secondi si apre il pannello di stato. Spostandosi nel pannello resta aperto; uscendo dall’icona e dal pannello si chiude dopo una breve attesa. Il clic continua ad alternare la visibilità.";
 "settings.popup.volumeScroll.group" = "Scorrimento del pannello";
 "settings.audio.volumeScroll.group" = "Scorrimento volume";
 "settings.popup.panelScroll" = "Scorri il pannello per regolare il volume";

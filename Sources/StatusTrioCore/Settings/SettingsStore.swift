@@ -320,6 +320,11 @@ final class SettingsStore: ObservableObject {
     /// instead of replacing the summary page inside it.
     static let showsPanelDetailsAlongsideDefaultsKey = "showsPanelDetailsAlongside"
 
+    /// Issue #355: show the status panel when the pointer rests on the menu-bar
+    /// icon, and hide it when the pointer leaves the icon and panel. Off by
+    /// default; click-to-toggle is unchanged.
+    static let showsPanelOnHoverDefaultsKey = "showsPanelOnHover"
+
     /// When false, the status panel renders every title/value in regular weight so
     /// the no-bold look can be compared. Local appearance preference, not exported.
     static let statusPanelBoldTextDefaultsKey = "statusPanelBoldTextEnabled.v2"
@@ -1671,6 +1676,16 @@ final class SettingsStore: ObservableObject {
         }
     }
 
+    /// Issue #355: hover the menu-bar icon to show the panel, leave to hide it.
+    @Published var showsPanelOnHover: Bool {
+        didSet {
+            defaults.set(
+                showsPanelOnHover,
+                forKey: Self.showsPanelOnHoverDefaultsKey
+            )
+        }
+    }
+
     @Published var statusPanelBoldTextEnabled: Bool {
         didSet {
             defaults.set(
@@ -2913,6 +2928,9 @@ final class SettingsStore: ObservableObject {
         )
         self.returnsToSummaryOnOpen = defaults.object(
             forKey: Self.returnsToSummaryOnOpenDefaultsKey
+        ) as? Bool ?? false
+        self.showsPanelOnHover = defaults.object(
+            forKey: Self.showsPanelOnHoverDefaultsKey
         ) as? Bool ?? false
         self.showsPanelDetailsAlongside = defaults.object(
             forKey: Self.showsPanelDetailsAlongsideDefaultsKey
