@@ -73,6 +73,20 @@ struct PopoverDismissalPolicyTests {
         #expect(policy.shouldDismiss(at: elsewhere))
     }
 
+    @Test func panelClicksAndGapHaveDifferentDismissal() {
+        let policy = PopoverDismissalPolicy(
+            statusItemFrame: nil,
+            panelFrames: [
+                NSRect(x: 0, y: 0, width: 100, height: 300),
+                NSRect(x: 108, y: 0, width: 100, height: 300)
+            ]
+        )
+
+        #expect(!policy.shouldDismiss(at: NSPoint(x: 120, y: 20)))
+        #expect(policy.shouldDismiss(at: NSPoint(x: 104, y: 20)))
+        #expect(!policy.shouldDismiss(at: NSPoint(x: 100, y: 20)))
+    }
+
     @Test func dismissesWhenTheStatusItemIsNotVisible() {
         let policy = PopoverDismissalPolicy(statusItemFrame: nil)
 

@@ -31,6 +31,10 @@ final class AnchoredStatusPanel: NSPanel {
     /// screen. Replaces `NSPopoverDelegate.popoverDidClose(_:)`.
     var onClose: (() -> Void)?
 
+    /// Consulted before Escape closes this panel. Returning `true` means the
+    /// handler consumed the key, for example to close an attached detail first.
+    var onUnhandledEscape: (() -> Bool)?
+
     /// Set for the Debug background-testing route so the panel stays visible
     /// while another application remains active. The controller owns this
     /// value and leaves it false for normal interaction.
@@ -69,6 +73,10 @@ final class AnchoredStatusPanel: NSPanel {
     private var preferredEdge: NSRectEdge = .minY
     /// Clearance reserved for an auto-hidden Dock on the anchored edge (#229).
     private var dockInset = DockReveal.noInset
+
+    /// The Dock clearance the main panel was placed with. The attached detail
+    /// window reuses the same screen budget.
+    var currentDockInset: NSEdgeInsets { dockInset }
     private var showCancellables: Set<AnyCancellable> = []
     /// Set by `show` between ordering the window in transparent and revealing it
     /// once the first layout has settled, so a size correction never flashes.
@@ -118,6 +126,10 @@ final class AnchoredStatusPanel: NSPanel {
     private var invalidateContentMeasurement: (() -> Void)?
     /// The hosting controller currently installed as the panel's content.
     private weak var contentHost: NSViewController?
+
+    /// Non-nil while this panel hosts the attached detail page. The frame then
+    /// follows the side placement instead of an anchor rectangle.
+    private var detailPlacement: StatusPanelDetailPlacement.Placement?
 
     /// Whether `host` is the content currently installed.
     func isCurrentContentHost(_ host: NSViewController) -> Bool {
@@ -258,6 +270,39 @@ final class AnchoredStatusPanel: NSPanel {
         }
     }
 
+    /// Shows this panel as the attached detail window beside the summary.
+    /// Placement comes from `StatusPanelDetailPlacement`; the window only
+    /// sizes itself to its measured content and keeps its top edge.
+    func showAsDetail(in placement: StatusPanelDetailPlacement.Placement) {
+        detailPlacement = placement
+        anchor = nil
+        anchorView = nil
+        anchorRectInView = .zero
+        updateLayoutMetrics()
+        installShowObservers()
+        if let content = contentViewController as? StatusPanelContentViewController {
+            _ = content.view
+            content.view.layoutSubtreeIfNeeded()
+            applyInitialContentSize()
+        }
+        alphaValue = 1
+        layoutMetrics.setPresented(true)
+        if avoidsOrderFrontRegardlessForTesting {
+            orderFront(nil)
+        } else {
+            orderFrontRegardless()
+        }
+        invalidateShadow()
+    }
+
+    /// Hides the attached detail without running the close callback. Used when
+    /// the route changes or the setting turns the side panel off.
+    func hideDetail() {
+        guard isVisible else { return }
+        detailPlacement = nil
+        layoutMetrics.setPresented(false)
+        orderOut(nil)
+    }
     /// Runs one runloop turn after `show`, lays the content out once more, applies
     /// any corrected size while still transparent, and fades the panel in. A
     /// single, short fade reads as the panel simply appearing, rather than a
@@ -290,6 +335,7 @@ final class AnchoredStatusPanel: NSPanel {
         // before they act on a close.
         guard isVisible else { return }
         layoutMetrics.setPresented(false)
+        detailPlacement = nil
         pendingReveal = false
         lockedResizeAnchor = nil
         lockedResizeFrame = nil
@@ -303,6 +349,7 @@ final class AnchoredStatusPanel: NSPanel {
 
     override func keyDown(with event: NSEvent) {
         if event.keyCode == 53 {
+            if onUnhandledEscape?() == true { return }
             performClose(nil)
             return
         }
@@ -310,6 +357,7 @@ final class AnchoredStatusPanel: NSPanel {
     }
 
     override func cancelOperation(_ sender: Any?) {
+        if onUnhandledEscape?() == true { return }
         performClose(nil)
     }
 
@@ -343,7 +391,7 @@ final class AnchoredStatusPanel: NSPanel {
         // Content already presents its intermediate disclosure height. Starting
         // another window animation here would put layout and chrome on different
         // clocks. Apply only the latest coalesced measurement, once per pixel.
-        if isVisible, !pendingReveal, lockedResizeFrame == nil {
+        if detailPlacement == nil, isVisible, !pendingReveal, lockedResizeFrame == nil {
             lockResizePlacement()
         }
         let capped = cappedContentSize(contentSize)
@@ -508,6 +556,10 @@ final class AnchoredStatusPanel: NSPanel {
     /// a resize notification triggered by our own `setFrame` cannot start a
     /// layout/publish loop.
     private func updateLayoutMetrics() {
+        if let detailPlacement {
+            layoutMetrics.update(maximumPanelHeight: max(1, detailPlacement.maximumHeight))
+            return
+        }
         guard let currentAnchor = currentAnchor() else { return }
         layoutMetrics.update(
             maximumPanelHeight: StatusPanelPlacement.maximumPanelHeight(
@@ -519,6 +571,15 @@ final class AnchoredStatusPanel: NSPanel {
     }
 
     private func placementFrame(for contentSize: NSSize) -> NSRect {
+        if let detailPlacement {
+            let height = min(contentSize.height, detailPlacement.maximumHeight)
+            return NSRect(
+                x: detailPlacement.frame.minX,
+                y: detailPlacement.frame.maxY - height,
+                width: contentSize.width,
+                height: height
+            )
+        }
         if let locked = lockedResizeFrame, locked.width == contentSize.width {
             return placementFrameForPresentedHeight(contentSize.height)
         }

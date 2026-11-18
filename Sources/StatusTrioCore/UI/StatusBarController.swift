@@ -46,6 +46,11 @@ final class StatusBarController: NSObject {
 
     private let statusItem: NSStatusItem
     private let popover = AnchoredStatusPanel()
+    /// The attached detail window shown when "show details alongside" is on.
+    private let detailPanel = AnchoredStatusPanel()
+    private var detailCoordinator = StatusPanelDetailCoordinator()
+    private var detailCancellables = Set<AnyCancellable>()
+    private var isDetailPanelClosing = false
     private let store: SystemStatusStore
     private let settings: SettingsStore
     private let panelActions: StatusPanelActions
@@ -361,6 +366,7 @@ final class StatusBarController: NSObject {
             .removeDuplicates()
             .sink { [weak self] style in
                 self?.popover.applyBackgroundStyle(style)
+                self?.detailPanel.applyBackgroundStyle(style)
             }
 
         // Reduce Transparency changes neither the persisted style nor the panel's
@@ -372,6 +378,7 @@ final class StatusBarController: NSObject {
             .receive(on: RunLoop.main)
             .sink { [weak self] _ in
                 self?.popover.refreshBackgroundForAccessibilityChange()
+                self?.detailPanel.refreshBackgroundForAccessibilityChange()
             }
 
         // Keep the helper enabled but stretch its self-check cadence to 30 minutes
@@ -583,23 +590,104 @@ final class StatusBarController: NSObject {
         popover.shouldDeferDismissalOnFocusLoss = { [weak self] in
             guard let self else { return false }
             let policy = PopoverDismissalPolicy(
-                statusItemFrame: self.statusItemButtonScreenFrame()
+                statusItemFrame: self.statusItemButtonScreenFrame(),
+                panelFrames: self.panelWindowFrames
             )
             return !policy.shouldDismissOnFocusLoss(
                 at: NSEvent.mouseLocation,
                 isMouseButtonDown: NSEvent.pressedMouseButtons != 0
             )
         }
+        configureDetailPanel()
     }
 
-    private func installPopoverContentIfNeeded() {
-        guard popover.contentViewController == nil else { return }
+    /// Wires the attached detail window: its close path, the panel group's
+    /// Escape order, and the observations that re-evaluate presentation.
+    private func configureDetailPanel() {
+        detailPanel.onClose = { [weak self] in
+            guard let self, !self.isDetailPanelClosing else { return }
+            // Escape in the detail window ends the detail page, not the group.
+            self.panelViewModel.showSummaryPage()
+        }
+        popover.onUnhandledEscape = { [weak self] in
+            guard let self, self.detailPanel.isShown else { return false }
+            self.detailPanel.performClose(nil)
+            return true
+        }
+
+        settings.$showsPanelDetailsAlongside
+            .dropFirst()
+            .sink { [weak self] _ in self?.syncDetailPresentation() }
+            .store(in: &detailCancellables)
+        panelViewModel.$route
+            .dropFirst()
+            .sink { [weak self] _ in self?.syncDetailPresentation() }
+            .store(in: &detailCancellables)
+        NotificationCenter.default.publisher(for: NSApplication.didChangeScreenParametersNotification)
+            .sink { [weak self] _ in self?.syncDetailPresentation() }
+            .store(in: &detailCancellables)
+        for name in [NSWindow.didMoveNotification, NSWindow.didResizeNotification] {
+            NotificationCenter.default.publisher(for: name, object: popover)
+                .sink { [weak self] _ in self?.syncDetailPresentation() }
+                .store(in: &detailCancellables)
+        }
+    }
+
+    /// Places, moves or hides the attached detail window for the current route
+    /// and geometry. The panel's summary stays visible in alongside mode.
+    private func syncDetailPresentation() {
+        guard popover.isShown else {
+            detailPanel.hideDetail()
+            return
+        }
+        let decision = detailCoordinator.update(
+            route: panelViewModel.route,
+            enabled: settings.showsPanelDetailsAlongside,
+            summaryFrame: popover.frame,
+            screens: NSScreen.screens.map { StatusPanelScreen($0) },
+            dockInset: popover.currentDockInset
+        )
+        switch decision {
+        case .hidden, .inline:
+            panelViewModel.setDetailPresentation(.inline)
+            detailPanel.hideDetail()
+        case let .alongside(placement):
+            panelViewModel.setDetailPresentation(.alongside)
+            installDetailContentIfNeeded()
+            detailPanel.disablesDismissOnResignForTesting = popover.disablesDismissOnResignForTesting
+            detailPanel.avoidsOrderFrontRegardlessForTesting = popover.avoidsOrderFrontRegardlessForTesting
+            detailPanel.disablesKeyWindowForTesting = popover.disablesKeyWindowForTesting
+            detailPanel.showAsDetail(in: placement)
+            if popover.isKeyWindow, detailPanel.canBecomeKey {
+                detailPanel.makeKey()
+            }
+        }
+    }
+
+    private func installDetailContentIfNeeded() {
+        guard detailPanel.contentViewController == nil else { return }
         let measurementID = UUID()
-        let rootView = LocalizedRootView(localization: localization) {
+        let rootView = makeStatusPopoverRoot(host: .detail, measurementID: measurementID)
+        let hostingController = StatusPanelHostingController(rootView: rootView)
+        detailPanel.installContent(
+            hostingController,
+            backgroundStyle: settings.panelBackgroundStyle,
+            measurementID: measurementID
+        )
+    }
+
+    /// One root-view factory for both windows, so the summary and the attached
+    /// detail share the same actions and localization.
+    private func makeStatusPopoverRoot(
+        host: StatusPopoverView.Host,
+        measurementID: UUID
+    ) -> LocalizedRootView<StatusPopoverView> {
+        let metrics = host == .detail ? detailPanel.layoutMetrics : popover.layoutMetrics
+        return LocalizedRootView(localization: localization) {
             StatusPopoverView(
                 panel: panelViewModel,
                 scrollTargets: popoverScrollTargets,
-                layoutMetrics: popover.layoutMetrics,
+                layoutMetrics: metrics,
                 requestWiFiNameAccess: { self.handleRequestWiFiNameAccess() },
                 requestBluetoothAuthorization: { self.handleRequestBluetoothAuthorization() },
                 openBatterySettings: { self.handleOpenBatterySettings() },
@@ -617,9 +705,15 @@ final class StatusBarController: NSObject {
                 openKeyboardSettings: { self.handleOpenKeyboardSettings() },
                 quit: quitAction,
                 dismissPanel: { [weak self] in self?.closePopover() },
-                contentMeasurementID: measurementID
+                contentMeasurementID: measurementID,
+                host: host
             )
         }
+    }
+    private func installPopoverContentIfNeeded() {
+        guard popover.contentViewController == nil else { return }
+        let measurementID = UUID()
+        let rootView = makeStatusPopoverRoot(host: .primary, measurementID: measurementID)
         let hostingController = StatusPanelHostingController(rootView: rootView)
         // StatusPanelLayoutMetrics owns the panel height; preferred sizing here
         // would add a second owner and can reset the measured window frame.
@@ -842,6 +936,13 @@ final class StatusBarController: NSObject {
             popover.isFloatingPanel = false
             popover.collectionBehavior = [.ignoresCycle]
         }
+        // Render the summary on the first frame when a restored detail will be
+        // hosted beside it; a geometry fallback corrects this right after show.
+        panelViewModel.setDetailPresentation(
+            settings.showsPanelDetailsAlongside && panelViewModel.isShowingDetailPage
+                ? .alongside
+                : .inline
+        )
         popover.show(
             relativeTo: rect,
             of: view,
@@ -854,6 +955,7 @@ final class StatusBarController: NSObject {
         let popoverWindow = popover.contentViewController?.view.window
         popoverWindow?.enableDisplayOnFullScreenSpaces()
         installPopoverWindowFocusObservers(popoverWindow)
+        syncDetailPresentation()
         if makesKeyWindow {
             popoverWindow?.makeKey()
             // Do not focus the first row on open. With keyboard navigation enabled,
@@ -949,7 +1051,7 @@ final class StatusBarController: NSObject {
               let candidateWindow = notification.object as? NSWindow else { return }
         let panelWindow = popover.contentViewController?.view.window
         let candidate = PanelFocusDismissPolicy.FocusedWindow(
-            isPanel: candidateWindow === panelWindow,
+            isPanel: candidateWindow === panelWindow || candidateWindow === detailPanel,
             isVisible: candidateWindow.isVisible,
             level: candidateWindow.level,
             hasSheetParent: candidateWindow.sheetParent != nil,
@@ -994,6 +1096,13 @@ final class StatusBarController: NSObject {
     private func closePopover() {
         guard !isPopoverClosing else { return }
         isPopoverClosing = true
+        // Whole-group close keeps the route so the reopen preference can restore
+        // it; the detail window must go first so focus never lands on it.
+        if detailPanel.isShown {
+            isDetailPanelClosing = true
+            detailPanel.performClose(nil)
+            isDetailPanelClosing = false
+        }
         popover.performClose(nil)
         // The panel's close is synchronous. If it was already off screen the
         // panel intentionally posts no close callback, so never leave the gate
@@ -1103,7 +1212,8 @@ final class StatusBarController: NSObject {
             Task { @MainActor [weak self] in
                 guard let self else { return }
                 let policy = PopoverDismissalPolicy(
-                    statusItemFrame: self.statusItemButtonScreenFrame()
+                    statusItemFrame: self.statusItemButtonScreenFrame(),
+                    panelFrames: self.panelWindowFrames
                 )
                 // A click on the status item is the item's own toggle, not an
                 // outside click. Dismissing here would close on mouse-down and
@@ -1117,6 +1227,15 @@ final class StatusBarController: NSObject {
                 self.popover.performClose(nil)
             }
         }
+    }
+
+    /// Every visible panel of the group, in screen coordinates. A click inside
+    /// any of them belongs to the group rather than to an outside app.
+    private var panelWindowFrames: [NSRect] {
+        var frames: [NSRect] = []
+        if popover.isShown { frames.append(popover.frame) }
+        if detailPanel.isShown { frames.append(detailPanel.frame) }
+        return frames
     }
 
     /// The status item button's rectangle in screen coordinates, when the item
@@ -1343,6 +1462,13 @@ final class StatusBarController: NSObject {
     }
 
     private func handlePanelDidClose() {
+        // Any path that closes the summary also takes the attached detail with
+        // it, without letting the detail close clear the remembered route.
+        if detailPanel.isShown {
+            isDetailPanelClosing = true
+            detailPanel.performClose(nil)
+            isDetailPanelClosing = false
+        }
         // A close while a mouse button is held is a mouse-down dismissal (the
         // outside-click monitor or a focus-loss close during the press). The
         // same click's mouse-up must not reopen the panel (issue #224 follow-up

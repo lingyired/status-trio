@@ -33,7 +33,8 @@ struct StatusPanelDetailPlacement {
         summaryFrame: NSRect,
         detailHeight: CGFloat,
         screens: [StatusPanelScreen],
-        dockInset: NSEdgeInsets = DockReveal.noInset
+        dockInset: NSEdgeInsets = DockReveal.noInset,
+        preferredSide: Side? = nil
     ) -> Placement? {
         guard summaryFrame.origin.x.isFinite,
               summaryFrame.origin.y.isFinite,
@@ -54,17 +55,21 @@ struct StatusPanelDetailPlacement {
         let rightX = summaryFrame.maxX + gap
         let leftX = summaryFrame.minX - gap - width
 
+        let rightFits = rightX >= inner.minX && rightX + width <= inner.maxX
+        let leftFits = leftX >= inner.minX && leftX + width <= inner.maxX
         let side: Side
-        let originX: CGFloat
-        if rightX >= inner.minX, rightX + width <= inner.maxX {
+        switch preferredSide {
+        case .right where rightFits:
             side = .right
-            originX = rightX
-        } else if leftX >= inner.minX, leftX + width <= inner.maxX {
+        case .left where leftFits:
             side = .left
-            originX = leftX
-        } else {
-            return nil
+        case .right, .left:
+            // The preferred side no longer fits; fall back to the other one.
+            if rightFits { side = .right } else if leftFits { side = .left } else { return nil }
+        case nil:
+            if rightFits { side = .right } else if leftFits { side = .left } else { return nil }
         }
+        let originX = side == .right ? rightX : leftX
 
         var originY = min(summaryFrame.maxY, inner.maxY) - height
         if originY < inner.minY { originY = inner.minY }

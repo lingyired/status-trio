@@ -61,6 +61,14 @@ struct PopoverSectionView: View {
     private var openBehaviorGroup: some View {
         SettingsGroup(localization.string(.settingsPanelOpenBehaviorTitle)) {
             SettingsToggleRow(
+                symbol: "rectangle.split.2x1",
+                tint: .purple,
+                title: localization.string(.settingsPanelShowsDetailsAlongside),
+                subtitle: localization.string(.settingsPanelShowsDetailsAlongsideDescription),
+                isOn: $store.showsPanelDetailsAlongside
+            )
+            SettingsDivider()
+            SettingsToggleRow(
                 symbol: "arrow.uturn.backward",
                 tint: .purple,
                 title: localization.string(.settingsPanelReturnsToSummaryOnOpen),
