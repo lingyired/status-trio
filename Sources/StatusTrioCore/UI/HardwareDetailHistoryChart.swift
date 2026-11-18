@@ -35,7 +35,7 @@ struct HardwareDetailHistoryChart: View {
                 HardwareDetailGrid()
                 ForEach(colors.indices, id: \.self) { index in
                     HardwareDetailAreaShape(points: points, series: index, now: now, yMaximum: maximum)
-                        .fill(LinearGradient(colors: [colors[index].opacity(0.78), colors[index].opacity(0.16)],
+                        .fill(LinearGradient(colors: [colors[index].opacity(0.78), colors[index].opacity(0.38)],
                                              startPoint: .top, endPoint: .bottom))
                     HardwareDetailLineShape(points: points, series: index, now: now, yMaximum: maximum)
                         .stroke(colors[index],
@@ -199,10 +199,12 @@ struct HardwareDetailAreaShape: Shape {
         for segment in HardwareDetailChartGeometry.segments(for: samples, threshold: threshold)
         where segment.count > 1 {
             guard let first = segment.first, let last = segment.last else { continue }
-            path.move(to: CGPoint(x: first.x, y: rect.height))
+            // Close two points below the plot so the fill still meets the card
+            // edge after clipping to the rounded card shape.
+            path.move(to: CGPoint(x: first.x, y: rect.height + 2))
             path.addLine(to: first)
             for point in segment.dropFirst() { path.addLine(to: point) }
-            path.addLine(to: CGPoint(x: last.x, y: rect.height))
+            path.addLine(to: CGPoint(x: last.x, y: rect.height + 2))
             path.closeSubpath()
         }
         return path
