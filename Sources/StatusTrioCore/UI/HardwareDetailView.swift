@@ -371,6 +371,10 @@ struct HardwareDetailView: View {
     private var diskContent: some View {
         let detail = snapshot.diskDetail
         let capacity = detail?.capacity
+        // Fall back to the shared rate samples so entering the page (or a gap
+        // longer than the reader's 15 s baseline window) does not flash a dash.
+        let readSpeed = detail?.readBytesPerSecond ?? snapshot[.diskRead].value
+        let writeSpeed = detail?.writeBytesPerSecond ?? snapshot[.diskWrite].value
         return VStack(alignment: .leading, spacing: 12) {
             HardwareDetailCard {
                 VStack(alignment: .leading, spacing: 8) {
@@ -404,9 +408,9 @@ struct HardwareDetailView: View {
                                       value: capacity?.fileSystem ?? HardwareDetailFormat.dash)
                     divider
                     HardwareDetailRow(label: localization.string(.hardwareDetailReadSpeed),
-                                      value: HardwareDetailFormat.rate(detail?.readBytesPerSecond))
+                                      value: HardwareDetailFormat.rate(readSpeed))
                     HardwareDetailRow(label: localization.string(.hardwareDetailWriteSpeed),
-                                      value: HardwareDetailFormat.rate(detail?.writeBytesPerSecond))
+                                      value: HardwareDetailFormat.rate(writeSpeed))
                 }
             }
         }
