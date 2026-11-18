@@ -629,7 +629,8 @@ final class HardwareMetricsServiceTests: XCTestCase {
         service.panelIntervalSeconds = 3
         service.begin(.panel, metrics: [.cpuTemperature])
         service.begin(.menuBarCenter, metrics: [.networkDownload])
-        XCTAssertEqual(service.intervalForTesting(.cpuTemperature), 3)
+        XCTAssertEqual(service.intervalForTesting(.cpuTemperature), 4,
+                       "a 3 s panel cannot push a 4 s sensor faster")
         XCTAssertEqual(service.intervalForTesting(.networkDownload), 1)
         service.stopAll()
     }

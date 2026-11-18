@@ -489,7 +489,9 @@ final class HardwareMetricsService: ObservableObject {
             case .background: cadence = backgroundIntervalSeconds
             default: cadence = 0
             }
-            let candidate = cadence > 0 ? cadence : base
+            // A consumer's cadence can slow a metric down but never speed it
+            // past its own floor: a 1 s panel must not drive a 4 s sensor at 1 s.
+            let candidate = cadence > 0 ? max(base, cadence) : base
             result = min(result ?? candidate, candidate)
         }
         return max(0.2, result ?? base)
