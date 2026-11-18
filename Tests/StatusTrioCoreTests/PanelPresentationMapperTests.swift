@@ -466,6 +466,47 @@ final class PanelPresentationMapperTests: XCTestCase {
     /// The address rides at the front of the second line, and the Wi-Fi band and
     /// signal keep the slot they already had, so the row reads as the address
     /// first and then the network's own details.
+    func testNetworkSummaryTintFollowsConnectionState() {
+        let localization = makeLocalization(.english)
+        func tint(_ state: WiFiState) -> PanelTint {
+            PanelPresentationMapper.network(
+                wifi: WiFiStatus(state: state, rssi: -58),
+                connection: .wifi,
+                wired: nil,
+                isConstrained: false,
+                isResolvingName: false,
+                localization: localization
+            ).tint
+        }
+
+        XCTAssertEqual(tint(.connected), .primary)
+        XCTAssertEqual(tint(.hotspot), .primary)
+        XCTAssertEqual(tint(.temporary), .primary)
+        XCTAssertEqual(tint(.shared), .primary)
+        XCTAssertEqual(tint(.noInternet), .caution)
+        XCTAssertEqual(tint(.notAssociated), .secondary)
+        XCTAssertEqual(tint(.off), .secondary)
+        XCTAssertEqual(tint(.unavailable), .secondary)
+
+        let details = PrimaryLinkDetails(
+            interfaceName: "en9",
+            interfaceDisplayName: "iPhone USB",
+            ipv4Addresses: ["172.20.10.8"],
+            ipv6Addresses: [],
+            router: nil,
+            dnsServers: []
+        )
+        let wired = PanelPresentationMapper.network(
+            wifi: .placeholder,
+            connection: .ethernet,
+            wired: details,
+            isConstrained: false,
+            isResolvingName: false,
+            localization: localization
+        )
+        XCTAssertEqual(wired.tint, .primary, "a wired link is a usable connection too")
+    }
+
     func testLocalIPLeadsTheWiFiSecondLine() {
         let localization = makeLocalization(.english)
         let wifi = WiFiStatus(

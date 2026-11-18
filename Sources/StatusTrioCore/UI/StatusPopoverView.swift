@@ -258,6 +258,7 @@ struct StatusPopoverView: View {
                 listOptions: panel.settings.bluetoothDeviceListOptions,
                 showsRadioPowerControl: panel.settings.showsBluetoothPowerControl,
                 showsBluetoothInStatusPanel: panel.settings.enabledPopupSections.contains(.bluetooth),
+                bluetoothIconColor: panel.settings.bluetoothIconColor,
                 listeningModePresentations: panel.settings.showsBluetoothListeningMode
                     ? panel.store.bluetoothListeningModes.huaweiBluetoothRowPresentations
                     : [:],
