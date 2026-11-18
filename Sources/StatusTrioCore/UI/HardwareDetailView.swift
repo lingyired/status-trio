@@ -99,12 +99,12 @@ struct HardwareDetailView: View {
                          average: detail?.groupUsage?.efficiencyAverage,
                          count: detail?.topology?.efficiencyCoreCount,
                          frequency: detail?.frequency?.efficiencyGHz,
-                         tint: accentColor)
+                         tint: .teal)
                 coreCard(title: localization.string(.hardwareDetailPerformanceCores),
                          average: detail?.groupUsage?.performanceAverage,
                          count: detail?.topology?.performanceCoreCount,
                          frequency: detail?.frequency?.performanceGHz,
-                         tint: accentColor)
+                         tint: .orange)
             }
             trendCard(title: localization.string(.hardwareDetailUsageTrend),
                       scale: .percent)
