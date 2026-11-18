@@ -1223,6 +1223,8 @@
 "hardware.monitor.kbps" = "KB/s";
 "hardware.monitor.mbps" = "MB/s";
 "hardware.monitor.gbps" = "GB/s";
+"hardware.monitor.settings.topApps" = "高負荷アプリを表示";
+"hardware.monitor.settings.topApps.description" = "詳細ページ下部に最も負荷の高いプロセスを表示します。オフにすると CPU を節約できます。";
 "hardware.monitor.settings.background" = "バックグラウンド履歴を保持";
 "hardware.monitor.settings.background.description" = "パネルを閉じている間もパネルの更新間隔で直近60秒のハードウェア履歴を記録し、詳細ページを開くと傾向が表示されます。";
 "hardware.monitor.background.off" = "オフ";

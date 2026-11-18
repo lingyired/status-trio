@@ -1223,6 +1223,8 @@
 "hardware.monitor.kbps" = "KB/s";
 "hardware.monitor.mbps" = "MB/s";
 "hardware.monitor.gbps" = "GB/s";
+"hardware.monitor.settings.topApps" = "Mostrar apps exigentes";
+"hardware.monitor.settings.topApps.description" = "Muestra los procesos más activos al final de las páginas de detalle. Desactívalo para ahorrar CPU.";
 "hardware.monitor.settings.background" = "Mantener historial";
 "hardware.monitor.settings.background.description" = "Registra los últimos 60 segundos de historial de hardware con el panel cerrado, al ritmo del panel, para abrir el detalle con tendencia.";
 "hardware.monitor.background.off" = "Desactivado";
