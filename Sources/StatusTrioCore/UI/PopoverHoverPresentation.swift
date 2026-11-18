@@ -102,7 +102,7 @@ struct PopoverHoverIntent: Equatable {
 /// view subclass. The tracking area references this object unretained, so the
 /// controller must keep it alive for as long as the area is installed.
 @MainActor
-final class PopoverHoverTracking: NSObject {
+final class PopoverHoverTracking: NSResponder {
     var onEnter: (() -> Void)?
     var onExit: (() -> Void)?
 
@@ -123,6 +123,11 @@ final class PopoverHoverTracking: NSObject {
         self.area = area
     }
 
+    @available(*, unavailable)
+    required init?(coder: NSCoder) {
+        fatalError("PopoverHoverTracking does not support NSCoding")
+    }
+
     func invalidate() {
         if let area, let view {
             view.removeTrackingArea(area)
@@ -131,11 +136,11 @@ final class PopoverHoverTracking: NSObject {
         view = nil
     }
 
-    @objc private func mouseEntered(with event: NSEvent) {
+    override func mouseEntered(with event: NSEvent) {
         onEnter?()
     }
 
-    @objc private func mouseExited(with event: NSEvent) {
+    override func mouseExited(with event: NSEvent) {
         onExit?()
     }
 }

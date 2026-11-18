@@ -454,6 +454,16 @@ struct PopoverHoverPresentationTests {
     }
 }
 
+/// Issue #355: AppKit sends an NSResponder message to the tracking area owner.
+/// A plain NSObject raised an unrecognized-selector exception on hover, so the
+/// receiver must be an NSResponder.
+@MainActor
+struct PopoverHoverTrackingTests {
+    @Test func trackingOwnerRespondsToResponderMessages() {
+        #expect(PopoverHoverTracking.self.isSubclass(of: NSResponder.self))
+    }
+}
+
 /// Issue #355: a new hover transition supersedes the pending one, so a pointer
 /// that leaves and re-enters during the dwell cannot leave a stale close.
 struct PopoverHoverIntentTests {
