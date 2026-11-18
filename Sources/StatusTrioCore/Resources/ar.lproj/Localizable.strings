@@ -495,6 +495,8 @@
 "settings.panel.returnsToSummaryOnOpen.description" = "عند التفعيل، تعود لوحة الحالة عند إعادة فتحها إلى صفحة التفاصيل التي كانت معروضة عند إغلاقها؛ وإلا فتبدأ دائمًا من النظرة العامة.";
 "settings.panel.showsDetailsAlongside" = "إظهار التفاصيل بجانب اللوحة";
 "settings.panel.showsDetailsAlongside.description" = "عند التفعيل، تُفتح صفحات التفاصيل على يمين لوحة الحالة؛ وإذا لم تكن هناك مساحة على اليمين، تُفتح على اليسار.";
+"settings.panel.showsPanelOnHover" = "إظهار اللوحة عند التمرير";
+"settings.panel.showsPanelOnHover.description" = "عند التفعيل، يؤدي إبقاء المؤشر على رمز شريط القوائم نحو 0.3 ثانية إلى فتح لوحة الحالة. الانتقال إلى اللوحة يُبقيها مفتوحة، ومغادرة الرمز واللوحة يغلقها بعد تأخير قصير. النقر لا يزال يبدّل العرض.";
 "settings.popup.volumeScroll.group" = "تمرير اللوحة";
 "settings.audio.volumeScroll.group" = "تمرير مستوى الصوت";
 "settings.popup.panelScroll" = "تمرير اللوحة لضبط مستوى الصوت";

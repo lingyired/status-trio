@@ -13,7 +13,7 @@ final class SettingsPreferenceCatalogTests: XCTestCase {
                 "menuBarRightClickAction", "iconSize", "batteryOnBatteryMarker",
                 "batteryChargingMarker", "batteryConnectedMarker", "batteryNoBatteryMarker",
                 "showsBatteryPowerFlow", "showsBatteryPowerInfoBar", "showsHighEnergyApps",
-                "showsPanelDetailsAlongside",
+                "showsPanelDetailsAlongside", "showsPanelOnHover",
                 "highEnergyAppsRefreshIntervalSeconds", "showsChargeToFullNowButton",
                 "showsMenuBarChargingEffect", "showsDockChargingEffect", "showsChargingBoltHeartbeat",
                 "batterySplitGapProgress", "usesBatteryStatusColors", "monochromeChargingRing",
@@ -394,6 +394,28 @@ final class SettingsPreferenceCatalogTests: XCTestCase {
             XCTAssertTrue(reopened.showsPanelDetailsAlongside)
             XCTAssertTrue(reopened.returnsToSummaryOnOpen)
             XCTAssertFalse(reopened.restoresPanelDetailsOnOpen)
+        }
+    }
+
+    func testHoverPreferenceIsPortableAndDefaultsOff() {
+        withStore { store, defaults in
+            XCTAssertFalse(store.showsPanelOnHover)
+
+            let initial = SettingsPreferenceCatalog.snapshot(store)
+            XCTAssertEqual(initial["showsPanelOnHover"], .bool(false))
+
+            store.showsPanelOnHover = true
+            XCTAssertTrue(store.showsPanelOnHover)
+
+            let saved = SettingsPreferenceCatalog.snapshot(store)
+            let reopened = SettingsStore(defaults: defaults, systemChargeLimit: { nil })
+            XCTAssertTrue(reopened.showsPanelOnHover)
+
+            SettingsPreferenceCatalog.apply(saved, to: reopened)
+            XCTAssertTrue(reopened.showsPanelOnHover)
+
+            let invalid = SettingsPreferenceCatalog.prepare(["showsPanelOnHover": .string("yes")])
+            XCTAssertEqual(invalid.values["showsPanelOnHover"], .bool(false))
         }
     }
 

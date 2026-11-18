@@ -494,6 +494,8 @@
 "settings.panel.returnsToSummaryOnOpen.description" = "When enabled, reopening the status panel returns to the detail page that was showing when it closed; otherwise it always starts on the summary page.";
 "settings.panel.showsDetailsAlongside" = "Show Details Alongside";
 "settings.panel.showsDetailsAlongside.description" = "When enabled, detail pages open to the right of the status panel; if there is no room on the right, they open on the left.";
+"settings.panel.showsPanelOnHover" = "Show Panel on Hover";
+"settings.panel.showsPanelOnHover.description" = "When enabled, resting the pointer on the menu bar icon for about 0.3 seconds opens the status panel. Moving into the panel keeps it open; leaving the icon and panel closes it after a short delay. Clicking still toggles the panel.";
 "settings.popup.volumeScroll.group" = "Panel Scrolling";
 "settings.audio.volumeScroll.group" = "Volume Scrolling";
 "settings.popup.panelScroll" = "Scroll Panel to Adjust Volume";

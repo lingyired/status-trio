@@ -495,6 +495,8 @@
 "settings.panel.returnsToSummaryOnOpen.description" = "Quando ativado, reabrir o painel de status retorna à página de detalhe que estava visível ao fechar; caso contrário, sempre começa no resumo.";
 "settings.panel.showsDetailsAlongside" = "Mostrar detalhes ao lado";
 "settings.panel.showsDetailsAlongside.description" = "Quando ativado, as páginas de detalhe abrem à direita do painel de status; se não houver espaço à direita, abrem à esquerda.";
+"settings.panel.showsPanelOnHover" = "Mostrar o painel ao passar o mouse";
+"settings.panel.showsPanelOnHover.description" = "Quando ativado, manter o ponteiro sobre o ícone da barra de menus por cerca de 0,3 segundo abre o painel de status. Mover para dentro do painel o mantém aberto; sair do ícone e do painel o fecha após um breve atraso. Clicar continua alternando a visibilidade.";
 "settings.popup.volumeScroll.group" = "Rolagem do painel";
 "settings.audio.volumeScroll.group" = "Rolagem do volume";
 "settings.popup.panelScroll" = "Rolar o painel para ajustar o volume";

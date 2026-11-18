@@ -495,6 +495,8 @@
 "settings.panel.returnsToSummaryOnOpen.description" = "Если включено, при повторном открытии панели состояния восстанавливается страница деталей, открытая при закрытии; иначе панель всегда открывается на обзоре.";
 "settings.panel.showsDetailsAlongside" = "Показывать детали рядом";
 "settings.panel.showsDetailsAlongside.description" = "Если включено, страницы деталей открываются справа от панели состояния; если справа нет места — слева.";
+"settings.panel.showsPanelOnHover" = "Показывать панель при наведении";
+"settings.panel.showsPanelOnHover.description" = "Если включено, удержание указателя на значке в строке меню около 0,3 секунды открывает панель состояния. При переходе в панель она остаётся открытой; при уходе со значка и панели она закрывается с небольшой задержкой. Щелчок по-прежнему переключает панель.";
 "settings.popup.volumeScroll.group" = "Прокрутка панели";
 "settings.audio.volumeScroll.group" = "Прокрутка громкости";
 "settings.popup.panelScroll" = "Прокрутка панели для изменения громкости";

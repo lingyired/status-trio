@@ -495,6 +495,8 @@
 "settings.panel.returnsToSummaryOnOpen.description" = "有効にすると、ステータスパネルを開き直したときに、閉じる前に表示していた詳細ページに戻ります。無効の場合は常に概要から始まります。";
 "settings.panel.showsDetailsAlongside" = "詳細を横に表示";
 "settings.panel.showsDetailsAlongside.description" = "有効にすると、詳細ページがステータスパネルの右側に開きます。右側にスペースがない場合は左側に開きます。";
+"settings.panel.showsPanelOnHover" = "ホバーでパネルを表示";
+"settings.panel.showsPanelOnHover.description" = "有効にすると、メニューバーのアイコンに約 0.3 秒ポインタを置くとステータスパネルが開きます。パネル内へ移動すると開いたままになり、アイコンとパネルから離れると少し遅れて閉じます。クリックは従来どおり切り替えです。";
 "settings.popup.volumeScroll.group" = "パネルのスクロール";
 "settings.audio.volumeScroll.group" = "音量スクロール";
 "settings.popup.panelScroll" = "パネルのスクロールで音量を調整";

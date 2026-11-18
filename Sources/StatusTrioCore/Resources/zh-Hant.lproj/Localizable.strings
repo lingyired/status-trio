@@ -495,6 +495,8 @@
 "settings.panel.returnsToSummaryOnOpen.description" = "開啟後，再次開啟狀態面板會回到上次收起時仍顯示的詳情頁；關閉後，每次只顯示主介面。";
 "settings.panel.showsDetailsAlongside" = "並排顯示詳情";
 "settings.panel.showsDetailsAlongside.description" = "開啟後，詳情頁顯示在狀態面板右側；右側空間不足時顯示在左側。";
+"settings.panel.showsPanelOnHover" = "懸停顯示狀態面板";
+"settings.panel.showsPanelOnHover.description" = "開啟後，滑鼠懸停在選單列圖示上約 0.3 秒即開啟狀態面板；移入面板不會收起，離開圖示與面板後短暫延遲再收起。點擊行為仍為切換。";
 "settings.popup.volumeScroll.group" = "面板滾動";
 "settings.audio.volumeScroll.group" = "音量滾動";
 "settings.popup.panelScroll" = "在面板中捲動調節音量";
