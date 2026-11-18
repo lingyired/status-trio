@@ -29,6 +29,7 @@ struct AirPodsListeningModeDiscoveryTests {
 
         controller.refresh(devices: [device])
         #expect(controller.control(forEndpoint: 42) == nil)
+        #expect(controller.airPodsDiscoveryPhase == .discovering)
         let retryDelay = await retryGate.nextCall()
         try #require(retryDelay == .milliseconds(150))
         provider.isReady = true
@@ -37,6 +38,8 @@ struct AirPodsListeningModeDiscoveryTests {
         let appeared = await events.stream.first { @Sendable in $0["AABBCCDDEEFF"] != nil }
         try #require(appeared != nil, "A connected AirPods endpoint may become ready after the first discovery")
         #expect(controller.control(forEndpoint: 42)?.presentation.selectedMode == .noiseCancellation)
+        let settled = await discoveryEventually { controller.airPodsDiscoveryPhase == .settled }
+        #expect(settled, "Resolving the control must end the discovery phase")
     }
 
     @Test func modePropertiesBecomingReadableAreRetriedWithoutWritingToTheDevice() async throws {
@@ -70,6 +73,7 @@ struct AirPodsListeningModeDiscoveryTests {
         )
         defer { controller.stop(); sleeper.releaseAll() }
         controller.refresh(devices: [device])
+        #expect(controller.airPodsDiscoveryPhase == .discovering)
 
         for count in 1...3 {
             let waiting = await sleeper.waitForCallCount(count, timeout: .seconds(2))
@@ -78,6 +82,8 @@ struct AirPodsListeningModeDiscoveryTests {
         }
         let exhausted = await discoveryEventually { sleeper.completionCount == 3 }
         try #require(exhausted)
+        let settled = await discoveryEventually { controller.airPodsDiscoveryPhase == .settled }
+        #expect(settled, "An exhausted discovery budget must settle the phase")
         provider.isReady = true
         for _ in 0..<20 { await Task.yield() }
         #expect(controller.presentations.isEmpty)

@@ -997,6 +997,17 @@ final class StatusPanelViewModel: ObservableObject {
                     coalesceControllerUpdate(regions)
                 }
                 .store(in: &sourceDemandCancellables)
+            // Discovery settling without a control must repaint the row from the
+            // placeholder to the "unavailable" fallback (#354), so re-map when
+            // the phase changes even though no presentation was published.
+            store.bluetoothListeningModes.$airPodsDiscoveryPhase
+                .dropFirst()
+                .sink { [weak self] _ in
+                    guard let self, isStarted,
+                          isVisible(.bluetooth) || isVisible(.volume) else { return }
+                    coalesceControllerUpdate(regions)
+                }
+                .store(in: &sourceDemandCancellables)
         }
     }
 

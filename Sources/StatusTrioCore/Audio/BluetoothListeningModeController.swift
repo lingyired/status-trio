@@ -30,6 +30,25 @@ final class BluetoothListeningModeController: ObservableObject {
     /// normalized address the battery levels use. Absence means "no control".
     @Published private(set) var presentations: [String: BluetoothListeningModePresentation] = [:]
 
+    /// Lifecycle of the bounded AirPods endpoint discovery for the current
+    /// panel surface. The listening-mode row reads this to hold its
+    /// post-discovery layout while CoreAudio has published the Bluetooth
+    /// connection but not yet the `lstm`/`lsms` properties. Without it the row
+    /// first draws the "listening mode unavailable" fallback (Spatial /
+    /// Conversation inline, taller) and collapses once the control arrives,
+    /// flashing the whole panel height (#354).
+    enum AirPodsDiscoveryPhase: Equatable {
+        /// No discovery attempted yet for the current surface. Treated like
+        /// `discovering` so the first frame already holds the final layout.
+        case idle
+        /// Discovery is running, including the bounded readiness retries.
+        case discovering
+        /// Discovery finished; a control may or may not have been published.
+        case settled
+    }
+
+    @Published private(set) var airPodsDiscoveryPhase: AirPodsDiscoveryPhase = .idle
+
     private let hal: BluetoothListeningModeHAL
     private let endpointProvider: any CoreAudioBluetoothEndpointProviding
     private let airPodsDiscoveryRetryDelays: [Duration]
@@ -209,13 +228,25 @@ final class BluetoothListeningModeController: ObservableObject {
         cancelAirPodsDiscovery()
         if previewMode {
             refreshPreview(devices: devices)
+            airPodsDiscoveryPhase = .settled
             return
         }
         let needsRetry = refreshAirPods(devices: devices)
         refreshHuawei(devices: devices)
         refreshRedmi(devices: devices)
         refreshOppo(devices: devices)
-        if needsRetry { retryAirPodsDiscovery(devices: devices) }
+        if needsRetry {
+            // Hold the row's final layout only while there is a real chance the
+            // control appears; with no retry budget left, settle straight away.
+            if airPodsDiscoveryRetryDelays.isEmpty {
+                airPodsDiscoveryPhase = .settled
+            } else {
+                airPodsDiscoveryPhase = .discovering
+                retryAirPodsDiscovery(devices: devices)
+            }
+        } else {
+            airPodsDiscoveryPhase = .settled
+        }
     }
 
     private func refreshAirPods(devices: [BluetoothDevice]) -> Bool {
@@ -292,6 +323,9 @@ final class BluetoothListeningModeController: ObservableObject {
             guard let self, self.airPodsDiscoveryToken == token else { return }
             self.airPodsDiscoveryTask = nil
             self.airPodsDiscoveryToken = nil
+            // Either the control arrived or the readiness budget is exhausted;
+            // both mean the row should stop holding the discovery placeholder.
+            self.airPodsDiscoveryPhase = .settled
         }
     }
 
@@ -883,6 +917,9 @@ final class BluetoothListeningModeController: ObservableObject {
         failureClearTasks.removeAll()
         presentations = [:]
         resolvedEndpoints = [:]
+        // Back to "not attempted" so the next panel open holds the final row
+        // layout again instead of flashing the unavailable fallback.
+        airPodsDiscoveryPhase = .idle
         // The panel is going away; the plan's "no residual timer or task once the
         // panel closes" applies to CoreAudio subscriptions too. `syncSubscriptions`
         // with an empty set removes every registered block.

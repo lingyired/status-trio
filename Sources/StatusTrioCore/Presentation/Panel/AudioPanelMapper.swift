@@ -266,7 +266,37 @@ enum AudioPanelMapper {
             let expectsListeningControl = listeningModes != nil
                 && device.isCurrent && device.isBluetoothAudio
                 && (control != nil || mayHaveListeningModes) && !isPreview
-            let listeningUnavailable = expectsListeningControl && control == nil
+            // Discovery is "in flight" until the controller's bounded attempt
+            // settles. Holding the row in this state makes the first frame use
+            // the post-discovery layout instead of the taller unavailable
+            // fallback (#354). An untried controller (.idle) counts as in
+            // flight so a freshly opened panel never flashes the fallback.
+            // Preview rows resolve their synthetic control synchronously on the
+            // next refresh, so hold their final layout too instead of flashing
+            // the inline fallback for one frame on panel open.
+            let previewControlPending = isPreview
+                && listeningModes != nil
+                && supportsSystemControls
+                && mayHaveListeningModes
+                && control == nil
+                && listeningModes?.airPodsDiscoveryPhase != .settled
+            let listeningModeIsBeingDiscovered = control == nil
+                && mayHaveListeningModes
+                && (previewControlPending
+                    || (expectsListeningControl
+                        && listeningModes?.airPodsDiscoveryPhase != .settled))
+            // Groups behind/beside the listening row: Spatial Audio and
+            // Conversation Awareness. When either is present the row falls back
+            // to that inline layout instead of an "unavailable" line (#354).
+            let spatialSupported = supportsSystemControls
+                && showsSpatialAudioControls && (featureSupport.spatial ?? true)
+            let conversationSupported = supportsSystemControls
+                && showsConversationAwarenessControls && (featureSupport.conversation ?? true)
+            let listeningModeHasExtraGroups = spatialSupported || conversationSupported
+            let listeningUnavailable = expectsListeningControl
+                && control == nil
+                && !listeningModeIsBeingDiscovered
+                && !listeningModeHasExtraGroups
             return PanelAudioDeviceRow(
                 key: PanelAudioDeviceID(id: device.id, uid: device.uid),
                 name: name,
@@ -292,10 +322,9 @@ enum AudioPanelMapper {
                 // Unknown models never reach here: supportsSystemControls requires
                 // AirPodsModel to resolve. A nil capability on a known model means
                 // "runtime reported", so it starts supported until the read settles.
-                airPodsSpatialSupported: supportsSystemControls
-                    && showsSpatialAudioControls && (featureSupport.spatial ?? true),
-                airPodsConversationSupported: supportsSystemControls
-                    && showsConversationAwarenessControls && (featureSupport.conversation ?? true)
+                airPodsSpatialSupported: spatialSupported,
+                airPodsConversationSupported: conversationSupported,
+                listeningModeIsBeingDiscovered: listeningModeIsBeingDiscovered
             )
         }
     }
