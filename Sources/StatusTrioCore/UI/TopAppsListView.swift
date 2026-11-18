@@ -84,7 +84,7 @@ struct TopAppsListView: View {
                 .accessibilityLabel(localization.string(.hardwareDetailDownload))
             Image(systemName: "arrow.up")
                 .font(.caption2.weight(.semibold))
-                .foregroundStyle(.red)
+                .foregroundStyle(.green)
                 .frame(width: networkColumnWidth, alignment: .trailing)
                 .accessibilityLabel(localization.string(.hardwareDetailUpload))
         }
