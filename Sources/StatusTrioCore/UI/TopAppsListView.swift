@@ -80,12 +80,12 @@ struct TopAppsListView: View {
             Image(systemName: "arrow.down")
                 .font(.caption2.weight(.semibold))
                 .foregroundStyle(.blue)
-                .frame(width: networkColumnWidth, alignment: .center)
+                .frame(width: networkColumnWidth, alignment: .trailing)
                 .accessibilityLabel(localization.string(.hardwareDetailDownload))
             Image(systemName: "arrow.up")
                 .font(.caption2.weight(.semibold))
                 .foregroundStyle(.red)
-                .frame(width: networkColumnWidth, alignment: .center)
+                .frame(width: networkColumnWidth, alignment: .trailing)
                 .accessibilityLabel(localization.string(.hardwareDetailUpload))
         }
     }
