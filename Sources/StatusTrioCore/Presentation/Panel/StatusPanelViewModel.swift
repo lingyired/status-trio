@@ -122,6 +122,7 @@ final class StatusPanelViewModel: ObservableObject {
     @Published private(set) var summaryChargeToFullNowPresentation: ChargeToFullNowPresentation = .hidden
     @Published private(set) var visiblePopupSections: [PopupSection]
     @Published private(set) var route: StatusPanelRoute = .summary
+    @Published private(set) var detailPresentation: StatusPanelDetailPresentation = .inline
     @Published private(set) var wifiDisclosure = WiFiPanelDisclosureState()
     /// The panel background actually drawn, after Reduce Transparency collapses
     /// it to `.solid`. The SwiftUI card layer reads this to pick the matching
@@ -216,6 +217,12 @@ final class StatusPanelViewModel: ObservableObject {
     var popupSourceEventForTesting: (() -> Void)?
 
     var isShowingDetailPage: Bool { route != .summary }
+
+    /// True whenever the summary page is on screen: either it is the route, or
+    /// a selected detail page is shown alongside it.
+    var isSummaryVisible: Bool {
+        route == .summary || detailPresentation == .alongside
+    }
 
     /// The open system-monitor detail page, if the route is one.
     private var activeDetailKind: HardwareDetailKind? {
@@ -577,7 +584,7 @@ final class StatusPanelViewModel: ObservableObject {
             showSummaryPage()
             return
         }
-        transition(to: .battery)
+        guard transition(to: .battery) else { return }
         actions.batteryDetailsAppeared()
         refreshBatteryDetails()
     }
@@ -587,11 +594,14 @@ final class StatusPanelViewModel: ObservableObject {
             showSummaryPage()
             return
         }
-        wifiDisclosure = WiFiPanelDisclosureState(
-            showsDetails: showsDetailsInitially,
-            showsMore: false
-        )
-        transition(to: .wifi)
+        let opensNewPage = route != .wifi
+        if opensNewPage {
+            wifiDisclosure = WiFiPanelDisclosureState(
+                showsDetails: showsDetailsInitially,
+                showsMore: false
+            )
+        }
+        guard transition(to: .wifi) else { return }
         actions.wifiDetailsOpened()
         refreshWiFiDetails()
     }
@@ -601,7 +611,7 @@ final class StatusPanelViewModel: ObservableObject {
             showSummaryPage()
             return
         }
-        transition(to: .ethernet)
+        guard transition(to: .ethernet) else { return }
         actions.wiredDetailsOpened()
         refreshWiredDetailsAndNetwork()
     }
@@ -626,6 +636,13 @@ final class StatusPanelViewModel: ObservableObject {
 
     func showSummaryPage() {
         closeCurrentPage()
+    }
+
+    /// Switches where the selected detail page is shown without closing it.
+    func setDetailPresentation(_ presentation: StatusPanelDetailPresentation) {
+        guard detailPresentation != presentation else { return }
+        detailPresentation = presentation
+        updateHardwareMetricsDemand()
     }
 
     func setWiFiShowsDetails(_ showsDetails: Bool) {
@@ -993,9 +1010,10 @@ final class StatusPanelViewModel: ObservableObject {
     /// while the customer can see them. The details page registers its own
     /// demand, so closing the panel never cuts a sample it is still using.
     /// The hardware card samples only while it is actually on screen: the
-    /// panel is open, the route is the summary, and the section is visible.
-    /// Switching pages, hiding the module or closing the panel ends the demand
-    /// immediately, so a closed panel never keeps a hardware timer alive.
+    /// panel is open, the summary is visible (as the route or beside a detail),
+    /// and the section is visible. Switching pages, hiding the module or
+    /// closing the panel ends the demand immediately, so a closed panel never
+    /// keeps a hardware timer alive.
     private func updateHardwareMetricsDemand(popoverVisible: Bool? = nil, backgroundSeconds: Int? = nil,
                                              panelSeconds: Int? = nil) {
         // `@Published` publishes in willSet, so a subscriber must pass the new
@@ -1003,7 +1021,7 @@ final class StatusPanelViewModel: ObservableObject {
         let sectionOn = visiblePopupSections.contains(.hardwareMonitor)
         let panelOpen = isStarted && (popoverVisible ?? store.isPopoverVisible) && sectionOn
         let detailKind = activeDetailKind
-        let summaryVisible = panelOpen && route == .summary
+        let summaryVisible = panelOpen && isSummaryVisible
         let detailVisible = panelOpen && detailKind != nil
         // @Published fires in willSet, so a settings subscriber must pass the new
         // value in rather than read the not-yet-committed stored property.
@@ -1015,19 +1033,26 @@ final class StatusPanelViewModel: ObservableObject {
         // per-page expensive work (frequency for CPU, session totals for network).
         store.hardwareMetrics.setDetailDemand(detailVisible ? detailKind : nil)
         store.topApps.setDemand(detailVisible ? detailKind?.topAppMetric : nil)
-        if summaryVisible {
+        if summaryVisible || detailVisible {
             // The compact summary is fixed: four rings plus download/upload,
             // average fan and disk read/write. It no longer follows the card
             // metric order, so every group has data even when the user's card
-            // selection changed.
+            // selection changed. An alongside detail unions its own metrics on
+            // top so the visible summary and the detail share one demand.
             store.hardwareMetrics.end(.background)
-            store.hardwareMetrics.begin(.panel, metrics: HardwareMetricsService.hardwareSummaryMetricIDs)
-        } else if let detailKind, detailVisible {
-            store.hardwareMetrics.end(.background)
-            store.hardwareMetrics.begin(.panel, metrics: HardwareMetricsService.detailMetricIDs(for: detailKind))
-            // Read immediately so the page's structured payload appears on open
-            // instead of waiting for the next scheduled interval.
-            store.hardwareMetrics.forceRefresh()
+            var metrics: Set<HardwareMetricID> = []
+            if summaryVisible {
+                metrics.formUnion(HardwareMetricsService.hardwareSummaryMetricIDs)
+            }
+            if let detailKind, detailVisible {
+                metrics.formUnion(HardwareMetricsService.detailMetricIDs(for: detailKind))
+            }
+            store.hardwareMetrics.begin(.panel, metrics: metrics)
+            if detailVisible {
+                // Read immediately so the page's structured payload appears on
+                // open instead of waiting for the next scheduled interval.
+                store.hardwareMetrics.forceRefresh()
+            }
         } else {
             store.hardwareMetrics.end(.panel)
             // Optional low-frequency background sampling keeps the summary warm
@@ -1362,11 +1387,13 @@ final class StatusPanelViewModel: ObservableObject {
         }
     }
 
-    private func transition(to next: StatusPanelRoute) {
-        guard route != next else { return }
+    @discardableResult
+    private func transition(to next: StatusPanelRoute) -> Bool {
+        guard route != next else { return false }
         if route != .summary { closeCurrentPage() }
         route = next
         updateHardwareMetricsDemand()
+        return true
     }
 
     private func closeCurrentPage() {

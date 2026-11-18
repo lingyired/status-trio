@@ -188,6 +188,40 @@ final class HardwareMonitorPanelDemandTests: XCTestCase {
         XCTAssertFalse(service.isRunning)
     }
 
+    func testAlongsideHardwareDemandUnionsMetricsAndDropsDetailOnlyWork() {
+        let fixture = makeFixture()
+        let panel = startVisible(fixture)
+        defer {
+            panel.showSummaryPage()
+            panel.stop()
+            fixture.store.setPopoverVisible(false)
+            fixture.store.stop()
+        }
+        let service = fixture.store.hardwareMetrics
+
+        panel.setDetailPresentation(.alongside)
+        panel.showHardwareDetail(.cpu)
+        XCTAssertEqual(
+            service.demands[.panel],
+            HardwareMetricsService.hardwareSummaryMetricIDs
+                .union(HardwareMetricsService.detailMetricIDs(for: .cpu))
+        )
+        XCTAssertEqual(service.detailKind, .cpu)
+
+        panel.showHardwareDetail(.network)
+        XCTAssertEqual(
+            service.demands[.panel],
+            HardwareMetricsService.hardwareSummaryMetricIDs
+                .union(HardwareMetricsService.detailMetricIDs(for: .network))
+        )
+        XCTAssertEqual(service.detailKind, .network)
+        XCTAssertNil(service.observable.snapshot.cpuDetail)
+
+        panel.showSummaryPage()
+        XCTAssertEqual(service.demands[.panel], HardwareMetricsService.hardwareSummaryMetricIDs)
+        XCTAssertNil(service.detailKind)
+    }
+
     func testDefaultSettingsKeepCardOffAndSampleNothing() {
         let fixture = makeFixture()
         // No explicit enable: a fresh install must not sample hardware at all.

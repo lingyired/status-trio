@@ -31,6 +31,27 @@ final class TopAppsPanelDemandTests: XCTestCase {
         return panel
     }
 
+    func testAlongsideDetailKeepsTopAppsDemandUntilTheDetailCloses() {
+        let (fixture, service) = makeFixture()
+        let panel = startVisible(fixture)
+        defer {
+            panel.showSummaryPage()
+            panel.stop()
+            fixture.store.setPopoverVisible(false)
+            fixture.store.stop()
+        }
+
+        panel.setDetailPresentation(.alongside)
+        panel.showHardwareDetail(.cpu)
+        XCTAssertEqual(service.demand, .cpu)
+
+        panel.showHardwareDetail(.network)
+        XCTAssertEqual(service.demand, .network)
+
+        panel.showSummaryPage()
+        XCTAssertNil(service.demand)
+    }
+
     func testOnlyVisibleHardwareDetailDemandsTopApps() {
         let (fixture, service) = makeFixture()
         let panel = startVisible(fixture)
