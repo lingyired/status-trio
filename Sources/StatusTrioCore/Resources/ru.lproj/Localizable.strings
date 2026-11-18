@@ -1223,6 +1223,8 @@
 "hardware.monitor.kbps" = "КБ/с";
 "hardware.monitor.mbps" = "МБ/с";
 "hardware.monitor.gbps" = "ГБ/с";
+"hardware.monitor.settings.topApps" = "Показывать топ-приложения";
+"hardware.monitor.settings.topApps.description" = "Показывает самые активные процессы внизу страниц деталей. Отключите, чтобы экономить CPU.";
 "hardware.monitor.settings.background" = "Хранить историю";
 "hardware.monitor.settings.background.description" = "Записывает последние 60 секунд истории оборудования при закрытой панели с частотой панели, чтобы детали открывались с трендом.";
 "hardware.monitor.background.off" = "Выкл.";

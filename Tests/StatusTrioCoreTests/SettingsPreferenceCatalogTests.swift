@@ -28,7 +28,7 @@ final class SettingsPreferenceCatalogTests: XCTestCase {
                 "autoEnablesLowPowerMode", "showsAppleDevicesAndBattery",
                 "refreshesAppleBatteriesInBackground", "appleBatteryRefreshIntervalMinutes",
                 "showsBluetoothListeningMode", "bluetoothAudioIconChoiceRawValue", "wifiSymbolScale",
-                "volumeDisplayStyle", "ringStrokeStyle", "hardwareBackgroundHistoryEnabled", "hardwarePanelRefreshSeconds", "showsHardwareRings", "showsHardwareSummaryRow", "enabledHardwareRingSlots", "enabledHardwareSummaryMetrics", "refreshIntervalOnBatterySeconds",
+                "volumeDisplayStyle", "ringStrokeStyle", "hardwareBackgroundHistoryEnabled", "hardwarePanelRefreshSeconds", "showsHardwareRings", "showsHardwareSummaryRow", "showsHardwareTopApps", "enabledHardwareRingSlots", "enabledHardwareSummaryMetrics", "refreshIntervalOnBatterySeconds",
                 "refreshIntervalOnPowerSeconds", "maxVisibleOutputDevices", "alwaysShowsAllOutputDevices",
                 "maxVisibleInputDevices", "alwaysShowsAllInputDevices", "showsBluetoothDeviceList",
                 "maxVisibleBluetoothDevices", "hidesGhostBluetoothDevices", "popupSectionOrder",

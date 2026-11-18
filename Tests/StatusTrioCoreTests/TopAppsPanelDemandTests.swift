@@ -108,6 +108,25 @@ final class TopAppsPanelDemandTests: XCTestCase {
         XCTAssertNil(service.demand)
     }
 
+    func testTopAppsToggleStopsTheRankedListDemand() {
+        let (fixture, service) = makeFixture()
+        let panel = startVisible(fixture)
+        defer {
+            panel.stop()
+            fixture.store.setPopoverVisible(false)
+            fixture.store.stop()
+        }
+
+        panel.showHardwareDetail(.cpu)
+        XCTAssertEqual(service.demand, .cpu)
+
+        fixture.settings.showsHardwareTopApps = false
+        XCTAssertNil(service.demand, "turning the list off releases its sampling")
+
+        fixture.settings.showsHardwareTopApps = true
+        XCTAssertEqual(service.demand, .cpu)
+    }
+
     func testBackgroundHardwareRefreshDoesNotEnableTopApps() {
         let (fixture, service) = makeFixture()
         let panel = startVisible(fixture)

@@ -82,12 +82,13 @@ struct TopAppCommandReaderTests {
         #expect(executor.invocations.first?.0.path == "/bin/ps")
         #expect(executor.invocations.first?.1 == ["-Aceo", "pid,pcpu,comm", "-r"])
 
-        let memoryOutput = "PID COMMAND MEM\n 1 Foo 1M\n"
+        let memoryOutput = "PID   RSS COMM\n    1  1024 Foo\n"
         let memoryExecutor = RecordingTopAppExecutor(output: Data(memoryOutput.utf8))
         let memoryReader = TopAppMemoryReader(executor: memoryExecutor, metadataReader: StubMetadataReader(names: [:]))
         _ = await memoryReader.read()
-        #expect(memoryExecutor.invocations.first?.0.path == "/usr/bin/top")
-        #expect(memoryExecutor.invocations.first?.1 == ["-l", "1", "-o", "mem", "-stats", "pid,command,mem"])
+        
+        #expect(memoryExecutor.invocations.first?.0.path == "/bin/ps")
+        #expect(memoryExecutor.invocations.first?.1 == ["-Aceo", "pid,rss,comm"])
     }
 
     @Test func testMalformedOutputIsNotSuccessfulEmptyList() async {

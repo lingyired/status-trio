@@ -191,6 +191,8 @@ final class StatusPanelViewModel: ObservableObject {
     /// Which hardware-summary blocks are visible.
     @Published private(set) var showsHardwareRings: Bool
     @Published private(set) var showsHardwareSummaryRow: Bool
+    /// Whether detail pages show the ranked top-application list.
+    @Published private(set) var showsHardwareTopApps: Bool
     /// Which ring cards and bottom info-bar items the summary draws; hidden
     /// items collapse so the rest divide the width evenly.
     @Published private(set) var enabledHardwareRingSlots: Set<HardwareRingSlot>
@@ -267,6 +269,7 @@ final class StatusPanelViewModel: ObservableObject {
         statusPanelMediumTextEnabled = settings.statusPanelMediumTextEnabled
         showsHardwareRings = settings.showsHardwareRings
         showsHardwareSummaryRow = settings.showsHardwareSummaryRow
+        showsHardwareTopApps = settings.showsHardwareTopApps
         enabledHardwareRingSlots = settings.enabledHardwareRingSlots
         enabledHardwareSummaryMetrics = settings.enabledHardwareSummaryMetrics
         hardwareSpeedCapsMbps = [
@@ -478,6 +481,15 @@ final class StatusPanelViewModel: ObservableObject {
             .sink { [weak self] value in
                 guard let self, self.showsHardwareSummaryRow != value else { return }
                 self.showsHardwareSummaryRow = value
+            }
+            .store(in: &cancellables)
+
+        settings.$showsHardwareTopApps
+            .removeDuplicates()
+            .sink { [weak self] value in
+                guard let self, self.showsHardwareTopApps != value else { return }
+                self.showsHardwareTopApps = value
+                self.updateHardwareMetricsDemand()
             }
             .store(in: &cancellables)
 
@@ -1044,7 +1056,7 @@ final class StatusPanelViewModel: ObservableObject {
         // Only the visible detail page pays for its structured payload and the
         // per-page expensive work (frequency for CPU, session totals for network).
         store.hardwareMetrics.setDetailDemand(detailVisible ? detailKind : nil)
-        store.topApps.setDemand(detailVisible ? detailKind?.topAppMetric : nil)
+        store.topApps.setDemand(detailVisible && showsHardwareTopApps ? detailKind?.topAppMetric : nil)
         if summaryVisible || detailVisible {
             // The compact summary is fixed: four rings plus download/upload,
             // average fan and disk read/write. It no longer follows the card

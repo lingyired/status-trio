@@ -10,6 +10,10 @@ struct BackgroundUITestingConfiguration: Equatable, Sendable {
     let isEnabled: Bool
     let display: Display
     let opensStatusPanel: Bool
+    /// Optional detail page (raw kind: cpu/gpu/memory/network/disk) to open in
+    /// the test status panel, for measuring per-page cost without pointer input.
+    /// Kept as a String so this file compiles on its own in the native contract.
+    let opensHardwareDetailRaw: String?
     let diagnostics: [String]
 
     var rejectsLaunch: Bool { !diagnostics.isEmpty }
@@ -21,6 +25,13 @@ struct BackgroundUITestingConfiguration: Equatable, Sendable {
         let enabledCount = arguments.filter { $0 == "--background-ui-testing" }.count
         let displays = arguments.filter { $0.hasPrefix("--test-display") }
         let statusPanelArguments = arguments.filter { $0.hasPrefix("--test-open-status-panel") }
+        let detailPrefix = "--test-open-hardware-detail="
+        let detailArguments = arguments.filter { $0.hasPrefix(detailPrefix) }
+        let validDetails: Set<String> = ["cpu", "gpu", "memory", "network", "disk"]
+        let detailValues = detailArguments.compactMap { argument -> String? in
+            let value = String(argument.dropFirst(detailPrefix.count))
+            return validDetails.contains(value) ? value : nil
+        }
         var problems = arguments.filter {
             $0.hasPrefix("--background-ui-testing") && $0 != "--background-ui-testing"
         }.map { "Unknown background UI testing argument: \($0)" }
@@ -40,14 +51,22 @@ struct BackgroundUITestingConfiguration: Equatable, Sendable {
         if !statusPanelArguments.isEmpty, enabledCount == 0 {
             problems.append("--test-open-status-panel requires --background-ui-testing.")
         }
+        if detailArguments.count > 1 || (detailArguments.count == 1 && detailValues.isEmpty) {
+            problems.append("Expected at most one --test-open-hardware-detail=cpu|gpu|memory|network|disk.")
+        }
+        if !detailArguments.isEmpty, statusPanelArguments.isEmpty {
+            problems.append("--test-open-hardware-detail requires --test-open-status-panel.")
+        }
         isEnabled = enabledCount == 1 && problems.isEmpty
         display = isEnabled && !displays.isEmpty ? .secondary : .automatic
         opensStatusPanel = isEnabled && statusPanelArguments.count == 1
+        opensHardwareDetailRaw = isEnabled ? detailValues.first : nil
         diagnostics = problems
         #else
         isEnabled = false
         display = .automatic
         opensStatusPanel = false
+        opensHardwareDetailRaw = nil
         diagnostics = []
         #endif
     }

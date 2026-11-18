@@ -1223,6 +1223,8 @@
 "hardware.monitor.kbps" = "KB/s";
 "hardware.monitor.mbps" = "MB/s";
 "hardware.monitor.gbps" = "GB/s";
+"hardware.monitor.settings.topApps" = "고부하 앱 표시";
+"hardware.monitor.settings.topApps.description" = "세부 페이지 하단에 가장 부하가 큰 프로세스를 표시합니다. 끄면 CPU를 절약합니다.";
 "hardware.monitor.settings.background" = "백그라운드 기록 유지";
 "hardware.monitor.settings.background.description" = "패널이 닫혀 있어도 패널 갱신 주기로 최근 60초 하드웨어 기록을 저장해 세부 페이지에서 추세를 볼 수 있습니다.";
 "hardware.monitor.background.off" = "끔";

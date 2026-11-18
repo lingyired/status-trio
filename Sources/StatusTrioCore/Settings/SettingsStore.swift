@@ -182,6 +182,7 @@ final class SettingsStore: ObservableObject {
     static let hardwareUploadCapMbpsDefaultsKey = "hardwareUploadCapMbps"
     static let hardwareBackgroundHistoryEnabledDefaultsKey = "hardwareBackgroundHistoryEnabled"
     static let hardwarePanelRefreshSecondsDefaultsKey = "hardwarePanelRefreshSeconds"
+    static let showsHardwareTopAppsDefaultsKey = "showsHardwareTopApps"
     static let showsHardwareRingsDefaultsKey = "showsHardwareRings"
     static let showsHardwareSummaryRowDefaultsKey = "showsHardwareSummaryRow"
     static let enabledHardwareRingSlotsDefaultsKey = "enabledHardwareRingSlotsV1"
@@ -1249,6 +1250,13 @@ final class SettingsStore: ObservableObject {
 
     @Published var showsHardwareSummaryRow: Bool = true {
         didSet { defaults.set(showsHardwareSummaryRow, forKey: Self.showsHardwareSummaryRowDefaultsKey) }
+    }
+
+    /// Whether hardware detail pages show the ranked top-application list. The
+    /// list runs a process-table sample per tick, so turning it off removes that
+    /// cost while the charts keep updating.
+    @Published var showsHardwareTopApps: Bool = true {
+        didSet { defaults.set(showsHardwareTopApps, forKey: Self.showsHardwareTopAppsDefaultsKey) }
     }
 
     /// Which ring cards the status-panel hardware summary shows. Hiding one lets
@@ -2981,6 +2989,7 @@ final class SettingsStore: ObservableObject {
             ? storedPanel : Self.defaultHardwarePanelRefreshSeconds
         self.showsHardwareRings = defaults.object(forKey: Self.showsHardwareRingsDefaultsKey) as? Bool ?? true
         self.showsHardwareSummaryRow = defaults.object(forKey: Self.showsHardwareSummaryRowDefaultsKey) as? Bool ?? true
+        self.showsHardwareTopApps = defaults.object(forKey: Self.showsHardwareTopAppsDefaultsKey) as? Bool ?? true
         self.enabledHardwareRingSlots = Self.sanitizedEnabledHardwareRingSlots(
             defaults.array(forKey: Self.enabledHardwareRingSlotsDefaultsKey) as? [String])
         self.enabledHardwareSummaryMetrics = Self.sanitizedEnabledHardwareSummaryMetrics(
