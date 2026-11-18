@@ -43,7 +43,8 @@ struct HardwareMonitorSummaryView: View {
             if showsRings, !ringSlots.isEmpty {
                 HardwareRingStrip(hardware: model, colors: metricColors, carded: true,
                                   onSelectSlot: onOpenHardwareDetail,
-                                  visibleSlots: ringSlots)
+                                  visibleSlots: ringSlots,
+                                  animatesProgress: false)
             }
             if showsSummaryRow, !visibleItems.isEmpty {
                 CompactSummaryInfoBar(items: visibleItems) { metric in
