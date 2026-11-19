@@ -200,6 +200,7 @@ enum SettingsPreferenceCatalog {
                     default: SettingsStore.defaultHardwareBackgroundHistoryEnabled),
             integer("hardwarePanelRefreshSeconds", \.hardwarePanelRefreshSeconds,
                     default: SettingsStore.defaultHardwarePanelRefreshSeconds, range: 1...8),
+            boolean("hardwareNetworkChartFixedScale", \.hardwareNetworkChartFixedScale, default: false),
             number("hardwareDownloadCapMbps", \.hardwareDownloadCapMbps,
                    default: SettingsStore.defaultHardwareDownloadCapMbps,
                    range: SettingsStore.hardwareSpeedCapRange, step: 1),

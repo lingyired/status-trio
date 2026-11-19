@@ -187,6 +187,7 @@ final class HardwareMetricsService: ObservableObject {
         case .memory: return [.memoryUsage]
         case .network: return [.networkDownload, .networkUpload]
         case .disk: return [.diskRead, .diskWrite]
+        case .fan: return [.fanRPM(index: 0), .cpuTemperature, .gpuTemperature, .batteryTemperature]
         }
     }
     typealias Reader = @Sendable (Set<HardwareMetricID>, Date) async -> HardwareMetricsSnapshot

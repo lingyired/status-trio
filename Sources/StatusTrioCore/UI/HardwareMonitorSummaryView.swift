@@ -51,7 +51,7 @@ struct HardwareMonitorSummaryView: View {
                     switch metric {
                     case .download, .upload: onOpenHardwareDetail?(.network)
                     case .disk: onOpenHardwareDetail?(.disk)
-                    case .fan: break
+                    case .fan: onOpenHardwareDetail?(.fan)
                     }
                 }
             }
@@ -88,7 +88,7 @@ struct CompactSummaryInfoBar: View {
 
     @ViewBuilder
     private func cell(_ item: HardwareSummaryMetricPresentation) -> some View {
-        if let onSelect, item.metric != .fan {
+        if let onSelect {
             Button { onSelect(item.metric) } label: {
                 HardwareSummaryMetricCell(item: item)
                     .padding(.horizontal, 4)

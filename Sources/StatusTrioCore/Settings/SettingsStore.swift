@@ -183,6 +183,7 @@ final class SettingsStore: ObservableObject {
     static let hardwareBackgroundHistoryEnabledDefaultsKey = "hardwareBackgroundHistoryEnabled"
     static let hardwarePanelRefreshSecondsDefaultsKey = "hardwarePanelRefreshSeconds"
     static let showsHardwareTopAppsDefaultsKey = "showsHardwareTopApps"
+    static let hardwareNetworkChartFixedScaleDefaultsKey = "hardwareNetworkChartFixedScale"
     static let showsHardwareRingsDefaultsKey = "showsHardwareRings"
     static let showsHardwareSummaryRowDefaultsKey = "showsHardwareSummaryRow"
     static let enabledHardwareRingSlotsDefaultsKey = "enabledHardwareRingSlotsV1"
@@ -1262,6 +1263,12 @@ final class SettingsStore: ObservableObject {
     /// cost while the charts keep updating.
     @Published var showsHardwareTopApps: Bool = true {
         didSet { defaults.set(showsHardwareTopApps, forKey: Self.showsHardwareTopAppsDefaultsKey) }
+    }
+
+    /// Network trend scale: false = auto (window peak x1.15), true = fixed to
+    /// the download/upload caps.
+    @Published var hardwareNetworkChartFixedScale: Bool = false {
+        didSet { defaults.set(hardwareNetworkChartFixedScale, forKey: Self.hardwareNetworkChartFixedScaleDefaultsKey) }
     }
 
     /// Which ring cards the status-panel hardware summary shows. Hiding one lets
@@ -3008,6 +3015,8 @@ final class SettingsStore: ObservableObject {
         self.showsHardwareRings = defaults.object(forKey: Self.showsHardwareRingsDefaultsKey) as? Bool ?? true
         self.showsHardwareSummaryRow = defaults.object(forKey: Self.showsHardwareSummaryRowDefaultsKey) as? Bool ?? true
         self.showsHardwareTopApps = defaults.object(forKey: Self.showsHardwareTopAppsDefaultsKey) as? Bool ?? true
+        self.hardwareNetworkChartFixedScale =
+            defaults.object(forKey: Self.hardwareNetworkChartFixedScaleDefaultsKey) as? Bool ?? false
         self.enabledHardwareRingSlots = Self.sanitizedEnabledHardwareRingSlots(
             defaults.array(forKey: Self.enabledHardwareRingSlotsDefaultsKey) as? [String])
         self.enabledHardwareSummaryMetrics = Self.sanitizedEnabledHardwareSummaryMetrics(

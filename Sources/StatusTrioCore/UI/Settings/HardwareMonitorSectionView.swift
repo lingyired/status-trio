@@ -112,6 +112,17 @@ struct HardwareMonitorSectionView: View {
                         set: { store.hardwareUploadCapMbps = ($0).rounded() }),
                     range: SettingsStore.hardwareSpeedCapRange)
             }
+            SettingsDivider()
+            SettingsToggleRow(
+                symbol: "ruler",
+                tint: .purple,
+                title: localization.string(.hardwareMonitorSettingsNetworkScale),
+                subtitle: localization.string(.hardwareMonitorSettingsNetworkScaleDescription),
+                isOn: Binding(
+                    get: { store.hardwareNetworkChartFixedScale },
+                    set: { store.hardwareNetworkChartFixedScale = $0 }
+                )
+            )
         }
     }
 
@@ -125,7 +136,6 @@ struct HardwareMonitorSectionView: View {
                             .font(.system(size: 11, weight: .semibold))
                             .foregroundStyle(.secondary)
                             .frame(maxWidth: .infinity, alignment: .leading)
-                            .padding(.leading, SettingsMetrics.dividerInset)
                             .padding(.top, 8)
                             .padding(.bottom, 2)
                         ForEach(Array(group.options.enumerated()), id: \.element) { rowIndex, metric in

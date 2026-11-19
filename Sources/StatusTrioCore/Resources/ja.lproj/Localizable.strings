@@ -1229,6 +1229,8 @@
 "hardware.monitor.settings.topApps.description" = "詳細ページ下部に最も負荷の高いプロセスを表示します。オフにすると CPU を節約できます。";
 "hardware.monitor.settings.speedCaps.title" = "ネットワーク速度上限";
 "hardware.monitor.settings.speedCaps.description" = "ネットワーク速度トレンドの満点として使用し、アイコンリングの上下載弧にも使います。";
+"hardware.monitor.settings.networkScale" = "ネットワーク目盛り固定";
+"hardware.monitor.settings.networkScale.description" = "オフ：ウィンドウ内のピークに自動スケール（15%余白）。オン：ダウンロード/アップロード上限を満点にします。";
 "hardware.monitor.settings.background" = "バックグラウンド履歴を保持";
 "hardware.monitor.settings.background.description" = "パネルを閉じている間もパネルの更新間隔で直近60秒のハードウェア履歴を記録し、詳細ページを開くと傾向が表示されます。";
 "hardware.monitor.background.off" = "オフ";
@@ -1313,6 +1315,10 @@
 "hardware.detail.performanceCores" = "高性能コア";
 "hardware.detail.superCores" = "スーパーコア";
 "hardware.detail.otherCores" = "その他のコア";
+"hardware.detail.fanCount" = "ファン数";
+"hardware.detail.fanIndex" = "ファン %d";
+"hardware.detail.temperatures" = "温度";
+"hardware.detail.fanUnavailable" = "ファン速度を読み取れません";
 "hardware.detail.average" = "平均";
 "hardware.detail.estimatedFrequency" = "推定周波数";
 "hardware.detail.cores" = "コア数";

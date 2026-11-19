@@ -22,6 +22,11 @@ enum HardwareDetailFormat {
         return String(format: "%.1f%%", value)
     }
 
+    static func rpm(_ value: Double?) -> String {
+        guard let value, value.isFinite, value >= 0 else { return dash }
+        return "\(Int(value.rounded())) RPM"
+    }
+
     static func temperature(_ value: Double?) -> String {
         guard let value, value.isFinite else { return dash }
         return "\(Int(value.rounded()))°C"
