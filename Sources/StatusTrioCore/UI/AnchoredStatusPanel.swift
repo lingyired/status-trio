@@ -139,6 +139,11 @@ final class AnchoredStatusPanel: NSPanel {
     /// measurement, the window's own resize, and a screen / Dock / Space change
     /// (issue #259). Each one is applied once, on a later main-actor turn.
     private let layoutUpdateScheduler: StatusPanelLayoutUpdateScheduler
+    /// Drives the detail page's side-window height at 120 Hz instead of the
+    /// AppKit 60 Hz animator, so page switches track the same clock as the
+    /// 120 Hz disclosure lists.
+    private let detailResizeCoordinator = StatusPanelResizeCoordinator()
+    private var detailResizeCancellable: AnyCancellable?
     private lazy var layoutCoordinator = StatusPanelLayoutCoordinator(
         scheduler: layoutUpdateScheduler,
         applyContentSize: { [weak self] size in self?.applyContentSize(size) },
@@ -183,6 +188,10 @@ final class AnchoredStatusPanel: NSPanel {
         animationBehavior = .none
         isMovable = false
         isMovableByWindowBackground = false
+        detailResizeCoordinator.duration = 0.16
+        detailResizeCancellable = detailResizeCoordinator.$presentedHeight
+            .dropFirst()
+            .sink { [weak self] height in self?.applyDetailPresentedHeight(height) }
     }
 
     /// A borderless, non-activating panel is only key when it says so.
@@ -344,6 +353,7 @@ final class AnchoredStatusPanel: NSPanel {
     func hideDetail() {
         guard isVisible else { return }
         detailPlacement = nil
+        detailResizeCoordinator.cancel()
         layoutMetrics.setPresented(false)
         orderOut(nil)
     }
@@ -415,6 +425,7 @@ final class AnchoredStatusPanel: NSPanel {
         guard isVisible else { return }
         layoutMetrics.setPresented(false)
         detailPlacement = nil
+        detailResizeCoordinator.cancel()
         pendingReveal = false
         pendingRevealStyle = .fade
         lockedResizeAnchor = nil
@@ -488,12 +499,16 @@ final class AnchoredStatusPanel: NSPanel {
         let target = placementFrame(for: size)
         guard target != frame else { return }
         if detailPlacement != nil, isVisible {
-            // A page switch changes the side window's height; easing the frame
-            // keeps the glass from snapping without animating its contents.
-            NSAnimationContext.runAnimationGroup { context in
-                context.duration = 0.16
-                context.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
-                self.animator().setFrame(target, display: true)
+            // A page switch changes the side window's height. Drive it from the
+            // 120 Hz coordinator so the glass tracks the display instead of the
+            // AppKit animator's 60 Hz clock; contents still snap to their final
+            // layout and only the frame eases.
+            if NSWorkspace.shared.accessibilityDisplayShouldReduceMotion {
+                detailResizeCoordinator.cancel()
+                setFrame(target, display: false)
+                invalidateShadow()
+            } else {
+                detailResizeCoordinator.retarget(to: size.height, fromHeight: frame.height)
             }
         } else {
             setFrame(target, display: false)
@@ -502,6 +517,18 @@ final class AnchoredStatusPanel: NSPanel {
         frameWriteCount += 1
 #endif
         invalidateShadow()
+    }
+
+    /// Applies one 120 Hz tick of the detail height animation. Only the window
+    /// frame moves; the SwiftUI content is already at its final height.
+    private func applyDetailPresentedHeight(_ height: CGFloat) {
+        guard detailPlacement != nil, isVisible else { return }
+        let target = placementFrame(for: NSSize(width: frame.width, height: height))
+        guard target != frame else { return }
+        setFrame(target, display: false)
+        if detailResizeCoordinator.isAtTarget(height) {
+            invalidateShadow()
+        }
     }
 
     /// The placed frame for a presented height during an animated resize. The
@@ -592,7 +619,7 @@ final class AnchoredStatusPanel: NSPanel {
     }
 
     private func handleWindowResize() {
-        guard isVisible, lockedResizeFrame == nil else { return }
+        guard isVisible, lockedResizeFrame == nil, !detailResizeCoordinator.isAnimating else { return }
         layoutCoordinator.windowDidResize()
     }
 
