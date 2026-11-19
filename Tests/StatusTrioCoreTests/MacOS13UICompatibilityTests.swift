@@ -173,6 +173,7 @@ final class MacOS13UICompatibilityTests: XCTestCase {
     /// `character.bubble`.
     private static let auditedPostVenturaSymbols: Set<String> = [
         "ring", // Plugin presentation ID, never an SF Symbol name.
+        "fan", // Detail-page launch argument value, never an SF Symbol name.
         "airpods.gen4",
         "airpods.max",
         "airpods.pro",

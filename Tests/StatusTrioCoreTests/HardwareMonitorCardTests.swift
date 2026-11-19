@@ -184,7 +184,7 @@ struct HardwareMonitorPresentationTests {
         let fixture = HardwareMonitorTestFixture()
         defer { fixture.cleanup() }
         let keys = LocalizationKey.allCases.filter { $0.rawValue.hasPrefix("hardware.monitor.") }
-        #expect(keys.count == 59)
+        #expect(keys.count == 61)
         for language in AppLanguage.allCases {
             let bundle = try #require(Localization.resourceBundle(for: language))
             for key in keys {
