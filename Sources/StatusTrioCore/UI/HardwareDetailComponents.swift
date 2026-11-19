@@ -80,7 +80,7 @@ struct HardwareDetailCard<Content: View>: View {
         content()
             .padding(10)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .panelCardSurface(.silver(.connected), tint: .clear, cornerRadius: 13)
+            .hardwareMonitorCardSurface(.silver(.connected), cornerRadius: 13)
     }
 }
 
@@ -126,10 +126,13 @@ struct HardwareDetailProgressBar: View {
     let fraction: Double
     var tint: Color = .accentColor
 
+    @Environment(\.panelCardSurfaceStyle) private var cardStyle
+    @Environment(\.colorScheme) private var scheme
+
     var body: some View {
         GeometryReader { geometry in
             ZStack(alignment: .leading) {
-                Capsule().fill(Color.primary.opacity(0.10))
+                Capsule().fill(HardwareMonitorCardSurface.progressTrackColor(cardStyle: cardStyle, scheme: scheme))
                 Capsule()
                     .fill(tint.opacity(0.85))
                     .frame(width: max(0, min(1, fraction)) * geometry.size.width)

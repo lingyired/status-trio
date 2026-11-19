@@ -1,3 +1,4 @@
+import AppKit
 import Combine
 import CoreAudio
 import XCTest
@@ -26,6 +27,31 @@ final class StatusPanelViewModelTests: XCTestCase {
         XCTAssertFalse(fixture.store.wifiNetworks.isActive)
 
         panel.stop()
+    }
+
+    /// @Published emits in willSet, so the style sink must apply the emitted
+    /// value. Re-reading the property there left the SwiftUI card surface on the
+    /// previous style until the panel was reopened.
+    func testPanelBackgroundStyleAppliesToCardSurfaceWithoutReopen() throws {
+        let reduce = NSWorkspace.shared.accessibilityDisplayShouldReduceTransparency
+        guard !reduce else { throw XCTSkip("Reduce Transparency forces solid") }
+
+        let fixture = PanelStoreFixture()
+        let panel = fixture.makePanel()
+        defer { panel.stop(); fixture.store.stop() }
+        panel.start()
+
+        fixture.settings.panelBackgroundStyle = .classicMaterial
+        XCTAssertEqual(
+            panel.effectivePanelBackgroundStyle,
+            PanelBackgroundStyle.renderStyle(for: .classicMaterial, reduceTransparency: false),
+            "material applies live")
+
+        fixture.settings.panelBackgroundStyle = .solid
+        XCTAssertEqual(
+            panel.effectivePanelBackgroundStyle,
+            PanelBackgroundStyle.renderStyle(for: .solid, reduceTransparency: false),
+            "switching to solid must update the card surface without reopening the panel")
     }
 
     func testIrrelevantSettingChangeDoesNotRemapThePanel() async throws {

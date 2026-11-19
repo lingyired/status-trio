@@ -620,7 +620,7 @@ struct HardwareDetailView: View {
         }
         .frame(maxWidth: .infinity)
         .frame(height: 78, alignment: .topLeading)
-        .panelCardSurface(.silver(.connected), tint: .clear, cornerRadius: 13)
+        .hardwareMonitorCardSurface(.silver(.connected), cornerRadius: 13)
         .clipShape(RoundedRectangle(cornerRadius: 13, style: .continuous))
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(title)

@@ -34,6 +34,9 @@ struct HardwareRingStrip: View {
     /// Pointer-enter glow so a clickable glass card reads as interactive
     /// (matches the keep-awake capsule in QuickActionsCardView).
     @State private var hoveredSlot: HardwareRingSlot?
+    /// Card strategy and appearance, so the solid branch can substitute the
+    /// neutral hardware hover / rim instead of the glass white overlay.
+    @Environment(\.panelCardSurfaceStyle) private var panelCardStyle
 
     private var snapshot: HardwareMetricsSnapshot { hardware.snapshot }
 
@@ -78,11 +81,13 @@ struct HardwareRingStrip: View {
         .animation(animatesProgress ? .easeOut(duration: 0.35) : nil, value: spec.progress)
     }
 
-    /// One ring wrapped in its own glass card (status panel).
-    private func ringCard(_ slot: HardwareRingSlot) -> some View {
+    /// One ring wrapped in its own card (status panel). Glass and material keep
+    /// the shared silver surface; the opaque solid branch gets the neutral
+    /// hardware surface with a palette-driven hover fill.
+    private func ringCard(_ slot: HardwareRingSlot, hovered: Bool = false) -> some View {
         ringBase(slot, topAdjustment: Self.cardedTopTextAdjustment)
             .padding(5)
-            .panelCardSurface(.silver(.connected), tint: .clear, cornerRadius: 13)
+            .hardwareMonitorCardSurface(.silver(.connected), cornerRadius: 13, hovered: hovered)
     }
 
     /// Carded ring plus pointer-enter glow and detail tap. Non-interactive when
@@ -91,19 +96,23 @@ struct HardwareRingStrip: View {
     private func interactiveCard(_ slot: HardwareRingSlot) -> some View {
         if let onSelectSlot {
             Button { onSelectSlot(Self.detailKind(for: slot)) } label: {
-                ringCard(slot)
+                ringCard(slot, hovered: hoveredSlot == slot)
                     .contentShape(RoundedRectangle(cornerRadius: 13, style: .continuous))
             }
             .buttonStyle(.plain)
             .overlay {
-                RoundedRectangle(cornerRadius: 13, style: .continuous)
-                    .fill(Color.white.opacity(hoveredSlot == slot ? 0.06 : 0))
-                    .allowsHitTesting(false)
+                if panelCardStyle != .solid {
+                    RoundedRectangle(cornerRadius: 13, style: .continuous)
+                        .fill(Color.white.opacity(hoveredSlot == slot ? 0.06 : 0))
+                        .allowsHitTesting(false)
+                }
             }
             .overlay {
-                RoundedRectangle(cornerRadius: 13, style: .continuous)
-                    .strokeBorder(Color.white.opacity(hoveredSlot == slot ? 0.22 : 0), lineWidth: 1)
-                    .allowsHitTesting(false)
+                if panelCardStyle != .solid {
+                    RoundedRectangle(cornerRadius: 13, style: .continuous)
+                        .strokeBorder(Color.white.opacity(hoveredSlot == slot ? 0.22 : 0), lineWidth: 1)
+                        .allowsHitTesting(false)
+                }
             }
             .onHover { inside in
                 if inside { hoveredSlot = slot }

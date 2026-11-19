@@ -101,23 +101,35 @@ final class HardwareDetailSnapshotTests: XCTestCase {
         for kind in HardwareDetailKind.allCases {
             let snap = snapshot(for: kind, at: date)
             let points = history(for: kind, at: date)
-            for dark in [false, true] {
-                let observable = HardwareMonitorObservable(snapshot: snap)
-                let view = HardwareDetailView(kind: kind, hardware: observable, onBack: {}, previewHistory: points)
-                    .environmentObject(Localization())
-                    .environment(\.panelCardSurfaceStyle, PanelCardSurfaceStyle.material)
-                    .environment(\.colorScheme, dark ? .dark : .light)
-                    .frame(width: 330)
-                    .background(dark ? Color(white: 0.12) : Color(white: 0.96))
-                let renderer = ImageRenderer(content: view)
-                renderer.scale = 2
-                let cgImage = try XCTUnwrap(renderer.cgImage)
-                let rep = NSBitmapImageRep(cgImage: cgImage)
-                let data = try XCTUnwrap(rep.representation(using: .png, properties: [:]))
-                let path = "\(directory)/\(kind.rawValue)_\(dark ? "dark" : "light").png"
-                try data.write(to: URL(fileURLWithPath: path))
-                print("wrote \(path) (\(cgImage.width)x\(cgImage.height))")
+            for style: PanelCardSurfaceStyle in [.glass, .material, .solid] {
+                for dark in [false, true] {
+                    let observable = HardwareMonitorObservable(snapshot: snap)
+                    let view = HardwareDetailView(kind: kind, hardware: observable, onBack: {}, previewHistory: points)
+                        .environmentObject(Localization())
+                        .environment(\.panelCardSurfaceStyle, style)
+                        .environment(\.colorScheme, dark ? .dark : .light)
+                        .frame(width: 330)
+                        .background(dark ? Color(white: 0.12) : Color(white: 0.96))
+                    let renderer = ImageRenderer(content: view)
+                    renderer.scale = 2
+                    let cgImage = try XCTUnwrap(renderer.cgImage)
+                    let rep = NSBitmapImageRep(cgImage: cgImage)
+                    let data = try XCTUnwrap(rep.representation(using: .png, properties: [:]))
+                    let path = "\(directory)/\(kind.rawValue)_\(style.snapshotName)_\(dark ? "dark" : "light").png"
+                    try data.write(to: URL(fileURLWithPath: path))
+                    print("wrote \(path) (\(cgImage.width)x\(cgImage.height))")
+                }
             }
+        }
+    }
+}
+
+private extension PanelCardSurfaceStyle {
+    var snapshotName: String {
+        switch self {
+        case .glass: return "glass"
+        case .material: return "material"
+        case .solid: return "solid"
         }
     }
 }

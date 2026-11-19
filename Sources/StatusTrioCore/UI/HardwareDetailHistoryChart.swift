@@ -25,6 +25,8 @@ struct HardwareDetailHistoryChart: View {
     var historyWindow: TimeInterval = HardwareDetailHistoryStore.window
 
     @State private var hoverLocation: CGPoint?
+    /// Card strategy, so the opaque solid branch can thin the area fill.
+    @Environment(\.panelCardSurfaceStyle) private var cardStyle
 
     private var yMaximum: Double {
         switch scale {
@@ -55,7 +57,7 @@ struct HardwareDetailHistoryChart: View {
                     HardwareDetailAreaShape(points: points, series: index, now: now,
                                             yMaximum: seriesMaximum(index, fallback: maximum),
                                             domain: domain, window: historyWindow)
-                        .fill(LinearGradient(colors: [colors[index].opacity(0.78), colors[index].opacity(0.38)],
+                        .fill(LinearGradient(colors: chartAreaFillGradient(for: index),
                                              startPoint: .top, endPoint: .bottom))
                     HardwareDetailLineShape(points: points, series: index, now: now,
                                             yMaximum: seriesMaximum(index, fallback: maximum),
@@ -81,6 +83,13 @@ struct HardwareDetailHistoryChart: View {
 
     private func seriesMaximum(_ index: Int, fallback: Double) -> Double {
         index < seriesMaximums.count ? max(1, seriesMaximums[index]) : fallback
+    }
+
+    /// The under-curve fill: unchanged in glass/material, thinned in solid so the
+    /// neutral card is not flooded while the line keeps its data colour.
+    private func chartAreaFillGradient(for index: Int) -> [Color] {
+        let opacities = HardwareMonitorCardSurface.trendAreaFillOpacities(cardStyle: cardStyle)
+        return [colors[index].opacity(opacities.top), colors[index].opacity(opacities.bottom)]
     }
 
     @ViewBuilder

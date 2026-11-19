@@ -68,6 +68,7 @@ struct CompactSummaryInfoBar: View {
     var onSelect: ((HardwareSummaryMetric) -> Void)? = nil
 
     @State private var hoveredMetric: HardwareSummaryMetric?
+    @Environment(\.panelCardSurfaceStyle) private var panelCardStyle
 
     var body: some View {
         HStack(spacing: 0) {
@@ -82,7 +83,7 @@ struct CompactSummaryInfoBar: View {
             }
         }
         .frame(height: HardwareSummaryMetricCell.barHeight)
-        .panelCardSurface(.silver(.disconnected), tint: .clear, cornerRadius: 10)
+        .hardwareMonitorCardSurface(.silver(.disconnected), cornerRadius: 10)
         .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
     }
 
@@ -97,7 +98,9 @@ struct CompactSummaryInfoBar: View {
             .buttonStyle(.plain)
             .overlay {
                 RoundedRectangle(cornerRadius: 7, style: .continuous)
-                    .fill(Color.white.opacity(hoveredMetric == item.metric ? 0.08 : 0))
+                    .fill(panelCardStyle == .solid
+                          ? Color.primary.opacity(hoveredMetric == item.metric ? 0.06 : 0)
+                          : Color.white.opacity(hoveredMetric == item.metric ? 0.08 : 0))
                     .allowsHitTesting(false)
             }
             .onHover { inside in

@@ -558,7 +558,11 @@ final class StatusPanelViewModel: ObservableObject {
     private func subscribeToEffectivePanelBackgroundStyle() {
         settings.$panelBackgroundStyle
             .removeDuplicates()
-            .sink { [weak self] _ in self?.refreshEffectivePanelBackgroundStyle() }
+            // @Published emits in willSet, so reading settings.panelBackgroundStyle
+            // inside the sink would still return the old value. Use the emitted
+            // style so the SwiftUI card surface updates in place instead of
+            // waiting for the next panel reopen.
+            .sink { [weak self] style in self?.applyEffectivePanelBackgroundStyle(for: style) }
             .store(in: &cancellables)
         NSWorkspace.shared.notificationCenter
             .publisher(for: NSWorkspace.accessibilityDisplayOptionsDidChangeNotification)
@@ -568,8 +572,12 @@ final class StatusPanelViewModel: ObservableObject {
     }
 
     private func refreshEffectivePanelBackgroundStyle() {
+        applyEffectivePanelBackgroundStyle(for: settings.panelBackgroundStyle)
+    }
+
+    private func applyEffectivePanelBackgroundStyle(for style: PanelBackgroundStyle) {
         let next = PanelBackgroundStyle.renderStyle(
-            for: settings.panelBackgroundStyle,
+            for: style,
             reduceTransparency: NSWorkspace.shared.accessibilityDisplayShouldReduceTransparency
         )
         if next != effectivePanelBackgroundStyle {
