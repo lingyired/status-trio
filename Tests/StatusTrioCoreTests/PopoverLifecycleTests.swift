@@ -464,6 +464,30 @@ struct PopoverHoverPresentationTests {
 
         #expect(presentation.isWithinHoverArea(NSPoint(x: 500, y: 300)) == false)
     }
+
+    @Test func leavingTheBridgeAfterAStaleHideStillSchedulesAnotherHide() {
+        var tracker = PopoverHoverGroupTracker()
+
+        #expect(tracker.update(inside: true) == .cancelPending)
+        // Staying in the 8 pt bridge after the earlier hide delay fired.
+        #expect(tracker.update(inside: true) == .none)
+        // Moving beyond the bridge must ask for another hide, or the panel sticks.
+        #expect(tracker.update(inside: false) == .scheduleHide)
+    }
+
+    @Test func reEnteringCancelsAPendingHideAndRepeatedPositionsAreInert() {
+        var tracker = PopoverHoverGroupTracker()
+
+        _ = tracker.update(inside: true)
+        #expect(tracker.update(inside: false) == .scheduleHide)
+        #expect(tracker.update(inside: false) == .none)
+        #expect(tracker.update(inside: true) == .cancelPending)
+        #expect(tracker.update(inside: true) == .none)
+
+        tracker.reset()
+        #expect(tracker.isInsideGroup == false)
+        #expect(tracker.update(inside: false) == .none)
+    }
 }
 
 /// Issue #355: AppKit sends an NSResponder message to the tracking area owner.

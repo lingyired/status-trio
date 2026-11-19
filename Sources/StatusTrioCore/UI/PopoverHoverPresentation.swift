@@ -67,6 +67,33 @@ struct PopoverHoverPresentation: Equatable {
     }
 }
 
+/// What a pointer update means for a pending hover transition.
+enum PopoverHoverGroupUpdate: Equatable {
+    case none
+    case cancelPending
+    case scheduleHide
+}
+
+/// Tracks whether the pointer is inside the *whole* hover group (icon, panel and
+/// bridge) and reports only the boundary changes.
+///
+/// Reporting only on a boundary keeps a pointer that keeps moving outside from
+/// rearming the hide timer forever, while still asking for a fresh hide after a
+/// hide fired while the pointer lingered in the bridge.
+struct PopoverHoverGroupTracker: Equatable {
+    private(set) var isInsideGroup = false
+
+    mutating func update(inside: Bool) -> PopoverHoverGroupUpdate {
+        guard inside != isInsideGroup else { return .none }
+        isInsideGroup = inside
+        return inside ? .cancelPending : .scheduleHide
+    }
+
+    mutating func reset() {
+        isInsideGroup = false
+    }
+}
+
 /// Pure bookkeeping for the two delayed hover transitions.
 ///
 /// A new transition supersedes the pending one, so a pointer that leaves and
