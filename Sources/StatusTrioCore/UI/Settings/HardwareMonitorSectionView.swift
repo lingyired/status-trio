@@ -136,7 +136,6 @@ struct HardwareMonitorSectionView: View {
                             .font(.system(size: 11, weight: .semibold))
                             .foregroundStyle(.secondary)
                             .frame(maxWidth: .infinity, alignment: .leading)
-                            .padding(.leading, SettingsMetrics.dividerInset)
                             .padding(.top, 8)
                             .padding(.bottom, 2)
                         ForEach(Array(group.options.enumerated()), id: \.element) { rowIndex, metric in
