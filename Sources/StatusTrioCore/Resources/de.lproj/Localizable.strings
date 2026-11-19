@@ -1230,7 +1230,7 @@
 "hardware.monitor.settings.topApps" = "Top-Apps anzeigen";
 "hardware.monitor.settings.topApps.description" = "Zeigt die aktivsten Prozesse unten auf Detailseiten. Ausschalten spart CPU.";
 "hardware.monitor.settings.speedCaps.title" = "Netzwerkgeschwindigkeitslimit";
-"hardware.monitor.settings.speedCaps.description" = "Dient als Vollausschlag des Netzwerkgeschwindigkeitsverlaufs und der Download-/Upload-Bögen des Icon-Rings.";
+"hardware.monitor.settings.speedCaps.description" = "Die Download-/Upload-Bögen des Icon-Rings nutzen diese Grenzen immer; der Geschwindigkeitsverlauf nutzt sie nur bei aktivierter fester Netzwerkskala als Vollausschlag.";
 "hardware.monitor.settings.networkScale" = "Feste Netzwerkskala";
 "hardware.monitor.settings.networkScale.description" = "Aus: automatische Skalierung auf den Fenster-Peak mit 15 % Reserve. An: Download-/Upload-Limit als Vollausschlag.";
 "hardware.monitor.settings.background" = "Hintergrundverlauf behalten";

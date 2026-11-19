@@ -1230,7 +1230,7 @@
 "hardware.monitor.settings.topApps" = "Показывать топ-приложения";
 "hardware.monitor.settings.topApps.description" = "Показывает самые активные процессы внизу страниц деталей. Отключите, чтобы экономить CPU.";
 "hardware.monitor.settings.speedCaps.title" = "Предел скорости сети";
-"hardware.monitor.settings.speedCaps.description" = "Используется как полная шкала графика скорости и дуг загрузки/отправки кольца.";
+"hardware.monitor.settings.speedCaps.description" = "Дуги загрузки/отправки на кольце всегда используют эти пределы; график скорости использует их как полную шкалу только при включённой фиксированной шкале сети.";
 "hardware.monitor.settings.networkScale" = "Фиксированная шкала сети";
 "hardware.monitor.settings.networkScale.description" = "Выкл.: авто-масштаб по пику окна с запасом 15 %. Вкл.: пределы загрузки/отправки как полная шкала.";
 "hardware.monitor.settings.background" = "Хранить историю";

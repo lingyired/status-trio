@@ -1230,7 +1230,7 @@
 "hardware.monitor.settings.topApps" = "Afficher les applis gourmandes";
 "hardware.monitor.settings.topApps.description" = "Affiche les processus les plus actifs en bas des pages détaillées. Désactiver économise le CPU.";
 "hardware.monitor.settings.speedCaps.title" = "Plafond de débit réseau";
-"hardware.monitor.settings.speedCaps.description" = "Sert d’échelle pleine au graphe de débit et aux arcs téléchargement/envoi de l’anneau.";
+"hardware.monitor.settings.speedCaps.description" = "Les arcs téléchargement/envoi de l’anneau utilisent toujours ces plafonds ; le graphe de débit ne les utilise comme échelle pleine qu’avec l’échelle réseau fixe activée.";
 "hardware.monitor.settings.networkScale" = "Échelle réseau fixe";
 "hardware.monitor.settings.networkScale.description" = "Désactivé : échelle auto sur le pic de la fenêtre avec 15 % de marge. Activé : plafonds téléchargement/envoi comme échelle pleine.";
 "hardware.monitor.settings.background" = "Conserver l’historique";
