@@ -1,3 +1,4 @@
+import Darwin
 import Foundation
 import Testing
 @testable import StatusTrioCore
@@ -43,14 +44,50 @@ struct BoundedProcessInvocationTests {
     /// keeps the pipe open, so EOF never arrives. A `readDataToEndOfFile()` based
     /// reader hangs here forever.
     @Test func runSyncFinishesWhenADescendantKeepsThePipesOpen() {
+        let pidFile = FileManager.default.temporaryDirectory
+            .appendingPathComponent("held-pipe-\(UUID().uuidString).pid")
+        defer { try? FileManager.default.removeItem(at: pidFile) }
+
         let started = ContinuousClock.now
         let outcome = BoundedProcessInvocation.runSync(
             executableURL: URL(fileURLWithPath: "/bin/sh"),
-            arguments: ["-c", "sleep 30 & printf 'ready\\n'; exit 0"],
+            arguments: [
+                "-c",
+                "sleep 30 & echo $! > \"\(pidFile.path)\"; printf 'ready\\n'; exit 0",
+            ],
             timeout: .milliseconds(300)
         )
+
+        // The direct child is gone but its descendant inherited the write ends.
+        // Kill it rather than leaving a 30-second sleeper behind the suite.
+        if let text = try? String(contentsOf: pidFile, encoding: .utf8),
+           let pid = Int32(text.trimmingCharacters(in: .whitespacesAndNewlines)) {
+            _ = kill(pid, SIGKILL)
+            for _ in 0..<100 {
+                errno = 0
+                if kill(pid, 0) == -1, errno == ESRCH { break }
+                usleep(10_000)
+            }
+        }
+
         #expect(outcome == .timedOut)
         #expect(ContinuousClock.now - started < .seconds(10))
+    }
+
+    /// Signal escalation runs on the same owner queue as the deadline. A child
+    /// that ignores SIGTERM must still be gone at the kill grace, not at its own
+    /// convenience. `exec` keeps the ignoring process the direct child so the
+    /// SIGKILL lands on it rather than leaving a descendant behind.
+    @Test func runSyncKillsAChildThatIgnoresTermination() {
+        let started = ContinuousClock.now
+        let outcome = BoundedProcessInvocation.runSync(
+            executableURL: URL(fileURLWithPath: "/bin/sh"),
+            arguments: ["-c", "trap '' TERM; exec sleep 30"],
+            timeout: .milliseconds(300)
+        )
+
+        #expect(outcome == .timedOut)
+        #expect(ContinuousClock.now - started < .seconds(5))
     }
 
     @Test func runSyncRejectsAChildThatWritesMoreThanTheLimit() {

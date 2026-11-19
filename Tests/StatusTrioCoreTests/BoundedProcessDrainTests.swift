@@ -44,6 +44,189 @@ struct BoundedProcessDrainTests {
         #expect(result == .exited(Data(Self.payload.utf8)))
     }
 
+    /// The direct child exits while a descendant still holds the inherited write
+    /// end, so the invocation is inside its post-exit drain with no EOF in
+    /// sight. Cancelling here used to be dropped (`processEnded`), leaving the
+    /// caller to wait for the original deadline and the descendant to keep the
+    /// read ends open. Cancelling must stop the drain, close both read ends, and
+    /// report cancelled exactly once before the deadline.
+    @Test func cancellingAfterTheChildExitedReturnsBeforeTheDeadline() async throws {
+        let fixture = try HeldStreamFixture(stream: .stdout)
+        defer { fixture.cleanUp() }
+
+        let invocation = BoundedProcessInvocation(
+            executableURL: fixture.script,
+            arguments: fixture.arguments
+        )
+        let recorder = FinishRecorder()
+        let started = ContinuousClock.now
+        invocation.start(timeout: .seconds(8)) { recorder.record($0) }
+
+        try await fixture.waitForChildExit()
+        invocation.cancel()
+        invocation.cancel()
+
+        let outcome = recorder.wait(seconds: 3)
+        let elapsed = ContinuousClock.now - started
+
+        #expect(outcome == .cancelled)
+        #expect(elapsed < .seconds(3), "cancel waited for the original 8 s deadline: \(elapsed)")
+        #expect(recorder.count == 1)
+        #expect(invocation.isMonitoringPipes == false)
+        #expect(invocation.openReadDescriptorCount == 0)
+        #expect(invocation.readCloseFailureCount == 0)
+
+        // A late EOF from the descendant must not produce a second callback.
+        fixture.releaseHeldStreams()
+        try await Task.sleep(for: .milliseconds(100))
+        #expect(recorder.count == 1)
+    }
+
+    @Test func cancellingWithOnlyTheStderrHeldOpenReturnsCancelled() async throws {
+        let fixture = try HeldStreamFixture(stream: .stderr)
+        defer { fixture.cleanUp() }
+
+        let (invocation, recorder) = start(fixture, timeout: .seconds(8))
+        try await fixture.waitForChildExit()
+        invocation.cancel()
+
+        #expect(recorder.wait(seconds: 3) == .cancelled)
+        #expect(invocation.openReadDescriptorCount == 0)
+    }
+
+    @Test func timingOutWithOnlyStdoutHeldClosesTheReadEnd() async throws {
+        let fixture = try HeldStreamFixture(stream: .stdout)
+        defer { fixture.cleanUp() }
+
+        let (invocation, recorder) = start(fixture, timeout: .seconds(1))
+
+        #expect(recorder.wait(seconds: 4) == .timedOut)
+        #expect(invocation.isMonitoringPipes == false)
+        #expect(invocation.openReadDescriptorCount == 0)
+    }
+
+    @Test func timingOutWithOnlyStderrHeldClosesTheReadEnd() async throws {
+        let fixture = try HeldStreamFixture(stream: .stderr)
+        defer { fixture.cleanUp() }
+
+        let (invocation, recorder) = start(fixture, timeout: .seconds(1))
+
+        #expect(recorder.wait(seconds: 4) == .timedOut)
+        #expect(invocation.openReadDescriptorCount == 0)
+    }
+
+    /// A failed child keeps the 500 ms error cleanup grace: the inherited write
+    /// end never closes, so the invocation must force the cleanup well before
+    /// the original deadline.
+    @Test func aFailedChildWithHeldStreamsUsesTheErrorGrace() async throws {
+        let fixture = try HeldStreamFixture(stream: .stdout, exitStatus: 1)
+        defer { fixture.cleanUp() }
+
+        let (invocation, recorder) = start(fixture, timeout: .seconds(10))
+        try await fixture.waitForChildExit()
+        let exitObserved = ContinuousClock.now
+
+        #expect(recorder.wait(seconds: 4) == .failed)
+        #expect(ContinuousClock.now - exitObserved < .seconds(3))
+        #expect(invocation.openReadDescriptorCount == 0)
+    }
+
+    @Test func aLateEOFAfterATimeoutDoesNotDeliverAgain() async throws {
+        let fixture = try HeldStreamFixture(stream: .stdout)
+        defer { fixture.cleanUp() }
+
+        let (invocation, recorder) = start(fixture, timeout: .milliseconds(300))
+        #expect(recorder.wait(seconds: 3) == .timedOut)
+        #expect(invocation.openReadDescriptorCount == 0)
+
+        fixture.releaseHeldStreams()
+        try await Task.sleep(for: .milliseconds(200))
+        #expect(recorder.count == 1)
+    }
+
+    /// Releasing the held write ends and cancelling are adjacent on the owner
+    /// queue. Whichever wins, the caller sees one outcome and no descriptor is
+    /// left behind.
+    @Test func releaseAndCancelAtTheSameTimeReportExactlyOnce() async throws {
+        let fixture = try HeldStreamFixture(stream: .both)
+        defer { fixture.cleanUp() }
+
+        let (invocation, recorder) = start(fixture, timeout: .seconds(10))
+        try await fixture.waitForChildExit()
+        fixture.releaseHeldStreams()
+        invocation.cancel()
+
+        let outcome = recorder.wait(seconds: 5)
+        switch outcome {
+        case .exited(let data)?:
+            #expect(data == Data(Self.payload.utf8))
+        case .cancelled?:
+            break
+        default:
+            Issue.record("unexpected outcome \(String(describing: outcome))")
+        }
+        #expect(recorder.count == 1)
+        #expect(invocation.openReadDescriptorCount == 0)
+    }
+
+    /// The same adjacency at the original deadline: a completed report may win,
+    /// or the deadline may win, but not both.
+    @Test func releaseAtTheDeadlineReportsExactlyOnce() async throws {
+        let fixture = try HeldStreamFixture(stream: .stdout)
+        defer { fixture.cleanUp() }
+
+        let started = ContinuousClock.now
+        let deadline = started + .seconds(1)
+        let (invocation, recorder) = start(fixture, timeout: .seconds(1))
+        try await fixture.waitForChildExit()
+
+        // Release right at the deadline rather than at a fixed offset from
+        // start: the child-exit poll above takes a variable amount of time.
+        let remaining = deadline - ContinuousClock.now - .milliseconds(10)
+        if remaining > .zero {
+            try await Task.sleep(for: remaining)
+        }
+        fixture.releaseHeldStreams()
+
+        let outcome = recorder.wait(seconds: 3)
+        guard let outcome else {
+            Issue.record("no outcome")
+            return
+        }
+        #expect(outcome == .exited(Data(Self.payload.utf8)) || outcome == .timedOut)
+        #expect(recorder.count == 1)
+        #expect(invocation.openReadDescriptorCount == 0)
+    }
+
+    /// Both inherited write ends stay open after the child exits, and the whole
+    /// 150 KB report on each stream is still drained once the descendant lets go.
+    @Test func drainsBothHeldStreamsWithoutLosingTheTail() async throws {
+        let fixture = try HeldStreamFixture(stream: .both)
+        defer { fixture.cleanUp() }
+
+        let (invocation, recorder) = start(fixture, timeout: .seconds(10))
+        try await fixture.waitForChildExit()
+        fixture.releaseHeldStreams()
+
+        #expect(recorder.wait(seconds: 5) == .exited(Data(Self.payload.utf8)))
+        #expect(invocation.openReadDescriptorCount == 0)
+    }
+
+    /// Starts a manually driven invocation so cancellation and diagnostics are
+    /// observable alongside the finish callback.
+    private func start(
+        _ fixture: HeldStreamFixture,
+        timeout: Duration
+    ) -> (BoundedProcessInvocation, FinishRecorder) {
+        let invocation = BoundedProcessInvocation(
+            executableURL: fixture.script,
+            arguments: fixture.arguments
+        )
+        let recorder = FinishRecorder()
+        invocation.start(timeout: timeout) { recorder.record($0) }
+        return (invocation, recorder)
+    }
+
     /// The path T-9 and T-10 take: `runSync` blocks the caller, so the release
     /// has to come from another thread. Same fixture, same expectation.
     @Test func keepsTheWholeReportOnTheBlockingPathToo() async throws {
@@ -67,13 +250,36 @@ struct BoundedProcessDrainTests {
 
 }
 
+/// Collects finish callbacks without blocking the invocation's state queue, so a
+/// test can assert both the outcome and that it arrived exactly once.
+private final class FinishRecorder: @unchecked Sendable {
+    private let lock = NSLock()
+    private let finished = DispatchSemaphore(value: 0)
+    private var outcomes: [BoundedProcessOutcome] = []
+
+    func record(_ outcome: BoundedProcessOutcome) {
+        lock.withLock { outcomes.append(outcome) }
+        finished.signal()
+    }
+
+    var outcome: BoundedProcessOutcome? { lock.withLock { outcomes.first } }
+    var count: Int { lock.withLock { outcomes.count } }
+
+    func wait(seconds: Double) -> BoundedProcessOutcome? {
+        _ = finished.wait(timeout: .now() + seconds)
+        return outcome
+    }
+}
+
 /// Runs a child that writes `BoundedProcessDrainTests.payload`, records its own
 /// pid, and exits while a descendant keeps the inherited write ends open.
 private struct HeldStreamFixture {
     enum Stream {
         /// The report goes to stdout, which the outcome carries.
         case stdout
-        /// The same report goes to stderr as well, so the stderr drain runs too.
+        /// The report goes to stderr, so only the stderr drain is held open.
+        case stderr
+        /// The report goes to both streams so both drains run.
         case both
     }
 
@@ -81,17 +287,19 @@ private struct HeldStreamFixture {
     let arguments: [String]
 
     private let pidFile: URL
+    private let descendantPIDFile: URL
     private let gate: URL
     private let payloadFile: URL
     private let directory: URL
 
-    init(stream: Stream) throws {
+    init(stream: Stream, exitStatus: Int32 = 0) throws {
         directory = FileManager.default.temporaryDirectory
             .appendingPathComponent("drain-eos-\(UUID().uuidString)", isDirectory: true)
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
 
         payloadFile = directory.appendingPathComponent("payload.json")
         pidFile = directory.appendingPathComponent("child.pid")
+        descendantPIDFile = directory.appendingPathComponent("descendant.pid")
         gate = directory.appendingPathComponent("gate.fifo")
         script = directory.appendingPathComponent("child.sh")
 
@@ -100,18 +308,31 @@ private struct HeldStreamFixture {
             throw FixtureError.couldNotCreateFIFO(errno)
         }
 
-        // The descendant inherits fd 1 and 2 and blocks on the FIFO, so the child
-        // can exit while the write ends are still open. `set -e` keeps a failed
-        // write from looking like a clean exit.
-        let stderrLine = stream == .both ? #"cat "\#(payloadFile.path)" >&2"# : ""
+        // The descendant inherits only the write end under test and blocks on
+        // the FIFO, so the child can exit while that pipe is still open. `set -e`
+        // keeps a failed write from looking like a clean exit.
+        let descendant: String
+        switch stream {
+        case .stdout:
+            descendant = #"( read _held < "\#(gate.path)"; exit 0 ) 2>/dev/null &"#
+        case .stderr:
+            descendant = #"( read _held < "\#(gate.path)"; exit 0 ) >/dev/null &"#
+        case .both:
+            descendant = #"( read _held < "\#(gate.path)"; exit 0 ) &"#
+        }
+        let stdoutLine = stream == .stderr ? "" : #"cat "\#(payloadFile.path)""#
+        let stderrLine = stream == .stdout ? "" : #"cat "\#(payloadFile.path)" >&2"#
         let body = """
         #!/bin/sh
         set -e
-        ( read _held < "\(gate.path)"; exit 0 ) &
-        cat "\(payloadFile.path)"
-        \(stderrLine)
+        \(descendant)
+        echo $! > "\(descendantPIDFile.path)"
+        # Publish the pid before the large write: a deadline that kills the
+        # writer must still leave the test a way to observe the exit.
         echo $$ > "\(pidFile.path)"
-        exit 0
+        \(stdoutLine)
+        \(stderrLine)
+        exit \(exitStatus)
         """
         try Data(body.utf8).write(to: script)
         try FileManager.default.setAttributes([.posixPermissions: 0o700], ofItemAtPath: script.path)
@@ -124,6 +345,8 @@ private struct HeldStreamFixture {
     }
 
     func cleanUp() {
+        releaseHeldStreams()
+        waitForDescendantExit()
         try? FileManager.default.removeItem(at: directory)
     }
 
@@ -153,5 +376,20 @@ private struct HeldStreamFixture {
         defer { close(descriptor) }
         var newline = UInt8(ascii: "\n")
         _ = write(descriptor, &newline, 1)
+    }
+
+    /// Keeps the fixture from leaving an orphan behind: the released descendant
+    /// has to be reaped before the directory that names its FIFO disappears.
+    private func waitForDescendantExit() {
+        guard let text = try? String(contentsOf: descendantPIDFile, encoding: .utf8),
+              let pid = Int32(text.trimmingCharacters(in: .whitespacesAndNewlines)) else {
+            return
+        }
+        for _ in 0..<200 {
+            errno = 0
+            if kill(pid, 0) == -1, errno == ESRCH { return }
+            usleep(10_000)
+        }
+        Issue.record("held-stream descendant never exited")
     }
 }

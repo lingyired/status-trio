@@ -80,6 +80,28 @@ struct BoundedProcessDualStreamTests {
         #expect(outcome == .outputTooLarge)
     }
 
+    /// The stdout side of the same limit. The stderr-only case above would
+    /// still pass if stdout were abandoned at the cap, so each stream gets its
+    /// own over-limit writer.
+    @Test func rejectsStdoutOverTheLimitWithoutWaitingForStderr() async throws {
+        let script = try makeScript(
+            stdout: String(repeating: "o", count: 150_000),
+            stderr: "small"
+        )
+        defer { try? FileManager.default.removeItem(at: script) }
+
+        let started = ContinuousClock.now
+        let outcome = BoundedProcessInvocation.runSync(
+            executableURL: script,
+            arguments: [],
+            timeout: .seconds(10),
+            outputLimit: 100_000
+        )
+
+        #expect(outcome == .outputTooLarge)
+        #expect(ContinuousClock.now - started < .seconds(8))
+    }
+
     /// Each payload is written to a file and `cat`-ed, so neither a shell
     /// argument length nor quoting rules are involved.
     private func makeScript(stdout stdoutPayload: String, stderr: String) throws -> URL {

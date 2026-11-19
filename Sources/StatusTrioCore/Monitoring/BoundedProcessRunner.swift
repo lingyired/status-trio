@@ -27,29 +27,39 @@ enum BoundedProcessOutcome: Equatable, Sendable {
 /// cannot: `run` bridges into a checked continuation, `runSync` waits on a
 /// semaphore for at most the same deadline. Neither leaves a thread behind.
 ///
-/// Each stream is read on its own queue. `availableData` blocks when the pipe is
-/// empty and the write end is still open, so a shared queue deadlocks the moment
-/// a child fills stderr while its stdout has been consumed: the stdout read sits
-/// in `availableData`, the stderr read waits behind it on the same serial queue,
-/// and both sides wait for each other until the deadline.
+/// One serial queue owns the process, both read sources, the deadline, signal
+/// escalation, and completion. Each stream is read by a `DispatchSourceRead`
+/// targeting that queue; the descriptor itself is non-blocking and one event
+/// reads at most a fixed number of chunks, so a writer that never pauses cannot
+/// starve the deadline or cancellation blocks queued behind it. The source's
+/// cancel handler closes the read end, and the caller is not resumed until both
+/// cancel handlers have run: an outcome therefore means the pipes are actually
+/// closed, not merely that their readability handlers were cleared.
 ///
 /// Ordering that matters: the deadline is armed *after* `run()` succeeds, an
-/// already-exited child with still-open pipes finishes immediately rather than
-/// waiting out the grace period, and every exit path resumes exactly once.
+/// already-exited child with still-open pipes finishes its drain at the deadline
+/// instead of waiting out the descendant's lifetime, cancellation remains valid
+/// after the child exited while a descendant holds the write end, and every exit
+/// path resumes exactly once after cleanup.
 final class BoundedProcessInvocation: @unchecked Sendable {
     static let defaultOutputLimit = 1_048_576
 
     /// How long the child gets between `terminate()` and `SIGKILL`.
     private static let killGrace: DispatchTimeInterval = .milliseconds(250)
-    /// How long the pipes get to reach EOF after the child is gone.
+    /// How long a failed/terminated invocation gets for its pipes to reach EOF
+    /// before they are force-closed, and the extra settling time after SIGKILL.
     private static let streamGrace: DispatchTimeInterval = .milliseconds(500)
 
+    /// One event reads at most this many chunks. A continuously readable pipe
+    /// otherwise keeps this queue busy reading and delays the deadline timer,
+    /// a cancel, or the SIGKILL escalation indefinitely.
+    private static let readChunkSize = 65_536
+    private static let maxReadsPerEvent = 8
+
+    /// The single owner of all mutable state. Reads, timers, and completion all
+    /// run here; there is no second IO queue to coordinate with.
     private let queue = DispatchQueue(label: "StatusTrio.BoundedProcess")
-    /// One queue per stream, never one for both. Reads and the post-exit drain
-    /// run here so they cannot block the state machine, and they are kept apart
-    /// per stream so neither stream can block the other.
-    private let stdoutQueue = DispatchQueue(label: "StatusTrio.BoundedProcess.IO.stdout")
-    private let stderrQueue = DispatchQueue(label: "StatusTrio.BoundedProcess.IO.stderr")
+
     private let executableURL: URL
     private let arguments: [String]
     /// Extra environment entries layered over the inherited process environment.
@@ -58,30 +68,53 @@ final class BoundedProcessInvocation: @unchecked Sendable {
     private let onProcessStarted: (@Sendable (Int32) -> Void)?
 
     private var process: Process?
-    private var stdoutPipe: Pipe?
-    private var stderrPipe: Pipe?
+    /// Read endpoints are owned by their dispatch sources once installed; the
+    /// source cancel handler closes the descriptor. Until then they are closed
+    /// directly on the launch-failure path.
+    private var stdoutHandle: FileHandle?
+    private var stderrHandle: FileHandle?
+    private var stdoutSource: DispatchSourceRead?
+    private var stderrSource: DispatchSourceRead?
     private var stdout = Data()
     private var stderrCount = 0
     private var stdoutEnded = false
     private var stderrEnded = false
-    /// Whether the *handle* has been drained, which is not the same thing as the
-    /// stream having signalled EOF: the readability handler fires again after a
-    /// drain with an empty read, and without these it would append nothing but
-    /// still race the drain for the same bytes.
-    private var stdoutIOEnded = false
-    private var stderrIOEnded = false
     private var processEnded = false
     private var hasStarted = false
-    private var cancelled = false
+    private var cancellationRequested = false
+    private var terminationRequested = false
+    private var errorGraceScheduled = false
+    /// The first explicit termination reason. A late child exit, a repeated
+    /// cancel, or a deadline that lands during cleanup must not rewrite it.
     private var failure: BoundedProcessOutcome?
+    /// Fixed once cleanup starts. The sources are cancelled at this point; the
+    /// callback fires only after both descriptors are closed.
+    private var pendingOutcome: BoundedProcessOutcome?
+    private var delivered = false
     private var onFinish: (@Sendable (BoundedProcessOutcome) -> Void)?
 
-    /// Whether either read end still has a readability handler installed.
-    /// Test-facing invariant: no invocation should leave a source behind once it
-    /// has finished, because an EOF-held pipe would keep firing it.
+    /// FD accounting for synchronous test diagnostics. Mutated on `queue`, read
+    /// from test threads, so it lives behind its own lock.
+    private let diagnosticsLock = NSLock()
+    private var openReadDescriptors = 0
+    private var readCloseFailures = 0
+
+    /// Whether either read end is still open. Test-facing invariant: a finished
+    /// invocation has no read source and no open pipe descriptor left, because
+    /// a pipe at EOF stays readable forever and a held pipe would keep firing.
     var isMonitoringPipes: Bool {
-        stdoutPipe?.fileHandleForReading.readabilityHandler != nil
-            || stderrPipe?.fileHandleForReading.readabilityHandler != nil
+        openReadDescriptorCount > 0
+    }
+
+    /// Number of pipe read ends this invocation still owns. The callback is not
+    /// invoked until this reaches zero.
+    var openReadDescriptorCount: Int {
+        diagnosticsLock.withLock { openReadDescriptors }
+    }
+
+    /// Number of read ends whose `close()` failed. Should stay zero.
+    var readCloseFailureCount: Int {
+        diagnosticsLock.withLock { readCloseFailures }
     }
 
     init(
@@ -173,15 +206,21 @@ final class BoundedProcessInvocation: @unchecked Sendable {
     // MARK: - State machine
 
     // Internal (not private) so tests can drive one invocation directly and
-    // assert the pipe-monitoring cleanup after it finishes.
+    // assert the pipe cleanup after it finishes.
     func start(
         timeout: Duration,
         onFinish: @escaping @Sendable (BoundedProcessOutcome) -> Void
     ) {
-        queue.async {
+        queue.async { [self] in
+            guard !self.delivered, !self.hasStarted, self.process == nil else { return }
             self.onFinish = onFinish
-            guard !self.cancelled else {
-                self.finish(.cancelled)
+            self.hasStarted = true
+
+            // Cancellation can be enqueued before start (or fire on an already
+            // cancelled task). There is nothing to launch in that case.
+            if self.cancellationRequested {
+                self.pendingOutcome = self.pendingOutcome ?? .cancelled
+                self.deliverIfReady()
                 return
             }
 
@@ -196,245 +235,360 @@ final class BoundedProcessInvocation: @unchecked Sendable {
             child.standardOutput = stdoutPipe
             child.standardError = stderrPipe
             self.process = child
-            self.stdoutPipe = stdoutPipe
-            self.stderrPipe = stderrPipe
+            self.stdoutHandle = stdoutPipe.fileHandleForReading
+            self.stderrHandle = stderrPipe.fileHandleForReading
 
-            stdoutPipe.fileHandleForReading.readabilityHandler = { [weak invocation = self] handle in
-                guard let invocation else { return }
-                invocation.stdoutQueue.async { [invocation] in
-                    invocation.readAvailableData(handle, stream: .stdout)
-                }
-            }
-            stderrPipe.fileHandleForReading.readabilityHandler = { [weak invocation = self] handle in
-                guard let invocation else { return }
-                invocation.stderrQueue.async { [invocation] in
-                    invocation.readAvailableData(handle, stream: .stderr)
-                }
-            }
-            child.terminationHandler = { [weak invocation = self] terminated in
-                guard let invocation else { return }
-                invocation.queue.async { [invocation] in
-                    invocation.processEnded = true
-                    if terminated.terminationReason != .exit || terminated.terminationStatus != 0 {
-                        invocation.failure = invocation.failure ?? .failed
-                    }
-                    // The child can exit between the last write and the read the
-                    // handler had queued; the tail would then never arrive and
-                    // the caller would see a truncated report. Drain what is
-                    // still in each pipe before letting the invocation finish,
-                    // on that stream's queue: draining them in sequence would
-                    // reintroduce the deadlock the queues exist to prevent.
-                    //
-                    // Read `onFinish` here, on the state-machine queue. The
-                    // stream queues must never touch it: `finish` nils it from
-                    // this queue, and a read racing that write was undefined
-                    // behaviour in a path that also runs on the blocked path.
-                    let hasPendingWork = invocation.onFinish != nil
-                    invocation.stdoutQueue.async { [invocation] in
-                        invocation.drainPipesAfterProcessExit(
-                            .stdout,
-                            hasPendingWork: hasPendingWork
-                        )
-                    }
-                    invocation.stderrQueue.async { [invocation] in
-                        invocation.drainPipesAfterProcessExit(
-                            .stderr,
-                            hasPendingWork: hasPendingWork
-                        )
-                    }
-                    invocation.completeIfReady()
+            // Install the exit handler before launching: a child that exits
+            // immediately must not lose its notification, and later callbacks
+            // hop onto the same owner queue as every other transition.
+            child.terminationHandler = { [weak self] terminated in
+                guard let self else { return }
+                self.queue.async { [self] in
+                    self.processDidExit(terminated)
                 }
             }
 
             do {
                 try child.run()
-                self.hasStarted = true
-                self.onProcessStarted?(child.processIdentifier)
-                self.queue.asyncAfter(deadline: .now() + Self.seconds(timeout)) {
-                    guard self.onFinish != nil else { return }
-                    self.failure = self.failure ?? .timedOut
-                    // The child may already be gone while a descendant still
-                    // holds the inherited pipes; the stream-ended flags then
-                    // never arrive and the caller would wait forever.
-                    if self.processEnded {
-                        self.finishWithHeldStreams()
-                        return
-                    }
-                    self.terminateThenKill()
-                    self.queue.asyncAfter(deadline: .now() + Self.streamGrace) {
-                        self.finishWithHeldStreams()
-                    }
-                }
             } catch {
                 self.failure = .failed
                 self.processEnded = true
-                self.stdoutEnded = true
-                self.stderrEnded = true
-                self.completeIfReady()
+                self.closeReadEndsWithoutSource()
+                self.process = nil
+                self.beginFinish(.failed)
+                return
+            }
+
+            self.onProcessStarted?(child.processIdentifier)
+            self.stdoutSource = self.installReadSource(stdoutPipe.fileHandleForReading, stream: .stdout)
+            self.stderrSource = self.installReadSource(stderrPipe.fileHandleForReading, stream: .stderr)
+            self.queue.asyncAfter(deadline: .now() + Self.seconds(timeout)) { [weak self] in
+                self?.deadlineReached()
             }
         }
     }
 
     func cancel() {
         queue.async {
-            guard !self.processEnded else { return }
-            self.cancelled = true
-            self.failure = .cancelled
-            if self.hasStarted {
-                self.terminateThenKill()
-                self.queue.asyncAfter(deadline: .now() + Self.streamGrace) {
-                    self.finishWithHeldStreams()
-                }
+            guard !self.delivered, self.pendingOutcome == nil else { return }
+            self.cancellationRequested = true
+            self.failure = self.failure ?? .cancelled
+            if self.hasStarted || self.process != nil {
+                // The direct child may already be gone while a descendant keeps
+                // the inherited write ends open. Cancellation still owns the
+                // cleanup: stop reading, close both read ends, and report
+                // cancelled without waiting for the original deadline.
+                self.beginFinish(self.failure ?? .cancelled)
             } else {
-                self.processEnded = true
-                self.stdoutEnded = true
-                self.stderrEnded = true
-                self.completeIfReady()
+                // start() has not run yet; it will deliver this outcome.
+                self.pendingOutcome = .cancelled
             }
         }
     }
 
     private enum Stream { case stdout, stderr }
 
-    private func readAvailableData(_ handle: FileHandle, stream: Stream) {
-        switch stream {
-        case .stdout:
-            guard !stdoutIOEnded else { return }
-        case .stderr:
-            guard !stderrIOEnded else { return }
+    // MARK: - Reading
+
+    /// Creates the non-blocking read source for one stream. The source and its
+    /// cancel handler are created on the owner queue, so no other queue can
+    /// observe or mutate the descriptor state concurrently.
+    private func installReadSource(_ handle: FileHandle, stream: Stream) -> DispatchSourceRead? {
+        let descriptor = handle.fileDescriptor
+        guard descriptor >= 0 else {
+            failure = failure ?? .failed
+            requestTerminationIfRunning()
+            scheduleErrorCleanup()
+            return nil
         }
-        let data = handle.availableData
-        if data.isEmpty {
-            // A pipe at EOF stays *readable* forever, so an installed
-            // readability handler keeps firing (each firing just dispatching a
-            // no-op read) until it is cleared. Do not wait for the async hop to
-            // `received` on the state queue: clear it here, on this stream's
-            // queue, so the dispatch source stops the moment we see EOF.
-            handle.readabilityHandler = nil
-            markIOStreamEnded(stream)
-            queue.async { [self] in received(Data(), stream: stream) }
-        } else {
-            queue.async { [self] in received(data, stream: stream) }
+
+        let flags = fcntl(descriptor, F_GETFL)
+        if flags >= 0 {
+            _ = fcntl(descriptor, F_SETFL, flags | O_NONBLOCK)
         }
+
+        let source = DispatchSource.makeReadSource(fileDescriptor: descriptor, queue: queue)
+        source.setEventHandler { [weak self] in
+            self?.readAvailable(stream)
+        }
+        source.setCancelHandler { [weak self, handle] in
+            do {
+                try handle.close()
+            } catch {
+                self?.recordReadCloseFailure()
+            }
+            self?.readEndClosed()
+        }
+        diagnosticsLock.withLock { openReadDescriptors += 1 }
+        source.resume()
+        return source
     }
 
-    /// Reads one stream to EOF after the child is gone. Called once per stream,
-    /// each on that stream's own queue.
-    private func drainPipesAfterProcessExit(_ stream: Stream, hasPendingWork: Bool) {
-        // The pipe stays alive because this block holds `self` strongly (and
-        // `self` holds the pipe); read its handle once and drain it locally
-        // rather than reaching through a mutable property twice.
-        switch stream {
-        case .stdout:
-            guard let pipe = stdoutPipe else { return }
-            let handle = pipe.fileHandleForReading
-            handle.readabilityHandler = nil
-            guard hasPendingWork, !stdoutIOEnded else { return }
-            let data = handle.readDataToEndOfFile()
-            markIOStreamEnded(.stdout)
-            queue.async { [self] in
-                if !data.isEmpty { received(data, stream: .stdout) }
-                received(Data(), stream: .stdout)
-            }
-        case .stderr:
-            guard let pipe = stderrPipe else { return }
-            let handle = pipe.fileHandleForReading
-            handle.readabilityHandler = nil
-            guard hasPendingWork, !stderrIOEnded else { return }
-            let data = handle.readDataToEndOfFile()
-            markIOStreamEnded(.stderr)
-            queue.async { [self] in
-                if !data.isEmpty { received(data, stream: .stderr) }
-                received(Data(), stream: .stderr)
-            }
-        }
-    }
+    /// One readability event. The syscall budget bounds how long a stream that
+    /// never stops writing can hold the owner queue; EINTR also consumes one
+    /// unit so a signal storm cannot turn this into an unbounded loop.
+    private func readAvailable(_ stream: Stream) {
+        guard !delivered, pendingOutcome == nil else { return }
+        guard let handle = readHandle(for: stream) else { return }
+        let descriptor = handle.fileDescriptor
+        guard descriptor >= 0 else { return }
 
-    private func markIOStreamEnded(_ stream: Stream) {
-        switch stream {
-        case .stdout: stdoutIOEnded = true
-        case .stderr: stderrIOEnded = true
+        var buffer = [UInt8](repeating: 0, count: Self.readChunkSize)
+        var syscalls = 0
+        while syscalls < Self.maxReadsPerEvent {
+            syscalls += 1
+            let count = buffer.withUnsafeMutableBytes { bytes in
+                read(descriptor, bytes.baseAddress, bytes.count)
+            }
+
+            if count > 0 {
+                received(Data(buffer[0..<count]), stream: stream)
+                // A rejected chunk cancels that stream's source, and a fixed
+                // outcome stops all reading. Do not touch a closed descriptor.
+                if delivered || pendingOutcome != nil || source(for: stream) == nil {
+                    return
+                }
+                continue
+            }
+
+            if count == 0 {
+                endOfStream(stream)
+                return
+            }
+
+            let code = errno
+            if code == EINTR { continue }
+            if code == EAGAIN || code == EWOULDBLOCK { return }
+
+            // A real read error leaves the stream unusable. The invocation
+            // fails, and the normal failure cleanup closes both read ends.
+            failure = failure ?? .failed
+            cancelSource(stream)
+            requestTerminationIfRunning()
+            scheduleErrorCleanup()
+            return
         }
     }
 
     private func received(_ data: Data, stream: Stream) {
-        if data.isEmpty {
-            switch stream {
-            case .stdout:
-                stdoutEnded = true
-                stdoutPipe?.fileHandleForReading.readabilityHandler = nil
-            case .stderr:
-                stderrEnded = true
-                stderrPipe?.fileHandleForReading.readabilityHandler = nil
-            }
-            completeIfReady()
-            return
-        }
+        guard !delivered, pendingOutcome == nil, failure == nil else { return }
+
         switch stream {
         case .stdout:
             guard stdout.count + data.count <= outputLimit else {
-                failure = failure ?? .outputTooLarge
-                terminateThenKill()
+                rejectStream(stream, reason: .outputTooLarge)
                 return
             }
             stdout.append(data)
         case .stderr:
             guard stderrCount + data.count <= outputLimit else {
-                failure = failure ?? .outputTooLarge
-                terminateThenKill()
+                rejectStream(stream, reason: .outputTooLarge)
                 return
             }
             stderrCount += data.count
         }
     }
 
-    private func terminateThenKill() {
-        guard let child = process, child.isRunning else { return }
-        child.terminate()
-        let pid = child.processIdentifier
-        queue.asyncAfter(deadline: .now() + Self.killGrace) {
-            guard child.isRunning else { return }
-            _ = kill(pid, SIGKILL)
-        }
+    private func rejectStream(_ stream: Stream, reason: BoundedProcessOutcome) {
+        failure = failure ?? reason
+        // That read end can only keep producing data we would drop; closing it
+        // stops the reader and delivers SIGPIPE to the writer.
+        cancelSource(stream)
+        requestTerminationIfRunning()
+        scheduleErrorCleanup()
     }
 
-    /// Finishes an invocation whose child is gone but whose pipes are still open
-    /// in a descendant. The deadline (or the caller's cancellation) already
-    /// passed, so any partial output is dropped rather than leaving the caller
-    /// waiting for the descendant's lifetime.
-    private func finishWithHeldStreams() {
-        guard onFinish != nil else { return }
-        failure = failure ?? .timedOut
-        processEnded = true
-        stdoutEnded = true
-        stderrEnded = true
+    private func endOfStream(_ stream: Stream) {
+        switch stream {
+        case .stdout:
+            stdoutEnded = true
+        case .stderr:
+            stderrEnded = true
+        }
+        // The cancel handler owns the descriptor and closes it; completion is
+        // re-checked from `readEndClosed` after that happens.
+        cancelSource(stream)
         completeIfReady()
     }
 
-    private func completeIfReady() {
-        guard processEnded, stdoutEnded, stderrEnded, onFinish != nil else { return }
-        finish(failure ?? .exited(stdout))
+    private func readEndClosed() {
+        diagnosticsLock.withLock { openReadDescriptors -= 1 }
+        completeIfReady()
     }
 
-    private func finish(_ outcome: BoundedProcessOutcome) {
-        guard let onFinish else { return }
-        self.onFinish = nil
-        // Stop any readability source that outlived its stream. A timeout or
-        // cancelled run can finish while a stream is still open (a descendant
-        // holding the inherited write end), and an EOF pipe stays readable
-        // forever; leaving the handler installed would keep dispatching after
-        // the caller has been resumed. Clearing the handler does not release the
-        // NSPipe, so this stays safe alongside a concurrent drain.
-        stdoutPipe?.fileHandleForReading.readabilityHandler = nil
-        stderrPipe?.fileHandleForReading.readabilityHandler = nil
-        // The pipes are left to ARC. `drainPipesAfterProcessExit` reads the
-        // handlers on their own streams' queues; nilling the pipe properties
-        // here would release the NSPipe while that other queue was in the
-        // middle of touching it (a use-after-free crash). Every closure that
-        // holds the pipes releases them once it returns.
+    private func recordReadCloseFailure() {
+        diagnosticsLock.withLock { readCloseFailures += 1 }
+    }
+
+    private func readHandle(for stream: Stream) -> FileHandle? {
+        switch stream {
+        case .stdout: return stdoutHandle
+        case .stderr: return stderrHandle
+        }
+    }
+
+    private func source(for stream: Stream) -> DispatchSourceRead? {
+        switch stream {
+        case .stdout: return stdoutSource
+        case .stderr: return stderrSource
+        }
+    }
+
+    private func cancelSource(_ stream: Stream) {
+        switch stream {
+        case .stdout:
+            guard let source = stdoutSource else { return }
+            stdoutSource = nil
+            source.cancel()
+        case .stderr:
+            guard let source = stderrSource else { return }
+            stderrSource = nil
+            source.cancel()
+        }
+    }
+
+    private func cancelReadSources() {
+        cancelSource(.stdout)
+        cancelSource(.stderr)
+    }
+
+    // MARK: - Termination and completion
+
+    private func processDidExit(_ terminated: Process) {
+        guard !delivered else { return }
+        processEnded = true
+        if terminated.terminationReason != .exit || terminated.terminationStatus != 0 {
+            failure = failure ?? .failed
+        }
+        // A failed child's descendants may still hold the inherited write ends.
+        // Keep draining for at most the error grace, then close them.
+        if pendingOutcome == nil, failure != nil {
+            scheduleErrorCleanup()
+        }
+        completeIfReady()
+    }
+
+    /// The original deadline. It is never extended to wait for an EOF: the
+    /// direct child and both read ends are cleaned up now, and the first
+    /// failure reason (if any) is preserved.
+    private func deadlineReached() {
+        guard !delivered, pendingOutcome == nil else { return }
+        let reason = failure ?? .timedOut
+        if failure == nil {
+            failure = .timedOut
+        }
+        beginFinish(reason)
+    }
+
+    /// Closes the read ends after a failure and gives the child's pipes one
+    /// bounded grace period to finish naturally first.
+    private func scheduleErrorCleanup() {
+        guard !errorGraceScheduled, !delivered, pendingOutcome == nil else { return }
+        errorGraceScheduled = true
+        queue.asyncAfter(deadline: .now() + Self.streamGrace) { [weak self] in
+            guard let self, !self.delivered, self.pendingOutcome == nil else { return }
+            self.beginFinish(self.failure ?? .failed)
+        }
+    }
+
+    private func completeIfReady() {
+        guard !delivered else { return }
+        if pendingOutcome != nil {
+            deliverIfReady()
+            return
+        }
+        if let failure {
+            if processEnded && openReadDescriptorCount == 0 {
+                beginFinish(failure)
+            } else {
+                scheduleErrorCleanup()
+            }
+            return
+        }
+        if processEnded, stdoutEnded, stderrEnded, openReadDescriptorCount == 0 {
+            // Success needs the child's zero status, both EOFs, and both
+            // descriptors actually closed.
+            beginFinish(.exited(stdout))
+        }
+    }
+
+    /// Fixes the outcome once, stops all reading, and makes sure the direct
+    /// child is not left running. Delivery waits for descriptor closure and for
+    /// the child to be gone.
+    private func beginFinish(_ outcome: BoundedProcessOutcome) {
+        guard !delivered else { return }
+        if pendingOutcome == nil {
+            pendingOutcome = outcome
+        }
+        cancelReadSources()
+        requestTerminationIfRunning()
+        if process == nil {
+            processEnded = true
+        }
+        deliverIfReady()
+    }
+
+    /// Signals only the direct child this invocation launched, and only while it
+    /// is still running. Repeated cancels, a timeout during failure cleanup, and
+    /// a late exit notification all converge on this one escalation path.
+    private func requestTerminationIfRunning() {
+        guard !terminationRequested, !delivered else { return }
+        guard let child = process else {
+            processEnded = true
+            return
+        }
+        guard child.isRunning else {
+            processEnded = true
+            return
+        }
+
+        terminationRequested = true
+        let pid = child.processIdentifier
+        child.terminate()
+        queue.asyncAfter(deadline: .now() + Self.killGrace) { [weak self] in
+            guard let self, !self.delivered else { return }
+            if child.isRunning {
+                _ = kill(pid, SIGKILL)
+                // Process normally reports the exit before this fallback. If
+                // its callback is late or never arrives, SIGKILL has still
+                // removed the direct child; finish after one settling grace.
+                self.queue.asyncAfter(deadline: .now() + Self.killGrace) { [weak self] in
+                    guard let self, !self.delivered else { return }
+                    self.processEnded = true
+                    self.deliverIfReady()
+                }
+            } else {
+                self.processEnded = true
+                self.deliverIfReady()
+            }
+        }
+    }
+
+    /// The only place the caller is resumed. Every condition that makes the
+    /// outcome honest - fixed reason, closed descriptors, gone child - is
+    /// checked here, and `delivered` guarantees exactly one callback.
+    private func deliverIfReady() {
+        guard !delivered, let outcome = pendingOutcome, let callback = onFinish else { return }
+        guard openReadDescriptorCount == 0 else { return }
+        guard processEnded || process == nil else { return }
+
+        delivered = true
+        onFinish = nil
+        stdoutSource = nil
+        stderrSource = nil
+        stdoutHandle = nil
+        stderrHandle = nil
         process?.terminationHandler = nil
         process = nil
-        onFinish(outcome)
+        callback(outcome)
+    }
+
+    /// Launch failed before any read source owned the descriptors.
+    private func closeReadEndsWithoutSource() {
+        try? stdoutHandle?.close()
+        try? stderrHandle?.close()
+        stdoutHandle = nil
+        stderrHandle = nil
     }
 
     private static func seconds(_ duration: Duration) -> Double {

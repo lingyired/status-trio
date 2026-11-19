@@ -17,16 +17,18 @@ struct BoundedProcessHandlerCleanupTests {
     private final class OutcomeBox: @unchecked Sendable {
         private let lock = NSLock()
         private let finished = DispatchSemaphore(value: 0)
-        private var outcome: BoundedProcessOutcome?
+        private var outcomes: [BoundedProcessOutcome] = []
 
         func store(_ outcome: BoundedProcessOutcome) {
-            lock.withLock { self.outcome = outcome }
+            lock.withLock { outcomes.append(outcome) }
             finished.signal()
         }
 
+        var count: Int { lock.withLock { outcomes.count } }
+
         func wait(seconds: Double) -> BoundedProcessOutcome? {
             _ = finished.wait(timeout: .now() + seconds)
-            return lock.withLock { outcome }
+            return lock.withLock { outcomes.first }
         }
     }
 
@@ -57,12 +59,17 @@ struct BoundedProcessHandlerCleanupTests {
 
         #expect(outcome == .failed)
         #expect(invocation.isMonitoringPipes == false)
+        #expect(invocation.openReadDescriptorCount == 0)
+        #expect(invocation.readCloseFailureCount == 0)
     }
 
     /// Repeated ordinary runs must leave no handler behind; an accumulation here
     /// is what a spinning fd-monitoring source would show up as.
     @Test func ordinaryRunsLeaveNoHandlersBehind() {
-        for _ in 0..<25 {
+        // Enough repetitions for a descriptor leak to survive the fixture's
+        // short-lived children; the count assertions below fail on the first
+        // invocation that keeps a read end.
+        for _ in 0..<100 {
             let (outcome, invocation) = runAndWait(
                 executableURL: URL(fileURLWithPath: "/bin/sh"),
                 arguments: ["-c", "printf hello"],
@@ -72,7 +79,48 @@ struct BoundedProcessHandlerCleanupTests {
 
             #expect(outcome == .exited(Data("hello".utf8)))
             #expect(invocation.isMonitoringPipes == false)
+            #expect(invocation.openReadDescriptorCount == 0)
+            #expect(invocation.readCloseFailureCount == 0)
         }
+    }
+
+    /// Cancellation can be queued before `start`. Nothing may be launched, and
+    /// there must be no descriptor to close because none was opened.
+    @Test func cancelBeforeStartLeavesNoProcessOrDescriptor() {
+        let invocation = BoundedProcessInvocation(
+            executableURL: URL(fileURLWithPath: "/bin/sh"),
+            arguments: ["-c", "printf should-not-run"]
+        )
+        let box = OutcomeBox()
+        invocation.cancel()
+        invocation.start(timeout: .seconds(2)) { box.store($0) }
+
+        #expect(box.wait(seconds: 3) == .cancelled)
+        #expect(box.count == 1)
+        #expect(invocation.isMonitoringPipes == false)
+        #expect(invocation.openReadDescriptorCount == 0)
+    }
+
+    /// Repeated cancellation while the child is running converges on the same
+    /// termination path: one signal escalation, one callback, no descriptors.
+    @Test func repeatedCancelWhileRunningFinishesOnce() {
+        let processStarted = DispatchSemaphore(value: 0)
+        let invocation = BoundedProcessInvocation(
+            executableURL: URL(fileURLWithPath: "/bin/sh"),
+            arguments: ["-c", "exec sleep 30"],
+            onProcessStarted: { _ in processStarted.signal() }
+        )
+        let box = OutcomeBox()
+        invocation.start(timeout: .seconds(10)) { box.store($0) }
+
+        #expect(processStarted.wait(timeout: .now() + 5) == .success)
+        invocation.cancel()
+        invocation.cancel()
+
+        #expect(box.wait(seconds: 5) == .cancelled)
+        #expect(box.count == 1)
+        #expect(invocation.isMonitoringPipes == false)
+        #expect(invocation.openReadDescriptorCount == 0)
     }
 
     /// A run that ends by timeout must also clear the handlers it installed.
@@ -86,5 +134,7 @@ struct BoundedProcessHandlerCleanupTests {
 
         #expect(outcome == .timedOut)
         #expect(invocation.isMonitoringPipes == false)
+        #expect(invocation.openReadDescriptorCount == 0)
+        #expect(invocation.readCloseFailureCount == 0)
     }
 }
