@@ -1227,6 +1227,8 @@
 "hardware.monitor.settings.topApps.description" = "Mostra os processos mais ativos no fim das páginas de detalhe. Desative para economizar CPU.";
 "hardware.monitor.settings.speedCaps.title" = "Limite de velocidade da rede";
 "hardware.monitor.settings.speedCaps.description" = "Usado como escala cheia do gráfico de velocidade e dos arcos de download/upload do anel.";
+"hardware.monitor.settings.networkScale" = "Escala de rede fixa";
+"hardware.monitor.settings.networkScale.description" = "Desligado: escala automática ao pico da janela com 15% de folga. Ligado: limites de download/upload como escala cheia.";
 "hardware.monitor.settings.background" = "Manter histórico";
 "hardware.monitor.settings.background.description" = "Registra os últimos 60 segundos de histórico de hardware com o painel fechado, no ritmo do painel, para abrir o detalhe com tendência.";
 "hardware.monitor.background.off" = "Desativado";

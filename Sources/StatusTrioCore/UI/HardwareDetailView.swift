@@ -16,6 +16,8 @@ struct HardwareDetailView: View {
     /// User-editable broadband caps, used as the network chart's full scale.
     var downloadCapMbps: Double = SettingsStore.defaultHardwareDownloadCapMbps
     var uploadCapMbps: Double = SettingsStore.defaultHardwareUploadCapMbps
+    /// When true the network chart scales to the caps instead of the window peak.
+    var networkChartFixedScale: Bool = false
 
     @EnvironmentObject private var localization: Localization
     @StateObject private var history: HardwareDetailHistoryStore
@@ -26,6 +28,7 @@ struct HardwareDetailView: View {
          topApps: TopAppsObservable? = nil,
          downloadCapMbps: Double = SettingsStore.defaultHardwareDownloadCapMbps,
          uploadCapMbps: Double = SettingsStore.defaultHardwareUploadCapMbps,
+         networkChartFixedScale: Bool = false,
          previewHistory: [HardwareDetailHistoryPoint]? = nil) {
         self.kind = kind
         _hardware = ObservedObject(wrappedValue: hardware)
@@ -34,6 +37,7 @@ struct HardwareDetailView: View {
         self.topApps = topApps
         self.downloadCapMbps = downloadCapMbps
         self.uploadCapMbps = uploadCapMbps
+        self.networkChartFixedScale = networkChartFixedScale
         self.previewHistory = previewHistory
         _history = StateObject(wrappedValue: HardwareDetailHistoryStore(seriesCount: kind.historySeriesCount,
                                                                         seeded: previewHistory))
@@ -604,7 +608,10 @@ struct HardwareDetailView: View {
                     case .percent: return HardwareDetailFormat.percent(value)
                     case .auto: return HardwareDetailFormat.rate(value)
                     }
-                })
+                },
+                seriesMaximums: kind == .network && networkChartFixedScale
+                    ? [downloadCapMbps * 125_000, uploadCapMbps * 125_000]
+                    : [])
             Text(title)
                 .font(.subheadline)
                 .foregroundStyle(.secondary)

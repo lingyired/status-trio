@@ -1227,6 +1227,8 @@
 "hardware.monitor.settings.topApps.description" = "Affiche les processus les plus actifs en bas des pages détaillées. Désactiver économise le CPU.";
 "hardware.monitor.settings.speedCaps.title" = "Plafond de débit réseau";
 "hardware.monitor.settings.speedCaps.description" = "Sert d’échelle pleine au graphe de débit et aux arcs téléchargement/envoi de l’anneau.";
+"hardware.monitor.settings.networkScale" = "Échelle réseau fixe";
+"hardware.monitor.settings.networkScale.description" = "Désactivé : échelle auto sur le pic de la fenêtre avec 15 % de marge. Activé : plafonds téléchargement/envoi comme échelle pleine.";
 "hardware.monitor.settings.background" = "Conserver l’historique";
 "hardware.monitor.settings.background.description" = "Enregistre les 60 dernières secondes d’historique matériel panneau fermé, au rythme du panneau, pour ouvrir une page détaillée avec une tendance.";
 "hardware.monitor.background.off" = "Désactivé";

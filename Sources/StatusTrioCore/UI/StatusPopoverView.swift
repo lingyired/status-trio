@@ -162,7 +162,8 @@ struct StatusPopoverView: View {
                                    metricColors: panel.hardwareMonitorMetricColors,
                                    topApps: panel.showsHardwareTopApps ? panel.topApps : nil,
                                    downloadCapMbps: panel.settings.hardwareDownloadCapMbps,
-                                   uploadCapMbps: panel.settings.hardwareUploadCapMbps)
+                                   uploadCapMbps: panel.settings.hardwareUploadCapMbps,
+                                   networkChartFixedScale: panel.settings.hardwareNetworkChartFixedScale)
         }
     }
 

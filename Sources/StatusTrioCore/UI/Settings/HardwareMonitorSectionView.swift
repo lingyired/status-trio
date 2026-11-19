@@ -112,6 +112,17 @@ struct HardwareMonitorSectionView: View {
                         set: { store.hardwareUploadCapMbps = ($0).rounded() }),
                     range: SettingsStore.hardwareSpeedCapRange)
             }
+            SettingsDivider()
+            SettingsToggleRow(
+                symbol: "ruler",
+                tint: .purple,
+                title: localization.string(.hardwareMonitorSettingsNetworkScale),
+                subtitle: localization.string(.hardwareMonitorSettingsNetworkScaleDescription),
+                isOn: Binding(
+                    get: { store.hardwareNetworkChartFixedScale },
+                    set: { store.hardwareNetworkChartFixedScale = $0 }
+                )
+            )
         }
     }
 
