@@ -68,6 +68,7 @@ final class BoundedProcessInvocation: @unchecked Sendable {
     private let onProcessStarted: (@Sendable (Int32) -> Void)?
 
     private var process: Process?
+    private var deadlineTimer: DispatchSourceTimer?
     /// Read endpoints are owned by their dispatch sources once installed; the
     /// source cancel handler closes the descriptor. Until then they are closed
     /// directly on the launch-failure path.
@@ -238,6 +239,16 @@ final class BoundedProcessInvocation: @unchecked Sendable {
             self.stdoutHandle = stdoutPipe.fileHandleForReading
             self.stderrHandle = stderrPipe.fileHandleForReading
 
+            // A dispatch source reports readiness for a read, not for a full
+            // batch. Never put a blocking descriptor on the state queue.
+            guard Self.makeNonblocking(stdoutPipe.fileHandleForReading),
+                  Self.makeNonblocking(stderrPipe.fileHandleForReading) else {
+                self.closeReadEndsWithoutSource()
+                self.process = nil
+                self.beginFinish(.failed)
+                return
+            }
+
             // Install the exit handler before launching: a child that exits
             // immediately must not lose its notification, and later callbacks
             // hop onto the same owner queue as every other transition.
@@ -251,8 +262,7 @@ final class BoundedProcessInvocation: @unchecked Sendable {
             do {
                 try child.run()
             } catch {
-                self.failure = .failed
-                self.processEnded = true
+                child.terminationHandler = nil
                 self.closeReadEndsWithoutSource()
                 self.process = nil
                 self.beginFinish(.failed)
@@ -262,9 +272,13 @@ final class BoundedProcessInvocation: @unchecked Sendable {
             self.onProcessStarted?(child.processIdentifier)
             self.stdoutSource = self.installReadSource(stdoutPipe.fileHandleForReading, stream: .stdout)
             self.stderrSource = self.installReadSource(stderrPipe.fileHandleForReading, stream: .stderr)
-            self.queue.asyncAfter(deadline: .now() + Self.seconds(timeout)) { [weak self] in
-                self?.deadlineReached()
-            }
+            // The one-shot deadline owns the invocation until delivery. A
+            // direct start caller need not keep the invocation alive itself.
+            let timer = DispatchSource.makeTimerSource(queue: self.queue)
+            timer.schedule(deadline: .now() + Self.seconds(timeout))
+            timer.setEventHandler { [self] in self.deadlineReached() }
+            self.deadlineTimer = timer
+            timer.activate()
         }
     }
 
@@ -290,24 +304,16 @@ final class BoundedProcessInvocation: @unchecked Sendable {
 
     // MARK: - Reading
 
-    /// Creates the non-blocking read source for one stream. The source and its
-    /// cancel handler are created on the owner queue, so no other queue can
-    /// observe or mutate the descriptor state concurrently.
-    private func installReadSource(_ handle: FileHandle, stream: Stream) -> DispatchSourceRead? {
+    private static func makeNonblocking(_ handle: FileHandle) -> Bool {
         let descriptor = handle.fileDescriptor
-        guard descriptor >= 0 else {
-            failure = failure ?? .failed
-            requestTerminationIfRunning()
-            scheduleErrorCleanup()
-            return nil
-        }
-
         let flags = fcntl(descriptor, F_GETFL)
-        if flags >= 0 {
-            _ = fcntl(descriptor, F_SETFL, flags | O_NONBLOCK)
-        }
+        return flags >= 0 && fcntl(descriptor, F_SETFL, flags | O_NONBLOCK) != -1
+    }
 
-        let source = DispatchSource.makeReadSource(fileDescriptor: descriptor, queue: queue)
+    /// Creates the read source for a non-blocking stream. Its event and cancel
+    /// handlers run on the owner queue and share the descriptor's lifetime.
+    private func installReadSource(_ handle: FileHandle, stream: Stream) -> DispatchSourceRead {
+        let source = DispatchSource.makeReadSource(fileDescriptor: handle.fileDescriptor, queue: queue)
         source.setEventHandler { [weak self] in
             self?.readAvailable(stream)
         }
@@ -573,6 +579,8 @@ final class BoundedProcessInvocation: @unchecked Sendable {
         guard processEnded || process == nil else { return }
 
         delivered = true
+        deadlineTimer?.cancel()
+        deadlineTimer = nil
         onFinish = nil
         stdoutSource = nil
         stderrSource = nil

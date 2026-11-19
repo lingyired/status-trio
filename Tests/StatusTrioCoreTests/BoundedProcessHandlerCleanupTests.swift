@@ -49,6 +49,17 @@ struct BoundedProcessHandlerCleanupTests {
     /// The launch-failure path never runs a termination handler, so before the
     /// fix its readability handlers stayed installed on live pipes. This is the
     /// deterministic form of "a finished invocation must clear its handlers".
+    @Test func directStartDeliversWhenTheCallerDoesNotRetainTheInvocation() {
+        let box = OutcomeBox()
+        BoundedProcessInvocation(
+            executableURL: URL(fileURLWithPath: "/bin/sh"),
+            arguments: ["-c", "sleep 0.05; printf ready"]
+        ).start(timeout: .seconds(2)) { box.store($0) }
+
+        #expect(box.wait(seconds: 4) == .exited(Data("ready".utf8)))
+        #expect(box.count == 1)
+    }
+
     @Test func launchFailureClearsReadabilityHandlers() {
         let (outcome, invocation) = runAndWait(
             executableURL: URL(fileURLWithPath: "/nonexistent-status-trio/definitely-not-here"),
