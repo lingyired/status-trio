@@ -243,8 +243,17 @@ final class SleepControlController: ObservableObject {
     private var desiredLidSleep = false
     private var lidDisableAttempts = 0
     private var lidPendingRecovery = false
+    /// Bumped whenever the user's lid intent changes. A residual recovery read
+    /// (or its retry) that started under an older generation must not act on the
+    /// newer session — otherwise a stale "off" reading can clear a fresh marker
+    /// or turn off a session the user just enabled.
+    private var lidIntentGeneration = 0
+    /// Set when startup wants the worker to clean up our own leftover value.
+    private var lidRecoveryRequested = false
     private var lidForeignActive = false
     private let lidDisableRetryDelays: [TimeInterval]
+    /// Delay before the single in-session retry of an unconfirmed enable.
+    private let lidRecoveryRetryDelay: TimeInterval
 
     init(
         assertion: any DisplaySleepAsserting = IOPMDisplaySleepAssertion(),
@@ -252,7 +261,8 @@ final class SleepControlController: ObservableObject {
         helperReadiness: any HelperReadinessProviding = SharedHelperReadiness(),
         ownership: any SleepOwnershipStoring = UserDefaultsSleepOwnershipStore(),
         now: @escaping () -> Date = Date.init,
-        lidDisableRetryDelays: [TimeInterval] = [1, 3, 9]
+        lidDisableRetryDelays: [TimeInterval] = [1, 3, 9],
+        lidRecoveryRetryDelay: TimeInterval = 2
     ) {
         self.assertion = assertion
         self.client = client
@@ -260,6 +270,7 @@ final class SleepControlController: ObservableObject {
         self.ownership = ownership
         self.now = now
         self.lidDisableRetryDelays = lidDisableRetryDelays
+        self.lidRecoveryRetryDelay = lidRecoveryRetryDelay
         self.isHelperReady = helperReadiness.isReady
         // Optimistic before the first probe (keeps startup from dead-clicking);
         // a known-missing helper is unavailable immediately.
@@ -435,6 +446,7 @@ final class SleepControlController: ObservableObject {
            isPreventingLidSleep == enabled, !lidPendingRecovery {
             return
         }
+        if enabled != desiredLidSleep { lidIntentGeneration &+= 1 }
         desiredLidSleep = enabled
         startLidWorkerIfNeeded()
     }
@@ -444,9 +456,12 @@ final class SleepControlController: ObservableObject {
     /// durable marker waits for quit/relaunch instead of looping forever.
     private func scheduleLidRecoveryRetry() {
         guard !isStopped else { return }
+        let generation = lidIntentGeneration
+        let delay = lidRecoveryRetryDelay
         Task { [weak self] in
-            try? await Task.sleep(for: .seconds(2))
+            try? await Task.sleep(for: .seconds(delay))
             guard let self, !self.isStopped, self.lidPendingRecovery,
+                  self.lidIntentGeneration == generation,
                   !self.lidWorkerRunning else { return }
             self.startLidWorkerIfNeeded()
         }
@@ -475,6 +490,11 @@ final class SleepControlController: ObservableObject {
             lidWorkerTask = nil
         }
         while !isStopped {
+            if lidRecoveryRequested {
+                lidRecoveryRequested = false
+                await performResidualRecovery()
+                continue
+            }
             let target = desiredLidSleep
             if target == isPreventingLidSleep && !lidPendingRecovery {
                 return
@@ -716,23 +736,47 @@ final class SleepControlController: ObservableObject {
         // is intentionally holding on. Without this guard a readiness blip
         // during an active session would silently turn lid sleep back off.
         guard !isPreventingLidSleep, !desiredLidSleep,
-              !lidWorkerRunning, !lidInFlightWrite else { return }
+              !lidWorkerRunning, !lidInFlightWrite, !isStopped else { return }
         guard ownership.ownsDisableSleep,
               helperReadiness.isReady,
               helperCapability.supportsDisableSleep,
               helperCapability != .needsUpdate else { return }
+        // Run through the same serial worker as user toggles so a recovery read
+        // and a toggle can never race each other.
+        lidRecoveryRequested = true
+        startLidWorkerIfNeeded()
+        await lidWorkerTask?.value
+    }
+
+    /// Clears our own leftover `disablesleep` value. Runs inside the lid worker,
+    /// so it never overlaps an enable/disable write, and re-checks the user's
+    /// intent after every await before touching state.
+    private func performResidualRecovery() async {
+        let generation = lidIntentGeneration
+        guard canContinueResidualRecovery(generation),
+              ownership.ownsDisableSleep,
+              helperReadiness.isReady,
+              helperCapability.supportsDisableSleep,
+              helperCapability != .needsUpdate else { return }
         guard let current = try? await client.readDisableSleep() else { return }
+        guard canContinueResidualRecovery(generation) else { return }
         if !current {
             ownership.ownsDisableSleep = false
             lidPendingRecovery = false
             return
         }
         guard let observed = try? await client.setDisableSleep(false) else { return }
-        if observed == false {
-            ownership.ownsDisableSleep = false
-            isPreventingLidSleep = false
-            lidPendingRecovery = false
-        }
+        // A toggle that arrived while the write was out owns the session now;
+        // keep its marker and let the worker converge to the new intent.
+        guard canContinueResidualRecovery(generation), observed == false else { return }
+        ownership.ownsDisableSleep = false
+        isPreventingLidSleep = false
+        lidPendingRecovery = false
+    }
+
+    private func canContinueResidualRecovery(_ generation: Int) -> Bool {
+        generation == lidIntentGeneration && !isStopped
+            && !desiredLidSleep && !isPreventingLidSleep
     }
 
     // MARK: - Notices

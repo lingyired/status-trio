@@ -140,14 +140,16 @@ final class SleepControlSafetyTests: XCTestCase {
     private func make(
         client: ControllableClient,
         readiness: ProbeReadiness = ProbeReadiness(isReady: true),
-        ownership: ProbeOwnership = ProbeOwnership()
+        ownership: ProbeOwnership = ProbeOwnership(),
+        recoveryRetryDelay: TimeInterval = 2
     ) -> SleepControlController {
         SleepControlController(
             assertion: ProbeAssertion(),
             client: client,
             helperReadiness: readiness,
             ownership: ownership,
-            lidDisableRetryDelays: [0, 0, 0]
+            lidDisableRetryDelays: [0, 0, 0],
+            lidRecoveryRetryDelay: recoveryRetryDelay
         )
     }
 
@@ -382,5 +384,82 @@ final class SleepControlSafetyTests: XCTestCase {
         XCTAssertTrue(control.isPreventingLidSleep)
         XCTAssertEqual(client.setCalls, [true])
         XCTAssertTrue(client.disableSleep)
+    }
+
+    // MARK: - Residual recovery must never act on a newer session
+
+    func testSuspendedRecoveryReadDoesNotDisableNewSession() async {
+        let client = ControllableClient(disableSleep: true)
+        let ownership = ProbeOwnership(owns: true)
+        let control = make(client: client, ownership: ownership)
+        client.setSuspendReads(true)
+        control.start()
+        await waitUntil { client.pendingReadCount == 1 }
+
+        // The user turns lid sleep on while the residual read is still out.
+        client.setSuspendReads(false)
+        control.setLidSleep(true)
+        client.completeNextRead(true)
+        await waitUntil { control.isPreventingLidSleep }
+
+        XCTAssertFalse(client.setCalls.contains(false),
+                       "recovery must not turn off a session the user just enabled")
+        XCTAssertTrue(ownership.ownsDisableSleep)
+        XCTAssertTrue(control.isPreventingLidSleep)
+    }
+
+    func testSuspendedRecoveryReadOffKeepsOwnershipForNewSession() async {
+        let client = ControllableClient(disableSleep: true)
+        let ownership = ProbeOwnership(owns: true)
+        let control = make(client: client, ownership: ownership)
+        client.setSuspendReads(true)
+        control.start()
+        await waitUntil { client.pendingReadCount == 1 }
+
+        client.setSuspendReads(false)
+        control.setLidSleep(true)
+        client.completeNextRead(false)
+        await waitUntil { control.isPreventingLidSleep }
+
+        XCTAssertFalse(client.setCalls.contains(false))
+        XCTAssertTrue(ownership.ownsDisableSleep,
+                      "an off reading that raced a new session must keep the durable marker")
+    }
+
+    func testShutdownDuringSuspendedRecoveryReadWritesNothing() async {
+        let client = ControllableClient(disableSleep: true)
+        let ownership = ProbeOwnership(owns: true)
+        let control = make(client: client, ownership: ownership)
+        client.setSuspendReads(true)
+        control.start()
+        await waitUntil { client.pendingReadCount == 1 }
+
+        control.stop()
+        client.completeNextRead(true)
+        await waitUntil { !control.isApplyingLidSleep }
+
+        XCTAssertEqual(client.setCalls, [])
+        XCTAssertTrue(ownership.ownsDisableSleep)
+    }
+
+    func testRecoveryRetryDoesNotServeANewerSession() async {
+        let client = ControllableClient()
+        let ownership = ProbeOwnership()
+        let control = make(client: client, ownership: ownership, recoveryRetryDelay: 0.05)
+        client.setLandSetButThrow(true)
+        client.setFailReadOnCall(2)
+        control.setLidSleep(true)
+        await waitUntil { !control.isApplyingLidSleep && control.lastError != nil }
+        XCTAssertTrue(control.needsTerminationCleanup)
+
+        // The user retries and succeeds before the stale retry timer fires.
+        control.setLidSleep(true)
+        await waitUntil { control.isPreventingLidSleep }
+        let settledCalls = client.setCalls
+        try? await Task.sleep(for: .milliseconds(250))
+
+        XCTAssertEqual(client.setCalls, settledCalls,
+                       "a stale retry must not issue another write")
+        XCTAssertTrue(control.isPreventingLidSleep)
     }
 }
