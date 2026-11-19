@@ -182,6 +182,8 @@ final class HardwareSamplerTests: XCTestCase {
         XCTAssertEqual(HardwareSampler.detailKindsToBuild([.disk], ids: [.diskWrite]), [.disk])
         XCTAssertEqual(HardwareSampler.detailKindsToBuild([.disk], ids: [.cpuUsage]), Set<HardwareDetailKind>())
         XCTAssertEqual(HardwareSampler.detailKindsToBuild([.network], ids: [.cpuUsage]), [.network])
+        XCTAssertEqual(HardwareSampler.detailKindsToBuild([.fan], ids: [.fanRPM(index: 0)]), [.fan])
+        XCTAssertEqual(HardwareSampler.detailKindsToBuild([.fan], ids: [.cpuUsage]), Set<HardwareDetailKind>())
     }
 
     private func sensors(cpu: Double? = nil, gpu: Double? = nil, battery: Double? = nil,

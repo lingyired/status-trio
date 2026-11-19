@@ -49,6 +49,11 @@ final class HardwareSampler: @unchecked Sendable {
             case .memory: return ids.contains(.memoryUsage)
             case .network: return true
             case .disk: return ids.contains(.diskRead) || ids.contains(.diskWrite)
+            case .fan:
+                return ids.contains { id in
+                    if case .fanRPM = id { return true }
+                    return false
+                }
             }
         }
     }
