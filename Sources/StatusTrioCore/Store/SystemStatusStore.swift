@@ -792,7 +792,16 @@ final class SystemStatusStore: ObservableObject {
             return
         }
         let previousScalar = liveVolume.scalar
-        liveVolume = liveVolume.replacingScalar(min(1, max(0, scalar)))
+        let clampedScalar = min(1, max(0, scalar))
+        var nextVolume = liveVolume.replacingScalar(clampedScalar)
+        if clampedScalar > 0, liveVolume.isAutoMuted {
+            // Raising the level restores sound; mirror the controller's
+            // automatic unmute here so the mute icon does not lag behind the
+            // read-back. A user's manual mute has isAutoMuted == false and is
+            // left untouched.
+            nextVolume = nextVolume.replacingMuted(false)
+        }
+        liveVolume = nextVolume
         publish(snapshot.replacingVolume(liveVolume), immediately: true)
         volumeController?.setVolume(liveVolume.scalar ?? 0)
 
@@ -2222,6 +2231,7 @@ private extension VolumeStatus {
             currentDevice: currentDevice,
             outputDevices: outputDevices,
             canSetVolume: canSetVolume, canMute: canMute,
+            isAutoMuted: isAutoMuted,
             muteState: muteState,
             externalVolumeTransitionGeneration:
                 externalVolumeTransitionGeneration,
@@ -2230,6 +2240,8 @@ private extension VolumeStatus {
     }
 
     func replacingMuted(_ isMuted: Bool) -> VolumeStatus {
+        // A mute change is a user-controlled state; it never carries the app's
+        // automatic-mute ownership.
         VolumeStatus(
             scalar: scalar,
             isMuted: isMuted,
@@ -2237,6 +2249,7 @@ private extension VolumeStatus {
             currentDevice: currentDevice,
             outputDevices: outputDevices,
             canSetVolume: canSetVolume, canMute: canMute,
+            isAutoMuted: false,
             muteState: isMuted ? .muted : .unmuted,
             externalVolumeTransitionGeneration:
                 externalVolumeTransitionGeneration,

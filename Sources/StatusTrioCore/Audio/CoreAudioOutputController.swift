@@ -9,6 +9,11 @@ final class CoreAudioOutputController: AudioOutputControlling {
 
     nonisolated init() {}
 
+    /// Runtime-only ownership of the mute this app set because the user drove
+    /// the output volume to exactly zero. Never persisted; bound to the current
+    /// output device and dropped on a device change.
+    private var mutePolicy = VolumeMutePolicy()
+
     // Read-only helpers use local storage and immutable device identifiers, so
     // the background snapshot reader never accesses command-side actor state.
     nonisolated func outputDevices() -> [AudioOutputDevice] {
@@ -52,7 +57,11 @@ final class CoreAudioOutputController: AudioOutputControlling {
     func setVolume(_ scalar: Double) -> Bool {
         guard let deviceID = defaultOutputDeviceID() else { return false }
 
-        let volume = Float32(min(1, max(0, scalar)))
+        let target = min(1, max(0, scalar))
+        let volume = Float32(target)
+        let deviceUID = deviceUID(for: deviceID)
+        mutePolicy.reconcileDevice(deviceUID)
+
         var didSetVolume = setScalarProperty(
             volume,
             objectID: deviceID,
@@ -60,9 +69,12 @@ final class CoreAudioOutputController: AudioOutputControlling {
             scope: kAudioObjectPropertyScopeOutput,
             element: kAudioObjectPropertyElementMain
         )
+        let wroteMaster = didSetVolume
+        var attemptedChannels: [AudioObjectPropertyElement] = []
 
         if !didSetVolume {
             for element in CoreAudioOutputChannelElements.channels(for: deviceID) {
+                attemptedChannels.append(element)
                 if setScalarProperty(
                     volume,
                     objectID: deviceID,
@@ -77,16 +89,52 @@ final class CoreAudioOutputController: AudioOutputControlling {
 
         guard didSetVolume else { return false }
 
-        if isMuted(for: deviceID) {
-            _ = setMuted(false, for: deviceID)
+        // A single successful channel write is not proof the whole device reached
+        // exactly zero. For an exact 0, confirm the elements we touched read back
+        // at 0 so a partial multichannel write is never reported as full success.
+        let fullyZeroed: Bool
+        if target == 0 {
+            fullyZeroed = zeroReadBack(
+                deviceID: deviceID,
+                wroteMaster: wroteMaster,
+                attemptedChannels: attemptedChannels
+            )
+        } else {
+            fullyZeroed = true
         }
-        return true
+
+        // Precise-zero handling: mute the device itself so a 0% slider is truly
+        // silent, while leaving a user's manual mute alone and only undoing the
+        // mute this app applied automatically.
+        let muteWrite = mutePolicy.muteActionAfterWritingVolume(
+            target: target,
+            deviceUID: deviceUID,
+            currentlyMuted: isMuted(for: deviceID),
+            canMute: canMute(for: deviceID)
+        )
+        if let muteWrite {
+            _ = setMuted(muteWrite, for: deviceID)
+        }
+
+        return target == 0 ? fullyZeroed : true
     }
 
     @discardableResult
     func toggleMute() -> Bool {
         guard let deviceID = defaultOutputDeviceID() else { return false }
+        // A manual mute takes over from the app's automatic mute.
+        mutePolicy.invalidate()
         return setMuted(!isMuted(for: deviceID), for: deviceID)
+    }
+
+    /// Whether this app currently owns an automatic mute on the given device.
+    func isAutoMuted(for deviceID: AudioDeviceID) -> Bool {
+        mutePolicy.ownsAutoMute(deviceUID: deviceUID(for: deviceID))
+    }
+
+    /// Drops any automatic-mute ownership, e.g. after a topology change.
+    func invalidateAutoMuteState() {
+        mutePolicy.invalidate()
     }
 
     @discardableResult
@@ -96,18 +144,31 @@ final class CoreAudioOutputController: AudioOutputControlling {
             return false
         }
 
+        let previousDeviceID = defaultOutputDeviceID()
+
         if #available(macOS 15.0, *) {
             let device = AudioHardwareDevice(id: deviceID)
             do {
                 try AudioHardwareSystem.shared.setDefaultOutputDevice(device)
                 try AudioHardwareSystem.shared.setDefaultSoundEffectsDevice(device)
+                if deviceID != previousDeviceID {
+                    mutePolicy.invalidate()
+                }
                 return true
             } catch {
-                return setLegacyDefaultOutputDevice(deviceID)
+                let didSelect = setLegacyDefaultOutputDevice(deviceID)
+                if didSelect, deviceID != previousDeviceID {
+                    mutePolicy.invalidate()
+                }
+                return didSelect
             }
         }
 
-        return setLegacyDefaultOutputDevice(deviceID)
+        let didSelect = setLegacyDefaultOutputDevice(deviceID)
+        if didSelect, deviceID != previousDeviceID {
+            mutePolicy.invalidate()
+        }
+        return didSelect
     }
 
     private func setMuted(_ isMuted: Bool, for deviceID: AudioDeviceID) -> Bool {
@@ -150,6 +211,55 @@ final class CoreAudioOutputController: AudioOutputControlling {
             return value != 0
         }
         return false
+    }
+
+    private func canMute(for deviceID: AudioDeviceID) -> Bool {
+        var master = propertyAddress(
+            selector: kAudioDevicePropertyMute,
+            scope: kAudioObjectPropertyScopeOutput,
+            element: kAudioObjectPropertyElementMain
+        )
+        if isSettable(objectID: deviceID, address: &master) {
+            return true
+        }
+        for element in CoreAudioOutputChannelElements.channels(for: deviceID) {
+            var address = propertyAddress(
+                selector: kAudioDevicePropertyMute,
+                scope: kAudioObjectPropertyScopeOutput,
+                element: element
+            )
+            if isSettable(objectID: deviceID, address: &address) {
+                return true
+            }
+        }
+        return false
+    }
+
+    /// Reads back the elements a precise-zero write touched. Any readable element
+    /// still above a small epsilon means the device did not fully reach zero.
+    private func zeroReadBack(
+        deviceID: AudioDeviceID,
+        wroteMaster: Bool,
+        attemptedChannels: [AudioObjectPropertyElement]
+    ) -> Bool {
+        let elements: [AudioObjectPropertyElement]
+        if wroteMaster {
+            elements = [kAudioObjectPropertyElementMain]
+        } else if !attemptedChannels.isEmpty {
+            elements = attemptedChannels
+        } else {
+            elements = CoreAudioOutputChannelElements.channels(for: deviceID)
+        }
+
+        let values = elements.map { element in
+            readFloat32Property(
+                objectID: deviceID,
+                selector: kAudioDevicePropertyVolumeScalar,
+                scope: kAudioObjectPropertyScopeOutput,
+                element: element
+            )
+        }
+        return ZeroVolumeVerification.allZero(values)
     }
 
     nonisolated private func isOutputDevice(_ deviceID: AudioDeviceID) -> Bool {

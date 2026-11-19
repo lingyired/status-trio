@@ -145,6 +145,9 @@ enum VolumeControlSource: Equatable, Sendable {
 struct VolumeStatus: Equatable, Sendable {
     let scalar: Double?
     let isMuted: Bool
+    /// True when the app muted the device itself because the user drove the
+    /// volume to exactly zero. A user's manual mute is never flagged here.
+    let isAutoMuted: Bool
     let muteState: VolumeMuteState
     let deviceName: String?
     let currentDevice: AudioOutputDevice?
@@ -162,12 +165,14 @@ struct VolumeStatus: Equatable, Sendable {
         outputDevices: [AudioOutputDevice] = [],
         canSetVolume: Bool? = nil,
         canMute: Bool? = nil,
+        isAutoMuted: Bool = false,
         muteState: VolumeMuteState? = nil,
         externalVolumeTransitionGeneration: UInt64 = 0,
         controlSource: VolumeControlSource = .unavailable
     ) {
         self.scalar = scalar
         self.isMuted = isMuted
+        self.isAutoMuted = isAutoMuted
         self.muteState = muteState ?? (isMuted ? .muted : .unmuted)
         self.deviceName = deviceName
         self.currentDevice = currentDevice
@@ -199,6 +204,7 @@ extension VolumeStatus {
     /// per-device volume fields and keeps only device identity.
     func changesOnlyLevel(comparedTo other: VolumeStatus) -> Bool {
         isMuted == other.isMuted
+            && isAutoMuted == other.isAutoMuted
             && muteState == other.muteState
             && deviceName == other.deviceName
             && currentDevice?.replacingVolume(nil) == other.currentDevice?.replacingVolume(nil)
@@ -222,6 +228,7 @@ extension VolumeStatus {
             outputDevices: outputDevices,
             canSetVolume: canSetVolume,
             canMute: canMute,
+            isAutoMuted: isAutoMuted,
             muteState: muteState,
             externalVolumeTransitionGeneration: generation,
             controlSource: controlSource ?? self.controlSource

@@ -107,6 +107,7 @@ enum AudioPanelMapper {
             outputIdentity: outputIdentity,
             interactionIdentity: interactionIdentity,
             muted: status.isMuted,
+            isAutoMuted: status.isAutoMuted,
             muteState: status.muteState,
             canAdjust: controllerAvailable && status.canSetVolume && scalar != nil,
             canMute: canMute,

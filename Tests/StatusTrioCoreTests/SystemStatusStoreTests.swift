@@ -1453,6 +1453,74 @@ final class SystemStatusStoreTests: XCTestCase {
         XCTAssertEqual(store.popupSnapshot.battery.percentage, 42)
     }
 
+    func testRaisingVolumeClearsAutomaticMuteOptimistically() async {
+        let volume = FakeVolumeMonitor()
+        let initial = StatusSnapshot(
+            battery: makeBattery(percentage: 100),
+            wifi: .placeholder,
+            volume: VolumeStatus(
+                scalar: 0,
+                isMuted: true,
+                deviceName: "Speaker",
+                canSetVolume: true,
+                canMute: true,
+                isAutoMuted: true
+            )
+        )
+        let store = SystemStatusStore(
+            batteryMonitor: FakeBatteryMonitor(),
+            wifiMonitor: FakeWiFiMonitor(),
+            volumeMonitor: volume,
+            volumeFeedback: FakeVolumeFeedbackPlayer(),
+            refreshInterval: .seconds(60),
+            initialSnapshot: initial
+        )
+        store.start()
+        store.setPopoverVisible(true)
+        defer { store.stop() }
+
+        store.setVolume(0.4)
+
+        XCTAssertEqual(store.popupSnapshot.volume.scalar, 0.4)
+        XCTAssertFalse(store.popupSnapshot.volume.isMuted)
+        XCTAssertFalse(store.popupSnapshot.volume.isAutoMuted)
+        XCTAssertEqual(volume.setVolumeValues.last, 0.4)
+    }
+
+    func testRaisingVolumePreservesManualMute() async {
+        let volume = FakeVolumeMonitor()
+        let initial = StatusSnapshot(
+            battery: makeBattery(percentage: 100),
+            wifi: .placeholder,
+            volume: VolumeStatus(
+                scalar: 0.5,
+                isMuted: true,
+                deviceName: "Speaker",
+                canSetVolume: true,
+                canMute: true,
+                isAutoMuted: false
+            )
+        )
+        let store = SystemStatusStore(
+            batteryMonitor: FakeBatteryMonitor(),
+            wifiMonitor: FakeWiFiMonitor(),
+            volumeMonitor: volume,
+            volumeFeedback: FakeVolumeFeedbackPlayer(),
+            refreshInterval: .seconds(60),
+            initialSnapshot: initial
+        )
+        store.start()
+        store.setPopoverVisible(true)
+        defer { store.stop() }
+
+        store.setVolume(0.7)
+
+        XCTAssertEqual(store.popupSnapshot.volume.scalar, 0.7)
+        XCTAssertTrue(store.popupSnapshot.volume.isMuted)
+        XCTAssertFalse(store.popupSnapshot.volume.isAutoMuted)
+        XCTAssertEqual(volume.setVolumeValues.last, 0.7)
+    }
+
     func testPopoverOpeningBlanksWiFiNameUntilTheFreshNameArrives() async {
         let wifi = FakeWiFiMonitor()
         let store = makeStore(

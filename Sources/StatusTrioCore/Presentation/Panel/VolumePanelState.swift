@@ -56,6 +56,9 @@ struct VolumePanelState: Equatable, Sendable {
     let outputIdentity: PanelAudioDeviceID?
     let interactionIdentity: VolumeControlInteractionIdentity
     let muted: Bool
+    /// True when the muted state is the app's own automatic mute (volume driven
+    /// to exact zero), not a user's manual mute.
+    var isAutoMuted: Bool = false
     let muteState: VolumeMuteState
     let canAdjust: Bool
     let canMute: Bool

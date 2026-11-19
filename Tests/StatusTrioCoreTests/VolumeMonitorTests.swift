@@ -1067,6 +1067,42 @@ final class VolumeMonitorTests: XCTestCase {
     ) -> VolumeMonitor {
         VolumeMonitor(statusReader: InlineAudioStatusReader(reader: reader), eventMonitor: eventMonitor)
     }
+
+    func testNativeReadingSurfacesAutomaticMuteOwnership() async {
+        let device = AudioOutputDevice(
+            id: 42,
+            name: "USB Headset",
+            uid: "UID-42",
+            isCurrent: true,
+            volume: 0
+        )
+        let outputs = FakeAudioOutputController(devices: [device])
+        outputs.autoMutedDeviceIDs = [42]
+        let reader = FakeVolumeReader(
+            result: VolumeReading(
+                scalar: 0,
+                isMuted: true,
+                deviceName: "USB Headset",
+                currentDevice: device
+            )
+        )
+        let monitor = VolumeMonitor(
+            statusReader: InlineAudioStatusReader(
+                reader: reader,
+                outputController: outputs
+            ),
+            eventMonitor: FakeVolumeEventMonitor(),
+            outputController: outputs
+        )
+
+        monitor.refresh()
+        var iterator = monitor.updates.makeAsyncIterator()
+        let status = await iterator.next()
+
+        XCTAssertEqual(status?.isMuted, true)
+        XCTAssertEqual(status?.isAutoMuted, true)
+        monitor.stop()
+    }
 }
 
 @MainActor
@@ -1175,6 +1211,7 @@ private final class InlineAudioStatusReader: AudioStatusReadingProviding {
 @MainActor
 private final class FakeAudioOutputController: AudioOutputControlling {
     var devices: [AudioOutputDevice]
+    var autoMutedDeviceIDs: Set<AudioDeviceID> = []
     private(set) var outputDevicesCallCount = 0
 
     init(devices: [AudioOutputDevice]) {
@@ -1189,6 +1226,10 @@ private final class FakeAudioOutputController: AudioOutputControlling {
     func setVolume(_ scalar: Double) -> Bool { true }
     func toggleMute() -> Bool { true }
     func selectOutputDevice(_ deviceID: AudioDeviceID) -> Bool { true }
+    func isAutoMuted(for deviceID: AudioDeviceID) -> Bool {
+        autoMutedDeviceIDs.contains(deviceID)
+    }
+    func invalidateAutoMuteState() { autoMutedDeviceIDs.removeAll() }
 }
 
 private final class FakeVolumeReader: VolumeReadingProviding {

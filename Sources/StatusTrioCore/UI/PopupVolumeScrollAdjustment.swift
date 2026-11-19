@@ -144,9 +144,12 @@ struct PopupVolumeScrollSession {
         in state: VolumePanelState,
         isIncreasing: Bool
     ) -> Bool {
+        // Only the app's own automatic mute is undone by scrolling up. A user's
+        // manual mute must survive ordinary wheel changes.
         guard identity == state.interactionIdentity,
               state.canMute,
               state.muted,
+              state.isAutoMuted,
               isIncreasing,
               !requestedUnmute else {
             return false

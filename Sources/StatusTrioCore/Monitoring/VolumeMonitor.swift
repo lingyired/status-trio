@@ -1129,6 +1129,7 @@ final class VolumeMonitor: VolumeMonitoring, VolumeControlling {
     }
     func topologyChanged() {
         advanceExternalVolumeTransition()
+        outputController?.invalidateAutoMuteState()
         clearDDCStatus()
         clearBetterDisplayStatus()
         ddcCoordinator.topologyChanged()
@@ -1363,6 +1364,7 @@ final class VolumeMonitor: VolumeMonitoring, VolumeControlling {
                 outputDevices: devices,
                 canSetVolume: false,
                 canMute: false,
+                isAutoMuted: carriesLevel ? latestStatus.isAutoMuted : false,
                 muteState: .unknown,
                 externalVolumeTransitionGeneration:
                     latestStatus.externalVolumeTransitionGeneration
@@ -1406,6 +1408,9 @@ final class VolumeMonitor: VolumeMonitoring, VolumeControlling {
                 outputDevices: devices,
                 canSetVolume: reading.canSetVolume,
                 canMute: reading.canMute,
+                isAutoMuted: reading.currentDevice.map {
+                    outputController?.isAutoMuted(for: $0.id) ?? false
+                } ?? false,
                 muteState: reading.isMuted ? .muted : .unmuted
             )
             publish(latestStatus)
@@ -1733,6 +1738,7 @@ final class VolumeMonitor: VolumeMonitoring, VolumeControlling {
     private func clearVolumeForDeviceTransition() {
         guard latestStatus.scalar != nil || latestStatus.currentDevice != nil else { return }
         advanceExternalVolumeTransition()
+        outputController?.invalidateAutoMuteState()
         invalidateDDCSelection()
         invalidateBetterDisplaySelection()
         externalBackend = .none
