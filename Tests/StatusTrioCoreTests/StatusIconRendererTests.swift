@@ -1964,4 +1964,35 @@ final class StatusIconRendererTests: XCTestCase {
 
         return try PixelBuffer(image: try XCTUnwrap(bitmap.cgImage))
     }
+
+    /// A three-digit battery percentage opens the ring's top gap more than a
+    /// two-digit one, while the bolt and closed gaps keep their fixed widths.
+    func testThreeDigitPercentageWidensRingTopGap() {
+        let twoDigit = StatusIconRenderer.ringTopGapWidth(
+            gap: .value,
+            accessory: .text(IconTextState(text: "99", color: .primary, scale: 1.8))
+        )
+        let threeDigit = StatusIconRenderer.ringTopGapWidth(
+            gap: .value,
+            accessory: .text(IconTextState(text: "100", color: .primary, scale: 1.8))
+        )
+        XCTAssertEqual(twoDigit, StatusIconGeometry.batteryValueTopGapWidth, accuracy: 1e-9)
+        XCTAssertGreaterThan(threeDigit, twoDigit)
+
+        XCTAssertEqual(
+            StatusIconRenderer.ringTopGapWidth(
+                gap: .indicator,
+                accessory: .symbol(
+                    IconSymbolState(source: .primitive(.bolt), color: .primary, scale: 1.8)
+                )
+            ),
+            StatusIconGeometry.batteryChargingBoltTopGapWidth,
+            accuracy: 1e-9
+        )
+        XCTAssertEqual(
+            StatusIconRenderer.ringTopGapWidth(gap: .closed, accessory: nil),
+            StatusIconGeometry.batteryValueTopGapWidth,
+            accuracy: 1e-9
+        )
+    }
 }

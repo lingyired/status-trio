@@ -42,6 +42,11 @@ enum StatusIconGeometry {
     static let batteryValueTopGapWidth: CGFloat = 64
     static let batteryChargingBoltTopGapWidth: CGFloat = 50
 
+    /// Horizontal clearance between the top-gap value text's ink and the ring
+    /// arc's centreline. It includes half of the default 8-unit stroke so the
+    /// visible inner edge of the arc still clears the glyphs, not just the path.
+    static let batteryValueTopGapClearance: CGFloat = 6
+
     static let batteryValueBaseFontSize: CGFloat = 20
     static let batteryChargingBoltCalibration: CGFloat = 220.0 / 180.0
 
@@ -254,6 +259,23 @@ enum StatusIconGeometry {
         let arcLength = batteryRadius * batterySweep
         guard arcLength.isFinite, arcLength > 0 else { return 0 }
         return min(1, max(0, Double(topGapWidth / arcLength)))
+    }
+
+    /// Arc-length span of the top gap that just clears value text whose glyph
+    /// ink is `inkWidth` wide and centred on `artworkCenterX`.
+    ///
+    /// The gap is centred on the top of the circle, so each arc end sits
+    /// `asin((inkWidth / 2 + clearance) / batteryRadius)` from vertical and the
+    /// required arc length is twice that angle times the radius. A three-digit
+    /// value such as "100" is wide enough to need a larger gap than the fixed
+    /// `batteryValueTopGapWidth`; narrower values keep the historical width.
+    static func batteryValueGapWidth(clearingInkWidth inkWidth: CGFloat) -> CGFloat {
+        guard inkWidth.isFinite, inkWidth > 0 else { return batteryValueTopGapWidth }
+        let halfSpan = inkWidth / 2 + batteryValueTopGapClearance
+        let ratio = min(1, max(0, Double(halfSpan / batteryRadius)))
+        let required = 2 * batteryRadius * CGFloat(asin(ratio))
+        guard required.isFinite else { return batteryValueTopGapWidth }
+        return max(batteryValueTopGapWidth, required)
     }
 
     static func batteryChargingBolt(scale: CGFloat = 1) -> CGPath {
