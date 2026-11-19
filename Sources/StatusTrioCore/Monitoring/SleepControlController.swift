@@ -250,6 +250,8 @@ final class SleepControlController: ObservableObject {
     private var lidIntentGeneration = 0
     /// Set when startup wants the worker to clean up our own leftover value.
     private var lidRecoveryRequested = false
+    /// A recovery read is out; quit must not block on it.
+    private var isRecoveringResidual = false
     private var lidForeignActive = false
     private let lidDisableRetryDelays: [TimeInterval]
     /// Delay before the single in-session retry of an unconfirmed enable.
@@ -351,7 +353,9 @@ final class SleepControlController: ObservableObject {
         // settle before issuing the clear so a late enable cannot land after it.
         desiredLidSleep = false
         if !isStopped { stop() }
-        if let task = lidWorkerTask { _ = await task.value }
+        // A helper read that never answers must not hang quit; recovery only ever
+        // clears the same value this path writes.
+        if let task = lidWorkerTask, !isRecoveringResidual { _ = await task.value }
         guard ownership.ownsDisableSleep || isPreventingLidSleep || lidInFlightWrite else {
             isPreventingLidSleep = false
             return
@@ -752,6 +756,8 @@ final class SleepControlController: ObservableObject {
     /// so it never overlaps an enable/disable write, and re-checks the user's
     /// intent after every await before touching state.
     private func performResidualRecovery() async {
+        isRecoveringResidual = true
+        defer { isRecoveringResidual = false }
         let generation = lidIntentGeneration
         guard canContinueResidualRecovery(generation),
               ownership.ownsDisableSleep,
