@@ -164,6 +164,8 @@ enum LocalizationKey: String, CaseIterable, Hashable, Sendable {
     case settingsAnalyticsDescription = "settings.analytics.description"
     case settingsAnalyticsPrivacyDetails = "settings.analytics.privacyDetails"
     case settingsRefreshInterval = "settings.refreshInterval"
+    case settingsStatusCheckTitle = "settings.statusCheck.title"
+    case settingsQuickActionsTitle = "settings.quickActions.title"
     case settingsRefreshIntervalOnBattery = "settings.refreshInterval.onBattery"
     case settingsRefreshIntervalOnPower = "settings.refreshInterval.onPower"
     case settingsRefreshIntervalDescription = "settings.refreshInterval.description"

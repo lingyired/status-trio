@@ -430,10 +430,12 @@
 "accessibility.status" = "%@, %@, %@";
 "accessibility.battery" = "Batteria %d%%";
 "accessibility.volume" = "Volume %@";
+"settings.statusCheck.title" = "Intervallo di controllo";
+"settings.quickActions.title" = "Azioni rapide";
 "settings.refreshInterval" = "Intervallo di aggiornamento";
 "settings.refreshInterval.onBattery" = "A batteria";
 "settings.refreshInterval.onPower" = "Collegato alla corrente";
-"settings.refreshInterval.description" = "Con quale frequenza Status Trio controlla le modifiche. Aggiornamenti più frequenti usano più CPU.";
+"settings.refreshInterval.description" = "Controlla periodicamente batteria, Wi-Fi e volume. Intervalli più brevi controllano più spesso.";
 "settings.refreshInterval.value" = "%d secondi";
 "settings.popup.order" = "Elementi mostrati";
 "settings.popup.order.description" = "Scegli quali elementi appaiono nel pannello di stato e trascinali per cambiarne l’ordine.";
@@ -455,7 +457,7 @@
 "settings.keepAwake.helperReady" = "L’helper con privilegi è pronto.";
 "settings.keepAwake.helperHint" = "Attivare «Resta attivo a coperchio chiuso» (o il controllo Risparmio energetico) installa e richiede l’autorizzazione automaticamente.";
 "settings.keepAwake.allowBattery" = "Consenti a batteria";
-"settings.keepAwake.autoOff" = "Disattiva con batteria scarica";
+"settings.keepAwake.autoOff" = "Disattiva «Mantieni attivo con coperchio chiuso» con batteria scarica";
 "settings.keepAwake.onlyLid" = "Si applica solo a «Resta attivo a coperchio chiuso»";
 "quickActions.displaySleep" = "Mantieni lo schermo attivo";
 "quickActions.displaySleep.description" = "Impedisce allo schermo di andare in sospensione quando è inattivo.";
@@ -490,11 +492,11 @@
 "settings.panel.background.style.classicMaterial" = "Materiale classico";
 "settings.panel.background.style.solid" = "Tinta unita";
 "settings.panel.background.style.liquidGlassUnavailable" = "Liquid Glass richiede macOS 26 o versione successiva.";
-"settings.panel.openBehavior.title" = "Comportamento all’apertura";
+"settings.panel.openBehavior.title" = "Dettagli e apertura";
 "settings.panel.returnsToSummaryOnOpen" = "Riapri l’ultima pagina di dettaglio";
 "settings.panel.returnsToSummaryOnOpen.description" = "Quando è attivo, riaprendo il pannello di stato si torna alla pagina di dettaglio visualizzata alla chiusura; altrimenti si parte sempre dalla panoramica.";
 "settings.panel.showsDetailsAlongside" = "Mostra i dettagli accanto";
-"settings.panel.showsDetailsAlongside.description" = "Quando è attivo, le pagine di dettaglio si aprono a destra del pannello di stato; se a destra non c’è spazio, si aprono a sinistra.";
+"settings.panel.showsDetailsAlongside.description" = "Quando è attivo, le pagine di dettaglio si aprono a destra del pannello di stato, poi a sinistra. Se non c’è spazio, si aprono dentro il pannello.";
 "settings.panel.showsPanelOnHover" = "Mostra il pannello al passaggio del mouse";
 "settings.panel.showsPanelOnHover.description" = "Se attivo, tenendo il puntatore sull’icona della barra dei menu per circa 0,3 secondi si apre il pannello di stato. Spostandosi nel pannello resta aperto; uscendo dall’icona e dal pannello si chiude dopo una breve attesa. Il clic continua ad alternare la visibilità.";
 "settings.popup.volumeScroll.group" = "Scorrimento del pannello";
@@ -1079,7 +1081,7 @@
 "guide.state.chargingBatteryCenter" = "Charging + Battery %";
 "guide.state.fullPowerCenter" = "Full + Power";
 "guide.state.lowBatteryInputCenter" = "Low Battery + Input";
-"settings.menuBarRightClickAction" = "Azione del clic destro";
+"settings.menuBarRightClickAction" = "Clic destro sull’icona della barra dei menu";
 "settings.menuBarRightClickAction.description" = "Cosa fa l'icona della barra dei menu quando si fa clic con il tasto destro.";
 "settings.menuBarRightClickAction.contextMenu" = "Mostra menu contestuale";
 "settings.menuBarRightClickAction.toggleLowPowerMode" = "Attiva/disattiva risparmio energetico";
@@ -1171,7 +1173,7 @@
 "hardware.monitor.memory" = "Uso memoria";
 "hardware.monitor.batteryTemperature" = "Temp. batteria";
 "hardware.monitor.batteryTemperature.help" = "Temperatura della batteria. La barra usa una scala visiva 20–60 °C, non una percentuale di sicurezza.";
-"settings.tab.monitor" = "Monitor";
+"settings.tab.monitor" = "Monitor di sistema";
 "hardware.monitor.settings.showInPanel" = "Mostra nel pannello";
 "hardware.monitor.settings.showInPanel.description" = "Aggiunge la scheda monitor hardware al pannello di stato.";
 "hardware.monitor.settings.metrics" = "Metriche";
@@ -1235,8 +1237,8 @@
 "hardware.monitor.settings.background.description" = "Registra gli ultimi 60 secondi di cronologia hardware a pannello chiuso, al ritmo del pannello, così il dettaglio si apre con un andamento.";
 "hardware.monitor.background.off" = "Disattivato";
 "hardware.monitor.background.seconds" = "%d s";
-"hardware.monitor.settings.panelRefresh" = "Aggiornamento pannello";
-"hardware.monitor.settings.panelRefresh.description" = "Ogni quanto si aggiorna il pannello mentre è aperto. Utilizzo e velocità di rete/disco seguono questo valore; temperatura e ventola al massimo ogni 4 secondi. Più veloce è più in tempo reale ma legge di più; più lento risparmia energia.";
+"hardware.monitor.settings.panelRefresh" = "Intervallo di aggiornamento dei dati hardware";
+"hardware.monitor.settings.panelRefresh.description" = "Ogni quanto si aggiornano i dati hardware mentre il pannello è aperto. Con la cronologia in background, il pannello chiuso mantiene lo stesso ritmo. Ogni metrica ha comunque il proprio limite di lettura. Più veloce è più in tempo reale ma legge di più; più lento risparmia energia.";
 "hardware.monitor.settings.showRings" = "Mostra anelli";
 "hardware.monitor.settings.colorTitle" = "Colori";
 "hardware.monitor.settings.resetColors" = "Ripristina colori";

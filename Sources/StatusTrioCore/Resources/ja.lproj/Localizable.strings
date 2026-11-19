@@ -430,10 +430,12 @@
 "accessibility.status" = "%@、%@、%@";
 "accessibility.battery" = "バッテリー %d%%";
 "accessibility.volume" = "音量 %@";
+"settings.statusCheck.title" = "状態チェック間隔";
+"settings.quickActions.title" = "クイック操作";
 "settings.refreshInterval" = "ステータス更新間隔";
 "settings.refreshInterval.onBattery" = "バッテリー使用時";
 "settings.refreshInterval.onPower" = "電源接続時";
-"settings.refreshInterval.description" = "Status Trio が変更を確認する頻度です。短いほど CPU 使用率が高くなります。";
+"settings.refreshInterval.description" = "バッテリー、Wi-Fi、音量の状態を定期的に確認します。間隔が短いほど頻繁に確認します。";
 "settings.refreshInterval.value" = "%d 秒";
 "settings.popup.order" = "表示項目";
 "settings.popup.order.description" = "ステータスパネルに表示する項目を選択し、ドラッグして順序を変更します。";
@@ -455,7 +457,7 @@
 "settings.keepAwake.helperReady" = "特権ヘルパーの準備ができています。";
 "settings.keepAwake.helperHint" = "「蓋を閉じてもスリープしない」（または低電力モード制御）をオンにすると、自動でインストールと承認を求めます。";
 "settings.keepAwake.allowBattery" = "バッテリー駆動でも許可";
-"settings.keepAwake.autoOff" = "バッテリー低下時に自動オフ";
+"settings.keepAwake.autoOff" = "バッテリー低下時にフタ閉じ寝ない設定をオフ";
 "settings.keepAwake.onlyLid" = "「蓋を閉じてもスリープしない」にのみ適用";
 "quickActions.displaySleep" = "画面をスリープさせない";
 "quickActions.displaySleep.description" = "アイドル時にディスプレイがスリープしないようにします。";
@@ -490,11 +492,11 @@
 "settings.panel.background.style.classicMaterial" = "クラシックマテリアル";
 "settings.panel.background.style.solid" = "単色";
 "settings.panel.background.style.liquidGlassUnavailable" = "リキッドグラスには macOS 26 以降が必要です。";
-"settings.panel.openBehavior.title" = "開くときの動作";
+"settings.panel.openBehavior.title" = "詳細と開き方";
 "settings.panel.returnsToSummaryOnOpen" = "最後の詳細ページを再度開く";
 "settings.panel.returnsToSummaryOnOpen.description" = "有効にすると、ステータスパネルを開き直したときに、閉じる前に表示していた詳細ページに戻ります。無効の場合は常に概要から始まります。";
 "settings.panel.showsDetailsAlongside" = "詳細を横に表示";
-"settings.panel.showsDetailsAlongside.description" = "有効にすると、詳細ページがステータスパネルの右側に開きます。右側にスペースがない場合は左側に開きます。";
+"settings.panel.showsDetailsAlongside.description" = "有効にすると、詳細ページはステータスパネルの右側、次に左側に開きます。どちらにも収まらない場合はパネル内に表示します。";
 "settings.panel.showsPanelOnHover" = "ホバーでパネルを表示";
 "settings.panel.showsPanelOnHover.description" = "有効にすると、メニューバーのアイコンに約 0.3 秒ポインタを置くとステータスパネルが開きます。パネル内へ移動すると開いたままになり、アイコンとパネルから離れると少し遅れて閉じます。クリックは従来どおり切り替えです。";
 "settings.popup.volumeScroll.group" = "パネルのスクロール";
@@ -1079,7 +1081,7 @@
 "guide.state.chargingBatteryCenter" = "Charging + Battery %";
 "guide.state.fullPowerCenter" = "Full + Power";
 "guide.state.lowBatteryInputCenter" = "Low Battery + Input";
-"settings.menuBarRightClickAction" = "右クリックの動作";
+"settings.menuBarRightClickAction" = "メニューバーアイコンの右クリック動作";
 "settings.menuBarRightClickAction.description" = "メニューバーのアイコンを右クリックしたときの動作です。";
 "settings.menuBarRightClickAction.contextMenu" = "コンテキストメニューを表示";
 "settings.menuBarRightClickAction.toggleLowPowerMode" = "低電力モードを切り替え";
@@ -1171,7 +1173,7 @@
 "hardware.monitor.memory" = "メモリ使用率";
 "hardware.monitor.batteryTemperature" = "バッテリー温度";
 "hardware.monitor.batteryTemperature.help" = "バッテリー温度です。バーは 20〜60°C の目安スケールで、安全率ではありません。";
-"settings.tab.monitor" = "モニター";
+"settings.tab.monitor" = "システムモニター";
 "hardware.monitor.settings.showInPanel" = "ステータスパネルに表示";
 "hardware.monitor.settings.showInPanel.description" = "ハードウェアモニターカードをステータスパネルに追加します。";
 "hardware.monitor.settings.metrics" = "項目";
@@ -1235,8 +1237,8 @@
 "hardware.monitor.settings.background.description" = "パネルを閉じている間もパネルの更新間隔で直近60秒のハードウェア履歴を記録し、詳細ページを開くと傾向が表示されます。";
 "hardware.monitor.background.off" = "オフ";
 "hardware.monitor.background.seconds" = "%d 秒";
-"hardware.monitor.settings.panelRefresh" = "パネル更新";
-"hardware.monitor.settings.panelRefresh.description" = "パネルを開いている間の更新頻度です。使用率とネットワーク・ディスク速度がこれに従い、温度とファンは最大4秒間隔です。速いほどリアルタイムですが読み取りが増え、遅いほど省電力です。";
+"hardware.monitor.settings.panelRefresh" = "ハードウェアデータの更新間隔";
+"hardware.monitor.settings.panelRefresh.description" = "パネルを開いている間のハードウェアデータ更新頻度です。バックグラウンド履歴がオンの場合、閉じたパネルも同じ間隔を保ちます。各指標には固有の読み取り下限があります。速いほどリアルタイムですが読み取りが増え、遅いほど省電力です。";
 "hardware.monitor.settings.showRings" = "リングを表示";
 "hardware.monitor.settings.colorTitle" = "色";
 "hardware.monitor.settings.resetColors" = "色をリセット";

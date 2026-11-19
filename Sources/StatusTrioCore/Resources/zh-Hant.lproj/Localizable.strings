@@ -430,10 +430,12 @@
 "accessibility.status" = "%@，%@，%@";
 "accessibility.battery" = "電池 %d%%";
 "accessibility.volume" = "音量 %@";
+"settings.statusCheck.title" = "狀態補查間隔";
+"settings.quickActions.title" = "快捷操作";
 "settings.refreshInterval" = "狀態重新整理間隔";
 "settings.refreshInterval.onBattery" = "使用電池時";
 "settings.refreshInterval.onPower" = "連接電源時";
-"settings.refreshInterval.description" = "Status Trio 檢查狀態變化的頻率。重新整理越快，CPU 使用率越高。";
+"settings.refreshInterval.description" = "定期補查電池、Wi-Fi 與音量狀態。間隔越短，補查越頻繁。";
 "settings.refreshInterval.value" = "%d 秒";
 "settings.popup.order" = "顯示項目";
 "settings.popup.order.description" = "選擇狀態面板顯示的項目，並拖曳調整順序。";
@@ -455,7 +457,7 @@
 "settings.keepAwake.helperReady" = "特權輔助程式已就緒。";
 "settings.keepAwake.helperHint" = "開啟「合蓋不睡眠」（或低電量模式控制）後，會自動安裝並請求授權。";
 "settings.keepAwake.allowBattery" = "允許僅用電池時開啟";
-"settings.keepAwake.autoOff" = "低電量時自動關閉";
+"settings.keepAwake.autoOff" = "低電量時關閉闔蓋不睡眠";
 "settings.keepAwake.onlyLid" = "僅作用於「合蓋不睡眠」";
 "quickActions.displaySleep" = "保持螢幕常亮";
 "quickActions.displaySleep.description" = "閒置時防止顯示器休眠。";
@@ -490,11 +492,11 @@
 "settings.panel.background.style.classicMaterial" = "經典材質";
 "settings.panel.background.style.solid" = "純色";
 "settings.panel.background.style.liquidGlassUnavailable" = "液態玻璃需要 macOS 26 或以上版本。";
-"settings.panel.openBehavior.title" = "開啟時的行為";
+"settings.panel.openBehavior.title" = "詳情與開啟方式";
 "settings.panel.returnsToSummaryOnOpen" = "重新開啟時恢復詳情頁";
 "settings.panel.returnsToSummaryOnOpen.description" = "開啟後，再次開啟狀態面板會回到上次收起時仍顯示的詳情頁；關閉後，每次只顯示主介面。";
 "settings.panel.showsDetailsAlongside" = "並排顯示詳情";
-"settings.panel.showsDetailsAlongside.description" = "開啟後，詳情頁顯示在狀態面板右側；右側空間不足時顯示在左側。";
+"settings.panel.showsDetailsAlongside.description" = "開啟後，詳情頁優先顯示在狀態面板右側，其次左側；兩側都放不下時，在面板內顯示。";
 "settings.panel.showsPanelOnHover" = "懸停顯示狀態面板";
 "settings.panel.showsPanelOnHover.description" = "開啟後，滑鼠懸停在選單列圖示上約 0.3 秒即開啟狀態面板；移入面板不會收起，離開圖示與面板後短暫延遲再收起。點擊行為仍為切換。";
 "settings.popup.volumeScroll.group" = "面板滾動";
@@ -1079,7 +1081,7 @@
 "guide.state.chargingBatteryCenter" = "充電 + 電池百分比";
 "guide.state.fullPowerCenter" = "已充滿 + 功耗";
 "guide.state.lowBatteryInputCenter" = "低電量 + 輸入法";
-"settings.menuBarRightClickAction" = "右鍵操作";
+"settings.menuBarRightClickAction" = "選單列圖示右鍵操作";
 "settings.menuBarRightClickAction.description" = "右鍵點擊選單列圖示時執行的動作。";
 "settings.menuBarRightClickAction.contextMenu" = "顯示右鍵選單";
 "settings.menuBarRightClickAction.toggleLowPowerMode" = "切換低電量模式";
@@ -1171,7 +1173,7 @@
 "hardware.monitor.memory" = "記憶體使用率";
 "hardware.monitor.batteryTemperature" = "電池溫度";
 "hardware.monitor.batteryTemperature.help" = "電池組溫度。進度條使用 20–60°C 視覺刻度，不代表安全百分比。";
-"settings.tab.monitor" = "監控";
+"settings.tab.monitor" = "系統監控";
 "hardware.monitor.settings.showInPanel" = "在狀態面板顯示";
 "hardware.monitor.settings.showInPanel.description" = "將硬體監控卡片加入狀態面板。";
 "hardware.monitor.settings.metrics" = "指標";
@@ -1235,8 +1237,8 @@
 "hardware.monitor.settings.background.description" = "面板關閉時依面板重新整理頻率持續記錄最近 60 秒的硬體歷史，開啟詳情頁即可看到趨勢。";
 "hardware.monitor.background.off" = "關閉";
 "hardware.monitor.background.seconds" = "%d 秒";
-"hardware.monitor.settings.panelRefresh" = "面板重新整理";
-"hardware.monitor.settings.panelRefresh.description" = "面板開啟時的更新頻率。佔用率與網速、磁碟讀寫跟隨此頻率；溫度、風扇最多每 4 秒讀取一次。越快越即時但讀取更多，越慢越省電。";
+"hardware.monitor.settings.panelRefresh" = "硬體資料重新整理間隔";
+"hardware.monitor.settings.panelRefresh.description" = "面板開啟時硬體資料的更新頻率。開啟背景歷史後，關閉面板也沿用此時長；各指標仍有自己的讀取下限。越快越即時但讀取更多，越慢越省電。";
 "hardware.monitor.settings.showRings" = "顯示圓環";
 "hardware.monitor.settings.colorTitle" = "顏色";
 "hardware.monitor.settings.resetColors" = "恢復預設顏色";

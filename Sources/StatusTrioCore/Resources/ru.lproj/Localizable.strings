@@ -430,10 +430,12 @@
 "accessibility.status" = "%@, %@, %@";
 "accessibility.battery" = "Батарея %d%%";
 "accessibility.volume" = "Громкость %@";
+"settings.statusCheck.title" = "Интервал проверки";
+"settings.quickActions.title" = "Быстрые действия";
 "settings.refreshInterval" = "Интервал обновления";
 "settings.refreshInterval.onBattery" = "От батареи";
 "settings.refreshInterval.onPower" = "От сети";
-"settings.refreshInterval.description" = "Как часто Status Trio проверяет изменения. Более частое обновление увеличивает нагрузку на CPU.";
+"settings.refreshInterval.description" = "Периодически проверяет состояние батареи, Wi-Fi и звука. Чем короче интервал, тем чаще проверка.";
 "settings.refreshInterval.value" = "%d секунд";
 "settings.popup.order" = "Отображаемые элементы";
 "settings.popup.order.description" = "Выберите элементы, отображаемые на панели состояния, и перетаскивайте их, чтобы изменить порядок.";
@@ -455,7 +457,7 @@
 "settings.keepAwake.helperReady" = "Привилегированный помощник готов.";
 "settings.keepAwake.helperHint" = "Включение «Не спать при закрытой крышке» (или управления режимом низкого энергопотребления) автоматически устанавливает помощник и запрашивает разрешение.";
 "settings.keepAwake.allowBattery" = "Разрешить при работе от батареи";
-"settings.keepAwake.autoOff" = "Отключать при низком заряде";
+"settings.keepAwake.autoOff" = "Отключать «Не спать при закрытой крышке» при низком заряде";
 "settings.keepAwake.onlyLid" = "Относится только к «Не спать при закрытой крышке»";
 "quickActions.displaySleep" = "Не давать экрану засыпать";
 "quickActions.displaySleep.description" = "Не позволяет дисплею переходить в спящий режим при простое.";
@@ -490,11 +492,11 @@
 "settings.panel.background.style.classicMaterial" = "Классический материал";
 "settings.panel.background.style.solid" = "Сплошной цвет";
 "settings.panel.background.style.liquidGlassUnavailable" = "Liquid Glass требует macOS 26 или новее.";
-"settings.panel.openBehavior.title" = "Поведение при открытии";
+"settings.panel.openBehavior.title" = "Детали и открытие";
 "settings.panel.returnsToSummaryOnOpen" = "Открывать последнюю страницу деталей";
 "settings.panel.returnsToSummaryOnOpen.description" = "Если включено, при повторном открытии панели состояния восстанавливается страница деталей, открытая при закрытии; иначе панель всегда открывается на обзоре.";
 "settings.panel.showsDetailsAlongside" = "Показывать детали рядом";
-"settings.panel.showsDetailsAlongside.description" = "Если включено, страницы деталей открываются справа от панели состояния; если справа нет места — слева.";
+"settings.panel.showsDetailsAlongside.description" = "Если включено, страницы деталей открываются справа от панели состояния, затем слева. Если места нет с обеих сторон, они открываются внутри панели.";
 "settings.panel.showsPanelOnHover" = "Показывать панель при наведении";
 "settings.panel.showsPanelOnHover.description" = "Если включено, удержание указателя на значке в строке меню около 0,3 секунды открывает панель состояния. При переходе в панель она остаётся открытой; при уходе со значка и панели она закрывается с небольшой задержкой. Щелчок по-прежнему переключает панель.";
 "settings.popup.volumeScroll.group" = "Прокрутка панели";
@@ -1079,7 +1081,7 @@
 "guide.state.chargingBatteryCenter" = "Charging + Battery %";
 "guide.state.fullPowerCenter" = "Full + Power";
 "guide.state.lowBatteryInputCenter" = "Low Battery + Input";
-"settings.menuBarRightClickAction" = "Действие при правом клике";
+"settings.menuBarRightClickAction" = "Правый клик по значку в строке меню";
 "settings.menuBarRightClickAction.description" = "Что делает значок в строке меню при щелчке правой кнопкой.";
 "settings.menuBarRightClickAction.contextMenu" = "Показать контекстное меню";
 "settings.menuBarRightClickAction.toggleLowPowerMode" = "Переключить режим энергосбережения";
@@ -1171,7 +1173,7 @@
 "hardware.monitor.memory" = "Загрузка памяти";
 "hardware.monitor.batteryTemperature" = "Темп. батареи";
 "hardware.monitor.batteryTemperature.help" = "Температура батареи. Полоса использует визуальную шкалу 20–60 °C, а не процент безопасности.";
-"settings.tab.monitor" = "Монитор";
+"settings.tab.monitor" = "Монитор системы";
 "hardware.monitor.settings.showInPanel" = "Показывать в панели";
 "hardware.monitor.settings.showInPanel.description" = "Добавляет карточку монитора оборудования в панель состояния.";
 "hardware.monitor.settings.metrics" = "Метрики";
@@ -1235,8 +1237,8 @@
 "hardware.monitor.settings.background.description" = "Записывает последние 60 секунд истории оборудования при закрытой панели с частотой панели, чтобы детали открывались с трендом.";
 "hardware.monitor.background.off" = "Выкл.";
 "hardware.monitor.background.seconds" = "%d с";
-"hardware.monitor.settings.panelRefresh" = "Обновление панели";
-"hardware.monitor.settings.panelRefresh.description" = "Как часто обновляется панель, пока открыта. Загрузка и скорости сети/диска следуют этому; температура и вентилятор — не чаще раза в 4 секунды. Быстрее — актуальнее, но больше чтений; медленнее — экономит энергию.";
+"hardware.monitor.settings.panelRefresh" = "Интервал обновления данных оборудования";
+"hardware.monitor.settings.panelRefresh.description" = "Как часто обновляются данные оборудования при открытой панели. При включённой фоновой истории закрытая панель сохраняет тот же ритм. У каждой метрики остаётся свой нижний предел чтения. Быстрее — актуальнее, но больше чтений; медленнее — экономит энергию.";
 "hardware.monitor.settings.showRings" = "Показывать кольца";
 "hardware.monitor.settings.colorTitle" = "Цвета";
 "hardware.monitor.settings.resetColors" = "Сбросить цвета";

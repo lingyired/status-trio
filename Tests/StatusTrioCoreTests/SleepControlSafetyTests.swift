@@ -35,6 +35,11 @@ private final class ControllableClient: DisableSleepClienting, @unchecked Sendab
     private var _setCalls: [Bool] = []
     private var _readCalls = 0
     private var _pending: [(Bool, CheckedContinuation<Bool, Error>)] = []
+    private var _landSetButThrow = false
+    private var _failReadCount = 0
+    private var _failReadOnCall: Int?
+    private var _suspendReads = false
+    private var _pendingReads: [CheckedContinuation<Bool, Error>] = []
 
     init(disableSleep: Bool = false, version: Int = 3, versionThrows: Bool = false,
          readThrows: Bool = false, autoComplete: Bool = true, failSetCount: Int = 0) {
@@ -47,6 +52,21 @@ private final class ControllableClient: DisableSleepClienting, @unchecked Sendab
     var readCalls: Int { lock.withLock { _readCalls } }
     var pendingCount: Int { lock.withLock { _pending.count } }
     func setFailSetCount(_ v: Int) { lock.withLock { _failSetCount = v } }
+    /// Makes the next write land in the helper but answer with an error, the
+    /// shape of a reply lost after the privileged side already applied it.
+    func setLandSetButThrow(_ v: Bool) { lock.withLock { _landSetButThrow = v } }
+    func setFailReadCount(_ v: Int) { lock.withLock { _failReadCount = v } }
+    func setFailReadOnCall(_ call: Int) { lock.withLock { _failReadOnCall = call } }
+    func setSuspendReads(_ v: Bool) { lock.withLock { _suspendReads = v } }
+    var pendingReadCount: Int { lock.withLock { _pendingReads.count } }
+    func completeNextRead(_ value: Bool) {
+        let next = lock.withLock { () -> CheckedContinuation<Bool, Error>? in
+            guard !_pendingReads.isEmpty else { return nil }
+            _disableSleep = value
+            return _pendingReads.removeFirst()
+        }
+        next?.resume(returning: value)
+    }
 
     func protocolVersion() async throws -> Int {
         try lock.withLock {
@@ -55,10 +75,22 @@ private final class ControllableClient: DisableSleepClienting, @unchecked Sendab
         }
     }
     func readDisableSleep() async throws -> Bool {
-        try lock.withLock {
+        enum Decision { case fail, complete(Bool), suspend }
+        let decision: Decision = lock.withLock {
             _readCalls += 1
-            if _readThrows { throw Failure.failed }
-            return _disableSleep
+            if let failOn = _failReadOnCall, _readCalls == failOn { return .fail }
+            if _failReadCount > 0 { _failReadCount -= 1; return .fail }
+            if _readThrows { return .fail }
+            if _suspendReads { return .suspend }
+            return .complete(_disableSleep)
+        }
+        switch decision {
+        case .fail: throw Failure.failed
+        case .complete(let value): return value
+        case .suspend:
+            return try await withCheckedThrowingContinuation { cont in
+                lock.withLock { _pendingReads.append(cont) }
+            }
         }
     }
     func setDisableSleep(_ enabled: Bool) async throws -> Bool {
@@ -66,6 +98,11 @@ private final class ControllableClient: DisableSleepClienting, @unchecked Sendab
         let decision: Decision = lock.withLock {
             _setCalls.append(enabled)
             if _failSetCount > 0 { _failSetCount -= 1; return .fail }
+            if _landSetButThrow {
+                _landSetButThrow = false
+                _disableSleep = enabled
+                return .fail
+            }
             if _autoComplete { _disableSleep = enabled; return .complete(enabled) }
             return .suspend
         }
@@ -280,5 +317,70 @@ final class SleepControlSafetyTests: XCTestCase {
         control.start()
         await waitUntil { control.helperCapability == .needsUpdate }
         XCTAssertEqual(control.helperCapability, .needsUpdate)
+    }
+
+    /// A reply lost after the privileged write already landed, followed by an
+    /// unreadable status, must not be treated as "definitely off".
+    func testLostEnableReplyKeepsRecoveryMarkerForNextLaunch() async {
+        let client = ControllableClient()
+        let ownership = ProbeOwnership()
+        let control = make(client: client, ownership: ownership)
+        client.setLandSetButThrow(true)
+        client.setFailReadOnCall(2)
+
+        control.setLidSleep(true)
+        await waitUntil { !control.isApplyingLidSleep && control.lastError != nil }
+
+        XCTAssertTrue(client.disableSleep)
+        XCTAssertTrue(ownership.ownsDisableSleep)
+        XCTAssertTrue(control.needsTerminationCleanup)
+        XCTAssertFalse(control.isPreventingLidSleep)
+        control.stop()
+
+        // The next launch must confirm the system is off before dropping the
+        // durable recovery marker.
+        let restarted = make(client: client, ownership: ownership)
+        restarted.start()
+        await waitUntil { !ownership.ownsDisableSleep }
+        XCTAssertFalse(client.disableSleep)
+    }
+
+    func testUnplugDuringInitialReadDoesNotWriteEnable() async {
+        let client = ControllableClient()
+        client.setSuspendReads(true)
+        let control = make(client: client)
+        control.allowsLidSleepOnBattery = false
+        control.updatePowerState(battery: battery(connected: true))
+
+        control.setLidSleep(true)
+        await waitUntil { client.pendingReadCount == 1 }
+        control.updatePowerState(battery: battery(connected: false))
+        client.completeNextRead(false)
+        await waitUntil { !control.isApplyingLidSleep }
+
+        XCTAssertFalse(client.setCalls.contains(true))
+        XCTAssertFalse(control.isPreventingLidSleep)
+        XCTAssertFalse(client.disableSleep)
+    }
+
+    func testReadinessRecoveryDoesNotClearIntentionalLidSleep() async {
+        let client = ControllableClient()
+        let readiness = ProbeReadiness(isReady: true)
+        let control = make(client: client, readiness: readiness)
+        control.start()
+        await waitUntil { control.helperCapability == .available }
+        control.setLidSleep(true)
+        await waitUntil { control.isPreventingLidSleep }
+        XCTAssertEqual(client.setCalls, [true])
+
+        readiness.setReady(false)
+        await waitUntil { control.helperCapability == .unavailable }
+        readiness.setReady(true)
+        await waitUntil { control.helperCapability == .available }
+        for _ in 0..<40 { await Task.yield() }
+
+        XCTAssertTrue(control.isPreventingLidSleep)
+        XCTAssertEqual(client.setCalls, [true])
+        XCTAssertTrue(client.disableSleep)
     }
 }

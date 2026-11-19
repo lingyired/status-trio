@@ -36,6 +36,8 @@ struct GeneralSectionView: View {
     var body: some View {
         SettingsPage {
             systemGroup
+            quickActionsGroup
+            statusCheckGroup
             SettingsTransferView(
                 session: transferSession,
                 localization: localization
@@ -122,8 +124,11 @@ struct GeneralSectionView: View {
                 }
             }
 
-            SettingsDivider()
+        }
+    }
 
+    private var quickActionsGroup: some View {
+        SettingsGroup(localization.string(.settingsQuickActionsTitle)) {
             if let globalShortcutController {
                 ShortcutSettingsRow(
                     store: store,
@@ -135,9 +140,11 @@ struct GeneralSectionView: View {
             }
 
             rightClickActionRow
+        }
+    }
 
-            SettingsDivider()
-
+    private var statusCheckGroup: some View {
+        SettingsGroup(localization.string(.settingsStatusCheckTitle)) {
             // Status refresh interval (#255): one row per power source, using
             // the original settings-row and slider component. The description
             // stays once on the first row; neither row shows step ticks.

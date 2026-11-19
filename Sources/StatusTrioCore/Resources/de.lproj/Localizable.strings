@@ -430,10 +430,12 @@
 "accessibility.status" = "%@, %@, %@";
 "accessibility.battery" = "Batterie %d%%";
 "accessibility.volume" = "Lautstärke %@";
+"settings.statusCheck.title" = "Statusprüfungsintervall";
+"settings.quickActions.title" = "Schnellaktionen";
 "settings.refreshInterval" = "Aktualisierungsintervall";
 "settings.refreshInterval.onBattery" = "Im Akkubetrieb";
 "settings.refreshInterval.onPower" = "Am Netzstrom";
-"settings.refreshInterval.description" = "Wie oft Status Trio auf Änderungen prüft. Häufigere Aktualisierungen erhöhen die CPU-Auslastung.";
+"settings.refreshInterval.description" = "Prüft Batterie-, WLAN- und Lautstärkestatus regelmäßig. Kürzere Intervalle prüfen häufiger.";
 "settings.refreshInterval.value" = "%d Sekunden";
 "settings.popup.order" = "Angezeigte Elemente";
 "settings.popup.order.description" = "Wähle aus, welche Elemente im Statusbereich erscheinen, und ziehe sie, um die Reihenfolge zu ändern.";
@@ -455,7 +457,7 @@
 "settings.keepAwake.helperReady" = "Privilegierter Helper ist bereit.";
 "settings.keepAwake.helperHint" = "Wenn du „Wach bei geschlossenem Deckel“ (oder die Low-Power-Modus-Steuerung) einschaltest, wird der Helper automatisch installiert und zur Freigabe angefragt.";
 "settings.keepAwake.allowBattery" = "Auch im Akkubetrieb erlauben";
-"settings.keepAwake.autoOff" = "Bei niedrigem Akkustand ausschalten";
+"settings.keepAwake.autoOff" = "Bei niedrigem Akkustand „Wachhalten bei geschlossenem Deckel“ ausschalten";
 "settings.keepAwake.onlyLid" = "Gilt nur für „Wach bei geschlossenem Deckel“";
 "quickActions.displaySleep" = "Bildschirm wach halten";
 "quickActions.displaySleep.description" = "Verhindert, dass das Display bei Inaktivität in den Ruhezustand geht.";
@@ -490,11 +492,11 @@
 "settings.panel.background.style.classicMaterial" = "Klassisches Material";
 "settings.panel.background.style.solid" = "Einfarbig";
 "settings.panel.background.style.liquidGlassUnavailable" = "Liquid Glass erfordert macOS 26 oder neuer.";
-"settings.panel.openBehavior.title" = "Öffnungsverhalten";
+"settings.panel.openBehavior.title" = "Details & Öffnen";
 "settings.panel.returnsToSummaryOnOpen" = "Letzte Detailseite wieder öffnen";
 "settings.panel.returnsToSummaryOnOpen.description" = "Wenn aktiviert, kehrt das Statuspanel beim erneuten Öffnen zur zuletzt angezeigten Detailseite zurück; andernfalls startet es immer auf der Übersicht.";
 "settings.panel.showsDetailsAlongside" = "Details daneben anzeigen";
-"settings.panel.showsDetailsAlongside.description" = "Wenn aktiviert, öffnen sich Detailseiten rechts neben dem Statuspanel; ist rechts kein Platz, öffnen sie sich links.";
+"settings.panel.showsDetailsAlongside.description" = "Wenn aktiviert, öffnen sich Detailseiten rechts neben dem Statuspanel, dann links. Passt keine Seite, öffnen sie sich im Panel.";
 "settings.panel.showsPanelOnHover" = "Panel beim Überfahren anzeigen";
 "settings.panel.showsPanelOnHover.description" = "Wenn aktiviert, öffnet sich das Statuspanel, wenn der Zeiger etwa 0,3 Sekunden auf dem Menüleisten-Symbol ruht. Beim Bewegen in das Panel bleibt es offen; verlässt der Zeiger Symbol und Panel, schließt es nach kurzer Verzögerung. Klicken schaltet weiterhin um.";
 "settings.popup.volumeScroll.group" = "Panel-Scrollen";
@@ -1079,7 +1081,7 @@
 "guide.state.chargingBatteryCenter" = "Charging + Battery %";
 "guide.state.fullPowerCenter" = "Full + Power";
 "guide.state.lowBatteryInputCenter" = "Low Battery + Input";
-"settings.menuBarRightClickAction" = "Rechtsklick-Aktion";
+"settings.menuBarRightClickAction" = "Rechtsklick auf das Menüleisten-Symbol";
 "settings.menuBarRightClickAction.description" = "Was das Menüleisten-Symbol beim Rechtsklick tut.";
 "settings.menuBarRightClickAction.contextMenu" = "Kontextmenü anzeigen";
 "settings.menuBarRightClickAction.toggleLowPowerMode" = "Energiesparmodus umschalten";
@@ -1171,7 +1173,7 @@
 "hardware.monitor.memory" = "Speicherauslastung";
 "hardware.monitor.batteryTemperature" = "Akkutemperatur";
 "hardware.monitor.batteryTemperature.help" = "Akkutemperatur. Der Balken nutzt eine visuelle Skala von 20–60 °C, keinen Sicherheitsprozentsatz.";
-"settings.tab.monitor" = "Monitor";
+"settings.tab.monitor" = "Systemmonitor";
 "hardware.monitor.settings.showInPanel" = "Im Statusfenster anzeigen";
 "hardware.monitor.settings.showInPanel.description" = "Fügt die Hardware-Monitor-Karte zum Statusfenster hinzu.";
 "hardware.monitor.settings.metrics" = "Messwerte";
@@ -1235,8 +1237,8 @@
 "hardware.monitor.settings.background.description" = "Zeichnet bei geschlossenem Panel die letzten 60 Sekunden Hardwareverlauf im Panel-Intervall auf, sodass eine Detailseite mit Trend öffnet.";
 "hardware.monitor.background.off" = "Aus";
 "hardware.monitor.background.seconds" = "%d s";
-"hardware.monitor.settings.panelRefresh" = "Panel-Aktualisierung";
-"hardware.monitor.settings.panelRefresh.description" = "Wie oft das Panel bei geöffnetem Zustand aktualisiert wird. Auslastung sowie Netzwerk- und Disk-Geschwindigkeit folgen dem; Temperatur und Lüfter höchstens alle 4 Sekunden. Schneller ist aktueller, liest aber mehr; langsamer spart Energie.";
+"hardware.monitor.settings.panelRefresh" = "Aktualisierungsintervall der Hardwaredaten";
+"hardware.monitor.settings.panelRefresh.description" = "Wie oft Hardwaredaten bei geöffnetem Panel aktualisiert werden. Bei aktiver Hintergrundhistorie behält das geschlossene Panel dieselbe Frequenz. Jeder Messwert hat weiterhin seine eigene Lesegrenze. Schneller ist aktueller, liest aber mehr; langsamer spart Energie.";
 "hardware.monitor.settings.showRings" = "Ringe anzeigen";
 "hardware.monitor.settings.colorTitle" = "Farben";
 "hardware.monitor.settings.resetColors" = "Farben zurücksetzen";

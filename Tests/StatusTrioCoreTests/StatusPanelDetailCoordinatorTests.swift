@@ -52,4 +52,12 @@ struct StatusPanelDetailCoordinatorTests {
         #expect(coordinator.update(route: .battery, enabled: true, summaryFrame: start, screens: [screen], dockInset: DockReveal.noInset) != .hidden)
         #expect(coordinator.update(route: .summary, enabled: true, summaryFrame: start, screens: [screen], dockInset: DockReveal.noInset) == .hidden)
     }
+
+    /// @Published publishes in willSet, so the setting event's value must win
+    /// over the not-yet-committed stored property.
+    @Test func detailSettingUsesTheDeliveredValue() {
+        #expect(StatusBarController.detailAlongsidePreference(delivered: true, stored: false))
+        #expect(!StatusBarController.detailAlongsidePreference(delivered: false, stored: true))
+        #expect(StatusBarController.detailAlongsidePreference(delivered: nil, stored: true))
+    }
 }

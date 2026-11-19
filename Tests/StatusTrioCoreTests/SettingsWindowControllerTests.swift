@@ -48,7 +48,7 @@ final class SettingsWindowControllerTests: VisibleUITestCase {
 
     func testShowRestoresSavedFrameInsteadOfDefaultSize() throws {
         // #304: after the user resizes/moves the window, reopening it must reuse
-        // the saved frame rather than snapping back to the default 720×530 and
+        // the saved frame rather than snapping back to the default 720×600 and
         // re-centring (the old always-on `setContentSize`/`center` path).
         let suiteName = "StatusTrioCoreTests.SettingsWindowFrame.\(UUID().uuidString)"
         let defaults = try XCTUnwrap(UserDefaults(suiteName: suiteName))

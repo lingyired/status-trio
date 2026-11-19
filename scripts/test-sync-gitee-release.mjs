@@ -90,6 +90,21 @@ test('same tag with different bytes fails without replacing attachment',async()=
   await sync();state.files.set('StatusTrio-1.2.3.zip',Buffer.from('tampered'));const count=state.writes.length;
   await assert.rejects(sync());assert.equal(state.writes.length,count);
 }));
+test('older tag never replaces a newer Gitee feed',async()=>mockMirror(async state=>{
+  state.feed=Buffer.from(state.feed.toString().replace('<sparkle:version>42<','<sparkle:version>43<'));
+  const original=Buffer.from(state.feed);const count=state.writes.length;
+  await assert.rejects(sync(),/older build 42/);
+  assert.deepEqual(state.feed,original);
+  assert.equal(state.writes.length,count);
+  assert.equal(state.release,null);
+}));
+test('same build claimed by a different version is refused',async()=>mockMirror(async state=>{
+  state.feed=Buffer.from(state.feed.toString().replace('<sparkle:version>42</sparkle:version>','<sparkle:version>42</sparkle:version><sparkle:shortVersionString>1.2.2</sparkle:shortVersionString>'));
+  const original=Buffer.from(state.feed);const count=state.writes.length;
+  await assert.rejects(sync(),/identity conflict/);
+  assert.deepEqual(state.feed,original);
+  assert.equal(state.writes.length,count);
+}));
 
 const dmgSha = createHash('sha256').update(dmgBytes).digest('hex');
 const zipSha = createHash('sha256').update(zipBytes).digest('hex');

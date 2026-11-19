@@ -214,7 +214,7 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
     static let frameAutosaveName = "SettingsWindow.Sidebar.v1"
 
     private func makeWindow() -> NSWindow {
-        let contentSize = NSSize(width: SettingsView.width, height: SettingsView.height)
+        let contentSize = SettingsView.defaultContentSize(for: NSScreen.main?.visibleFrame)
         let window = NSWindow(
             contentRect: NSRect(origin: .zero, size: contentSize),
             // `.resizable` gives the green title-bar button its zoom/full-screen

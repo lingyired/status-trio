@@ -512,7 +512,16 @@ struct SettingsView: View {
     /// Default content size the first time the window opens. Once the user has
     /// resized or moved it, the window restores its saved frame instead (#304).
     static let width: CGFloat = 720
-    static let height: CGFloat = 530
+    /// Tall enough for the full sidebar to be visible without scrolling on a
+    /// normal display. Short screens clamp to their visible area.
+    static let height: CGFloat = 600
+
+    /// First-open content size. The saved frame still wins on later launches.
+    static func defaultContentSize(for visibleFrame: NSRect?) -> NSSize {
+        guard let visibleFrame else { return NSSize(width: width, height: height) }
+        let availableHeight = max(minimumHeight, visibleFrame.height - 80)
+        return NSSize(width: width, height: min(height, availableHeight))
+    }
     /// Smallest content size the user can drag the window down to. The fixed
     /// 196pt sidebar plus the detail column's widest control (a 180pt pop-up)
     /// and one line of label copy still fit; narrow rows wrap instead of
