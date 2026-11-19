@@ -278,6 +278,7 @@
 "battery.state.notPresent" = "Sem bateria";
 "battery.state.charged" = "Totalmente carregada";
 "battery.state.calculatingTimeToFull" = "Calculando tempo para carga total";
+"battery.state.trickleCharging" = "Ainda em carga de manutenção";
 "battery.timeRemaining" = "Autonomia estimada: %@";
 "battery.timeToFull.minutes" = "Cerca de %d min para carga total";
 "battery.timeToFull.hours" = "Cerca de %d h para carga total";

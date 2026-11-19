@@ -44,6 +44,7 @@ final class PresentationTextMapperTests: XCTestCase {
                     isCharging: true,
                     isLowPowerMode: true,
                     isConnectedToPower: true,
+                    percentage: 80,
                     timeToFullChargeMinutes: 85
                 ),
                 localization: localization
@@ -52,7 +53,7 @@ final class PresentationTextMapperTests: XCTestCase {
         )
         XCTAssertEqual(
             PanelPresentationMapper.batterySubtitle(
-                makeBattery(isCharging: true, isConnectedToPower: true),
+                makeBattery(isCharging: true, isConnectedToPower: true, percentage: 80),
                 localization: localization
             ),
             "正在计算充满时间"
@@ -80,6 +81,80 @@ final class PresentationTextMapperTests: XCTestCase {
         )
     }
 
+    func testBatterySubtitleShowsTrickleChargingAtFullPercentage() {
+        let localization = makeLocalization(.simplifiedChinese)
+        let trickle = localization.string(.batteryStateTrickleCharging)
+        XCTAssertEqual(trickle, "仍在进行涓流充电")
+
+        // 100%, still charging, not yet reported charged → trickle copy.
+        XCTAssertEqual(
+            PanelPresentationMapper.batterySubtitle(
+                makeBattery(isCharging: true, isConnectedToPower: true, percentage: 100),
+                localization: localization
+            ),
+            trickle
+        )
+        // 99% and 80% keep the estimate path; only exactly-full uses trickle.
+        XCTAssertEqual(
+            PanelPresentationMapper.batterySubtitle(
+                makeBattery(
+                    isCharging: true,
+                    isConnectedToPower: true,
+                    percentage: 99,
+                    timeToFullChargeMinutes: 35
+                ),
+                localization: localization
+            ),
+            "预计 35 分钟充满"
+        )
+        XCTAssertEqual(
+            PanelPresentationMapper.batterySubtitle(
+                makeBattery(
+                    isCharging: true,
+                    isConnectedToPower: true,
+                    percentage: 80,
+                    timeToFullChargeMinutes: 85
+                ),
+                localization: localization
+            ),
+            "预计 1 小时 25 分钟充满"
+        )
+        // System-reported charged always wins, even at 100% while charging.
+        XCTAssertEqual(
+            PanelPresentationMapper.batterySubtitle(
+                makeBattery(
+                    isCharging: true,
+                    isCharged: true,
+                    isConnectedToPower: true,
+                    percentage: 100
+                ),
+                localization: localization
+            ),
+            "已充满"
+        )
+        // 100%, unplugged, not charged → normal external-power state.
+        XCTAssertEqual(
+            PanelPresentationMapper.batterySubtitle(
+                makeBattery(isConnectedToPower: true, percentage: 100),
+                localization: localization
+            ),
+            "已连接电源"
+        )
+        // A charging flag while unplugged must never claim trickle charging.
+        XCTAssertEqual(
+            PanelPresentationMapper.batterySubtitle(
+                makeBattery(isCharging: true, isConnectedToPower: false, percentage: 100),
+                localization: localization
+            ),
+            "正在计算充满时间"
+        )
+
+        localization.setPreference(.language(.english))
+        XCTAssertEqual(
+            localization.string(.batteryStateTrickleCharging),
+            "Still trickle charging"
+        )
+    }
     func testUnpluggedBatteryDoesNotShowChargeToFullPlaceholder() {
         let localization = makeLocalization(.simplifiedChinese)
         for action: ChargeToFullNowPresentation in [.applying, .chargingToFull, .cancelling] {

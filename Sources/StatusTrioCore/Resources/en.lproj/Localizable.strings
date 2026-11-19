@@ -278,6 +278,7 @@
 "battery.state.notPresent" = "No battery";
 "battery.state.charged" = "Fully charged";
 "battery.state.calculatingTimeToFull" = "Calculating time to full";
+"battery.state.trickleCharging" = "Still trickle charging";
 "battery.timeRemaining" = "About %@ remaining";
 "battery.timeToFull.minutes" = "About %d min to full";
 "battery.timeToFull.hours" = "About %d h to full";

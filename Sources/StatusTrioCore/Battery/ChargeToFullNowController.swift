@@ -69,6 +69,26 @@ enum ChargeToFullNowPresentation: Equatable, Sendable {
     }
 }
 
+extension ChargeToFullNowPresentation {
+    /// The panel hides the charge-to-full action once the displayed battery
+    /// reaches 100%. The controller may still hold a session and macOS may
+    /// keep finishing the charge in the background, so the session and its
+    /// stop/restore logic must stay intact; only the rendered row is hidden.
+    /// User-driven cancellation states stay visible so a confirmation or an
+    /// in-flight cancel is never hidden from the user.
+    func hidingPanelActionAtFullCharge(percentage: Int) -> ChargeToFullNowPresentation {
+        guard percentage >= 100 else { return self }
+        switch self {
+        case .available, .chargingToFull, .applying:
+            return .hidden
+        case .hidden, .unavailable, .failed,
+             .cancelConfirmationRequired, .cancelPending, .cancelling,
+             .cancelFailed, .cancelLimitChangedConfirmation:
+            return self
+        }
+    }
+}
+
 @MainActor
 final class ChargeToFullNowController: ObservableObject {
     @Published private(set) var presentation: ChargeToFullNowPresentation = .hidden

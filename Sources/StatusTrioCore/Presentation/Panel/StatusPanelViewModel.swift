@@ -220,6 +220,9 @@ final class StatusPanelViewModel: ObservableObject {
     /// publishes each 30 Hz slider report, so the row stays glued to the pointer.
     static let levelVolumePublishInterval: Duration = .milliseconds(100)
     private var pendingRefreshRegions: RefreshRegions = []
+    /// True while a battery tick is driving the charge-to-full demand, so the
+    /// nested presentation publish does not read a not-yet-committed snapshot.
+    private var isUpdatingChargeDemand = false
     private var lastPanelSettingsFingerprint: PanelSettingsFingerprint?
     private var panelSettingsCheckScheduled = false
     private var lifecycleGeneration = 0
@@ -974,9 +977,17 @@ final class StatusPanelViewModel: ObservableObject {
             .removeDuplicates()
             .sink { [weak self] presentation in
                 guard let self else { return }
-                chargeToFullNowPresentation = presentation
-                refreshSummaryChargeToFullNowPresentation()
-                refreshBatterySummary()
+                // A battery tick drives `updateChargeToFullNowDemand`, which
+                // applies the resolved value with the delivered battery. A
+                // publish from inside that call happens during `@Published`
+                // willSet, so `store.popupSnapshot` is still the previous
+                // value; skip here instead of mapping a stale battery.
+                if isUpdatingChargeDemand { return }
+                applyChargeToFullNowPresentation(
+                    presentation,
+                    battery: nil,
+                    percentage: store.popupSnapshot.battery.percentage
+                )
             }
             .store(in: &cancellables)
 
@@ -1017,6 +1028,30 @@ final class StatusPanelViewModel: ObservableObject {
             )
         }
         .store(in: &cancellables)
+    }
+
+    /// Resolve the raw controller presentation against the displayed battery so
+    /// the summary card and the battery detail page both hide the charge-to-full
+    /// row at 100%. The controller keeps its session; only the rendered row is
+    /// affected.
+    private func applyChargeToFullNowPresentation(
+        _ presentation: ChargeToFullNowPresentation,
+        battery deliveredBattery: BatteryStatus?,
+        percentage: Int
+    ) {
+        let resolved = presentation.hidingPanelActionAtFullCharge(percentage: percentage)
+        let changed = resolved != chargeToFullNowPresentation
+        if changed {
+            chargeToFullNowPresentation = resolved
+            refreshSummaryChargeToFullNowPresentation()
+        }
+        // On a battery tick the delivered status is authoritative; reading
+        // `store.popupSnapshot` here would see the previous value.
+        if let deliveredBattery {
+            refreshBatterySummary(status: deliveredBattery)
+        } else if changed {
+            refreshBatterySummary()
+        }
     }
 
     private func refreshSummaryChargeToFullNowPresentation(
@@ -1117,10 +1152,10 @@ final class StatusPanelViewModel: ObservableObject {
 
     /// Re-maps the visible battery row when the charge action changes, so the
     /// subtitle reflects the click before the system's charging flag catches up.
-    private func refreshBatterySummary() {
+    private func refreshBatterySummary(status deliveredStatus: BatteryStatus? = nil) {
         guard isVisible(.battery) else { return }
         let next = PanelPresentationMapper.battery(
-            store.popupSnapshot.battery,
+            deliveredStatus ?? store.popupSnapshot.battery,
             powerSample: store.powerSampling.systemPower,
             inputPower: store.powerSampling.inputPower,
             batteryPower: store.powerSampling.batteryPower,
@@ -1141,12 +1176,19 @@ final class StatusPanelViewModel: ObservableObject {
             chargeToFullNowPresentation = .hidden
             return
         }
+        isUpdatingChargeDemand = true
+        defer { isUpdatingChargeDemand = false }
         chargeToFullNow.update(
             ChargeToFullNowDemand(
                 popoverVisible: popoverVisible,
                 batterySectionVisible: batterySectionVisible,
                 battery: battery
             )
+        )
+        applyChargeToFullNowPresentation(
+            chargeToFullNow.presentation,
+            battery: battery,
+            percentage: battery.percentage
         )
     }
 

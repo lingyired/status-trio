@@ -261,6 +261,7 @@
 "battery.state.notPresent" = "لا توجد بطارية";
 "battery.state.charged" = "ممتلئة بالكامل";
 "battery.state.calculatingTimeToFull" = "جارٍ حساب الوقت حتى الامتلاء";
+"battery.state.trickleCharging" = "لا يزال في وضع الشحن البطيء";
 "battery.timeRemaining" = "الوقت المتبقي: حوالي %@";
 "battery.timeToFull.minutes" = "نحو %d دقيقة حتى الامتلاء";
 "battery.timeToFull.hours" = "نحو %d ساعة حتى الامتلاء";
