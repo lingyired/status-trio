@@ -1229,7 +1229,7 @@
 "hardware.monitor.settings.topApps" = "Show top apps";
 "hardware.monitor.settings.topApps.description" = "Lists the busiest processes at the bottom of detail pages. Turn off to save CPU.";
 "hardware.monitor.settings.speedCaps.title" = "Network speed cap";
-"hardware.monitor.settings.speedCaps.description" = "Used as the full scale for the network speed trend and the icon ring's download/upload arcs.";
+"hardware.monitor.settings.speedCaps.description" = "The icon ring's download/upload arcs always use these caps; the speed trend uses them as full scale only with \"Fixed network scale\" on.";
 "hardware.monitor.settings.networkScale" = "Fixed network scale";
 "hardware.monitor.settings.networkScale.description" = "Off: auto-scale to the window peak with 15% headroom. On: use the download/upload caps as the full scale.";
 "hardware.monitor.settings.background" = "Keep background history";

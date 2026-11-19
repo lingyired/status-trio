@@ -1,6 +1,20 @@
 import AppKit
 import SwiftUI
 
+/// One helper state vocabulary for both Settings surfaces. The battery page
+/// already reports an unusable helper as "无法连接或尚未验证"; the keep-awake
+/// page must not keep showing a healthy lock and an install hint in that case.
+enum KeepAwakeHelperStatus {
+    static func textKey(isAvailable: Bool, isReady: Bool) -> LocalizationKey {
+        guard isAvailable else { return .lowPowerModeHelperUnavailable }
+        return isReady ? .settingsKeepAwakeHelperReady : .settingsKeepAwakeHelperHint
+    }
+
+    static func symbolName(isAvailable: Bool) -> String {
+        isAvailable ? "lock.shield" : "exclamationmark.triangle.fill"
+    }
+}
+
 /// Dedicated Settings → 保持唤醒 page. Grouped so the keep-screen pill and the
 /// lid-sleep pill (plus its battery options) are clearly separate concerns.
 struct KeepAwakeSectionView: View {
@@ -87,13 +101,13 @@ struct KeepAwakeSectionView: View {
     private var helperStatus: some View {
         VStack(alignment: .leading, spacing: 6) {
             HStack(spacing: 8) {
-                Image(systemName: "lock.shield")
-                    .foregroundStyle(.green)
+                Image(systemName: KeepAwakeHelperStatus.symbolName(isAvailable: helper.isAvailable))
+                    .foregroundStyle(helper.isAvailable ? Color.green : Color.orange)
                 Text(localization.string(.settingsKeepAwakeHelper))
                     .font(.callout)
             }
             Text(localization.string(
-                helper.isReady ? .settingsKeepAwakeHelperReady : .settingsKeepAwakeHelperHint
+                KeepAwakeHelperStatus.textKey(isAvailable: helper.isAvailable, isReady: helper.isReady)
             ))
             .font(.caption)
             .foregroundStyle(.secondary)

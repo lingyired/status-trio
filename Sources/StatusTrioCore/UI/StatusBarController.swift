@@ -137,6 +137,8 @@ final class StatusBarController: NSObject {
     /// Debounces enter/exit so duplicate tracking/monitor signals do not restart
     /// the dwell timer on every mouse move.
     private var isPointerInStatusItemRegion = false
+    /// Boundary tracking for the whole hover group (icon, panels and bridge).
+    private var hoverGroupTracker = PopoverHoverGroupTracker()
     private let openSettings: () -> Void
     /// Opens Status Trio's own Settings window on the Battery tab.
     private let openAppBatterySettings: () -> Void
@@ -506,6 +508,7 @@ final class StatusBarController: NSObject {
             resetStaticPresentation()
             renderLatestScene()
             installStatusItemHoverTracking()
+            if isHoverPresentationEnabled { installHoverMouseMonitors() }
         } else {
             clearAnimationPresentation()
             // The colored presentation's non-template footprint is transparent.
@@ -529,6 +532,9 @@ final class StatusBarController: NSObject {
             removeStatusItemHoverTracking()
             cancelHoverTransition()
             removePanelHoverTracking()
+            // A hidden icon has no hover to track; stop the global monitor too.
+            removeHoverMouseMonitors()
+            hoverGroupTracker.reset()
         }
         visibilityDidChange?()
     }
@@ -683,6 +689,7 @@ final class StatusBarController: NSObject {
             removeHoverMouseMonitors()
             removePanelHoverTracking()
             cancelHoverTransition()
+            hoverGroupTracker.reset()
         }
     }
 
@@ -735,11 +742,27 @@ final class StatusBarController: NSObject {
     }
 
     private func refreshStatusItemHoverState() {
+        guard isHoverPresentationEnabled else { return }
         let point = NSEvent.mouseLocation
-        let inside = statusItemHoverRegions().contains {
+        let regions = statusItemHoverRegions()
+        let presentation = PopoverHoverPresentation(statusItemFrames: regions,
+                                                   panelFrames: panelWindowFrames)
+        // Group state comes first so entering the icon from outside cancels any
+        // stale hide before the icon path schedules the show.
+        switch hoverGroupTracker.update(inside: presentation.isWithinHoverArea(point)) {
+        case .cancelPending:
+            cancelHoverTransition()
+        case .scheduleHide:
+            if popover.isShown, popoverPresentedByHover {
+                scheduleHoverTransition(.hide)
+            }
+        case .none:
+            break
+        }
+        let insideItem = regions.contains {
             PopoverHoverPresentation.containsInclusive($0, point)
         }
-        setPointerInsideStatusItemRegion(inside)
+        setPointerInsideStatusItemRegion(insideItem)
     }
 
     private func setPointerInsideStatusItemRegion(_ inside: Bool) {
@@ -824,13 +847,16 @@ final class StatusBarController: NSObject {
     private func panelHoverDidEnter() {
         guard isHoverPresentationEnabled else { return }
         cancelHoverTransition()
+        _ = hoverGroupTracker.update(inside: true)
     }
 
     private func panelHoverDidExit() {
         guard isHoverPresentationEnabled,
               popover.isShown,
               popoverPresentedByHover else { return }
-        scheduleHoverTransition(.hide)
+        // Re-resolve against the full group: leaving the panel into the 8 pt
+        // bridge is not leaving the hover area.
+        refreshStatusItemHoverState()
     }
 
     private func scheduleHoverTransition(_ transition: PopoverHoverIntent.Transition) {
@@ -913,7 +939,12 @@ final class StatusBarController: NSObject {
             statusItemFrames: statusItemHoverRegions(),
             panelFrames: panelWindowFrames
         )
-        guard !presentation.isWithinHoverArea(NSEvent.mouseLocation) else { return }
+        // Still inside the bridge: remember that, so moving beyond it schedules
+        // a fresh hide instead of leaving the panel stuck on screen.
+        guard !presentation.isWithinHoverArea(NSEvent.mouseLocation) else {
+            _ = hoverGroupTracker.update(inside: true)
+            return
+        }
         closePopover()
     }
 

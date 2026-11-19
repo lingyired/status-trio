@@ -6,6 +6,19 @@ import XCTest
 
 @MainActor
 final class SettingsViewTests: XCTestCase {
+    func testKeepAwakeHelperStatusMatchesBatteryWhenHelperUnavailable() {
+        XCTAssertEqual(KeepAwakeHelperStatus.textKey(isAvailable: false, isReady: false),
+                       .lowPowerModeHelperUnavailable)
+        XCTAssertEqual(KeepAwakeHelperStatus.textKey(isAvailable: false, isReady: true),
+                       .lowPowerModeHelperUnavailable)
+        XCTAssertEqual(KeepAwakeHelperStatus.textKey(isAvailable: true, isReady: true),
+                       .settingsKeepAwakeHelperReady)
+        XCTAssertEqual(KeepAwakeHelperStatus.textKey(isAvailable: true, isReady: false),
+                       .settingsKeepAwakeHelperHint)
+        XCTAssertEqual(KeepAwakeHelperStatus.symbolName(isAvailable: false), "exclamationmark.triangle.fill")
+        XCTAssertEqual(KeepAwakeHelperStatus.symbolName(isAvailable: true), "lock.shield")
+    }
+
     func testPanelDetailCopyMatchesTheSideBySideBehaviour() throws {
         let suite = "SettingsViewTests.panelDetailCopy.\(UUID().uuidString)"
         let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))

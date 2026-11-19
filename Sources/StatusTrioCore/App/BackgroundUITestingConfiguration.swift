@@ -10,7 +10,7 @@ struct BackgroundUITestingConfiguration: Equatable, Sendable {
     let isEnabled: Bool
     let display: Display
     let opensStatusPanel: Bool
-    /// Optional detail page (raw kind: cpu/gpu/memory/network/disk) to open in
+    /// Optional detail page (raw kind: cpu/gpu/memory/network/disk/fan) to open in
     /// the test status panel, for measuring per-page cost without pointer input.
     /// Kept as a String so this file compiles on its own in the native contract.
     let opensHardwareDetailRaw: String?
@@ -52,7 +52,7 @@ struct BackgroundUITestingConfiguration: Equatable, Sendable {
             problems.append("--test-open-status-panel requires --background-ui-testing.")
         }
         if detailArguments.count > 1 || (detailArguments.count == 1 && detailValues.isEmpty) {
-            problems.append("Expected at most one --test-open-hardware-detail=cpu|gpu|memory|network|disk.")
+            problems.append("Expected at most one --test-open-hardware-detail=cpu|gpu|memory|network|disk|fan.")
         }
         if !detailArguments.isEmpty, statusPanelArguments.isEmpty {
             problems.append("--test-open-hardware-detail requires --test-open-status-panel.")

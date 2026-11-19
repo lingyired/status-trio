@@ -7,7 +7,7 @@ PANEL_MODE="settings"
 HARDWARE_DETAIL=""
 REUSE=0
 usage() {
-    echo "Usage: bash scripts/launch-computer-use.sh [--reuse] [--display secondary] [--panel] [--test-open-hardware-detail cpu|gpu|memory|network|disk]" >&2
+    echo "Usage: bash scripts/launch-computer-use.sh [--reuse] [--display secondary] [--panel] [--test-open-hardware-detail cpu|gpu|memory|network|disk|fan]" >&2
     exit 2
 }
 while [[ $# -gt 0 ]]; do
@@ -28,10 +28,10 @@ while [[ $# -gt 0 ]]; do
             shift
             ;;
         --test-open-hardware-detail=*)
-            [[ "$PANEL_MODE" == panel && -z "$HARDWARE_DETAIL" ]] || usage
+            [[ -z "$HARDWARE_DETAIL" ]] || usage
             HARDWARE_DETAIL="${1#*=}"
             case "$HARDWARE_DETAIL" in
-                cpu|gpu|memory|network|disk) ;;
+                cpu|gpu|memory|network|disk|fan) ;;
                 *) usage ;;
             esac
             shift
@@ -39,6 +39,10 @@ while [[ $# -gt 0 ]]; do
         *) usage ;;
     esac
 done
+# The detail page only exists inside the status panel; accept either order.
+if [[ -n "$HARDWARE_DETAIL" && "$PANEL_MODE" != "panel" ]]; then
+    usage
+fi
 
 BRANCH="$(git -C "$ROOT" branch --show-current)"
 if [[ -z "$BRANCH" || "$BRANCH" == "main" || "$BRANCH" == "master" ]]; then

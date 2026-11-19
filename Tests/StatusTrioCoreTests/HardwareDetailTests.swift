@@ -244,6 +244,125 @@ final class HardwareDetailTests: XCTestCase {
         XCTAssertEqual(single.last?.point.x ?? -1, width, accuracy: 0.01)
     }
 
+    // MARK: - Shared network timeline
+
+    private func networkPoints(_ now: Date) -> [HardwareDetailHistoryPoint] {
+        [
+            HardwareDetailHistoryPoint(id: 0, date: now.addingTimeInterval(-2), values: [1, nil]),
+            HardwareDetailHistoryPoint(id: 1, date: now.addingTimeInterval(-1), values: [2, 3]),
+            HardwareDetailHistoryPoint(id: 2, date: now, values: [4, 5])
+        ]
+    }
+
+    func testChartSharedDomainAlignsBothDirectionsAtOneTimestamp() {
+        let now = Date(timeIntervalSince1970: 100)
+        let points = networkPoints(now)
+        let size = CGSize(width: 100, height: 80)
+        let domain = HardwareDetailChartGeometry.domain(points: points, now: now)
+        XCTAssertNotNil(domain)
+
+        let download = HardwareDetailChartGeometry.samples(points: points, series: 0, now: now,
+                                                           yMaximum: 10, size: size, domain: domain)
+        let upload = HardwareDetailChartGeometry.samples(points: points, series: 1, now: now,
+                                                         yMaximum: 10, size: size, domain: domain)
+        let middle = now.addingTimeInterval(-1)
+        XCTAssertEqual(download.first { $0.date == middle }?.point.x ?? -1, 50, accuracy: 0.01)
+        XCTAssertEqual(upload.first { $0.date == middle }?.point.x ?? -1, 50, accuracy: 0.01)
+    }
+
+    func testChartSharedDomainKeepsLoneSeriesAtItsRealTime() {
+        let now = Date(timeIntervalSince1970: 100)
+        let points = [
+            HardwareDetailHistoryPoint(id: 0, date: now.addingTimeInterval(-2), values: [1, nil]),
+            HardwareDetailHistoryPoint(id: 1, date: now.addingTimeInterval(-1), values: [2, 3]),
+            HardwareDetailHistoryPoint(id: 2, date: now, values: [4, nil])
+        ]
+        let size = CGSize(width: 100, height: 80)
+        let domain = HardwareDetailChartGeometry.domain(points: points, now: now)
+
+        let upload = HardwareDetailChartGeometry.samples(points: points, series: 1, now: now,
+                                                         yMaximum: 10, size: size, domain: domain)
+        XCTAssertEqual(upload.count, 1)
+        XCTAssertEqual(upload.first?.point.x ?? -1, 50, accuracy: 0.01,
+                       "a lone upload sample must not be stretched across the full width")
+    }
+
+    func testChartSharedDomainSingleTimestampStaysFullWidth() {
+        let now = Date(timeIntervalSince1970: 100)
+        let points = [HardwareDetailHistoryPoint(id: 0, date: now, values: [2, 3])]
+        let size = CGSize(width: 100, height: 80)
+        let domain = HardwareDetailChartGeometry.domain(points: points, now: now)
+
+        let download = HardwareDetailChartGeometry.samples(points: points, series: 0, now: now,
+                                                           yMaximum: 10, size: size, domain: domain)
+        XCTAssertEqual(download.first?.point.x ?? -1, 0, accuracy: 0.01)
+        XCTAssertEqual(download.last?.point.x ?? -1, 100, accuracy: 0.01)
+    }
+
+    // MARK: - Fan page
+
+    private func fanSample(_ rpm: Double?, availability: HardwareMetricAvailability,
+                           maximum: Double? = nil, label: String? = nil,
+                           fanless: Bool = false) -> HardwareMetricSample {
+        HardwareMetricSample(value: rpm, unit: .rpm, source: .smc,
+                             availability: availability, sensorLabel: label,
+                             metadata: HardwareMetricMetadata(maximum: maximum, isFanless: fanless))
+    }
+
+    func testFanDetailKnownZeroIsFanlessWithoutInventedCard() {
+        var snapshot = HardwareMetricsSnapshot()
+        snapshot.fanCount = 0
+        snapshot.samples[.fanRPM(index: 0)] = fanSample(nil, availability: .unsupported, fanless: true)
+
+        let page = FanDetailPresentation(snapshot: snapshot)
+
+        XCTAssertEqual(page.fanCount, 0)
+        XCTAssertTrue(page.isFanless)
+        XCTAssertTrue(page.rows.isEmpty)
+        XCTAssertNil(page.averageRPM)
+    }
+
+    func testFanDetailUnreadCountDoesNotInventOneFan() {
+        var snapshot = HardwareMetricsSnapshot()
+        snapshot.samples[.fanRPM(index: 0)] = fanSample(nil, availability: .temporarilyUnavailable)
+
+        let page = FanDetailPresentation(snapshot: snapshot)
+
+        XCTAssertNil(page.fanCount)
+        XCTAssertFalse(page.isFanless)
+        XCTAssertTrue(page.rows.isEmpty, "an unread FNum must not become one placeholder fan")
+        XCTAssertNil(page.averageRPM)
+    }
+
+    func testFanDetailKeepsUnmeasuredFanButAveragesOnlyReadableOnes() {
+        var snapshot = HardwareMetricsSnapshot()
+        snapshot.fanCount = 2
+        snapshot.samples[.fanRPM(index: 0)] = fanSample(1_500, availability: .measured, maximum: 5_000, label: "Left")
+        snapshot.samples[.fanRPM(index: 1)] = fanSample(nil, availability: .temporarilyUnavailable, maximum: 5_000)
+
+        let page = FanDetailPresentation(snapshot: snapshot)
+
+        XCTAssertEqual(page.fanCount, 2)
+        XCTAssertEqual(page.rows.count, 2)
+        XCTAssertEqual(page.rows[0].rpm, 1_500)
+        XCTAssertNil(page.rows[1].rpm)
+        XCTAssertEqual(page.rows[0].sensorLabel, "Left")
+        XCTAssertEqual(page.averageRPM, 1_500)
+    }
+
+    func testFanDetailStaleAverageKeepsValueAndFlag() {
+        var snapshot = HardwareMetricsSnapshot()
+        snapshot.fanCount = 1
+        snapshot.samples[.fanRPM(index: 0)] = fanSample(1_200, availability: .stale, maximum: 4_000)
+
+        let page = FanDetailPresentation(snapshot: snapshot)
+
+        XCTAssertEqual(page.averageRPM, 1_200)
+        XCTAssertTrue(page.isAverageStale)
+        XCTAssertFalse(page.isFanless)
+        XCTAssertEqual(page.rows.count, 1)
+    }
+
     // MARK: - Formatting
 
     func testFormatFallsBackToDash() {

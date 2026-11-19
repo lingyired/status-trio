@@ -1230,7 +1230,7 @@
 "hardware.monitor.settings.topApps" = "顯示高佔用應用";
 "hardware.monitor.settings.topApps.description" = "在詳情頁底部顯示佔用最高的處理程序；關閉可減少 CPU 佔用。";
 "hardware.monitor.settings.speedCaps.title" = "網路速率上限";
-"hardware.monitor.settings.speedCaps.description" = "作為網路速度趨勢的滿格，也用於圖示外環的上傳/下載弧。";
+"hardware.monitor.settings.speedCaps.description" = "圖示外環的上傳/下載弧線一律使用這兩個上限；速度趨勢圖僅在開啟「固定網路趨勢刻度」時以它們為滿值。";
 "hardware.monitor.settings.networkScale" = "固定網路趨勢刻度";
 "hardware.monitor.settings.networkScale.description" = "關閉：依視窗峰值自動縮放（留 15% 餘量）；開啟：以下載/上傳上限為滿格。";
 "hardware.monitor.settings.background" = "保留後台歷史";

@@ -99,7 +99,7 @@ for display in automatic secondary; do
         [[ "$(cat "$ST_CUA_FIXTURE_LOG")" == $'prepare\nbuild\nlaunch' ]]
     done
 done
-for detail in cpu gpu memory network disk; do
+for detail in cpu gpu memory network disk fan; do
     for detailMode in launch reuse; do
         : > "$ST_CUA_FIXTURE_LOG"
         args=(--panel --test-open-hardware-detail="$detail")
@@ -122,4 +122,8 @@ for display in automatic secondary; do
         [[ "$(cat "$ST_CUA_FIXTURE_LOG")" == "reuse" ]]
     done
 done
+: > "$ST_CUA_FIXTURE_LOG"
+ST_CUA_FIXTURE_PANEL_MODE=panel ST_CUA_FIXTURE_DETAIL=fan \
+    bash "$TEST_ROOT/scripts/launch-computer-use.sh" --test-open-hardware-detail=fan --panel > "$FIXTURE/output"
+[[ "$(cat "$ST_CUA_FIXTURE_LOG")" == $'prepare\nbuild\nlaunch' ]]
 echo "Computer Use launcher: isolation, lock, capability, argument, reuse, status-panel and ordering cases passed."

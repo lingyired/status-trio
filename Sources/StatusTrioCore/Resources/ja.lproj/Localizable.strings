@@ -1230,7 +1230,7 @@
 "hardware.monitor.settings.topApps" = "高負荷アプリを表示";
 "hardware.monitor.settings.topApps.description" = "詳細ページ下部に最も負荷の高いプロセスを表示します。オフにすると CPU を節約できます。";
 "hardware.monitor.settings.speedCaps.title" = "ネットワーク速度上限";
-"hardware.monitor.settings.speedCaps.description" = "ネットワーク速度トレンドの満点として使用し、アイコンリングの上下載弧にも使います。";
+"hardware.monitor.settings.speedCaps.description" = "アイコンリングのダウンロード/アップロード弧は常にこの上限を使い、速度トレンドは「固定ネットワークスケール」がオンのときだけ満点として使います。";
 "hardware.monitor.settings.networkScale" = "ネットワーク目盛り固定";
 "hardware.monitor.settings.networkScale.description" = "オフ：ウィンドウ内のピークに自動スケール（15%余白）。オン：ダウンロード/アップロード上限を満点にします。";
 "hardware.monitor.settings.background" = "バックグラウンド履歴を保持";

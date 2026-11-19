@@ -1230,7 +1230,7 @@
 "hardware.monitor.settings.topApps" = "Mostrar apps exigentes";
 "hardware.monitor.settings.topApps.description" = "Muestra los procesos más activos al final de las páginas de detalle. Desactívalo para ahorrar CPU.";
 "hardware.monitor.settings.speedCaps.title" = "Límite de velocidad de red";
-"hardware.monitor.settings.speedCaps.description" = "Se usa como escala completa del gráfico de velocidad y de los arcos de descarga/subida del anillo.";
+"hardware.monitor.settings.speedCaps.description" = "Los arcos de descarga/subida del anillo siempre usan estos límites; la tendencia de velocidad solo los usa como escala completa con la escala de red fija activada.";
 "hardware.monitor.settings.networkScale" = "Escala de red fija";
 "hardware.monitor.settings.networkScale.description" = "Desactivado: escala automática al pico de la ventana con 15 % de margen. Activado: límites de descarga/subida como escala completa.";
 "hardware.monitor.settings.background" = "Mantener historial";

@@ -1230,7 +1230,7 @@
 "hardware.monitor.settings.topApps" = "إظهار التطبيقات الأكثر استهلاكًا";
 "hardware.monitor.settings.topApps.description" = "يعرض العمليات الأكثر نشاطًا أسفل صفحات التفاصيل. أوقفه لتوفير المعالج.";
 "hardware.monitor.settings.speedCaps.title" = "حد سرعة الشبكة";
-"hardware.monitor.settings.speedCaps.description" = "يُستخدم كمقياس كامل لمخطط سرعة الشبكة وأقواس التنزيل/الرفع في الحلقة.";
+"hardware.monitor.settings.speedCaps.description" = "تستخدم أقواس التنزيل/الرفع في حلقة الأيقونة هذه الحدود دائمًا؛ ويستخدمها مخطط السرعة كمقياس كامل فقط عند تفعيل مقياس الشبكة الثابت.";
 "hardware.monitor.settings.networkScale" = "مقياس الشبكة الثابت";
 "hardware.monitor.settings.networkScale.description" = "إيقاف: تحجيم تلقائي حسب ذروة النافذة بهامش 15%. تشغيل: حدود التنزيل/الرفع كمقياس كامل.";
 "hardware.monitor.settings.background" = "الاحتفاظ بالسجل";
