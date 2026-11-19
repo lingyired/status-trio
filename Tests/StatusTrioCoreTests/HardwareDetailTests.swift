@@ -115,10 +115,12 @@ final class HardwareDetailTests: XCTestCase {
         // Same timestamp must not append a duplicate.
         store.ingest(usageSnapshot(99, at: start))
         XCTAssertEqual(store.points.count, 1)
-        store.ingest(usageSnapshot(20, at: start.addingTimeInterval(30)))
-        store.ingest(usageSnapshot(30, at: start.addingTimeInterval(70)))
+        let older = start.addingTimeInterval(HardwareDetailHistoryStore.window + 20)
+        let newest = start.addingTimeInterval(HardwareDetailHistoryStore.window + 50)
+        store.ingest(usageSnapshot(20, at: older))
+        store.ingest(usageSnapshot(30, at: newest))
         XCTAssertEqual(store.points.count, 2)
-        XCTAssertEqual(store.points.first?.date, start.addingTimeInterval(30))
+        XCTAssertEqual(store.points.first?.date, older)
         store.stop()
         XCTAssertTrue(store.points.isEmpty)
     }
@@ -219,7 +221,7 @@ final class HardwareDetailTests: XCTestCase {
     func testChartSpansFullWidthWithoutSideGaps() {
         let now = Date()
         let width: CGFloat = 300
-        // History younger than the 60 s window used to leave a left gap.
+        // History younger than the chart window used to leave a left gap.
         let shortHistory = geometryPoints([-8, -4], now: now)
         let samples = HardwareDetailChartGeometry.samples(points: shortHistory, series: 0, now: now,
                                                           yMaximum: 100, size: CGSize(width: width, height: 50))

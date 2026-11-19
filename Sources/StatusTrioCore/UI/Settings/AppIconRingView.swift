@@ -1033,32 +1033,36 @@ struct HardwareCapField: View {
     @State private var text: String = ""
 
     var body: some View {
-        HStack(spacing: 6) {
-            TextField("", text: $text)
-                .textFieldStyle(.roundedBorder)
-                .multilineTextAlignment(.trailing)
-                .frame(width: 72)
-                .labelsHidden()
-                .onAppear { text = formatted(value) }
-                .onChange(of: text) { newText in
-                    if let parsed = parse(newText) {
-                        let clamped = min(range.upperBound, max(range.lowerBound, parsed.rounded()))
-                        if clamped != value { value = clamped }
+        VStack(alignment: .trailing, spacing: 2) {
+            HStack(spacing: 4) {
+                TextField("", text: $text)
+                    .textFieldStyle(.roundedBorder)
+                    .multilineTextAlignment(.trailing)
+                    .frame(width: 68)
+                    .labelsHidden()
+                    .onAppear { text = formatted(value) }
+                    .onChange(of: text) { newText in
+                        if let parsed = parse(newText) {
+                            let clamped = min(range.upperBound, max(range.lowerBound, parsed.rounded()))
+                            if clamped != value { value = clamped }
+                        }
                     }
-                }
-                .onChange(of: value) { newValue in
-                    if parse(text) != newValue { text = formatted(newValue) }
-                }
-                .onSubmit { text = formatted(value) }
-            Text("Mbps")
-                .font(.system(size: 11))
-                .foregroundStyle(.secondary)
-                .fixedSize()
+                    .onChange(of: value) { newValue in
+                        if parse(text) != newValue { text = formatted(newValue) }
+                    }
+                    .onSubmit { text = formatted(value) }
+                Text("Mbps")
+                    .font(.system(size: 11))
+                    .foregroundStyle(.secondary)
+                    .fixedSize()
+            }
             Text("≈ \(String(format: "%.1f", value / 8)) MB/s")
                 .font(.system(size: 10))
+                .monospacedDigit()
                 .foregroundStyle(.tertiary)
-                .frame(width: 100, alignment: .leading)
+                .fixedSize()
         }
+        .fixedSize()
     }
 
     private func parse(_ string: String) -> Double? {

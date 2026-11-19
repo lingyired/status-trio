@@ -28,7 +28,7 @@ final class SettingsPreferenceCatalogTests: XCTestCase {
                 "autoEnablesLowPowerMode", "showsAppleDevicesAndBattery",
                 "refreshesAppleBatteriesInBackground", "appleBatteryRefreshIntervalMinutes",
                 "showsBluetoothListeningMode", "bluetoothAudioIconChoiceRawValue", "wifiSymbolScale",
-                "volumeDisplayStyle", "ringStrokeStyle", "hardwareBackgroundHistoryEnabled", "hardwarePanelRefreshSeconds", "hardwareDownloadCapMbps", "hardwareUploadCapMbps", "hardwareNetworkChartFixedScale", "showsHardwareRings", "showsHardwareSummaryRow", "showsHardwareTopApps", "enabledHardwareRingSlots", "enabledHardwareSummaryMetrics", "refreshIntervalOnBatterySeconds",
+                "volumeDisplayStyle", "ringStrokeStyle", "hardwareBackgroundHistoryEnabled", "hardwarePanelRefreshSeconds", "hardwareHistoryWindowMinutes", "hardwareDownloadCapMbps", "hardwareUploadCapMbps", "hardwareNetworkChartFixedScale", "showsHardwareRings", "showsHardwareSummaryRow", "showsHardwareTopApps", "enabledHardwareRingSlots", "enabledHardwareSummaryMetrics", "refreshIntervalOnBatterySeconds",
                 "refreshIntervalOnPowerSeconds", "maxVisibleOutputDevices", "alwaysShowsAllOutputDevices",
                 "maxVisibleInputDevices", "alwaysShowsAllInputDevices", "showsBluetoothDeviceList",
                 "maxVisibleBluetoothDevices", "hidesGhostBluetoothDevices", "popupSectionOrder",
@@ -116,6 +116,23 @@ final class SettingsPreferenceCatalogTests: XCTestCase {
             XCTAssertNil(snapshot["hardwareBackgroundRefreshSeconds"], "the old seconds key is retired")
             let reloaded = SettingsStore(defaults: defaults, systemChargeLimit: { nil })
             XCTAssertFalse(reloaded.hardwareBackgroundHistoryEnabled)
+        }
+    }
+
+    func testHardwareHistoryWindowDefaultsToThreeMinutesAndRoundTrips() {
+        withStore { store, defaults in
+            XCTAssertEqual(store.hardwareHistoryWindowMinutes, 3)
+            for value in [1, 2, 4, 5] {
+                store.hardwareHistoryWindowMinutes = value
+                XCTAssertEqual(SettingsStore(defaults: defaults).hardwareHistoryWindowMinutes, value)
+            }
+            for invalid in [0, 6, -1] {
+                store.hardwareHistoryWindowMinutes = invalid
+                XCTAssertEqual(store.hardwareHistoryWindowMinutes, 3, "only 1–5 minutes are accepted")
+                XCTAssertEqual(defaults.integer(forKey: SettingsStore.hardwareHistoryWindowMinutesDefaultsKey), 3)
+            }
+            store.hardwareHistoryWindowMinutes = 5
+            XCTAssertEqual(SettingsPreferenceCatalog.snapshot(store)["hardwareHistoryWindowMinutes"], .number(5))
         }
     }
 

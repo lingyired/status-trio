@@ -1234,9 +1234,12 @@
 "hardware.monitor.settings.networkScale" = "Feste Netzwerkskala";
 "hardware.monitor.settings.networkScale.description" = "Aus: automatische Skalierung auf den Fenster-Peak mit 15 % Reserve. An: Download-/Upload-Limit als Vollausschlag.";
 "hardware.monitor.settings.background" = "Hintergrundverlauf behalten";
-"hardware.monitor.settings.background.description" = "Zeichnet bei geschlossenem Panel die letzten 60 Sekunden Hardwareverlauf im Panel-Intervall auf, sodass eine Detailseite mit Trend öffnet.";
+"hardware.monitor.settings.background.description" = "Zeichnet bei geschlossenem Panel die letzten 3 Minuten Hardwareverlauf im Panel-Intervall auf, sodass eine Detailseite mit Trend öffnet.";
 "hardware.monitor.background.off" = "Aus";
 "hardware.monitor.background.seconds" = "%d s";
+"hardware.monitor.settings.historyWindow" = "Verlaufsdauer";
+"hardware.monitor.settings.historyWindow.description" = "Wie weit der Detailverlauf zurückreicht.";
+"hardware.monitor.settings.historyWindow.minutes" = "%d Min.";
 "hardware.monitor.settings.panelRefresh" = "Aktualisierungsintervall der Hardwaredaten";
 "hardware.monitor.settings.panelRefresh.description" = "Wie oft Hardwaredaten bei geöffnetem Panel aktualisiert werden. Bei aktiver Hintergrundhistorie behält das geschlossene Panel dieselbe Frequenz. Jeder Messwert hat weiterhin seine eigene Lesegrenze. Schneller ist aktueller, liest aber mehr; langsamer spart Energie.";
 "hardware.monitor.settings.showRings" = "Ringe anzeigen";

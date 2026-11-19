@@ -1234,9 +1234,12 @@
 "hardware.monitor.settings.networkScale" = "Échelle réseau fixe";
 "hardware.monitor.settings.networkScale.description" = "Désactivé : échelle auto sur le pic de la fenêtre avec 15 % de marge. Activé : plafonds téléchargement/envoi comme échelle pleine.";
 "hardware.monitor.settings.background" = "Conserver l’historique";
-"hardware.monitor.settings.background.description" = "Enregistre les 60 dernières secondes d’historique matériel panneau fermé, au rythme du panneau, pour ouvrir une page détaillée avec une tendance.";
+"hardware.monitor.settings.background.description" = "Enregistre les 3 dernières minutes d’historique matériel panneau fermé, au rythme du panneau, pour ouvrir une page détaillée avec une tendance.";
 "hardware.monitor.background.off" = "Désactivé";
 "hardware.monitor.background.seconds" = "%d s";
+"hardware.monitor.settings.historyWindow" = "Durée de l’historique";
+"hardware.monitor.settings.historyWindow.description" = "Jusqu’où remonte la tendance du détail.";
+"hardware.monitor.settings.historyWindow.minutes" = "%d min";
 "hardware.monitor.settings.panelRefresh" = "Intervalle d’actualisation des données matérielles";
 "hardware.monitor.settings.panelRefresh.description" = "Fréquence d’actualisation des données matérielles lorsque le panneau est ouvert. Avec l’historique en arrière-plan, le panneau fermé garde le même rythme. Chaque mesure conserve sa propre limite de lecture. Plus rapide = plus direct mais lit davantage ; plus lent = économise l’énergie.";
 "hardware.monitor.settings.showRings" = "Afficher les anneaux";

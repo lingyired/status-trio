@@ -182,6 +182,7 @@ final class SettingsStore: ObservableObject {
     static let hardwareUploadCapMbpsDefaultsKey = "hardwareUploadCapMbps"
     static let hardwareBackgroundHistoryEnabledDefaultsKey = "hardwareBackgroundHistoryEnabled"
     static let hardwarePanelRefreshSecondsDefaultsKey = "hardwarePanelRefreshSeconds"
+    static let hardwareHistoryWindowMinutesDefaultsKey = "hardwareHistoryWindowMinutes"
     static let showsHardwareTopAppsDefaultsKey = "showsHardwareTopApps"
     static let hardwareNetworkChartFixedScaleDefaultsKey = "hardwareNetworkChartFixedScale"
     static let showsHardwareRingsDefaultsKey = "showsHardwareRings"
@@ -191,16 +192,21 @@ final class SettingsStore: ObservableObject {
     static let hardwareSpeedCapRange: ClosedRange<Double> = 1...100000
     static let defaultHardwareDownloadCapMbps: Double = 1000
     static let defaultHardwareUploadCapMbps: Double = 100
-    /// Keeps the last 60 s of hardware history recording while the panel is
-    /// closed, at the panel refresh cadence, so opening a detail page immediately
-    /// shows a trend. Default on; turning it off leaves only what the menu-bar or
-    /// Dock icon already samples.
+    /// Keeps hardware history recording while the panel is closed, at the panel
+    /// refresh cadence, so opening a detail page immediately shows a trend.
+    /// Default on; turning it off leaves only what the menu-bar or Dock icon
+    /// already samples.
     static let defaultHardwareBackgroundHistoryEnabled: Bool = true
     /// Refresh cadence for the status-panel hardware summary while it is open.
     /// 1 s preserves the historical fastest cadence; slower options trade
     /// freshness for fewer reads.
     static let hardwarePanelRefreshOptions: [Int] = Array(1...8)
     static let defaultHardwarePanelRefreshSeconds: Int = 1
+    /// Detail-chart history window in whole minutes. Bounded to 1–5 minutes so
+    /// the in-memory buffer stays small; three minutes matches the previous
+    /// fixed default.
+    static let hardwareHistoryWindowOptions: [Int] = Array(1...5)
+    static let defaultHardwareHistoryWindowMinutes: Int = 3
 
     static func clampedHardwareSpeedCap(_ value: Double, fallback: Double) -> Double {
         value.isFinite ? min(hardwareSpeedCapRange.upperBound, max(hardwareSpeedCapRange.lowerBound, value)) : fallback
@@ -1246,6 +1252,21 @@ final class SettingsStore: ObservableObject {
             defaults.set(hardwarePanelRefreshSeconds, forKey: Self.hardwarePanelRefreshSecondsDefaultsKey)
         }
     }
+
+    /// How many minutes of hardware history the detail trend keeps. One of the
+    /// shipped options; 3 minutes is the default.
+    @Published var hardwareHistoryWindowMinutes: Int = SettingsStore.defaultHardwareHistoryWindowMinutes {
+        didSet {
+            guard Self.hardwareHistoryWindowOptions.contains(hardwareHistoryWindowMinutes) else {
+                hardwareHistoryWindowMinutes = Self.defaultHardwareHistoryWindowMinutes
+                return
+            }
+            defaults.set(hardwareHistoryWindowMinutes, forKey: Self.hardwareHistoryWindowMinutesDefaultsKey)
+        }
+    }
+
+    /// The history window in seconds, for the sampler and chart.
+    var hardwareHistoryWindowSeconds: TimeInterval { TimeInterval(hardwareHistoryWindowMinutes * 60) }
 
     /// Which blocks the status-panel hardware summary shows. Per-metric toggles
     /// were removed because the panel samples a fixed set; these two control the
@@ -3017,6 +3038,10 @@ final class SettingsStore: ObservableObject {
             ?? Self.defaultHardwarePanelRefreshSeconds
         self.hardwarePanelRefreshSeconds = Self.hardwarePanelRefreshOptions.contains(storedPanel)
             ? storedPanel : Self.defaultHardwarePanelRefreshSeconds
+        let storedHistoryWindow = defaults.object(forKey: Self.hardwareHistoryWindowMinutesDefaultsKey) as? Int
+            ?? Self.defaultHardwareHistoryWindowMinutes
+        self.hardwareHistoryWindowMinutes = Self.hardwareHistoryWindowOptions.contains(storedHistoryWindow)
+            ? storedHistoryWindow : Self.defaultHardwareHistoryWindowMinutes
         self.showsHardwareRings = defaults.object(forKey: Self.showsHardwareRingsDefaultsKey) as? Bool ?? true
         self.showsHardwareSummaryRow = defaults.object(forKey: Self.showsHardwareSummaryRowDefaultsKey) as? Bool ?? true
         self.showsHardwareTopApps = defaults.object(forKey: Self.showsHardwareTopAppsDefaultsKey) as? Bool ?? true

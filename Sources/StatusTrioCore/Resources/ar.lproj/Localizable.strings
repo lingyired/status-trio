@@ -1234,9 +1234,12 @@
 "hardware.monitor.settings.networkScale" = "مقياس الشبكة الثابت";
 "hardware.monitor.settings.networkScale.description" = "إيقاف: تحجيم تلقائي حسب ذروة النافذة بهامش 15%. تشغيل: حدود التنزيل/الرفع كمقياس كامل.";
 "hardware.monitor.settings.background" = "الاحتفاظ بالسجل";
-"hardware.monitor.settings.background.description" = "يسجّل آخر 60 ثانية من سجل العتاد أثناء إغلاق اللوحة بمعدل تحديث اللوحة، لتُفتح صفحة التفاصيل مع اتجاه.";
+"hardware.monitor.settings.background.description" = "يسجّل آخر 3 دقائق من سجل العتاد أثناء إغلاق اللوحة بمعدل تحديث اللوحة، لتُفتح صفحة التفاصيل مع اتجاه.";
 "hardware.monitor.background.off" = "إيقاف";
 "hardware.monitor.background.seconds" = "%d ث";
+"hardware.monitor.settings.historyWindow" = "مدة السجل";
+"hardware.monitor.settings.historyWindow.description" = "إلى أي مدى يُحفظ اتجاه صفحة التفاصيل.";
+"hardware.monitor.settings.historyWindow.minutes" = "%d د";
 "hardware.monitor.settings.panelRefresh" = "فترة تحديث بيانات العتاد";
 "hardware.monitor.settings.panelRefresh.description" = "عدد مرات تحديث بيانات العتاد أثناء فتح اللوحة. عند تفعيل السجل في الخلفية، تحافظ اللوحة المغلقة على الإيقاع نفسه. ولكل مقياس حد قراءة خاص به. الأسرع أكثر حيوية لكنه يقرأ أكثر؛ الأبطأ يوفر الطاقة.";
 "hardware.monitor.settings.showRings" = "إظهار الحلقات";

@@ -1233,9 +1233,12 @@
 "hardware.monitor.settings.networkScale" = "Fixed network scale";
 "hardware.monitor.settings.networkScale.description" = "Off: auto-scale to the window peak with 15% headroom. On: use the download/upload caps as the full scale.";
 "hardware.monitor.settings.background" = "Keep background history";
-"hardware.monitor.settings.background.description" = "Keep the last 60 seconds of hardware history while the panel is closed, at the panel refresh rate, so a detail page opens with a trend.";
+"hardware.monitor.settings.background.description" = "Keep the last 3 minutes of hardware history while the panel is closed, at the panel refresh rate, so a detail page opens with a trend.";
 "hardware.monitor.background.off" = "Off";
 "hardware.monitor.background.seconds" = "%d s";
+"hardware.monitor.settings.historyWindow" = "History window";
+"hardware.monitor.settings.historyWindow.description" = "How far back the detail trend goes.";
+"hardware.monitor.settings.historyWindow.minutes" = "%d min";
 "hardware.monitor.settings.panelRefresh" = "Hardware data refresh interval";
 "hardware.monitor.settings.panelRefresh.description" = "How often hardware data updates while the panel is open. With background history on, the closed panel keeps the same cadence. Each metric still has its own read floor. Faster is more live but reads more; slower saves power.";
 "hardware.monitor.settings.showRings" = "Show rings";

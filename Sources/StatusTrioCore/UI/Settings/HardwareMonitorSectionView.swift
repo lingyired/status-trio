@@ -57,6 +57,25 @@ struct HardwareMonitorSectionView: View {
                 .labelsHidden()
                 .settingsMenuPickerWidth()
             }
+            SettingsDivider()
+            SettingsRow(
+                "chart.line.uptrend.xyaxis",
+                tint: .teal,
+                title: localization.string(.hardwareMonitorSettingsHistoryWindow),
+                subtitle: localization.string(.hardwareMonitorSettingsHistoryWindowDescription)
+            ) {
+                Picker(localization.string(.hardwareMonitorSettingsHistoryWindow),
+                       selection: Binding(
+                        get: { store.hardwareHistoryWindowMinutes },
+                        set: { store.hardwareHistoryWindowMinutes = $0 })) {
+                    ForEach(SettingsStore.hardwareHistoryWindowOptions, id: \.self) { minutes in
+                        Text(localization.format(.hardwareMonitorHistoryWindowMinutes, minutes))
+                            .tag(minutes)
+                    }
+                }
+                .labelsHidden()
+                .settingsMenuPickerWidth()
+            }
 
             SettingsToggleRow(
                 symbol: "clock.arrow.circlepath",
@@ -91,7 +110,7 @@ struct HardwareMonitorSectionView: View {
                 "arrow.down",
                 tint: .blue,
                 title: localization.string(.hardwareDetailDownload),
-                subtitle: nil
+                subtitle: localization.string(.hardwareMonitorSpeedCapDescription)
             ) {
                 HardwareCapField(
                     value: Binding(
@@ -104,7 +123,7 @@ struct HardwareMonitorSectionView: View {
                 "arrow.up",
                 tint: .green,
                 title: localization.string(.hardwareDetailUpload),
-                subtitle: nil
+                subtitle: localization.string(.hardwareMonitorSpeedCapDescription)
             ) {
                 HardwareCapField(
                     value: Binding(

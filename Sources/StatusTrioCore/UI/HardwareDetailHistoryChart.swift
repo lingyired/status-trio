@@ -5,7 +5,7 @@ enum HardwareDetailChartScale {
     case auto
 }
 
-/// Lightweight 60 s line chart (single or dual series) using a plain SwiftUI
+/// Lightweight 3-minute line chart (single or dual series) using a plain SwiftUI
 /// Shape — no Canvas TimelineView, no continuous redraw. Missing values break the
 /// curve instead of drawing zero; a genuine pause breaks it, while a uniformly
 /// slow sampling cadence still draws a continuous line.
@@ -21,6 +21,8 @@ struct HardwareDetailHistoryChart: View {
     /// Per-series fixed maximum (same unit as the values). Used by the network
     /// chart so each direction fills against its own user-set cap.
     var seriesMaximums: [Double] = []
+    /// Visible history window; follows the user's 1–5 minute setting.
+    var historyWindow: TimeInterval = HardwareDetailHistoryStore.window
 
     @State private var hoverLocation: CGPoint?
 
@@ -44,22 +46,24 @@ struct HardwareDetailHistoryChart: View {
             let perSeries = colors.indices.map {
                 HardwareDetailChartGeometry.samples(points: points, series: $0, now: now,
                                                     yMaximum: seriesMaximum($0, fallback: maximum),
-                                                    size: size)
+                                                    size: size, window: historyWindow)
             }
             ZStack(alignment: .topLeading) {
                 HardwareDetailGrid()
                 ForEach(colors.indices, id: \.self) { index in
                     HardwareDetailAreaShape(points: points, series: index, now: now,
-                                            yMaximum: seriesMaximum(index, fallback: maximum))
+                                            yMaximum: seriesMaximum(index, fallback: maximum),
+                                            window: historyWindow)
                         .fill(LinearGradient(colors: [colors[index].opacity(0.78), colors[index].opacity(0.38)],
                                              startPoint: .top, endPoint: .bottom))
                     HardwareDetailLineShape(points: points, series: index, now: now,
-                                            yMaximum: seriesMaximum(index, fallback: maximum))
+                                            yMaximum: seriesMaximum(index, fallback: maximum),
+                                            window: historyWindow)
                         .stroke(colors[index],
                                 style: StrokeStyle(lineWidth: 1.5, lineCap: .round, lineJoin: .round))
                     HardwareDetailChartDot(points: points, series: index, now: now,
                                            yMaximum: seriesMaximum(index, fallback: maximum),
-                                           color: colors[index])
+                                           color: colors[index], window: historyWindow)
                 }
                 hoverOverlay(size: size, perSeries: perSeries)
             }
@@ -140,9 +144,9 @@ struct HardwareDetailChartSample {
 /// Shared geometry for the line and the isolated-point dots.
 enum HardwareDetailChartGeometry {
     static func samples(points: [HardwareDetailHistoryPoint], series: Int,
-                        now: Date, yMaximum: Double, size: CGSize) -> [HardwareDetailChartSample] {
+                        now: Date, yMaximum: Double, size: CGSize,
+                        window: TimeInterval = HardwareDetailHistoryStore.window) -> [HardwareDetailChartSample] {
         guard size.width > 0, size.height > 0, yMaximum > 0 else { return [] }
-        let window = HardwareDetailHistoryStore.window
         let start = now.addingTimeInterval(-window)
         var visible: [(date: Date, value: Double)] = []
         for point in points {
@@ -153,8 +157,8 @@ enum HardwareDetailChartGeometry {
         }
         guard !visible.isEmpty else { return [] }
         // Map the samples actually present across the full width instead of
-        // anchoring to the 60 s window. A freshly opened page (history shorter
-        // than 60 s) no longer leaves a left gap, and a sample up to one refresh
+        // anchoring to the 3-minute window. A freshly opened page (history
+        // shorter than the window) no longer leaves a left gap, and a sample up to one refresh
         // interval behind `now` no longer leaves a right gap.
         let firstDate = visible[0].date
         let lastDate = visible[visible.count - 1].date
@@ -185,13 +189,14 @@ enum HardwareDetailChartGeometry {
         return result
     }
 
-    /// The chart window is 60 s, so any two visible samples are at most 60 s
-    /// apart. Keep the curve continuous across normal cadence changes (1 s ↔ 15 s
-    /// ↔ 60 s) instead of turning slow samples into isolated dots; a lone sample
-    /// is still drawn as a dot. Gaps larger than the window simply contain no
-    /// points, so nothing is fabricated.
-    static func breakThreshold(for samples: [HardwareDetailChartSample]) -> TimeInterval {
-        HardwareDetailHistoryStore.window
+    /// The chart window is 3 minutes, so any two visible samples are at most
+    /// 3 minutes apart. Keep the curve continuous across normal refresh-interval
+    /// changes (1–8 s) instead of turning slow samples into isolated dots; a lone
+    /// sample is still drawn as a dot. Gaps larger than the window simply contain
+    /// no points, so nothing is fabricated.
+    static func breakThreshold(for samples: [HardwareDetailChartSample],
+                              window: TimeInterval = HardwareDetailHistoryStore.window) -> TimeInterval {
+        window
     }
 
     static func segments(for samples: [HardwareDetailChartSample],
@@ -237,13 +242,14 @@ struct HardwareDetailChartDot: View {
     let now: Date
     let yMaximum: Double
     let color: Color
+    var window: TimeInterval = HardwareDetailHistoryStore.window
 
     var body: some View {
         GeometryReader { geometry in
             let samples = HardwareDetailChartGeometry.samples(points: points, series: series,
                                                               now: now, yMaximum: yMaximum,
-                                                              size: geometry.size)
-            let threshold = HardwareDetailChartGeometry.breakThreshold(for: samples)
+                                                              size: geometry.size, window: window)
+            let threshold = HardwareDetailChartGeometry.breakThreshold(for: samples, window: window)
             let dots = HardwareDetailChartGeometry.isolatedPoints(for: samples, threshold: threshold)
             ForEach(Array(dots.enumerated()), id: \.offset) { _, point in
                 Circle()
@@ -278,13 +284,14 @@ struct HardwareDetailAreaShape: Shape {
     let series: Int
     let now: Date
     let yMaximum: Double
+    var window: TimeInterval = HardwareDetailHistoryStore.window
 
     func path(in rect: CGRect) -> Path {
         var path = Path()
         let samples = HardwareDetailChartGeometry.samples(points: points, series: series,
                                                           now: now, yMaximum: yMaximum,
-                                                          size: rect.size)
-        let threshold = HardwareDetailChartGeometry.breakThreshold(for: samples)
+                                                          size: rect.size, window: window)
+        let threshold = HardwareDetailChartGeometry.breakThreshold(for: samples, window: window)
         for segment in HardwareDetailChartGeometry.segments(for: samples, threshold: threshold)
         where segment.count > 1 {
             guard let first = segment.first, let last = segment.last else { continue }
@@ -305,13 +312,14 @@ struct HardwareDetailLineShape: Shape {
     let series: Int
     let now: Date
     let yMaximum: Double
+    var window: TimeInterval = HardwareDetailHistoryStore.window
 
     func path(in rect: CGRect) -> Path {
         var path = Path()
         let samples = HardwareDetailChartGeometry.samples(points: points, series: series,
                                                           now: now, yMaximum: yMaximum,
-                                                          size: rect.size)
-        let threshold = HardwareDetailChartGeometry.breakThreshold(for: samples)
+                                                          size: rect.size, window: window)
+        let threshold = HardwareDetailChartGeometry.breakThreshold(for: samples, window: window)
         for segment in HardwareDetailChartGeometry.segments(for: samples, threshold: threshold)
         where segment.count > 1 {
             path.move(to: segment[0])

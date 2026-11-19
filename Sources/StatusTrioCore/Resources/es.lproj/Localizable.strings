@@ -1234,9 +1234,12 @@
 "hardware.monitor.settings.networkScale" = "Escala de red fija";
 "hardware.monitor.settings.networkScale.description" = "Desactivado: escala automática al pico de la ventana con 15 % de margen. Activado: límites de descarga/subida como escala completa.";
 "hardware.monitor.settings.background" = "Mantener historial";
-"hardware.monitor.settings.background.description" = "Registra los últimos 60 segundos de historial de hardware con el panel cerrado, al ritmo del panel, para abrir el detalle con tendencia.";
+"hardware.monitor.settings.background.description" = "Registra los últimos 3 minutos de historial de hardware con el panel cerrado, al ritmo del panel, para abrir el detalle con tendencia.";
 "hardware.monitor.background.off" = "Desactivado";
 "hardware.monitor.background.seconds" = "%d s";
+"hardware.monitor.settings.historyWindow" = "Duración del historial";
+"hardware.monitor.settings.historyWindow.description" = "Hasta dónde llega la tendencia del detalle.";
+"hardware.monitor.settings.historyWindow.minutes" = "%d min";
 "hardware.monitor.settings.panelRefresh" = "Intervalo de actualización de datos de hardware";
 "hardware.monitor.settings.panelRefresh.description" = "Con qué frecuencia se actualizan los datos de hardware mientras el panel está abierto. Con el historial en segundo plano, el panel cerrado mantiene el mismo ritmo. Cada métrica conserva su propio límite de lectura. Más rápido es más en vivo pero lee más; más lento ahorra energía.";
 "hardware.monitor.settings.showRings" = "Mostrar anillos";

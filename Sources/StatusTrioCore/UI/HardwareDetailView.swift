@@ -18,6 +18,8 @@ struct HardwareDetailView: View {
     var uploadCapMbps: Double = SettingsStore.defaultHardwareUploadCapMbps
     /// When true the network chart scales to the caps instead of the window peak.
     var networkChartFixedScale: Bool = false
+    /// Detail-chart history window from the user's 1–5 minute setting.
+    var historyWindowSeconds: TimeInterval = HardwareDetailHistoryStore.window
 
     @EnvironmentObject private var localization: Localization
     @StateObject private var history: HardwareDetailHistoryStore
@@ -29,6 +31,7 @@ struct HardwareDetailView: View {
          downloadCapMbps: Double = SettingsStore.defaultHardwareDownloadCapMbps,
          uploadCapMbps: Double = SettingsStore.defaultHardwareUploadCapMbps,
          networkChartFixedScale: Bool = false,
+         historyWindowSeconds: TimeInterval = HardwareDetailHistoryStore.window,
          previewHistory: [HardwareDetailHistoryPoint]? = nil) {
         self.kind = kind
         _hardware = ObservedObject(wrappedValue: hardware)
@@ -38,9 +41,11 @@ struct HardwareDetailView: View {
         self.downloadCapMbps = downloadCapMbps
         self.uploadCapMbps = uploadCapMbps
         self.networkChartFixedScale = networkChartFixedScale
+        self.historyWindowSeconds = historyWindowSeconds
         self.previewHistory = previewHistory
         _history = StateObject(wrappedValue: HardwareDetailHistoryStore(seriesCount: kind.historySeriesCount,
-                                                                        seeded: previewHistory))
+                                                                        seeded: previewHistory,
+                                                                        historyWindow: historyWindowSeconds))
     }
 
     private var snapshot: HardwareMetricsSnapshot { hardware.snapshot }
@@ -611,7 +616,8 @@ struct HardwareDetailView: View {
                 },
                 seriesMaximums: kind == .network && networkChartFixedScale
                     ? [downloadCapMbps * 125_000, uploadCapMbps * 125_000]
-                    : [])
+                    : [],
+                historyWindow: history.historyWindow)
             Text(title)
                 .font(.subheadline)
                 .foregroundStyle(.secondary)

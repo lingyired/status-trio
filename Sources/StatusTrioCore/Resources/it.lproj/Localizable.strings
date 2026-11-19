@@ -1234,9 +1234,12 @@
 "hardware.monitor.settings.networkScale" = "Scala rete fissa";
 "hardware.monitor.settings.networkScale.description" = "Off: scala automatica sul picco della finestra con 15% di margine. On: limiti download/upload come fondo scala.";
 "hardware.monitor.settings.background" = "Mantieni cronologia";
-"hardware.monitor.settings.background.description" = "Registra gli ultimi 60 secondi di cronologia hardware a pannello chiuso, al ritmo del pannello, così il dettaglio si apre con un andamento.";
+"hardware.monitor.settings.background.description" = "Registra gli ultimi 3 minuti di cronologia hardware a pannello chiuso, al ritmo del pannello, così il dettaglio si apre con un andamento.";
 "hardware.monitor.background.off" = "Disattivato";
 "hardware.monitor.background.seconds" = "%d s";
+"hardware.monitor.settings.historyWindow" = "Durata cronologia";
+"hardware.monitor.settings.historyWindow.description" = "Quanto indietro arriva l’andamento del dettaglio.";
+"hardware.monitor.settings.historyWindow.minutes" = "%d min";
 "hardware.monitor.settings.panelRefresh" = "Intervallo di aggiornamento dei dati hardware";
 "hardware.monitor.settings.panelRefresh.description" = "Ogni quanto si aggiornano i dati hardware mentre il pannello è aperto. Con la cronologia in background, il pannello chiuso mantiene lo stesso ritmo. Ogni metrica ha comunque il proprio limite di lettura. Più veloce è più in tempo reale ma legge di più; più lento risparmia energia.";
 "hardware.monitor.settings.showRings" = "Mostra anelli";

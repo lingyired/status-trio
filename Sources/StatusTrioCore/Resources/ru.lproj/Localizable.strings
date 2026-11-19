@@ -1234,9 +1234,12 @@
 "hardware.monitor.settings.networkScale" = "Фиксированная шкала сети";
 "hardware.monitor.settings.networkScale.description" = "Выкл.: авто-масштаб по пику окна с запасом 15 %. Вкл.: пределы загрузки/отправки как полная шкала.";
 "hardware.monitor.settings.background" = "Хранить историю";
-"hardware.monitor.settings.background.description" = "Записывает последние 60 секунд истории оборудования при закрытой панели с частотой панели, чтобы детали открывались с трендом.";
+"hardware.monitor.settings.background.description" = "Записывает последние 3 минуты истории оборудования при закрытой панели с частотой панели, чтобы детали открывались с трендом.";
 "hardware.monitor.background.off" = "Выкл.";
 "hardware.monitor.background.seconds" = "%d с";
+"hardware.monitor.settings.historyWindow" = "Длина истории";
+"hardware.monitor.settings.historyWindow.description" = "Насколько глубоко хранится тренд на странице деталей.";
+"hardware.monitor.settings.historyWindow.minutes" = "%d мин";
 "hardware.monitor.settings.panelRefresh" = "Интервал обновления данных оборудования";
 "hardware.monitor.settings.panelRefresh.description" = "Как часто обновляются данные оборудования при открытой панели. При включённой фоновой истории закрытая панель сохраняет тот же ритм. У каждой метрики остаётся свой нижний предел чтения. Быстрее — актуальнее, но больше чтений; медленнее — экономит энергию.";
 "hardware.monitor.settings.showRings" = "Показывать кольца";

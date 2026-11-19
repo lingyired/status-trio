@@ -9,16 +9,19 @@ struct HardwareDetailHistoryPoint: Equatable, Identifiable {
     let values: [Double?]
 }
 
-/// Bounded 60 s history shared by all five detail pages. Subscribes to the leaf
+/// Bounded 3-minute history shared by all five detail pages. Subscribes to the leaf
 /// hardware observable only while the page is visible: no timer of its own, and
 /// nothing is retained after the page closes.
 @MainActor
 final class HardwareDetailHistoryStore: ObservableObject {
-    nonisolated static let window: TimeInterval = 60
+    /// Default window, used by previews and tests that do not pass one.
+    nonisolated static let window: TimeInterval = 180
     nonisolated static let maximumGap: TimeInterval = 8
     static let maxPoints = 400
 
     let seriesCount: Int
+    /// Visible/retained window for this page, from the user's 1–5 minute setting.
+    let historyWindow: TimeInterval
     @Published private(set) var points: [HardwareDetailHistoryPoint] = []
 
     private var cancellable: AnyCancellable?
@@ -27,8 +30,11 @@ final class HardwareDetailHistoryStore: ObservableObject {
     private var timestampProvider: ((HardwareMetricsSnapshot) -> Date?)?
     private var valuesProvider: ((HardwareMetricsSnapshot) -> [Double?])?
 
-    init(seriesCount: Int = 1, seeded: [HardwareDetailHistoryPoint]? = nil) {
+    init(seriesCount: Int = 1,
+         seeded: [HardwareDetailHistoryPoint]? = nil,
+         historyWindow: TimeInterval = HardwareDetailHistoryStore.window) {
         self.seriesCount = max(1, seriesCount)
+        self.historyWindow = max(1, historyWindow)
         if let seeded {
             points = seeded
             lastDate = seeded.last?.date
@@ -54,10 +60,12 @@ final class HardwareDetailHistoryStore: ObservableObject {
     }
 
     /// Prefills the buffer from the panel-session history the summary already
-    /// collected, so opening a detail page shows the last ~60 s immediately.
+    /// collected, trimmed to this page's window, so opening a detail page shows
+    /// the trend immediately.
     func seedFromHistory(_ rows: [HardwareHistoryRow], metricIDs: [HardwareMetricID]) {
+        guard let newest = rows.last?.date else { return }
         var seeded: [HardwareDetailHistoryPoint] = []
-        for row in rows {
+        for row in rows where row.date >= newest.addingTimeInterval(-historyWindow) {
             let values = metricIDs.map { row.values[$0] }
             guard values.contains(where: { $0 != nil }) else { continue }
             seeded.append(HardwareDetailHistoryPoint(id: seeded.count, date: row.date, values: values))
@@ -98,7 +106,7 @@ final class HardwareDetailHistoryStore: ObservableObject {
     }
 
     private func prune(now: Date) {
-        let cutoff = now.addingTimeInterval(-Self.window)
+        let cutoff = now.addingTimeInterval(-historyWindow)
         points.removeAll { $0.date < cutoff }
         if points.count > Self.maxPoints {
             points.removeFirst(points.count - Self.maxPoints)

@@ -3,7 +3,8 @@ import Foundation
 
 /// One panel-session sample row used to prefill detail charts. Primary metrics
 /// are sampled on the summary already, so recording them here adds no sampling
-/// cost; rows are bounded to the last 60 s and dropped when the panel closes.
+/// cost; rows are capped at the largest selectable detail window and dropped when
+/// the panel closes.
 struct HardwareHistoryRow: Equatable, Sendable {
     let date: Date
     let values: [HardwareMetricID: Double]
@@ -22,9 +23,11 @@ final class HardwareMonitorObservable: ObservableObject {
     /// the panel can show the previous reading instead of flashing an em dash.
     private var lastKnown: [HardwareMetricID: HardwareMetricSample] = [:]
     private let snapshotSubject = PassthroughSubject<HardwareMetricsSnapshot, Never>()
-    /// Panel-session history of the primary hardware metrics (last 60 s).
+    /// Panel-session history of the primary hardware metrics, kept to the
+    /// largest selectable detail window (5 minutes). The detail page trims its
+    /// own buffer to the user's 1–5 minute setting when seeding.
     private var historyRows: [HardwareHistoryRow] = []
-    static let historyWindow: TimeInterval = 60
+    static let historyWindow: TimeInterval = 300
     static let historyMetricIDs: [HardwareMetricID] = [
         .cpuUsage, .gpuUsage, .memoryUsage,
         .networkDownload, .networkUpload, .diskRead, .diskWrite
