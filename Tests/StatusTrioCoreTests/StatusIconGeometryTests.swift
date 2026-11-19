@@ -1,4 +1,5 @@
 import CoreGraphics
+import Foundation
 import XCTest
 @testable import StatusTrioCore
 
@@ -453,6 +454,46 @@ final class StatusIconGeometryTests: XCTestCase {
                 accuracy: 1e-12
             )
         }
+    }
+
+    // MARK: - Three-digit value top gap
+
+    /// A three-digit value like "100" is wider than two digits, so its top-gap
+    /// arc must open further to keep the glyph ink clear of the arc ends. Narrow
+    /// values keep the historical fixed width.
+    func testValueTopGapWidensToClearThreeDigitInk() {
+        let fixed = StatusIconGeometry.batteryValueTopGapWidth
+        let radius: CGFloat = 51.5
+        let clearance = StatusIconGeometry.batteryValueTopGapClearance
+
+        // Two digits at the default scale stay on the fixed width.
+        XCTAssertEqual(
+            StatusIconGeometry.batteryValueGapWidth(clearingInkWidth: 42.53),
+            fixed,
+            accuracy: 1e-9
+        )
+
+        // Three digits ("100" ≈ 60 units of ink at the default 1.8 scale) open
+        // the gap, and the arc ends then clear the ink by the declared amount.
+        let threeDigitInk: CGFloat = 59.88
+        let widened = StatusIconGeometry.batteryValueGapWidth(clearingInkWidth: threeDigitInk)
+        XCTAssertGreaterThan(widened, fixed + 5)
+
+        let halfGapAngle = widened / (2 * radius)
+        let endOffsetX = radius * CGFloat(sin(Double(halfGapAngle)))
+        XCTAssertGreaterThanOrEqual(
+            endOffsetX,
+            threeDigitInk / 2 + clearance - 1e-6
+        )
+
+        // Wider ink can never produce a narrower gap.
+        XCTAssertGreaterThanOrEqual(
+            StatusIconGeometry.batteryValueGapWidth(clearingInkWidth: 72.98),
+            widened
+        )
+        // Non-finite or empty ink falls back to the fixed width.
+        XCTAssertEqual(StatusIconGeometry.batteryValueGapWidth(clearingInkWidth: 0), fixed)
+        XCTAssertEqual(StatusIconGeometry.batteryValueGapWidth(clearingInkWidth: .nan), fixed)
     }
 }
 
