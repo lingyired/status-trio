@@ -60,6 +60,20 @@ struct BoundedProcessHandlerCleanupTests {
         #expect(box.count == 1)
     }
 
+    @Test func aDelayedStateQueueCannotTurnAnExpiredReadIntoSuccess() {
+        let box = OutcomeBox()
+        let invocation = BoundedProcessInvocation(
+            executableURL: URL(fileURLWithPath: "/bin/sh"),
+            arguments: ["-c", "printf ready"],
+            onProcessStarted: { _ in Thread.sleep(forTimeInterval: 0.12) }
+        )
+        invocation.start(timeout: .milliseconds(30)) { box.store($0) }
+
+        #expect(box.wait(seconds: 4) == .timedOut)
+        #expect(box.count == 1)
+        #expect(!invocation.isMonitoringPipes)
+    }
+
     @Test func launchFailureClearsReadabilityHandlers() {
         let (outcome, invocation) = runAndWait(
             executableURL: URL(fileURLWithPath: "/nonexistent-status-trio/definitely-not-here"),

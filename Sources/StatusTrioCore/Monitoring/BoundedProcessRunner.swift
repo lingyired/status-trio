@@ -68,6 +68,7 @@ final class BoundedProcessInvocation: @unchecked Sendable {
     private let onProcessStarted: (@Sendable (Int32) -> Void)?
 
     private var process: Process?
+    private var deadline: DispatchTime?
     private var deadlineTimer: DispatchSourceTimer?
     /// Read endpoints are owned by their dispatch sources once installed; the
     /// source cancel handler closes the descriptor. Until then they are closed
@@ -269,13 +270,15 @@ final class BoundedProcessInvocation: @unchecked Sendable {
                 return
             }
 
+            let deadline = DispatchTime.now() + Self.seconds(timeout)
+            self.deadline = deadline
             self.onProcessStarted?(child.processIdentifier)
             self.stdoutSource = self.installReadSource(stdoutPipe.fileHandleForReading, stream: .stdout)
             self.stderrSource = self.installReadSource(stderrPipe.fileHandleForReading, stream: .stderr)
             // The one-shot deadline owns the invocation until delivery. A
             // direct start caller need not keep the invocation alive itself.
             let timer = DispatchSource.makeTimerSource(queue: self.queue)
-            timer.schedule(deadline: .now() + Self.seconds(timeout))
+            timer.schedule(deadline: deadline)
             timer.setEventHandler { [self] in self.deadlineReached() }
             self.deadlineTimer = timer
             timer.activate()
@@ -283,8 +286,13 @@ final class BoundedProcessInvocation: @unchecked Sendable {
     }
 
     func cancel() {
+        let requestedAt = DispatchTime.now()
         queue.async {
             guard !self.delivered, self.pendingOutcome == nil else { return }
+            if let deadline = self.deadline, requestedAt >= deadline {
+                self.deadlineReached()
+                return
+            }
             self.cancellationRequested = true
             self.failure = self.failure ?? .cancelled
             if self.hasStarted || self.process != nil {
@@ -424,6 +432,7 @@ final class BoundedProcessInvocation: @unchecked Sendable {
 
     private func recordReadCloseFailure() {
         diagnosticsLock.withLock { readCloseFailures += 1 }
+        failure = failure ?? .failed
     }
 
     private func readHandle(for stream: Stream) -> FileHandle? {
@@ -514,7 +523,11 @@ final class BoundedProcessInvocation: @unchecked Sendable {
         if processEnded, stdoutEnded, stderrEnded, openReadDescriptorCount == 0 {
             // Success needs the child's zero status, both EOFs, and both
             // descriptors actually closed.
-            beginFinish(.exited(stdout))
+            if let deadline, DispatchTime.now() >= deadline {
+                deadlineReached()
+            } else {
+                beginFinish(.exited(stdout))
+            }
         }
     }
 
