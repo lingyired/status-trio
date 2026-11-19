@@ -12,6 +12,14 @@ precondition(configuration.isEnabled)
 precondition(configuration.display == .secondary)
 precondition(configuration.opensStatusPanel)
 precondition(!configuration.rejectsLaunch)
+let fanDetail = BackgroundUITestingConfiguration(arguments: [
+    "--background-ui-testing", "--test-open-status-panel", "--test-open-hardware-detail=fan"
+])
+precondition(fanDetail.opensHardwareDetailRaw == "fan")
+precondition(BackgroundUITestingConfiguration(arguments: [
+    "--background-ui-testing", "--test-open-status-panel",
+    "--test-open-hardware-detail=cpu", "--test-open-hardware-detail=fan"
+]).rejectsLaunch)
 precondition(!BackgroundUITestingConfiguration(arguments: ["--test-display=secondary"]).diagnostics.isEmpty)
 for flags in [
     ["--background-ui-testing", "--test-display=primary"],

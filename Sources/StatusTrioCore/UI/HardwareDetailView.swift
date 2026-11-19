@@ -382,42 +382,36 @@ struct HardwareDetailView: View {
     }
 
     private var fanContent: some View {
-        let fans = fanItems()
-        let measured = fans.compactMap(\.rpm).filter { $0.isFinite }
-        let average = measured.isEmpty ? nil : measured.reduce(0, +) / Double(measured.count)
-        let isFanless = snapshot[.fanRPM(index: 0)].metadata.isFanless
+        let fan = FanDetailPresentation(snapshot: snapshot)
         return VStack(alignment: .leading, spacing: 12) {
             HardwareDetailCard {
                 HStack(spacing: 0) {
                     topMetric(localization.string(.hardwareDetailFanCount),
-                              HardwareDetailFormat.integer(fans.count))
+                              fan.fanCount.map { HardwareDetailFormat.integer($0) }
+                                  ?? HardwareDetailFormat.dash)
                     verticalDivider
                     topMetric(localization.string(.hardwareMonitorFanAverage),
-                              HardwareDetailFormat.rpm(average))
+                              HardwareDetailFormat.rpm(fan.averageRPM))
                 }
             }
-            if fans.isEmpty {
+            if fan.rows.isEmpty {
                 HardwareDetailCard {
-                    Text(localization.string(isFanless ? .hardwareMonitorFanless : .hardwareDetailFanUnavailable))
+                    Text(localization.string(fan.isFanless ? .hardwareMonitorFanless : .hardwareDetailFanUnavailable))
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
                 }
             } else {
-                fanCards(fans)
+                fanCards(fan.rows.map { row in
+                    FanItem(index: row.index,
+                            title: row.sensorLabel
+                                ?? String(format: localization.string(.hardwareDetailFanIndex), row.index + 1),
+                            rpm: row.rpm,
+                            maxRPM: row.maxRPM,
+                            availability: row.availability)
+                })
             }
             temperatureCard
         }
-    }
-
-    private func fanItems() -> [FanItem] {
-        snapshot.samples.compactMap { key, sample in
-            guard case .fanRPM(let index) = key else { return nil }
-            let name = sample.sensorLabel
-                ?? String(format: localization.string(.hardwareDetailFanIndex), index + 1)
-            return FanItem(index: index, title: name, rpm: sample.value,
-                           maxRPM: sample.metadata.maximum, availability: sample.availability)
-        }
-        .sorted { $0.index < $1.index }
     }
 
     @ViewBuilder

@@ -20,7 +20,7 @@ func command(_ executable: String, _ arguments: [String]) -> String {
 }
 
 let arguments = Array(CommandLine.arguments.dropFirst())
-let validHardwareDetails: Set<String> = ["cpu", "gpu", "memory", "network", "disk"]
+let validHardwareDetails: Set<String> = ["cpu", "gpu", "memory", "network", "disk", "fan"]
 guard (arguments.count == 3 && arguments[0] == "prepare")
         || ((["launch", "reuse"].contains(arguments[0]))
             && (arguments.count == 4 || arguments.count == 5 || arguments.count == 6)
@@ -29,7 +29,7 @@ guard (arguments.count == 3 && arguments[0] == "prepare")
             && (arguments.count < 6
                 || (arguments[4] == "panel" && validHardwareDetails.contains(arguments[5])))),
       arguments[1].hasPrefix("com.lingsmbp.StatusTrio.dev.") else {
-    fail("Usage: computer-use-instance.swift <prepare|launch|reuse> <dev-bundle-id> <app-path> [automatic|secondary] [settings|panel] [cpu|gpu|memory|network|disk]")
+    fail("Usage: computer-use-instance.swift <prepare|launch|reuse> <dev-bundle-id> <app-path> [automatic|secondary] [settings|panel] [cpu|gpu|memory|network|disk|fan]")
 }
 let mode = arguments[0]
 let bundleID = arguments[1]
