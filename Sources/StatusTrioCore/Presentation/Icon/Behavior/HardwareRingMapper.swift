@@ -42,17 +42,21 @@ enum HardwareRingMapper {
         levels: [HardwareMonitorMetric: HardwareLoadLevel] = [:],
         metricColors: [HardwareMonitorMetric: IconRGBA] = [:],
         speedCapsMbps: [HardwareMonitorMetric: Double] = [:],
+        auxiliarySamples: [HardwareMonitorMetric: HardwareMetricSample] = [:],
         now: Date = .now
     ) -> OuterRingState {
         let configuration = rawConfiguration.normalized()
-        let accessory = topAccessory(configuration: configuration, snapshot: snapshot, now: now)
+        let accessory = topAccessory(configuration: configuration, snapshot: snapshot,
+                                     metricColors: metricColors,
+                                     auxiliarySamples: auxiliarySamples, now: now)
 
         switch configuration.layout {
         case .single:
             let metric = configuration.primaryMetric
             let segment = segment(metric: metric, position: nil, snapshot: snapshot,
                                   configuration: configuration, levels: levels,
-                                  metricColors: metricColors, speedCapsMbps: speedCapsMbps, now: now)
+                                  metricColors: metricColors, speedCapsMbps: speedCapsMbps,
+                                  auxiliarySamples: auxiliarySamples, now: now)
             return OuterRingState(
                 segments: [segment],
                 gap: singleGapStyle(for: accessory),
@@ -65,10 +69,12 @@ enum HardwareRingMapper {
                 ?? HardwareMonitorMetric.allCases.first { $0 != left } ?? .gpuUsage
             let leftSegment = segment(metric: left, position: .left, snapshot: snapshot,
                                       configuration: configuration, levels: levels,
-                                      metricColors: metricColors, speedCapsMbps: speedCapsMbps, now: now)
+                                      metricColors: metricColors, speedCapsMbps: speedCapsMbps,
+                                      auxiliarySamples: auxiliarySamples, now: now)
             let rightSegment = segment(metric: right, position: .right, snapshot: snapshot,
                                        configuration: configuration, levels: levels,
-                                       metricColors: metricColors, speedCapsMbps: speedCapsMbps, now: now)
+                                       metricColors: metricColors, speedCapsMbps: speedCapsMbps,
+                                       auxiliarySamples: auxiliarySamples, now: now)
             return OuterRingState(
                 segments: [leftSegment, rightSegment],
                 gap: .closed,
@@ -88,15 +94,20 @@ enum HardwareRingMapper {
         levels: [HardwareMonitorMetric: HardwareLoadLevel],
         metricColors: [HardwareMonitorMetric: IconRGBA],
         speedCapsMbps: [HardwareMonitorMetric: Double],
+        auxiliarySamples: [HardwareMonitorMetric: HardwareMetricSample],
         now: Date
     ) -> RingSegmentState {
         let options = configuration.options(for: metric)
-        let sample = sample(for: metric, in: snapshot)
+        let sample = sample(for: metric, in: snapshot, auxiliary: auxiliarySamples)
         let capMbps = speedCapsMbps[metric]
         guard let progress = progress(metric: metric, sample: sample, options: options, capMbps: capMbps, now: now) else {
             return RingSegmentState(progress: 0, color: .inactive, position: position)
         }
-        let level = levels[metric] ?? HardwareRingThresholdEngine.immediateLevel(value: sample.value ?? 0, options: options)
+        // Status-snapshot readings (volume, Wi-Fi signal) have no warning/critical
+        // meaning, so they keep their base colour instead of threshold colours.
+        let level: HardwareLoadLevel = metric.usesStatusSnapshot
+            ? .normal
+            : (levels[metric] ?? HardwareRingThresholdEngine.immediateLevel(value: sample.value ?? 0, options: options))
         let baseColor = metricColors[metric]
             ?? HardwareRingColorConfiguration.recommendedBaseColor(for: metric)
         let color = segmentColor(level: level,
@@ -166,6 +177,8 @@ enum HardwareRingMapper {
     private static func topAccessory(
         configuration: HardwareRingConfiguration,
         snapshot: HardwareMetricsSnapshot,
+        metricColors: [HardwareMonitorMetric: IconRGBA],
+        auxiliarySamples: [HardwareMonitorMetric: HardwareMetricSample],
         now: Date
     ) -> RingAccessoryState? {
         switch configuration.topContent {
@@ -182,20 +195,39 @@ enum HardwareRingMapper {
             }
         case let .symbol(metric):
             let base = configuration.layout == .single ? Self.singleTopSymbolScale : Self.topSymbolScale
-            return .symbol(symbolState(name: topMarkerSymbol(for: metric), scale: base * configuration.topMarkerScale))
+            return .symbol(symbolState(name: topMarkerSymbol(for: metric),
+                                       color: topMarkerColor(for: metric, configuration: configuration,
+                                                             metricColors: metricColors),
+                                       scale: base * configuration.topMarkerScale))
         case let .value(metric):
             // Geometry is decided by the configuration, not by data availability:
             // a temporarily missing value must keep the top gap (and thus the ring
             // shape) stable and show a placeholder instead of collapsing the gap.
-            let sample = sample(for: metric, in: snapshot)
+            let sample = sample(for: metric, in: snapshot, auxiliary: auxiliarySamples)
             let scale = topValueTextScale(for: sample.unit) * configuration.topMarkerScale
+            let color = topMarkerColor(for: metric, configuration: configuration,
+                                       metricColors: metricColors)
             if sample.availability == .measured, sample.isFresh(at: now),
                let value = sample.value, value.isFinite {
                 return .text(IconTextState(text: formattedValue(value, unit: sample.unit),
-                                           color: .primary, scale: scale))
+                                           color: color, scale: scale))
             }
-            return .text(IconTextState(text: "--", color: .primary, scale: scale))
+            return .text(IconTextState(text: "--", color: color, scale: scale))
         }
+    }
+
+    /// Colour of the top marker reading. Top-marker-only metrics (volume, Wi-Fi
+    /// signal) honour their shared per-metric colour so the two new readings can
+    /// be tinted; every other metric keeps the menu bar's own foreground colour.
+    private static func topMarkerColor(
+        for metric: HardwareMonitorMetric,
+        configuration: HardwareRingConfiguration,
+        metricColors: [HardwareMonitorMetric: IconRGBA]
+    ) -> IconColorRole {
+        guard metric.usesStatusSnapshot, !configuration.color.monochrome else { return .primary }
+        let base = metricColors[metric]
+            ?? HardwareRingColorConfiguration.recommendedBaseColor(for: metric)
+        return .custom(base)
     }
 
     /// Simpler, higher-contrast glyphs for the tiny ring top marker. The list and
@@ -212,13 +244,16 @@ enum HardwareRingMapper {
         case .fan: SymbolFallback.name("fanblades.fill", "fanblades")
         case .downloadSpeed: "arrow.down.circle.fill"
         case .uploadSpeed: "arrow.up.circle.fill"
+        case .volume: SymbolFallback.name("speaker.wave.2.fill", "speaker.wave.2")
+        case .wifiSignal: "wifi"
         }
     }
 
-    private static func symbolState(name: String, scale: Double) -> IconSymbolState {
+    private static func symbolState(name: String, color: IconColorRole = .primary,
+                                    scale: Double) -> IconSymbolState {
         IconSymbolState(
             source: .symbol(name: name, variableValue: nil, fallback: Self.genericMonitorSymbol),
-            color: .primary,
+            color: color,
             scale: scale
         )
     }
@@ -233,7 +268,9 @@ enum HardwareRingMapper {
 
     // MARK: - Helpers
 
-    static func sample(for metric: HardwareMonitorMetric, in snapshot: HardwareMetricsSnapshot) -> HardwareMetricSample {
+    static func sample(for metric: HardwareMonitorMetric, in snapshot: HardwareMetricsSnapshot,
+                       auxiliary: [HardwareMonitorMetric: HardwareMetricSample] = [:]) -> HardwareMetricSample {
+        if let extra = auxiliary[metric] { return extra }
         switch metric {
         case .fan: return snapshot.fanSummarySample
         default: return snapshot[metric.metricID]

@@ -101,6 +101,7 @@ struct HardwareRingThresholdEngine: Equatable, Sendable {
         case .cpuTemperature, .gpuTemperature, .batteryTemperature: return 2
         case .fan: return 200
         case .downloadSpeed, .uploadSpeed: return 0
+        case .volume, .wifiSignal: return 0
         }
     }
 }

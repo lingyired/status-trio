@@ -1182,7 +1182,7 @@
 "hardware.monitor.battery" = "电池温度";
 
 // MARK: - Hardware monitor ring (system monitoring)
-"settings.ringContent.hardwareMonitor" = "系统监控";
+"settings.ringContent.hardwareMonitor" = "自定义";
 "settings.hardwareRing.group.arc" = "圆弧";
 "settings.hardwareRing.group.other" = "其他";
 "settings.hardwareRing.layout" = "布局";
@@ -1222,6 +1222,8 @@
 "settings.hardwareRing.thresholdColors.description" = "达到警告阈值整段变橙、严重阈值整段变红；关闭则始终使用指标颜色。";
 "hardware.monitor.download" = "下载";
 "hardware.monitor.upload" = "上传";
+"hardware.monitor.volume" = "音量";
+"hardware.monitor.signalStrength" = "Wi-Fi 信号";
 "hardware.monitor.downloadCap" = "下载上限";
 "hardware.monitor.uploadCap" = "上传上限";
 "hardware.monitor.speed.capDescription" = "圆弧进度按你的宽带上限（Mbps）换算。";

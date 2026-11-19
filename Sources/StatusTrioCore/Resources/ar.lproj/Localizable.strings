@@ -1182,7 +1182,7 @@
 "hardware.monitor.battery" = "البطارية";
 
 // MARK: - Hardware monitor ring (system monitoring)
-"settings.ringContent.hardwareMonitor" = "مراقبة النظام";
+"settings.ringContent.hardwareMonitor" = "مخصص";
 "settings.hardwareRing.group.arc" = "القوس";
 "settings.hardwareRing.group.other" = "أخرى";
 "settings.hardwareRing.layout" = "التخطيط";
@@ -1222,6 +1222,8 @@
 "settings.hardwareRing.thresholdColors.description" = "يعيد تلوين القوس الممتلئ برتقالي عند حد التحذير وأحمر عند الحد الحرج؛ الإيقاف يحافظ على لون المقياس.";
 "hardware.monitor.download" = "التنزيل";
 "hardware.monitor.upload" = "الرفع";
+"hardware.monitor.volume" = "مستوى الصوت";
+"hardware.monitor.signalStrength" = "إشارة Wi-Fi";
 "hardware.monitor.downloadCap" = "حد التنزيل";
 "hardware.monitor.uploadCap" = "حد الرفع";
 "hardware.monitor.speed.capDescription" = "يُحسب القوس بالنسبة إلى حد النطاق (Mbps).";

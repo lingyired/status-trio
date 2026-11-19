@@ -1182,7 +1182,7 @@
 "hardware.monitor.battery" = "バッテリー";
 
 // MARK: - Hardware monitor ring (system monitoring)
-"settings.ringContent.hardwareMonitor" = "システムモニター";
+"settings.ringContent.hardwareMonitor" = "カスタム";
 "settings.hardwareRing.group.arc" = "アーク";
 "settings.hardwareRing.group.other" = "その他";
 "settings.hardwareRing.layout" = "レイアウト";
@@ -1222,6 +1222,8 @@
 "settings.hardwareRing.thresholdColors.description" = "警告しきい値でオレンジ、危険しきい値で赤に変化。オフなら常に指標の色。";
 "hardware.monitor.download" = "ダウンロード";
 "hardware.monitor.upload" = "アップロード";
+"hardware.monitor.volume" = "音量";
+"hardware.monitor.signalStrength" = "Wi-Fi 信号";
 "hardware.monitor.downloadCap" = "ダウンロード上限";
 "hardware.monitor.uploadCap" = "アップロード上限";
 "hardware.monitor.speed.capDescription" = "リングは回線上限（Mbps）を基準に描画します。";

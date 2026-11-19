@@ -17,6 +17,13 @@ enum HardwareMetricID: Hashable, Sendable {
     case diskRead
     /// Aggregate write throughput across physical storage devices (bytes/second).
     case diskWrite
+    /// Output volume percentage. Read from the audio snapshot, never sampled by
+    /// the hardware service; the identity keeps `HardwareMonitorMetric.metricID`
+    /// total without inventing a hardware family.
+    case volume
+    /// Wi-Fi signal strength percentage. Read from the network snapshot, never
+    /// sampled by the hardware service.
+    case wifiSignal
 }
 
 /// How a metric sample may be presented. Distinct from a mere missing value so
@@ -303,6 +310,7 @@ struct HardwareMetricsSnapshot: Equatable, Sendable {
         case .cpuTemperature, .gpuTemperature, .batteryTemperature: .celsius
         case .fanRPM: .rpm
         case .networkDownload, .networkUpload, .diskRead, .diskWrite: .bytesPerSecond
+        case .volume, .wifiSignal: .percent
         }
     }
 }
@@ -325,6 +333,7 @@ enum HardwareMetricFamily: Hashable, Sendable, CaseIterable {
             case .fanRPM: result.insert(.fan)
             case .networkDownload, .networkUpload: result.insert(.network)
             case .diskRead, .diskWrite: result.insert(.disk)
+            case .volume, .wifiSignal: break
             }
         }
         return result

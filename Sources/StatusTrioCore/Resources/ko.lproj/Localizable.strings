@@ -1182,7 +1182,7 @@
 "hardware.monitor.battery" = "배터리";
 
 // MARK: - Hardware monitor ring (system monitoring)
-"settings.ringContent.hardwareMonitor" = "시스템 모니터";
+"settings.ringContent.hardwareMonitor" = "사용자 지정";
 "settings.hardwareRing.group.arc" = "호";
 "settings.hardwareRing.group.other" = "기타";
 "settings.hardwareRing.layout" = "레이아웃";
@@ -1222,6 +1222,8 @@
 "settings.hardwareRing.thresholdColors.description" = "경고 임계값에서 주황, 위험 임계값에서 빨강으로 표시. 끄면 항상 지표 색상.";
 "hardware.monitor.download" = "다운로드";
 "hardware.monitor.upload" = "업로드";
+"hardware.monitor.volume" = "음량";
+"hardware.monitor.signalStrength" = "Wi-Fi 신호";
 "hardware.monitor.downloadCap" = "다운로드 상한";
 "hardware.monitor.uploadCap" = "업로드 상한";
 "hardware.monitor.speed.capDescription" = "링은 회선 상한(Mbps) 기준으로 표시됩니다.";

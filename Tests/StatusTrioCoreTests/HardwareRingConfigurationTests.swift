@@ -142,4 +142,20 @@ extension HardwareRingConfigurationTests {
         let value = HardwareRingConfiguration(layout: .single, topContent: .value(.cpuTemperature))
         XCTAssertEqual(value.migratingLegacyTopIcon().topContent, .value(.cpuTemperature))
     }
+
+    func testTopMarkerOnlyMetricsAreNotCardMetricsAndRoundTrip() throws {
+        XCTAssertTrue(HardwareMonitorMetric.volume.usesStatusSnapshot)
+        XCTAssertTrue(HardwareMonitorMetric.wifiSignal.usesStatusSnapshot)
+        XCTAssertFalse(HardwareMonitorMetric.cpuUsage.usesStatusSnapshot)
+        XCTAssertFalse(HardwareMonitorMetric.defaultCardMetrics.contains(.volume))
+        XCTAssertFalse(HardwareMonitorMetric.defaultCardMetrics.contains(.wifiSignal))
+        XCTAssertEqual(HardwareMonitorMetric.volume.metricID, HardwareMetricID.volume)
+        XCTAssertEqual(HardwareMonitorMetric.wifiSignal.metricID, HardwareMetricID.wifiSignal)
+
+        for metric in [HardwareMonitorMetric.volume, .wifiSignal] {
+            let content = HardwareRingTopContent.value(metric)
+            let data = try JSONEncoder().encode(content)
+            XCTAssertEqual(try JSONDecoder().decode(HardwareRingTopContent.self, from: data), content)
+        }
+    }
 }

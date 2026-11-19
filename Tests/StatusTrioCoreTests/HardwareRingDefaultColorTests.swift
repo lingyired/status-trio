@@ -29,6 +29,8 @@ final class HardwareRingDefaultColorTests: XCTestCase {
         assertColor(HardwareRingColorConfiguration.recommendedBaseColor(for: .fan), 0x8BA4C3)
         assertColor(HardwareRingColorConfiguration.recommendedBaseColor(for: .downloadSpeed), 0x31B985)
         assertColor(HardwareRingColorConfiguration.recommendedBaseColor(for: .uploadSpeed), 0xF2A34B)
+        assertColor(HardwareRingColorConfiguration.recommendedBaseColor(for: .volume), 0x768FFF)
+        assertColor(HardwareRingColorConfiguration.recommendedBaseColor(for: .wifiSignal), 0x34C759)
     }
 
     func testStatusColorsMatchSpec() {

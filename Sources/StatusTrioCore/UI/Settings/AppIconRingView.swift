@@ -338,7 +338,7 @@ struct AppIconRingView: View {
 
     private var hardwareAdvancedGroup: some View {
         SettingsGroup(localization.string(.settingsHardwareRingGroupAdvanced)) {
-            ForEach(Array(store.hardwareRingConfiguration.referencedMetrics.enumerated()), id: \.element) { index, metric in
+            ForEach(Array(store.hardwareRingConfiguration.referencedMetrics.filter { !$0.usesStatusSnapshot }.enumerated()), id: \.element) { index, metric in
                 if index > 0 { SettingsDivider() }
                 hardwareAdvancedRow(for: metric)
             }
@@ -577,6 +577,7 @@ struct AppIconRingView: View {
         case .batteryTemperature: return 20...80
         case .fan: return 0...10_000
         case .downloadSpeed, .uploadSpeed: return SettingsStore.hardwareSpeedCapRange
+        case .volume, .wifiSignal: return 0...100
         }
     }
 
@@ -592,12 +593,16 @@ struct AppIconRingView: View {
         }
     }
 
+    /// Metrics selectable as the ring arcs (left/right) and as the top marker.
+    /// Volume and Wi-Fi signal strength are included so they can fill either an
+    /// arc or the top reading.
     private var hardwareRingMetricGroups: [(title: String, options: [HardwareMonitorMetric])] {
         [
             ("CPU", [.cpuUsage, .cpuTemperature]),
             ("GPU", [.gpuUsage, .gpuTemperature]),
             (localization.string(.settingsHardwareRingGroupOther),
-             [.memoryUsage, .batteryTemperature, .fan, .downloadSpeed, .uploadSpeed])
+             [.memoryUsage, .batteryTemperature, .fan, .downloadSpeed, .uploadSpeed,
+              .volume, .wifiSignal])
         ]
     }
 

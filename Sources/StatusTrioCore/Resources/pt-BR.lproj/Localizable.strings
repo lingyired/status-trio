@@ -1182,7 +1182,7 @@
 "hardware.monitor.battery" = "Bateria";
 
 // MARK: - Hardware monitor ring (system monitoring)
-"settings.ringContent.hardwareMonitor" = "Monitoramento do sistema";
+"settings.ringContent.hardwareMonitor" = "Personalizado";
 "settings.hardwareRing.group.arc" = "Arco";
 "settings.hardwareRing.group.other" = "Outros";
 "settings.hardwareRing.layout" = "Layout";
@@ -1222,6 +1222,8 @@
 "settings.hardwareRing.thresholdColors.description" = "Recolore o arco preenchido de laranja no limite de aviso e vermelho no crítico; desligado mantém a cor da métrica.";
 "hardware.monitor.download" = "Download";
 "hardware.monitor.upload" = "Upload";
+"hardware.monitor.volume" = "Volume";
+"hardware.monitor.signalStrength" = "Sinal Wi-Fi";
 "hardware.monitor.downloadCap" = "Limite de download";
 "hardware.monitor.uploadCap" = "Limite de upload";
 "hardware.monitor.speed.capDescription" = "O anel é proporcional ao limite da sua conexão (Mbps).";
