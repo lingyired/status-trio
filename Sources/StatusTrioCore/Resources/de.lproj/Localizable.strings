@@ -1181,7 +1181,7 @@
 "hardware.monitor.battery" = "Akku";
 
 // MARK: - Hardware monitor ring (system monitoring)
-"settings.ringContent.hardwareMonitor" = "Systemüberwachung";
+"settings.ringContent.hardwareMonitor" = "Benutzerdefiniert";
 "settings.hardwareRing.group.arc" = "Bogen";
 "settings.hardwareRing.group.other" = "Sonstige";
 "settings.hardwareRing.layout" = "Layout";
@@ -1221,6 +1221,8 @@
 "settings.hardwareRing.thresholdColors.description" = "Färbt den gefüllten Bogen ab Warnschwelle orange, ab kritischer Schwelle rot; aus behält die Metrikfarbe.";
 "hardware.monitor.download" = "Download";
 "hardware.monitor.upload" = "Upload";
+"hardware.monitor.volume" = "Lautstärke";
+"hardware.monitor.signalStrength" = "Wi-Fi-Signal";
 "hardware.monitor.downloadCap" = "Download-Obergrenze";
 "hardware.monitor.uploadCap" = "Upload-Obergrenze";
 "hardware.monitor.speed.capDescription" = "Der Ring füllt sich relativ zur Verbindungsobergrenze (Mbps).";

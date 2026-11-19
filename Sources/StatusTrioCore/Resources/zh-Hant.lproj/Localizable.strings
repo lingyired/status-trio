@@ -1181,7 +1181,7 @@
 "hardware.monitor.battery" = "電池溫度";
 
 // MARK: - Hardware monitor ring (system monitoring)
-"settings.ringContent.hardwareMonitor" = "系統監控";
+"settings.ringContent.hardwareMonitor" = "自訂";
 "settings.hardwareRing.group.arc" = "圓弧";
 "settings.hardwareRing.group.other" = "其他";
 "settings.hardwareRing.layout" = "佈局";
@@ -1221,6 +1221,8 @@
 "settings.hardwareRing.thresholdColors.description" = "達警告閾值整段變橙、嚴重閾值整段變紅；關閉則始終使用指標顏色。";
 "hardware.monitor.download" = "下載";
 "hardware.monitor.upload" = "上傳";
+"hardware.monitor.volume" = "音量";
+"hardware.monitor.signalStrength" = "Wi-Fi 訊號";
 "hardware.monitor.downloadCap" = "下載上限";
 "hardware.monitor.uploadCap" = "上傳上限";
 "hardware.monitor.speed.capDescription" = "圓弧進度按你的寬頻上限（Mbps）換算。";

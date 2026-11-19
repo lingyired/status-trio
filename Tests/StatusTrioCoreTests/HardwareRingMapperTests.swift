@@ -259,4 +259,126 @@ final class HardwareRingMapperTests: XCTestCase {
         guard case let .text(text)? = valueState.accessory else { return XCTFail("expected text") }
         XCTAssertEqual(text.scale, HardwareRingMapper.topValueTextScale(for: .percent) * 1.5, accuracy: 0.0001)
     }
+
+    // MARK: - Top-marker-only metrics (volume / Wi-Fi signal)
+
+    private func auxiliarySample(_ value: Double?, availability: HardwareMetricAvailability = .measured) -> HardwareMetricSample {
+        HardwareMetricSample(value: value, unit: .percent, sampledAt: now, source: .mach, availability: availability)
+    }
+
+    func testTopValueShowsVolumeFromAuxiliarySample() {
+        let snap = snapshot([.cpuUsage: sample(45, unit: .percent)])
+        let config = HardwareRingConfiguration(
+            layout: .single, primaryMetric: .cpuUsage, topContent: .value(.volume),
+            color: HardwareRingColorConfiguration(monochrome: false, thresholdColors: true)
+        )
+        let state = HardwareRingMapper.resolve(
+            snapshot: snap, configuration: config,
+            auxiliarySamples: [.volume: auxiliarySample(37)], now: now
+        )
+        guard case let .text(text)? = state.accessory else { return XCTFail("expected text") }
+        XCTAssertEqual(text.text, "37")
+        XCTAssertEqual(text.color, .custom(HardwareRingColorConfiguration.recommendedBaseColor(for: .volume)))
+        XCTAssertEqual(state.gap, .value)
+    }
+
+    func testTopValueShowsWiFiSignalFromAuxiliarySample() {
+        let snap = snapshot([.cpuUsage: sample(45, unit: .percent)])
+        let config = HardwareRingConfiguration(
+            layout: .single, primaryMetric: .cpuUsage, topContent: .value(.wifiSignal),
+            color: HardwareRingColorConfiguration(monochrome: false, thresholdColors: true)
+        )
+        let state = HardwareRingMapper.resolve(
+            snapshot: snap, configuration: config,
+            auxiliarySamples: [.wifiSignal: auxiliarySample(80)], now: now
+        )
+        guard case let .text(text)? = state.accessory else { return XCTFail("expected text") }
+        XCTAssertEqual(text.text, "80")
+        XCTAssertEqual(text.color, .custom(HardwareRingColorConfiguration.recommendedBaseColor(for: .wifiSignal)))
+    }
+
+    func testTopVolumeUsesCustomSharedColor() {
+        let snap = snapshot([.cpuUsage: sample(45, unit: .percent)])
+        let config = HardwareRingConfiguration(
+            layout: .single, primaryMetric: .cpuUsage, topContent: .value(.volume),
+            color: HardwareRingColorConfiguration(monochrome: false, thresholdColors: true)
+        )
+        let custom = IconRGBA(red: 0.1, green: 0.2, blue: 0.3, alpha: 1)
+        let state = HardwareRingMapper.resolve(
+            snapshot: snap, configuration: config,
+            metricColors: [.volume: custom],
+            auxiliarySamples: [.volume: auxiliarySample(50)], now: now
+        )
+        guard case let .text(text)? = state.accessory else { return XCTFail("expected text") }
+        XCTAssertEqual(text.color, .custom(custom))
+    }
+
+    func testTopVolumeMonochromeKeepsPrimaryColor() {
+        let snap = snapshot([.cpuUsage: sample(45, unit: .percent)])
+        let config = HardwareRingConfiguration(
+            layout: .single, primaryMetric: .cpuUsage, topContent: .value(.volume),
+            color: HardwareRingColorConfiguration(monochrome: true, thresholdColors: false)
+        )
+        let state = HardwareRingMapper.resolve(
+            snapshot: snap, configuration: config,
+            auxiliarySamples: [.volume: auxiliarySample(50)], now: now
+        )
+        guard case let .text(text)? = state.accessory else { return XCTFail("expected text") }
+        XCTAssertEqual(text.color, .primary)
+    }
+
+    func testTopVolumePlaceholderWhenUnavailable() {
+        let snap = snapshot([.cpuUsage: sample(45, unit: .percent)])
+        let config = HardwareRingConfiguration(layout: .single, primaryMetric: .cpuUsage,
+                                               topContent: .value(.volume))
+        let state = HardwareRingMapper.resolve(
+            snapshot: snap, configuration: config,
+            auxiliarySamples: [.volume: auxiliarySample(nil, availability: .temporarilyUnavailable)],
+            now: now
+        )
+        guard case let .text(text)? = state.accessory else { return XCTFail("expected text") }
+        XCTAssertEqual(text.text, "--")
+    }
+
+    // MARK: - Status-snapshot metrics as ring arcs
+
+    func testVolumeArcUsesAuxiliarySampleAndBaseColor() {
+        let config = HardwareRingConfiguration(layout: .single, primaryMetric: .volume,
+                                               color: HardwareRingColorConfiguration(monochrome: false, thresholdColors: true))
+        let state = HardwareRingMapper.resolve(
+            snapshot: snapshot([:]), configuration: config,
+            levels: [.volume: .critical],
+            auxiliarySamples: [.volume: auxiliarySample(60)], now: now
+        )
+        XCTAssertEqual(state.segments.count, 1)
+        XCTAssertEqual(state.segments[0].progress, 0.6, accuracy: 0.0001)
+        // Threshold levels never recolour a status-snapshot reading.
+        XCTAssertEqual(state.segments[0].color,
+                       .custom(HardwareRingColorConfiguration.recommendedBaseColor(for: .volume)))
+    }
+
+    func testWiFiSignalArcUsesAuxiliarySample() {
+        let config = HardwareRingConfiguration(
+            layout: .dual, primaryMetric: .cpuUsage, secondaryMetric: .wifiSignal,
+            color: HardwareRingColorConfiguration(monochrome: false, thresholdColors: true)
+        )
+        let snap = snapshot([.cpuUsage: sample(20, unit: .percent)])
+        let state = HardwareRingMapper.resolve(
+            snapshot: snap, configuration: config,
+            auxiliarySamples: [.wifiSignal: auxiliarySample(80)], now: now
+        )
+        let right = state.segments.first { $0.position == .right }
+        XCTAssertEqual(right?.progress ?? -1, 0.8, accuracy: 0.0001)
+        XCTAssertEqual(right?.color, .custom(HardwareRingColorConfiguration.recommendedBaseColor(for: .wifiSignal)))
+    }
+
+    func testVolumeArcUnavailableKeepsTrackOnly() {
+        let config = HardwareRingConfiguration(layout: .single, primaryMetric: .volume)
+        let state = HardwareRingMapper.resolve(
+            snapshot: snapshot([:]), configuration: config,
+            auxiliarySamples: [.volume: auxiliarySample(nil, availability: .temporarilyUnavailable)], now: now
+        )
+        XCTAssertEqual(state.segments[0].progress, 0)
+        XCTAssertEqual(state.segments[0].color, .inactive)
+    }
 }

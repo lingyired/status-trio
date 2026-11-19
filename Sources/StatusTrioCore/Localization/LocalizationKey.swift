@@ -267,6 +267,8 @@ enum LocalizationKey: String, CaseIterable, Hashable, Sendable {
     case hardwareMonitorFan = "hardware.monitor.fan"
     case hardwareMonitorDownload = "hardware.monitor.download"
     case hardwareMonitorUpload = "hardware.monitor.upload"
+    case hardwareMonitorVolume = "hardware.monitor.volume"
+    case hardwareMonitorSignalStrength = "hardware.monitor.signalStrength"
     case hardwareMonitorSettingsGroupRings = "hardware.monitor.settings.group.rings"
     case hardwareMonitorSettingsGroupBottomBar = "hardware.monitor.settings.group.bottomBar"
     case hardwareMonitorSettingsItemDiskCapacity = "hardware.monitor.settings.item.diskCapacity"

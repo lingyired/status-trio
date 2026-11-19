@@ -1180,7 +1180,7 @@
 "hardware.monitor.battery" = "Battery";
 
 // MARK: - Hardware monitor ring (system monitoring)
-"settings.ringContent.hardwareMonitor" = "System Monitoring";
+"settings.ringContent.hardwareMonitor" = "Custom";
 "settings.hardwareRing.group.arc" = "Arc";
 "settings.hardwareRing.group.other" = "Other";
 "settings.hardwareRing.layout" = "Layout";
@@ -1220,6 +1220,8 @@
 "settings.hardwareRing.thresholdColors.description" = "Recolours the whole filled arc orange at the warning threshold and red at the critical threshold; off keeps the metric colour.";
 "hardware.monitor.download" = "Download";
 "hardware.monitor.upload" = "Upload";
+"hardware.monitor.volume" = "Volume";
+"hardware.monitor.signalStrength" = "Wi-Fi Signal";
 "hardware.monitor.downloadCap" = "Download cap";
 "hardware.monitor.uploadCap" = "Upload cap";
 "hardware.monitor.speed.capDescription" = "Ring fill is scaled to your broadband cap (Mbps).";

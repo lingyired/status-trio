@@ -1181,7 +1181,7 @@
 "hardware.monitor.battery" = "Батарея";
 
 // MARK: - Hardware monitor ring (system monitoring)
-"settings.ringContent.hardwareMonitor" = "Мониторинг системы";
+"settings.ringContent.hardwareMonitor" = "Настраиваемый";
 "settings.hardwareRing.group.arc" = "Дуга";
 "settings.hardwareRing.group.other" = "Прочее";
 "settings.hardwareRing.layout" = "Макет";
@@ -1221,6 +1221,8 @@
 "settings.hardwareRing.thresholdColors.description" = "Перекрашивает заливку в оранжевый на пороге предупреждения и красный на критическом; выкл. сохраняет цвет метрики.";
 "hardware.monitor.download" = "Загрузка";
 "hardware.monitor.upload" = "Отдача";
+"hardware.monitor.volume" = "Громкость";
+"hardware.monitor.signalStrength" = "Сигнал Wi-Fi";
 "hardware.monitor.downloadCap" = "Лимит загрузки";
 "hardware.monitor.uploadCap" = "Лимит отдачи";
 "hardware.monitor.speed.capDescription" = "Кольцо масштабируется по пределу канала (Мбит/с).";
