@@ -104,4 +104,16 @@ struct TopAppNetworkReaderTests {
         #expect(rows.first?.value == 1_560)
         #expect(rows.first?.upload == 560)
     }
+
+    @Test func testResetMakesTheNextFramePrimeAndTheFollowingFrameUseTheNewBaseline() {
+        var tracker = NetworkAppUsageTracker()
+        _ = tracker.sample([counter(pid: 1, received: 1_000, sent: 500)], at: 1_000_000_000)
+        tracker.reset()
+        #expect(tracker.sample([counter(pid: 1, received: 5_000, sent: 2_000)],
+                               at: 2_000_000_000) == nil)
+        let samples = tracker.sample([counter(pid: 1, received: 6_048, sent: 2_524)],
+                                     at: 3_000_000_000)
+        #expect(samples?.first?.value == 1_048)
+        #expect(samples?.first?.upload == 524)
+    }
 }

@@ -100,4 +100,15 @@ struct TopAppGPUReaderTests {
         #expect(client.queueCount == 2)
         #expect(client.entryID == 7)
     }
+
+    @Test func testResetMakesTheNextFramePrimeAndTheFollowingFrameUseTheNewBaseline() {
+        var tracker = GPUAppUsageTracker()
+        _ = tracker.sample([client(entryID: 1, pid: 10, gpuTime: 100)], at: 1_000_000_000)
+        tracker.reset()
+        #expect(tracker.sample([client(entryID: 1, pid: 10, gpuTime: 1_000_000_000)],
+                               at: 2_000_000_000) == nil)
+        let samples = tracker.sample([client(entryID: 1, pid: 10, gpuTime: 1_500_000_000)],
+                                     at: 3_000_000_000)
+        #expect(samples?.first?.value == 50)
+    }
 }

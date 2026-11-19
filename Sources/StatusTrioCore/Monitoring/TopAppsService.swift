@@ -34,6 +34,10 @@ final class TopAppsService {
     private(set) var sessionGeneration: UInt64 = 0
     private var loopTask: Task<Void, Never>?
     private var inFlight = false
+    /// Set when a session ends while a cumulative read may still be running.
+    /// The reset is deferred until that read returns and runs before any new
+    /// read, so a late sample cannot overwrite the fresh baseline.
+    private var needsTrackerReset = false
     /// Keeps the list height stable: a row that drops to zero stays until a new
     /// application replaces it.
     private var retainedRows: [TopAppRow] = []
@@ -91,10 +95,12 @@ final class TopAppsService {
         sessionGeneration &+= 1
         loopTask?.cancel()
         loopTask = nil
+        needsTrackerReset = true
         if let metric {
             observable.update(.collecting(metric))
         } else {
             observable.update(.idle)
+            resetTrackersWhenIdle()
         }
         startLoopIfNeeded()
     }
@@ -110,7 +116,8 @@ final class TopAppsService {
         } else {
             observable.update(.idle)
         }
-        requestTrackerReset()
+        needsTrackerReset = true
+        resetTrackersWhenIdle()
     }
 
     func wake() {
@@ -132,7 +139,8 @@ final class TopAppsService {
         loopTask?.cancel()
         loopTask = nil
         observable.update(.idle)
-        requestTrackerReset()
+        needsTrackerReset = true
+        resetTrackersWhenIdle()
     }
 
     /// Drives one turn without waiting for the timer; tests use this to
@@ -173,8 +181,24 @@ final class TopAppsService {
         guard let metric = demand, !inFlight, !isAsleep, !isStopped else { return }
         inFlight = true
         let session = sessionGeneration
+
+        await resetTrackerIfNeeded()
+
+        guard session == sessionGeneration,
+              demand == metric,
+              !isAsleep,
+              !isStopped else {
+            inFlight = false
+            startLoopIfNeeded()
+            return
+        }
+
         let applicationSnapshot = applications()
         let result = await sampler.read(metric, applications: applicationSnapshot)
+
+        // The physical read has returned. If the session ended while it was
+        // running, reset the trackers before another read can start.
+        await resetTrackerIfNeeded()
         inFlight = false
 
         guard session == sessionGeneration,
@@ -236,9 +260,27 @@ final class TopAppsService {
         return result
     }
 
-    private func requestTrackerReset() {
-        let sampler = self.sampler
-        Task { await sampler.reset() }
+    /// Runs only from `sampleOnce`, while `inFlight` still excludes another
+    /// read. A reset requested during this await is covered by this reset:
+    /// trackers are empty and no read can sample them until it finishes.
+    /// When there is no active read to clear the baseline on its way out, take
+    /// the same in-flight slot so a reopening page waits for this reset.
+    private func resetTrackersWhenIdle() {
+        guard !inFlight else { return }
+        inFlight = true
+        Task { [weak self] in
+            guard let self else { return }
+            await self.resetTrackerIfNeeded()
+            self.inFlight = false
+            self.startLoopIfNeeded()
+        }
+    }
+
+    private func resetTrackerIfNeeded() async {
+        guard needsTrackerReset else { return }
+        needsTrackerReset = false
+        await sampler.reset()
+        needsTrackerReset = false
     }
 }
 

@@ -3,41 +3,184 @@ import Testing
 @testable import StatusTrioCore
 
 private actor FakeTopAppsSampler: TopAppsSampling {
+    enum Event: Equatable, Sendable {
+        case readStarted(TopAppMetric)
+        case readFinished(TopAppMetric)
+        case resetStarted
+        case resetFinished
+    }
+
     private(set) var reads: [TopAppMetric] = []
+    private(set) var events: [Event] = []
     private(set) var resetCount = 0
-    var results: [TopAppMetric: TopAppsReadResult] = [:]
-    private var blockNext = 0
-    private var pending: [CheckedContinuation<Void, Never>] = []
+    private var results: [TopAppMetric: TopAppsReadResult] = [:]
+    private var remainingReadBlocks = 0
+    private var remainingResetBlocks = 0
+    private var readGates: [CheckedContinuation<Void, Never>] = []
+    private var resetGates: [CheckedContinuation<Void, Never>] = []
 
     func setResults(_ results: [TopAppMetric: TopAppsReadResult]) {
         self.results = results
     }
 
     func blockNextReads(_ count: Int) {
-        blockNext = count
+        remainingReadBlocks = count
+    }
+
+    func blockNextResets(_ count: Int) {
+        remainingResetBlocks = count
+    }
+
+    func releaseNextRead() {
+        guard !readGates.isEmpty else { return }
+        readGates.removeFirst().resume()
+    }
+
+    func releaseNextReset() {
+        guard !resetGates.isEmpty else { return }
+        resetGates.removeFirst().resume()
     }
 
     func releaseAll() {
-        let continuations = pending
-        pending.removeAll()
-        for continuation in continuations { continuation.resume() }
+        let reads = readGates
+        readGates.removeAll()
+        let resets = resetGates
+        resetGates.removeAll()
+        for continuation in reads { continuation.resume() }
+        for continuation in resets { continuation.resume() }
     }
 
     func read(_ metric: TopAppMetric, applications: [ProcessApplication]) async -> TopAppsReadResult {
         reads.append(metric)
-        if blockNext > 0 {
-            blockNext -= 1
+        events.append(.readStarted(metric))
+        if remainingReadBlocks > 0 {
+            remainingReadBlocks -= 1
             await withCheckedContinuation { continuation in
-                pending.append(continuation)
+                readGates.append(continuation)
             }
         }
+        events.append(.readFinished(metric))
         return results[metric] ?? .measured([])
     }
 
-    func reset() async { resetCount += 1 }
+    func reset() async {
+        resetCount += 1
+        events.append(.resetStarted)
+        if remainingResetBlocks > 0 {
+            remainingResetBlocks -= 1
+            await withCheckedContinuation { continuation in
+                resetGates.append(continuation)
+            }
+        }
+        events.append(.resetFinished)
+    }
 
     func readCount() -> Int { reads.count }
     func lastMetric() -> TopAppMetric? { reads.last }
+    func eventLog() -> [Event] { events }
+}
+
+/// Runs the real cumulative trackers while making the physical read sequence
+/// controllable, so a service-level test can prove which frame primes a new
+/// baseline after a session ends.
+private actor TrackerTopAppsSampler: TopAppsSampling {
+    struct NetworkFrame: Sendable {
+        let received: UInt64
+        let sent: UInt64
+        let at: UInt64
+    }
+
+    struct GPUFrame: Sendable {
+        let gpuTime: UInt64
+        let at: UInt64
+    }
+
+    private let metadata = ProcessMetadata(identity: ProcessIdentity(pid: 42, startedAt: 10),
+                                           name: "A",
+                                           executablePath: "/Applications/A.app",
+                                           responsiblePID: nil)
+    private var networkTracker = NetworkAppUsageTracker()
+    private var gpuTracker = GPUAppUsageTracker()
+    private var networkFrames: [NetworkFrame] = []
+    private var gpuFrames: [GPUFrame] = []
+    private var blockedReadNumbers: Set<Int> = []
+    private var readGates: [CheckedContinuation<Void, Never>] = []
+
+    private(set) var reads: [TopAppMetric] = []
+    private(set) var resetCount = 0
+
+    init(_ metric: TrackerSessionMetric) {
+        switch metric {
+        case .network:
+            networkFrames = [
+                NetworkFrame(received: 1_000, sent: 500, at: 1_000_000_000),
+                NetworkFrame(received: 2_000, sent: 1_000, at: 2_000_000_000),
+                NetworkFrame(received: 3_048, sent: 1_524, at: 3_000_000_000)
+            ]
+        case .gpu:
+            gpuFrames = [
+                GPUFrame(gpuTime: 0, at: 1_000_000_000),
+                GPUFrame(gpuTime: 1_000_000_000, at: 2_000_000_000),
+                GPUFrame(gpuTime: 1_500_000_000, at: 3_000_000_000)
+            ]
+        }
+    }
+
+    func blockRead(_ number: Int) {
+        blockedReadNumbers.insert(number)
+    }
+
+    func releaseNextRead() {
+        guard !readGates.isEmpty else { return }
+        readGates.removeFirst().resume()
+    }
+
+    func read(_ metric: TopAppMetric, applications: [ProcessApplication]) async -> TopAppsReadResult {
+        reads.append(metric)
+        if blockedReadNumbers.contains(reads.count) {
+            await withCheckedContinuation { continuation in
+                readGates.append(continuation)
+            }
+        }
+
+        switch metric {
+        case .network:
+            guard !networkFrames.isEmpty else { return .measured([]) }
+            let frame = networkFrames.removeFirst()
+            let counter = NetworkProcessCounter(metadata: metadata,
+                                                received: frame.received,
+                                                sent: frame.sent)
+            return networkTracker.sample([counter], at: frame.at) == nil ? .collecting : .measured([])
+        case .gpu:
+            guard !gpuFrames.isEmpty else { return .measured([]) }
+            let frame = gpuFrames.removeFirst()
+            let client = GPUClientCounter(entryID: 7, metadata: metadata,
+                                          gpuTime: frame.gpuTime, queueCount: 1)
+            return gpuTracker.sample([client], at: frame.at) == nil ? .collecting : .measured([])
+        case .cpu, .memory:
+            return .measured([])
+        }
+    }
+
+    func reset() async {
+        resetCount += 1
+        networkTracker.reset()
+        gpuTracker.reset()
+    }
+
+    func readCount() -> Int { reads.count }
+}
+
+enum TrackerSessionMetric: Sendable {
+    case gpu
+    case network
+
+    var metric: TopAppMetric {
+        switch self {
+        case .gpu: return .gpu
+        case .network: return .network
+        }
+    }
 }
 
 private actor SleepRecorder {
@@ -57,6 +200,21 @@ struct TopAppsServiceTests {
         TopAppsService(sampler: sampler,
                        applications: { [] },
                        automaticScheduling: false)
+    }
+
+    private func makeTrackedService(_ sampler: any TopAppsSampling) -> TopAppsService {
+        TopAppsService(sampler: sampler,
+                       applications: { [] },
+                       automaticScheduling: true,
+                       sleepFor: { _ in throw CancellationError() },
+                       clock: { 0 })
+    }
+
+    private func waitFor(_ condition: @escaping @Sendable () async -> Bool) async throws {
+        for _ in 0..<200 {
+            if await condition() { return }
+            try await Task.sleep(for: .milliseconds(5))
+        }
     }
 
     @Test func testNoDemandDoesNotRead() async throws {
@@ -122,32 +280,180 @@ struct TopAppsServiceTests {
         ]))
     }
 
-    @Test func testSleepReopenAndStopClearBaselines() async throws {
+    @Test func testMetricSweepDoesNotPublishThePreviousPageAndKeepsOneReadInFlight() async throws {
+        let sampler = FakeTopAppsSampler()
+        await sampler.blockNextReads(1)
+        await sampler.setResults([
+            .cpu: .measured([TopAppRow(id: .application(path: "/Applications/A.app"),
+                                       name: "A", applicationPath: "/Applications/A.app",
+                                       value: 42, upload: nil)]),
+            .memory: .measured([TopAppRow(id: .application(path: "/Applications/C.app"),
+                                          name: "C", applicationPath: "/Applications/C.app",
+                                          value: 7, upload: nil)])
+        ])
+        let service = makeService(sampler)
+        service.setDemand(.cpu)
+        let first = Task { await service.sampleNowForTesting() }
+        try await waitFor { await sampler.readCount() == 1 }
+
+        service.setDemand(.gpu)
+        service.setDemand(.network)
+        service.setDemand(.memory)
+        #expect(service.demand == .memory)
+        #expect(service.observable.state == .collecting(.memory))
+
+        await service.sampleNowForTesting()
+        #expect(await sampler.readCount() == 1)
+        #expect(service.isReadInFlightForTesting)
+
+        await sampler.releaseNextRead()
+        await first.value
+        #expect(await sampler.readCount() == 1)
+        #expect(service.observable.state == .collecting(.memory))
+
+        await service.sampleNowForTesting()
+        #expect(service.observable.state == .measured(.memory, [
+            TopAppRow(id: .application(path: "/Applications/C.app"),
+                      name: "C", applicationPath: "/Applications/C.app",
+                      value: 7, upload: nil)
+        ]))
+    }
+
+    @Test(arguments: [TopAppMetric.gpu, .network])
+    func testSleepDuringReadWaitsForTheReadAndResetBeforeTheNextRead(_ metric: TopAppMetric) async throws {
+        let sampler = FakeTopAppsSampler()
+        await sampler.blockNextReads(2)
+        await sampler.setResults([metric: .measured([])])
+        let service = makeTrackedService(sampler)
+        service.setDemand(metric)
+        try await waitFor { await sampler.readCount() == 1 }
+
+        await sampler.blockNextResets(1)
+        service.sleep()
+        service.wake()
+        await sampler.releaseNextRead()
+
+        try await waitFor { await sampler.eventLog().contains(.resetStarted) }
+        #expect(await sampler.readCount() == 1)
+        #expect(service.isReadInFlightForTesting)
+
+        await sampler.releaseNextReset()
+        try await waitFor { await sampler.readCount() == 2 }
+        let events = await sampler.eventLog()
+        #expect(Array(events.suffix(4)) == [.readFinished(metric),
+                                           .resetStarted,
+                                           .resetFinished,
+                                           .readStarted(metric)])
+
+        service.stop()
+        await sampler.releaseNextRead()
+        try await Task.sleep(for: .milliseconds(20))
+        #expect(await sampler.readCount() == 2)
+    }
+
+    @Test func testCloseReopenSameMetricResetsAfterTheOldReadBeforeTheNextRead() async throws {
+        let sampler = FakeTopAppsSampler()
+        await sampler.blockNextReads(2)
+        await sampler.setResults([.gpu: .measured([])])
+        let service = makeTrackedService(sampler)
+        service.setDemand(.gpu)
+        try await waitFor { await sampler.readCount() == 1 }
+
+        service.setDemand(nil)
+        service.setDemand(.gpu)
+        #expect(service.demand == .gpu)
+        #expect(service.observable.state == .collecting(.gpu))
+        await service.sampleNowForTesting()
+        #expect(await sampler.readCount() == 1)
+
+        await sampler.releaseNextRead()
+        try await waitFor { await sampler.readCount() == 2 }
+        let events = await sampler.eventLog()
+        #expect(Array(events.suffix(4)) == [.readFinished(.gpu),
+                                           .resetStarted,
+                                           .resetFinished,
+                                           .readStarted(.gpu)])
+        #expect(service.observable.state == .collecting(.gpu))
+
+        service.stop()
+        await sampler.releaseNextRead()
+        try await Task.sleep(for: .milliseconds(20))
+        #expect(await sampler.readCount() == 2)
+    }
+
+    @Test(arguments: [TrackerSessionMetric.gpu, .network])
+    func testSleepDuringCumulativeReadStartsTheNextSessionFromANewBaseline(
+        _ session: TrackerSessionMetric
+    ) async throws {
+        let metric = session.metric
+        let sampler = TrackerTopAppsSampler(session)
+        await sampler.blockRead(1)
+        await sampler.blockRead(3)
+        await sampler.blockRead(4)
+        let service = makeTrackedService(sampler)
+        service.setDemand(metric)
+        try await waitFor { await sampler.readCount() == 1 }
+
+        service.sleep()
+        service.wake()
+        try await Task.sleep(for: .milliseconds(30))
+        await sampler.releaseNextRead()
+
+        try await waitFor { await sampler.readCount() == 3 }
+        #expect(await sampler.resetCount == 2)
+        #expect(service.observable.state == .collecting(metric))
+
+        await sampler.releaseNextRead()
+        for _ in 0..<200 {
+            if service.observable.state == .measured(metric, []) { break }
+            try await Task.sleep(for: .milliseconds(5))
+        }
+        #expect(service.observable.state == .measured(metric, []))
+        #expect(await sampler.resetCount == 2)
+
+        service.stop()
+        await sampler.releaseNextRead()
+        try await Task.sleep(for: .milliseconds(20))
+    }
+
+    @Test func testClosedDemandAndStopDoNotStartAnotherRead() async throws {
+        let sampler = FakeTopAppsSampler()
+        await sampler.blockNextReads(2)
+        let service = makeTrackedService(sampler)
+        service.setDemand(.gpu)
+        try await waitFor { await sampler.readCount() == 1 }
+
+        service.setDemand(nil)
+        #expect(service.observable.state == .idle)
+        await sampler.releaseNextRead()
+        try await Task.sleep(for: .milliseconds(30))
+        #expect(await sampler.readCount() == 1)
+        #expect(!service.isReadInFlightForTesting)
+
+        service.setDemand(.gpu)
+        try await waitFor { await sampler.readCount() == 2 }
+        service.stop()
+        #expect(service.observable.state == .idle)
+        await sampler.releaseNextRead()
+        try await Task.sleep(for: .milliseconds(30))
+        #expect(await sampler.readCount() == 2)
+    }
+
+    @Test func testSleepAndStopClearIdleBaselines() async throws {
         let sampler = FakeTopAppsSampler()
         let service = makeService(sampler)
         service.setDemand(.gpu)
 
         service.sleep()
+        try await waitFor { await sampler.resetCount == 1 }
         #expect(service.isAsleep)
         #expect(service.observable.state == .collecting(.gpu))
-        for _ in 0..<100 {
-            if await sampler.resetCount >= 1 { break }
-            try await Task.sleep(for: .milliseconds(5))
-        }
-        #expect(await sampler.resetCount == 1)
 
         service.wake()
-        #expect(!service.isAsleep)
-        #expect(service.observable.state == .collecting(.gpu))
-
         service.stop()
-        #expect(service.isStopped)
+        try await waitFor { await sampler.resetCount == 2 }
+        #expect(await sampler.readCount() == 0)
         #expect(service.observable.state == .idle)
-        for _ in 0..<100 {
-            if await sampler.resetCount >= 2 { break }
-            try await Task.sleep(for: .milliseconds(5))
-        }
-        #expect(await sampler.resetCount == 2)
     }
 
     @Test func testMemoryPollsLessOftenThanOtherMetrics() async throws {
