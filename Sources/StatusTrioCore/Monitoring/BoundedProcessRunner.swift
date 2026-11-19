@@ -76,6 +76,14 @@ final class BoundedProcessInvocation: @unchecked Sendable {
     private var failure: BoundedProcessOutcome?
     private var onFinish: (@Sendable (BoundedProcessOutcome) -> Void)?
 
+    /// Whether either read end still has a readability handler installed.
+    /// Test-facing invariant: no invocation should leave a source behind once it
+    /// has finished, because an EOF-held pipe would keep firing it.
+    var isMonitoringPipes: Bool {
+        stdoutPipe?.fileHandleForReading.readabilityHandler != nil
+            || stderrPipe?.fileHandleForReading.readabilityHandler != nil
+    }
+
     init(
         executableURL: URL,
         arguments: [String],
@@ -164,7 +172,9 @@ final class BoundedProcessInvocation: @unchecked Sendable {
 
     // MARK: - State machine
 
-    private func start(
+    // Internal (not private) so tests can drive one invocation directly and
+    // assert the pipe-monitoring cleanup after it finishes.
+    func start(
         timeout: Duration,
         onFinish: @escaping @Sendable (BoundedProcessOutcome) -> Void
     ) {
@@ -295,6 +305,12 @@ final class BoundedProcessInvocation: @unchecked Sendable {
         }
         let data = handle.availableData
         if data.isEmpty {
+            // A pipe at EOF stays *readable* forever, so an installed
+            // readability handler keeps firing (each firing just dispatching a
+            // no-op read) until it is cleared. Do not wait for the async hop to
+            // `received` on the state queue: clear it here, on this stream's
+            // queue, so the dispatch source stops the moment we see EOF.
+            handle.readabilityHandler = nil
             markIOStreamEnded(stream)
             queue.async { [self] in received(Data(), stream: stream) }
         } else {
@@ -403,6 +419,14 @@ final class BoundedProcessInvocation: @unchecked Sendable {
     private func finish(_ outcome: BoundedProcessOutcome) {
         guard let onFinish else { return }
         self.onFinish = nil
+        // Stop any readability source that outlived its stream. A timeout or
+        // cancelled run can finish while a stream is still open (a descendant
+        // holding the inherited write end), and an EOF pipe stays readable
+        // forever; leaving the handler installed would keep dispatching after
+        // the caller has been resumed. Clearing the handler does not release the
+        // NSPipe, so this stays safe alongside a concurrent drain.
+        stdoutPipe?.fileHandleForReading.readabilityHandler = nil
+        stderrPipe?.fileHandleForReading.readabilityHandler = nil
         // The pipes are left to ARC. `drainPipesAfterProcessExit` reads the
         // handlers on their own streams' queues; nilling the pipe properties
         // here would release the NSPipe while that other queue was in the
