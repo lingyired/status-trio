@@ -278,6 +278,7 @@
 "battery.state.notPresent" = "Батарея отсутствует";
 "battery.state.charged" = "Полностью заряжена";
 "battery.state.calculatingTimeToFull" = "Расчёт времени до полного заряда";
+"battery.state.trickleCharging" = "Ещё идёт капельная зарядка";
 "battery.timeRemaining" = "Примерно %@ до разрядки";
 "battery.timeToFull.minutes" = "До полного заряда около %d мин";
 "battery.timeToFull.hours" = "До полного заряда около %d ч";

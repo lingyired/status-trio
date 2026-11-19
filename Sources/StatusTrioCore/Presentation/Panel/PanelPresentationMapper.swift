@@ -360,6 +360,17 @@ enum PanelPresentationMapper {
         if battery.isCharged {
             return localization.string(.batteryStateCharged)
         }
+        // macOS already reports 100% while the battery management system is
+        // still finishing the charge. `isCharged` stays false until that ends,
+        // which can take about an hour, so without this branch the panel would
+        // keep saying "Calculating time to full" for a battery that is full.
+        // This is a display-only description: it does not assert a strict
+        // hardware trickle mode, and it never recomputes the percentage.
+        if battery.isConnectedToPower,
+           battery.percentage >= 100,
+           battery.isCharging {
+            return localization.string(.batteryStateTrickleCharging)
+        }
         if battery.isCharging {
             // A known estimate always wins, including while Charge to Full Now
             // is running; the click only supplies a placeholder until then.

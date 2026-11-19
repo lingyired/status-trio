@@ -4,6 +4,35 @@ import XCTest
 
 @MainActor
 final class ChargeToFullNowControllerTests: XCTestCase {
+    func testFullChargeHidesPanelActionWithoutChangingControllerPresentation() {
+        // Panel-only display states collapse to hidden at 100%.
+        for state in [ChargeToFullNowPresentation.available, .chargingToFull, .applying] {
+            XCTAssertEqual(
+                state.hidingPanelActionAtFullCharge(percentage: 100),
+                .hidden,
+                "\(state) should hide at 100%"
+            )
+        }
+        // User-driven and diagnostic states are never hidden.
+        let preservedStates: [ChargeToFullNowPresentation] = [
+            .hidden,
+            .unavailable,
+            .failed,
+            .cancelConfirmationRequired(limit: 80),
+            .cancelPending,
+            .cancelling,
+            .cancelFailed(reason: .unavailable),
+            .cancelLimitChangedConfirmation(current: 90, target: 80)
+        ]
+        for state in preservedStates {
+            XCTAssertEqual(state.hidingPanelActionAtFullCharge(percentage: 100), state)
+        }
+        // Below 100% the row is untouched.
+        XCTAssertEqual(
+            ChargeToFullNowPresentation.chargingToFull.hidingPanelActionAtFullCharge(percentage: 99),
+            .chargingToFull
+        )
+    }
     func testButtonRequiresEveryLiveCondition() {
         let backend = StubBatteryChargeController(deviceState: .activeLimit)
         let controller = ChargeToFullNowController(backend: backend)

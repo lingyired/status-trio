@@ -108,6 +108,57 @@ final class ChargeToFullNowPanelIntegrationTests: XCTestCase {
         )
     }
 
+    /// A persisted charge session can keep the controller on `.chargingToFull`
+    /// after the battery already reads 100%. The panel must hide the row at that
+    /// point without clearing the session the controller still needs.
+    func testPersistedSessionHidesChargeRowAtFullPercentage() async {
+        let backend = PanelChargeBackend(state: .activeLimit)
+        let sessionStore = VolatileChargeToFullNowSessionStore(
+            session: ChargeToFullNowSession(originalLimit: 80, acceptedAt: Date())
+        )
+        let chargeToFullNow = ChargeToFullNowController(
+            backend: backend,
+            sessionStore: sessionStore
+        )
+        let fixture = PanelStoreFixture()
+        fixture.settings.showsChargeToFullNowButton = true
+        let panel = fixture.makePanel(chargeToFullNow: chargeToFullNow)
+
+        panel.start()
+        fixture.store.start()
+        defer {
+            panel.stop()
+            fixture.store.stop()
+        }
+
+        fixture.store.setPopoverVisible(true)
+        fixture.battery.send(BatteryStatus(
+            rawPercentage: 100,
+            isPresent: true,
+            isCharging: true,
+            isLowPowerMode: false,
+            isConnectedToPower: true
+        ))
+        _ = await fixture.popupSleeper.waitForCallCount(1, timeout: .seconds(1))
+        fixture.popupSleeper.releaseAll()
+
+        // The controller keeps its session and reports the raw charging state.
+        let keptChargingState = await waitUntil {
+            chargeToFullNow.presentation == .chargingToFull
+        }
+        XCTAssertTrue(keptChargingState)
+        // Both panel surfaces hide the row at 100%.
+        let hidBoth = await waitUntil {
+            panel.chargeToFullNowPresentation == .hidden
+                && panel.summaryChargeToFullNowPresentation == .hidden
+        }
+        XCTAssertTrue(hidBoth)
+        // The subtitle is the trickle copy, never "Calculating time to full".
+        let showsTrickle = await waitUntil {
+            panel.battery.subtitle == fixture.localization.string(.batteryStateTrickleCharging)
+        }
+        XCTAssertTrue(showsTrickle)
+    }
     private func connectedBattery(percentage: Int) -> BatteryStatus {
         BatteryStatus(
             rawPercentage: percentage,
