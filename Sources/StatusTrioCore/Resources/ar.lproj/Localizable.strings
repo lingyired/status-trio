@@ -1345,6 +1345,7 @@
 "hardware.detail.download" = "التنزيل";
 "hardware.detail.upload" = "الرفع";
 "hardware.detail.topApps.title" = "التطبيقات الأكثر استخدامًا";
+"hardware.detail.topApps.memoryTitle" = "التطبيقات حسب الذاكرة (RSS)";
 "hardware.detail.topApps.collecting" = "جارٍ الجمع…";
 "hardware.detail.topApps.empty" = "لا توجد تطبيقات نشطة";
 "hardware.detail.topApps.unsupported" = "غير مدعوم";

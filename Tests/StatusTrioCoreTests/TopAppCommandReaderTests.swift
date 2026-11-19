@@ -72,6 +72,24 @@ struct TopAppCommandReaderTests {
         #expect(rows[1].name == "com.apple.Driver")
     }
 
+    @Test func testPSMemoryConvertsRSSAndSkipsOverflowingRows() {
+        let output = """
+        PID RSS COMM
+          1 1024 Example App
+          2 18446744073709551615 Too Big
+          3 notanumber Broken
+          4 2048 Other
+        """
+        let result = TopAppPSMemoryParser.parse(Data(output.utf8))
+        guard case .success(let rows) = result else {
+            Issue.record("expected parsed rows")
+            return
+        }
+        #expect(rows.count == 2)
+        #expect(rows[0] == PSMemoryRow(pid: 1, memoryBytes: 1_048_576, name: "Example App"))
+        #expect(rows[1] == PSMemoryRow(pid: 4, memoryBytes: 2_097_152, name: "Other"))
+    }
+
     @Test func testInvocationReceivesFixedLocaleAndExactArguments() async {
         let output = "  PID  %CPU COMM\n    1   1.0 Foo\n"
         let executor = RecordingTopAppExecutor(output: Data(output.utf8))

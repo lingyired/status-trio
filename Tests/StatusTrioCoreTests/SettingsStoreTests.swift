@@ -13,6 +13,20 @@ final class SettingsStoreTests: XCTestCase {
         XCTAssertEqual(store.iconSize, 24, accuracy: 0.001)
     }
 
+    func testBackgroundUITestingHardwareMonitorOverrideDoesNotPersist() {
+        let suite = makeSuite()
+        defer { clear(suite) }
+
+        let forced = SettingsStore(
+            defaults: suite.defaults,
+            backgroundUITestingForcesHardwareMonitor: true
+        )
+        XCTAssertTrue(forced.visiblePopupSections.contains(.hardwareMonitor))
+
+        let normal = SettingsStore(defaults: suite.defaults)
+        XCTAssertFalse(normal.enabledPopupSections.contains(.hardwareMonitor))
+    }
+
     func testConnectedPowerIndicatorDefaultsToPlugAndFeedsTheIconOptions() {
         let store = SettingsStore(defaults: makeSuite().defaults)
 

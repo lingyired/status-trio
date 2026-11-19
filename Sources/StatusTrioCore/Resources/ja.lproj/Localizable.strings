@@ -1345,6 +1345,7 @@
 "hardware.detail.download" = "ダウンロード";
 "hardware.detail.upload" = "アップロード";
 "hardware.detail.topApps.title" = "上位アプリ";
+"hardware.detail.topApps.memoryTitle" = "メモリ使用量ランキング（RSS）";
 "hardware.detail.topApps.collecting" = "収集中…";
 "hardware.detail.topApps.empty" = "アクティブなアプリなし";
 "hardware.detail.topApps.unsupported" = "未対応";

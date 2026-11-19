@@ -2352,7 +2352,8 @@ final class SettingsStore: ObservableObject {
         defaults: UserDefaults = .standard,
         systemChargeLimit: () -> Int? = { SystemChargeLimitReader.chargeLimit() },
         persistCoalescingInterval: Duration = .milliseconds(250),
-        isDevelopmentBuild: Bool = AppMetadata.isDevelopmentBuild
+        isDevelopmentBuild: Bool = AppMetadata.isDevelopmentBuild,
+        backgroundUITestingForcesHardwareMonitor: Bool = false
     ) {
         self.defaults = defaults
         self.persistCoalescingInterval = persistCoalescingInterval
@@ -2913,9 +2914,13 @@ final class SettingsStore: ObservableObject {
         self.popupSectionOrder = Self.sanitizedPopupSectionOrder(
             storedPopupSectionOrder ?? []
         )
-        self.enabledPopupSections = Self.sanitizedEnabledPopupSections(
+        var resolvedEnabledPopupSections = Self.sanitizedEnabledPopupSections(
             storedEnabledPopupSections
         )
+        if backgroundUITestingForcesHardwareMonitor {
+            resolvedEnabledPopupSections.insert(.hardwareMonitor)
+        }
+        self.enabledPopupSections = resolvedEnabledPopupSections
         let storedPanelScrollAdjustsVolume = defaults.object(
             forKey: Self.popupPanelScrollAdjustsVolumeDefaultsKey
         ) as? Bool

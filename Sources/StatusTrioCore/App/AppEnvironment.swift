@@ -458,7 +458,10 @@ final class AppEnvironment {
     static func live(
         backgroundUITesting: BackgroundUITestingConfiguration = .disabled
     ) -> AppEnvironment {
-        let settings = SettingsStore()
+        let settings = SettingsStore(
+            backgroundUITestingForcesHardwareMonitor:
+                backgroundUITesting.isEnabled && backgroundUITesting.opensHardwareDetailRaw != nil
+        )
         // A measurement launch can force the synthetic charging input so the
         // animation can be compared on and off on a machine that is not charging.
         if ChargingEffectTestMode.shouldForceChargingInput() {

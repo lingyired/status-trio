@@ -232,6 +232,7 @@ enum LocalizationKey: String, CaseIterable, Hashable, Sendable {
     case hardwareDetailDownload = "hardware.detail.download"
     case hardwareDetailUpload = "hardware.detail.upload"
     case hardwareDetailTopAppsTitle = "hardware.detail.topApps.title"
+    case hardwareDetailTopAppsMemoryTitle = "hardware.detail.topApps.memoryTitle"
     case hardwareDetailTopAppsCollecting = "hardware.detail.topApps.collecting"
     case hardwareDetailTopAppsEmpty = "hardware.detail.topApps.empty"
     case hardwareDetailTopAppsUnsupported = "hardware.detail.topApps.unsupported"

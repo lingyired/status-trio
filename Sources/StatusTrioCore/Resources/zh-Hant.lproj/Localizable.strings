@@ -1345,6 +1345,7 @@
 "hardware.detail.download" = "下載";
 "hardware.detail.upload" = "上傳";
 "hardware.detail.topApps.title" = "高佔用應用";
+"hardware.detail.topApps.memoryTitle" = "記憶體佔用排行（RSS）";
 "hardware.detail.topApps.collecting" = "採集中…";
 "hardware.detail.topApps.empty" = "尚無活躍應用";
 "hardware.detail.topApps.unsupported" = "暫不支援";

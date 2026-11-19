@@ -12,13 +12,17 @@ struct TopAppsListView: View {
     var body: some View {
         HardwareDetailCard {
             VStack(alignment: .leading, spacing: 8) {
-                Text(localization.string(.hardwareDetailTopAppsTitle))
+                Text(localization.string(titleKey))
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
 
                 content
             }
         }
+    }
+
+    private var titleKey: LocalizationKey {
+        metric == .memory ? .hardwareDetailTopAppsMemoryTitle : .hardwareDetailTopAppsTitle
     }
 
     @ViewBuilder
