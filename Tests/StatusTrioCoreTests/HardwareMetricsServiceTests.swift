@@ -677,4 +677,32 @@ final class HardwareMetricsServiceTests: XCTestCase {
         await drain()
         service.stopAll()
     }
+
+    func testShrinkingDemandPrunesAndStopsReadingTheRemovedMetric() async {
+        let clock = Clock()
+        let recorder = Recorder()
+        let service = HardwareMetricsService(automaticScheduling: false, now: { clock.date },
+                                             reader: recorder.waitingReader())
+        service.begin(.panel, metrics: [.cpuUsage, .gpuUsage])
+        await awaitReadingStarted(recorder)
+        XCTAssertEqual(recorder.calls[0], Set([.cpuUsage, .gpuUsage]))
+        recorder.continuations[0].resume(returning: .empty)
+        await drain()
+
+        // Shrink the demand: GPU loses its last consumer.
+        service.begin(.panel, metrics: [.cpuUsage])
+        XCTAssertNil(service.observable.snapshot.samples[.gpuUsage],
+                     "a metric with no consumer must be removed from the live snapshot")
+        service.forceRefresh()
+        await awaitReadingStarted(recorder, count: 2)
+        XCTAssertEqual(recorder.calls[1], Set([.cpuUsage]),
+                       "the removed metric must never be requested again")
+        recorder.continuations[1].resume(returning: .empty)
+        await drain()
+
+        service.end(.panel)
+        XCTAssertFalse(service.isRunning)
+        XCTAssertTrue(service.demands.isEmpty)
+        service.stopAll()
+    }
 }

@@ -107,12 +107,18 @@ struct CPUReader: Sendable {
         previousAt = nil
     }
 
-    mutating func read(at date: Date = Date()) -> CPUReading? {
+    /// `includeDetail` keeps the summary path to the aggregate usage only. The
+    /// per-core array, the user/system/idle/nice split, the IORegistry topology
+    /// parse and the E/P/Super grouping are all skipped unless the CPU detail
+    /// page is actually open.
+    mutating func read(at date: Date = Date(), includeDetail: Bool = true) -> CPUReading? {
         guard let ticks = Self.readTicks() else {
             reset()
             return nil
         }
-        return sample(ticks, at: date, topology: topology(for: ticks.count))
+        return sample(ticks, at: date,
+                      topology: includeDetail ? topology(for: ticks.count) : nil,
+                      includeDetail: includeDetail)
     }
 
     /// Pure differential seam; preserves each 32-bit counter until after wrap
@@ -122,7 +128,8 @@ struct CPUReader: Sendable {
     /// it is not index-aligned to `ticks`, grouping is left unavailable rather
     /// than guessed.
     mutating func sample(_ ticks: [CPUTicks], at date: Date,
-                         topology: CPUCoreTopology? = nil) -> CPUReading? {
+                         topology: CPUCoreTopology? = nil,
+                         includeDetail: Bool = true) -> CPUReading? {
         let old = previous
         let oldAt = previousAt
         defer {
@@ -147,7 +154,9 @@ struct CPUReader: Sendable {
             let total = busy + idle
             // No ticks is not a measured 0%. Rebaseline the entire frame.
             guard total > 0 else { return nil }
-            cores.append(Double(busy) / Double(total) * 100)
+            if includeDetail {
+                cores.append(Double(busy) / Double(total) * 100)
+            }
             totalBusy += busy
             totalTicks += total
             aggregateUser += user
@@ -157,18 +166,19 @@ struct CPUReader: Sendable {
         }
         guard totalTicks > 0 else { return nil }
         let axis = Double(totalTicks)
-        let breakdown = CPUTimeBreakdown(
-            user: Double(aggregateUser) / axis * 100,
-            system: Double(aggregateSystem) / axis * 100,
-            idle: Double(aggregateIdle) / axis * 100,
-            nice: Double(aggregateNice) / axis * 100
-        )
+        let breakdown = includeDetail
+            ? CPUTimeBreakdown(
+                user: Double(aggregateUser) / axis * 100,
+                system: Double(aggregateSystem) / axis * 100,
+                idle: Double(aggregateIdle) / axis * 100,
+                nice: Double(aggregateNice) / axis * 100)
+            : .zero
         return CPUReading(usage: Double(totalBusy) / axis * 100,
                           perCoreUsage: cores,
                           sampledAt: date,
                           breakdown: breakdown,
-                          topology: topology,
-                          groupUsage: Self.groupUsage(cores: cores, topology: topology))
+                          topology: includeDetail ? topology : nil,
+                          groupUsage: includeDetail ? Self.groupUsage(cores: cores, topology: topology) : nil)
     }
 
     /// Averages per-core utilisation by class. Only a topology whose kind list

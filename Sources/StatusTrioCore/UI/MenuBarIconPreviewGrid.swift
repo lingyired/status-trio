@@ -60,10 +60,14 @@ struct HardwareRingStrip: View {
                 }
             }
         }
-        .task {
-            if disk.freeBytes == nil { disk = DiskCapacitySample.current() }
+        .task(id: showsSSDCapacity) {
+            // Only the visible SSD ring needs the one-shot volume lookup; a
+            // CPU-only or GPU-only strip must not touch the filesystem.
+            if showsSSDCapacity, disk.freeBytes == nil { disk = DiskCapacitySample.current() }
         }
     }
+
+    private var showsSSDCapacity: Bool { visibleSlots.contains(.ssd) }
 
     /// The ring scene for one slot, with the carded-mode top-text fix.
     private func ringBase(_ slot: HardwareRingSlot, topAdjustment: CGFloat) -> some View {

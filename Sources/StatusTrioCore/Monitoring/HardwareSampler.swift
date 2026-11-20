@@ -72,7 +72,10 @@ final class HardwareSampler: @unchecked Sendable {
                 // last query; querying IOAccelerator twice in a row makes the
                 // second read see an empty interval and report 0%. Read once and
                 // derive both the plain sample and the detail from it.
+                let wantsCPUDetail = detailKinds.contains(.cpu)
                 let wantsGPUDetail = detailKinds.contains(.gpu)
+                let memorySnapshot = detailKinds.contains(.memory) && ids.contains(.memoryUsage)
+                    ? self.memoryReader.readWithDetail(at: date) : nil
                 let gpuDetail: GPUDetailReading? = wantsGPUDetail
                     ? self.gpuReader.readDetail(at: date) : nil
                 let gpuReading: GPUReading? = gpuDetail.flatMap { detail in
@@ -85,11 +88,14 @@ final class HardwareSampler: @unchecked Sendable {
                     wantsGPUDetail ? gpuReading : self.gpuReader.read(at: sampleDate)
                 }
                 var snapshot = Self.collect(ids: ids, isFirstCPURead: first, at: date,
-                                            cpuProvider: { self.cpuReader.read(at: $0) },
+                                            cpuProvider: { self.cpuReader.read(at: $0, includeDetail: wantsCPUDetail) },
                                             frequencyProvider: { wantsFrequency ? self.cpuFrequencyReader.read(at: $0) : nil },
                                             includeCPUFrequency: wantsFrequency,
+                                            includeCPUDetail: wantsCPUDetail,
                                             gpuProvider: gpuProvider,
-                                            memoryProvider: { self.memoryReader.read(at: $0) },
+                                            memoryProvider: { sampleDate in
+                                                memorySnapshot?.reading ?? self.memoryReader.read(at: sampleDate)
+                                            },
                                             sensorProvider: { temperature, gpuTemperature, batteryTemperature, fans, date in
                     self.sensorReader.read(includeTemperature: temperature,
                                            includeGPUTemperature: gpuTemperature,
@@ -101,8 +107,8 @@ final class HardwareSampler: @unchecked Sendable {
                 if let gpuDetail {
                     snapshot.gpuDetail = gpuDetail
                 }
-                if detailKinds.contains(.memory) {
-                    snapshot.memoryDetail = self.memoryReader.readDetail(at: date)
+                if let memorySnapshot {
+                    snapshot.memoryDetail = memorySnapshot.detail
                 }
                 if detailKinds.contains(.network) {
                     snapshot.networkDetail = self.networkReader.detailReading(from: nil, at: date)
@@ -127,6 +133,7 @@ final class HardwareSampler: @unchecked Sendable {
                         cpuProvider: (Date) -> CPUReading?,
                         frequencyProvider: (Date) -> CPUFrequencyReading? = { _ in nil },
                         includeCPUFrequency: Bool = false,
+                        includeCPUDetail: Bool = false,
                         gpuProvider: (Date) -> GPUReading?,
                         memoryProvider: (Date) -> MemoryReader.Reading?,
                         sensorProvider: (Bool, Bool, Bool, Bool, Date) -> SensorReading,
@@ -147,7 +154,8 @@ final class HardwareSampler: @unchecked Sendable {
         let needsDisk = ids.contains(.diskRead) || ids.contains(.diskWrite)
         let disk = needsDisk ? diskProvider(date) : nil
         return map(ids: ids, cpu: cpu, gpu: gpu, memory: memory, sensors: sensors, network: network,
-                   disk: disk, cpuFrequency: frequency, isFirstCPURead: isFirstCPURead, at: date)
+                   disk: disk, cpuFrequency: frequency, includeCPUDetail: includeCPUDetail,
+                   isFirstCPURead: isFirstCPURead, at: date)
     }
 
     /// Pure mapping of one read attempt. Reader nil alone cannot establish lack
@@ -159,6 +167,7 @@ final class HardwareSampler: @unchecked Sendable {
                     network: NetworkThroughputReading? = nil,
                     disk: DiskThroughputReading? = nil,
                     cpuFrequency: CPUFrequencyReading? = nil,
+                    includeCPUDetail: Bool = true,
                     isFirstCPURead: Bool, at date: Date) -> HardwareMetricsSnapshot {
         var snapshot = HardwareMetricsSnapshot.empty
         for id in ids {
@@ -221,7 +230,7 @@ final class HardwareSampler: @unchecked Sendable {
                 break
             }
         }
-        if let cpu {
+        if let cpu, includeCPUDetail {
             snapshot.cpuDetail = CPUDetailReading(
                 usage: cpu.usage,
                 breakdown: cpu.breakdown,

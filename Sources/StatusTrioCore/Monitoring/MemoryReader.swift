@@ -15,18 +15,45 @@ struct MemoryReader: Sendable {
     }
 
     func read(at date: Date = Date()) -> Reading? {
-        guard let sample = Self.statistics() else { return nil }
-        guard let percent = Self.percentage(activeBytes: sample.active,
-                                            purgeableBytes: sample.purgeable,
-                                            wiredBytes: sample.wired,
-                                            compressedBytes: sample.compressed,
-                                            totalBytes: sample.total) else { return nil }
-        let used = Self.usedBytes(activeBytes: sample.active,
-                                  purgeableBytes: sample.purgeable,
-                                  wiredBytes: sample.wired,
-                                  compressedBytes: sample.compressed,
-                                  totalBytes: sample.total)
-        return Reading(percent: percent, usedBytes: used, totalBytes: sample.total, sampledAt: date)
+        // One `host_statistics64` call; the detail path reuses the same struct so
+        // opening the memory page never reads the VM statistics a second time.
+        guard let stats = Self.detailStatistics() else { return nil }
+        return Self.reading(from: stats, at: date)
+    }
+
+    /// Pure conversion from one VM statistics snapshot to the gauge reading.
+    static func reading(from stats: MemoryStatistics, at date: Date) -> Reading? {
+        guard let percent = Self.percentage(activeBytes: stats.activeBytes,
+                                            purgeableBytes: stats.purgeableBytes,
+                                            wiredBytes: stats.wiredBytes,
+                                            compressedBytes: stats.compressedBytes,
+                                            totalBytes: stats.totalBytes) else { return nil }
+        let used = Self.usedBytes(activeBytes: stats.activeBytes,
+                                  purgeableBytes: stats.purgeableBytes,
+                                  wiredBytes: stats.wiredBytes,
+                                  compressedBytes: stats.compressedBytes,
+                                  totalBytes: stats.totalBytes)
+        return Reading(percent: percent, usedBytes: used, totalBytes: stats.totalBytes, sampledAt: date)
+    }
+
+    /// One-shot combined read for the memory detail page: the gauge and the
+    /// breakdown come from a single VM statistics read. Swap and pressure are
+    /// detail-only fields, read here but never on the summary path.
+    struct Snapshot: Equatable, Sendable {
+        let reading: Reading
+        let detail: MemoryDetailReading
+    }
+
+    func readWithDetail(at date: Date = Date()) -> Snapshot? {
+        guard let stats = Self.detailStatistics(),
+              let reading = Self.reading(from: stats, at: date) else { return nil }
+        let swap = Self.swapUsage()
+        let detail = Self.detail(from: stats,
+                                 swapUsedBytes: swap.used,
+                                 swapTotalBytes: swap.total,
+                                 pressure: Self.pressureLevel(),
+                                 at: date)
+        return Snapshot(reading: reading, detail: detail)
     }
 
     /// Pure formula so the semantics are unit-testable without host statistics.
