@@ -297,7 +297,7 @@ final class HardwareRingMapperTests: XCTestCase {
         XCTAssertEqual(text.color, .custom(HardwareRingColorConfiguration.recommendedBaseColor(for: .wifiSignal)))
     }
 
-    func testBatteryLevelArcFillsFromAuxiliarySampleAndUsesBatteryColor() {
+    func testBatteryLevelArcUsesBatteryStatusColorAndIgnoresMetricOverride() {
         let snap = snapshot([.cpuUsage: sample(20, unit: .percent)])
         let config = HardwareRingConfiguration(
             layout: .single, primaryMetric: .batteryLevel, topContent: .hidden,
@@ -305,12 +305,27 @@ final class HardwareRingMapperTests: XCTestCase {
         )
         let state = HardwareRingMapper.resolve(
             snapshot: snap, configuration: config,
-            auxiliarySamples: [.batteryLevel: auxiliarySample(76)], now: now
+            metricColors: [.batteryLevel: IconRGBA(red: 1, green: 0, blue: 0, alpha: 1)],
+            auxiliarySamples: [.batteryLevel: auxiliarySample(10)],
+            batteryArcColor: .critical, now: now
         )
         XCTAssertEqual(state.segments.count, 1)
-        XCTAssertEqual(state.segments[0].progress, 0.76, accuracy: 0.0001)
-        XCTAssertEqual(state.segments[0].color,
-                       .custom(HardwareRingColorConfiguration.recommendedBaseColor(for: .batteryLevel)))
+        XCTAssertEqual(state.segments[0].progress, 0.10, accuracy: 0.0001)
+        XCTAssertEqual(state.segments[0].color, .critical)
+    }
+
+    func testBatteryLevelArcStaysPrimaryWhenMonochrome() {
+        let snap = snapshot([.cpuUsage: sample(20, unit: .percent)])
+        let config = HardwareRingConfiguration(
+            layout: .single, primaryMetric: .batteryLevel, topContent: .hidden,
+            color: HardwareRingColorConfiguration(monochrome: true, thresholdColors: false)
+        )
+        let state = HardwareRingMapper.resolve(
+            snapshot: snap, configuration: config,
+            auxiliarySamples: [.batteryLevel: auxiliarySample(10)],
+            batteryArcColor: .critical, now: now
+        )
+        XCTAssertEqual(state.segments[0].color, .primary)
     }
 
     func testTopVolumeUsesCustomSharedColor() {

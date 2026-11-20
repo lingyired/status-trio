@@ -1205,6 +1205,7 @@
 "settings.hardwareRing.top.hidden" = "非表示";
 "settings.hardwareRing.top.metric" = "上部指標";
 "settings.hardwareRing.group.color" = "カラー";
+"settings.hardwareRing.batteryColorHint" = "バッテリーの色は「このMacのバッテリー」に従います。「リングの表示 › このMacのバッテリー」で変更できます。";
 "settings.hardwareRing.colorMode" = "カラーモード";
 "settings.hardwareRing.color.status" = "状態カラー";
 "settings.hardwareRing.color.fixed" = "固定カラー";

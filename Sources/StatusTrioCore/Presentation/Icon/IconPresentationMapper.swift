@@ -412,7 +412,7 @@ enum IconPresentationMapper {
     /// Resolves the top ring's battery status role and its icon colour. The
     /// bottom battery footer calls this too, so both always draw the same status
     /// colour from the same settings.
-    private static func batteryColorRole(
+    static func batteryColorRole(
         _ battery: BatteryStatus,
         isHighPowerMode: Bool,
         options: BatteryIconOptions

@@ -357,13 +357,13 @@ struct AppIconRingView: View {
             .disabled(store.hardwareRingConfiguration.color.monochrome)
             if !store.hardwareRingConfiguration.color.monochrome {
                 SettingsDivider()
-                hardwareColorRow(
+                hardwareColorRowOrHint(
                     title: .settingsHardwareRingLeftColor,
                     metric: store.hardwareRingConfiguration.primaryMetric
                 )
                 if store.hardwareRingConfiguration.layout == .dual {
                     SettingsDivider()
-                    hardwareColorRow(
+                    hardwareColorRowOrHint(
                         title: .settingsHardwareRingRightColor,
                         metric: hardwareSecondaryMetric
                     )
@@ -475,6 +475,25 @@ struct AppIconRingView: View {
                     .frame(width: 44, alignment: .trailing)
             }
             .controlSize(.small)
+        }
+    }
+
+    /// Battery arcs follow the system-battery ring's status colour, so their
+    /// colour is edited there; show a hint instead of a (now inert) colour well.
+    @ViewBuilder
+    private func hardwareColorRowOrHint(
+        title: LocalizationKey,
+        metric: HardwareMonitorMetric
+    ) -> some View {
+        if metric == .batteryLevel {
+            SettingsRow(
+                title: localization.string(title),
+                subtitle: localization.string(.settingsHardwareRingBatteryColorHint),
+                leading: { SettingsIcon(symbol: metric.systemImage, tint: .green) },
+                trailing: { EmptyView() }
+            )
+        } else {
+            hardwareColorRow(title: title, metric: metric)
         }
     }
 

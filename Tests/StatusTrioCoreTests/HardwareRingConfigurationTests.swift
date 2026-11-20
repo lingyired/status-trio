@@ -181,4 +181,9 @@ extension HardwareRingConfigurationTests {
     func testBatteryLevelIsOfferedInTheArcMenu() {
         XCTAssertTrue(HardwareMonitorMetric.otherArcMetrics.contains(.batteryLevel))
     }
+
+    func testBatteryLevelColorIsNotEditableInTheCustomRing() {
+        XCTAssertFalse(HardwareMonitorMetric.colorEditableArcMetrics.contains(.batteryLevel))
+        XCTAssertTrue(HardwareMonitorMetric.colorEditableArcMetrics.contains(.memoryUsage))
+    }
 }

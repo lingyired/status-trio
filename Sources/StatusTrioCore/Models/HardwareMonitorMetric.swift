@@ -33,6 +33,12 @@ enum HardwareMonitorMetric: String, Codable, CaseIterable, Identifiable, Sendabl
         .downloadSpeed, .uploadSpeed, .volume, .wifiSignal,
     ]
 
+    /// Arc metrics whose colour is user-editable. Battery follows the
+    /// system-battery ring's status colour, so it is edited there, not here.
+    static var colorEditableArcMetrics: [HardwareMonitorMetric] {
+        otherArcMetrics.filter { $0 != .batteryLevel }
+    }
+
     /// Metrics shown by default on the card / enabled in the 监控 tab. Network
     /// speed is opt-in (it needs a broadband cap and a 1s sampler); the
     /// top-marker-only readings are never card tiles.

@@ -1204,6 +1204,7 @@
 "settings.hardwareRing.top.hidden" = "Hidden";
 "settings.hardwareRing.top.metric" = "Top metric";
 "settings.hardwareRing.group.color" = "Colour";
+"settings.hardwareRing.batteryColorHint" = "Battery colour follows This Mac's Battery. Change it under Ring Shows › This Mac's Battery.";
 "settings.hardwareRing.colorMode" = "Colour mode";
 "settings.hardwareRing.color.status" = "Status colours";
 "settings.hardwareRing.color.fixed" = "Fixed colour";

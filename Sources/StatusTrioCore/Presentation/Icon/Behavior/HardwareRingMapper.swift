@@ -44,6 +44,7 @@ enum HardwareRingMapper {
         speedCapsMbps: [HardwareMonitorMetric: Double] = [:],
         auxiliarySamples: [HardwareMonitorMetric: HardwareMetricSample] = [:],
         battery: BatteryStatus = .placeholder,
+        batteryArcColor: IconColorRole = .primary,
         now: Date = .now
     ) -> OuterRingState {
         let configuration = rawConfiguration.normalized()
@@ -58,7 +59,8 @@ enum HardwareRingMapper {
             let segment = segment(metric: metric, position: nil, snapshot: snapshot,
                                   configuration: configuration, levels: levels,
                                   metricColors: metricColors, speedCapsMbps: speedCapsMbps,
-                                  auxiliarySamples: auxiliarySamples, now: now)
+                                  auxiliarySamples: auxiliarySamples, batteryArcColor: batteryArcColor,
+                                  now: now)
             return OuterRingState(
                 segments: [segment],
                 gap: singleGapStyle(for: accessory),
@@ -72,11 +74,13 @@ enum HardwareRingMapper {
             let leftSegment = segment(metric: left, position: .left, snapshot: snapshot,
                                       configuration: configuration, levels: levels,
                                       metricColors: metricColors, speedCapsMbps: speedCapsMbps,
-                                      auxiliarySamples: auxiliarySamples, now: now)
+                                      auxiliarySamples: auxiliarySamples, batteryArcColor: batteryArcColor,
+                                      now: now)
             let rightSegment = segment(metric: right, position: .right, snapshot: snapshot,
                                        configuration: configuration, levels: levels,
                                        metricColors: metricColors, speedCapsMbps: speedCapsMbps,
-                                       auxiliarySamples: auxiliarySamples, now: now)
+                                       auxiliarySamples: auxiliarySamples, batteryArcColor: batteryArcColor,
+                                       now: now)
             return OuterRingState(
                 segments: [leftSegment, rightSegment],
                 gap: .closed,
@@ -97,6 +101,7 @@ enum HardwareRingMapper {
         metricColors: [HardwareMonitorMetric: IconRGBA],
         speedCapsMbps: [HardwareMonitorMetric: Double],
         auxiliarySamples: [HardwareMonitorMetric: HardwareMetricSample],
+        batteryArcColor: IconColorRole,
         now: Date
     ) -> RingSegmentState {
         let options = configuration.options(for: metric)
@@ -104,6 +109,17 @@ enum HardwareRingMapper {
         let capMbps = speedCapsMbps[metric]
         guard let progress = progress(metric: metric, sample: sample, options: options, capMbps: capMbps, now: now) else {
             return RingSegmentState(progress: 0, color: .inactive, position: position)
+        }
+        // The battery arc mirrors the system-battery ring: it follows the battery
+        // status colour (critical / low power / charging) instead of a per-metric
+        // colour, so a low battery still turns red. Its colour is not user-editable
+        // here; the battery colour settings live on the system-battery ring.
+        if metric == .batteryLevel {
+            return RingSegmentState(
+                progress: progress,
+                color: configuration.color.monochrome ? .primary : batteryArcColor,
+                position: position
+            )
         }
         // Status-snapshot readings (volume, Wi-Fi signal) have no warning/critical
         // meaning, so they keep their base colour instead of threshold colours.

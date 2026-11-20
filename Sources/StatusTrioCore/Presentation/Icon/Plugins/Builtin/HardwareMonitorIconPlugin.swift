@@ -11,6 +11,12 @@ struct HardwareMonitorIconPlugin: IconContentPlugin {
         // The source is always selectable: even when every metric is currently
         // unreadable the ring keeps its (greyed) track rather than blanking the
         // whole menu-bar icon. Per-metric availability is handled in the mapper.
+        let battery = context.inputs.system.snapshot.battery
+        let batteryArcColor = IconPresentationMapper.batteryColorRole(
+            battery,
+            isHighPowerMode: context.inputs.system.isHighPowerMode,
+            options: context.legacy.battery
+        ).color
         let state = HardwareRingMapper.resolve(
             snapshot: context.inputs.sources.hardwareMetrics,
             configuration: context.configuration.behaviors.hardwareRing,
@@ -18,7 +24,8 @@ struct HardwareMonitorIconPlugin: IconContentPlugin {
             metricColors: context.inputs.sources.hardwareMetricColors,
             speedCapsMbps: context.inputs.sources.hardwareSpeedCapsMbps,
             auxiliarySamples: Self.auxiliarySamples(from: context.inputs.system.snapshot, now: context.now),
-            battery: context.inputs.system.snapshot.battery,
+            battery: battery,
+            batteryArcColor: batteryArcColor,
             now: context.now
         )
         return .available(.outerRing(state))
