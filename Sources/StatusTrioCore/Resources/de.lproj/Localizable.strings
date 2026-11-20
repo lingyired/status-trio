@@ -1178,6 +1178,11 @@
 "hardware.monitor.fan.help" = "Höchste aktuelle Lüfterdrehzahl. Der Balken verwendet die gemeldete Höchstdrehzahl dieses Lüfters; ohne Höchstwert bleibt er ungefüllt.";
 "hardware.monitor.rpm" = "%@ U/min";
 "hardware.monitor.memory" = "Speicherauslastung";
+"hardware.monitor.ringValue.group" = "Ringanzeige";
+"hardware.monitor.ringValue.groupDescription" = "Wählen Sie, ob der Arbeitsspeicher- und SSD-Ring den belegten oder den freien Wert zeigt.";
+"hardware.monitor.ringValue.ssd" = "SSD";
+"hardware.monitor.ringValue.used" = "Belegt";
+"hardware.monitor.ringValue.remaining" = "Frei";
 "hardware.monitor.batteryTemperature" = "Akkutemperatur";
 "hardware.monitor.batteryTemperature.help" = "Akkutemperatur. Der Balken nutzt eine visuelle Skala von 20–60 °C, keinen Sicherheitsprozentsatz.";
 "settings.tab.monitor" = "Systemmonitor";

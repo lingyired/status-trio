@@ -184,8 +184,9 @@ struct HardwareMonitorPresentationTests {
         let fixture = HardwareMonitorTestFixture()
         defer { fixture.cleanup() }
         let keys = LocalizationKey.allCases.filter { $0.rawValue.hasPrefix("hardware.monitor.") }
-        // Volume and Wi-Fi signal strength add two top-marker keys (64 → 66).
-        #expect(keys.count == 66)
+        // Volume and Wi-Fi signal strength add two top-marker keys (64 → 66);
+        // the RAM/SSD ring display-mode rows add five more (66 → 71).
+        #expect(keys.count == 71)
         for language in AppLanguage.allCases {
             let bundle = try #require(Localization.resourceBundle(for: language))
             for key in keys {

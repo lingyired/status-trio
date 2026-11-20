@@ -1177,6 +1177,11 @@
 "hardware.monitor.fan.help" = "현재 속도가 가장 높은 팬입니다. 막대는 해당 팬이 보고한 최대 속도를 사용하며, 최대값을 알 수 없으면 채우지 않습니다.";
 "hardware.monitor.rpm" = "%@ RPM";
 "hardware.monitor.memory" = "메모리 사용량";
+"hardware.monitor.ringValue.group" = "링 표시";
+"hardware.monitor.ringValue.groupDescription" = "메모리 및 SSD 링에 사용량과 남은 용량 중 무엇을 표시할지 선택합니다.";
+"hardware.monitor.ringValue.ssd" = "SSD";
+"hardware.monitor.ringValue.used" = "사용 중";
+"hardware.monitor.ringValue.remaining" = "남음";
 "hardware.monitor.batteryTemperature" = "배터리 온도";
 "hardware.monitor.batteryTemperature.help" = "배터리 온도입니다. 막대는 20~60°C 시각 척도이며 안전 비율이 아닙니다.";
 "settings.tab.monitor" = "시스템 모니터";

@@ -215,7 +215,11 @@ enum SettingsPreferenceCatalog {
             boolean("showsHardwareSummaryRow", \.showsHardwareSummaryRow, default: true),
             boolean("showsHardwareTopApps", \.showsHardwareTopApps, default: true),
             enabledHardwareRingSlotsPreference,
-            enabledHardwareSummaryMetricsPreference
+            enabledHardwareSummaryMetricsPreference,
+            enumeration("memoryRingDisplayMode", \.memoryRingDisplayMode,
+                        default: .used, allowed: RingValueDisplayMode.allCases),
+            enumeration("ssdRingDisplayMode", \.ssdRingDisplayMode,
+                        default: .used, allowed: RingValueDisplayMode.allCases)
         ]
     }
 

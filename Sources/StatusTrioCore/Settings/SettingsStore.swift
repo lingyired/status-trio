@@ -215,6 +215,8 @@ final class SettingsStore: ObservableObject {
     static let showsHardwareSummaryRowDefaultsKey = "showsHardwareSummaryRow"
     static let enabledHardwareRingSlotsDefaultsKey = "enabledHardwareRingSlotsV1"
     static let enabledHardwareSummaryMetricsDefaultsKey = "enabledHardwareSummaryMetricsV1"
+    static let memoryRingDisplayModeDefaultsKey = "memoryRingDisplayModeV1"
+    static let ssdRingDisplayModeDefaultsKey = "ssdRingDisplayModeV1"
     static let hardwareSpeedCapRange: ClosedRange<Double> = 1...100000
     static let defaultHardwareDownloadCapMbps: Double = 1000
     static let defaultHardwareUploadCapMbps: Double = 100
@@ -1347,6 +1349,16 @@ final class SettingsStore: ObservableObject {
                 forKey: Self.enabledHardwareSummaryMetricsDefaultsKey
             )
         }
+    }
+
+    /// Whether the RAM ring reads as consumed or remaining (default consumed).
+    @Published var memoryRingDisplayMode: RingValueDisplayMode {
+        didSet { defaults.set(memoryRingDisplayMode.rawValue, forKey: Self.memoryRingDisplayModeDefaultsKey) }
+    }
+
+    /// Whether the SSD ring reads as consumed or remaining (default consumed).
+    @Published var ssdRingDisplayMode: RingValueDisplayMode {
+        didSet { defaults.set(ssdRingDisplayMode.rawValue, forKey: Self.ssdRingDisplayModeDefaultsKey) }
     }
 
     /// Turn one ring card on or off. The final remaining ring cannot be removed.
@@ -3095,6 +3107,10 @@ final class SettingsStore: ObservableObject {
             defaults.array(forKey: Self.enabledHardwareRingSlotsDefaultsKey) as? [String])
         self.enabledHardwareSummaryMetrics = Self.sanitizedEnabledHardwareSummaryMetrics(
             defaults.array(forKey: Self.enabledHardwareSummaryMetricsDefaultsKey) as? [String])
+        self.memoryRingDisplayMode = RingValueDisplayMode(
+            rawValue: defaults.string(forKey: Self.memoryRingDisplayModeDefaultsKey) ?? "") ?? .used
+        self.ssdRingDisplayMode = RingValueDisplayMode(
+            rawValue: defaults.string(forKey: Self.ssdRingDisplayModeDefaultsKey) ?? "") ?? .used
         localIconPluginDirectories =
             defaults.stringArray(forKey: Self.localIconPluginDirectoriesDefaultsKey) ?? []
         bootstrapIconConfiguration()

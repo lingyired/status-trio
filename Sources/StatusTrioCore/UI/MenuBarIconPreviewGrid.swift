@@ -25,6 +25,9 @@ struct HardwareRingStrip: View {
     /// status panel refreshes as often as every second, and a 0.55 s tween per
     /// update kept the display link busy almost continuously on Debug builds.
     var animatesProgress: Bool = true
+    /// Ring value semantics for RAM and SSD; CPU/GPU are always consumed.
+    var memoryDisplayMode: RingValueDisplayMode = .used
+    var ssdDisplayMode: RingValueDisplayMode = .used
 
     /// Capacity is read once when the strip appears, not on every redraw: the
     /// volume query is a real filesystem/APFS lookup and was running on every
@@ -148,12 +151,19 @@ struct HardwareRingStrip: View {
             let center = temperatureText(.gpuTemperature)
             return (percentText(.gpuUsage), center, percent(.gpuUsage), color(.gpuUsage), fittedCenterScale(center, base: 1.05))
         case .ram:
-            let center = memoryAvailableText
-            return (percentText(.memoryUsage), center, percent(.memoryUsage), color(.memoryUsage), fittedCenterScale(center, base: 0.8))
+            let value = HardwareRingValuePresentation.memory(
+                usedPercent: sample(.memoryUsage)?.value,
+                totalBytes: ProcessInfo.processInfo.physicalMemory,
+                mode: memoryDisplayMode)
+            return (value.topText, value.centerText, value.progress,
+                    color(.memoryUsage), fittedCenterScale(value.centerText, base: 0.8))
         case .ssd:
-            let center = disk.freeText
-            return (percentText(nil), center, disk.usedFraction ?? 0,
-                    HardwareRingColorConfiguration.solidStateDriveColor, fittedCenterScale(center, base: 0.8))
+            let value = HardwareRingValuePresentation.disk(
+                usedFraction: disk.usedFraction, totalBytes: disk.totalBytes,
+                freeBytes: disk.freeBytes, mode: ssdDisplayMode)
+            return (value.topText, value.centerText, value.progress,
+                    HardwareRingColorConfiguration.solidStateDriveColor,
+                    fittedCenterScale(value.centerText, base: 0.8))
         }
     }
 
@@ -190,18 +200,6 @@ struct HardwareRingStrip: View {
         return "\(Int(value.rounded()))°"
     }
 
-    private var memoryAvailableText: String {
-        guard let sample = sample(.memoryUsage), let usedPercent = sample.value, usedPercent.isFinite else { return "--" }
-        let total = Double(ProcessInfo.processInfo.physicalMemory)
-        let available = max(0, total * (1 - usedPercent / 100))
-        return Self.compactBytes(available)
-    }
-
-    private static func compactBytes(_ bytes: Double) -> String {
-        let gb = bytes / 1_000_000_000
-        if gb >= 10 { return "\(Int(gb.rounded()))GB" }
-        return String(format: "%.1fGB", gb)
-    }
 }
 
 /// Design preview: the shared four-ring strip under System Monitoring, wrapped
@@ -346,16 +344,10 @@ struct AnimatedSceneIcon: View {
 struct DiskCapacitySample {
     let usedFraction: Double?
     let freeBytes: Int64?
+    let totalBytes: Int64?
 
     /// Placeholder used until the one-shot capacity read completes.
-    static let empty = DiskCapacitySample(usedFraction: nil, freeBytes: nil)
-
-    var freeText: String {
-        guard let freeBytes else { return "--" }
-        let gb = Double(freeBytes) / 1_000_000_000
-        if gb >= 10 { return "\(Int(gb.rounded()))GB" }
-        return String(format: "%.1fGB", gb)
-    }
+    static let empty = DiskCapacitySample(usedFraction: nil, freeBytes: nil, totalBytes: nil)
 
     static func current() -> DiskCapacitySample {
         let url = URL(fileURLWithPath: "/")
@@ -364,13 +356,14 @@ struct DiskCapacitySample {
             .volumeAvailableCapacityForImportantUsageKey
         ])
         guard let total = values?.volumeTotalCapacity, total > 0 else {
-            return DiskCapacitySample(usedFraction: nil, freeBytes: nil)
+            return .empty
         }
+        let totalBytes = Int64(total)
         let free = values?.volumeAvailableCapacityForImportantUsage
         if let free {
             let used = max(0, min(1, 1 - Double(free) / Double(total)))
-            return DiskCapacitySample(usedFraction: used, freeBytes: free)
+            return DiskCapacitySample(usedFraction: used, freeBytes: Int64(free), totalBytes: totalBytes)
         }
-        return DiskCapacitySample(usedFraction: nil, freeBytes: nil)
+        return DiskCapacitySample(usedFraction: nil, freeBytes: nil, totalBytes: totalBytes)
     }
 }

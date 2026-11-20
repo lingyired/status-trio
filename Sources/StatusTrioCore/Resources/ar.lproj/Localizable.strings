@@ -1178,6 +1178,11 @@
 "hardware.monitor.fan.help" = "أعلى سرعة حالية للمراوح. يستخدم الشريط الحد الأقصى المبلغ عنه للمروحة نفسها؛ ولا يمتلئ إذا كان الحد الأقصى غير متاح.";
 "hardware.monitor.rpm" = "%@ دورة/دقيقة";
 "hardware.monitor.memory" = "استخدام الذاكرة";
+"hardware.monitor.ringValue.group" = "عرض الحلقة";
+"hardware.monitor.ringValue.groupDescription" = "اختر ما إذا كانت حلقات الذاكرة وSSD تعرض المقدار المستخدم أم المتبقي.";
+"hardware.monitor.ringValue.ssd" = "SSD";
+"hardware.monitor.ringValue.used" = "مستخدم";
+"hardware.monitor.ringValue.remaining" = "متبقٍ";
 "hardware.monitor.batteryTemperature" = "حرارة البطارية";
 "hardware.monitor.batteryTemperature.help" = "درجة حرارة البطارية. يستخدم الشريط مقياسًا مرئيًا من 20 إلى 60 درجة مئوية وليس نسبة أمان.";
 "settings.tab.monitor" = "مراقبة النظام";

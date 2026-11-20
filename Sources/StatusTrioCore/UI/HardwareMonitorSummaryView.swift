@@ -14,6 +14,9 @@ struct HardwareMonitorSummaryView: View {
     var onOpenHardwareDetail: ((HardwareDetailKind) -> Void)? = nil
     /// Ring cards the user kept enabled, in their canonical order.
     var ringSlots: [HardwareRingSlot] = HardwareRingSlot.allCases
+    /// Whether the RAM / SSD rings read as consumed or remaining.
+    var memoryRingDisplayMode: RingValueDisplayMode = .used
+    var ssdRingDisplayMode: RingValueDisplayMode = .used
     /// Bottom info-bar metrics the user kept enabled.
     var summaryMetrics: Set<HardwareSummaryMetric> = Set(HardwareSummaryMetric.allCases)
 
@@ -44,7 +47,9 @@ struct HardwareMonitorSummaryView: View {
                 HardwareRingStrip(hardware: model, colors: metricColors, carded: true,
                                   onSelectSlot: onOpenHardwareDetail,
                                   visibleSlots: ringSlots,
-                                  animatesProgress: false)
+                                  animatesProgress: false,
+                                  memoryDisplayMode: memoryRingDisplayMode,
+                                  ssdDisplayMode: ssdRingDisplayMode)
             }
             if showsSummaryRow, !visibleItems.isEmpty {
                 CompactSummaryInfoBar(items: visibleItems) { metric in

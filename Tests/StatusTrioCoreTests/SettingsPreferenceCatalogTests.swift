@@ -47,7 +47,7 @@ final class SettingsPreferenceCatalogTests: XCTestCase {
                 "autoEnablesLowPowerMode", "showsAppleDevicesAndBattery",
                 "refreshesAppleBatteriesInBackground", "appleBatteryRefreshIntervalMinutes",
                 "showsBluetoothListeningMode", "bluetoothAudioIconChoiceRawValue", "wifiSymbolScale",
-                "volumeDisplayStyle", "ringStrokeStyle", "hardwareBackgroundHistoryEnabled", "hardwarePanelRefreshSeconds", "hardwareHistoryWindowMinutes", "hardwareDownloadCapMbps", "hardwareUploadCapMbps", "hardwareNetworkChartFixedScale", "showsHardwareRings", "showsHardwareSummaryRow", "showsHardwareTopApps", "enabledHardwareRingSlots", "enabledHardwareSummaryMetrics", "refreshIntervalOnBatterySeconds",
+                "volumeDisplayStyle", "ringStrokeStyle", "hardwareBackgroundHistoryEnabled", "hardwarePanelRefreshSeconds", "hardwareHistoryWindowMinutes", "hardwareDownloadCapMbps", "hardwareUploadCapMbps", "hardwareNetworkChartFixedScale", "showsHardwareRings", "showsHardwareSummaryRow", "showsHardwareTopApps", "enabledHardwareRingSlots", "enabledHardwareSummaryMetrics", "memoryRingDisplayMode", "ssdRingDisplayMode", "refreshIntervalOnBatterySeconds",
                 "refreshIntervalOnPowerSeconds", "maxVisibleOutputDevices", "alwaysShowsAllOutputDevices",
                 "maxVisibleInputDevices", "alwaysShowsAllInputDevices", "showsBluetoothDeviceList",
                 "maxVisibleBluetoothDevices", "hidesGhostBluetoothDevices", "popupSectionOrder",
@@ -153,6 +153,22 @@ final class SettingsPreferenceCatalogTests: XCTestCase {
             }
             store.hardwareHistoryWindowMinutes = 5
             XCTAssertEqual(SettingsPreferenceCatalog.snapshot(store)["hardwareHistoryWindowMinutes"], .number(5))
+        }
+    }
+
+    func testRingDisplayModesDefaultUsedAndRoundTrip() {
+        withStore { store, defaults in
+            XCTAssertEqual(store.memoryRingDisplayMode, .used)
+            XCTAssertEqual(store.ssdRingDisplayMode, .used)
+            store.memoryRingDisplayMode = .remaining
+            let reloaded = SettingsStore(defaults: defaults, systemChargeLimit: { nil })
+            XCTAssertEqual(reloaded.memoryRingDisplayMode, .remaining)
+            XCTAssertEqual(reloaded.ssdRingDisplayMode, .used)
+            let snapshot = SettingsPreferenceCatalog.snapshot(store)
+            XCTAssertEqual(snapshot["memoryRingDisplayMode"], .string("remaining"))
+            XCTAssertEqual(snapshot["ssdRingDisplayMode"], .string("used"))
+            SettingsPreferenceCatalog.apply(["ssdRingDisplayMode": .string("remaining")], to: store)
+            XCTAssertEqual(store.ssdRingDisplayMode, .remaining)
         }
     }
 

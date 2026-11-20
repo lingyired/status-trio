@@ -1178,6 +1178,11 @@
 "hardware.monitor.fan.help" = "目前轉速最高的風扇。進度條使用該風扇自己回報的最大轉速；最大值無法取得時不顯示填色。";
 "hardware.monitor.rpm" = "%@ 轉/分";
 "hardware.monitor.memory" = "記憶體使用率";
+"hardware.monitor.ringValue.group" = "環內顯示";
+"hardware.monitor.ringValue.groupDescription" = "選擇記憶體和 SSD 環顯示已使用還是剩餘的量。";
+"hardware.monitor.ringValue.ssd" = "SSD";
+"hardware.monitor.ringValue.used" = "已使用";
+"hardware.monitor.ringValue.remaining" = "剩餘";
 "hardware.monitor.batteryTemperature" = "電池溫度";
 "hardware.monitor.batteryTemperature.help" = "電池組溫度。進度條使用 20–60°C 視覺刻度，不代表安全百分比。";
 "settings.tab.monitor" = "系統監控";

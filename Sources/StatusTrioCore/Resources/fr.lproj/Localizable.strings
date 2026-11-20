@@ -1178,6 +1178,11 @@
 "hardware.monitor.fan.help" = "Vitesse actuelle la plus élevée des ventilateurs. La barre utilise le maximum indiqué par ce même ventilateur ; elle reste vide si ce maximum est indisponible.";
 "hardware.monitor.rpm" = "%@ tr/min";
 "hardware.monitor.memory" = "Utilisation mémoire";
+"hardware.monitor.ringValue.group" = "Affichage de l’anneau";
+"hardware.monitor.ringValue.groupDescription" = "Choisissez si les anneaux mémoire et SSD affichent la valeur utilisée ou l’espace restant.";
+"hardware.monitor.ringValue.ssd" = "SSD";
+"hardware.monitor.ringValue.used" = "Utilisé";
+"hardware.monitor.ringValue.remaining" = "Restant";
 "hardware.monitor.batteryTemperature" = "Temp. batterie";
 "hardware.monitor.batteryTemperature.help" = "Température de la batterie. La barre utilise une échelle visuelle de 20 à 60 °C, pas un pourcentage de sécurité.";
 "settings.tab.monitor" = "Moniteur système";

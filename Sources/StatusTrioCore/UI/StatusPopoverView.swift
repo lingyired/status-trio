@@ -353,6 +353,8 @@ struct StatusPopoverView: View {
                                        ringSlots: HardwareRingSlot.allCases.filter {
                                            panel.enabledHardwareRingSlots.contains($0)
                                        },
+                                       memoryRingDisplayMode: panel.memoryRingDisplayMode,
+                                       ssdRingDisplayMode: panel.ssdRingDisplayMode,
                                        summaryMetrics: panel.enabledHardwareSummaryMetrics)
         }
     }

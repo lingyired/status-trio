@@ -1178,6 +1178,11 @@
 "hardware.monitor.fan.help" = "現在の回転数が最も高いファンです。バーはそのファン自身が報告する最大回転数を使い、最大値が不明な場合は塗りつぶしません。";
 "hardware.monitor.rpm" = "%@ 回転/分";
 "hardware.monitor.memory" = "メモリ使用率";
+"hardware.monitor.ringValue.group" = "リング表示";
+"hardware.monitor.ringValue.groupDescription" = "メモリと SSD のリングに使用量と空き容量のどちらを表示するか選びます。";
+"hardware.monitor.ringValue.ssd" = "SSD";
+"hardware.monitor.ringValue.used" = "使用中";
+"hardware.monitor.ringValue.remaining" = "空き";
 "hardware.monitor.batteryTemperature" = "バッテリー温度";
 "hardware.monitor.batteryTemperature.help" = "バッテリー温度です。バーは 20〜60°C の目安スケールで、安全率ではありません。";
 "settings.tab.monitor" = "システムモニター";

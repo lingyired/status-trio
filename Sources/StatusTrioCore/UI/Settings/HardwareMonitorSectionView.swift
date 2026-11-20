@@ -14,6 +14,7 @@ struct HardwareMonitorSectionView: View {
             refreshGroup
             networkCapGroup
             ringGroup
+            if store.showsHardwareRings { ringValueGroup }
             bottomBarGroup
             colorGroup
         }
@@ -233,6 +234,38 @@ struct HardwareMonitorSectionView: View {
                     }
                 }
             }
+        }
+    }
+
+    /// RAM and SSD ring value semantics, independent because a user may want
+    /// remaining memory but consumed disk (or the reverse).
+    private var ringValueGroup: some View {
+        SettingsGroup(
+            localization.string(.hardwareMonitorRingValueGroup),
+            footnote: localization.string(.hardwareMonitorRingValueGroupDescription)
+        ) {
+            ringValueRow(title: localization.string(.hardwareMonitorMemory),
+                         symbol: "memorychip", tint: .purple,
+                         selection: Binding(get: { store.memoryRingDisplayMode },
+                                            set: { store.memoryRingDisplayMode = $0 }))
+            SettingsDivider()
+            ringValueRow(title: localization.string(.hardwareMonitorRingValueSSD),
+                         symbol: "internaldrive", tint: .teal,
+                         selection: Binding(get: { store.ssdRingDisplayMode },
+                                            set: { store.ssdRingDisplayMode = $0 }))
+        }
+    }
+
+    private func ringValueRow(title: String, symbol: String, tint: Color,
+                              selection: Binding<RingValueDisplayMode>) -> some View {
+        SettingsRow(symbol, tint: tint, title: title, subtitle: nil) {
+            Picker(title, selection: selection) {
+                ForEach(RingValueDisplayMode.allCases) { mode in
+                    Text(localization.string(mode.titleKey)).tag(mode)
+                }
+            }
+            .labelsHidden()
+            .settingsMenuPickerWidth()
         }
     }
 

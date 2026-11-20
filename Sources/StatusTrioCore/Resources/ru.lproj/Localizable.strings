@@ -1178,6 +1178,11 @@
 "hardware.monitor.fan.help" = "Наибольшая текущая скорость вентилятора. Шкала использует максимум этого же вентилятора; если максимум неизвестен, заполнение не отображается.";
 "hardware.monitor.rpm" = "%@ об/мин";
 "hardware.monitor.memory" = "Загрузка памяти";
+"hardware.monitor.ringValue.group" = "Отображение кольца";
+"hardware.monitor.ringValue.groupDescription" = "Выберите, что показывать на кольцах памяти и SSD — занятый или свободный объём.";
+"hardware.monitor.ringValue.ssd" = "SSD";
+"hardware.monitor.ringValue.used" = "Занято";
+"hardware.monitor.ringValue.remaining" = "Свободно";
 "hardware.monitor.batteryTemperature" = "Темп. батареи";
 "hardware.monitor.batteryTemperature.help" = "Температура батареи. Полоса использует визуальную шкалу 20–60 °C, а не процент безопасности.";
 "settings.tab.monitor" = "Монитор системы";

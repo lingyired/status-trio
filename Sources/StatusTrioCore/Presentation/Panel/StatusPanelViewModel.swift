@@ -197,6 +197,9 @@ final class StatusPanelViewModel: ObservableObject {
     /// items collapse so the rest divide the width evenly.
     @Published private(set) var enabledHardwareRingSlots: Set<HardwareRingSlot>
     @Published private(set) var enabledHardwareSummaryMetrics: Set<HardwareSummaryMetric>
+    /// Whether the RAM/SSD rings read as consumed or remaining.
+    @Published private(set) var memoryRingDisplayMode: RingValueDisplayMode
+    @Published private(set) var ssdRingDisplayMode: RingValueDisplayMode
 
     private var isStarted = false
     private var bluetoothIsExpanded = false
@@ -276,6 +279,8 @@ final class StatusPanelViewModel: ObservableObject {
         showsHardwareTopApps = settings.showsHardwareTopApps
         enabledHardwareRingSlots = settings.enabledHardwareRingSlots
         enabledHardwareSummaryMetrics = settings.enabledHardwareSummaryMetrics
+        memoryRingDisplayMode = settings.memoryRingDisplayMode
+        ssdRingDisplayMode = settings.ssdRingDisplayMode
         hardwareSpeedCapsMbps = [
             .downloadSpeed: settings.hardwareDownloadCapMbps,
             .uploadSpeed: settings.hardwareUploadCapMbps
@@ -510,6 +515,22 @@ final class StatusPanelViewModel: ObservableObject {
                 guard let self, self.enabledHardwareSummaryMetrics != metrics else { return }
                 self.enabledHardwareSummaryMetrics = metrics
                 self.scheduleHardwareDemandRecompute()
+            }
+            .store(in: &cancellables)
+
+        settings.$memoryRingDisplayMode
+            .removeDuplicates()
+            .sink { [weak self] mode in
+                guard let self, self.memoryRingDisplayMode != mode else { return }
+                self.memoryRingDisplayMode = mode
+            }
+            .store(in: &cancellables)
+
+        settings.$ssdRingDisplayMode
+            .removeDuplicates()
+            .sink { [weak self] mode in
+                guard let self, self.ssdRingDisplayMode != mode else { return }
+                self.ssdRingDisplayMode = mode
             }
             .store(in: &cancellables)
 

@@ -1177,6 +1177,11 @@
 "hardware.monitor.fan.help" = "Highest current fan speed. The bar uses that fan’s own reported maximum; no fill is shown when its maximum is unavailable.";
 "hardware.monitor.rpm" = "%@ RPM";
 "hardware.monitor.memory" = "Memory usage";
+"hardware.monitor.ringValue.group" = "Ring display";
+"hardware.monitor.ringValue.groupDescription" = "Choose whether the memory and SSD rings show the used or the remaining amount.";
+"hardware.monitor.ringValue.ssd" = "SSD";
+"hardware.monitor.ringValue.used" = "Used";
+"hardware.monitor.ringValue.remaining" = "Remaining";
 "hardware.monitor.batteryTemperature" = "Battery temp.";
 "hardware.monitor.batteryTemperature.help" = "Battery pack temperature. The bar uses a 20–60°C visual scale, not a safety percentage.";
 "settings.tab.monitor" = "System Monitor";

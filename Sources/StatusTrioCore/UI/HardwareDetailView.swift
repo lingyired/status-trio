@@ -271,7 +271,7 @@ struct HardwareDetailView: View {
                     HardwareDetailRow(label: localization.string(.hardwareDetailTiler),
                                       value: HardwareDetailFormat.percent(detail?.tilerUtilization))
                     HardwareDetailRow(label: localization.string(.hardwareDetailGPUMemory),
-                                      value: HardwareDetailFormat.bytes(detail?.inUseSystemMemoryBytes))
+                                      value: HardwareDetailFormat.memoryBytes(detail?.inUseSystemMemoryBytes))
                     divider
                     HardwareDetailRow(label: localization.string(.hardwareDetailDevice),
                                       value: detail?.deviceName ?? HardwareDetailFormat.dash)
@@ -299,10 +299,10 @@ struct HardwareDetailView: View {
                     HardwareDetailProgressBar(fraction: (percent ?? 0) / 100, tint: accentColor)
                     HStack(spacing: 0) {
                         topMetric(localization.string(.hardwareDetailUsed),
-                                  HardwareDetailFormat.bytes(detail?.usedBytes))
+                                  HardwareDetailFormat.memoryBytes(detail?.usedBytes))
                         verticalDivider
                         topMetric(localization.string(.hardwareDetailTotal),
-                                  HardwareDetailFormat.bytes(detail?.totalBytes))
+                                  HardwareDetailFormat.memoryBytes(detail?.totalBytes))
                     }
                 }
             }
@@ -311,15 +311,15 @@ struct HardwareDetailView: View {
             HardwareDetailCard {
                 VStack(alignment: .leading, spacing: 6) {
                     HardwareDetailRow(label: localization.string(.hardwareDetailAppMemory),
-                                      value: HardwareDetailFormat.bytes(detail?.appBytes))
+                                      value: HardwareDetailFormat.memoryBytes(detail?.appBytes))
                     HardwareDetailRow(label: localization.string(.hardwareDetailWired),
-                                      value: HardwareDetailFormat.bytes(detail?.wiredBytes))
+                                      value: HardwareDetailFormat.memoryBytes(detail?.wiredBytes))
                     HardwareDetailRow(label: localization.string(.hardwareDetailCompressed),
-                                      value: HardwareDetailFormat.bytes(detail?.compressedBytes))
+                                      value: HardwareDetailFormat.memoryBytes(detail?.compressedBytes))
                     HardwareDetailRow(label: localization.string(.hardwareDetailCached),
-                                      value: HardwareDetailFormat.bytes(detail?.cachedBytes))
+                                      value: HardwareDetailFormat.memoryBytes(detail?.cachedBytes))
                     HardwareDetailRow(label: localization.string(.hardwareDetailSwapUsed),
-                                      value: HardwareDetailFormat.bytes(detail?.swapUsedBytes))
+                                      value: HardwareDetailFormat.memoryBytes(detail?.swapUsedBytes))
                     divider
                     HardwareDetailRow(label: localization.string(.hardwareDetailPressure),
                                       value: pressureText(detail?.pressure))

@@ -127,7 +127,7 @@ struct TopAppsListView: View {
         case .cpu, .gpu:
             return HardwareDetailFormat.appPercent(value)
         case .memory:
-            return HardwareDetailFormat.bytes(value)
+            return HardwareDetailFormat.memoryBytes(value)
         case .network:
             return HardwareDetailFormat.rate(value)
         }
