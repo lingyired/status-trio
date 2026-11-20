@@ -280,7 +280,15 @@ jobs:
           KEY_PATH="${RUNNER_TEMP}/AuthKey_${NOTARY_API_KEY_ID}.p8"
           trap 'rm -f "${KEY_PATH:-}"' EXIT
           printf '%s' "${NOTARY_API_PRIVATE_KEY}" > "${KEY_PATH}"
-          xcrun notarytool store-credentials status-trio-notary --key "${KEY_PATH}" --key-id "${NOTARY_API_KEY_ID}" --issuer "${NOTARY_API_ISSUER_ID}"
+          if [[ -n "${KEYCHAIN_PATH:-}" ]]; then
+            xcrun notarytool store-credentials status-trio-notary \
+              --key "${KEY_PATH}" --key-id "${NOTARY_API_KEY_ID}" \
+              --issuer "${NOTARY_API_ISSUER_ID}" --keychain "${KEYCHAIN_PATH}"
+          else
+            xcrun notarytool store-credentials status-trio-notary \
+              --key "${KEY_PATH}" --key-id "${NOTARY_API_KEY_ID}" \
+              --issuer "${NOTARY_API_ISSUER_ID}"
+          fi
           rm -f "${KEY_PATH}"
           echo "NOTARY_PROFILE=status-trio-notary" >> "${GITHUB_ENV}"
 
