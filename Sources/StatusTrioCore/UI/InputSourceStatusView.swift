@@ -43,6 +43,7 @@ struct InputSourceStatusView: View {
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
+            .panelSelectableRowHover(horizontalInset: 4, verticalInset: 3)
             .accessibilityLabel(state.title)
             .accessibilityValue(state.currentName ?? "")
 

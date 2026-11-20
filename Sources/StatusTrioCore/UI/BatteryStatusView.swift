@@ -74,6 +74,7 @@ struct BatteryStatusView: View {
             }
             .buttonStyle(.plain)
             .disabled(!hasDetails)
+            .panelSelectableRowHover(isEnabled: hasDetails, horizontalInset: 4, verticalInset: 3)
             .accessibilityLabel(state.accessibilityLabel)
             .accessibilityValue(state.accessibilityValue)
 

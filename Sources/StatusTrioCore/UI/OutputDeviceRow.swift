@@ -308,6 +308,7 @@ struct OutputDeviceRow: View {
         }
         .buttonStyle(.plain)
         .disabled(!state.enabled)
+        .panelSelectableRowHover(isEnabled: state.enabled, verticalInset: 1)
         .help(state.helpText)
         .accessibilityLabel(state.accessibilityLabel)
         .accessibilityValue(state.selected ? localization.string(.volumeOutputCurrent) : "")

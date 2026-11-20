@@ -72,14 +72,28 @@ struct WiFiNetworkListView: View {
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
-            Button(localization.string(.wifiActionOpenSettings), action: onOpenWiFiSettings)
-                .buttonStyle(.plain)
-                .accessibilityLabel(localization.string(.wifiActionOpenSettings))
+            Button(action: onOpenWiFiSettings) {
+                HStack(spacing: 0) {
+                    Text(localization.string(.wifiActionOpenSettings))
+                    Spacer(minLength: 0)
+                }
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .panelSelectableRowHover(verticalInset: 3)
+            .accessibilityLabel(localization.string(.wifiActionOpenSettings))
             // Internet Sharing can share from the Wi-Fi connection too, so this
             // is offered here and not only on the wired details page.
-            Button(localization.string(.networkActionShareInternet), action: onOpenSharingSettings)
-                .buttonStyle(.plain)
-                .help(localization.string(.networkActionShareInternetHelp))
+            Button(action: onOpenSharingSettings) {
+                HStack(spacing: 0) {
+                    Text(localization.string(.networkActionShareInternet))
+                    Spacer(minLength: 0)
+                }
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .panelSelectableRowHover(verticalInset: 3)
+            .help(localization.string(.networkActionShareInternetHelp))
         }
     }
 
@@ -258,6 +272,7 @@ struct WiFiNetworkListView: View {
                         .accessibilityHidden(true)
                 }
             }
+            .padding(.vertical, 3)
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
@@ -275,6 +290,7 @@ struct WiFiNetworkListView: View {
                     .accessibilityHidden(true)
             }
         }
+        .panelSelectableRowHover(isEnabled: true, verticalInset: 1)
         .accessibilityLabel(row.accessibilityLabel)
     }
 }

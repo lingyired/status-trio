@@ -99,12 +99,14 @@ struct BluetoothDeviceRow: View {
             }
             .buttonStyle(.plain)
             .disabled(isActionInFlight)
+            .panelSelectableRowHover(isEnabled: !isActionInFlight, verticalInset: 2)
             .help(actionHelp)
             .accessibilityElement(children: .combine)
             .accessibilityValue(rowAccessibilityValue)
             .accessibilityHint(actionHelp)
         } else {
             rowContent(status)
+                .panelSelectableRowHover(isEnabled: true, verticalInset: 2)
                 .accessibilityElement(children: .combine)
                 .accessibilityValue(rowAccessibilityValue)
         }

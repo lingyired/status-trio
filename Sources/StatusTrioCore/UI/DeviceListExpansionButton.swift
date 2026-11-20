@@ -30,5 +30,6 @@ struct DeviceListExpansionButton: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
+        .panelSelectableRowHover(verticalInset: 0)
     }
 }

@@ -35,6 +35,7 @@ struct WiFiDetailsToggleRow: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
+        .panelSelectableRowHover(verticalInset: 2)
         .accessibilityLabel(
             localization.string(
                 WiFiNetworkPresentation.detailsToggleTitleKey(isExpanded: isExpanded)

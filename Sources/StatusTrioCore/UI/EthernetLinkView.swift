@@ -25,15 +25,29 @@ struct EthernetLinkView: View {
 
             Divider()
             VStack(alignment: .leading, spacing: 6) {
-                Button(localization.string(.ethernetActionOpenSettings), action: onOpenNetworkSettings)
-                    .buttonStyle(.plain)
+                Button(action: onOpenNetworkSettings) {
+                    HStack(spacing: 0) {
+                        Text(localization.string(.ethernetActionOpenSettings))
+                        Spacer(minLength: 0)
+                    }
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .panelSelectableRowHover(verticalInset: 3)
 
                 // Internet Sharing needs root to toggle and has no public API, so
                 // this hands the user to the Sharing pane rather than writing the
                 // system's network configuration from the app.
-                Button(localization.string(.networkActionShareInternet), action: onOpenSharingSettings)
-                    .buttonStyle(.plain)
-                    .help(localization.string(.networkActionShareInternetHelp))
+                Button(action: onOpenSharingSettings) {
+                    HStack(spacing: 0) {
+                        Text(localization.string(.networkActionShareInternet))
+                        Spacer(minLength: 0)
+                    }
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .panelSelectableRowHover(verticalInset: 3)
+                .help(localization.string(.networkActionShareInternetHelp))
             }
         }
     }

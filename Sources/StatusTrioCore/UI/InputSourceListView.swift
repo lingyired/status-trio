@@ -39,9 +39,16 @@ struct InputSourceListView: View {
             }
 
             Divider()
-            Button(state.openSettingsLabel, action: onOpenKeyboardSettings)
-                .buttonStyle(.plain)
-                .accessibilityLabel(state.openSettingsLabel)
+            Button(action: onOpenKeyboardSettings) {
+                HStack(spacing: 0) {
+                    Text(state.openSettingsLabel)
+                    Spacer(minLength: 0)
+                }
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .panelSelectableRowHover(verticalInset: 3)
+            .accessibilityLabel(state.openSettingsLabel)
         }
     }
 
@@ -91,6 +98,7 @@ struct InputSourceListView: View {
                     .padding(.vertical, 3)
                 }
                 .buttonStyle(.plain)
+                .panelSelectableRowHover(verticalInset: 1)
                 .accessibilityLabel(row.name)
                 .accessibilityAddTraits(row.isCurrent ? .isSelected : [])
             }

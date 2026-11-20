@@ -157,3 +157,85 @@ struct PanelDetailRowsView: View {
         .padding(.leading, leadingInset)
     }
 }
+
+/// Native macOS Control Center / Menu style hover highlight for selectable list
+/// rows across the status panel (Bluetooth devices, Wi-Fi networks, audio output
+/// & input devices, input sources, and navigation/action rows).
+///
+/// The background pill extends slightly beyond the row's horizontal bounds via
+/// negative padding so the row's existing icon/text column alignment and layout
+/// height remain completely unchanged.
+private struct PanelSelectableRowHoverModifier: ViewModifier {
+    let isEnabled: Bool
+    let cornerRadius: CGFloat
+    let horizontalInset: CGFloat
+    let verticalInset: CGFloat
+
+    @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var isHovered = false
+
+    private var activeHover: Bool {
+        isEnabled && isHovered
+    }
+
+    private var fillColor: Color {
+        guard activeHover else { return .clear }
+        return Color.primary.opacity(colorScheme == .dark ? 0.12 : 0.08)
+    }
+
+    private var strokeColor: Color {
+        guard activeHover else { return .clear }
+        return Color.primary.opacity(colorScheme == .dark ? 0.16 : 0.09)
+    }
+
+    private var shadowColor: Color {
+        guard activeHover else { return .clear }
+        return Color.black.opacity(colorScheme == .dark ? 0.22 : 0.07)
+    }
+
+    func body(content: Content) -> some View {
+        content
+            .background {
+                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                    .fill(fillColor)
+                    .overlay {
+                        RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                            .strokeBorder(strokeColor, lineWidth: 0.75)
+                    }
+                    .shadow(color: shadowColor, radius: 3, x: 0, y: 1)
+                    .padding(.horizontal, -horizontalInset)
+                    .padding(.vertical, -verticalInset)
+                    .allowsHitTesting(false)
+            }
+            .onHover { hovering in
+                if reduceMotion {
+                    isHovered = hovering
+                } else {
+                    withAnimation(.easeOut(duration: 0.12)) {
+                        isHovered = hovering
+                    }
+                }
+            }
+    }
+}
+
+extension View {
+    /// Applies a native macOS Control Center-style hover highlight pill behind
+    /// a selectable row without shifting its text or icon alignment.
+    func panelSelectableRowHover(
+        isEnabled: Bool = true,
+        cornerRadius: CGFloat = 7,
+        horizontalInset: CGFloat = 6,
+        verticalInset: CGFloat = 2
+    ) -> some View {
+        modifier(
+            PanelSelectableRowHoverModifier(
+                isEnabled: isEnabled,
+                cornerRadius: cornerRadius,
+                horizontalInset: horizontalInset,
+                verticalInset: verticalInset
+            )
+        )
+    }
+}

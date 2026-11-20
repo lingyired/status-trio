@@ -59,6 +59,7 @@ struct NetworkStatusView: View {
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
+            .panelSelectableRowHover(isEnabled: state.intent != .none, horizontalInset: 4, verticalInset: 3)
             .accessibilityLabel(state.accessibilityLabel)
             .accessibilityValue(state.accessibilityValue)
 

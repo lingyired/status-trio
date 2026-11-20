@@ -16,6 +16,7 @@ struct NavigationBackRow: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
+        .panelSelectableRowHover(verticalInset: 1)
         .accessibilityLabel(accessibilityLabel)
     }
 }

@@ -168,6 +168,7 @@ struct BluetoothDeviceList: View {
                     .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
+                .panelSelectableRowHover(verticalInset: 0)
             }
         }
         .coordinateSpace(name: Self.geometryCoordinateSpace)

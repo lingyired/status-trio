@@ -279,6 +279,7 @@ struct AudioInputControlsView: View {
                     }
                     .buttonStyle(.plain)
                     .disabled(!row.enabled)
+                    .panelSelectableRowHover(isEnabled: row.enabled, verticalInset: 1)
                     .help(row.helpText)
                     .accessibilityLabel(row.accessibilityLabel)
                     .accessibilityValue(row.selected ? state.usageText ?? "" : "")
