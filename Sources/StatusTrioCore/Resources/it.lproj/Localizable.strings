@@ -197,8 +197,10 @@
 "settings.ringContent.airPodsDualRing.description" = "Draw each earbud's battery as its own arc.";
 "settings.ringContent.airPodsTopSymbol" = "Show AirPods Symbol";
 "settings.ringContent.airPodsTopSymbol.description" = "Draw the small AirPods glyph at the top of the ring.";
-"settings.ringContent.airPodsFallback" = "Fall Back to Battery";
-"settings.ringContent.airPodsFallback.description" = "When no AirPods are connected, show this Mac's battery ring instead.";
+"settings.ringContent.airPodsFallback" = "Ripiego senza AirPods";
+"settings.ringContent.airPodsFallback.description" = "Quando nessun AirPods è connesso, scegli tra l'anello della batteria del Mac e l'anello personalizzato.";
+"settings.ringContent.airPodsFallback.battery" = "Batteria del Mac";
+"settings.ringContent.airPodsFallback.custom" = "Personalizzato";
 "settings.battery.group.progress" = "Avanzamento";
 "settings.battery.noBatteryNotice" = "Questo dispositivo non ha una batteria, quindi la percentuale della batteria non viene mostrata.";
 "settings.battery.noBatteryTopIndicator" = "Indicatore superiore";
@@ -1195,6 +1197,8 @@
 "settings.hardwareRing.top.automatic" = "Automatico";
 "settings.hardwareRing.top.symbol" = "Icona metrica";
 "settings.hardwareRing.top.value" = "Valore metrica";
+"settings.hardwareRing.top.batteryPercentage" = "Livello batteria";
+"settings.hardwareRing.top.chargingIndicator" = "Indicatore di carica";
 "settings.hardwareRing.top.hidden" = "Nascosto";
 "settings.hardwareRing.top.metric" = "Metrica superiore";
 "settings.hardwareRing.group.color" = "Colore";

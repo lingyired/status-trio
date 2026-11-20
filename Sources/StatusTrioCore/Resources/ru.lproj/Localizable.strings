@@ -197,8 +197,10 @@
 "settings.ringContent.airPodsDualRing.description" = "Draw each earbud's battery as its own arc.";
 "settings.ringContent.airPodsTopSymbol" = "Show AirPods Symbol";
 "settings.ringContent.airPodsTopSymbol.description" = "Draw the small AirPods glyph at the top of the ring.";
-"settings.ringContent.airPodsFallback" = "Fall Back to Battery";
-"settings.ringContent.airPodsFallback.description" = "When no AirPods are connected, show this Mac's battery ring instead.";
+"settings.ringContent.airPodsFallback" = "Запасной вариант без AirPods";
+"settings.ringContent.airPodsFallback.description" = "Если AirPods не подключены, выберите кольцо батареи Mac или настраиваемое кольцо.";
+"settings.ringContent.airPodsFallback.battery" = "Батарея Mac";
+"settings.ringContent.airPodsFallback.custom" = "Настраиваемое";
 "settings.battery.group.progress" = "Прогресс";
 "settings.battery.noBatteryNotice" = "На этом устройстве нет аккумулятора, поэтому процент заряда не отображается.";
 "settings.battery.noBatteryTopIndicator" = "Верхний индикатор";
@@ -1195,6 +1197,8 @@
 "settings.hardwareRing.top.automatic" = "Автоматически";
 "settings.hardwareRing.top.symbol" = "Значок метрики";
 "settings.hardwareRing.top.value" = "Значение метрики";
+"settings.hardwareRing.top.batteryPercentage" = "Уровень заряда";
+"settings.hardwareRing.top.chargingIndicator" = "Индикатор зарядки";
 "settings.hardwareRing.top.hidden" = "Скрыто";
 "settings.hardwareRing.top.metric" = "Верхняя метрика";
 "settings.hardwareRing.group.color" = "Цвет";

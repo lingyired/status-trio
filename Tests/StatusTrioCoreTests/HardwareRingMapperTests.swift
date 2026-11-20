@@ -381,4 +381,85 @@ final class HardwareRingMapperTests: XCTestCase {
         XCTAssertEqual(state.segments[0].progress, 0)
         XCTAssertEqual(state.segments[0].color, .inactive)
     }
+
+    // MARK: - Battery top markers
+
+    private func battery(
+        percent: Int = 62,
+        charging: Bool = false,
+        charged: Bool = false,
+        connected: Bool = false,
+        present: Bool = true
+    ) -> BatteryStatus {
+        BatteryStatus(
+            rawPercentage: percent,
+            isPresent: present,
+            isCharging: charging,
+            isCharged: charged,
+            isLowPowerMode: false,
+            isConnectedToPower: connected
+        )
+    }
+
+    private func singleRing(topContent: HardwareRingTopContent) -> HardwareRingConfiguration {
+        HardwareRingConfiguration(layout: .single, primaryMetric: .cpuUsage, topContent: topContent)
+    }
+
+    func testBatteryPercentageTopMarkerShowsLevelNumber() {
+        let state = HardwareRingMapper.resolve(
+            snapshot: snapshot([.cpuUsage: sample(45, unit: .percent)]),
+            configuration: singleRing(topContent: .batteryPercentage),
+            battery: battery(percent: 62), now: now
+        )
+        guard case let .text(text)? = state.accessory else {
+            return XCTFail("expected text accessory")
+        }
+        XCTAssertEqual(text.text, "62")
+        XCTAssertEqual(text.scale, HardwareRingMapper.topValueTextScale(for: .percent))
+        XCTAssertEqual(state.gap, .value)
+    }
+
+    func testBatteryPercentageTopMarkerHidesOnBatteryLessMac() {
+        let state = HardwareRingMapper.resolve(
+            snapshot: snapshot([:]), configuration: singleRing(topContent: .batteryPercentage),
+            battery: battery(percent: 100, present: false), now: now
+        )
+        XCTAssertNil(state.accessory)
+        XCTAssertEqual(state.gap, .closed)
+    }
+
+    func testChargingIndicatorShowsBoltWhileCharging() {
+        let state = HardwareRingMapper.resolve(
+            snapshot: snapshot([:]), configuration: singleRing(topContent: .chargingIndicator),
+            battery: battery(percent: 40, charging: true, connected: true), now: now
+        )
+        guard case let .symbol(symbol)? = state.accessory else {
+            return XCTFail("expected symbol accessory")
+        }
+        XCTAssertEqual(symbol.source, .primitive(.bolt))
+        XCTAssertEqual(state.gap, .indicator)
+    }
+
+    func testChargingIndicatorShowsPlugWhenFull() {
+        let state = HardwareRingMapper.resolve(
+            snapshot: snapshot([:]), configuration: singleRing(topContent: .chargingIndicator),
+            battery: battery(percent: 100, charged: true, connected: true), now: now
+        )
+        guard case let .symbol(symbol)? = state.accessory else {
+            return XCTFail("expected symbol accessory")
+        }
+        XCTAssertEqual(symbol.source, .primitive(.plug))
+    }
+
+    func testChargingIndicatorShowsLevelNumberOnBattery() {
+        let state = HardwareRingMapper.resolve(
+            snapshot: snapshot([:]), configuration: singleRing(topContent: .chargingIndicator),
+            battery: battery(percent: 37), now: now
+        )
+        guard case let .text(text)? = state.accessory else {
+            return XCTFail("expected text accessory")
+        }
+        XCTAssertEqual(text.text, "37")
+    }
 }
+

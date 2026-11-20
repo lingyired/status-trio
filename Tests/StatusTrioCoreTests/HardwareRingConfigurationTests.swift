@@ -23,13 +23,22 @@ final class HardwareRingConfigurationTests: XCTestCase {
 
     func testTopContentTaggedCoding() throws {
         let cases: [HardwareRingTopContent] = [
-            .automatic, .hidden, .symbol(.gpuUsage), .value(.fan)
+            .automatic, .hidden, .symbol(.gpuUsage), .value(.fan),
+            .batteryPercentage, .chargingIndicator
         ]
         for content in cases {
             let data = try JSONEncoder().encode(content)
             let decoded = try JSONDecoder().decode(HardwareRingTopContent.self, from: data)
             XCTAssertEqual(decoded, content)
         }
+    }
+
+    func testBatteryTopContentNeedsNoMetricButUsesBattery() {
+        XCTAssertNil(HardwareRingTopContent.batteryPercentage.referencedMetric)
+        XCTAssertNil(HardwareRingTopContent.chargingIndicator.referencedMetric)
+        XCTAssertTrue(HardwareRingTopContent.batteryPercentage.usesBatteryStatus)
+        XCTAssertTrue(HardwareRingTopContent.chargingIndicator.usesBatteryStatus)
+        XCTAssertFalse(HardwareRingTopContent.value(.cpuUsage).usesBatteryStatus)
     }
 
     func testMissingFieldsDecodeToDefaults() throws {

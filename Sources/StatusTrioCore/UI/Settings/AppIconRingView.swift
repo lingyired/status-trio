@@ -1,14 +1,38 @@
 import AppKit
 import SwiftUI
 
-/// Top-marker choices exposed in the settings pane: a numeric value or hidden.
+/// Top-marker choices exposed in the settings pane: a numeric reading, a
+/// charging indicator, or hidden.
 /// The icon/symbol mode was removed because the detailed glyphs were unreadable
 /// at menu-bar size; legacy `.automatic`/`.symbol` configurations migrate to a
 /// value in `HardwareRingConfiguration.migratingLegacyTopIcon()`.
 private enum HardwareTopMode: String, CaseIterable, Identifiable {
     case value
+    case chargingIndicator
     case hidden
     var id: Self { self }
+}
+
+/// A choice inside the top-marker "metric value" menu. Battery level is not a
+/// hardware metric, so it rides this top-marker-only reading (and maps to the
+/// `batteryPercentage` top content) instead of a hardware metric case.
+private enum HardwareTopReading: Hashable, Identifiable {
+    case metric(HardwareMonitorMetric)
+    case batteryLevel
+
+    var id: String {
+        switch self {
+        case let .metric(metric): return metric.rawValue
+        case .batteryLevel: return "batteryLevel"
+        }
+    }
+
+    var systemImage: String {
+        switch self {
+        case let .metric(metric): return metric.systemImage
+        case .batteryLevel: return "battery.100"
+        }
+    }
 }
 
 /// The "Ring" leaf under **App Icon**: how the battery arc / ring is drawn.
@@ -157,16 +181,26 @@ struct AppIconRingView: View {
         }
     }
 
-    /// Fallback when no AirPods are connected / readable.
+    /// Fallback when no AirPods are connected / readable: the Mac battery ring,
+    /// the custom system-monitoring ring, or nothing.
     private var airPodsFallbackGroup: some View {
         SettingsGroup {
-            SettingsToggleRow(
-                symbol: "battery.100",
+            SettingsMenuRow(
+                symbol: "arrow.uturn.backward",
                 tint: .green,
                 title: localization.string(.settingsRingAirPodsFallback),
                 subtitle: localization.string(.settingsRingAirPodsFallbackDescription),
-                isOn: $store.airPodsRingFallsBackToBattery
+                selection: $store.airPodsRingFallback,
+                options: AirPodsRingFallback.allCases,
+                label: { fallbackLabel($0) }
             )
+        }
+    }
+
+    private func fallbackLabel(_ fallback: AirPodsRingFallback) -> String {
+        switch fallback {
+        case .battery: return localization.string(.settingsRingAirPodsFallbackBattery)
+        case .hardwareMonitor: return localization.string(.settingsRingAirPodsFallbackCustom)
         }
     }
 
@@ -250,15 +284,15 @@ struct AppIconRingView: View {
             if hardwareTopMode == .value {
                 SettingsDivider()
                 SettingsGroupedMenuRow(
-                    symbol: hardwareTopMetric.systemImage,
+                    symbol: hardwareTopReading.systemImage,
                     tint: .gray,
                     title: localization.string(.settingsHardwareRingTopMetric),
                     selection: Binding(
-                        get: { hardwareTopMetric },
-                        set: { setTopMetric($0) }
+                        get: { hardwareTopReading },
+                        set: { setTopReading($0) }
                     ),
-                    groups: hardwareRingMetricGroups,
-                    label: { metricLabel($0) }
+                    groups: hardwareTopMetricGroups,
+                    label: { topReadingLabel($0) }
                 )
             }
         }
@@ -465,14 +499,28 @@ struct AppIconRingView: View {
     private var hardwareTopMode: HardwareTopMode {
         switch store.hardwareRingConfiguration.topContent {
         case .hidden: return .hidden
-        case .value: return .value
-        case .automatic, .symbol: return .value
+        case .chargingIndicator: return .chargingIndicator
+        case .value, .batteryPercentage, .automatic, .symbol: return .value
         }
     }
 
+    /// The current top-marker reading shown in the "metric value" menu. Battery
+    /// level is presented alongside the hardware metrics, so an existing
+    /// `.batteryPercentage` content surfaces as `.batteryLevel`.
+    private var hardwareTopReading: HardwareTopReading {
+        switch store.hardwareRingConfiguration.topContent {
+        case .batteryPercentage: return .batteryLevel
+        case let .value(metric), let .symbol(metric): return .metric(metric)
+        case .automatic, .hidden, .chargingIndicator:
+            return .metric(store.hardwareRingConfiguration.primaryMetric)
+        }
+    }
+
+    /// The concrete hardware metric a top-marker value currently uses, defaulting
+    /// to the primary metric (also used when switching back into value mode).
     private var hardwareTopMetric: HardwareMonitorMetric {
-        store.hardwareRingConfiguration.topContent.referencedMetric
-            ?? store.hardwareRingConfiguration.primaryMetric
+        if case let .metric(metric) = hardwareTopReading { return metric }
+        return store.hardwareRingConfiguration.primaryMetric
     }
 
     private func setHardwareLayout(_ layout: HardwareRingLayout) {
@@ -505,19 +553,19 @@ struct AppIconRingView: View {
 
     private func setTopMode(_ mode: HardwareTopMode) {
         var configuration = store.hardwareRingConfiguration
-        let metric = hardwareTopMetric
         switch mode {
         case .hidden: configuration.topContent = .hidden
-        case .value: configuration.topContent = .value(metric)
+        case .value: configuration.topContent = .value(hardwareTopMetric)
+        case .chargingIndicator: configuration.topContent = .chargingIndicator
         }
         store.hardwareRingConfiguration = configuration
     }
 
-    private func setTopMetric(_ metric: HardwareMonitorMetric) {
+    private func setTopReading(_ reading: HardwareTopReading) {
         var configuration = store.hardwareRingConfiguration
-        switch hardwareTopMode {
-        case .value: configuration.topContent = .value(metric)
-        case .hidden: break
+        switch reading {
+        case .batteryLevel: configuration.topContent = .batteryPercentage
+        case let .metric(metric): configuration.topContent = .value(metric)
         }
         store.hardwareRingConfiguration = configuration
     }
@@ -606,13 +654,34 @@ struct AppIconRingView: View {
         ]
     }
 
+    /// Grouped choices for the top-marker "metric value" menu: the same metrics
+    /// as the arcs plus battery level (电量), presented inside the Other group.
+    private var hardwareTopMetricGroups: [(title: String, options: [HardwareTopReading])] {
+        hardwareRingMetricGroups.map { group in
+            let options = group.options.map { HardwareTopReading.metric($0) }
+            // Put battery level at the top of the Other group.
+            if group.options.contains(.memoryUsage) {
+                return (group.title, [.batteryLevel] + options)
+            }
+            return (group.title, options)
+        }
+    }
+
     private func metricLabel(_ metric: HardwareMonitorMetric) -> String {
         localization.string(metric.titleKey)
+    }
+
+    private func topReadingLabel(_ reading: HardwareTopReading) -> String {
+        switch reading {
+        case let .metric(metric): return metricLabel(metric)
+        case .batteryLevel: return localization.string(.settingsHardwareRingTopBatteryPercentage)
+        }
     }
 
     private func topModeLabel(_ mode: HardwareTopMode) -> String {
         switch mode {
         case .value: return localization.string(.settingsHardwareRingTopValue)
+        case .chargingIndicator: return localization.string(.settingsHardwareRingTopChargingIndicator)
         case .hidden: return localization.string(.settingsHardwareRingTopHidden)
         }
     }

@@ -43,12 +43,14 @@ enum HardwareRingMapper {
         metricColors: [HardwareMonitorMetric: IconRGBA] = [:],
         speedCapsMbps: [HardwareMonitorMetric: Double] = [:],
         auxiliarySamples: [HardwareMonitorMetric: HardwareMetricSample] = [:],
+        battery: BatteryStatus = .placeholder,
         now: Date = .now
     ) -> OuterRingState {
         let configuration = rawConfiguration.normalized()
         let accessory = topAccessory(configuration: configuration, snapshot: snapshot,
                                      metricColors: metricColors,
-                                     auxiliarySamples: auxiliarySamples, now: now)
+                                     auxiliarySamples: auxiliarySamples,
+                                     battery: battery, now: now)
 
         switch configuration.layout {
         case .single:
@@ -179,6 +181,7 @@ enum HardwareRingMapper {
         snapshot: HardwareMetricsSnapshot,
         metricColors: [HardwareMonitorMetric: IconRGBA],
         auxiliarySamples: [HardwareMonitorMetric: HardwareMetricSample],
+        battery: BatteryStatus,
         now: Date
     ) -> RingAccessoryState? {
         switch configuration.topContent {
@@ -213,7 +216,39 @@ enum HardwareRingMapper {
                                            color: color, scale: scale))
             }
             return .text(IconTextState(text: "--", color: color, scale: scale))
+        case .batteryPercentage:
+            // Always the level number, even while charging or on power, mirroring
+            // the battery ring's own percentage marker.
+            guard battery.isPresent else { return nil }
+            let percentScale = topValueTextScale(for: .percent) * configuration.topMarkerScale
+            return .text(IconTextState(text: "\(battery.percentage)", color: .primary, scale: percentScale))
+        case .chargingIndicator:
+            return batteryChargingAccessory(battery: battery, configuration: configuration)
         }
+    }
+
+    /// Builds the auto-switching charging marker used by the custom ring's
+    /// `chargingIndicator` top content. Matches the battery ring's classic
+    /// markers: bolt while charging, plug once charged or connected to power,
+    /// level number while on battery, and a decorative plug on a battery-less Mac.
+    private static func batteryChargingAccessory(
+        battery: BatteryStatus,
+        configuration: HardwareRingConfiguration
+    ) -> RingAccessoryState {
+        let scale = topValueTextScale(for: .percent) * configuration.topMarkerScale
+        guard battery.isPresent else {
+            return .symbol(IconSymbolState(source: .primitive(.plug), color: .primary, scale: scale))
+        }
+        if battery.isCharged {
+            return .symbol(IconSymbolState(source: .primitive(.plug), color: .primary, scale: scale))
+        }
+        if battery.isCharging {
+            return .symbol(IconSymbolState(source: .primitive(.bolt), color: .primary, scale: scale))
+        }
+        if battery.isConnectedToPower {
+            return .symbol(IconSymbolState(source: .primitive(.plug), color: .primary, scale: scale))
+        }
+        return .text(IconTextState(text: "\(battery.percentage)", color: .primary, scale: scale))
     }
 
     /// Colour of the top marker reading. Top-marker-only metrics (volume, Wi-Fi

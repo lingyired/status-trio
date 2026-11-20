@@ -197,8 +197,10 @@
 "settings.ringContent.airPodsDualRing.description" = "Draw each earbud's battery as its own arc.";
 "settings.ringContent.airPodsTopSymbol" = "Show AirPods Symbol";
 "settings.ringContent.airPodsTopSymbol.description" = "Draw the small AirPods glyph at the top of the ring.";
-"settings.ringContent.airPodsFallback" = "Fall Back to Battery";
-"settings.ringContent.airPodsFallback.description" = "When no AirPods are connected, show this Mac's battery ring instead.";
+"settings.ringContent.airPodsFallback" = "AirPods 미연결 시 대체";
+"settings.ringContent.airPodsFallback.description" = "AirPods가 연결되지 않을 때 Mac 배터리 링과 사용자 정의 링 중 어느 것으로 대체할지 선택합니다.";
+"settings.ringContent.airPodsFallback.battery" = "Mac 배터리";
+"settings.ringContent.airPodsFallback.custom" = "사용자 정의";
 "settings.battery.group.progress" = "진행 상황";
 "settings.battery.noBatteryNotice" = "이 기기에는 배터리가 없으므로 배터리 잔량 백분율이 표시되지 않습니다.";
 "settings.battery.noBatteryTopIndicator" = "상단 표시기";
@@ -1195,6 +1197,8 @@
 "settings.hardwareRing.top.automatic" = "자동";
 "settings.hardwareRing.top.symbol" = "지표 아이콘";
 "settings.hardwareRing.top.value" = "지표 값";
+"settings.hardwareRing.top.batteryPercentage" = "배터리 잔량";
+"settings.hardwareRing.top.chargingIndicator" = "충전 표시";
 "settings.hardwareRing.top.hidden" = "숨김";
 "settings.hardwareRing.top.metric" = "상단 지표";
 "settings.hardwareRing.group.color" = "색상";

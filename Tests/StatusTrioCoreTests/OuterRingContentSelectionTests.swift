@@ -49,7 +49,7 @@ final class OuterRingContentSelectionTests: XCTestCase {
         store.outerRingContent = .airPodsBattery
         store.airPodsRingUsesDualRing = true
         store.showsAirPodsTopSymbolInRing = true
-        store.airPodsRingFallsBackToBattery = true
+        store.airPodsRingFallback = .battery
         let config = store.derivedIconConfigurationFromSettings()
         XCTAssertEqual(config.composition.outerRing.primary, .airPodsBattery)
         XCTAssertEqual(config.composition.outerRing.fallback, .systemBattery)
@@ -60,7 +60,7 @@ final class OuterRingContentSelectionTests: XCTestCase {
     func testNoAirPodsFallsBackToTheSystemBatteryRing() throws {
         let store = try store()
         store.outerRingContent = .airPodsBattery
-        store.airPodsRingFallsBackToBattery = true
+        store.airPodsRingFallback = .battery
         let output = IconCompositionResolver.resolve(
             inputs: IconResolutionInputs(
                 system: IconPresentationInputs(snapshot: snapshot(), audioIcon: nil),
@@ -70,20 +70,6 @@ final class OuterRingContentSelectionTests: XCTestCase {
         )
         XCTAssertNotNil(output.scene.outerRing, "no AirPods must fall back to the battery ring")
         XCTAssertEqual(output.trace.outerRing.selectedSourceID, RingSource.systemBattery.rawValue)
-    }
-
-    func testNoAirPodsWithoutFallbackLeavesTheRingEmpty() throws {
-        let store = try store()
-        store.outerRingContent = .airPodsBattery
-        store.airPodsRingFallsBackToBattery = false
-        let output = IconCompositionResolver.resolve(
-            inputs: IconResolutionInputs(
-                system: IconPresentationInputs(snapshot: snapshot(), audioIcon: nil),
-                sources: .empty
-            ),
-            configuration: store.derivedIconConfigurationFromSettings()
-        )
-        XCTAssertNil(output.scene.outerRing, "no fallback and no AirPods must leave the ring empty")
     }
 
     func testAirPodsPresentRendersDualRing() throws {
@@ -126,12 +112,62 @@ final class OuterRingContentSelectionTests: XCTestCase {
             snapshotScheduler: ManualIconPresentationScheduler()
         )
         view.start()
-        // Turn off the battery fallback so the ring actually disappears when the
-        // content switches to (absent) AirPods, making the change observable.
-        store.airPodsRingFallsBackToBattery = false
+        // Use the custom fallback so switching to (absent) AirPods changes the
+        // drawn ring instead of re-drawing the same battery ring.
+        store.airPodsRingFallback = .hardwareMonitor
         let before = view.output.scene
         store.outerRingContent = .airPodsBattery
         XCTAssertNotEqual(view.output.scene, before, "switching the ring content must re-render immediately")
         view.stop()
     }
+
+    func testAirPodsContentCanFallBackToTheCustomRing() throws {
+        let store = try store()
+        store.outerRingContent = .airPodsBattery
+        store.airPodsRingFallback = .hardwareMonitor
+        let config = store.derivedIconConfigurationFromSettings()
+        XCTAssertEqual(config.composition.outerRing.primary, .airPodsBattery)
+        XCTAssertEqual(config.composition.outerRing.fallback, .hardwareMonitor)
+    }
+
+    func testNoAirPodsFallsBackToTheCustomRing() throws {
+        let store = try store()
+        store.outerRingContent = .airPodsBattery
+        store.airPodsRingFallback = .hardwareMonitor
+        let output = IconCompositionResolver.resolve(
+            inputs: IconResolutionInputs(
+                system: IconPresentationInputs(snapshot: snapshot(), audioIcon: nil),
+                sources: .empty
+            ),
+            configuration: store.derivedIconConfigurationFromSettings()
+        )
+        XCTAssertNotNil(output.scene.outerRing, "no AirPods must fall back to the custom ring")
+        XCTAssertEqual(output.trace.outerRing.selectedSourceID, RingSource.hardwareMonitor.rawValue)
+    }
+
+    func testFallbackChoicePersists() throws {
+        let suite = "StatusTrioCoreTests.OuterRingFallback.\(UUID().uuidString)"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
+        defaults.removePersistentDomain(forName: suite)
+        addTeardownBlock { defaults.removePersistentDomain(forName: suite) }
+        let store = SettingsStore(defaults: defaults)
+        store.airPodsRingFallback = .hardwareMonitor
+        let reopened = SettingsStore(defaults: defaults)
+        XCTAssertEqual(reopened.airPodsRingFallback, .hardwareMonitor)
+    }
+
+    func testLegacyFallbackBooleanMigratesToTheBatteryChoice() throws {
+        let suite = "StatusTrioCoreTests.OuterRingLegacy.\(UUID().uuidString)"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
+        defaults.removePersistentDomain(forName: suite)
+        addTeardownBlock { defaults.removePersistentDomain(forName: suite) }
+        // The old on/off boolean has no "off" target any more, so both states
+        // resolve to the battery fallback.
+        defaults.set(true, forKey: "airPodsRingFallsBackToBattery")
+        XCTAssertEqual(SettingsStore(defaults: defaults).airPodsRingFallback, .battery)
+        defaults.set(false, forKey: "airPodsRingFallsBackToBattery")
+        defaults.removeObject(forKey: "airPodsRingFallback")
+        XCTAssertEqual(SettingsStore(defaults: defaults).airPodsRingFallback, .battery)
+    }
 }
+

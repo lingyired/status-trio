@@ -197,8 +197,10 @@
 "settings.ringContent.airPodsDualRing.description" = "左右のイヤホン残量をそれぞれの弧で描画します。";
 "settings.ringContent.airPodsTopSymbol" = "AirPodsシンボルを表示";
 "settings.ringContent.airPodsTopSymbol.description" = "リング上部に小さなAirPodsアイコンを描画します。";
-"settings.ringContent.airPodsFallback" = "バッテリーにフォールバック";
-"settings.ringContent.airPodsFallback.description" = "AirPods未接続時はこのMacのバッテリーリングを表示します。";
+"settings.ringContent.airPodsFallback" = "AirPods 未接続時のフォールバック";
+"settings.ringContent.airPodsFallback.description" = "AirPods が接続されていない場合、Mac のバッテリーリングとカスタムリングのどちらに切り替えるかを選べます。";
+"settings.ringContent.airPodsFallback.battery" = "Mac バッテリー";
+"settings.ringContent.airPodsFallback.custom" = "カスタム";
 "settings.battery.group.progress" = "進行状況";
 "settings.battery.noBatteryNotice" = "このデバイスにはバッテリーがないため、バッテリー残量のパーセンテージは表示されません。";
 "settings.battery.noBatteryTopIndicator" = "上部インジケーター";
@@ -1195,6 +1197,8 @@
 "settings.hardwareRing.top.automatic" = "自動";
 "settings.hardwareRing.top.symbol" = "指標アイコン";
 "settings.hardwareRing.top.value" = "指標の値";
+"settings.hardwareRing.top.batteryPercentage" = "バッテリー残量";
+"settings.hardwareRing.top.chargingIndicator" = "充電インジケーター";
 "settings.hardwareRing.top.hidden" = "非表示";
 "settings.hardwareRing.top.metric" = "上部指標";
 "settings.hardwareRing.group.color" = "カラー";

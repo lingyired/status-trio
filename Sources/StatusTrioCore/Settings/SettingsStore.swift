@@ -175,7 +175,7 @@ final class SettingsStore: ObservableObject {
     static let outerRingContentDefaultsKey = "outerRingContent"
     static let airPodsRingUsesDualRingDefaultsKey = "airPodsRingUsesDualRing"
     static let showsAirPodsTopSymbolInRingDefaultsKey = "showsAirPodsTopSymbolInRing"
-    static let airPodsRingFallsBackToBatteryDefaultsKey = "airPodsRingFallsBackToBattery"
+    static let airPodsRingFallbackDefaultsKey = "airPodsRingFallback"
     static let hardwareRingConfigurationDefaultsKey = "hardwareRingConfigurationV1"
     static let hardwareMonitorMetricColorsDefaultsKey = "hardwareMonitorMetricColorsV1"
     static let hardwareDownloadCapMbpsDefaultsKey = "hardwareDownloadCapMbps"
@@ -1173,10 +1173,12 @@ final class SettingsStore: ObservableObject {
         didSet { defaults.set(showsAirPodsTopSymbolInRing, forKey: Self.showsAirPodsTopSymbolInRingDefaultsKey) }
     }
 
-    /// Whether an unavailable AirPods ring falls back to the system battery ring
-    /// (the "battery as fallback" choice, like the centre's network fallback).
-    @Published var airPodsRingFallsBackToBattery: Bool = true {
-        didSet { defaults.set(airPodsRingFallsBackToBattery, forKey: Self.airPodsRingFallsBackToBatteryDefaultsKey) }
+    /// What an unavailable AirPods ring falls back to: the Mac battery ring
+    /// (historical default), the custom system-monitoring ring, or nothing.
+    @Published var airPodsRingFallback: AirPodsRingFallback = .battery {
+        didSet {
+            defaults.set(airPodsRingFallback.rawValue, forKey: Self.airPodsRingFallbackDefaultsKey)
+        }
     }
 
     /// Internal configuration of the "System Monitoring" (`hardwareMonitor`)
@@ -3010,9 +3012,14 @@ final class SettingsStore: ObservableObject {
         self.showsAirPodsTopSymbolInRing = defaults.object(
             forKey: Self.showsAirPodsTopSymbolInRingDefaultsKey
         ) as? Bool ?? true
-        self.airPodsRingFallsBackToBattery = defaults.object(
-            forKey: Self.airPodsRingFallsBackToBatteryDefaultsKey
-        ) as? Bool ?? true
+        if let rawFallback = defaults.string(forKey: Self.airPodsRingFallbackDefaultsKey),
+           let fallback = AirPodsRingFallback(rawValue: rawFallback) {
+            self.airPodsRingFallback = fallback
+        } else {
+            // The old boolean "falls back to battery" (and its old "off" state)
+            // both resolve to the battery fallback now that "no fallback" is gone.
+            self.airPodsRingFallback = .battery
+        }
         if let data = defaults.data(forKey: Self.hardwareRingConfigurationDefaultsKey),
            let decoded = try? JSONDecoder().decode(HardwareRingConfiguration.self, from: data) {
             self.hardwareRingConfiguration = decoded.normalized().migratingLegacyTopIcon()

@@ -16,12 +16,21 @@ enum HardwareRingLayout: String, Codable, CaseIterable, Identifiable, Sendable {
 ///
 /// `automatic` follows the selected metric (single: that metric's glyph; dual:
 /// a generic monitor glyph). `symbol` pins a metric glyph, `value` shows the
-/// metric's raw value, `hidden` removes it. The top marker is part of the
-/// hardware source, not a separate top-level slot.
+/// metric's raw value. `batteryPercentage` shows the Mac battery's level
+/// number in the gap, and `chargingIndicator` shows the battery's power-state
+/// glyph (bolt while charging, plug when full or connected to power, level
+/// number while on battery). `hidden` removes it. The top marker is part of
+/// the hardware source, not a separate top-level slot.
 enum HardwareRingTopContent: Codable, Equatable, Hashable, Sendable {
     case automatic
     case symbol(HardwareMonitorMetric)
     case value(HardwareMonitorMetric)
+    /// The Mac battery's level percentage, drawn like the battery ring's own
+    /// percentage marker.
+    case batteryPercentage
+    /// A battery power-state marker: bolt while charging, plug when charged or
+    /// connected to power, and the level number while running on battery.
+    case chargingIndicator
     case hidden
 
     /// The metric whose sample the top marker depends on, if any. `automatic`
@@ -29,8 +38,18 @@ enum HardwareRingTopContent: Codable, Equatable, Hashable, Sendable {
     /// own; the resolver combines it with the ring metrics.
     var referencedMetric: HardwareMonitorMetric? {
         switch self {
-        case .automatic, .hidden: return nil
+        case .automatic, .hidden, .batteryPercentage, .chargingIndicator: return nil
         case let .symbol(metric), let .value(metric): return metric
+        }
+    }
+
+    /// Whether the top marker reads the Mac battery rather than a hardware
+    /// metric. Battery content adds no hardware-metric sampling demand, but it
+    /// does require the battery sample.
+    var usesBatteryStatus: Bool {
+        switch self {
+        case .batteryPercentage, .chargingIndicator: return true
+        case .automatic, .symbol, .value, .hidden: return false
         }
     }
 
@@ -39,7 +58,7 @@ enum HardwareRingTopContent: Codable, Equatable, Hashable, Sendable {
     private enum CodingKeys: String, CodingKey { case kind, metric }
 
     private enum Kind: String {
-        case automatic, symbol, value, hidden
+        case automatic, symbol, value, batteryPercentage, chargingIndicator, hidden
     }
 
     func encode(to encoder: Encoder) throws {
@@ -47,6 +66,10 @@ enum HardwareRingTopContent: Codable, Equatable, Hashable, Sendable {
         switch self {
         case .automatic:
             try container.encode(Kind.automatic.rawValue, forKey: .kind)
+        case .batteryPercentage:
+            try container.encode(Kind.batteryPercentage.rawValue, forKey: .kind)
+        case .chargingIndicator:
+            try container.encode(Kind.chargingIndicator.rawValue, forKey: .kind)
         case .hidden:
             try container.encode(Kind.hidden.rawValue, forKey: .kind)
         case let .symbol(metric):
@@ -66,6 +89,10 @@ enum HardwareRingTopContent: Codable, Equatable, Hashable, Sendable {
         switch kind {
         case .automatic:
             self = .automatic
+        case .batteryPercentage:
+            self = .batteryPercentage
+        case .chargingIndicator:
+            self = .chargingIndicator
         case .hidden:
             self = .hidden
         case .symbol:
@@ -313,7 +340,7 @@ struct HardwareRingConfiguration: Codable, Equatable, Hashable, Sendable {
             copy.topContent = .value(copy.primaryMetric)
         case let .symbol(metric):
             copy.topContent = .value(metric)
-        case .value, .hidden:
+        case .value, .hidden, .batteryPercentage, .chargingIndicator:
             break
         }
         return copy

@@ -46,7 +46,7 @@ extension SettingsStore {
                 $outerRingContent,
                 $airPodsRingUsesDualRing,
                 $showsAirPodsTopSymbolInRing,
-                $airPodsRingFallsBackToBattery
+                $airPodsRingFallback
             )
             .combineLatest($hardwareRingConfiguration) { ring, hardwareRing in
                 (ring.0, ring.1, ring.2, ring.3, hardwareRing)
@@ -61,7 +61,7 @@ extension SettingsStore {
             appearance.outerRingContent = ring.0
             appearance.airPodsRingUsesDualRing = ring.1
             appearance.showsAirPodsTopSymbolInRing = ring.2
-            appearance.airPodsRingFallsBackToBattery = ring.3
+            appearance.airPodsRingFallback = ring.3
             appearance.hardwareRingConfiguration = ring.4
             appearance.hardwareMetricColors = ring.5
             appearance.hardwareDownloadCapMbps = ring.6

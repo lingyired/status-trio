@@ -197,8 +197,10 @@
 "settings.ringContent.airPodsDualRing.description" = "把左右耳电量各画成一段弧。";
 "settings.ringContent.airPodsTopSymbol" = "显示 AirPods 符号";
 "settings.ringContent.airPodsTopSymbol.description" = "在环顶部绘制小的 AirPods 符号。";
-"settings.ringContent.airPodsFallback" = "无 AirPods 时回退电池";
-"settings.ringContent.airPodsFallback.description" = "未连接 AirPods 时，改显示本机电池环。";
+"settings.ringContent.airPodsFallback" = "无 AirPods 时回退";
+"settings.ringContent.airPodsFallback.description" = "未连接 AirPods 时，选择回退到本机电池环还是自定义环。";
+"settings.ringContent.airPodsFallback.battery" = "本机电池";
+"settings.ringContent.airPodsFallback.custom" = "自定义";
 "settings.battery.group.progress" = "进度";
 "settings.battery.noBatteryNotice" = "当前设备没有电池，不显示电量百分比。";
 "settings.battery.noBatteryTopIndicator" = "顶部指示图标";
@@ -1195,6 +1197,8 @@
 "settings.hardwareRing.top.automatic" = "自动";
 "settings.hardwareRing.top.symbol" = "指标图标";
 "settings.hardwareRing.top.value" = "指标数值";
+"settings.hardwareRing.top.batteryPercentage" = "电量";
+"settings.hardwareRing.top.chargingIndicator" = "充电标志";
 "settings.hardwareRing.top.hidden" = "隐藏";
 "settings.hardwareRing.top.metric" = "顶部指标";
 "settings.hardwareRing.group.color" = "颜色";

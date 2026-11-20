@@ -18,6 +18,7 @@ struct HardwareMonitorIconPlugin: IconContentPlugin {
             metricColors: context.inputs.sources.hardwareMetricColors,
             speedCapsMbps: context.inputs.sources.hardwareSpeedCapsMbps,
             auxiliarySamples: Self.auxiliarySamples(from: context.inputs.system.snapshot, now: context.now),
+            battery: context.inputs.system.snapshot.battery,
             now: context.now
         )
         return .available(.outerRing(state))
@@ -31,7 +32,11 @@ struct HardwareMonitorIconPlugin: IconContentPlugin {
         let metricIDs = Set(configuration.referencedMetrics
             .filter { !$0.usesStatusSnapshot }
             .map(\.metricID))
-        return .init(samples: [.hardwareMonitor], requiresHardwareMonitor: true, hardwareMetricIDs: metricIDs)
+        // Battery top markers read the battery snapshot instead of a hardware
+        // metric, so the battery sample must be demanded for them to update.
+        var samples: Set<IconPreviewSampleSource> = [.hardwareMonitor]
+        if configuration.topContent.usesBatteryStatus { samples.insert(.macBattery) }
+        return .init(samples: samples, requiresHardwareMonitor: true, hardwareMetricIDs: metricIDs)
     }
 
     func capabilities(presentationID: String, context: IconContentDependencyContext) -> Set<IconDesignerBehaviorCapability> {
