@@ -225,6 +225,7 @@ final class StatusPanelViewModel: ObservableObject {
     private var isUpdatingChargeDemand = false
     private var lastPanelSettingsFingerprint: PanelSettingsFingerprint?
     private var panelSettingsCheckScheduled = false
+    private var hardwareDemandRecomputeScheduled = false
     private var lifecycleGeneration = 0
 
     /// Tests observe deliveries from the single popup-snapshot subscription
@@ -361,6 +362,7 @@ final class StatusPanelViewModel: ObservableObject {
         lifecycleGeneration &+= 1
         lastPanelSettingsFingerprint = PanelSettingsFingerprint(settings: settings)
         panelSettingsCheckScheduled = false
+        hardwareDemandRecomputeScheduled = false
         let sections = settings.visiblePopupSections
         if visiblePopupSections != sections { visiblePopupSections = sections }
         let metrics = settings.visibleHardwareMetrics
@@ -461,11 +463,6 @@ final class StatusPanelViewModel: ObservableObject {
             }
             .store(in: &cancellables)
 
-        settings.$hardwareBackgroundHistoryEnabled
-            .removeDuplicates()
-            .sink { [weak self] enabled in self?.updateHardwareMetricsDemand(backgroundHistoryEnabled: enabled) }
-            .store(in: &cancellables)
-
         settings.$hardwarePanelRefreshSeconds
             .removeDuplicates()
             .sink { [weak self] seconds in self?.updateHardwareMetricsDemand(panelSeconds: seconds) }
@@ -476,6 +473,7 @@ final class StatusPanelViewModel: ObservableObject {
             .sink { [weak self] value in
                 guard let self, self.showsHardwareRings != value else { return }
                 self.showsHardwareRings = value
+                self.scheduleHardwareDemandRecompute()
             }
             .store(in: &cancellables)
 
@@ -484,6 +482,7 @@ final class StatusPanelViewModel: ObservableObject {
             .sink { [weak self] value in
                 guard let self, self.showsHardwareSummaryRow != value else { return }
                 self.showsHardwareSummaryRow = value
+                self.scheduleHardwareDemandRecompute()
             }
             .store(in: &cancellables)
 
@@ -501,6 +500,7 @@ final class StatusPanelViewModel: ObservableObject {
             .sink { [weak self] slots in
                 guard let self, self.enabledHardwareRingSlots != slots else { return }
                 self.enabledHardwareRingSlots = slots
+                self.scheduleHardwareDemandRecompute()
             }
             .store(in: &cancellables)
 
@@ -509,6 +509,7 @@ final class StatusPanelViewModel: ObservableObject {
             .sink { [weak self] metrics in
                 guard let self, self.enabledHardwareSummaryMetrics != metrics else { return }
                 self.enabledHardwareSummaryMetrics = metrics
+                self.scheduleHardwareDemandRecompute()
             }
             .store(in: &cancellables)
 
@@ -595,6 +596,7 @@ final class StatusPanelViewModel: ObservableObject {
         pendingRefreshRegions = []
         lastPanelSettingsFingerprint = nil
         panelSettingsCheckScheduled = false
+        hardwareDemandRecomputeScheduled = false
         volumeDeviceRowsLoaded = false
         cancelLevelVolumePublish()
         lastLiveVolumeStatus = nil
@@ -1079,7 +1081,7 @@ final class StatusPanelViewModel: ObservableObject {
     /// and the section is visible. Switching pages, hiding the module or
     /// closing the panel ends the demand immediately, so a closed panel never
     /// keeps a hardware timer alive.
-    private func updateHardwareMetricsDemand(popoverVisible: Bool? = nil, backgroundHistoryEnabled: Bool? = nil,
+    private func updateHardwareMetricsDemand(popoverVisible: Bool? = nil,
                                              panelSeconds: Int? = nil) {
         // `@Published` publishes in willSet, so a subscriber must pass the new
         // value in rather than read `store.isPopoverVisible` (still the old one).
@@ -1088,46 +1090,32 @@ final class StatusPanelViewModel: ObservableObject {
         let detailKind = activeDetailKind
         let summaryVisible = panelOpen && isSummaryVisible
         let detailVisible = panelOpen && detailKind != nil
-        // @Published fires in willSet, so a settings subscriber must pass the new
-        // value in rather than read the not-yet-committed stored property.
-        let backgroundHistory = backgroundHistoryEnabled ?? settings.hardwareBackgroundHistoryEnabled
         let panelRefresh = panelSeconds ?? settings.hardwarePanelRefreshSeconds
-        // Background history follows the panel cadence, so opening a detail page
-        // shows the same resolution the panel would have recorded.
-        store.hardwareMetrics.backgroundIntervalSeconds = TimeInterval(panelRefresh)
         store.hardwareMetrics.panelIntervalSeconds = TimeInterval(panelRefresh)
         // Only the visible detail page pays for its structured payload and the
         // per-page expensive work (frequency for CPU, session totals for network).
         store.hardwareMetrics.setDetailDemand(detailVisible ? detailKind : nil)
         store.topApps.setDemand(detailVisible && showsHardwareTopApps ? detailKind?.topAppMetric : nil)
-        if summaryVisible || detailVisible {
-            // The compact summary is fixed: four rings plus download/upload,
-            // average fan and disk read/write. It no longer follows the card
-            // metric order, so every group has data even when the user's card
-            // selection changed. An alongside detail unions its own metrics on
-            // top so the visible summary and the detail share one demand.
-            store.hardwareMetrics.end(.background)
-            var metrics: Set<HardwareMetricID> = []
-            if summaryVisible {
-                metrics.formUnion(HardwareMetricsService.hardwareSummaryMetricIDs)
-            }
-            if let detailKind, detailVisible {
-                metrics.formUnion(HardwareMetricsService.detailMetricIDs(for: detailKind))
-            }
+        // Background history belongs to the app-lifetime controller, so closing
+        // the panel (which stops this view model's subscriptions) cannot kill it.
+        let summary = HardwareMetricDemandResolver.PanelSummaryInputs(
+            showsHardwareRings: showsHardwareRings,
+            enabledRingSlots: enabledHardwareRingSlots,
+            showsHardwareSummaryRow: showsHardwareSummaryRow,
+            enabledSummaryMetrics: enabledHardwareSummaryMetrics
+        )
+        let metrics = HardwareMetricDemandResolver.panelMetrics(
+            summary: summaryVisible ? summary : nil,
+            detailKind: detailVisible ? detailKind : nil
+        )
+        if metrics.isEmpty {
+            store.hardwareMetrics.end(.panel)
+        } else {
             store.hardwareMetrics.begin(.panel, metrics: metrics)
             if detailVisible {
                 // Read immediately so the page's structured payload appears on
                 // open instead of waiting for the next scheduled interval.
                 store.hardwareMetrics.forceRefresh()
-            }
-        } else {
-            store.hardwareMetrics.end(.panel)
-            // Optional low-frequency background sampling keeps the summary warm
-            // while the panel is closed (off by default to preserve idle power).
-            if isStarted, sectionOn, backgroundHistory {
-                store.hardwareMetrics.begin(.background, metrics: HardwareMetricsService.hardwareSummaryMetricIDs)
-            } else {
-                store.hardwareMetrics.end(.background)
             }
         }
     }
@@ -1530,6 +1518,22 @@ final class StatusPanelViewModel: ObservableObject {
     /// before the value is stored, so the comparison has to happen after a
     /// yield; by then a burst of writes has settled and the newest values are
     /// read once.
+    /// Recomputes the hardware demand after settings have committed. `@Published`
+    /// publishes in willSet, so a synchronous sink would read the previous value;
+    /// yielding one turn lets the store commit, and the guard coalesces a burst of
+    /// toggles into one begin/end evaluation instead of flapping the sampler.
+    private func scheduleHardwareDemandRecompute() {
+        guard isStarted, !hardwareDemandRecomputeScheduled else { return }
+        hardwareDemandRecomputeScheduled = true
+        Task { @MainActor [weak self] in
+            await Task.yield()
+            guard let self else { return }
+            self.hardwareDemandRecomputeScheduled = false
+            guard self.isStarted else { return }
+            self.updateHardwareMetricsDemand()
+        }
+    }
+
     private func schedulePanelSettingsCheck() {
         guard isStarted, !panelSettingsCheckScheduled else { return }
         panelSettingsCheckScheduled = true

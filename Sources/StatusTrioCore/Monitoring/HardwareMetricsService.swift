@@ -28,7 +28,7 @@ final class HardwareMonitorObservable: ObservableObject {
     /// own buffer to the user's 1–5 minute setting when seeding.
     private var historyRows: [HardwareHistoryRow] = []
     static let historyWindow: TimeInterval = 300
-    static let historyMetricIDs: [HardwareMetricID] = [
+    nonisolated static let historyMetricIDs: [HardwareMetricID] = [
         .cpuUsage, .gpuUsage, .memoryUsage,
         .networkDownload, .networkUpload, .diskRead, .diskWrite
     ]
@@ -131,6 +131,25 @@ final class HardwareMonitorObservable: ObservableObject {
         snapshotSubject.send(stored)
     }
 
+    /// Removes the live snapshot for metrics that just lost their last consumer,
+    /// so a hidden card cannot keep displaying a value the data source no longer
+    /// refreshes. The last good reading is retained in `lastKnown` but marked
+    /// stale, so a later reopen dims it instead of presenting it as live.
+    func pruneInactive(_ ids: Set<HardwareMetricID>, now: Date) {
+        var changed = false
+        for id in ids {
+            if stored.samples.removeValue(forKey: id) != nil { changed = true }
+        }
+        for id in ids {
+            guard var known = lastKnown[id] else { continue }
+            known.availability = .stale
+            lastKnown[id] = known
+        }
+        guard changed else { return }
+        objectWillChange.send()
+        snapshotSubject.send(stored)
+    }
+
     /// Drops every detail payload that does not belong to the page now on screen,
     /// so switching pages cannot show another page's stale per-core/breakdown data.
     func clearDetailPayloads(except kind: HardwareDetailKind?) {
@@ -184,14 +203,7 @@ final class HardwareMetricsService: ObservableObject {
     /// The metrics each detail page needs. GPU/memory/network/disk request only
     /// what that page shows; CPU also enables the separately-throttled frequency.
     static func detailMetricIDs(for kind: HardwareDetailKind) -> Set<HardwareMetricID> {
-        switch kind {
-        case .cpu: return [.cpuUsage, .cpuTemperature]
-        case .gpu: return [.gpuUsage, .gpuTemperature]
-        case .memory: return [.memoryUsage]
-        case .network: return [.networkDownload, .networkUpload]
-        case .disk: return [.diskRead, .diskWrite]
-        case .fan: return [.fanRPM(index: 0), .cpuTemperature, .gpuTemperature, .batteryTemperature]
-        }
+        HardwareMetricDemandResolver.detailMetrics(for: kind)
     }
     typealias Reader = @Sendable (Set<HardwareMetricID>, Date) async -> HardwareMetricsSnapshot
 
@@ -270,6 +282,10 @@ final class HardwareMetricsService: ObservableObject {
         let previous = requestedIDs
         demands[demand] = metrics
         generation &+= 1
+        let removed = previous.subtracting(requestedIDs)
+        if !removed.isEmpty {
+            observable.pruneInactive(removed, now: now())
+        }
         if !isRunning {
             isRunning = true
             // Keep the CPU tick baseline across a close/reopen so the first
