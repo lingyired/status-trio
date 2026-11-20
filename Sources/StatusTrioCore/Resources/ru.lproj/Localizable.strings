@@ -1119,6 +1119,7 @@
 "settings.brightness.betterDisplay.unavailable" = "Недоступно";
 "settings.brightness.betterDisplay.refresh" = "Обновить устройства";
 "settings.battery.colors.highPower" = "Режим высокой мощности";
+"settings.battery.colors.discharging" = "Разряд (без питания)";
 "battery.lowPowerMode.autoEnable" = "Автоматически включать режим низкого энергопотребления";
 "battery.lowPowerMode.autoEnableDescription" = "После отключения питания режим низкого энергопотребления включается автоматически, когда заряд аккумулятора опускается ниже порога низкого заряда. Один раз за цикл низкого заряда.";
 "settings.battery.autoLowPowerThreshold" = "Автоматически включать режим низкого энергопотребления";

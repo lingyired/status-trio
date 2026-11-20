@@ -1376,6 +1376,7 @@ enum LocalizationKey: String, CaseIterable, Hashable, Sendable {
     case accessibilityBattery = "accessibility.battery"
     case accessibilityVolume = "accessibility.volume"
     case settingsBatteryColorsHighPower = "settings.battery.colors.highPower"
+    case settingsBatteryColorsDischarging = "settings.battery.colors.discharging"
     case lowPowerModeAutoEnable = "battery.lowPowerMode.autoEnable"
     case lowPowerModeAutoEnableDescription = "battery.lowPowerMode.autoEnableDescription"
     case autoLowPowerThreshold = "settings.battery.autoLowPowerThreshold"

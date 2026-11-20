@@ -110,22 +110,27 @@ extension IconSceneState {
             // role alone would be the label colour. The percentage indicator is
             // not animated, so it stays with the template and keeps re-tinting.
             let hasEffect = ring.effect != nil
-            if hasEffect || Self.isChromatic(ring.segments.first?.color) {
+            if hasEffect || isChromatic(ring.segments.first?.color) {
                 regions.insert(.ringFill)
             }
             if hasEffect { regions.insert(.ringEffect) }
-            if ring.effect?.pulsesAccessory == true || Self.isChromatic(ring.accessory?.colorRole) {
+            if ring.effect?.pulsesAccessory == true || isChromatic(ring.accessory?.colorRole) {
                 regions.insert(.ringAccessory)
             }
         }
-        if Self.isChromatic(center?.colorRole) { regions.insert(.center) }
-        if Self.isChromatic(footer?.colorRole) { regions.insert(.footerFill) }
+        if isChromatic(center?.colorRole) { regions.insert(.center) }
+        if isChromatic(footer?.colorRole) { regions.insert(.footerFill) }
         return regions.intersection(IconSceneRegion.all)
     }
 
-    private static func isChromatic(_ role: IconColorRole?) -> Bool {
+    private func isChromatic(_ role: IconColorRole?) -> Bool {
         guard let role else { return false }
-        return role != .primary && role != .inactive
+        if role == .primary || role == .inactive { return false }
+        // A discharging ring whose colour is still the system label colour
+        // stays monochrome, so the menu bar can keep handing it to the system
+        // as a template image. Only a real override makes it chromatic.
+        if role == .discharging { return !statusColors.discharging.isSystem }
+        return true
     }
 }
 

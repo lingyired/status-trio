@@ -67,6 +67,7 @@ final class SettingsPreferenceCatalogTests: XCTestCase {
             source.monochromeChargingRing = false
             source.popupScrollWheelStepPercent = 2.5
             source.popupVolumeScrollFeedbackOverride = true
+            source.batteryStatusColors.discharging = .preset(.amber)
             source.batteryStatusColors.charging = .custom(.init(hue: 0.2, saturation: 0.6, brightness: 0.8))
             source.bluetoothIconColor = .custom(.init(hue: 0.1, saturation: 0.4, brightness: 0.9))
             source.bluetoothAudioIconChoice = .airpods
@@ -371,6 +372,7 @@ final class SettingsPreferenceCatalogTests: XCTestCase {
         XCTAssertEqual(SettingsPreferenceCatalog.prepare(valid).values, valid)
         XCTAssertTrue(SettingsPreferenceCatalog.prepare(valid).warnings.isEmpty)
         let malformed: SettingsTransferValue = .object([
+            "discharging": .string("system"),
             "charging": .string("custom:0.2,0.3,2"), "lowPower": .string("system"),
             "highPower": .string("system"), "critical": .string("system")
         ])

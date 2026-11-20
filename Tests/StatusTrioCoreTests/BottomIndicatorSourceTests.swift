@@ -269,7 +269,7 @@ final class BottomIndicatorSourceTests: XCTestCase {
         XCTAssertEqual(batteryFooterColor(batteryStatus(50, lowPower: true)), .lowPower)
         XCTAssertEqual(batteryFooterColor(batteryStatus(50, charging: true)), .powered)
         XCTAssertEqual(batteryFooterColor(batteryStatus(50, connectedToPower: true)), .powered)
-        XCTAssertEqual(batteryFooterColor(batteryStatus(50)), .primary)
+        XCTAssertEqual(batteryFooterColor(batteryStatus(50)), .discharging)
     }
 
     func testBatteryFooterColourIsOffWhenStatusColoursAreOff() {

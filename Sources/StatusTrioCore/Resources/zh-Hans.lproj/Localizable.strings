@@ -1119,6 +1119,7 @@
 "settings.brightness.betterDisplay.unavailable" = "不可用";
 "settings.brightness.betterDisplay.refresh" = "刷新设备";
 "settings.battery.colors.highPower" = "高电量模式";
+"settings.battery.colors.discharging" = "放电（未接电源）";
 "battery.lowPowerMode.autoEnable" = "自动开启低电量模式";
 "battery.lowPowerMode.autoEnableDescription" = "拔掉电源后，电量低于低电量阈值会自动开启低电量模式；每次低电只开一次。";
 "settings.battery.autoLowPowerThreshold" = "自动开启低电量模式";

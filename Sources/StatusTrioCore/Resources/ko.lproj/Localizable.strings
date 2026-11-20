@@ -1390,3 +1390,4 @@
 "settings.localPlugins.unauthorized" = "로컬 JSON 패키지에는 승인된 폴더가 필요합니다.";
 "settings.localPlugins.loadFailed" = "패키지 폴더를 읽을 수 없습니다.";
 "settings.localPlugins.reload" = "다시 로드";
+"settings.battery.colors.discharging" = "방전 중 (전원 미연결)";

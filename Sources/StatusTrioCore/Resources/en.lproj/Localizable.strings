@@ -1118,6 +1118,7 @@
 "settings.brightness.betterDisplay.unavailable" = "Unavailable";
 "settings.brightness.betterDisplay.refresh" = "Refresh devices";
 "settings.battery.colors.highPower" = "High Power Mode";
+"settings.battery.colors.discharging" = "Discharging (not on power)";
 "battery.lowPowerMode.autoEnable" = "Auto-enable Low Power Mode";
 "battery.lowPowerMode.autoEnableDescription" = "When unplugged, Low Power Mode turns on automatically once the battery drops below the low-battery threshold. Once per low-battery cycle.";
 "settings.battery.autoLowPowerThreshold" = "Auto-enable Low Power Mode";

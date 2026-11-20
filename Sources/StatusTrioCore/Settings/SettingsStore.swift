@@ -118,6 +118,7 @@ final class SettingsStore: ObservableObject {
     static let usesBatteryStatusColorsDefaultsKey = "usesBatteryStatusColors"
     static let simulatesNoBatteryDefaultsKey = "simulatesNoBattery"
     static let monochromeChargingRingDefaultsKey = "monochromeChargingRing"
+    static let batteryStatusColorsDischargingDefaultsKey = "batteryStatusColors.discharging"
     static let batteryStatusColorsChargingDefaultsKey = "batteryStatusColors.charging"
     static let batteryStatusColorsLowPowerDefaultsKey = "batteryStatusColors.lowPower"
     static let batteryStatusColorsHighPowerDefaultsKey = "batteryStatusColors.highPower"
@@ -751,6 +752,10 @@ final class SettingsStore: ObservableObject {
     @Published var batteryStatusColors: BatteryStatusColors {
         didSet {
             guard batteryStatusColors != oldValue else { return }
+            defaults.set(
+                batteryStatusColors.discharging.storageValue,
+                forKey: Self.batteryStatusColorsDischargingDefaultsKey
+            )
             defaults.set(
                 batteryStatusColors.charging.storageValue,
                 forKey: Self.batteryStatusColorsChargingDefaultsKey
@@ -2689,6 +2694,9 @@ final class SettingsStore: ObservableObject {
             defaults.object(forKey: Self.monochromeChargingRingDefaultsKey) as? Bool
         self.simulatesNoBattery = defaults.object(forKey: Self.simulatesNoBatteryDefaultsKey) as? Bool ?? false
         self.batteryStatusColors = BatteryStatusColors(
+            discharging: BatteryStatusColorSelection(
+                storageValue: defaults.string(forKey: Self.batteryStatusColorsDischargingDefaultsKey) ?? "system"
+            ),
             charging: BatteryStatusColorSelection(
                 storageValue: defaults.string(forKey: Self.batteryStatusColorsChargingDefaultsKey) ?? "system"
             ),

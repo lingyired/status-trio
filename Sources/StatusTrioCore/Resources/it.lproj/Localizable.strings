@@ -1119,6 +1119,7 @@
 "settings.brightness.betterDisplay.unavailable" = "Non disponibile";
 "settings.brightness.betterDisplay.refresh" = "Aggiorna dispositivi";
 "settings.battery.colors.highPower" = "Modalità prestazioni elevate";
+"settings.battery.colors.discharging" = "Scarica (senza alimentazione)";
 "battery.lowPowerMode.autoEnable" = "Attiva automaticamente la modalità risparmio energetico";
 "battery.lowPowerMode.autoEnableDescription" = "Una volta scollegato l’alimentatore, la modalità risparmio energetico si attiva automaticamente quando la batteria scende sotto la soglia di batteria scarica. Una volta per ciclo di batteria scarica.";
 "settings.battery.autoLowPowerThreshold" = "Attiva automaticamente la modalità risparmio energetico";
