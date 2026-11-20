@@ -36,10 +36,6 @@ struct BatterySectionView: View {
             noBatteryNoticeGroup
         }
         panelVisibilityGroup
-        BatteryStatusColorsGroup(
-            store: store,
-            hasBattery: statusStore.snapshot.battery.isPresent && !store.isNoBatterySimulationActive
-        )
         chargeManagementGroup
         if helper.isAvailable {
             powerModesGroup
@@ -49,6 +45,10 @@ struct BatterySectionView: View {
             }
         }
         powerFlowGroup
+        BatteryStatusColorsGroup(
+            store: store,
+            hasBattery: statusStore.snapshot.battery.isPresent && !store.isNoBatterySimulationActive
+        )
     }
 
     /// Quick show/hide of the battery module in the status panel.
