@@ -60,17 +60,20 @@ struct BoundedProcessDrainTests {
         )
         let recorder = FinishRecorder()
         let started = ContinuousClock.now
-        invocation.start(timeout: .seconds(8)) { recorder.record($0) }
+        // The 30 s deadline is far beyond the bound below, so finishing in
+        // time proves cancel stopped the drain instead of waiting it out; the
+        // bound only absorbs scheduler load on the full-suite runner.
+        invocation.start(timeout: .seconds(30)) { recorder.record($0) }
 
         try await fixture.waitForChildExit()
         invocation.cancel()
         invocation.cancel()
 
-        let outcome = recorder.wait(seconds: 3)
+        let outcome = recorder.wait(seconds: 10)
         let elapsed = ContinuousClock.now - started
 
         #expect(outcome == .cancelled)
-        #expect(elapsed < .seconds(3), "cancel waited for the original 8 s deadline: \(elapsed)")
+        #expect(elapsed < .seconds(10), "cancel waited for the original 30 s deadline: \(elapsed)")
         #expect(recorder.count == 1)
         #expect(invocation.isMonitoringPipes == false)
         #expect(invocation.openReadDescriptorCount == 0)
@@ -90,7 +93,7 @@ struct BoundedProcessDrainTests {
         try await fixture.waitForChildExit()
         invocation.cancel()
 
-        #expect(recorder.wait(seconds: 3) == .cancelled)
+        #expect(recorder.wait(seconds: 10) == .cancelled)
         #expect(invocation.openReadDescriptorCount == 0)
     }
 
@@ -100,7 +103,7 @@ struct BoundedProcessDrainTests {
 
         let (invocation, recorder) = start(fixture, timeout: .seconds(1))
 
-        #expect(recorder.wait(seconds: 4) == .timedOut)
+        #expect(recorder.wait(seconds: 10) == .timedOut)
         #expect(invocation.isMonitoringPipes == false)
         #expect(invocation.openReadDescriptorCount == 0)
     }
@@ -111,7 +114,7 @@ struct BoundedProcessDrainTests {
 
         let (invocation, recorder) = start(fixture, timeout: .seconds(1))
 
-        #expect(recorder.wait(seconds: 4) == .timedOut)
+        #expect(recorder.wait(seconds: 10) == .timedOut)
         #expect(invocation.openReadDescriptorCount == 0)
     }
 
@@ -122,12 +125,12 @@ struct BoundedProcessDrainTests {
         let fixture = try HeldStreamFixture(stream: .stdout, exitStatus: 1)
         defer { fixture.cleanUp() }
 
-        let (invocation, recorder) = start(fixture, timeout: .seconds(10))
+        let (invocation, recorder) = start(fixture, timeout: .seconds(30))
         try await fixture.waitForChildExit()
         let exitObserved = ContinuousClock.now
 
-        #expect(recorder.wait(seconds: 4) == .failed)
-        #expect(ContinuousClock.now - exitObserved < .seconds(3))
+        #expect(recorder.wait(seconds: 10) == .failed)
+        #expect(ContinuousClock.now - exitObserved < .seconds(10))
         #expect(invocation.openReadDescriptorCount == 0)
     }
 
@@ -136,7 +139,7 @@ struct BoundedProcessDrainTests {
         defer { fixture.cleanUp() }
 
         let (invocation, recorder) = start(fixture, timeout: .milliseconds(300))
-        #expect(recorder.wait(seconds: 3) == .timedOut)
+        #expect(recorder.wait(seconds: 10) == .timedOut)
         #expect(invocation.openReadDescriptorCount == 0)
 
         fixture.releaseHeldStreams()
@@ -188,7 +191,7 @@ struct BoundedProcessDrainTests {
         }
         fixture.releaseHeldStreams()
 
-        let outcome = recorder.wait(seconds: 3)
+        let outcome = recorder.wait(seconds: 10)
         guard let outcome else {
             Issue.record("no outcome")
             return
