@@ -20,9 +20,12 @@ func staticSymbolRasterBaselineFingerprints() -> Set<String>? {
     case (27, 51, 46):
         // CI's 1x display rasterises the same symbol metrics differently from
         // the local Retina variant; keep each exact environment pair bounded.
+        // The third value is the macOS 27.2 (26B123) 1x runner, recorded
+        // 2026-11-20 from the STATIC_ICON_DIAGNOSTIC output.
         return [
             "377721331486253656c666fdc02ca98650f5d4421d623a54f388fd8389da339e",
-            "c11034a3fd7363b1539936aaa5135d03acab67545a13800b56ccf432946971af"
+            "c11034a3fd7363b1539936aaa5135d03acab67545a13800b56ccf432946971af",
+            "53aa4de5379de6c5f61c1e7cf7035310626796d33deea4d9560e9e97d262e743"
         ]
     default:
         return nil

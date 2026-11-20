@@ -335,6 +335,7 @@ final class LocalIconPluginTests: XCTestCase {
                 system: IconPresentationInputs(snapshot: .placeholder, audioIcon: nil),
                 sources: .empty),
             configuration: .classic,
+            now: now,
             bindings: bindings,
             registry: registry
         )
