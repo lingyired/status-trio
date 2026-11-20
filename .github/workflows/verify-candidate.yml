@@ -1,0 +1,114 @@
+name: Verify Candidate (Strict Evidence)
+
+on:
+  workflow_dispatch:
+    inputs:
+      candidate_run_id:
+        description: "Run ID of the Build Release Candidate run to verify strictly."
+        required: true
+        type: string
+
+permissions:
+  actions: read
+  contents: read
+
+concurrency:
+  group: status-trio-verify-candidate
+  cancel-in-progress: false
+
+jobs:
+  verify:
+    runs-on: xcode-27
+    timeout-minutes: 60
+    env:
+      GH_TOKEN: ${{ github.token }}
+      REPOSITORY: ${{ github.repository }}
+      CANDIDATE_RUN_ID: ${{ inputs.candidate_run_id }}
+    steps:
+      - name: Check out trusted verification tooling
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          ref: ${{ github.workflow_sha }}
+
+      - name: Download the original candidate artifact
+        run: |
+          set -euo pipefail
+          [[ "${CANDIDATE_RUN_ID}" =~ ^[1-9][0-9]{0,18}$ ]] || { echo "::error::candidate_run_id is invalid."; exit 1; }
+          rm -rf dist/candidate
+          mkdir -p dist/candidate
+          gh run download "${CANDIDATE_RUN_ID}" -R "${REPOSITORY}" -n status-trio-release-package -D dist/candidate
+          [[ -f dist/candidate/release-manifest.json ]] || { echo "::error::candidate artifact is missing release-manifest.json."; exit 1; }
+
+      - name: Resolve candidate source SHA and identity
+        id: candidate
+        run: |
+          set -euo pipefail
+          ruby -rjson -e '
+            m = JSON.parse(File.read(ARGV[0]))
+            sha = m.dig("candidate", "source_sha") || m["source_sha"]
+            raise "candidate manifest is not publishable" unless m.dig("candidate", "publishable")
+            File.open(ARGV[1], "a") do |out|
+              out.puts "candidate_sha=#{sha}"
+              out.puts "version=#{m.fetch("version")}"
+              out.puts "build=#{m.fetch("build")}"
+              out.puts "tag=#{m.fetch("tag")}"
+            end
+          ' dist/candidate/release-manifest.json "${GITHUB_OUTPUT}"
+
+      - name: Check out the exact candidate source
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ steps.candidate.outputs.candidate_sha }}
+
+      - name: Reassert the candidate source SHA
+        run: |
+          set -euo pipefail
+          [[ "$(git rev-parse HEAD)" == "${{ steps.candidate.outputs.candidate_sha }}" ]] || {
+            echo "::error::checked-out source differs from the candidate manifest source_sha."; exit 1;
+          }
+
+      - name: Run full Swift test suite
+        run: bash scripts/test.sh
+
+      - name: Run native contract tests
+        run: |
+          set -euo pipefail
+          bash scripts/test-release-pipeline.sh
+          bash scripts/test-release-recovery.sh
+
+      - name: Write immutable strict evidence
+        env:
+          SOURCE_SHA: ${{ steps.candidate.outputs.candidate_sha }}
+          VERSION: ${{ steps.candidate.outputs.version }}
+          BUILD: ${{ steps.candidate.outputs.build }}
+          TAG: ${{ steps.candidate.outputs.tag }}
+        run: |
+          set -euo pipefail
+          mkdir -p dist/evidence
+          ruby -rjson -rtime -e '
+            File.write(
+              File.join(ARGV[0], "strict-evidence.json"),
+              JSON.pretty_generate(
+                candidate_run_id: Integer(ARGV[1]),
+                source_sha: ARGV[2],
+                version: ARGV[3],
+                build: ARGV[4],
+                tag: ARGV[5],
+                verification_level: "strict",
+                status: "passed",
+                evidence_run_id: Integer(ARGV[6]),
+                generated_at: Time.now.utc.iso8601,
+                checks: ["swift-test-suite", "native-contracts"]
+              ) + "\n"
+            )
+          ' dist/evidence "${CANDIDATE_RUN_ID}" "${SOURCE_SHA}" "${VERSION}" "${BUILD}" "${TAG}" "${{ github.run_id }}"
+
+      - name: Upload strict evidence artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: status-trio-strict-evidence
+          path: dist/evidence/strict-evidence.json
+          if-no-files-found: error
+          retention-days: 90

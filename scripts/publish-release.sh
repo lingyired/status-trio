@@ -39,7 +39,7 @@ for command in ruby gh shasum xmllint curl; do
 done
 
 SCHEMA_VERSION="$(manifest_value schema_version)"
-[[ "$SCHEMA_VERSION" == "1" ]] ||
+[[ "$SCHEMA_VERSION" == "1" || "$SCHEMA_VERSION" == "2" ]] ||
     die "unsupported manifest schema_version '$SCHEMA_VERSION'."
 
 SOURCE_SHA="$(manifest_value source_sha)"
@@ -57,6 +57,36 @@ RELEASE_BODY_FILE="$(manifest_value release.body_file)"
 RELEASE_NOTES_DIR="$(manifest_value release.notes_dir)"
 SIGNING_KIND="$(manifest_value signing.kind)"
 NOTARIZATION_STATUS="$(manifest_value notarization.status)"
+if [[ "$SCHEMA_VERSION" == "2" ]]; then
+    CANDIDATE_PUBLISHABLE="$(manifest_value candidate.publishable)"
+    CANDIDATE_SOURCE_SHA="$(manifest_value candidate.source_sha)"
+    CANDIDATE_BUILD_RUN_ID="$(manifest_value candidate.build_run_id)"
+    CANDIDATE_SIGNING_KIND="$(manifest_value signing.kind)"
+    VERIFICATION_LEVEL="$(manifest_value verification.level)"
+    VERIFICATION_STATUS="$(manifest_value verification.status)"
+    [[ "$CANDIDATE_PUBLISHABLE" == "true" ]] ||
+        die "candidate manifest is not publishable."
+    [[ "$CANDIDATE_SOURCE_SHA" == "$SOURCE_SHA" ]] ||
+        die "candidate.source_sha '$CANDIDATE_SOURCE_SHA' does not match source_sha '$SOURCE_SHA'."
+    [[ -n "$CANDIDATE_BUILD_RUN_ID" ]] ||
+        die "candidate.build_run_id is missing."
+    [[ "$CANDIDATE_SIGNING_KIND" == "developer_id" ]] ||
+        die "a release_candidate must be Developer ID signed."
+    [[ "$NOTARIZATION_STATUS" == "accepted_and_stapled" ]] ||
+        die "a release_candidate must be notarized and stapled."
+    case "$VERIFICATION_LEVEL" in
+        fast|strict) ;;
+        *) die "candidate verification.level '$VERIFICATION_LEVEL' is invalid." ;;
+    esac
+    case "$VERIFICATION_STATUS" in
+        passed|declared) ;;
+        *) die "candidate verification.status '$VERIFICATION_STATUS' is invalid." ;;
+    esac
+    if [[ "$VERIFICATION_LEVEL" == "strict" && "$VERIFICATION_STATUS" != "passed" ]]; then
+        die "a strict candidate must record verification.status=passed."
+    fi
+    echo "Publishing $VERIFICATION_LEVEL candidate built by run $CANDIDATE_BUILD_RUN_ID."
+fi
 TOOLCHAIN_RUNNER="$(manifest_value toolchain.runner)"
 TOOLCHAIN_XCODE="$(manifest_value toolchain.xcode)"
 TOOLCHAIN_SWIFT="$(manifest_value toolchain.swift)"

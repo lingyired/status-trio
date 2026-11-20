@@ -14,6 +14,14 @@ BUILD="${BUILD:?BUILD is required}"
 TAG="${TAG:?TAG is required}"
 PUBLISH_MODE="${PUBLISH_MODE:-false}"
 NOTARIZE="${NOTARIZE:-false}"
+# CANDIDATE_TYPE separates a publishable release candidate from a
+# non-promotable diagnostic package. Empty keeps the historical schema v1 path.
+CANDIDATE_TYPE="${CANDIDATE_TYPE:-}"
+RELEASE_MODE="${RELEASE_MODE:-strict}"
+BUILD_RUN_ID="${BUILD_RUN_ID:-${GITHUB_RUN_ID:-}}"
+VERIFICATION_STATUS="${VERIFICATION_STATUS:-}"
+VERIFICATION_EVIDENCE="${VERIFICATION_EVIDENCE:-}"
+STRICT_EVIDENCE_RUN_ID="${STRICT_EVIDENCE_RUN_ID:-}"
 RELEASE_REPO="${RELEASE_REPO:-}"
 RELEASE_BRANCH="${RELEASE_BRANCH:-}"
 RELEASE_NOTES_DIR="${RELEASE_NOTES_DIR:-release-notes/$VERSION}"
@@ -53,6 +61,35 @@ fi
 if [[ -n "${NOTARY_PROFILE:-}" && "$SIGNING_KIND" != "developer_id" ]]; then
     die "NOTARY_PROFILE requires a Developer ID signature."
 fi
+case "$CANDIDATE_TYPE" in
+    ""|release_candidate|diagnostic) ;;
+    *) die "CANDIDATE_TYPE must be empty, release_candidate, or diagnostic." ;;
+esac
+case "$RELEASE_MODE" in
+    fast|strict) ;;
+    *) die "RELEASE_MODE must be fast or strict." ;;
+esac
+if [[ "$CANDIDATE_TYPE" == "release_candidate" ]]; then
+    [[ "$SIGNING_KIND" == "developer_id" ]] ||
+        die "a release_candidate requires a Developer ID Application identity; ad-hoc fallback is not allowed."
+    [[ "$NOTARIZE" == "true" ]] ||
+        die "a release_candidate requires notarize=true."
+    [[ -n "${SPARKLE_PRIVATE_KEY:-}" ]] ||
+        die "a release_candidate requires SPARKLE_PRIVATE_KEY; a candidate without Sparkle signing is not publishable."
+    [[ -n "$BUILD_RUN_ID" ]] ||
+        die "a release_candidate requires BUILD_RUN_ID (CI run id) to bind provenance."
+fi
+if [[ -z "$VERIFICATION_STATUS" ]]; then
+    if [[ "$CANDIDATE_TYPE" == "release_candidate" && "$RELEASE_MODE" == "fast" ]]; then
+        VERIFICATION_STATUS="declared"
+    else
+        VERIFICATION_STATUS="passed"
+    fi
+fi
+case "$VERIFICATION_STATUS" in
+    passed|declared) ;;
+    *) die "VERIFICATION_STATUS must be passed or declared." ;;
+esac
 if [[ "$PUBLISH_MODE" == "true" && "$SIGNING_KIND" == "developer_id" && -z "${NOTARY_PROFILE:-}" ]]; then
     die "A Developer ID package must be notarized before publication."
 fi
@@ -103,10 +140,16 @@ esac
 [[ "${SDK_VERSION%%.*}" -ge 26 ]] || die "macOS SDK 26+ is required; found $SDK_VERSION."
 
 cd "$ROOT"
-case "$PUBLISH_MODE" in
-    true) NOTES_MODE="publish" ;;
-    false) NOTES_MODE="package" ;;
-esac
+if [[ "$CANDIDATE_TYPE" == "release_candidate" ]]; then
+    # A release candidate always carries complete, formal release notes even
+    # when the build itself does not publish.
+    NOTES_MODE="publish"
+else
+    case "$PUBLISH_MODE" in
+        true) NOTES_MODE="publish" ;;
+        false) NOTES_MODE="package" ;;
+    esac
+fi
 case "$RELEASE_NOTES_DIR" in
     /*) NOTES_DIR_ABSOLUTE="$RELEASE_NOTES_DIR" ;;
     *) NOTES_DIR_ABSOLUTE="$ROOT/$RELEASE_NOTES_DIR" ;;
@@ -118,7 +161,7 @@ if [[ -d "$NOTES_DIR_ABSOLUTE" ]]; then
         RELEASE_NOTES_DIR="$NOTES_DIR_ABSOLUTE" \
         APPCAST_FILE="appcast.xml" \
         bash "$ROOT/scripts/validate-appcast-notes.sh"
-elif [[ "$PUBLISH_MODE" == "true" ]]; then
+elif [[ "$PUBLISH_MODE" == "true" || "$CANDIDATE_TYPE" == "release_candidate" ]]; then
     die "release notes directory is missing: $NOTES_DIR_ABSOLUTE"
 else
     echo "Package-only run has no release-notes directory; release notes validation and appcast generation are skipped."
@@ -306,6 +349,15 @@ if [[ -n "${NOTARY_PROFILE:-}" ]]; then
     NOTARIZATION_STATUS="accepted_and_stapled"
 fi
 
+PUBLISHABLE=false
+if [[ "$CANDIDATE_TYPE" == "release_candidate" ]]; then
+    [[ "$SIGNING_KIND" == "developer_id" ]] ||
+        die "release_candidate must be Developer ID signed."
+    [[ "$NOTARIZATION_STATUS" == "accepted_and_stapled" ]] ||
+        die "release_candidate must be notarized and stapled."
+    PUBLISHABLE=true
+fi
+
 if [[ "$HAS_RELEASE_NOTES" == "true" ]]; then
     mkdir -p "$OUTPUT_DIR/release-notes/$VERSION"
     ditto "$NOTES_DIR_ABSOLUTE" "$OUTPUT_DIR/release-notes/$VERSION"
@@ -321,43 +373,56 @@ ruby -rjson -e '
     require "time"
     output, source_sha, version, build, tag, dmg, sha, length, signature,
       repo, branch, appcast, body, notes, signing, notarization, app_name, bundle_id,
-      minimum_system_version, xcode, swift, sdk, zip, zip_sha, zip_length, zip_signature = ARGV
+      minimum_system_version, xcode, swift, sdk, zip, zip_sha, zip_length, zip_signature,
+      candidate_type, release_mode, build_run_id, verification_status,
+      verification_evidence, strict_evidence_run_id, publishable = ARGV
+    base = {
+      source_sha: source_sha,
+      version: version,
+      build: build,
+      tag: tag,
+      app_name: app_name,
+      bundle_id: bundle_id,
+      minimum_system_version: minimum_system_version,
+      toolchain: { xcode: xcode, swift: swift, sdk: sdk, runner: "xcode-27" },
+      dmg: { filename: dmg, sha256: sha, length: length, ed_signature: signature },
+      zip: { filename: zip, sha256: zip_sha, length: zip_length, ed_signature: zip_signature },
+      signing: { kind: signing },
+      notarization: { status: notarization },
+      release: { repo: repo, branch: branch, appcast_file: appcast, body_file: body, notes_dir: notes }
+    }
+    payload =
+      if candidate_type.to_s.empty?
+        { schema_version: 1, generated_at: Time.now.utc.iso8601 }.merge(base)
+      else
+        evidence = verification_evidence.to_s.split(",").map(&:strip).reject(&:empty?)
+        evidence << "strict_evidence_run:#{strict_evidence_run_id}" unless strict_evidence_run_id.to_s.empty?
+        {
+          schema_version: 2,
+          generated_at: Time.now.utc.iso8601,
+          candidate: {
+            id: "#{repo}##{build_run_id}",
+            source_sha: source_sha,
+            build_run_id: build_run_id,
+            build_workflow: "build-candidate.yml",
+            release_mode: release_mode,
+            publishable: (publishable == "true"),
+            created_at: Time.now.utc.iso8601
+          },
+          verification: { level: release_mode, status: verification_status, evidence: evidence }
+        }.merge(base)
+      end
     File.write(
       File.join(output, "release-manifest.json"),
-      JSON.pretty_generate(
-        schema_version: 1,
-        generated_at: Time.now.utc.iso8601,
-        source_sha: source_sha,
-        version: version,
-        build: build,
-        tag: tag,
-        app_name: app_name,
-        bundle_id: bundle_id,
-        minimum_system_version: minimum_system_version,
-        toolchain: { xcode: xcode, swift: swift, sdk: sdk, runner: "xcode-27" },
-        dmg: {
-          filename: dmg,
-          sha256: sha,
-          length: length,
-          ed_signature: signature
-        },
-        zip: { filename: zip, sha256: zip_sha, length: zip_length, ed_signature: zip_signature },
-        signing: { kind: signing },
-        notarization: { status: notarization },
-        release: {
-          repo: repo,
-          branch: branch,
-          appcast_file: appcast,
-          body_file: body,
-          notes_dir: notes
-        }
-      ) + "\n"
+      JSON.pretty_generate(payload) + "\n"
     )
 ' "$OUTPUT_DIR" "$SOURCE_SHA" "$VERSION" "$BUILD" "$TAG" "$DMG_FILENAME" \
     "$DMG_SHA256" "$DMG_LENGTH" "$ED_SIGNATURE" "$RELEASE_REPO" \
     "$RELEASE_BRANCH" "appcast.xml" "release-body.md" "release-notes/$VERSION" \
     "$SIGNING_KIND" "$NOTARIZATION_STATUS" "$APP_NAME" "$BUNDLE_ID" \
     "$MINIMUM_SYSTEM_VERSION" "$XCODE_VERSION" "$SWIFT_VERSION" \
-    "$SDK_VERSION" "$ZIP_FILENAME" "$ZIP_SHA256" "$ZIP_LENGTH" "$ZIP_ED_SIGNATURE"
+    "$SDK_VERSION" "$ZIP_FILENAME" "$ZIP_SHA256" "$ZIP_LENGTH" "$ZIP_ED_SIGNATURE" \
+    "$CANDIDATE_TYPE" "$RELEASE_MODE" "$BUILD_RUN_ID" "$VERIFICATION_STATUS" \
+    "$VERIFICATION_EVIDENCE" "$STRICT_EVIDENCE_RUN_ID" "$PUBLISHABLE"
 
 echo "Package ready: $DMG_FILENAME ($DMG_SHA256), signing=$SIGNING_KIND, notarization=$NOTARIZATION_STATUS"
