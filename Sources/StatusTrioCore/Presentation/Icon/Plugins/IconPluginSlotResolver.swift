@@ -16,13 +16,16 @@ enum IconPluginSlotResolver {
                case let .available(payload) = registry.resolve(fallback, for: slot, context: context) {
                 return output(payload, binding: fallback, role: .fallback, failure: reason, reason: .fallback(reason))
             }
-            return .init(payload: nil, binding: nil, trace: .init(selectedSourceID: nil, role: .none, primaryFailure: reason, reason: .none))
+            return .init(payload: nil, binding: nil, trace: .init(
+                selectedSourceID: nil, role: .none, primaryFailure: reason, reason: .none,
+                binding: nil))
         }
     }
 
     private static func output(_ payload: IconContentPayload, binding: IconContentBinding,
                                role: SlotResolutionRole, failure: IconSourceUnavailableReason?, reason: SlotResolutionReason) -> IconPluginSlotOutput {
         .init(payload: payload, binding: binding, trace: .init(
-            selectedSourceID: IconContentLegacyAdapter.sourceID(for: binding), role: role, primaryFailure: failure, reason: reason))
+            selectedSourceID: IconContentLegacyAdapter.sourceID(for: binding), role: role,
+            primaryFailure: failure, reason: reason, binding: binding))
     }
 }

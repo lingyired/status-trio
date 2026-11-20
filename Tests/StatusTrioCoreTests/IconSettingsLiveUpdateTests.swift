@@ -44,11 +44,11 @@ final class IconSettingsLiveUpdateTests: XCTestCase {
                 inputs.sources = IconPresentationResourceResolver.sourceSnapshot(snapshot: snap)
                 return inputs
             },
-            mapScene: { inputs, _, configuration in
-                IconCompositionResolver.resolve(
+            mapScene: { inputs, _, configuration, _ in
+                IconSceneMapping(scene: IconCompositionResolver.resolve(
                     inputs: IconResolutionInputs(system: inputs, sources: inputs.sources),
                     configuration: configuration
-                ).scene
+                ).scene)
             },
             snapshotScheduler: ManualIconPresentationScheduler()
         )

@@ -114,6 +114,28 @@ struct PresentationArchitectureTests {
         }
     }
 
+    @Test func productSourcesExcludeRetiredDesignerModels() throws {
+        let retired: Set<String> = [
+            "IconDesignerEditorModel",
+            "IconDesignerEditHistory",
+            "IconDesignerEditSnapshot",
+            "IconDesignerInspectorModel"
+        ]
+        let sourceRoot = packageRoot.appending(path: "Sources/StatusTrioCore")
+        let enumerator = try #require(FileManager.default.enumerator(
+            at: sourceRoot,
+            includingPropertiesForKeys: nil
+        ))
+        var found = Set<String>()
+        for case let url as URL in enumerator where url.pathExtension == "swift" {
+            let source = try String(contentsOf: url, encoding: .utf8)
+            found.formUnion(
+                SwiftSourceIdentifierScanner.identifiers(in: source).intersection(retired)
+            )
+        }
+        #expect(found.isEmpty, "product sources reference retired designer models: \(found.sorted())")
+    }
+
     @Test func sourceIdentifierScannerIgnoresCommentsAndLiteralTextButScansInterpolation() {
         let source = #"""
         BatteryStatus value

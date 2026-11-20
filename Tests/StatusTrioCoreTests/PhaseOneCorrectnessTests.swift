@@ -159,6 +159,33 @@ final class PhaseOneCorrectnessTests: XCTestCase {
             Set([HardwareMetricID.cpuUsage]))
     }
 
+    /// The icon scene is built from the live, appearance-derived configuration.
+    /// The persisted `settings.iconConfiguration` snapshot is only rewritten by
+    /// the editor API, so a ring metric chosen on the settings surface (a dual
+    /// CPU + memory ring here) is absent from it. Demand must follow the live
+    /// configuration; reading the snapshot would prune memory back to CPU-only on
+    /// the first icon tick, leaving the memory arc blank until the panel reopened.
+    func testHardwareRingDemandFollowsLiveConfigurationNotPersistedSnapshot() throws {
+        let store = try makeStore()
+        store.hardwareRingConfiguration = HardwareRingConfiguration(
+            layout: .dual, primaryMetric: .cpuUsage, secondaryMetric: .memoryUsage)
+
+        var live: IconPresentationSettings?
+        let cancellable = store.iconPresentationPublisher.sink { live = $0 }
+        defer { cancellable.cancel() }
+
+        let liveConfiguration = try XCTUnwrap(live?.iconConfiguration)
+        let liveDemands = IconSourceDemandPolicy.hardwareRingDemands(
+            configuration: liveConfiguration, placement: .menuBar, isHardwareRingSelected: true)
+        XCTAssertEqual(liveDemands.menuBar, Set([HardwareMetricID.cpuUsage, .memoryUsage]),
+                       "demand must follow the live presentation configuration")
+
+        let staleDemands = IconSourceDemandPolicy.hardwareRingDemands(
+            configuration: store.iconConfiguration, placement: .menuBar, isHardwareRingSelected: true)
+        XCTAssertEqual(staleDemands.menuBar, Set([HardwareMetricID.cpuUsage]),
+                       "the persisted snapshot still looks CPU-only; demand must not read it")
+    }
+
 
     func testStatusPanelBoldTextDefaultsOffAndPersists() throws {
         let store = try makeStore()

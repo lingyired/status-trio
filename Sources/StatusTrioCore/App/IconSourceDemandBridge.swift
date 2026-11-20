@@ -52,12 +52,18 @@ struct IconSourceDemandBridge {
 }
 
 enum IconSourceDemandPolicy {
-    static func requiresAirPodsBattery(in configuration: IconConfigurationV1) -> Bool {
-        IconContentDependencyResolver.dependencies(configuration: configuration, targetIsAudio: false).requiresAirPodsBattery
+    static func requiresAirPodsBattery(in configuration: IconConfigurationV1,
+                                       bindings: IconSlotBindingsV1? = nil) -> Bool {
+        IconContentDependencyResolver.dependencies(
+            configuration: configuration, targetIsAudio: false, bindings: bindings
+        ).requiresAirPodsBattery
     }
 
-    static func requiresBluetoothMonitor(in configuration: IconConfigurationV1) -> Bool {
-        IconContentDependencyResolver.dependencies(configuration: configuration, targetIsAudio: false).requiresBluetoothMonitor
+    static func requiresBluetoothMonitor(in configuration: IconConfigurationV1,
+                                         bindings: IconSlotBindingsV1? = nil) -> Bool {
+        IconContentDependencyResolver.dependencies(
+            configuration: configuration, targetIsAudio: false, bindings: bindings
+        ).requiresBluetoothMonitor
     }
 
     struct HardwareRingDemands: Equatable {

@@ -1379,3 +1379,13 @@
 "hardware.detail.pressureCritical" = "Crítico";
 "hardware.detail.unavailable" = "Indisponível";
 "hardware.detail.estimated" = "Estimado";
+"settings.localPlugins.title" = "Plugins JSON locais";
+"settings.localPlugins.description" = "As pastas de pacotes ativadas são lidas de data.json sob demanda. Seu script grava o arquivo. Texto e valores de 0–1 são suportados.";
+"settings.localPlugins.add" = "Adicionar pasta de pacote…";
+"settings.localPlugins.empty" = "Nenhum pacote local ativado.";
+"settings.localPlugins.remove" = "Remover";
+"settings.localPlugins.source.title" = "Origem JSON local";
+"settings.localPlugins.source.builtin" = "Usar origem integrada";
+"settings.localPlugins.unauthorized" = "Pacotes JSON locais exigem uma pasta autorizada.";
+"settings.localPlugins.loadFailed" = "Não foi possível ler a pasta do pacote.";
+"settings.localPlugins.reload" = "Recarregar";

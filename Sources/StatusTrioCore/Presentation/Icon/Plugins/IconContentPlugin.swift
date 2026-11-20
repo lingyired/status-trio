@@ -1,16 +1,25 @@
 import Foundation
 
-struct IconContentBinding: Equatable, Hashable, Sendable {
+struct IconContentBinding: Codable, Equatable, Hashable, Sendable {
     let pluginID: String
     let presentationID: String
+
+    /// External manifests reject the reserved `builtin.` prefix, so the ID is a
+    /// reliable owner marker.
+    var isBuiltinSource: Bool { pluginID.hasPrefix("builtin.") }
+    var isExternalSource: Bool { !isBuiltinSource }
 }
 
 struct IconContentPresentation: Equatable, Sendable {
     let id: String
     let slot: IconSlot
+    /// Localized fallback for compiled-in presentations.
     let title: LocalizationKey
     let isSelectable: Bool
     var summary: LocalizationKey? = nil
+    /// Manifest-provided title for an external presentation. `nil` keeps the
+    /// localized `title`.
+    var displayTitle: String? = nil
 }
 
 struct IconContentPluginDescriptor: Equatable, Sendable {

@@ -1379,3 +1379,13 @@
 "hardware.detail.pressureCritical" = "危険";
 "hardware.detail.unavailable" = "利用不可";
 "hardware.detail.estimated" = "推定";
+"settings.localPlugins.title" = "ローカル JSON プラグイン";
+"settings.localPlugins.description" = "有効なパッケージフォルダーの data.json を必要時に読み取ります。書き込みはスクリプト側で行います。テキストと 0–1 の値を表示できます。";
+"settings.localPlugins.add" = "パッケージフォルダーを追加…";
+"settings.localPlugins.empty" = "有効なローカルパッケージはありません。";
+"settings.localPlugins.remove" = "削除";
+"settings.localPlugins.source.title" = "ローカル JSON ソース";
+"settings.localPlugins.source.builtin" = "内蔵ソースを使用";
+"settings.localPlugins.unauthorized" = "ローカル JSON パッケージには許可されたフォルダーが必要です。";
+"settings.localPlugins.loadFailed" = "パッケージフォルダーを読み取れませんでした。";
+"settings.localPlugins.reload" = "再読み込み";

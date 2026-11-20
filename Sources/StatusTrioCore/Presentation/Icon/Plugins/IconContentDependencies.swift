@@ -34,23 +34,27 @@ enum IconDesignerBehaviorCapability: Hashable, Sendable {
 
 enum IconContentDependencyResolver {
     static func dependencies(configuration rawConfiguration: IconConfigurationV1, targetIsAudio: Bool,
+                             bottomIndicatorSource: BottomIndicatorSource = .volume,
+                             bindings: IconSlotBindingsV1? = nil,
                              registry: IconContentPluginRegistry = BuiltinIconPlugins.makeRegistry()) -> IconContentDependencies {
         let configuration = rawConfiguration.normalized()
         let context = IconContentDependencyContext(configuration: configuration, targetIsAudio: targetIsAudio)
-        let composition = configuration.composition
-        let bindings: [IconContentBinding] = [
-            IconContentLegacyAdapter.binding(for: composition.outerRing.primary),
-            composition.outerRing.fallback.flatMap { IconContentLegacyAdapter.binding(for: $0) },
-            IconContentLegacyAdapter.binding(for: composition.center.primary),
-            composition.center.fallback.flatMap { IconContentLegacyAdapter.binding(for: $0) },
-            IconContentLegacyAdapter.binding(for: composition.footer.primary),
-            composition.footer.fallback.flatMap { IconContentLegacyAdapter.binding(for: $0) }
+        let effective = (bindings ?? IconSlotBindingsV1.migrated(
+            from: configuration
+        )).normalized()
+        let selectedBindings: [IconContentBinding] = [
+            effective.outerRing.primary,
+            effective.outerRing.fallback,
+            effective.center.primary,
+            effective.center.fallback,
+            effective.footer.primary,
+            effective.footer.fallback
         ].compactMap { $0 }
         var dependencies = IconContentDependencies()
-        for binding in Set(bindings) {
+        for binding in Set(selectedBindings) {
             dependencies.formUnion(registry.dependencies(for: binding, context: context))
         }
-        if composition.centerOverride.networkProblemOverridesPrimary,
+        if configuration.composition.centerOverride.networkProblemOverridesPrimary,
            let network = IconContentLegacyAdapter.binding(for: CenterSource.network) {
             dependencies.formUnion(registry.dependencies(for: network, context: context))
         }

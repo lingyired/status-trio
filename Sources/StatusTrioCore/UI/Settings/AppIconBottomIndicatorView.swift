@@ -20,6 +20,7 @@ struct AppIconBottomIndicatorView: View {
     var body: some View {
         SettingsGroup(localization.string(.settingsBottomIndicatorTitle)) {
             sourcePicker
+            LocalIconPluginSlotPicker(slot: .footer, store: store)
 
             if store.bottomIndicatorSource.showsStyleOptions {
                 // Follows the full-width picker (no leading icon column), so the

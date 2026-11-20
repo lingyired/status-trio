@@ -5,9 +5,9 @@ import Foundation
 @MainActor
 final class SettingsStore: ObservableObject {
     /// Authoritative V1 icon configuration. Persisted under
-    /// `iconConfigurationDefaultsKey`; the runtime renders from the projection
-    /// derived from the individual settings, while the editor/tests read and
-    /// write this value.
+    /// `iconConfigurationDefaultsKey` only by explicit compatibility updates;
+    /// the runtime renders from the projection derived from the individual
+    /// settings, while legacy tests read and write this value.
     @Published var iconConfiguration: IconConfigurationV1 = .classic {
         didSet {
             guard canPersistIconConfiguration,
@@ -29,6 +29,31 @@ final class SettingsStore: ObservableObject {
     @Published var iconConfigurationLoadError: IconConfigurationCodecError?
     var canPersistIconConfiguration = false
     var isSyncingIconConfiguration = false
+
+    /// Versioned primary/fallback plugin bindings for the three icon slots.
+    /// This is the runtime source of truth for what each slot draws; the
+    /// individual `@Published` source settings below remain the settings-surface
+    /// projection used by previews, legacy imports and migration.
+    @Published var iconSlotBindings: IconSlotBindingsV1 = .classic {
+        didSet {
+            guard canPersistIconSlotBindings, !isSyncingIconSlotBindings,
+                  let data = try? IconSlotBindingsCodec.encode(iconSlotBindings) else { return }
+            defaults.set(data, forKey: Self.iconSlotBindingsDefaultsKey)
+        }
+    }
+    @Published var iconSlotBindingsLoadError: IconSlotBindingsCodecError?
+    var canPersistIconSlotBindings = false
+    var isSyncingIconSlotBindings = false
+
+    /// Explicitly enabled local icon package directories. Paths are not
+    /// transferable settings; a package only becomes visible after the user
+    /// enables its directory.
+    static let localIconPluginDirectoriesDefaultsKey = "localIconPluginDirectories.v1"
+    @Published var localIconPluginDirectories: [String] = [] {
+        didSet {
+            defaults.set(localIconPluginDirectories, forKey: Self.localIconPluginDirectoriesDefaultsKey)
+        }
+    }
 
     static let hasCompletedIconGuideOnboardingDefaultsKey = "hasCompletedIconGuideOnboarding.v1"
     static let hasSeenIconGuideDefaultsKey = "hasSeenIconGuide"
@@ -912,6 +937,7 @@ final class SettingsStore: ObservableObject {
                 connectionCenterSource.rawValue,
                 forKey: Self.connectionCenterSourceDefaultsKey
             )
+            synchronizeSlotBindingFromLegacySettings(for: .center)
         }
     }
 
@@ -1160,6 +1186,7 @@ final class SettingsStore: ObservableObject {
     @Published var outerRingContent: OuterRingContent = .systemBattery {
         didSet {
             defaults.set(outerRingContent.rawValue, forKey: Self.outerRingContentDefaultsKey)
+            synchronizeSlotBindingFromLegacySettings(for: .outerRing)
         }
     }
 
@@ -1178,6 +1205,7 @@ final class SettingsStore: ObservableObject {
     @Published var airPodsRingFallback: AirPodsRingFallback = .battery {
         didSet {
             defaults.set(airPodsRingFallback.rawValue, forKey: Self.airPodsRingFallbackDefaultsKey)
+            synchronizeSlotBindingFromLegacySettings(for: .outerRing)
         }
     }
 
@@ -1391,6 +1419,7 @@ final class SettingsStore: ObservableObject {
     @Published var bottomIndicatorSource: BottomIndicatorSource {
         didSet {
             defaults.set(bottomIndicatorSource.rawValue, forKey: Self.bottomIndicatorSourceDefaultsKey)
+            synchronizeSlotBindingFromLegacySettings(for: .footer)
         }
     }
 
@@ -3058,7 +3087,10 @@ final class SettingsStore: ObservableObject {
             defaults.array(forKey: Self.enabledHardwareRingSlotsDefaultsKey) as? [String])
         self.enabledHardwareSummaryMetrics = Self.sanitizedEnabledHardwareSummaryMetrics(
             defaults.array(forKey: Self.enabledHardwareSummaryMetricsDefaultsKey) as? [String])
+        localIconPluginDirectories =
+            defaults.stringArray(forKey: Self.localIconPluginDirectoriesDefaultsKey) ?? []
         bootstrapIconConfiguration()
+        bootstrapIconSlotBindings()
     }
 
     /// Legacy raw values of the removed `PopupVolumeScrollScope` picker, read

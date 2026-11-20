@@ -4,6 +4,24 @@ import XCTest
 
 @MainActor
 final class SettingsPreferenceCatalogTests: XCTestCase {
+    func testSlotBindingsRoundTripIncludingAnUnknownExternalID() {
+        withStore { source, _ in
+            source.setIconSlotBinding(
+                primary: .init(pluginID: "com.example.latency", presentationID: "value"),
+                fallback: .init(pluginID: "builtin.network", presentationID: "center"),
+                for: .center)
+            let snapshot = SettingsPreferenceCatalog.snapshot(source)
+            withStore { target, _ in
+                SettingsPreferenceCatalog.apply(snapshot, to: target)
+                XCTAssertEqual(target.iconSlotBindings.center.primary?.pluginID, "com.example.latency")
+                XCTAssertEqual(target.iconSlotBindings.center.fallback?.pluginID, "builtin.network")
+                XCTAssertEqual(
+                    SettingsPreferenceCatalog.snapshot(target)["iconSlotBindings"],
+                    snapshot["iconSlotBindings"])
+            }
+        }
+    }
+
     func testSnapshotUsesAnExplicitPortableAllowlist() {
         withStore { store, defaults in
             defaults.set("private-value", forKey: "unrecognizedFutureSetting")
@@ -16,6 +34,7 @@ final class SettingsPreferenceCatalogTests: XCTestCase {
                 "showsPanelDetailsAlongside", "showsPanelOnHover",
                 "highEnergyAppsRefreshIntervalSeconds", "showsChargeToFullNowButton",
                 "showsMenuBarChargingEffect", "showsDockChargingEffect", "showsChargingBoltHeartbeat",
+                "iconSlotBindings",
                 "batterySplitGapProgress", "usesBatteryStatusColors", "monochromeChargingRing",
                 "batteryStatusColors", "batterySymbolScale", "batteryCriticalThreshold",
                 "autoLowPowerThreshold", "batteryFullThreshold",

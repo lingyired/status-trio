@@ -1378,3 +1378,13 @@
 "hardware.detail.pressureCritical" = "Critical";
 "hardware.detail.unavailable" = "Unavailable";
 "hardware.detail.estimated" = "Estimated";
+"settings.localPlugins.title" = "Local JSON Plugins";
+"settings.localPlugins.description" = "Enabled package folders are read on demand from data.json. Your script writes the file. Text and 0–1 values are supported.";
+"settings.localPlugins.add" = "Add Package Folder…";
+"settings.localPlugins.empty" = "No local packages are enabled.";
+"settings.localPlugins.remove" = "Remove";
+"settings.localPlugins.source.title" = "Local JSON Source";
+"settings.localPlugins.source.builtin" = "Use Built-in Source";
+"settings.localPlugins.unauthorized" = "Local JSON packages require an authorized folder.";
+"settings.localPlugins.loadFailed" = "Could not read the package folder.";
+"settings.localPlugins.reload" = "Reload";

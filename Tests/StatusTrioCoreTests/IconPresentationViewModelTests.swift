@@ -18,9 +18,9 @@ final class IconPresentationViewModelTests: XCTestCase {
             snapshots: snapshots.eraseToAnyPublisher(),
             preferences: preferences.eraseToAnyPublisher(),
             resolveInputs: { IconPresentationInputs(snapshot: $0, audioIcon: nil) },
-            mapScene: { inputs, configuration, _ in
+            mapScene: { inputs, configuration, _, _ in
                 mapped.append((inputs, configuration))
-                return customScene
+                return IconSceneMapping(scene: customScene)
             },
             snapshotScheduler: scheduler
         )
@@ -74,9 +74,9 @@ final class IconPresentationViewModelTests: XCTestCase {
             snapshots: snapshots.eraseToAnyPublisher(),
             preferences: preferences.eraseToAnyPublisher(),
             resolveInputs: { IconPresentationInputs(snapshot: $0, audioIcon: nil) },
-            mapScene: { inputs, _, _ in
+            mapScene: { inputs, _, _, _ in
                 mappedSnapshots.append(inputs.snapshot)
-                return customScene
+                return IconSceneMapping(scene: customScene)
             }
         )
 
@@ -125,9 +125,9 @@ final class IconPresentationViewModelTests: XCTestCase {
             snapshots: snapshots.eraseToAnyPublisher(),
             preferences: preferences.eraseToAnyPublisher(),
             resolveInputs: { IconPresentationInputs(snapshot: $0, audioIcon: nil) },
-            mapScene: { inputs, _, _ in
+            mapScene: { inputs, _, _, _ in
                 mappedSnapshots.append(inputs.snapshot)
-                return constantScene
+                return IconSceneMapping(scene: constantScene)
             },
             snapshotScheduler: scheduler
         )
@@ -652,9 +652,10 @@ final class IconPresentationViewModelTests: XCTestCase {
             resolveInputs: { snap in
                 IconPresentationInputs(snapshot: snap, audioIcon: nil, runtimeOptions: runtimeOptions, sources: sources)
             },
-            mapScene: { inputs, _, _ in
+            mapScene: { inputs, _, _, _ in
                 mappedInputs = inputs
-                return IconSceneState(center: .text(IconTextState(text: "X", color: .primary, scale: 1)))
+                return IconSceneMapping(scene:
+                    IconSceneState(center: .text(IconTextState(text: "X", color: .primary, scale: 1))))
             },
             snapshotScheduler: ManualIconPresentationScheduler()
         )
@@ -705,11 +706,11 @@ final class IconPresentationViewModelTests: XCTestCase {
                 inputs.sources = IconPresentationResourceResolver.sourceSnapshot(snapshot: snap)
                 return inputs
             },
-            mapScene: { inputs, _, iconConfiguration in
-                IconCompositionResolver.resolve(
+            mapScene: { inputs, _, iconConfiguration, _ in
+                IconSceneMapping(scene: IconCompositionResolver.resolve(
                     inputs: IconResolutionInputs(system: inputs, sources: inputs.sources),
                     configuration: iconConfiguration
-                ).scene
+                ).scene)
             },
             snapshotScheduler: ManualIconPresentationScheduler()
         )
@@ -739,7 +740,7 @@ final class IconPresentationViewModelTests: XCTestCase {
             preferences: preferences.eraseToAnyPublisher(),
             hardwareMetrics: hardware.eraseToAnyPublisher(),
             resolveInputs: { IconPresentationInputs(snapshot: $0, audioIcon: nil) },
-            mapScene: { _, _, _ in mapCount += 1; return scene },
+            mapScene: { _, _, _, _ in mapCount += 1; return IconSceneMapping(scene: scene) },
             snapshotScheduler: scheduler
         )
         model.start()

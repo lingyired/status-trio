@@ -13,6 +13,7 @@ struct MiddleIconSettingsGroup: View {
     var body: some View {
         SettingsGroup(showsGroupTitle ? localization.string(.settingsMiddleIconTitle) : nil) {
             sourcePicker
+            LocalIconPluginSlotPicker(slot: .center, store: store)
 
             // This divider follows the full-width picker (no leading icon
             // column), so align it with the picker's content edge instead of the

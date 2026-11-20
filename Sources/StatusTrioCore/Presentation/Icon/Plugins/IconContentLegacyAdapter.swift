@@ -36,6 +36,23 @@ enum IconContentLegacyAdapter {
         }
     }
 
+    /// The bottom indicator's four states map to the same built-in plugin that
+    /// already renders that quantity for the other slots. Volume keeps its
+    /// dedicated footer presentation; Wi-Fi and battery expose a footer
+    /// presentation on their existing plugins.
+    static func binding(for source: BottomIndicatorSource) -> IconContentBinding? {
+        switch source {
+        case .volume: .init(pluginID: "builtin.system-volume", presentationID: "footer")
+        case .wifi: .init(pluginID: "builtin.network", presentationID: "footer")
+        case .battery: .init(pluginID: "builtin.system-battery", presentationID: "footer")
+        case .hidden: nil
+        }
+    }
+
+    static func bottomIndicatorSource(for binding: IconContentBinding) -> BottomIndicatorSource? {
+        BottomIndicatorSource.allCases.first { Self.binding(for: $0) == binding }
+    }
+
     static func ringSource(for binding: IconContentBinding) -> RingSource? {
         RingSource.allCases.first { Self.binding(for: $0) == binding }
     }
@@ -49,6 +66,10 @@ enum IconContentLegacyAdapter {
     }
 
     static func sourceID(for binding: IconContentBinding) -> String? {
-        ringSource(for: binding)?.rawValue ?? centerSource(for: binding)?.rawValue ?? footerSource(for: binding)?.rawValue
+        if let ring = ringSource(for: binding) { return ring.rawValue }
+        if let center = centerSource(for: binding) { return center.rawValue }
+        if let footer = footerSource(for: binding) { return footer.rawValue }
+        if let bottom = bottomIndicatorSource(for: binding) { return bottom.rawValue }
+        return nil
     }
 }

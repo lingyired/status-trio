@@ -22,6 +22,10 @@ struct SlotResolutionTrace: Equatable, Sendable {
     var role: SlotResolutionRole
     var primaryFailure: IconSourceUnavailableReason?
     var reason: SlotResolutionReason
+    /// The exact plugin binding the slot resolved to. The runtime uses it for
+    /// live-source demand; it is intentionally not reconstructed from the legacy
+    /// source ID because two bindings can draw identical pixels.
+    var binding: IconContentBinding? = nil
 
     static let empty = Self(selectedSourceID: nil, role: .none, primaryFailure: nil, reason: .none)
 }
@@ -37,4 +41,10 @@ struct IconResolutionTrace: Equatable, Sendable {
 struct IconResolutionOutput: Equatable, Sendable {
     var scene: IconSceneState
     var trace: IconResolutionTrace
+    /// The dependencies of the slots that actually resolved. The runtime uses
+    /// this rather than re-deriving demand from the configured composition, so a
+    /// source selected through an external binding is not lost.
+    var dependencies: IconContentDependencies = .init()
+    /// Bindings selected for the scene and bindings that must stay subscribed.
+    var demand: IconPresentationDemand = .none
 }

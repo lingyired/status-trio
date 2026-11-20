@@ -8,17 +8,27 @@ extension SettingsStore {
         //
         // The settings pane mutates the individual `@Published` icon settings;
         // the persisted V1 payload (`$iconConfiguration`) is only rewritten by
-        // the editor API. Deriving the V1 configuration from the appearance here
+        // an explicit legacy compatibility update. Deriving the V1 configuration
+        // from the appearance here
         // (instead of combining `$iconConfiguration`) is what keeps the menu bar
         // in step with the settings surface.
-        Publishers.CombineLatest4(
-            iconAppearancePublisher,
-            $testsChargingEffect,
-            $inputSourceMarkerStyle,
-            $bottomIndicatorSource
+        Publishers.CombineLatest(
+            Publishers.CombineLatest4(
+                iconAppearancePublisher,
+                $testsChargingEffect,
+                $inputSourceMarkerStyle,
+                $bottomIndicatorSource
+            ),
+            Publishers.CombineLatest($iconSlotBindings, $iconConfiguration)
         )
-        .map { appearance, testsChargingEffect, markerStyle, bottomIndicatorSource in
-            IconPresentationSettings(
+        .map { appearanceAndFlags, _ in
+            let (appearance, testsChargingEffect, markerStyle, bottomIndicatorSource) = appearanceAndFlags
+            let slotBindings = self.effectiveIconSlotBindings(
+                appearance: appearance,
+                inputSourceMarkerStyle: markerStyle,
+                bottomIndicatorSource: bottomIndicatorSource
+            )
+            return IconPresentationSettings(
                 configuration: IconPresentationConfiguration(
                     battery: appearance.batteryOptions,
                     connection: appearance.connectionOptions,
@@ -38,6 +48,7 @@ extension SettingsStore {
                     bluetoothAudioIconChoice: appearance.bluetoothAudioOptions.iconChoice,
                     bottomIndicatorSource: bottomIndicatorSource
                 ),
+                slotBindings: slotBindings,
                 hardwareMetricColors: appearance.hardwareMetricColors,
                 hardwareDownloadCapMbps: appearance.hardwareDownloadCapMbps,
                 hardwareUploadCapMbps: appearance.hardwareUploadCapMbps

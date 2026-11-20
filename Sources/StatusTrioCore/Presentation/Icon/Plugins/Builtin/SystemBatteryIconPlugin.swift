@@ -1,7 +1,8 @@
 struct SystemBatteryIconPlugin: IconContentPlugin {
     let descriptor = IconContentPluginDescriptor(id: "builtin.system-battery", presentations: [
         .init(id: "ring", slot: .outerRing, title: .iconDesignerSourceSystemBattery, isSelectable: true, summary: .iconDesignerBatterySummary),
-        .init(id: "percentage", slot: .center, title: .iconDesignerSourceBatteryPercentage, isSelectable: true, summary: .iconDesignerBatterySummary)
+        .init(id: "percentage", slot: .center, title: .iconDesignerSourceBatteryPercentage, isSelectable: true, summary: .iconDesignerBatterySummary),
+        .init(id: "footer", slot: .footer, title: .iconDesignerSourceSystemBattery, isSelectable: true, summary: .iconDesignerBatterySummary)
     ])
 
     func resolve(presentationID: String, context: IconContentContext) -> SourceResult<IconContentPayload> {
@@ -19,6 +20,11 @@ struct SystemBatteryIconPlugin: IconContentPlugin {
             // the number. Use the same source the legacy mapper does.
             return .available(.center(battery.isPresent ? .text(IconTextState(text: "\(battery.percentage)", color: .primary,
                 scale: context.legacy.connection.wifiScale)) : nil))
+        case "footer":
+            var systemInputs = context.inputs.system
+            systemInputs.bottomIndicatorSource = .battery
+            return .available(.footer(IconPresentationMapper.scene(
+                inputs: systemInputs, configuration: context.legacy).footer))
         default: return .unavailable(.unavailable)
         }
     }

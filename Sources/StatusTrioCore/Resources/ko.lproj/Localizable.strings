@@ -1379,3 +1379,13 @@
 "hardware.detail.topApps.empty" = "활성 앱 없음";
 "hardware.detail.topApps.unsupported" = "지원되지 않음";
 "hardware.detail.topApps.failed" = "읽기 실패";
+"settings.localPlugins.title" = "로컬 JSON 플러그인";
+"settings.localPlugins.description" = "활성화된 패키지 폴더의 data.json을 필요할 때 읽습니다. 파일 쓰기는 스크립트가 담당합니다. 텍스트와 0–1 값을 지원합니다.";
+"settings.localPlugins.add" = "패키지 폴더 추가…";
+"settings.localPlugins.empty" = "활성화된 로컬 패키지가 없습니다.";
+"settings.localPlugins.remove" = "제거";
+"settings.localPlugins.source.title" = "로컬 JSON 소스";
+"settings.localPlugins.source.builtin" = "내장 소스 사용";
+"settings.localPlugins.unauthorized" = "로컬 JSON 패키지에는 승인된 폴더가 필요합니다.";
+"settings.localPlugins.loadFailed" = "패키지 폴더를 읽을 수 없습니다.";
+"settings.localPlugins.reload" = "다시 로드";

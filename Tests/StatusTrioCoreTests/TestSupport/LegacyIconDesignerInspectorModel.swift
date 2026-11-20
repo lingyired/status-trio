@@ -1,3 +1,8 @@
+import Foundation
+@testable import StatusTrioCore
+
+/// Retired 2.0 designer inspector, compiled only by the test target so its
+/// historical source/fallback compatibility assertions remain runnable.
 enum IconDesignerInspectorModel {
     static func showsAppearance(slot: IconSlot, configuration: IconConfigurationV1, targetIsAudio: Bool) -> Bool {
         if slot == .center {

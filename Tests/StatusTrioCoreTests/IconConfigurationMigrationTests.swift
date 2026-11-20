@@ -70,7 +70,7 @@ final class IconConfigurationMigrationTests: XCTestCase {
         )
     }
 
-    func testStorePersistsV1WiFiScaleMigrationOnLoad() throws {
+    func testStoredV1WiFiScaleMigrationStaysInMemoryWithoutWriteBack() throws {
         let (defaults, name) = makeDefaults()
         defer { defaults.removePersistentDomain(forName: name) }
         var oldConfiguration = IconConfigurationV1.classic
@@ -79,31 +79,47 @@ final class IconConfigurationMigrationTests: XCTestCase {
         let encoded = try JSONEncoder().encode(oldConfiguration)
         var object = try XCTUnwrap(JSONSerialization.jsonObject(with: encoded) as? [String: Any])
         object.removeValue(forKey: "wifiScaleMigrationVersion")
-        defaults.set(try JSONSerialization.data(withJSONObject: object),
-                     forKey: SettingsStore.iconConfigurationDefaultsKey)
+        let stored = try JSONSerialization.data(withJSONObject: object)
+        defaults.set(stored, forKey: SettingsStore.iconConfigurationDefaultsKey)
 
         let store = SettingsStore(defaults: defaults)
-        let saved = try XCTUnwrap(defaults.data(forKey: SettingsStore.iconConfigurationDefaultsKey))
-        let reloaded = try IconConfigurationCodec.decode(saved)
 
         XCTAssertEqual(store.iconConfiguration.appearance.center.symbolScale, 2.52, accuracy: 0.001)
-        XCTAssertEqual(reloaded.appearance.center.symbolScale, 2.52, accuracy: 0.001)
-        XCTAssertEqual(reloaded.behaviors.networkCenter.wifiScale, 1, accuracy: 0.001)
-        XCTAssertNotEqual(saved, try JSONSerialization.data(withJSONObject: object))
+        XCTAssertEqual(store.iconConfiguration.behaviors.networkCenter.wifiScale, 1, accuracy: 0.001)
+        XCTAssertEqual(store.iconConfiguration.wifiScaleMigrationVersion, 1)
+        XCTAssertEqual(defaults.data(forKey: SettingsStore.iconConfigurationDefaultsKey), stored,
+                       "Launch must not rewrite the retired designer's V1 payload.")
+
+        let reloaded = try IconConfigurationCodec.decode(XCTUnwrap(defaults.data(
+            forKey: SettingsStore.iconConfigurationDefaultsKey)))
+        XCTAssertEqual(reloaded, store.iconConfiguration)
     }
 
-    func testSecondLaunchDoesNotRemigrateOrOverwriteCurrentConfiguration() throws {
+    func testSecondLaunchReadsStoredV1WithoutOverwritingIt() throws {
         let (defaults, name) = makeDefaults()
         defer { defaults.removePersistentDomain(forName: name) }
-        let first = SettingsStore(defaults: defaults)
-        first.showsBatteryPercentage = false
-        let saved = try XCTUnwrap(defaults.data(forKey: SettingsStore.iconConfigurationDefaultsKey))
-        defaults.set(true, forKey: SettingsStore.showsBatteryPercentageDefaultsKey)
+        var storedConfiguration = IconConfigurationV1.classic
+        storedConfiguration.appearance.center.symbolScale = 1.75
+        let stored = try JSONEncoder().encode(storedConfiguration)
+        defaults.set(stored, forKey: SettingsStore.iconConfigurationDefaultsKey)
 
+        let first = SettingsStore(defaults: defaults)
         let second = SettingsStore(defaults: defaults)
 
-        XCTAssertFalse(second.showsBatteryPercentage)
-        XCTAssertEqual(defaults.data(forKey: SettingsStore.iconConfigurationDefaultsKey), saved)
+        XCTAssertEqual(first.iconConfiguration.appearance.center.symbolScale, 1.75, accuracy: 0.001)
+        XCTAssertEqual(second.iconConfiguration, first.iconConfiguration)
+        XCTAssertEqual(defaults.data(forKey: SettingsStore.iconConfigurationDefaultsKey), stored)
+    }
+
+    func testFreshInstallDoesNotSeedRetiredV1Payload() {
+        let (defaults, name) = makeDefaults()
+        defer { defaults.removePersistentDomain(forName: name) }
+        XCTAssertNil(defaults.data(forKey: SettingsStore.iconConfigurationDefaultsKey))
+
+        _ = SettingsStore(defaults: defaults)
+
+        XCTAssertNil(defaults.data(forKey: SettingsStore.iconConfigurationDefaultsKey),
+                     "Bootstrap must not persist a derived V1 configuration.")
     }
 
     func testCorruptConfigurationIsPreservedUntilExplicitReset() throws {

@@ -1379,3 +1379,13 @@
 "hardware.detail.pressureCritical" = "حرج";
 "hardware.detail.unavailable" = "غير متاح";
 "hardware.detail.estimated" = "مقدّر";
+"settings.localPlugins.title" = "إضافات JSON المحلية";
+"settings.localPlugins.description" = "تُقرأ مجلدات الحزم الممكّنة من data.json عند الحاجة. يكتب سكربتك الملف. النصوص والقيم من 0 إلى 1 مدعومة.";
+"settings.localPlugins.add" = "إضافة مجلد حزمة…";
+"settings.localPlugins.empty" = "لا توجد حزم محلية ممكّنة.";
+"settings.localPlugins.remove" = "إزالة";
+"settings.localPlugins.source.title" = "مصدر JSON محلي";
+"settings.localPlugins.source.builtin" = "استخدام المصدر المدمج";
+"settings.localPlugins.unauthorized" = "تتطلب حزم JSON المحلية مجلدًا مصرحًا به.";
+"settings.localPlugins.loadFailed" = "تعذر قراءة مجلد الحزمة.";
+"settings.localPlugins.reload" = "إعادة تحميل";

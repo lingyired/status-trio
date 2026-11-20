@@ -121,7 +121,8 @@ enum SettingsPreferenceCatalog {
                    }, encode: { .string($0) }),
             boolean("usesBluetoothAudioVolumeColor", \.usesBluetoothAudioVolumeColor, default: false),
             enumeration("volumeDisplayStyle", \.volumeDisplayStyle, default: SettingsStore.defaultVolumeDisplayStyle),
-            enumeration("ringStrokeStyle", \.ringStrokeStyle, default: SettingsStore.defaultRingStrokeStyle)
+            enumeration("ringStrokeStyle", \.ringStrokeStyle, default: SettingsStore.defaultRingStrokeStyle),
+            slotBindingsPreference
         ]
     }
 
@@ -253,6 +254,44 @@ enum SettingsPreferenceCatalog {
                        default: break
                        }
                    })
+    }
+
+    private static var slotBindingsPreference: Preference {
+        let shipped = IconSlotBindingsV1(
+            schemaVersion: 1,
+            outerRing: .init(primary: .init(pluginID: "builtin.system-battery", presentationID: "ring")),
+            center: .init(
+                primary: .init(pluginID: "builtin.legacy", presentationID: "center"),
+                fallback: .init(pluginID: "builtin.network", presentationID: "center")),
+            footer: .init(primary: .init(pluginID: "builtin.system-volume", presentationID: "footer"))
+        )
+        let defaultJSON = (try? IconSlotBindingsCodec.encode(shipped))
+            .flatMap { String(data: $0, encoding: .utf8) } ?? "{}"
+        func decode(_ value: SettingsTransferValue) -> IconSlotBindingsV1? {
+            guard case let .string(json) = value,
+                  let data = json.data(using: .utf8),
+                  let decoded = try? IconSlotBindingsCodec.decode(data) else { return nil }
+            return decoded
+        }
+        return Preference(
+            key: "iconSlotBindings",
+            defaultValue: .string(defaultJSON),
+            read: { store in
+                let json = (try? IconSlotBindingsCodec.encode(store.iconSlotBindings))
+                    .flatMap { String(data: $0, encoding: .utf8) } ?? defaultJSON
+                return .string(json)
+            },
+            isValid: { decode($0) != nil },
+            write: { value, store in
+                guard let decoded = decode(value) else { return }
+                for slot in IconSlot.allCases {
+                    let selection = decoded.selection(for: slot)
+                    store.setIconSlotBinding(
+                        primary: selection.primary, fallback: selection.fallback, for: slot)
+                }
+                store.applyIconSlotBindings(decoded)
+            }
+        )
     }
 
     private static func enumeration<T: RawRepresentable>(

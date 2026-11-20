@@ -1379,3 +1379,13 @@
 "hardware.detail.pressureCritical" = "嚴重";
 "hardware.detail.unavailable" = "無法使用";
 "hardware.detail.estimated" = "估算";
+"settings.localPlugins.title" = "本地 JSON 外掛";
+"settings.localPlugins.description" = "已啟用的套件目錄會視需要讀取 data.json，檔案由你的指令碼寫入。支援顯示文字與 0–1 數值。";
+"settings.localPlugins.add" = "加入套件目錄…";
+"settings.localPlugins.empty" = "尚未啟用本機套件。";
+"settings.localPlugins.remove" = "移除";
+"settings.localPlugins.source.title" = "本機 JSON 來源";
+"settings.localPlugins.source.builtin" = "使用內建來源";
+"settings.localPlugins.unauthorized" = "本機 JSON 套件需要已授權的目錄。";
+"settings.localPlugins.loadFailed" = "無法讀取套件目錄。";
+"settings.localPlugins.reload" = "重新載入";

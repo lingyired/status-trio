@@ -1,7 +1,13 @@
 import Combine
 import Foundation
 import SwiftUI
+@testable import StatusTrioCore
 
+/// Retired 2.0 designer editor, compiled only by the test target.
+///
+/// It stays here so the historical transaction, undo, coalescing and reset
+/// tests keep exercising the settings compatibility path without making the
+/// product compile the retired editor.
 @MainActor
 final class IconDesignerEditorModel: ObservableObject {
     @Published private(set) var canUndo = false

@@ -3,9 +3,11 @@ import Foundation
 enum IconPresentationMapper {
     static func resolve(
         inputs: IconResolutionInputs,
-        configuration: IconConfigurationV1
+        configuration: IconConfigurationV1,
+        bindings: IconSlotBindingsV1? = nil
     ) -> IconResolutionOutput {
-        IconCompositionResolver.resolve(inputs: inputs, configuration: configuration)
+        IconCompositionResolver.resolve(
+            inputs: inputs, configuration: configuration, bindings: bindings)
     }
 
     static func scene(

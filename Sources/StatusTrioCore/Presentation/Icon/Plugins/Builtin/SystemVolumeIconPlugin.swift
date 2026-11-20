@@ -8,7 +8,10 @@ struct SystemVolumeIconPlugin: IconContentPlugin {
         if case let .unavailable(reason) = context.inputs.sources.result(for: FooterSource.systemVolume.rawValue, default: .available(true)) {
             return .unavailable(reason)
         }
-        return .available(.footer(IconPresentationMapper.scene(inputs: context.inputs.system, configuration: context.legacy).footer))
+        var systemInputs = context.inputs.system
+        systemInputs.bottomIndicatorSource = .volume
+        return .available(.footer(IconPresentationMapper.scene(
+            inputs: systemInputs, configuration: context.legacy).footer))
     }
 
     func dependencies(presentationID: String, context: IconContentDependencyContext) -> IconContentDependencies {

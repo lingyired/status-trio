@@ -1,5 +1,7 @@
 import Foundation
+@testable import StatusTrioCore
 
+/// Test-only undo history for the retired 2.0 designer compatibility tests.
 struct IconDesignerEditHistory {
     private struct Entry {
         let before: IconDesignerEditSnapshot

@@ -64,6 +64,8 @@ struct AppIconRingView: View {
             noBatteryHintGroup
         }
         outerRingContentGroup
+        LocalIconPluginSlotPicker(slot: .outerRing, store: store)
+        LocalIconPluginPackageSettings(store: store)
         if store.outerRingContent == .airPodsBattery {
             airPodsTopMarkerGroup
             airPodsArcGroup

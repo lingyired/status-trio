@@ -1379,3 +1379,13 @@
 "hardware.detail.pressureCritical" = "严重";
 "hardware.detail.unavailable" = "不可用";
 "hardware.detail.estimated" = "估算";
+"settings.localPlugins.title" = "本地 JSON 插件";
+"settings.localPlugins.description" = "已启用的包目录会按需读取 data.json，文件由你的脚本写入。支持显示文本和 0–1 数值。";
+"settings.localPlugins.add" = "添加包目录…";
+"settings.localPlugins.empty" = "尚未启用本地包。";
+"settings.localPlugins.remove" = "移除";
+"settings.localPlugins.source.title" = "本地 JSON 来源";
+"settings.localPlugins.source.builtin" = "使用内置来源";
+"settings.localPlugins.unauthorized" = "本地 JSON 包需要已授权的目录。";
+"settings.localPlugins.loadFailed" = "无法读取包目录。";
+"settings.localPlugins.reload" = "重新加载";

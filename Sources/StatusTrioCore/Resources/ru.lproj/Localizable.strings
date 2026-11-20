@@ -1379,3 +1379,13 @@
 "hardware.detail.pressureCritical" = "Критично";
 "hardware.detail.unavailable" = "Недоступно";
 "hardware.detail.estimated" = "Оценка";
+"settings.localPlugins.title" = "Локальные JSON-плагины";
+"settings.localPlugins.description" = "Включённые папки пакетов читаются из data.json по мере необходимости. Запись выполняет ваш скрипт. Поддерживаются текст и значения 0–1.";
+"settings.localPlugins.add" = "Добавить папку пакета…";
+"settings.localPlugins.empty" = "Локальные пакеты не включены.";
+"settings.localPlugins.remove" = "Удалить";
+"settings.localPlugins.source.title" = "Локальный JSON-источник";
+"settings.localPlugins.source.builtin" = "Использовать встроенный источник";
+"settings.localPlugins.unauthorized" = "Для локальных JSON-пакетов нужна разрешённая папка.";
+"settings.localPlugins.loadFailed" = "Не удалось прочитать папку пакета.";
+"settings.localPlugins.reload" = "Перезагрузить";
