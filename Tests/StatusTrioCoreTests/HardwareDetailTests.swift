@@ -160,6 +160,35 @@ final class HardwareDetailTests: XCTestCase {
         XCTAssertEqual(store.points.first?.values.first ?? nil, 0)
     }
 
+    /// The panel-session history buffer holds every primary metric in one row.
+    /// Seeding a detail page must take only the metric that page draws; a CPU
+    /// row's value must never leak into the GPU/RAM series (that used to be
+    /// drawn on a 0–100% axis and clamped to a bogus 100%).
+    @MainActor
+    func testSeededHistoryOnlyUsesItsOwnMetric() {
+        let observable = HardwareMonitorObservable(snapshot: .empty)
+        for index in 0..<5 {
+            let date = start.addingTimeInterval(Double(index) * 2)
+            var snapshot = HardwareMetricsSnapshot.empty
+            snapshot.samples[.cpuUsage] = HardwareMetricSample(value: 100, unit: .percent,
+                                                               sampledAt: date, source: .mach, availability: .measured)
+            snapshot.samples[.gpuUsage] = HardwareMetricSample(value: 10, unit: .percent,
+                                                               sampledAt: date, source: .ioAccelerator, availability: .measured)
+            observable.update(snapshot, now: date)
+        }
+
+        let store = HardwareDetailHistoryStore(seriesCount: 1)
+        store.start(observable: observable,
+                    timestamp: { $0[.gpuUsage].sampledAt },
+                    values: { [$0[.gpuUsage].value] },
+                    seedRows: observable.historyRowsForDetail,
+                    seedMetricIDs: [.gpuUsage])
+        XCTAssertEqual(store.points.count, 5)
+        for point in store.points {
+            XCTAssertEqual(point.values.first ?? nil, 10, "GPU history must not inherit the CPU row's 100%")
+        }
+    }
+
     @MainActor
     func testHistorySurvivesStaleAndPayloadClear() {
         let observable = HardwareMonitorObservable(snapshot: .empty)

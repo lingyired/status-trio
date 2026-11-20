@@ -165,6 +165,14 @@ struct StatusPopoverView: View {
                                    uploadCapMbps: panel.settings.hardwareUploadCapMbps,
                                    networkChartFixedScale: panel.settings.hardwareNetworkChartFixedScale,
                                    historyWindowSeconds: panel.settings.hardwareHistoryWindowSeconds)
+                    // Key the detail page by its kind. The detail window is a
+                    // long-lived host that only swaps `kind` when the user picks
+                    // another metric card in alongside mode, so without a fresh
+                    // identity SwiftUI reuses the previous page's
+                    // `HardwareDetailHistoryStore` (its points, provider and
+                    // series count), painting the other metric's values onto the
+                    // new 0–100% axis. A distinct id forces a clean rebuild.
+                    .id(kind)
         }
     }
 
