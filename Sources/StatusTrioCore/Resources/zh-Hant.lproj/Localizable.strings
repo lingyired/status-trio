@@ -1205,7 +1205,7 @@
 "settings.hardwareRing.top.hidden" = "隱藏";
 "settings.hardwareRing.top.metric" = "頂部指標";
 "settings.hardwareRing.group.color" = "顏色";
-"settings.hardwareRing.batteryColorHint" = "電量顏色跟隨「本機電池」。可在「外環顯示 › 本機電池」中修改。";
+"settings.hardwareRing.batteryColorHint" = "電量顏色跟隨本機電池。可在「電池 › 狀態與顏色」中修改。";
 "settings.hardwareRing.colorMode" = "顏色模式";
 "settings.hardwareRing.color.status" = "狀態色";
 "settings.hardwareRing.color.fixed" = "固定色";

@@ -36,6 +36,10 @@ struct BatterySectionView: View {
             noBatteryNoticeGroup
         }
         panelVisibilityGroup
+        BatteryStatusColorsGroup(
+            store: store,
+            hasBattery: statusStore.snapshot.battery.isPresent && !store.isNoBatterySimulationActive
+        )
         chargeManagementGroup
         if helper.isAvailable {
             powerModesGroup

@@ -905,66 +905,7 @@ struct AppIconRingView: View {
     // MARK: Colours
 
     private var colorsGroup: some View {
-        SettingsGroup(localization.string(.settingsBatteryGroupColors)) {
-            // #309: use black/white for the charging / connected state, while
-            // Low/High Power Mode and critical keep their own colours. nil means
-            // automatic — on by default on a battery-less Mac, off otherwise.
-            SettingsToggleRow(
-                symbol: "circle.lefthalf.filled",
-                tint: .gray,
-                title: localization.string(.settingsBatteryMonochromeCharging),
-                subtitle: localization.string(.settingsBatteryMonochromeChargingDescription),
-                isOn: Binding(
-                    get: { store.monochromeChargingRing ?? !effectiveHasBattery },
-                    set: { store.monochromeChargingRing = $0 }
-                )
-            )
-
-            SettingsDivider()
-
-            SettingsToggleRow(
-                symbol: "paintpalette.fill",
-                tint: .orange,
-                title: localization.string(.settingsBatteryStatusColors),
-                subtitle: localization.string(.settingsBatteryStatusColorsDescription),
-                isOn: $store.usesBatteryStatusColors
-            )
-
-            BatteryStatusColorsView(store: store)
-
-            if store.usesBatteryStatusColors {
-                SettingsDivider()
-
-                SettingsRow(
-                    "exclamationmark.triangle.fill",
-                    tint: .red,
-                    title: localization.string(.settingsBatteryCriticalThreshold),
-                    subtitle:
-                        localization.string(.settingsBatteryCriticalThresholdDescription)
-                ) {
-                    HStack(spacing: 8) {
-                        Slider(
-                            value: Binding(
-                                get: { store.batteryCriticalThreshold },
-                                set: { store.batteryCriticalThreshold = $0.rounded() }
-                            ),
-                            in: SettingsStore.batteryCriticalThresholdRange
-                        )
-                        .frame(width: 130)
-                        .controlSize(.small)
-                        .accessibilityLabel(
-                            localization.string(.settingsBatteryCriticalThreshold)
-                        )
-                        .accessibilityValue("\(Int(store.batteryCriticalThreshold))%")
-
-                        Text("\(Int(store.batteryCriticalThreshold))%")
-                            .font(.system(size: 12, design: .monospaced))
-                            .foregroundStyle(.secondary)
-                            .frame(width: 44, alignment: .trailing)
-                    }
-                }
-            }
-        }
+        BatteryStatusColorsGroup(store: store, hasBattery: effectiveHasBattery)
     }
 
     // MARK: Animations
