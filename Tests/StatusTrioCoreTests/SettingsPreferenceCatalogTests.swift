@@ -106,16 +106,16 @@ final class SettingsPreferenceCatalogTests: XCTestCase {
         }
     }
 
-    func testHardwareBackgroundHistoryDefaultsOnAndRoundTrips() {
+    func testHardwareBackgroundHistoryDefaultsOffAndRoundTrips() {
         withStore { store, defaults in
-            XCTAssertTrue(store.hardwareBackgroundHistoryEnabled, "background history is on by default")
-            store.hardwareBackgroundHistoryEnabled = false
-            XCTAssertFalse(SettingsStore(defaults: defaults).hardwareBackgroundHistoryEnabled)
+            XCTAssertFalse(store.hardwareBackgroundHistoryEnabled, "background history is off by default")
+            store.hardwareBackgroundHistoryEnabled = true
+            XCTAssertTrue(SettingsStore(defaults: defaults).hardwareBackgroundHistoryEnabled)
             let snapshot = SettingsPreferenceCatalog.snapshot(store)
-            XCTAssertEqual(snapshot["hardwareBackgroundHistoryEnabled"], .bool(false))
+            XCTAssertEqual(snapshot["hardwareBackgroundHistoryEnabled"], .bool(true))
             XCTAssertNil(snapshot["hardwareBackgroundRefreshSeconds"], "the old seconds key is retired")
             let reloaded = SettingsStore(defaults: defaults, systemChargeLimit: { nil })
-            XCTAssertFalse(reloaded.hardwareBackgroundHistoryEnabled)
+            XCTAssertTrue(reloaded.hardwareBackgroundHistoryEnabled)
         }
     }
 

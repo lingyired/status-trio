@@ -95,34 +95,68 @@ final class PhaseOneCorrectnessTests: XCTestCase {
 
     // MARK: - Phase 2 demand lifecycle
 
-    func testHardwareRingDemandsFollowPlacementAndFallback() {
+    func testHardwareRingDemandsFollowPlacementAndSelectedSource() {
         var config = IconConfigurationV1.classic
         config.composition.outerRing = SlotSelection(primary: .hardwareMonitor)
         config.behaviors.hardwareRing = HardwareRingConfiguration(
             layout: .dual, primaryMetric: .cpuUsage, secondaryMetric: .gpuUsage)
 
-        let dockOnly = IconSourceDemandPolicy.hardwareRingDemands(configuration: config, placement: .dock)
+        let dockOnly = IconSourceDemandPolicy.hardwareRingDemands(
+            configuration: config, placement: .dock, isHardwareRingSelected: true)
         XCTAssertNil(dockOnly.menuBar)
         XCTAssertEqual(dockOnly.dock, Set([HardwareMetricID.cpuUsage, .gpuUsage]))
 
-        let menuOnly = IconSourceDemandPolicy.hardwareRingDemands(configuration: config, placement: .menuBar)
+        let menuOnly = IconSourceDemandPolicy.hardwareRingDemands(
+            configuration: config, placement: .menuBar, isHardwareRingSelected: true)
         XCTAssertNotNil(menuOnly.menuBar)
         XCTAssertNil(menuOnly.dock)
 
-        let both = IconSourceDemandPolicy.hardwareRingDemands(configuration: config, placement: .both)
+        let both = IconSourceDemandPolicy.hardwareRingDemands(
+            configuration: config, placement: .both, isHardwareRingSelected: true)
         XCTAssertNotNil(both.menuBar)
         XCTAssertNotNil(both.dock)
 
-        // Non-hardware source: no demand.
+        // A configured-but-not-selected hardware ring (e.g. only a fallback
+        // while another source is on screen) must not start the sampler.
+        XCTAssertEqual(IconSourceDemandPolicy.hardwareRingDemands(
+            configuration: config, placement: .both, isHardwareRingSelected: false), .none)
+
+        // Non-hardware source: no demand even if a stale selection flag is set.
         var battery = IconConfigurationV1.classic
         battery.composition.outerRing = SlotSelection(primary: .systemBattery)
-        XCTAssertEqual(IconSourceDemandPolicy.hardwareRingDemands(configuration: battery, placement: .both), .none)
+        XCTAssertEqual(IconSourceDemandPolicy.hardwareRingDemands(
+            configuration: battery, placement: .both, isHardwareRingSelected: false), .none)
 
-        // Hardware as fallback keeps the demand warm for the switch.
+        // The fallback activates only when the selected source says so, and then
+        // demands exactly its configured metrics.
         var fallback = IconConfigurationV1.classic
         fallback.composition.outerRing = SlotSelection(primary: .systemBattery, fallback: .hardwareMonitor)
         fallback.behaviors.hardwareRing = config.behaviors.hardwareRing
-        XCTAssertNotNil(IconSourceDemandPolicy.hardwareRingDemands(configuration: fallback, placement: .menuBar).menuBar)
+        XCTAssertEqual(IconSourceDemandPolicy.hardwareRingDemands(
+            configuration: fallback, placement: .menuBar, isHardwareRingSelected: false), .none)
+        XCTAssertNotNil(IconSourceDemandPolicy.hardwareRingDemands(
+            configuration: fallback, placement: .menuBar, isHardwareRingSelected: true).menuBar)
+    }
+
+    func testVolumeOrWifiOnlyRingDemandsNoHardwareSampling() {
+        var config = IconConfigurationV1.classic
+        config.composition.outerRing = SlotSelection(primary: .hardwareMonitor)
+        config.behaviors.hardwareRing = HardwareRingConfiguration(
+            layout: .single, primaryMetric: .volume, secondaryMetric: nil)
+        XCTAssertEqual(IconSourceDemandPolicy.hardwareRingDemands(
+            configuration: config, placement: .both, isHardwareRingSelected: true), .none)
+
+        config.behaviors.hardwareRing = HardwareRingConfiguration(
+            layout: .single, primaryMetric: .wifiSignal, secondaryMetric: nil)
+        XCTAssertEqual(IconSourceDemandPolicy.hardwareRingDemands(
+            configuration: config, placement: .both, isHardwareRingSelected: true), .none)
+
+        // A mixed CPU + volume ring demands only CPU.
+        config.behaviors.hardwareRing = HardwareRingConfiguration(
+            layout: .dual, primaryMetric: .cpuUsage, secondaryMetric: .volume)
+        XCTAssertEqual(IconSourceDemandPolicy.hardwareRingDemands(
+            configuration: config, placement: .both, isHardwareRingSelected: true).dock,
+            Set([HardwareMetricID.cpuUsage]))
     }
 
 

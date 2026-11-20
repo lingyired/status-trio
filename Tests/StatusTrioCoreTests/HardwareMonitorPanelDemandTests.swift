@@ -39,7 +39,7 @@ final class HardwareMonitorPanelDemandTests: XCTestCase {
         panel.showBatteryPage()
         XCTAssertEqual(panel.route, .battery)
         XCTAssertNil(service.demands[.panel])
-        XCTAssertTrue(service.isRunning, "background history keeps recording while browsing other pages")
+        XCTAssertFalse(service.isRunning, "no consumer should sample while another page is shown")
 
         // Back to summary resumes it.
         panel.showSummaryPage()
@@ -49,7 +49,7 @@ final class HardwareMonitorPanelDemandTests: XCTestCase {
         // Hiding the whole panel stops it too.
         fixture.store.setPopoverVisible(false)
         XCTAssertNil(service.demands[.panel])
-        XCTAssertTrue(service.isRunning, "background history keeps the summary warm while closed")
+        XCTAssertFalse(service.isRunning, "background history defaults off, so a closed panel stops sampling")
 
         // Reopening starts it again.
         fixture.store.setPopoverVisible(true)
@@ -59,8 +59,12 @@ final class HardwareMonitorPanelDemandTests: XCTestCase {
 
     func testBackgroundHistoryFollowsSettingWhilePanelClosed() {
         let fixture = makeFixture()
+        fixture.settings.hardwareBackgroundHistoryEnabled = true
         let panel = startVisible(fixture)
+        let controller = HardwareBackgroundDemandController(store: fixture.store, settings: fixture.settings)
+        controller.start()
         defer {
+            controller.stop()
             panel.showSummaryPage()
             panel.stop()
             fixture.store.setPopoverVisible(false)
@@ -68,25 +72,51 @@ final class HardwareMonitorPanelDemandTests: XCTestCase {
         }
         let service = fixture.store.hardwareMetrics
         XCTAssertEqual(service.demands[.panel], HardwareMetricsService.hardwareSummaryMetricIDs)
-        XCTAssertNil(service.demands[.background])
+        XCTAssertNil(service.demands[.background], "an open panel yields the background demand")
 
-        // Default on: closing the panel keeps recording history at the panel
-        // cadence so a detail page opens with a trend.
+        // Opt-in: closing the panel keeps recording only the primary metrics the
+        // enabled summary blocks would record (no temperature/fan).
+        let expectedBackground = HardwareMetricDemandResolver.backgroundHistoryMetrics(
+            summary: HardwareMetricDemandResolver.PanelSummaryInputs(
+                showsHardwareRings: fixture.settings.showsHardwareRings,
+                enabledRingSlots: fixture.settings.enabledHardwareRingSlots,
+                showsHardwareSummaryRow: fixture.settings.showsHardwareSummaryRow,
+                enabledSummaryMetrics: fixture.settings.enabledHardwareSummaryMetrics))
         fixture.store.setPopoverVisible(false)
-        XCTAssertEqual(service.demands[.background], HardwareMetricsService.hardwareSummaryMetricIDs,
-                       "background history is on by default while the panel is closed")
+        RunLoop.main.run(until: Date().addingTimeInterval(0.05))
+        XCTAssertEqual(service.demands[.background], expectedBackground)
         XCTAssertEqual(service.backgroundIntervalSeconds, TimeInterval(fixture.settings.hardwarePanelRefreshSeconds))
 
         fixture.settings.hardwarePanelRefreshSeconds = 5
+        RunLoop.main.run(until: Date().addingTimeInterval(0.05))
         XCTAssertEqual(service.backgroundIntervalSeconds, 5, "background history follows the panel cadence")
 
         fixture.store.setPopoverVisible(true)
+        RunLoop.main.run(until: Date().addingTimeInterval(0.05))
         XCTAssertEqual(service.demands[.panel], HardwareMetricsService.hardwareSummaryMetricIDs)
         XCTAssertNil(service.demands[.background], "an open panel ends the background demand")
 
         fixture.settings.hardwareBackgroundHistoryEnabled = false
         fixture.store.setPopoverVisible(false)
+        RunLoop.main.run(until: Date().addingTimeInterval(0.05))
         XCTAssertNil(service.demands[.background], "turning the toggle off stops background history")
+    }
+
+    func testBackgroundHistoryDefaultsOffWhilePanelClosed() {
+        let fixture = makeFixture()
+        let panel = startVisible(fixture)
+        let controller = HardwareBackgroundDemandController(store: fixture.store, settings: fixture.settings)
+        controller.start()
+        defer {
+            controller.stop()
+            panel.stop()
+            fixture.store.setPopoverVisible(false)
+            fixture.store.stop()
+        }
+        let service = fixture.store.hardwareMetrics
+        fixture.store.setPopoverVisible(false)
+        XCTAssertNil(service.demands[.background], "a fresh install must not sample in the background")
+        XCTAssertFalse(service.isRunning)
     }
 
     func testDisablingTheSectionStopsSampling() {
@@ -187,9 +217,8 @@ final class HardwareMonitorPanelDemandTests: XCTestCase {
         fixture.store.setPopoverVisible(false)
         XCTAssertNil(service.demands[.panel])
         XCTAssertNil(service.detailKind)
-        XCTAssertEqual(service.demands[.background], HardwareMetricsService.hardwareSummaryMetricIDs,
-                       "background history keeps the summary warm while the panel is closed")
-        XCTAssertTrue(service.isRunning)
+        XCTAssertNil(service.demands[.background], "background history is off by default")
+        XCTAssertFalse(service.isRunning)
     }
 
     func testAlongsideHardwareDemandUnionsMetricsAndDropsDetailOnlyWork() {
@@ -243,6 +272,31 @@ final class HardwareMonitorPanelDemandTests: XCTestCase {
         }
         let service = fixture.store.hardwareMetrics
         XCTAssertTrue(service.demands.isEmpty)
+        XCTAssertFalse(service.isRunning)
+    }
+
+    func testBackgroundDemandRecomputesWhenSettingsChangeWhilePanelClosed() {
+        let fixture = makeFixture()
+        fixture.settings.setPopupSection(.hardwareMonitor, enabled: true)
+        fixture.settings.hardwareBackgroundHistoryEnabled = true
+        fixture.store.start()
+        let controller = HardwareBackgroundDemandController(store: fixture.store, settings: fixture.settings)
+        controller.start()
+        defer { controller.stop(); fixture.store.stop() }
+        let service = fixture.store.hardwareMetrics
+
+        XCTAssertEqual(service.demands[.background], Set(HardwareMonitorObservable.historyMetricIDs))
+
+        // Hiding the rings while the panel stays closed must drop CPU/GPU/RAM
+        // from the background set, leaving only the data row's history metrics.
+        fixture.settings.showsHardwareRings = false
+        RunLoop.main.run(until: Date().addingTimeInterval(0.05))
+        XCTAssertEqual(service.demands[.background], Set([.networkDownload, .networkUpload, .diskRead, .diskWrite]))
+
+        // Hiding the row too leaves no history consumer at all.
+        fixture.settings.showsHardwareSummaryRow = false
+        RunLoop.main.run(until: Date().addingTimeInterval(0.05))
+        XCTAssertNil(service.demands[.background])
         XCTAssertFalse(service.isRunning)
     }
 }

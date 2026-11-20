@@ -747,6 +747,7 @@ final class SystemStatusStore: ObservableObject {
         highPowerMode.onSuccessfulWrite = nil
 
         powerSampling.stopAll()
+        hardwareMetrics.stopAll()
         topApps.stop()
         batteryDetails.deactivate()
         mobileBattery.stop()

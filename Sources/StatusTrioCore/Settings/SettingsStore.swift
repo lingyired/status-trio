@@ -196,7 +196,7 @@ final class SettingsStore: ObservableObject {
     /// refresh cadence, so opening a detail page immediately shows a trend.
     /// Default on; turning it off leaves only what the menu-bar or Dock icon
     /// already samples.
-    static let defaultHardwareBackgroundHistoryEnabled: Bool = true
+    static let defaultHardwareBackgroundHistoryEnabled: Bool = false
     /// Refresh cadence for the status-panel hardware summary while it is open.
     /// 1 s preserves the historical fastest cadence; slower options trade
     /// freshness for fewer reads.

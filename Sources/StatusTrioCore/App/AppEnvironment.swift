@@ -31,6 +31,9 @@ final class AppEnvironment {
     private var chargingEffectCancellables = Set<AnyCancellable>()
     private var inputSourceLifecycleCancellables = Set<AnyCancellable>()
     private var hardwareRingDemandCancellable: AnyCancellable?
+    private var hardwareRingOutputCancellable: AnyCancellable?
+    private let hardwareRingActivation: HardwareRingActivationTracker
+    private let hardwareBackgroundDemandController: HardwareBackgroundDemandController
     private var previewResourceLifecycleCancellables = Set<AnyCancellable>()
     private var hasSubscribedToChargingEffectInputs = false
     private var isPreviewResourceLifecycleStarted = false
@@ -60,7 +63,8 @@ final class AppEnvironment {
         memoryPressureMonitor: MemoryPressureMonitor? = nil,
         bluetoothProfilerCache: BluetoothProfilerReportCache = .shared,
         previewResourceLifecycle: PreviewResourceLifecycle? = nil,
-        backgroundUITesting: BackgroundUITestingConfiguration = .disabled
+        backgroundUITesting: BackgroundUITestingConfiguration = .disabled,
+        hardwareRingActivation: HardwareRingActivationTracker = HardwareRingActivationTracker()
     ) {
         self.store = store
         self.settings = settings
@@ -85,6 +89,8 @@ final class AppEnvironment {
         self.backgroundUITesting = backgroundUITesting
         self.menuBarChargingEffectEnabled = settings.showsMenuBarChargingEffect
         self.dockChargingEffectEnabled = settings.showsDockChargingEffect
+        self.hardwareRingActivation = hardwareRingActivation
+        self.hardwareBackgroundDemandController = HardwareBackgroundDemandController(store: store, settings: settings)
     }
 
     func start() {
@@ -95,6 +101,8 @@ final class AppEnvironment {
         memoryPressureMonitor.start()
         iconPresentation.start()
         startHardwareRingDemand()
+        startHardwareRingOutputObservation()
+        hardwareBackgroundDemandController.start()
         startInputSourceMonitoringIfNeeded()
         // A panel test must not be blocked by first-run onboarding. The
         // Settings background route keeps its existing onboarding policy.
@@ -189,8 +197,11 @@ final class AppEnvironment {
         appIconController.stop()
         mainMenuController.stop()
         store.stop()
+        hardwareBackgroundDemandController.stop()
         hardwareRingDemandCancellable?.cancel()
         hardwareRingDemandCancellable = nil
+        hardwareRingOutputCancellable?.cancel()
+        hardwareRingOutputCancellable = nil
         store.hardwareMetrics.end(.menuBarArc)
         store.hardwareMetrics.end(.dock)
         // Both profiler consumers belong to the stopped store. A pressure
@@ -220,11 +231,28 @@ final class AppEnvironment {
     /// the panel view model.
     private func reconcileHardwareRingDemand(_ configuration: IconConfigurationV1,
                                              placement: AppIconPlacement) {
-        let demands = IconSourceDemandPolicy.hardwareRingDemands(configuration: configuration, placement: placement)
+        let demands = IconSourceDemandPolicy.hardwareRingDemands(
+            configuration: configuration,
+            placement: placement,
+            isHardwareRingSelected: hardwareRingActivation.isHardwareRingSelected
+        )
         if let menuBar = demands.menuBar { store.hardwareMetrics.begin(.menuBarArc, metrics: menuBar) }
         else { store.hardwareMetrics.end(.menuBarArc) }
         if let dock = demands.dock { store.hardwareMetrics.begin(.dock, metrics: dock) }
         else { store.hardwareMetrics.end(.dock) }
+    }
+
+    /// The icon scene can switch between primary and fallback while settings are
+    /// unchanged (e.g. the battery source becomes unavailable). Re-evaluate the
+    /// hardware demand whenever the resolved source may have changed.
+    private func startHardwareRingOutputObservation() {
+        hardwareRingOutputCancellable = iconPresentation.$output
+            .dropFirst()
+            .sink { [weak self] _ in
+                guard let self else { return }
+                self.reconcileHardwareRingDemand(self.settings.iconConfiguration,
+                                                 placement: self.settings.appIconPlacement)
+            }
     }
 
     private func startPreviewResourceLifecycleIfNeeded() {
@@ -491,6 +519,7 @@ final class AppEnvironment {
         let noBatteryPreview = settings.isNoBatterySimulationActive
         let isDevelopmentBuild = settings.isDevelopmentBuild
         let hardwareRingTracker = HardwareRingStatusTracker()
+        let hardwareRingActivation = HardwareRingActivationTracker()
         let iconPresentation = IconPresentationViewModel(
             snapshot: noBatteryPreview
                 ? store.snapshot.replacingBattery(
@@ -556,10 +585,12 @@ final class AppEnvironment {
                 return inputs
             },
             mapScene: { inputs, _, iconConfiguration in
-                IconCompositionResolver.resolve(
+                let resolution = IconCompositionResolver.resolve(
                     inputs: IconResolutionInputs(system: inputs, sources: inputs.sources),
                     configuration: iconConfiguration
-                ).scene
+                )
+                hardwareRingActivation.update(resolution.trace.outerRing.selectedSourceID)
+                return resolution.scene
             }
         )
         let chargingEffectClock = ChargingEffectClock()
@@ -695,7 +726,8 @@ final class AppEnvironment {
             dockChargingAnimationPresenter: dockChargingAnimationPresenter,
             dockVisibilityMonitor: dockVisibilityMonitor,
             telemetryReporter: telemetryReporter,
-            backgroundUITesting: backgroundUITesting
+            backgroundUITesting: backgroundUITesting,
+            hardwareRingActivation: hardwareRingActivation
         )
     }
 
