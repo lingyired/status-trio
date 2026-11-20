@@ -32,6 +32,12 @@ final class AppEnvironment {
     private var inputSourceLifecycleCancellables = Set<AnyCancellable>()
     private var hardwareRingDemandCancellable: AnyCancellable?
     private var hardwareRingOutputCancellable: AnyCancellable?
+    /// The icon configuration actually published to the icon scene, derived from
+    /// the live icon settings. The persisted `settings.iconConfiguration` is only
+    /// rewritten by the editor API, so using it for demand would silently drop a
+    /// metric the settings surface changed (e.g. a memory ring would be pruned
+    /// back to the persisted CPU-only set on the next icon tick).
+    private var latestPresentationConfiguration: IconConfigurationV1 = .classic
     private let hardwareRingActivation: HardwareRingActivationTracker
     private let hardwareBackgroundDemandController: HardwareBackgroundDemandController
     private var previewResourceLifecycleCancellables = Set<AnyCancellable>()
@@ -221,7 +227,9 @@ final class AppEnvironment {
         )
         .removeDuplicates { $0.0 == $1.0 && $0.1 == $1.1 }
         .sink { [weak self] configuration, placement in
-            self?.reconcileHardwareRingDemand(configuration, placement: placement)
+            guard let self else { return }
+            self.latestPresentationConfiguration = configuration
+            self.reconcileHardwareRingDemand(configuration, placement: placement)
         }
     }
 
@@ -250,7 +258,7 @@ final class AppEnvironment {
             .dropFirst()
             .sink { [weak self] _ in
                 guard let self else { return }
-                self.reconcileHardwareRingDemand(self.settings.iconConfiguration,
+                self.reconcileHardwareRingDemand(self.latestPresentationConfiguration,
                                                  placement: self.settings.appIconPlacement)
             }
     }
