@@ -217,20 +217,28 @@ is not transferable just because it exists.
 
 - Release CI is required only before a formal release, not for ordinary commits,
   pull requests, or merges.
-- The only release entry point is a maintainer-dispatched manual
-  `release.yml` run. A `v*` tag push must never publish automatically.
-- Dispatch from `main` with a frozen lowercase 40-character `candidate_sha`.
-  The `verify` and `native` jobs run the full suite and native contracts on
-  that exact commit; `package` waits for both and builds one Universal
-  artifact; `publish` downloads that artifact without rebuilding, repackaging,
-  signing, or notarizing.
-- The `verify` and parallel `native` jobs must not receive signing or
-  notarization secrets. `package` and `publish` wait for both. Formal
-  publication always uses the reviewed `distribution` Environment;
-  owner-triggered diagnostics may use `distribution-owner-signing`, while all
-  other triggering actors and reruns use `distribution`. Publication is allowed
-  only when the candidate SHA, manifest SHA, Release Tag, appcast, DMG digest,
-  and public URLs all agree.
+- Formal releases use maintainer-dispatched manual workflows; a `v*` tag push
+  must never publish automatically:
+  - `build-candidate.yml` builds one notarized `release_candidate` from a frozen
+    lowercase 40-character `candidate_sha` with `release_mode=fast|strict`.
+  - `publish-candidate.yml` publishes that candidate by `candidate_run_id` and
+    downloads its artifact without rebuilding, repackaging, signing, or
+    notarizing.
+- The legacy `release.yml` (`verify`/`native`/`package`/`publish` with
+  `package_run_id` recovery) remains a compatible entry point for schema v1
+  manifests; both paths share `scripts/publish-release.sh`.
+- `fast` skips the remote full Swift/native suite (local testing is the
+  developer's declared prerequisite); `strict` runs the full suite and native
+  contracts. Both produce the same signed/notarized artifact. `fast` records
+  `verification.status=declared`, `strict` records `passed`. A `strict`
+  candidate is publishable only when its `verify`/`native` jobs succeeded, or
+  an independent `verify-candidate.yml` strict-evidence artifact is supplied.
+- `verify`/`native` must not receive signing or notarization secrets. Formal
+  publication always uses the reviewed `distribution` Environment; owner
+  diagnostics may use `distribution-owner-signing`, while all other triggering
+  actors and reruns use `distribution`. Publication is allowed only when the
+  candidate run, manifest, Release Tag, appcast, DMG/ZIP digests, and public
+  URLs all agree.
 - A failed Appcast or upload may be retried only with the same verified artifact.
   A retry must not create a second Release or rewrite a public appcast item.
 - Never publish a different SHA, rebuild during publish, or let a tag point at
