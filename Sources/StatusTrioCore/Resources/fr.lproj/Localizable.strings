@@ -1119,6 +1119,7 @@
 "settings.brightness.betterDisplay.unavailable" = "Indisponible";
 "settings.brightness.betterDisplay.refresh" = "Actualiser les appareils";
 "settings.battery.colors.highPower" = "Mode haute puissance";
+"settings.battery.colors.discharging" = "Décharge (sans secteur)";
 "battery.lowPowerMode.autoEnable" = "Activer automatiquement le mode économie d’énergie";
 "battery.lowPowerMode.autoEnableDescription" = "Une fois l’alimentation débranchée, le mode économie d’énergie s’active automatiquement dès que la batterie passe sous le seuil de batterie faible. Une fois par cycle de batterie faible.";
 "settings.battery.autoLowPowerThreshold" = "Activer automatiquement le mode économie d’énergie";

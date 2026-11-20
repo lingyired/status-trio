@@ -1119,6 +1119,7 @@
 "settings.brightness.betterDisplay.unavailable" = "No disponible";
 "settings.brightness.betterDisplay.refresh" = "Actualizar dispositivos";
 "settings.battery.colors.highPower" = "Modo de alto consumo";
+"settings.battery.colors.discharging" = "Descarga (sin alimentación)";
 "battery.lowPowerMode.autoEnable" = "Activar automáticamente el modo de bajo consumo";
 "battery.lowPowerMode.autoEnableDescription" = "Al desconectar la alimentación, el modo de bajo consumo se activa automáticamente cuando la batería baja del umbral de batería baja. Una vez por ciclo de batería baja.";
 "settings.battery.autoLowPowerThreshold" = "Activar automáticamente el modo de bajo consumo";

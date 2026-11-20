@@ -212,28 +212,47 @@ extension InputSourceMarkerStyle: Codable {}
 /// hand-parseable value the settings model persists (`system`, `preset:<name>`
 /// or `custom:<hue>,<saturation>,<brightness>`).
 struct BatteryStatusColorsConfiguration: Codable, Equatable, Sendable {
+    var discharging: String
     var charging: String
     var lowPower: String
     var highPower: String
     var critical: String
 
+    enum CodingKeys: String, CodingKey {
+        case discharging, charging, lowPower, highPower, critical
+    }
+
     static let classic = Self(
+        discharging: "system",
         charging: "system",
         lowPower: "system",
         highPower: "system",
         critical: "system"
     )
 
-    init(charging: String = "system", lowPower: String = "system",
+    init(discharging: String = "system", charging: String = "system", lowPower: String = "system",
          highPower: String = "system", critical: String = "system") {
+        self.discharging = discharging
         self.charging = charging
         self.lowPower = lowPower
         self.highPower = highPower
         self.critical = critical
     }
 
+    // Configurations saved before the discharging role existed lack its key, so
+    // decode it with a system default instead of failing the whole document.
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        discharging = try container.decodeIfPresent(String.self, forKey: .discharging) ?? "system"
+        charging = try container.decodeIfPresent(String.self, forKey: .charging) ?? "system"
+        lowPower = try container.decodeIfPresent(String.self, forKey: .lowPower) ?? "system"
+        highPower = try container.decodeIfPresent(String.self, forKey: .highPower) ?? "system"
+        critical = try container.decodeIfPresent(String.self, forKey: .critical) ?? "system"
+    }
+
     init(_ colors: BatteryStatusColors) {
         self.init(
+            discharging: colors.discharging.storageValue,
             charging: colors.charging.storageValue,
             lowPower: colors.lowPower.storageValue,
             highPower: colors.highPower.storageValue,
@@ -243,6 +262,7 @@ struct BatteryStatusColorsConfiguration: Codable, Equatable, Sendable {
 
     var colors: BatteryStatusColors {
         BatteryStatusColors(
+            discharging: BatteryStatusColorSelection(storageValue: discharging),
             charging: BatteryStatusColorSelection(storageValue: charging),
             lowPower: BatteryStatusColorSelection(storageValue: lowPower),
             highPower: BatteryStatusColorSelection(storageValue: highPower),

@@ -4,6 +4,9 @@ enum IconColorRole: Equatable, Hashable, Sendable {
     static let inactiveTrackOpacity = 0.22
 
     case primary
+    /// Plain battery discharge, not connected to power (#357). Resolves to the
+    /// user-chosen discharging colour; `.system` keeps the label colour.
+    case discharging
     case inactive
     case critical
     case lowPower

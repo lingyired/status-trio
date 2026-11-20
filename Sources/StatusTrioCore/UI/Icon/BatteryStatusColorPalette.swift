@@ -8,6 +8,14 @@ import AppKit
 /// per primitive, and lets a real appearance (including high contrast) decide
 /// the variant instead of a hard-coded aqua/darkAqua guess.
 struct BatteryStatusColorPalette {
+    /// The plain discharging baseline: the label colour, matching the renderer's
+    /// `foreground` so a `.system` selection is pixel-identical to the old look.
+    let discharging: CGColor
+    /// True while the discharging role is still the system default. The renderer
+    /// then reuses its own exact `foreground`, keeping `.discharging` pixel-for-
+    /// pixel identical to the old `.primary` ring on every surface (the Dock's
+    /// near-black ink differs from `labelColor`, so a palette colour would drift).
+    let dischargingIsSystem: Bool
     let charging: CGColor
     let lowPower: CGColor
     let highPower: CGColor
@@ -17,6 +25,8 @@ struct BatteryStatusColorPalette {
 
     static func resolved(appearance: NSAppearance) -> Self {
         var result = Self(
+            discharging: CGColor(gray: 0, alpha: 1),
+            dischargingIsSystem: true,
             charging: CGColor(gray: 1, alpha: 1),
             lowPower: CGColor(gray: 1, alpha: 1),
             highPower: CGColor(gray: 1, alpha: 1),
@@ -24,7 +34,13 @@ struct BatteryStatusColorPalette {
             bluetoothIcon: CGColor(gray: 0, alpha: 1)
         )
         appearance.performAsCurrentDrawingAppearance {
+            // The discharging baseline must equal the renderer's `foreground`
+            // (black in light, white in dark), so derive it from the label colour
+            // exactly the way `renderEnvironment` derives its ink.
+            let isDark = (NSColor.labelColor.usingColorSpace(.deviceRGB)?.brightnessComponent ?? 0) > 0.5
             result = Self(
+                discharging: CGColor(gray: isDark ? 1 : 0, alpha: 1),
+                dischargingIsSystem: true,
                 charging: rgb(.systemGreen),
                 lowPower: rgb(.systemYellow),
                 highPower: rgb(.systemBlue),
@@ -46,6 +62,8 @@ struct BatteryStatusColorPalette {
         let brightness = NSColor(cgColor: foreground)?.usingColorSpace(.deviceRGB)?.brightnessComponent ?? 0
         let resolved = resolved(dark: brightness >= 0.5)
         return Self(
+            discharging: foreground,
+            dischargingIsSystem: true,
             charging: resolved.charging,
             lowPower: resolved.lowPower,
             highPower: resolved.highPower,
@@ -60,6 +78,7 @@ struct BatteryStatusColorPalette {
 
     func color(for role: BatteryStatusColorRole) -> CGColor {
         switch role {
+        case .discharging: discharging
         case .charging: charging
         case .lowPower: lowPower
         case .highPower: highPower
@@ -80,6 +99,8 @@ struct BatteryStatusColorPalette {
             ).color
         }
         return Self(
+            discharging: resolve(.discharging, discharging),
+            dischargingIsSystem: statusColors.discharging.isSystem,
             charging: resolve(.charging, charging),
             lowPower: resolve(.lowPower, lowPower),
             highPower: resolve(.highPower, highPower),
@@ -97,6 +118,8 @@ struct BatteryStatusColorPalette {
         darkAppearance: Bool
     ) -> Self {
         Self(
+            discharging: discharging,
+            dischargingIsSystem: dischargingIsSystem,
             charging: charging,
             lowPower: lowPower,
             highPower: highPower,

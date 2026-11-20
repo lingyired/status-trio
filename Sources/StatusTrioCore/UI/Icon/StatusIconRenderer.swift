@@ -1659,6 +1659,8 @@ extension StatusIconRenderer {
         switch role {
         case .primary:
             foreground
+        case .discharging:
+            statusPalette.dischargingIsSystem ? foreground : statusPalette.discharging
         case .inactive:
             foreground.copy(alpha: inactiveTrackAlpha) ?? foreground
         case .critical:

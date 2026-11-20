@@ -1,6 +1,11 @@
 import Foundation
 
 enum BatteryColorRole: Equatable, Sendable {
+    // Plain use on battery, not connected to power (#357). Resolves to the
+    // user-chosen discharging colour; its `.system` default is the label colour,
+    // identical to `foreground`. `foreground` is still returned for the
+    // monochrome charging mode and when state colours are switched off.
+    case discharging
     case foreground
     case critical
     case lowPower
@@ -69,7 +74,7 @@ enum StatusMappings {
         if battery.isCharging || battery.isConnectedToPower || treatAsConnected {
             return monochromeCharging ? .foreground : .charging
         }
-        return .foreground
+        return .discharging
     }
 
     /// Each power state carries its own top-gap marker (#315): a charging

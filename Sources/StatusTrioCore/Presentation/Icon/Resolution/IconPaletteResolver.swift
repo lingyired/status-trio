@@ -121,6 +121,7 @@ private extension IconColorRole {
     var semanticRole: IconSemanticColorRole? {
         switch self {
         case .primary: .primary
+        case .discharging: .primary
         case .inactive: .inactive
         case .critical: .critical
         case .lowPower: .lowPower

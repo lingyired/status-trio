@@ -459,10 +459,10 @@ final class IconSceneRendererParityTests: XCTestCase {
     private func visualCases() -> [VisualCase] {
         let ordinary = PresentationFixtures.snapshot(rssi: -60)
         let mediumWiFi = symbol("wifi", value: 0.66)
-        let ordinaryRing = ring(progress: 0.68, color: .primary, gap: .value,
+        let ordinaryRing = ring(progress: 0.68, color: .discharging, gap: .value,
                                 accessory: .text(IconTextState(text: "68", color: .primary, scale: 1.8)))
         let slash = CenterState.symbol(IconSymbolState(source: .symbol(name: "wifi.slash", variableValue: 1, fallback: nil), color: .primary, scale: 1))
-        let placeholderRing = ring(progress: 1, color: .primary, gap: .value,
+        let placeholderRing = ring(progress: 1, color: .discharging, gap: .value,
                                    accessory: .text(IconTextState(text: "100", color: .primary, scale: 1.8)))
         let absentBatteryRing = ring(progress: 1, color: .primary, gap: .indicator,
                                      accessory: .symbol(IconSymbolState(
@@ -519,7 +519,7 @@ final class IconSceneRendererParityTests: XCTestCase {
             ), ring(progress: 0.68, color: .primary, gap: .closed, accessory: nil)),
             ("scaled battery text and bold ring", battery(percentage: 54), BatteryIconOptions(
                 textScale: 1.35, ringStrokeScale: 1.5
-            ), ring(progress: 0.54, color: .primary, gap: .value, accessory: .text(IconTextState(text: "54", color: .primary, scale: 1.35)), strokeScale: 1.5)),
+            ), ring(progress: 0.54, color: .discharging, gap: .value, accessory: .text(IconTextState(text: "54", color: .primary, scale: 1.35)), strokeScale: 1.5)),
             ("custom critical threshold", battery(percentage: 28), BatteryIconOptions(
                 criticalThreshold: 30, ringStrokeScale: 1
             ), ring(progress: 0.28, color: .critical, gap: .value, accessory: .text(IconTextState(text: "28", color: .primary, scale: 1.8)), strokeScale: 1)),

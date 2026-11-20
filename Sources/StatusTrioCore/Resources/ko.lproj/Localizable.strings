@@ -1379,3 +1379,4 @@
 "hardware.detail.topApps.empty" = "활성 앱 없음";
 "hardware.detail.topApps.unsupported" = "지원되지 않음";
 "hardware.detail.topApps.failed" = "읽기 실패";
+"settings.battery.colors.discharging" = "방전 중 (전원 미연결)";

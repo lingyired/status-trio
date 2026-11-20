@@ -119,7 +119,7 @@ final class StatusMappingsTests: XCTestCase {
             isLowPowerMode: false,
             isConnectedToPower: false
         )
-        XCTAssertEqual(StatusMappings.batteryColorRole(normal), .foreground)
+        XCTAssertEqual(StatusMappings.batteryColorRole(normal), .discharging)
 
         let lowPower = BatteryStatus(
             rawPercentage: 100,
@@ -161,10 +161,10 @@ final class StatusMappingsTests: XCTestCase {
     func testBatteryCriticalThreshold() {
         let battery = makeBattery(rawPercentage: 20)
 
-        XCTAssertEqual(StatusMappings.batteryColorRole(battery), .foreground)
+        XCTAssertEqual(StatusMappings.batteryColorRole(battery), .discharging)
         XCTAssertEqual(
             StatusMappings.batteryColorRole(battery, criticalThreshold: 20),
-            .foreground
+            .discharging
         )
         XCTAssertEqual(
             StatusMappings.batteryColorRole(

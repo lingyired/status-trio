@@ -16,6 +16,7 @@ final class IconConfigurationSchemaExtensionTests: XCTestCase {
         configuration.appearance.inputSourceMarkerStyle = .script
         configuration.appearance.bluetoothSymbolScale = 1.9
         configuration.appearance.batteryStatusColors = BatteryStatusColorsConfiguration(
+            discharging: "preset:sky",
             charging: "preset:mint",
             lowPower: "system",
             highPower: "custom:0.5,0.5,0.5",
@@ -57,5 +58,21 @@ final class IconConfigurationSchemaExtensionTests: XCTestCase {
             accuracy: 0.0001
         )
         XCTAssertEqual(decoded.appearance.batteryStatusColors, .classic)
+    }
+
+    func testBatteryColorsWithoutDischargingKeyDecodeToSystem() throws {
+        let encoded = try IconConfigurationCodec.encode(.classic)
+        var root = try XCTUnwrap(JSONSerialization.jsonObject(with: encoded) as? [String: Any])
+        var appearance = try XCTUnwrap(root["appearance"] as? [String: Any])
+        var colors = try XCTUnwrap(appearance["batteryStatusColors"] as? [String: Any])
+        colors.removeValue(forKey: "discharging")
+        colors["charging"] = "preset:rose"
+        appearance["batteryStatusColors"] = colors
+        root["appearance"] = appearance
+
+        let legacy = try JSONSerialization.data(withJSONObject: root)
+        let decoded = try IconConfigurationCodec.decode(legacy)
+        XCTAssertEqual(decoded.appearance.batteryStatusColors.discharging, "system")
+        XCTAssertEqual(decoded.appearance.batteryStatusColors.charging, "preset:rose")
     }
 }

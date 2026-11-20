@@ -1119,6 +1119,7 @@
 "settings.brightness.betterDisplay.unavailable" = "Nicht verfügbar";
 "settings.brightness.betterDisplay.refresh" = "Geräte aktualisieren";
 "settings.battery.colors.highPower" = "Hochenergiemodus";
+"settings.battery.colors.discharging" = "Entladen (ohne Netzbetrieb)";
 "battery.lowPowerMode.autoEnable" = "Niedrigenergiemodus automatisch aktivieren";
 "battery.lowPowerMode.autoEnableDescription" = "Ohne Netzteil schaltet sich der Niedrigenergiemodus automatisch ein, sobald der Akkustand unter den Schwellenwert für niedrigen Akkustand fällt. Einmal pro Niedrigakkupyklus.";
 "settings.battery.autoLowPowerThreshold" = "Niedrigenergiemodus automatisch aktivieren";

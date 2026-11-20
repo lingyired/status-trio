@@ -428,6 +428,7 @@ enum IconPresentationMapper {
             )
             : .foreground
         let color: IconColorRole = switch role {
+        case .discharging: .discharging
         case .foreground: .primary
         case .critical: .critical
         case .lowPower: .lowPower

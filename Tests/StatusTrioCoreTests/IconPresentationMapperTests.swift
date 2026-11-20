@@ -237,7 +237,7 @@ final class IconPresentationMapperTests: XCTestCase {
             (20, 20, true, true, .lowPower),
             (50, 20, true, true, .lowPower),
             (50, 20, false, true, .powered),
-            (50, 20, false, false, .primary)
+            (50, 20, false, false, .discharging)
         ]
         for (percentage, threshold, lowPower, connected, color) in cases {
             let battery = BatteryStatus(rawPercentage: percentage, isPresent: true, isCharging: connected,

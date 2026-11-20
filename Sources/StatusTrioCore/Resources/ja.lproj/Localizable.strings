@@ -1119,6 +1119,7 @@
 "settings.brightness.betterDisplay.unavailable" = "利用不可";
 "settings.brightness.betterDisplay.refresh" = "デバイスを更新";
 "settings.battery.colors.highPower" = "高電力モード";
+"settings.battery.colors.discharging" = "放電中（電源未接続）";
 "battery.lowPowerMode.autoEnable" = "低電力モードを自動でオン";
 "battery.lowPowerMode.autoEnableDescription" = "電源を外すと、バッテリー残量が低バッテリーしきい値を下回ったときに低電力モードが自動でオンになります。低バッテリーごとに 1 回だけです。";
 "settings.battery.autoLowPowerThreshold" = "低電力モードを自動でオン";
