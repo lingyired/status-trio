@@ -101,6 +101,7 @@ jobs:
         env:
           MANIFEST_PATH: dist/candidate/release-manifest.json
           PACKAGE_DIR: dist/candidate
+          CANDIDATE_SHA: ${{ steps.candidate.outputs.candidate_sha }}
         run: bash scripts/publish-release.sh
 
       - name: Summarize publication
