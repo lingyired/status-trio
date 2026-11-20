@@ -46,7 +46,7 @@ enum MetricProgressMapper {
         case .networkDownload, .networkUpload: nil
         case .diskRead, .diskWrite: nil
         // Top-marker-only readings never fill an arc, but a percentage is honest.
-        case .volume, .wifiSignal: percent(sample)
+        case .volume, .wifiSignal, .batteryLevel: percent(sample)
         }
     }
 

@@ -167,4 +167,18 @@ extension HardwareRingConfigurationTests {
             XCTAssertEqual(try JSONDecoder().decode(HardwareRingTopContent.self, from: data), content)
         }
     }
+
+    func testBatteryLevelIsAPercentageArcMetric() {
+        XCTAssertTrue(HardwareMonitorMetric.batteryLevel.isPercentageMetric)
+        XCTAssertTrue(HardwareMonitorMetric.batteryLevel.usesStatusSnapshot)
+        XCTAssertEqual(HardwareMonitorMetric.batteryLevel.metricID, .batteryLevel)
+        let options = HardwareMetricRingOptions.default(for: .batteryLevel)
+            .normalized(for: .batteryLevel)
+        XCTAssertEqual(options.displayMinimum, 0)
+        XCTAssertEqual(options.displayMaximum, 100)
+    }
+
+    func testBatteryLevelIsOfferedInTheArcMenu() {
+        XCTAssertTrue(HardwareMonitorMetric.otherArcMetrics.contains(.batteryLevel))
+    }
 }

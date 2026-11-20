@@ -71,6 +71,17 @@ final class HardwareRingSettingsTests: XCTestCase {
                             HardwareMonitorMetric.cpuTemperature.metricID]))
     }
 
+    func testBatteryLevelArcDemandsBatterySampleWithoutHardwareDemand() {
+        var config = IconConfigurationV1.classic
+        config.composition.outerRing = SlotSelection(primary: .hardwareMonitor)
+        config.behaviors.hardwareRing = HardwareRingConfiguration(
+            layout: .single, primaryMetric: .batteryLevel, topContent: .hidden)
+        let dependencies = IconContentDependencyResolver.dependencies(configuration: config, targetIsAudio: false)
+        XCTAssertTrue(dependencies.samples.contains(.macBattery))
+        XCTAssertTrue(dependencies.samples.contains(.hardwareMonitor))
+        XCTAssertFalse(dependencies.hardwareMetricIDs.contains(HardwareMonitorMetric.batteryLevel.metricID))
+    }
+
     func testBatteryTopMarkerDemandsBatterySample() {
         var config = IconConfigurationV1.classic
         config.composition.outerRing = SlotSelection(primary: .hardwareMonitor)

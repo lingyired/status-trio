@@ -297,6 +297,22 @@ final class HardwareRingMapperTests: XCTestCase {
         XCTAssertEqual(text.color, .custom(HardwareRingColorConfiguration.recommendedBaseColor(for: .wifiSignal)))
     }
 
+    func testBatteryLevelArcFillsFromAuxiliarySampleAndUsesBatteryColor() {
+        let snap = snapshot([.cpuUsage: sample(20, unit: .percent)])
+        let config = HardwareRingConfiguration(
+            layout: .single, primaryMetric: .batteryLevel, topContent: .hidden,
+            color: HardwareRingColorConfiguration(monochrome: false, thresholdColors: true)
+        )
+        let state = HardwareRingMapper.resolve(
+            snapshot: snap, configuration: config,
+            auxiliarySamples: [.batteryLevel: auxiliarySample(76)], now: now
+        )
+        XCTAssertEqual(state.segments.count, 1)
+        XCTAssertEqual(state.segments[0].progress, 0.76, accuracy: 0.0001)
+        XCTAssertEqual(state.segments[0].color,
+                       .custom(HardwareRingColorConfiguration.recommendedBaseColor(for: .batteryLevel)))
+    }
+
     func testTopVolumeUsesCustomSharedColor() {
         let snap = snapshot([.cpuUsage: sample(45, unit: .percent)])
         let config = HardwareRingConfiguration(

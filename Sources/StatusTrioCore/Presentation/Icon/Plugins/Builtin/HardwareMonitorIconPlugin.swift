@@ -32,10 +32,13 @@ struct HardwareMonitorIconPlugin: IconContentPlugin {
         let metricIDs = Set(configuration.referencedMetrics
             .filter { !$0.usesStatusSnapshot }
             .map(\.metricID))
-        // Battery top markers read the battery snapshot instead of a hardware
-        // metric, so the battery sample must be demanded for them to update.
+        // Battery readings (top marker or arc) come from the battery snapshot
+        // instead of the hardware sampler, so they must demand that sample.
         var samples: Set<IconPreviewSampleSource> = [.hardwareMonitor]
-        if configuration.topContent.usesBatteryStatus { samples.insert(.macBattery) }
+        if configuration.topContent.usesBatteryStatus
+            || configuration.referencedMetrics.contains(.batteryLevel) {
+            samples.insert(.macBattery)
+        }
         return .init(samples: samples, requiresHardwareMonitor: true, hardwareMetricIDs: metricIDs)
     }
 
@@ -72,6 +75,16 @@ struct HardwareMonitorIconPlugin: IconContentPlugin {
             sampledAt: now,
             source: .network,
             availability: signalPercent == nil ? .temporarilyUnavailable : .measured
+        )
+
+        let battery = snapshot.battery
+        let batteryPercent: Double? = battery.isPresent ? Double(battery.percentage) : nil
+        samples[.batteryLevel] = HardwareMetricSample(
+            value: batteryPercent,
+            unit: .percent,
+            sampledAt: now,
+            source: .powerIO,
+            availability: batteryPercent == nil ? .unsupported : .measured
         )
 
         return samples

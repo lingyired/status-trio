@@ -24,6 +24,9 @@ enum HardwareMetricID: Hashable, Sendable {
     /// Wi-Fi signal strength percentage. Read from the network snapshot, never
     /// sampled by the hardware service.
     case wifiSignal
+    /// Mac battery level percentage. Read from the battery snapshot, never
+    /// sampled by the hardware service.
+    case batteryLevel
 }
 
 /// How a metric sample may be presented. Distinct from a mere missing value so
@@ -310,7 +313,7 @@ struct HardwareMetricsSnapshot: Equatable, Sendable {
         case .cpuTemperature, .gpuTemperature, .batteryTemperature: .celsius
         case .fanRPM: .rpm
         case .networkDownload, .networkUpload, .diskRead, .diskWrite: .bytesPerSecond
-        case .volume, .wifiSignal: .percent
+        case .volume, .wifiSignal, .batteryLevel: .percent
         }
     }
 }
@@ -333,7 +336,7 @@ enum HardwareMetricFamily: Hashable, Sendable, CaseIterable {
             case .fanRPM: result.insert(.fan)
             case .networkDownload, .networkUpload: result.insert(.network)
             case .diskRead, .diskWrite: result.insert(.disk)
-            case .volume, .wifiSignal: break
+            case .volume, .wifiSignal, .batteryLevel: break
             }
         }
         return result

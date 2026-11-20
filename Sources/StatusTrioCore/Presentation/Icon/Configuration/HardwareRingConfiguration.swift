@@ -139,9 +139,9 @@ struct HardwareMetricRingOptions: Codable, Equatable, Hashable, Sendable {
             return .init(displayMinimum: 0, displayMaximum: 1000, warningThreshold: 0, criticalThreshold: 0)
         case .uploadSpeed:
             return .init(displayMinimum: 0, displayMaximum: 100, warningThreshold: 0, criticalThreshold: 0)
-        case .volume, .wifiSignal:
-            // Top-marker-only readings are plain percentages; the thresholds are
-            // unused because they never fill an arc.
+        case .volume, .wifiSignal, .batteryLevel:
+            // Status-snapshot readings are plain percentages. There is no
+            // higher-is-worse threshold for them, so the arc keeps its base colour.
             return .init(displayMinimum: 0, displayMaximum: 100, warningThreshold: 0, criticalThreshold: 0)
         }
     }
@@ -264,6 +264,7 @@ struct HardwareRingColorConfiguration: Codable, Equatable, Hashable, Sendable {
     static let uploadColor = IconRGBA(red: 0.949020, green: 0.639216, blue: 0.294118, alpha: 1)   // #F2A34B
     static let volumeColor = IconRGBA(red: 0.462745, green: 0.560784, blue: 1.000000, alpha: 1)    // #768FFF
     static let signalStrengthColor = IconRGBA(red: 0.203922, green: 0.780392, blue: 0.349020, alpha: 1) // #34C759
+    static let batteryLevelColor = IconRGBA(red: 0.203922, green: 0.780392, blue: 0.349020, alpha: 1) // #34C759
 
     /// The recommended base colour for a metric (the default of the shared
     /// per-metric colour; used until the user picks a custom one).
@@ -280,6 +281,7 @@ struct HardwareRingColorConfiguration: Codable, Equatable, Hashable, Sendable {
         case .uploadSpeed: uploadColor
         case .volume: volumeColor
         case .wifiSignal: signalStrengthColor
+        case .batteryLevel: batteryLevelColor
         }
     }
 
@@ -434,7 +436,7 @@ extension HardwareMonitorMetric {
         case .cpuUsage, .gpuUsage, .memoryUsage: return true
         case .cpuTemperature, .gpuTemperature, .batteryTemperature, .fan: return false
         case .downloadSpeed, .uploadSpeed: return false
-        case .volume, .wifiSignal: return true
+        case .volume, .wifiSignal, .batteryLevel: return true
         }
     }
 }

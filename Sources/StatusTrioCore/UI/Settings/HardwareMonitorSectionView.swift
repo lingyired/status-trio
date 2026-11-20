@@ -196,8 +196,7 @@ struct HardwareMonitorSectionView: View {
             ("CPU", [.cpuUsage, .cpuTemperature]),
             ("GPU", [.gpuUsage, .gpuTemperature]),
             (localization.string(.settingsHardwareRingGroupOther),
-             [.memoryUsage, .batteryTemperature, .fan, .downloadSpeed, .uploadSpeed,
-              .volume, .wifiSignal])
+             HardwareMonitorMetric.otherArcMetrics)
         ]
     }
 

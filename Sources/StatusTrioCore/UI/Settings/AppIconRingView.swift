@@ -627,7 +627,7 @@ struct AppIconRingView: View {
         case .batteryTemperature: return 20...80
         case .fan: return 0...10_000
         case .downloadSpeed, .uploadSpeed: return SettingsStore.hardwareSpeedCapRange
-        case .volume, .wifiSignal: return 0...100
+        case .volume, .wifiSignal, .batteryLevel: return 0...100
         }
     }
 
@@ -651,8 +651,7 @@ struct AppIconRingView: View {
             ("CPU", [.cpuUsage, .cpuTemperature]),
             ("GPU", [.gpuUsage, .gpuTemperature]),
             (localization.string(.settingsHardwareRingGroupOther),
-             [.memoryUsage, .batteryTemperature, .fan, .downloadSpeed, .uploadSpeed,
-              .volume, .wifiSignal])
+             HardwareMonitorMetric.otherArcMetrics)
         ]
     }
 
@@ -660,7 +659,11 @@ struct AppIconRingView: View {
     /// as the arcs plus battery level (电量), presented inside the Other group.
     private var hardwareTopMetricGroups: [(title: String, options: [HardwareTopReading])] {
         hardwareRingMetricGroups.map { group in
-            let options = group.options.map { HardwareTopReading.metric($0) }
+            // Battery level already has its own dedicated top reading, so the
+            // arc-only entry is dropped from the top-marker menu.
+            let options = group.options
+                .filter { $0 != .batteryLevel }
+                .map { HardwareTopReading.metric($0) }
             // Put battery level at the top of the Other group.
             if group.options.contains(.memoryUsage) {
                 return (group.title, [.batteryLevel] + options)

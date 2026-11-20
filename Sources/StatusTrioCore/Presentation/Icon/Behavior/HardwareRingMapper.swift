@@ -281,6 +281,7 @@ enum HardwareRingMapper {
         case .uploadSpeed: "arrow.up.circle.fill"
         case .volume: SymbolFallback.name("speaker.wave.2.fill", "speaker.wave.2")
         case .wifiSignal: "wifi"
+        case .batteryLevel: SymbolFallback.name("battery.100percent", "battery.100")
         }
     }
 

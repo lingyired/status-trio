@@ -224,8 +224,8 @@ final class HardwareSampler: @unchecked Sendable {
                 snapshot.samples[id] = HardwareMetricSample(
                     value: value, unit: .bytesPerSecond, sampledAt: disk?.sampledAt ?? date,
                     source: .ioStorage, availability: value != nil ? .measured : .collecting)
-            case .volume, .wifiSignal:
-                // Top-marker-only readings come from the status snapshot, not the
+            case .volume, .wifiSignal, .batteryLevel:
+                // Status-snapshot readings come from the general snapshot, not the
                 // hardware sampler; leave the slot untouched if ever requested.
                 break
             }
