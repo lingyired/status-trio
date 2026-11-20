@@ -232,6 +232,71 @@ struct AboutCommunityView: View {
     }
 }
 
+/// "Support the Author" group (Chinese only): two buttons that reveal the
+/// author's WeChat Pay / Alipay collection QR codes on demand instead of
+/// showing both inline.
+struct AboutDonateView: View {
+    @EnvironmentObject private var localization: Localization
+
+    private enum PayMethod: String, Identifiable, CaseIterable {
+        case wechat
+        case alipay
+
+        var id: String { rawValue }
+
+        var titleKey: LocalizationKey {
+            switch self {
+            case .wechat: return .settingsAboutDonateWeChat
+            case .alipay: return .settingsAboutDonateAlipay
+            }
+        }
+
+        var image: NSImage? {
+            switch self {
+            case .wechat: return AboutAssets.weChatPayQRCode
+            case .alipay: return AboutAssets.alipayQRCode
+            }
+        }
+    }
+
+    @State private var revealed: PayMethod?
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(spacing: 8) {
+                ForEach(PayMethod.allCases) { method in
+                    Button {
+                        revealed = revealed == method ? nil : method
+                    } label: {
+                        HStack(spacing: 4) {
+                            Image(systemName: revealed == method ? "checkmark.circle.fill" : "qrcode")
+                            Text(localization.string(method.titleKey))
+                        }
+                    }
+                    .buttonStyle(.bordered)
+                    .controlSize(.small)
+                }
+                Spacer(minLength: 0)
+            }
+
+            if let revealed, let image = revealed.image {
+                Image(nsImage: image)
+                    .resizable()
+                    .interpolation(.high)
+                    .aspectRatio(contentMode: .fit)
+                    .frame(maxWidth: 240, maxHeight: 320)
+                    .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 10, style: .continuous)
+                            .strokeBorder(Color.primary.opacity(0.08), lineWidth: 1)
+                    )
+                    .accessibilityLabel(localization.string(revealed.titleKey))
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+}
+
 /// "More Apps" group: a tappable list of the author's other apps.
 struct AboutMoreAppsView: View {
     @EnvironmentObject private var localization: Localization

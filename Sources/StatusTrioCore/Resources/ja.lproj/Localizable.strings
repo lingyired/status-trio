@@ -1074,6 +1074,9 @@
 "settings.about.moreApps.newtab01Description" = "ブックマーク連動の新しいタブ: フォルダーをタブグループや分割表示で開け、テーマも複数用意。";
 "settings.about.moreApps.noLazyloadDescription" = "ブラウザの画像の遅延読み込みを無効にし、ページを開いた時点で全ての画像を読み込みます。スクロールしながら読み込む必要はありません。";
 "settings.about.moreApps.fund01Description" = "投資信託の保有状況を監視: 前日比をメニューバー／タスクバーに常時表示し、複数グループをリアルタイム更新。";
+"settings.about.donate.title" = "作者を支援";
+"settings.about.donate.wechat" = "WeChat Pay の QR コード";
+"settings.about.donate.alipay" = "Alipay の QR コード";
 // About: community WeChat QR refresh
 "settings.about.community.refresh" = "Refresh";
 "settings.about.community.refreshFailed" = "Couldn’t load the latest QR code. Try again.";

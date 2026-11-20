@@ -80,6 +80,14 @@ struct AboutSectionView: View {
             }
 
             if localization.resolvedLanguage.isChinese {
+                SettingsGroup(localization.string(.settingsAboutDonateTitle)) {
+                    AboutDonateView()
+                        .padding(.horizontal, SettingsMetrics.rowPaddingH)
+                        .padding(.vertical, 12)
+                }
+            }
+
+            if localization.resolvedLanguage.isChinese {
                 SettingsGroup(localization.string(.settingsAboutCommunityTitle)) {
                     AboutCommunityView()
                 }

@@ -1074,6 +1074,9 @@
 "settings.about.moreApps.newtab01Description" = "علامة تبويب جديدة قائمة على الإشارات المرجعية: افتح المجلدات كمجموعات علامات تبويب أو في عرض منقسم، مع عدة سمات.";
 "settings.about.moreApps.noLazyloadDescription" = "عطّل التحميل المتأخر للصور في المتصفح حتى تُحمّل الصفحة جميع الصور دفعة واحدة دون الحاجة إلى التمرير.";
 "settings.about.moreApps.fund01Description" = "متابعة محفظة الصناديق: نسبة تغيّر اليوم دائمًا في شريط القوائم أو شريط المهام، مع تحديث عدة مجموعات مباشرةً.";
+"settings.about.donate.title" = "ادعم المؤلف";
+"settings.about.donate.wechat" = "رمز QR لـ WeChat Pay";
+"settings.about.donate.alipay" = "رمز QR لـ Alipay";
 // About: community WeChat QR refresh
 "settings.about.community.refresh" = "Refresh";
 "settings.about.community.refreshFailed" = "Couldn’t load the latest QR code. Try again.";

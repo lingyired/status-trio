@@ -1074,6 +1074,9 @@
 "settings.about.moreApps.newtab01Description" = "Nova aba baseada em favoritos: abra pastas como grupos de abas ou em visualização dividida, com vários temas.";
 "settings.about.moreApps.noLazyloadDescription" = "Desative o carregamento preguiçoso de imagens do navegador para que a página carregue todas as imagens de uma vez, sem precisar rolar.";
 "settings.about.moreApps.fund01Description" = "Acompanhamento de fundos: a variação do dia sempre na barra de menus ou na barra de tarefas, com vários grupos atualizados em tempo real.";
+"settings.about.donate.title" = "Apoiar o autor";
+"settings.about.donate.wechat" = "QR code do WeChat Pay";
+"settings.about.donate.alipay" = "QR code do Alipay";
 // About: community WeChat QR refresh
 "settings.about.community.refresh" = "Refresh";
 "settings.about.community.refreshFailed" = "Couldn’t load the latest QR code. Try again.";

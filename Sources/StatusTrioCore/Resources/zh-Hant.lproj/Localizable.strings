@@ -1057,7 +1057,7 @@
 "settings.brightness.description" = "關閉某台顯示器即從狀態面板中隱藏其亮度列。";
 "settings.brightness.backend" = "亮度後端";
 // About: community, author social links and more apps
-"settings.about.social.title" = "關注作者";
+"settings.about.social.title" = "關注作者，歡迎點讚留言";
 "settings.about.social.douyin" = "抖音";
 "settings.about.social.xiaohongshu" = "小紅書";
 "settings.about.social.bilibili" = "嗶哩嗶哩";
@@ -1074,6 +1074,9 @@
 "settings.about.moreApps.newtab01Description" = "書籤驅動的新分頁：資料夾一鍵開成分頁群組或分割檢視，多套主題。";
 "settings.about.moreApps.noLazyloadDescription" = "禁用瀏覽器的圖片延遲載入，讓頁面一開啟就載入全部圖片，不必邊捲動邊載入。";
 "settings.about.moreApps.fund01Description" = "基金持股盯盤，漲跌幅常駐選單列 / 工作列，多群組即時更新。";
+"settings.about.donate.title" = "打賞作者，請作者買 token";
+"settings.about.donate.wechat" = "微信收款碼";
+"settings.about.donate.alipay" = "支付寶收款碼";
 // About: community WeChat QR refresh
 "settings.about.community.refresh" = "重新整理";
 "settings.about.community.refreshFailed" = "二維碼載入失敗，請重試。";

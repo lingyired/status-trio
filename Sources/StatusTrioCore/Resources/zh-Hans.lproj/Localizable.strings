@@ -1057,7 +1057,7 @@
 "settings.brightness.description" = "关闭某台显示器即从状态面板中隐藏其亮度行。";
 "settings.brightness.backend" = "亮度后端";
 // About: community, author social links and more apps
-"settings.about.social.title" = "关注作者";
+"settings.about.social.title" = "关注作者，欢迎点赞留言";
 "settings.about.social.douyin" = "抖音";
 "settings.about.social.xiaohongshu" = "小红书";
 "settings.about.social.bilibili" = "哔哩哔哩";
@@ -1074,6 +1074,9 @@
 "settings.about.moreApps.newtab01Description" = "书签驱动的新标签页：文件夹一键开成标签组或分屏，多套主题。";
 "settings.about.moreApps.noLazyloadDescription" = "禁用浏览器的图片懒加载，让页面一打开就加载全部图片，不必边滚动边加载。";
 "settings.about.moreApps.fund01Description" = "基金持仓盯盘，涨跌幅常驻菜单栏 / 任务栏，多分组实时刷新。";
+"settings.about.donate.title" = "打赏作者，请作者买 token";
+"settings.about.donate.wechat" = "微信收款码";
+"settings.about.donate.alipay" = "支付宝收款码";
 // About: community WeChat QR refresh
 "settings.about.community.refresh" = "刷新";
 "settings.about.community.refreshFailed" = "二维码加载失败，请重试。";

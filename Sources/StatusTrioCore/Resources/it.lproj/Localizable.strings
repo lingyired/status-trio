@@ -1074,6 +1074,9 @@
 "settings.about.moreApps.newtab01Description" = "Nuova scheda basata sui segnalibri: apri le cartelle come gruppi di schede o in vista divisa, con diversi temi.";
 "settings.about.moreApps.noLazyloadDescription" = "Disattiva il caricamento differito delle immagini del browser così la pagina carica subito tutte le immagini, senza dover scorrere.";
 "settings.about.moreApps.fund01Description" = "Monitoraggio del portafoglio: la variazione del giorno sempre nella barra dei menu o nella barra delle applicazioni, più gruppi aggiornati in tempo reale.";
+"settings.about.donate.title" = "Sostieni l’autore";
+"settings.about.donate.wechat" = "Codice QR WeChat Pay";
+"settings.about.donate.alipay" = "Codice QR Alipay";
 // About: community WeChat QR refresh
 "settings.about.community.refresh" = "Refresh";
 "settings.about.community.refreshFailed" = "Couldn’t load the latest QR code. Try again.";
