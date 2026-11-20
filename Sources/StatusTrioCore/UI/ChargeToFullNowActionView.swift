@@ -59,11 +59,17 @@ struct ChargeToFullNowActionView: View {
                     .foregroundStyle(.primary)
                     .padding(.horizontal, 10)
                     .frame(maxWidth: .infinity, minHeight: 28)
-                    .modifier(ChargeActionSurface(cardStyle: cardStyle, scheme: scheme))
+                    .modifier(
+                        ChargeActionSurface(
+                            cardStyle: cardStyle,
+                            scheme: scheme,
+                            isInteractive: isActionEnabled
+                        )
+                    )
                     .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
-                .disabled(presentation.isApplying || presentation.isCancelling || presentation == .chargingToFull)
+                .disabled(!isActionEnabled)
                 .accessibilityLabel(actionLabel)
             }
 
@@ -148,6 +154,14 @@ struct ChargeToFullNowActionView: View {
         }
     }
 
+    /// Mirrors the button's disabled state so the hover sheen only appears on
+    /// a button the user can actually press.
+    private var isActionEnabled: Bool {
+        !(presentation.isApplying
+            || presentation.isCancelling
+            || presentation == .chargingToFull)
+    }
+
     private var showsBolt: Bool {
         switch presentation {
         case .available, .failed:
@@ -196,13 +210,49 @@ struct ChargeToFullNowActionView: View {
 private struct ChargeActionSurface: ViewModifier {
     let cardStyle: PanelCardSurfaceStyle
     let scheme: ColorScheme
+    /// Only a button the user can actually press earns the hover sheen.
+    let isInteractive: Bool
+
+    @State private var isHovering = false
 
     private var shape: RoundedRectangle {
         RoundedRectangle(cornerRadius: 10, style: .continuous)
     }
 
+    /// The liquid-glass gloss kept in sync with the quick-action pills: a
+    /// faint white fill plus a brighter rim, revealed only while the pointer
+    /// rests on an enabled button.
+    private var showsHoverGloss: Bool {
+        isInteractive && isHovering
+    }
+
     @ViewBuilder
     func body(content: Content) -> some View {
+        surface(content)
+            .overlay {
+                if showsHoverGloss {
+                    shape.fill(Color.white.opacity(0.06))
+                        .overlay {
+                            shape.strokeBorder(
+                                Color.white.opacity(0.22),
+                                lineWidth: 1
+                            )
+                        }
+                        .allowsHitTesting(false)
+                }
+            }
+            .animation(.easeOut(duration: 0.12), value: showsHoverGloss)
+            .onHover { hovering in
+                if isInteractive {
+                    isHovering = hovering
+                } else {
+                    isHovering = false
+                }
+            }
+    }
+
+    @ViewBuilder
+    private func surface(_ content: Content) -> some View {
         switch cardStyle {
         case .glass:
             if #available(macOS 26.0, *), PanelCardSurfaceExperiment.useNative {
