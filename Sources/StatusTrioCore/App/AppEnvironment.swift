@@ -223,6 +223,7 @@ final class AppEnvironment {
     /// icon demand and the enabled directory list. A package update only
     /// re-resolves the scene; it never rewrites the saved slot bindings.
     private func startLocalIconPluginRuntime() {
+        guard settings.isLocalIconPluginEntryAvailable else { return }
         localIconPluginCancellables.removeAll()
         localIconDemandWiring?.stop()
         localIconDemandWiring = nil

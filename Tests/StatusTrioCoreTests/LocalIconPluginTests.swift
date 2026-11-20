@@ -113,7 +113,7 @@ final class LocalIconPluginTests: XCTestCase {
 
         let defaults = try makeDefaults()
         let store = SettingsStore(defaults: defaults)
-        for url in all { store.addLocalIconPluginDirectory(url) }
+        store.localIconPluginDirectories = all.map(\.path)
         for row in rows { store.removeLocalIconPluginDirectory(row.directory) }
         XCTAssertTrue(store.localIconPluginDirectories.isEmpty,
                       "an invalid or duplicate package must not be stuck in preferences")
@@ -138,36 +138,33 @@ final class LocalIconPluginTests: XCTestCase {
 
     func testSandboxedBuildHidesPackagesAndResolvesNoBarePaths() {
         let sandbox = [LocalIconPluginAccess.sandboxEnvironmentKey: "com.example.app"]
-        XCTAssertFalse(LocalIconPluginAccess.entryIsAvailable(environment: sandbox))
+        XCTAssertFalse(LocalIconPluginAccess.entryIsAvailable(environment: sandbox, enabled: true))
         XCTAssertTrue(
             LocalIconPluginAccess.resolvedDirectories(
-                paths: ["/tmp/authorized", "/tmp/other"], environment: sandbox
+                paths: ["/tmp/authorized", "/tmp/other"], environment: sandbox, enabled: true
             ).isEmpty,
             "a sandboxed build must not fall back to persisted bare paths"
         )
 
-        XCTAssertTrue(LocalIconPluginAccess.entryIsAvailable(environment: [:]))
+        XCTAssertTrue(LocalIconPluginAccess.entryIsAvailable(environment: [:], enabled: true))
         XCTAssertEqual(
-            LocalIconPluginAccess.resolvedDirectories(paths: ["/tmp/authorized"], environment: [:])
+            LocalIconPluginAccess.resolvedDirectories(paths: ["/tmp/authorized"], environment: [:], enabled: true)
                 .map(\.path),
             ["/tmp/authorized"]
         )
     }
 
-    func testDirectBuildAddsAndRemovesPackageDirectoriesWithoutBookmarks() throws {
+    func testDeferredPackagesStayHiddenAndSavedDirectoriesAreNotLoaded() throws {
         let defaults = try makeDefaults()
         let store = SettingsStore(defaults: defaults)
-        let directory = try makeDirectory()
+        let savedDirectory = try makeDirectory()
+        let newDirectory = try makeDirectory()
+        store.localIconPluginDirectories = [savedDirectory.path]
 
-        XCTAssertTrue(store.isLocalIconPluginEntryAvailable)
-        XCTAssertTrue(store.addLocalIconPluginDirectory(directory))
-        XCTAssertTrue(store.addLocalIconPluginDirectory(directory), "adding twice is a no-op")
-        XCTAssertEqual(store.localIconPluginDirectories, [directory.path])
-        XCTAssertEqual(store.resolvedLocalIconPluginDirectories().map(\.path), [directory.path])
-
-        store.removeLocalIconPluginDirectory(directory)
-        XCTAssertTrue(store.localIconPluginDirectories.isEmpty)
+        XCTAssertFalse(store.isLocalIconPluginEntryAvailable)
         XCTAssertTrue(store.resolvedLocalIconPluginDirectories().isEmpty)
+        XCTAssertFalse(store.addLocalIconPluginDirectory(newDirectory))
+        XCTAssertEqual(SettingsStore(defaults: defaults).localIconPluginDirectories, [savedDirectory.path])
     }
 
     func testRuntimeStartsOneFeedForTwoPresentationsAndRestartsAfterStop() async throws {

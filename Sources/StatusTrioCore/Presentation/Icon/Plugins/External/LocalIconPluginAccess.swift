@@ -1,37 +1,27 @@
 import Foundation
 
-/// Local JSON packages are a Direct-build feature.
-///
-/// This branch has no verified App Store entitlement or build pipeline for
-/// durable folder access, so a sandboxed process neither advertises the external
-/// entry nor resolves any configured path. Hiding the feature is deliberate: a
-/// bare path is not a usable authorization in a sandbox, and resolving a
-/// security-scoped bookmark without a matching `stopAccessing…` call would leak
-/// the access the app never releases.
+/// Gates the local JSON package preview at both the settings and runtime boundaries.
 enum LocalIconPluginAccess {
     static let sandboxEnvironmentKey = "APP_SANDBOX_CONTAINER_ID"
-
-    static var isSandboxed: Bool {
-        isSandboxed(environment: ProcessInfo.processInfo.environment)
-    }
+    private static let packagesEnabled = false
 
     static func isSandboxed(environment: [String: String]) -> Bool {
         environment[sandboxEnvironmentKey] != nil
     }
 
-    /// The external package entry is compiled in only for Direct builds.
-    static func entryIsAvailable(environment: [String: String] = ProcessInfo.processInfo.environment) -> Bool {
-        !isSandboxed(environment: environment)
+    static func entryIsAvailable(
+        environment: [String: String] = ProcessInfo.processInfo.environment,
+        enabled: Bool = packagesEnabled
+    ) -> Bool {
+        enabled && !isSandboxed(environment: environment)
     }
 
-    /// Direct builds read the explicitly enabled paths. A sandboxed build resolves
-    /// nothing, including when paths were persisted by a Direct build running
-    /// against the same preferences.
     static func resolvedDirectories(
         paths: [String],
-        environment: [String: String] = ProcessInfo.processInfo.environment
+        environment: [String: String] = ProcessInfo.processInfo.environment,
+        enabled: Bool = packagesEnabled
     ) -> [URL] {
-        guard entryIsAvailable(environment: environment) else { return [] }
+        guard entryIsAvailable(environment: environment, enabled: enabled) else { return [] }
         return paths.map { URL(fileURLWithPath: $0, isDirectory: true) }
     }
 }

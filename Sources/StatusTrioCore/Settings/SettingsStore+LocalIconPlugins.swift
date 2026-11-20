@@ -1,9 +1,7 @@
 import Foundation
 
 extension SettingsStore {
-    /// The external package entry is a Direct-build feature. A sandboxed build
-    /// hides it entirely until a verified App Store authorization pipeline
-    /// exists; it must not resolve bare paths or bookmarks as a stand-in.
+    /// Whether this build exposes local JSON packages in settings and at runtime.
     var isLocalIconPluginEntryAvailable: Bool {
         LocalIconPluginAccess.entryIsAvailable()
     }
@@ -21,8 +19,7 @@ extension SettingsStore {
         localIconPluginDirectories.removeAll { $0 == url.path }
     }
 
-    /// Resolves the enabled directories for the current build. Direct builds use
-    /// the persisted paths; sandboxed builds resolve nothing.
+    /// Resolves saved directories only when local packages are available.
     func resolvedLocalIconPluginDirectories() -> [URL] {
         LocalIconPluginAccess.resolvedDirectories(paths: localIconPluginDirectories)
     }
