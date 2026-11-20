@@ -12,7 +12,12 @@ const nativeFetch = globalThis.fetch;
 const fail = message => { throw new Error(stage + ': ' + message); };
 const hash = bytes => createHash('sha256').update(bytes).digest('hex');
 export function validateManifest(m, tag, repo, sha) {
-  if (m?.schema_version !== 1 || m.tag !== tag || m.source_sha !== sha || !/^[a-f0-9]{40}$/.test(sha) ||
+  const schemaOk =
+    m?.schema_version === 1 ||
+    (m?.schema_version === 2 &&
+      m?.candidate?.publishable === true &&
+      m?.candidate?.source_sha === m?.source_sha);
+  if (!schemaOk || m.tag !== tag || m.source_sha !== sha || !/^[a-f0-9]{40}$/.test(sha) ||
       !/^[0-9]+(?:[.][0-9]+)*$/.test(m.version) || !/^[0-9]+$/.test(String(m.build)) ||
       m.minimum_system_version !== '13.0' || m.signing?.kind !== 'developer_id' ||
       m.notarization?.status !== 'accepted_and_stapled' ||
