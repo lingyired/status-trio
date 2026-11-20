@@ -10,6 +10,8 @@ set -euo pipefail
 
 ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
 CANDIDATE_WORKFLOW_ID=".github/workflows/build-candidate.yml"
+# GitHub's workflows API accepts the workflow file name (or numeric id), not the repo path.
+CANDIDATE_WORKFLOW_FILE="build-candidate.yml"
 CANDIDATE_WORKFLOW_PATH="${CANDIDATE_WORKFLOW_PATH:-${GITHUB_WORKSPACE:-$(pwd)}/$CANDIDATE_WORKFLOW_ID}"
 ARTIFACT_NAME="${ARTIFACT_NAME:-status-trio-release-package}"
 
@@ -83,7 +85,7 @@ ARTIFACTS_PATH="$TEMP_ROOT/artifacts.json"
 RESULT_PATH="$TEMP_ROOT/result.json"
 
 read_api "repos/$REPOSITORY/actions/runs/$SOURCE_RUN_ID" "$RUN_PATH"
-read_api "repos/$REPOSITORY/actions/workflows/$CANDIDATE_WORKFLOW_ID" "$WORKFLOW_JSON_PATH"
+read_api "repos/$REPOSITORY/actions/workflows/$CANDIDATE_WORKFLOW_FILE" "$WORKFLOW_JSON_PATH"
 read_api "repos/$REPOSITORY/actions/runs/$SOURCE_RUN_ID/jobs?per_page=100" "$JOBS_PATH"
 read_api "repos/$REPOSITORY/actions/runs/$SOURCE_RUN_ID/artifacts?per_page=100" "$ARTIFACTS_PATH"
 
