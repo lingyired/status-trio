@@ -28,7 +28,7 @@ jobs:
     environment:
       name: distribution
     env:
-      GH_TOKEN: ${{ github.token }}
+      GH_TOKEN: ${{ secrets.RELEASE_TOKEN || secrets.GITHUB_TOKEN }}
       REPOSITORY: ${{ github.repository }}
       CANDIDATE_RUN_ID: ${{ inputs.candidate_run_id }}
       STRICT_EVIDENCE_RUN_ID: ${{ inputs.strict_evidence_run_id }}
