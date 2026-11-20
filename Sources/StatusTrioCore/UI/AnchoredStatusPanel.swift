@@ -667,7 +667,20 @@ final class AnchoredStatusPanel: NSPanel {
     /// is scrolling inside the capped window. Capping belongs here, at the
     /// window, so a short page can still be shorter than the budget and hug
     /// its content instead of growing to the cap.
+    ///
+    /// A Dock-presented detail is the exception: it reads as the second column
+    /// of the summary, so it fills exactly the summary's height instead of
+    /// hugging shorter content (which left it visibly short of the main panel).
+    /// A menu bar detail keeps hugging its content and may grow past the
+    /// summary up to the screen budget. The scroll area fills the window and
+    /// top-aligns the page.
     private func cappedContentSize(_ size: NSSize) -> NSSize {
+        if let detailPlacement {
+            let height = detailPlacement.limitsToSummaryHeight
+                ? detailPlacement.maximumHeight
+                : min(size.height, detailPlacement.maximumHeight)
+            return NSSize(width: size.width, height: height)
+        }
         guard let maximumHeight = layoutMetrics.maximumPanelHeight else { return size }
         return NSSize(width: size.width, height: min(size.height, maximumHeight))
     }

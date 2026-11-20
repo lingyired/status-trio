@@ -78,6 +78,9 @@ final class StatusBarController: NSObject {
     private var detailCoordinator = StatusPanelDetailCoordinator()
     private var detailCancellables = Set<AnyCancellable>()
     private var isDetailPanelClosing = false
+    /// The current presentation's origin. The Dock route bounds the attached
+    /// detail to the summary's height; the menu bar route lets it grow past it.
+    private var isDockPresented = false
     private let store: SystemStatusStore
     private let settings: SettingsStore
     private let panelActions: StatusPanelActions
@@ -1025,7 +1028,8 @@ final class StatusBarController: NSObject {
             enabled: alongside,
             summaryFrame: popover.frame,
             screens: NSScreen.screens.map { StatusPanelScreen($0) },
-            dockInset: popover.currentDockInset
+            dockInset: popover.currentDockInset,
+            limitsToSummaryHeight: isDockPresented
         )
         switch decision {
         case .hidden, .inline:
@@ -1176,7 +1180,8 @@ final class StatusBarController: NSObject {
             // reopen callback. Re-activating can restore the existing Settings
             // window ahead of the transient popover.
             activatesApplication: false,
-            dockInset: anchor.dockInset
+            dockInset: anchor.dockInset,
+            presentedFromDock: true
         )
     }
 
@@ -1277,9 +1282,11 @@ final class StatusBarController: NSObject {
         makesKeyWindow: Bool = true,
         dockInset: NSEdgeInsets = DockReveal.noInset,
         revealStyle: AnchoredStatusPanel.RevealStyle = .fade,
-        presentedByHover: Bool = false
+        presentedByHover: Bool = false,
+        presentedFromDock: Bool = false
     ) {
         popoverPresentedByHover = presentedByHover
+        isDockPresented = presentedFromDock
         cancelPopoverContentRelease()
         // A fresh presentation is not the tail of a mouse-down dismissal.
         reopenSuppression.reset()

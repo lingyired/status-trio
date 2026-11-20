@@ -46,7 +46,8 @@ struct StatusPanelDetailCoordinator {
         enabled: Bool,
         summaryFrame: NSRect,
         screens: [StatusPanelScreen],
-        dockInset: NSEdgeInsets = DockReveal.noInset
+        dockInset: NSEdgeInsets = DockReveal.noInset,
+        limitsToSummaryHeight: Bool = false
     ) -> Decision {
         guard enabled, route != .summary else {
             decision = .hidden
@@ -66,7 +67,8 @@ struct StatusPanelDetailCoordinator {
             detailHeight: .greatestFiniteMagnitude,
             screens: screens,
             dockInset: dockInset,
-            preferredSide: preferredSide
+            preferredSide: preferredSide,
+            limitsToSummaryHeight: limitsToSummaryHeight
         ) else {
             decision = .inline
             chosenSide = nil

@@ -13,21 +13,23 @@ struct StatusPanelDetailPlacementTests {
         summaryTop: CGFloat = 650,
         detailHeight: CGFloat = 200,
         dockInset: NSEdgeInsets = DockReveal.noInset,
-        screens: [StatusPanelScreen]? = nil
+        screens: [StatusPanelScreen]? = nil,
+        limitsToSummaryHeight: Bool = false
     ) -> StatusPanelDetailPlacement.Placement? {
         StatusPanelDetailPlacement.frame(
             summaryFrame: NSRect(x: summaryX, y: summaryTop - 400, width: 330, height: 400),
             detailHeight: detailHeight,
             screens: screens ?? [screen],
-            dockInset: dockInset
+            dockInset: dockInset,
+            limitsToSummaryHeight: limitsToSummaryHeight
         )
     }
 
-    @Test func rightSideSitsEightPointsFromTheSummary() {
+    @Test func rightSideSitsFourPointsFromTheSummary() {
         let placement = place(summaryX: 324)
 
         #expect(placement?.side == .right)
-        #expect(placement?.frame == NSRect(x: 662, y: 450, width: 330, height: 200))
+        #expect(placement?.frame == NSRect(x: 658, y: 450, width: 330, height: 200))
     }
 
     @Test func summaryAtLeadingEdgeUsesTheRightSide() {
@@ -38,19 +40,19 @@ struct StatusPanelDetailPlacementTests {
         let placement = place(summaryX: 600)
 
         #expect(placement?.side == .left)
-        #expect(placement?.frame.minX == 262)
+        #expect(placement?.frame.minX == 266)
     }
 
     @Test func noSpaceOnEitherSideReturnsNil() {
-        #expect(place(summaryX: 325) == nil)
+        #expect(place(summaryX: 335) == nil)
     }
 
     @Test func leftSideKeepsTheScreenMargin() {
-        let placement = place(summaryX: 346)
+        let placement = place(summaryX: 342)
 
         #expect(placement?.side == .left)
         #expect(placement?.frame.minX == 8)
-        #expect(place(summaryX: 345) == nil)
+        #expect(place(summaryX: 341) == nil)
     }
 
     @Test func topFollowsTheSummaryEvenInsideTheTopMargin() {
@@ -65,12 +67,27 @@ struct StatusPanelDetailPlacementTests {
         #expect(placement?.frame.maxY == 650)
     }
 
-    @Test func tallDetailUsesTheWholeUsableHeight() {
+    @Test func dockDetailIsCappedToTheSummaryHeight() {
+        let placement = place(summaryX: 0, detailHeight: 900, limitsToSummaryHeight: true)
+
+        // The Dock route never lets the detail outgrow the 400pt summary it
+        // hangs from; its content scrolls inside this budget instead of running
+        // past the summary's bottom edge.
+        #expect(placement?.frame.height == 400)
+        #expect(placement?.frame.minY == 250)
+        #expect(placement?.maximumHeight == 400)
+        #expect(placement?.limitsToSummaryHeight == true)
+    }
+
+    @Test func menuBarDetailMayGrowPastTheSummaryUpToTheScreen() {
         let placement = place(summaryX: 0, detailHeight: 900)
 
+        // The menu bar route keeps the old behaviour: the detail can be taller
+        // than the summary, capped only by the usable screen height (700 - 2*8).
         #expect(placement?.frame.height == 684)
         #expect(placement?.frame.minY == 8)
         #expect(placement?.maximumHeight == 684)
+        #expect(placement?.limitsToSummaryHeight == false)
     }
 
     @Test func translatedScreenGivesTheSameRelativeFrame() {
@@ -81,7 +98,7 @@ struct StatusPanelDetailPlacementTests {
         let placement = place(summaryX: -1600 + 324, summaryTop: 650 + 200, screens: [moved])
 
         #expect(placement?.side == .right)
-        let expectedMinX: CGFloat = -1600 + 662
+        let expectedMinX: CGFloat = -1600 + 658
         #expect(placement?.frame.minX == expectedMinX)
         #expect(placement?.frame.maxY == 850)
     }
