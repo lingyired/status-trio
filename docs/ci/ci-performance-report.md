@@ -1054,3 +1054,77 @@ This report records the remote baseline, local native measurements, and
 authorized `publish=false` diagnostics; it is not release authorization. The
 diagnostics did not create a release or tag, update the appcast, or mutate
 protected-environment settings.
+
+## Package performance audit — 2026-11-21 (real notarized runs)
+
+Scope: three real notarized Package builds from 2026-11-20 (Asia/Shanghai) on
+the xcode-27 runner, all with warm native caches. Evidence: the GitHub Actions
+jobs API for each run plus the downloaded package-build-timings artifact. No
+release, tag, or appcast was created while auditing.
+
+Runs: 44759859652, 44747505416, 44734281168.
+
+### Measured package time (seconds)
+
+| Run | Package job wall | Build/sign/notarize/package step | Package script total | Swift Universal compile | MobileBattery (warm) | App notarize | DMG create | DMG notarize | ZIP + Sparkle |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| 44759859652 | 790 | 723 | 723 | 524 (72%) | 36 | 49 | 40 | 41 | 3 |
+| 44747505416 | 677 | 603 | 603 | 451 (75%) | 25 | 36 | 35 | 32 | 3 |
+| 44734281168 | 743 | 681 | 681 | 500 (73%) | 38 | 44 | 36 | 31 | 3 |
+
+Setup and artifact/cache steps outside the build step are about 62-74 s per job:
+checkout, reassert, DMG tool prep, Developer ID and notarization configuration,
+Install mobile helper build tools (8-13 s), cache key/restore, artifact upload,
+and post steps.
+
+The package script total equals the build-step wall because it is the sum of the
+sequential top-level phases in scripts/package-release.sh. Nested phases
+(app-build-sign-and-verify, mobile-battery-total) enclose children and are not
+added to the total.
+
+### Finding: Swift Universal compile dominates
+
+- Swift Universal Release compile is 72-75% of package time (451-524 s).
+- App plus DMG notarization together are only about 12% (68-90 s).
+- DMG creation is about 5-6% (35-40 s); ZIP and Sparkle signing are about 2 s.
+- MobileBattery with a warm cache is about 4-6% (25-38 s); its cold path is the
+  known long pole historically but is a cache problem, not per-run compile cost.
+
+This is materially higher than the Swift Release phases recorded earlier in this
+report (roughly 96-223 s). The roughly 2-5x growth makes Swift compile, not
+notarization and not DMG, the single highest-leverage optimization target.
+
+### Revised priority from measured data
+
+| Plan phase | Measured share | Revised priority |
+| --- | ---: | --- |
+| Swift Universal compile (Phase 5) | ~72-75% | P0 target |
+| Apple notarization (Phase 4) | ~12% | low ROI; keep dual notarization |
+| DMG creation (Phase 3) | ~5-6% | bounded (~35-40 s); only if single-pass proven |
+| App ZIP / DMG parallel (Phase 2) | ZIP ~2 s vs DMG ~40 s | low ROI; DMG dominates the pair |
+| MobileBattery cache (Phase 1) | warm ~5%; cold historically large | keep; verify cold path |
+| Environment prep (Phase 6) | ~62-74 s job setup | modest |
+
+### Caveats and next steps
+
+- Three runs on one day, same toolchain, warm caches. They are representative of
+  current notarized packages, but a same-SHA cold/warm A/B is still required
+  before claiming any optimization.
+- The roughly 2-5x Swift compile growth versus the historical baseline should be
+  investigated first (source, toolchain, or runner change) before adding a
+  compile cache. A SwiftPM .build compile cache is the highest-potential lever
+  but must be proven with an authorized non-publishing diagnostic (cold vs warm,
+  same SHA). It was previously deferred when compile was ~100-190 s and now
+  warrants re-evaluation.
+- Notarization durations include Apple/network wait, not local CPU.
+
+### Instrumentation delivered in this increment
+
+- scripts/ci-diagnostics.py perf-summary emits the package total, per-phase
+  cost and share, and the slowest phases to the Actions Summary. It is wired
+  into both the release.yml and build-candidate.yml package jobs.
+- scripts/build-timing.sh already preserves completed phases on abnormal exit
+  (covered by scripts/test-build-timing.sh); parent and child phases are
+  documented as overlapping and are never summed together.
+- No build, signing, notarization, or packaging behavior was changed; only
+  measurement and summary output were added.
