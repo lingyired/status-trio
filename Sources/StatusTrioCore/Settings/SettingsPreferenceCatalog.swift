@@ -221,6 +221,9 @@ enum SettingsPreferenceCatalog {
                         default: .used, allowed: RingValueDisplayMode.allCases),
             enumeration("ssdRingDisplayMode", \.ssdRingDisplayMode,
                         default: .used, allowed: RingValueDisplayMode.allCases)
+            // Appearance-only ring colours (hardwareMonitorMetricColors and
+            // hardwareDiskRingColor) are intentionally excluded from settings
+            // transfer: they are per-surface cosmetics, not portable preferences.
         ]
     }
 

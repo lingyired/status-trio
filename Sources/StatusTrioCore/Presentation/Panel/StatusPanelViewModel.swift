@@ -184,6 +184,10 @@ final class StatusPanelViewModel: ObservableObject {
     @Published private(set) var hardwareMonitorMetrics: [HardwareMonitorMetric]
     /// Shared per-metric colours shown on the card bars (same field as the ring).
     @Published private(set) var hardwareMonitorMetricColors: [HardwareMonitorMetric: IconRGBA]
+    /// SSD ring colour. SSD usage is not a sampled metric, so it is not part of
+    /// `hardwareMonitorMetricColors`; it still comes from settings so the panel
+    /// and the settings colour row stay in sync.
+    @Published private(set) var hardwareDiskRingColor: IconRGBA
     @Published private(set) var statusPanelBoldTextEnabled: Bool
     @Published private(set) var statusPanelMediumTextEnabled: Bool
     /// Broadband caps (Mbps) for the network-speed tiles.
@@ -272,6 +276,7 @@ final class StatusPanelViewModel: ObservableObject {
         visiblePopupSections = settings.visiblePopupSections
         hardwareMonitorMetrics = settings.visibleHardwareMetrics
         hardwareMonitorMetricColors = settings.hardwareMonitorMetricColors
+        hardwareDiskRingColor = settings.hardwareDiskRingColor
         statusPanelBoldTextEnabled = settings.statusPanelBoldTextEnabled
         statusPanelMediumTextEnabled = settings.statusPanelMediumTextEnabled
         showsHardwareRings = settings.showsHardwareRings
@@ -375,6 +380,9 @@ final class StatusPanelViewModel: ObservableObject {
         if hardwareMonitorMetricColors != settings.hardwareMonitorMetricColors {
             hardwareMonitorMetricColors = settings.hardwareMonitorMetricColors
         }
+        if hardwareDiskRingColor != settings.hardwareDiskRingColor {
+            hardwareDiskRingColor = settings.hardwareDiskRingColor
+        }
         if statusPanelBoldTextEnabled != settings.statusPanelBoldTextEnabled {
             statusPanelBoldTextEnabled = settings.statusPanelBoldTextEnabled
         }
@@ -465,6 +473,14 @@ final class StatusPanelViewModel: ObservableObject {
             .sink { [weak self] colors in
                 guard let self else { return }
                 if self.hardwareMonitorMetricColors != colors { self.hardwareMonitorMetricColors = colors }
+            }
+            .store(in: &cancellables)
+
+        settings.$hardwareDiskRingColor
+            .removeDuplicates()
+            .sink { [weak self] color in
+                guard let self else { return }
+                if self.hardwareDiskRingColor != color { self.hardwareDiskRingColor = color }
             }
             .store(in: &cancellables)
 

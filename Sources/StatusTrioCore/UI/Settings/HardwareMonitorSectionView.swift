@@ -150,7 +150,7 @@ struct HardwareMonitorSectionView: View {
         SettingsGroup(localization.string(.hardwareMonitorSettingsColorTitle)) {
             SettingsCustomRow {
                 VStack(spacing: 0) {
-                    ForEach(Array(colorMetricGroups.enumerated()), id: \.offset) { groupIndex, group in
+                    ForEach(Array(colorGroups.enumerated()), id: \.offset) { groupIndex, group in
                         if groupIndex > 0 { SettingsDivider() }
                         Text(group.title)
                             .font(.system(size: 11, weight: .semibold))
@@ -158,19 +158,19 @@ struct HardwareMonitorSectionView: View {
                             .frame(maxWidth: .infinity, alignment: .leading)
                             .padding(.top, 8)
                             .padding(.bottom, 2)
-                        ForEach(Array(group.options.enumerated()), id: \.element) { rowIndex, metric in
+                        ForEach(Array(group.options.enumerated()), id: \.element) { rowIndex, row in
                             if rowIndex > 0 { SettingsDivider() }
                             HStack(alignment: .center, spacing: 8) {
-                                HardwareMetricSymbolView(symbol: metric.systemImage, box: 20, glyph: 14)
-                                Text(localization.string(metric.titleKey))
+                                HardwareMetricSymbolView(symbol: row.symbol, box: 20, glyph: 14)
+                                Text(localization.string(row.titleKey))
                                     .font(.system(size: 13))
                                     .frame(maxWidth: .infinity, alignment: .leading)
                                 IconDesignerColorWell(
-                                    selection: colorBinding(for: metric),
+                                    selection: colorBinding(for: row),
                                     onEditingChanged: { _ in }
                                 )
                                 .frame(width: 40, height: 20)
-                                .accessibilityLabel(localization.string(metric.titleKey))
+                                .accessibilityLabel(localization.string(row.titleKey))
                             }
                             .padding(.vertical, 6)
                         }
@@ -182,8 +182,10 @@ struct HardwareMonitorSectionView: View {
             HStack {
                 Button(localization.string(.hardwareMonitorSettingsResetColors)) {
                     store.hardwareMonitorMetricColors = [:]
+                    store.hardwareDiskRingColor = HardwareRingColorConfiguration.solidStateDriveColor
                 }
-                .disabled(store.hardwareMonitorMetricColors.isEmpty)
+                .disabled(store.hardwareMonitorMetricColors.isEmpty
+                          && store.hardwareDiskRingColor == HardwareRingColorConfiguration.solidStateDriveColor)
                 Spacer()
             }
             .padding(.leading, SettingsMetrics.dividerInset)
@@ -192,21 +194,51 @@ struct HardwareMonitorSectionView: View {
         }
     }
 
-    private var colorMetricGroups: [(title: String, options: [HardwareMonitorMetric])] {
+    /// One colour row in the monitor colour group. SSD (disk capacity) is not a
+    /// sampled `HardwareMonitorMetric`, so it is a distinct case alongside the
+    /// metric-backed rows.
+    private enum ColorRow: Hashable {
+        case metric(HardwareMonitorMetric)
+        case disk
+
+        var symbol: String {
+            switch self {
+            case .metric(let metric): metric.systemImage
+            case .disk: "internaldrive"
+            }
+        }
+
+        var titleKey: LocalizationKey {
+            switch self {
+            case .metric(let metric): metric.titleKey
+            case .disk: .hardwareMonitorSettingsItemDiskCapacity
+            }
+        }
+    }
+
+    private var colorGroups: [(title: String, options: [ColorRow])] {
         [
-            ("CPU", [.cpuUsage, .cpuTemperature]),
-            ("GPU", [.gpuUsage, .gpuTemperature]),
+            ("CPU", [.metric(.cpuUsage), .metric(.cpuTemperature)]),
+            ("GPU", [.metric(.gpuUsage), .metric(.gpuTemperature)]),
             (localization.string(.settingsHardwareRingGroupOther),
-             HardwareMonitorMetric.colorEditableArcMetrics)
+             HardwareMonitorMetric.colorEditableArcMetrics.map { ColorRow.metric($0) } + [.disk])
         ]
     }
 
     /// The shared metric colour, editable here and in the ring's colour rows.
-    private func colorBinding(for metric: HardwareMonitorMetric) -> Binding<Color> {
-        Binding(
-            get: { IconAppearanceColorConversion.color(from: store.hardwareColor(for: metric)) },
-            set: { store.setHardwareColor(IconAppearanceColorConversion.iconRGBA(from: $0), for: metric) }
-        )
+    private func colorBinding(for row: ColorRow) -> Binding<Color> {
+        switch row {
+        case .metric(let metric):
+            return Binding(
+                get: { IconAppearanceColorConversion.color(from: store.hardwareColor(for: metric)) },
+                set: { store.setHardwareColor(IconAppearanceColorConversion.iconRGBA(from: $0), for: metric) }
+            )
+        case .disk:
+            return Binding(
+                get: { IconAppearanceColorConversion.color(from: store.hardwareDiskRingColor) },
+                set: { store.hardwareDiskRingColor = IconAppearanceColorConversion.iconRGBA(from: $0).normalized() }
+            )
+        }
     }
 
     private var ringGroup: some View {

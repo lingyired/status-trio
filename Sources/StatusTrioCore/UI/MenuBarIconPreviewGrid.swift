@@ -8,6 +8,9 @@ import SwiftUI
 struct HardwareRingStrip: View {
     @ObservedObject var hardware: HardwareMonitorObservable
     let colors: [HardwareMonitorMetric: IconRGBA]
+    /// Colour of the SSD ring arc. SSD usage comes from the disk-capacity query,
+    /// not a sampled metric, so it is passed here instead of in `colors`.
+    var diskColor: IconRGBA = HardwareRingColorConfiguration.solidStateDriveColor
     /// When true each ring is wrapped in its own glass card (status panel).
     var carded: Bool = false
     /// Opens the matching detail page when a carded ring is tapped. Nil keeps the
@@ -162,7 +165,7 @@ struct HardwareRingStrip: View {
                 usedFraction: disk.usedFraction, totalBytes: disk.totalBytes,
                 freeBytes: disk.freeBytes, mode: ssdDisplayMode)
             return (value.topText, value.centerText, value.progress,
-                    HardwareRingColorConfiguration.solidStateDriveColor,
+                    diskColor,
                     fittedCenterScale(value.centerText, base: 0.8))
         }
     }
@@ -207,6 +210,7 @@ struct HardwareRingStrip: View {
 struct MenuBarIconPreviewGrid: View {
     @ObservedObject var hardware: HardwareMonitorObservable
     let colors: [HardwareMonitorMetric: IconRGBA]
+    var diskColor: IconRGBA = HardwareRingColorConfiguration.solidStateDriveColor
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -220,7 +224,7 @@ struct MenuBarIconPreviewGrid: View {
                     .foregroundStyle(.tertiary)
             }
 
-            HardwareRingStrip(hardware: hardware, colors: colors)
+            HardwareRingStrip(hardware: hardware, colors: colors, diskColor: diskColor)
 
             Text("图标约 60×60 pt · 标签在底部，数据实时")
                 .font(.system(size: 9))

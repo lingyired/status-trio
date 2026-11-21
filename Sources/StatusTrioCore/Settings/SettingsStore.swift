@@ -208,6 +208,7 @@ final class SettingsStore: ObservableObject {
     static let airPodsRingFallbackDefaultsKey = "airPodsRingFallback"
     static let hardwareRingConfigurationDefaultsKey = "hardwareRingConfigurationV1"
     static let hardwareMonitorMetricColorsDefaultsKey = "hardwareMonitorMetricColorsV1"
+    static let hardwareDiskRingColorDefaultsKey = "hardwareDiskRingColorV1"
     static let hardwareDownloadCapMbpsDefaultsKey = "hardwareDownloadCapMbps"
     static let hardwareUploadCapMbpsDefaultsKey = "hardwareUploadCapMbps"
     static let hardwareBackgroundHistoryEnabledDefaultsKey = "hardwareBackgroundHistoryEnabled"
@@ -1252,6 +1253,19 @@ final class SettingsStore: ObservableObject {
             guard !isSyncingIconConfiguration else { return }
             if let data = try? JSONEncoder().encode(hardwareMonitorMetricColors) {
                 defaults.set(data, forKey: Self.hardwareMonitorMetricColorsDefaultsKey)
+            }
+        }
+    }
+
+    /// Colour of the SSD (disk capacity) ring arc. SSD usage is read from the
+    /// disk-capacity query rather than a sampled metric, so it is not part of
+    /// `hardwareMonitorMetricColors`; it gets its own field but the same
+    /// override-or-recommended fallback, and is edited from the monitor colour
+    /// group the same way as the other ring metrics.
+    @Published var hardwareDiskRingColor: IconRGBA = HardwareRingColorConfiguration.solidStateDriveColor {
+        didSet {
+            if let data = try? JSONEncoder().encode(hardwareDiskRingColor.normalized()) {
+                defaults.set(data, forKey: Self.hardwareDiskRingColorDefaultsKey)
             }
         }
     }
@@ -3103,6 +3117,12 @@ final class SettingsStore: ObservableObject {
             self.hardwareMonitorMetricColors = decoded
         } else {
             self.hardwareMonitorMetricColors = [:]
+        }
+        if let data = defaults.data(forKey: Self.hardwareDiskRingColorDefaultsKey),
+           let decoded = try? JSONDecoder().decode(IconRGBA.self, from: data) {
+            self.hardwareDiskRingColor = decoded.normalized()
+        } else {
+            self.hardwareDiskRingColor = HardwareRingColorConfiguration.solidStateDriveColor
         }
         self.hardwareDownloadCapMbps = Self.clampedHardwareSpeedCap(
             defaults.object(forKey: Self.hardwareDownloadCapMbpsDefaultsKey) as? Double ?? Self.defaultHardwareDownloadCapMbps,

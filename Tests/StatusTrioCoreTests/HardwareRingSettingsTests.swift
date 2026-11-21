@@ -136,6 +136,16 @@ final class HardwareRingSettingsTests: XCTestCase {
                        HardwareRingColorConfiguration.recommendedBaseColor(for: .gpuUsage))
     }
 
+    func testDiskRingColorDefaultsAndPersists() throws {
+        let (store, defaults, _) = try makeStore()
+        XCTAssertEqual(store.hardwareDiskRingColor,
+                       HardwareRingColorConfiguration.solidStateDriveColor)
+        let custom = IconRGBA(red: 1, green: 0, blue: 0, alpha: 1)
+        store.hardwareDiskRingColor = custom
+        let reopened = SettingsStore(defaults: defaults)
+        XCTAssertEqual(reopened.hardwareDiskRingColor, custom)
+    }
+
     func testRingResolverUsesSharedMetricColor() {
         let now = Date(timeIntervalSince1970: 1_800_000_000)
         var config = IconConfigurationV1.classic

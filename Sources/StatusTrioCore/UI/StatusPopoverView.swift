@@ -172,6 +172,7 @@ struct StatusPopoverView: View {
                                    hardware: panel.hardwareMonitor,
                                    onBack: { panel.showSummaryPage() },
                                    metricColors: panel.hardwareMonitorMetricColors,
+                                   diskRingColor: panel.hardwareDiskRingColor,
                                    topApps: panel.showsHardwareTopApps ? panel.topApps : nil,
                                    downloadCapMbps: panel.settings.hardwareDownloadCapMbps,
                                    uploadCapMbps: panel.settings.hardwareUploadCapMbps,
@@ -362,6 +363,7 @@ struct StatusPopoverView: View {
             // the ring colours; the summary no longer depends on card metrics.
             HardwareMonitorSummaryView(model: panel.hardwareMonitor,
                                        metricColors: panel.hardwareMonitorMetricColors,
+                                       diskColor: panel.hardwareDiskRingColor,
                                        showsRings: panel.showsHardwareRings,
                                        showsSummaryRow: panel.showsHardwareSummaryRow,
                                        onOpenHardwareDetail: { panel.showHardwareDetail($0) },

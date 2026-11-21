@@ -11,6 +11,9 @@ struct HardwareDetailView: View {
     var previewHistory: [HardwareDetailHistoryPoint]? = nil
     /// Ring/card colours from settings; the chart uses the matching metric colour.
     var metricColors: [HardwareMonitorMetric: IconRGBA] = [:]
+    /// SSD ring colour; the disk page's usage bar and accent read this (SSD is
+    /// not a sampled metric, so it is not in `metricColors`).
+    var diskRingColor: IconRGBA = HardwareRingColorConfiguration.solidStateDriveColor
     /// The visible page's ranked list; nil keeps offscreen previews static.
     var topApps: TopAppsObservable? = nil
     /// User-editable broadband caps, used as the network chart's full scale.
@@ -27,6 +30,7 @@ struct HardwareDetailView: View {
     init(kind: HardwareDetailKind, hardware: HardwareMonitorObservable,
          onBack: @escaping () -> Void,
          metricColors: [HardwareMonitorMetric: IconRGBA] = [:],
+         diskRingColor: IconRGBA = HardwareRingColorConfiguration.solidStateDriveColor,
          topApps: TopAppsObservable? = nil,
          downloadCapMbps: Double = SettingsStore.defaultHardwareDownloadCapMbps,
          uploadCapMbps: Double = SettingsStore.defaultHardwareUploadCapMbps,
@@ -37,6 +41,7 @@ struct HardwareDetailView: View {
         _hardware = ObservedObject(wrappedValue: hardware)
         self.onBack = onBack
         self.metricColors = metricColors
+        self.diskRingColor = diskRingColor
         self.topApps = topApps
         self.downloadCapMbps = downloadCapMbps
         self.uploadCapMbps = uploadCapMbps
@@ -346,9 +351,11 @@ struct HardwareDetailView: View {
         return VStack(alignment: .leading, spacing: 12) {
             HStack(alignment: .top, spacing: 8) {
                 coloredMetricCard(title: localization.string(.hardwareDetailDownload),
-                                  value: HardwareDetailFormat.rate(download), color: .blue)
+                                  value: HardwareDetailFormat.rate(download),
+                                  color: metricColor(.downloadSpeed))
                 coloredMetricCard(title: localization.string(.hardwareDetailUpload),
-                                  value: HardwareDetailFormat.rate(upload), color: .green)
+                                  value: HardwareDetailFormat.rate(upload),
+                                  color: metricColor(.uploadSpeed))
             }
             trendCard(title: localization.string(.hardwareDetailSpeedTrend),
                       scale: .auto)
@@ -454,7 +461,7 @@ struct HardwareDetailView: View {
                     .monospacedDigit()
                     .opacity(fan.availability == .stale ? 0.5 : 1)
                 if let maxRPM = fan.maxRPM, maxRPM > 0 {
-                    HardwareDetailProgressBar(fraction: (fan.rpm ?? 0) / maxRPM, tint: .teal)
+                    HardwareDetailProgressBar(fraction: (fan.rpm ?? 0) / maxRPM, tint: metricColor(.fan))
                     Text("0 – \(Int(maxRPM.rounded())) RPM")
                         .font(.caption2)
                         .foregroundStyle(.secondary)
@@ -575,8 +582,8 @@ struct HardwareDetailView: View {
         case .gpu: return [metricColor(.gpuUsage)]
         case .memory: return [metricColor(.memoryUsage)]
         case .network: return [metricColor(.downloadSpeed), metricColor(.uploadSpeed)]
-        case .disk: return [.orange, .purple]
-        case .fan: return [.teal]
+        case .disk: return [IconAppearanceColorConversion.color(from: diskRingColor)]
+        case .fan: return [metricColor(.fan)]
         }
     }
 

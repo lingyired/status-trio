@@ -7,6 +7,8 @@ import SwiftUI
 struct HardwareMonitorSummaryView: View {
     @ObservedObject var model: HardwareMonitorObservable
     var metricColors: [HardwareMonitorMetric: IconRGBA] = [:]
+    /// Colour of the SSD ring arc (not a sampled metric; see HardwareRingStrip).
+    var diskColor: IconRGBA = HardwareRingColorConfiguration.solidStateDriveColor
     var showsRings: Bool = true
     var showsSummaryRow: Bool = true
     /// Routes a ring card or info-bar cell to its detail page. Nil disables taps
@@ -44,7 +46,7 @@ struct HardwareMonitorSummaryView: View {
     private var content: some View {
         VStack(spacing: 6) {
             if showsRings, !ringSlots.isEmpty {
-                HardwareRingStrip(hardware: model, colors: metricColors, carded: true,
+                HardwareRingStrip(hardware: model, colors: metricColors, diskColor: diskColor, carded: true,
                                   onSelectSlot: onOpenHardwareDetail,
                                   visibleSlots: ringSlots,
                                   animatesProgress: false,
