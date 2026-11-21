@@ -113,7 +113,6 @@ struct VolumeControlsView: View {
             }
 
             if state.showsDeviceList {
-                Divider().padding(.top, 2)
                 OutputDeviceList(
                     rows: state.rows,
                     previewRows: state.previewRows,

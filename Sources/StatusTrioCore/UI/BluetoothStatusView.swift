@@ -55,7 +55,6 @@ struct BluetoothStatusView: View {
     @ObservedObject var radioPower: BluetoothRadioPowerController
     @ObservedObject var mobileBatteryController: MobileBatteryController
     @EnvironmentObject private var localization: Localization
-    @Environment(\.colorScheme) private var colorScheme
     let showsBatteryLevels: Bool
     var showsAppleDevicesAndBattery = false
     var nearbyBLESelections: [NearbyBLEDeviceSelection] = []
@@ -66,9 +65,6 @@ struct BluetoothStatusView: View {
     var listOptions: BluetoothDeviceListOptions = .standard
     var showsRadioPowerControl = true
     var showsBluetoothInStatusPanel = true
-    /// The configured Bluetooth glyph colour (#275). The panel title icon reuses
-    /// it (#352) instead of a hard-coded accent, so it matches the menu bar.
-    var bluetoothIconColor: BluetoothIconColorSelection = .default
     var listeningModePresentations: [String: BluetoothListeningModePresentation] = [:]
     var onSelectListeningMode: (String, BluetoothListeningMode) -> Void = { _, _ in }
     let onRequestAuthorization: () -> Void
@@ -517,24 +513,10 @@ struct BluetoothStatusView: View {
         .contentShape(Rectangle())
     }
 
-    /// The title glyph is blue (or the user's chosen colour) while the radio is
-    /// on, and secondary ink when it is off or in an unknown state (#352).
+    /// The title glyph follows the Wi-Fi row's tint (#352): system ink while
+    /// the radio is on, secondary ink when it is off or its state is unknown.
     private var titleIconColor: Color {
-        guard let selection = BluetoothIconColorResolver.summarySelection(
-            for: radioPower.power,
-            configured: bluetoothIconColor
-        ) else {
-            return .secondary
-        }
-        return Color(cgColor: BluetoothIconColorResolver.resolve(
-            selection,
-            foreground: labelInk,
-            darkAppearance: colorScheme == .dark
-        ))
-    }
-
-    private var labelInk: CGColor {
-        CGColor(gray: colorScheme == .dark ? 1 : 0, alpha: 1)
+        BluetoothTitleTintResolver.tint(for: radioPower.power).color()
     }
 
     private func perform(_ action: BluetoothSummaryRowAction) {

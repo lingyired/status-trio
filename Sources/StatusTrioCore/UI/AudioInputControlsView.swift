@@ -245,9 +245,6 @@ struct AudioInputControlsView: View {
     @ViewBuilder
     private var deviceList: some View {
         if state.showsDeviceList {
-            Divider()
-                .padding(.top, 2)
-
             VStack(spacing: 2) {
                 ForEach(state.visibleRows(expanded: isDeviceListExpanded)) { row in
                     Button {
@@ -276,7 +273,9 @@ struct AudioInputControlsView: View {
                                     .foregroundStyle(.orange)
                             }
                         }
-                        .padding(.vertical, 3)
+                        // Same vertical insets as the Bluetooth device row
+                        // (top 0 / bottom 5): 8pt first-row gap, matching rhythm.
+                        .padding(.bottom, 5)
                         .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)

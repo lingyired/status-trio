@@ -332,7 +332,10 @@ struct OutputDeviceRow: View {
                         .foregroundStyle(.secondary)
                 }
             }
-            .padding(.vertical, 3)
+            // Same vertical insets as the Bluetooth device row (top 0 /
+            // bottom 5), so the first row sits 8pt under the controls and rows
+            // keep the Bluetooth list's rhythm.
+            .padding(.bottom, 5)
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)

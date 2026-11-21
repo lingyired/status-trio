@@ -112,18 +112,13 @@ final class BluetoothIconColorTests: XCTestCase {
         XCTAssertNotEqual(custom, foreground)
     }
 
-    func testSummarySelectionUsesConfiguredColourOnlyWhileRadioIsOn() {
-        for power: BluetoothRadioPower in [.on, .off, .unknown, .unavailable] {
-            let selection = BluetoothIconColorResolver.summarySelection(
-                for: power,
-                configured: .primary
-            )
-            if power == .on {
-                XCTAssertEqual(selection, .primary, "an on radio shows the configured colour")
-            } else {
-                XCTAssertNil(selection, "\(power) falls back to secondary ink")
-            }
-        }
+    func testPanelTitleTintMatchesTheWiFiConvention() {
+        // The panel title glyph follows the Wi-Fi row (#352): system ink while
+        // the radio is on, secondary ink everywhere else.
+        XCTAssertEqual(BluetoothTitleTintResolver.tint(for: .on), .primary)
+        XCTAssertEqual(BluetoothTitleTintResolver.tint(for: .off), .secondary)
+        XCTAssertEqual(BluetoothTitleTintResolver.tint(for: .unknown), .secondary)
+        XCTAssertEqual(BluetoothTitleTintResolver.tint(for: .unavailable), .secondary)
     }
 
     func testStorageRoundTripsAllModes() {
