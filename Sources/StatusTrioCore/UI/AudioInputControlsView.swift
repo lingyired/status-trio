@@ -81,6 +81,7 @@ struct AudioInputVolumeDraft {
 
 struct AudioInputControlsView: View {
     @EnvironmentObject private var localization: Localization
+    @Environment(\.statusPanelBoldTextEnabled) private var panelBoldText
 
     let state: AudioInputPanelState
     let actions: StatusPanelActions
@@ -264,7 +265,7 @@ struct AudioInputControlsView: View {
                             .accessibilityHidden(true)
 
                             Text(row.name)
-                                .font(.body.weight(row.selected ? .semibold : .regular))
+                                .font(.body.weight(row.selected && panelBoldText ? .semibold : .regular))
                                 .lineLimit(1)
                                 .truncationMode(.middle)
                                 .frame(maxWidth: .infinity, alignment: .leading)
