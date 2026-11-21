@@ -212,6 +212,15 @@ struct SensorSMCReader: Sendable {
                 return (["Te05", "Te0S", "Te09", "Te0H",
                          "Tp01", "Tp05", "Tp09", "Tp0D", "Tp0V", "Tp0Y", "Tp0b", "Tp0e"],
                         gpu)
+            case "Apple M5", "Apple M5 Pro", "Apple M5 Max":
+                // M5 uses super + performance CPU core keys (no efficiency core
+                // keys) and a new GPU key set. Core counts vary by variant, so
+                // extra keys simply fail their per-read capability probe rather
+                // than fabricating a reading. Source: Stats' sensor table.
+                return (["Tp00", "Tp04", "Tp08", "Tp0C", "Tp0G", "Tp0K",
+                         "Tp0O", "Tp0R", "Tp0U", "Tp0X", "Tp0a", "Tp0d", "Tp0g",
+                         "Tp0j", "Tp0m", "Tp0p", "Tp0u", "Tp0y"],
+                        ["Tg0U", "Tg0X", "Tg0d", "Tg0g", "Tg0j", "Tg1Y", "Tg1c", "Tg1g"])
             default:
                 return ([], [])
             }

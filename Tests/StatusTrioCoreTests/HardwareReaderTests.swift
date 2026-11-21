@@ -150,6 +150,36 @@ final class HardwareReaderTests: XCTestCase {
         XCTAssertEqual(keys, ["FNum"])
     }
 
+    func testM5TemperatureMappingReadsSuperAndPerformanceCoresAndGPU() {
+        var keys: [String] = []
+        let reading = SensorSMCReader.read(platform: .appleSilicon("Apple M5"), includeTemperature: true, includeGPUTemperature: true, includeFans: false, at: start) { key in
+            keys.append(key)
+            return ["Tp00": 50, "Tp0K": 70, "Tp0O": 60, "Tg0U": 80, "Tg1g": 90][key]
+        }
+        // 6 super + 12 performance core keys, plus 8 GPU keys, are all probed;
+        // absent keys simply fail the capability probe.
+        XCTAssertEqual(keys.count, 26, "18 CPU + 8 GPU M5 keys are probed")
+        XCTAssertEqual(reading.cpuTemperature, 60, "average of the three readable CPU core keys")
+        XCTAssertEqual(reading.cpuTemperatureSource, .average(3))
+        XCTAssertEqual(reading.gpuTemperature, 85)
+        // M5 must not borrow M4/M3 sensor keys from another generation.
+        XCTAssertFalse(keys.contains("Te05"))
+        XCTAssertFalse(keys.contains("Tf04"))
+        XCTAssertFalse(keys.contains("Tg0G"))
+    }
+
+    func testM5ProAndMaxUseTheSameMapping() {
+        for chip in ["Apple M5 Pro", "Apple M5 Max"] {
+            var keys: [String] = []
+            let reading = SensorSMCReader.read(platform: .appleSilicon(chip), includeTemperature: true, includeFans: false, at: start) { key in
+                keys.append(key)
+                return key == "Tp00" ? 42 : nil
+            }
+            XCTAssertEqual(keys.count, 18, "\(chip) probes the 18 M5 CPU keys")
+            XCTAssertEqual(reading.cpuTemperature, 42)
+        }
+    }
+
     func testSensorDemandAndInvalidSamplesNeverCreateFakeZeros() {
         var keys: [String] = []
         let noDemand = SensorSMCReader.read(platform: .intel, includeTemperature: false, includeFans: false, at: start) { key in keys.append(key); return 0 }
