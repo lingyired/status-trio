@@ -6,18 +6,40 @@ final class HardwareDetailTests: XCTestCase {
 
     // MARK: - Memory
 
-    func testMemoryDetailKeepsGaugeSemanticsAndSeparatesCache() {
+    func testMemoryDetailUsesInternalPagesForAppMemory() {
         let stats = MemoryReader.MemoryStatistics(
             activeBytes: 500, purgeableBytes: 100, wiredBytes: 200, compressedBytes: 50,
             internalBytes: 600, externalBytes: 300, freeBytes: 400, totalBytes: 1_600)
         let detail = MemoryReader.detail(from: stats, swapUsedBytes: 10, swapTotalBytes: 20,
                                          pressure: .warning, at: start)
-        XCTAssertEqual(detail.appBytes, 400)
-        XCTAssertEqual(detail.usedBytes, 650) // app + wired + compressed
-        XCTAssertEqual(detail.percent, 650.0 / 1_600 * 100, accuracy: 0.0001)
+        XCTAssertEqual(detail.appBytes, 500) // internal - purgeable
+        XCTAssertNotEqual(detail.appBytes, stats.activeBytes - stats.purgeableBytes)
+        XCTAssertEqual(detail.usedBytes, 750) // app + wired + compressed
+        XCTAssertEqual(detail.percent, 750.0 / 1_600 * 100, accuracy: 0.0001)
         XCTAssertEqual(detail.cachedBytes, 400) // external + purgeable, NOT in usedBytes
-        XCTAssertNotEqual(detail.usedBytes, detail.usedBytes + detail.cachedBytes)
         XCTAssertEqual(detail.pressure, .warning)
+    }
+
+    func testMemoryGaugeMatchesDetailForSameSnapshot() {
+        let stats = MemoryReader.MemoryStatistics(
+            activeBytes: 500, purgeableBytes: 100, wiredBytes: 200, compressedBytes: 50,
+            internalBytes: 600, externalBytes: 300, freeBytes: 400, totalBytes: 1_600)
+        let reading = MemoryReader.reading(from: stats, at: start)
+        let detail = MemoryReader.detail(from: stats, swapUsedBytes: 0, swapTotalBytes: 0,
+                                         pressure: .normal, at: start)
+        XCTAssertEqual(reading?.usedBytes, detail.usedBytes)
+        XCTAssertEqual(reading?.percent ?? -1, detail.percent, accuracy: 0.0001)
+    }
+
+    func testMemoryUsedBytesClampsAndHandlesPurgeableAboveInternal() {
+        XCTAssertEqual(
+            MemoryReader.usedBytes(internalBytes: 100, purgeableBytes: 150,
+                                  wiredBytes: 10, compressedBytes: 10, totalBytes: 1_000),
+            20)
+        XCTAssertEqual(
+            MemoryReader.usedBytes(internalBytes: 900, purgeableBytes: 0,
+                                  wiredBytes: 200, compressedBytes: 100, totalBytes: 1_000),
+            1_000)
     }
 
     func testMemoryPressureMapping() {

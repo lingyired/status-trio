@@ -3,9 +3,10 @@ import Darwin
 
 /// Read-only machine memory usage, expressed as a 0–100 percentage of physical RAM.
 ///
-/// Mirrors the common "Memory Used" definition (App Memory + Wired +
-/// Compressed): active pages minus purgeable, plus wired and compressed. It is
-/// an instantaneous gauge, not a differential, and needs no privilege.
+/// Mirrors Activity Monitor's "Memory Used" definition (App Memory + Wired +
+/// Compressed): anonymous/internal pages minus purgeable, plus wired and
+/// compressed. It is an instantaneous gauge, not a differential, and needs no
+/// privilege.
 struct MemoryReader: Sendable {
     struct Reading: Equatable, Sendable {
         let percent: Double
@@ -23,12 +24,12 @@ struct MemoryReader: Sendable {
 
     /// Pure conversion from one VM statistics snapshot to the gauge reading.
     static func reading(from stats: MemoryStatistics, at date: Date) -> Reading? {
-        guard let percent = Self.percentage(activeBytes: stats.activeBytes,
+        guard let percent = Self.percentage(internalBytes: stats.internalBytes,
                                             purgeableBytes: stats.purgeableBytes,
                                             wiredBytes: stats.wiredBytes,
                                             compressedBytes: stats.compressedBytes,
                                             totalBytes: stats.totalBytes) else { return nil }
-        let used = Self.usedBytes(activeBytes: stats.activeBytes,
+        let used = Self.usedBytes(internalBytes: stats.internalBytes,
                                   purgeableBytes: stats.purgeableBytes,
                                   wiredBytes: stats.wiredBytes,
                                   compressedBytes: stats.compressedBytes,
@@ -57,19 +58,23 @@ struct MemoryReader: Sendable {
     }
 
     /// Pure formula so the semantics are unit-testable without host statistics.
-    static func usedBytes(activeBytes: UInt64, purgeableBytes: UInt64,
+    ///
+    /// App Memory uses anonymous/internal pages (what Activity Monitor reports),
+    /// not active pages: `active_count` also includes file-backed external pages,
+    /// so subtracting purgeable from it miscounts application memory.
+    static func usedBytes(internalBytes: UInt64, purgeableBytes: UInt64,
                           wiredBytes: UInt64, compressedBytes: UInt64,
                           totalBytes: UInt64) -> UInt64 {
-        let app = activeBytes > purgeableBytes ? activeBytes - purgeableBytes : 0
+        let app = internalBytes > purgeableBytes ? internalBytes - purgeableBytes : 0
         let used = app &+ wiredBytes &+ compressedBytes
         return min(used, totalBytes)
     }
 
-    static func percentage(activeBytes: UInt64, purgeableBytes: UInt64,
+    static func percentage(internalBytes: UInt64, purgeableBytes: UInt64,
                            wiredBytes: UInt64, compressedBytes: UInt64,
                            totalBytes: UInt64) -> Double? {
         guard totalBytes > 0 else { return nil }
-        let used = usedBytes(activeBytes: activeBytes, purgeableBytes: purgeableBytes,
+        let used = usedBytes(internalBytes: internalBytes, purgeableBytes: purgeableBytes,
                              wiredBytes: wiredBytes, compressedBytes: compressedBytes,
                              totalBytes: totalBytes)
         let percent = Double(used) / Double(totalBytes) * 100.0
@@ -101,14 +106,15 @@ struct MemoryReader: Sendable {
     }
 
     /// Pure breakdown so the category maths is unit-testable without host stats.
-    /// `usedBytes` keeps the existing gauge (app + wired + compressed); cached
-    /// files are reclaimable and counted separately, never added to `usedBytes`.
+    /// App Memory is internal pages minus purgeable (Activity Monitor's figure);
+    /// `usedBytes` is app + wired + compressed; cached files are reclaimable and
+    /// counted separately, never added to `usedBytes`.
     static func detail(from stats: MemoryStatistics,
                        swapUsedBytes: UInt64,
                        swapTotalBytes: UInt64,
                        pressure: MemoryPressureLevel,
                        at date: Date) -> MemoryDetailReading {
-        let app = stats.activeBytes > stats.purgeableBytes ? stats.activeBytes - stats.purgeableBytes : 0
+        let app = stats.internalBytes > stats.purgeableBytes ? stats.internalBytes - stats.purgeableBytes : 0
         let used = min(app &+ stats.wiredBytes &+ stats.compressedBytes, stats.totalBytes)
         let percent = stats.totalBytes > 0 ? Double(used) / Double(stats.totalBytes) * 100 : 0
         let cached = stats.externalBytes &+ stats.purgeableBytes
