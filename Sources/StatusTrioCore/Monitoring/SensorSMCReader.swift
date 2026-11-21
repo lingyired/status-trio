@@ -189,7 +189,11 @@ struct SensorSMCReader: Sendable {
     private static func temperatureKeys(for platform: SensorPlatform) -> (cpu: [String], gpu: [String]) {
         switch platform {
         case .intel:
-            return ((0...9).map { "TC\($0)C" } + (0...9).map { "TC\($0)c" } + ["TCAC", "TCBC"],
+            // Core-die keys span hex indices 0–F (TCAC/TCBC are the A/B dies).
+            // Stats uses the TC%C / TC%c wildcard for the same coverage, which
+            // matters on high-core Intel Macs where indices exceed 9.
+            let hexCore = (0...15).map { String($0, radix: 16, uppercase: true) }
+            return (hexCore.map { "TC\($0)C" } + hexCore.map { "TC\($0)c" },
                     ["TCGC", "TG0D", "TGDD"])
         case .appleSilicon(let chip):
             // Exact brand names prevent an unknown future generation from
@@ -212,6 +216,24 @@ struct SensorSMCReader: Sendable {
                 return (["Te05", "Te0S", "Te09", "Te0H",
                          "Tp01", "Tp05", "Tp09", "Tp0D", "Tp0V", "Tp0Y", "Tp0b", "Tp0e"],
                         gpu)
+            case "Apple M5", "Apple M5 Pro", "Apple M5 Max":
+                // M5 uses super + performance CPU core keys (no efficiency core
+                // keys) and a new GPU key set. Core counts vary by variant, so
+                // extra keys simply fail their per-read capability probe rather
+                // than fabricating a reading. Source: Stats' sensor table.
+                return (["Tp00", "Tp04", "Tp08", "Tp0C", "Tp0G", "Tp0K",
+                         "Tp0O", "Tp0R", "Tp0U", "Tp0X", "Tp0a", "Tp0d", "Tp0g",
+                         "Tp0j", "Tp0m", "Tp0p", "Tp0u", "Tp0y"],
+                        ["Tg0U", "Tg0X", "Tg0d", "Tg0g", "Tg0j", "Tg1Y", "Tg1c", "Tg1g"])
+            case "Apple M6", "Apple M6 Pro", "Apple M6 Max":
+                // M6 mixes super/performance/efficiency CPU core keys again and
+                // expands the GPU set to 12 keys. As with M5, unavailable keys
+                // fail the per-read capability probe instead of guessing.
+                return (["Tp0j", "Tp0g", "Tp09", "Tp07",
+                         "Tp0m", "Tp0L", "Tp0I", "Tp0d", "Tp0E", "Tp0G", "Tp0b", "Tp05",
+                         "Te07", "Te08", "Te09", "Te0c", "Te0h", "Te0i"],
+                        ["Tg1e", "Tg0d", "Tg0c", "Tg0b", "Tg1c", "Tg1d",
+                         "Tg07", "Tg1f", "Tg09", "Tg0a", "Tg1g", "Tg1h"])
             default:
                 return ([], [])
             }

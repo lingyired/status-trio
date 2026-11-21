@@ -25,6 +25,7 @@ struct HardwareMonitorIconPlugin: IconContentPlugin {
             speedCapsMbps: context.inputs.sources.hardwareSpeedCapsMbps,
             auxiliarySamples: Self.auxiliarySamples(from: context.inputs.system.snapshot, now: context.now),
             battery: battery,
+            batteryOptions: context.legacy.battery,
             batteryArcColor: batteryArcColor,
             now: context.now
         )

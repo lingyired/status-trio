@@ -880,6 +880,7 @@ enum LocalizationKey: String, CaseIterable, Hashable, Sendable {
     case settingsHardwareRingTopValue = "settings.hardwareRing.top.value"
     case settingsHardwareRingTopBatteryPercentage = "settings.hardwareRing.top.batteryPercentage"
     case settingsHardwareRingTopChargingIndicator = "settings.hardwareRing.top.chargingIndicator"
+    case settingsHardwareRingTopChargingIndicatorHint = "settings.hardwareRing.top.chargingIndicatorHint"
     case settingsHardwareRingTopHidden = "settings.hardwareRing.top.hidden"
     case settingsHardwareRingTopMetric = "settings.hardwareRing.top.metric"
     case settingsHardwareRingTopScale = "settings.hardwareRing.top.scale"

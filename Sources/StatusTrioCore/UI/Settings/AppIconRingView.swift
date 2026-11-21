@@ -137,7 +137,11 @@ struct AppIconRingView: View {
                 topMarkerSizeRow
                 SettingsDivider()
             }
-            topMarkersContent
+            BatteryTopMarkersGroup(
+                store: store,
+                hasBattery: effectiveHasBattery,
+                embedsInGroup: false
+            )
         }
     }
 
@@ -283,6 +287,14 @@ struct AppIconRingView: View {
                 options: HardwareTopMode.allCases,
                 label: { topModeLabel($0) }
             )
+            if hardwareTopMode == .chargingIndicator {
+                // #361: the charging marker is the battery page's per-state top
+                // marker, not a separate style — point the user there.
+                SettingsDivider()
+                SettingsHintRow(
+                    text: localization.string(.settingsHardwareRingTopChargingIndicatorHint)
+                )
+            }
             if hardwareTopMode == .value {
                 SettingsDivider()
                 SettingsGroupedMenuRow(
@@ -715,87 +727,6 @@ struct AppIconRingView: View {
     /// charging marker), so the kept controls are not misleading.
     private var noBatteryHintGroup: some View {        SettingsGroup {
             SettingsHintRow(text: localization.string(.settingsBatteryNoBatteryHiddenOptions))
-        }
-    }
-
-    // MARK: Top markers
-
-    /// Top-marker rows, without their own card: they are embedded in the
-    /// ring-content card while the Mac battery source is selected.
-    private var topMarkersContent: some View {
-        Group {
-            if effectiveHasBattery {
-                // #315: one plain choice per power state, so the plug and bolt no
-                // longer hide behind a "show percentage" toggle or a combined
-                // "connected without charging" option.
-                markerRow(
-                    symbol: "percent",
-                    tint: .green,
-                    title: .settingsBatteryMarkerOnBattery,
-                    selection: $store.batteryOnBatteryMarker,
-                    options: BatteryTopMarker.onBatteryOptions
-                )
-
-                SettingsDivider()
-
-                markerRow(
-                    symbol: "bolt.fill",
-                    tint: .yellow,
-                    title: .settingsBatteryMarkerCharging,
-                    selection: $store.batteryChargingMarker,
-                    options: BatteryTopMarker.onPowerOptions
-                )
-
-                SettingsDivider()
-
-                markerRow(
-                    symbol: "powerplug.portrait.fill",
-                    tint: .teal,
-                    title: .settingsBatteryMarkerConnected,
-                    selection: $store.batteryConnectedMarker,
-                    options: BatteryTopMarker.onPowerOptions
-                )
-            } else {
-                // A Mac with no battery: the only top marker to configure is a
-                // decorative plug / bolt (or nothing).
-                markerRow(
-                    symbol: "bolt.fill",
-                    tint: .yellow,
-                    title: .settingsBatteryNoBatteryTopIndicator,
-                    selection: $store.batteryNoBatteryMarker,
-                    options: BatteryTopMarker.noBatteryOptions
-                )
-            }
-        }
-    }
-
-    private func markerRow(
-        symbol: String,
-        tint: Color,
-        title: LocalizationKey,
-        selection: Binding<BatteryTopMarker>,
-        options: [BatteryTopMarker]
-    ) -> some View {
-        SettingsMenuRow(
-            symbol: symbol,
-            tint: tint,
-            title: localization.string(title),
-            selection: selection,
-            options: options,
-            label: markerLabel
-        )
-    }
-
-    private func markerLabel(_ marker: BatteryTopMarker) -> String {
-        switch marker {
-        case .percentage:
-            localization.string(.settingsBatteryConnectedIndicatorPercentage)
-        case .bolt:
-            localization.string(.settingsBatteryConnectedIndicatorBolt)
-        case .plug:
-            localization.string(.settingsBatteryConnectedIndicatorPlug)
-        case .hidden:
-            localization.string(.settingsBatteryMarkerHidden)
         }
     }
 

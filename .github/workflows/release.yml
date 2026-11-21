@@ -618,7 +618,9 @@ jobs:
 
       - name: Summarize package diagnostics
         if: always()
-        run: python3 scripts/ci-diagnostics.py timings "$BUILD_TIMING_FILE"
+        run: |
+          python3 scripts/ci-diagnostics.py timings "$BUILD_TIMING_FILE"
+          python3 scripts/ci-diagnostics.py perf-summary "$BUILD_TIMING_FILE"
 
       - name: Upload package build timings
         if: always()

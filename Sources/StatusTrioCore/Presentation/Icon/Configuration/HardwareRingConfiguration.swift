@@ -18,9 +18,9 @@ enum HardwareRingLayout: String, Codable, CaseIterable, Identifiable, Sendable {
 /// a generic monitor glyph). `symbol` pins a metric glyph, `value` shows the
 /// metric's raw value. `batteryPercentage` shows the Mac battery's level
 /// number in the gap, and `chargingIndicator` shows the battery's power-state
-/// glyph (bolt while charging, plug when full or connected to power, level
-/// number while on battery). `hidden` removes it. The top marker is part of
-/// the hardware source, not a separate top-level slot.
+/// marker — the same per-state bolt / plug / percentage / hidden choice the
+/// battery page configures (#361). `hidden` removes it. The top marker is part
+/// of the hardware source, not a separate top-level slot.
 enum HardwareRingTopContent: Codable, Equatable, Hashable, Sendable {
     case automatic
     case symbol(HardwareMonitorMetric)
@@ -28,8 +28,8 @@ enum HardwareRingTopContent: Codable, Equatable, Hashable, Sendable {
     /// The Mac battery's level percentage, drawn like the battery ring's own
     /// percentage marker.
     case batteryPercentage
-    /// A battery power-state marker: bolt while charging, plug when charged or
-    /// connected to power, and the level number while running on battery.
+    /// A battery power-state marker that follows the battery page's per-state
+    /// `BatteryTopMarker` choice (bolt / plug / percentage / hidden).
     case chargingIndicator
     case hidden
 

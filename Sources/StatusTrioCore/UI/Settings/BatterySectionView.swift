@@ -49,6 +49,12 @@ struct BatterySectionView: View {
             store: store,
             hasBattery: statusStore.snapshot.battery.isPresent && !store.isNoBatterySimulationActive
         )
+        // #362: the top-marker choices mirror the App Icon page's group. Both
+        // bind the same SettingsStore fields, so editing either updates both.
+        BatteryTopMarkersGroup(
+            store: store,
+            hasBattery: statusStore.snapshot.battery.isPresent && !store.isNoBatterySimulationActive
+        )
     }
 
     /// Quick show/hide of the battery module in the status panel.

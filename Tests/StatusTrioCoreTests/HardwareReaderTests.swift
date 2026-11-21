@@ -150,6 +150,80 @@ final class HardwareReaderTests: XCTestCase {
         XCTAssertEqual(keys, ["FNum"])
     }
 
+    func testM5TemperatureMappingReadsSuperAndPerformanceCoresAndGPU() {
+        var keys: [String] = []
+        let reading = SensorSMCReader.read(platform: .appleSilicon("Apple M5"), includeTemperature: true, includeGPUTemperature: true, includeFans: false, at: start) { key in
+            keys.append(key)
+            return ["Tp00": 50, "Tp0K": 70, "Tp0O": 60, "Tg0U": 80, "Tg1g": 90][key]
+        }
+        // 6 super + 12 performance core keys, plus 8 GPU keys, are all probed;
+        // absent keys simply fail the capability probe.
+        XCTAssertEqual(keys.count, 26, "18 CPU + 8 GPU M5 keys are probed")
+        XCTAssertEqual(reading.cpuTemperature, 60, "average of the three readable CPU core keys")
+        XCTAssertEqual(reading.cpuTemperatureSource, .average(3))
+        XCTAssertEqual(reading.gpuTemperature, 85)
+        // M5 must not borrow M4/M3 sensor keys from another generation.
+        XCTAssertFalse(keys.contains("Te05"))
+        XCTAssertFalse(keys.contains("Tf04"))
+        XCTAssertFalse(keys.contains("Tg0G"))
+    }
+
+    func testM5ProAndMaxUseTheSameMapping() {
+        for chip in ["Apple M5 Pro", "Apple M5 Max"] {
+            var keys: [String] = []
+            let reading = SensorSMCReader.read(platform: .appleSilicon(chip), includeTemperature: true, includeFans: false, at: start) { key in
+                keys.append(key)
+                return key == "Tp00" ? 42 : nil
+            }
+            XCTAssertEqual(keys.count, 18, "\(chip) probes the 18 M5 CPU keys")
+            XCTAssertEqual(reading.cpuTemperature, 42)
+        }
+    }
+
+    func testM6TemperatureMappingReadsCPUAndGPUKeys() {
+        var keys: [String] = []
+        let reading = SensorSMCReader.read(platform: .appleSilicon("Apple M6"), includeTemperature: true, includeGPUTemperature: true, includeFans: false, at: start) { key in
+            keys.append(key)
+            return ["Tp0j": 50, "Tp0m": 70, "Te07": 60, "Tg1e": 80, "Tg1h": 90][key]
+        }
+        // 4 super + 8 performance + 6 efficiency CPU keys, plus 12 GPU keys.
+        XCTAssertEqual(keys.count, 30, "18 CPU + 12 GPU M6 keys are probed")
+        XCTAssertEqual(reading.cpuTemperature, 60, "average of the three readable CPU core keys")
+        XCTAssertEqual(reading.cpuTemperatureSource, .average(3))
+        XCTAssertEqual(reading.gpuTemperature, 85)
+        // M6 has its own table; it must not silently reuse M4-only keys.
+        XCTAssertFalse(keys.contains("Tf04"))
+        XCTAssertFalse(keys.contains("Tg0G"))
+    }
+
+    func testM6ProAndMaxUseTheSameMapping() {
+        for chip in ["Apple M6 Pro", "Apple M6 Max"] {
+            var keys: [String] = []
+            let reading = SensorSMCReader.read(platform: .appleSilicon(chip), includeTemperature: true, includeFans: false, at: start) { key in
+                keys.append(key)
+                return key == "Tp0j" ? 42 : nil
+            }
+            XCTAssertEqual(keys.count, 18, "\(chip) probes the 18 M6 CPU keys")
+            XCTAssertEqual(reading.cpuTemperature, 42)
+        }
+    }
+
+    func testIntelCPUProbesAllHexCoreDieKeys() {
+        var keys: [String] = []
+        _ = SensorSMCReader.read(platform: .intel, includeTemperature: true, includeFans: false, at: start) { key in
+            keys.append(key)
+            return nil
+        }
+        // 16 uppercase + 16 lowercase core-die keys, plus the 4 Intel
+        // package/diode fallback keys probed when no core die responds.
+        XCTAssertEqual(keys.count, 36, "32 hex core-die keys + 4 fallback keys")
+        XCTAssertTrue(keys.contains("TCAC"), "hex index A core die")
+        XCTAssertTrue(keys.contains("TCBC"), "hex index B core die")
+        XCTAssertTrue(keys.contains("TCFC"), "hex index F core die")
+        XCTAssertTrue(keys.contains("TCAc"), "lowercase core-die family covers hex A")
+        XCTAssertFalse(keys.contains("TCGC"), "GPU keys are not probed without GPU demand")
+    }
+
     func testSensorDemandAndInvalidSamplesNeverCreateFakeZeros() {
         var keys: [String] = []
         let noDemand = SensorSMCReader.read(platform: .intel, includeTemperature: false, includeFans: false, at: start) { key in keys.append(key); return 0 }

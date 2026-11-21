@@ -1212,6 +1212,7 @@
 "settings.hardwareRing.top.value" = "指標の値";
 "settings.hardwareRing.top.batteryPercentage" = "バッテリー残量";
 "settings.hardwareRing.top.chargingIndicator" = "充電インジケーター";
+"settings.hardwareRing.top.chargingIndicatorHint" = "スタイルは「バッテリー › 上部マーカー」の状態ごとの設定に従います。";
 "settings.hardwareRing.top.hidden" = "非表示";
 "settings.hardwareRing.top.metric" = "上部指標";
 "settings.hardwareRing.group.color" = "カラー";

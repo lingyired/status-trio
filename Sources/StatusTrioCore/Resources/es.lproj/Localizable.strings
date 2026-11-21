@@ -1212,6 +1212,7 @@
 "settings.hardwareRing.top.value" = "Valor de métrica";
 "settings.hardwareRing.top.batteryPercentage" = "Nivel de batería";
 "settings.hardwareRing.top.chargingIndicator" = "Indicador de carga";
+"settings.hardwareRing.top.chargingIndicatorHint" = "El estilo sigue las opciones por estado en Batería > Marcador superior.";
 "settings.hardwareRing.top.hidden" = "Oculto";
 "settings.hardwareRing.top.metric" = "Métrica superior";
 "settings.hardwareRing.group.color" = "Color";

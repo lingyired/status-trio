@@ -1,3 +1,4 @@
+import Combine
 import SwiftUI
 
 /// Whether an enclosing status panel already provides the only scroll surface
@@ -44,6 +45,19 @@ struct StatusPanelScrollArea<Content: View, Footer: View>: View {
     @State private var footerHeight: CGFloat = 0
     /// How far the page has scrolled, in points. Feeds the slim indicator.
     @State private var scrollOffset: CGFloat = 0
+    /// Live copy of the system "Show scroll bars" preference (#360).
+    @State private var systemScrollBarPreference = PanelScrollBarSystemPreference(
+        rawValueString: UserDefaults.standard.string(
+            forKey: PanelScrollBarSystemPreference.defaultsKey
+        )
+    )
+    /// Trackpad (overlay) vs mouse (legacy) — the second input to the mapping.
+    /// Refreshed on appear and on notification, because AppKit's accessor is
+    /// main-actor isolated and cannot seed a stored property's default.
+    @State private var preferredScrollerStyle: NSScroller.Style = .overlay
+    /// True from a scroll event until the transient fade-out timer fires.
+    @State private var isScrolling = false
+    @State private var fadeOutTask: Task<Void, Never>?
 
     init(
         maximumHeight: CGFloat?,
@@ -77,6 +91,21 @@ struct StatusPanelScrollArea<Content: View, Footer: View>: View {
         )
     }
 
+    private var scrollBarPolicy: PanelScrollBarVisibilityPolicy {
+        PanelScrollBarVisibilityPolicy.resolve(
+            systemPreference: systemScrollBarPreference,
+            scrollerStyle: preferredScrollerStyle
+        )
+    }
+
+    private var isIndicatorVisible: Bool {
+        PanelScrollIndicatorVisibility(
+            policy: scrollBarPolicy,
+            overflows: overflowsBudget,
+            isScrolling: isScrolling
+        ).isVisible
+    }
+
     var body: some View {
         // Keep the same content identity when expanding a list crosses the
         // budget. Switching between plain and scrolling branches would reset
@@ -107,6 +136,11 @@ struct StatusPanelScrollArea<Content: View, Footer: View>: View {
                             )
                             .offset(y: metrics.thumbOffset)
                             .padding(.trailing, PanelScrollIndicatorMetrics.trailingInset)
+                            .opacity(isIndicatorVisible ? 1 : 0)
+                            .animation(
+                                .easeInOut(duration: 0.25),
+                                value: isIndicatorVisible
+                            )
                             .allowsHitTesting(false)
                             .accessibilityHidden(true)
                     }
@@ -127,6 +161,27 @@ struct StatusPanelScrollArea<Content: View, Footer: View>: View {
         .onChange(of: maximumHeight) { _ in
             reportHeight(content: contentHeight, footer: footerHeight)
         }
+        .onChange(of: scrollOffset) { _ in
+            noteScrollActivity()
+        }
+        .onAppear {
+            refreshScrollBarPreference()
+        }
+        .onReceive(NotificationCenter.default.publisher(
+            for: UserDefaults.didChangeNotification
+        )) { _ in
+            refreshScrollBarPreference()
+        }
+        .onReceive(NotificationCenter.default.publisher(
+            for: NSScroller.preferredScrollerStyleDidChangeNotification
+        )) { _ in
+            refreshScrollBarPreference()
+        }
+        .onDisappear {
+            fadeOutTask?.cancel()
+            fadeOutTask = nil
+            isScrolling = false
+        }
     }
 
     private func reportHeight(content: CGFloat, footer: CGFloat) {
@@ -134,6 +189,34 @@ struct StatusPanelScrollArea<Content: View, Footer: View>: View {
         // Report in the measurement callback itself. Waiting for another body
         // update after storing this preference delays the window by a frame.
         onNaturalHeight?(min(content + footer, maximumHeight ?? .infinity))
+    }
+
+    /// Only the transient policy fades; a persistent indicator ignores this
+    /// state entirely. Each scroll event restarts the countdown so a continuous
+    /// gesture keeps the bar up until it actually stops.
+    private func noteScrollActivity() {
+        guard scrollBarPolicy == .transient else { return }
+        isScrolling = true
+        fadeOutTask?.cancel()
+        fadeOutTask = Task { @MainActor in
+            try? await Task.sleep(
+                nanoseconds: UInt64(PanelScrollIndicatorVisibility.fadeOutDelay * 1_000_000_000)
+            )
+            guard !Task.isCancelled else { return }
+            isScrolling = false
+        }
+    }
+
+    /// Re-read the two signals when the system preference or input device
+    /// changes. No polling: AppKit posts the notification on the meaningful
+    /// transitions.
+    private func refreshScrollBarPreference() {
+        systemScrollBarPreference = PanelScrollBarSystemPreference(
+            rawValueString: UserDefaults.standard.string(
+                forKey: PanelScrollBarSystemPreference.defaultsKey
+            )
+        )
+        preferredScrollerStyle = NSScroller.preferredScrollerStyle
     }
 
     private var measuredContent: some View {
@@ -226,6 +309,70 @@ enum PanelScrollOffset {
         guard maximum > 0 else { return 0 }
         let raw = documentIsFlipped ? clipOriginY : maximum - clipOriginY
         return min(max(raw, 0), maximum)
+    }
+}
+
+// MARK: - Scroll bar visibility preference (#360)
+
+/// macOS's global "Show scroll bars" option (`AppleShowScrollBars`).
+enum PanelScrollBarSystemPreference: String, CaseIterable {
+    case automatic = "Automatic"
+    case whenScrolling = "WhenScrolling"
+    case always = "Always"
+
+    static let defaultsKey = "AppleShowScrollBars"
+
+    /// Unknown or missing values fall back to `Automatic`, the system default.
+    init(rawValueString: String?) {
+        switch rawValueString {
+        case Self.always.rawValue: self = .always
+        case Self.whenScrolling.rawValue: self = .whenScrolling
+        default: self = .automatic
+        }
+    }
+}
+
+/// How the panel's slim 4pt indicator decides when to be visible (#360).
+enum PanelScrollBarVisibilityPolicy: Equatable {
+    /// Visible whenever the page overflows — system "Always", or "Automatic"
+    /// with a mouse (legacy scrollers).
+    case persistent
+    /// Visible only while the user scrolls, fading out shortly afterwards —
+    /// system "When scrolling", or "Automatic" with a trackpad (overlay).
+    case transient
+
+    static func resolve(
+        systemPreference: PanelScrollBarSystemPreference,
+        scrollerStyle: NSScroller.Style
+    ) -> PanelScrollBarVisibilityPolicy {
+        switch systemPreference {
+        case .always:
+            return .persistent
+        case .whenScrolling:
+            return .transient
+        case .automatic:
+            return scrollerStyle == .legacy ? .persistent : .transient
+        }
+    }
+}
+
+/// The indicator's visible/hidden decision for one frame, kept pure so the
+/// three system preferences and the scrolling states are testable without a
+/// run loop.
+struct PanelScrollIndicatorVisibility: Equatable {
+    /// How long the transient indicator lingers after the last scroll event.
+    static let fadeOutDelay: TimeInterval = 0.6
+
+    let policy: PanelScrollBarVisibilityPolicy
+    let overflows: Bool
+    let isScrolling: Bool
+
+    var isVisible: Bool {
+        guard overflows else { return false }
+        switch policy {
+        case .persistent: return true
+        case .transient: return isScrolling
+        }
     }
 }
 

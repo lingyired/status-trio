@@ -30,8 +30,9 @@ struct GPUDetailReading: Equatable, Sendable {
 }
 
 /// Structured memory detail. Categories are deliberately NOT presented as an
-/// exhaustive partition of physical RAM: `usedBytes` keeps the existing
-/// "App + Wired + Compressed" gauge, while `cachedBytes` (file-backed,
+/// exhaustive partition of physical RAM: `usedBytes` is the Activity Monitor
+/// "Memory Used" gauge ("App + Wired + Compressed"), with `appBytes` taken from
+/// anonymous/internal pages minus purgeable, while `cachedBytes` (file-backed,
 /// reclaimable) and swap are shown separately.
 struct MemoryDetailReading: Equatable, Sendable {
     var percent: Double

@@ -46,6 +46,20 @@ final class RingAccessoryAlignmentTests: XCTestCase {
         ))
     }
 
+    /// The two-arc (left/right) layout — the hardware ring's dual layout and the
+    /// AirPods ring — draws its top marker through `drawAirPodsTopSymbol`.
+    private func dualScene(_ accessory: RingAccessoryState) -> IconSceneState {
+        IconSceneState(outerRing: OuterRingState(
+            segments: [
+                RingSegmentState(progress: 0.4, color: .powered, position: .left),
+                RingSegmentState(progress: 0.6, color: .powered, position: .right),
+            ],
+            gap: .closed,
+            layout: .leftRight,
+            accessory: accessory
+        ))
+    }
+
     private struct Measurement {
         let bboxCentre: CGFloat
         let weightedCentre: CGFloat
@@ -144,6 +158,32 @@ final class RingAccessoryAlignmentTests: XCTestCase {
     /// when an accessory appears: the battery centre is fixed.
     func testRingCentreIsIndependentOfAccessory() {
         XCTAssertEqual(StatusIconGeometry.artworkCenterX, 59.5, accuracy: 0.0001)
+    }
+
+    /// #361: on the two-arc layout the top marker used to drop every primitive
+    /// accessory (the hardware ring's charging bolt/plug) because only
+    /// `.symbol` was handled — the bolt and plug must now draw ink.
+    func testDualRingPrimitiveAccessoryDrawsInk() throws {
+        let full = CGRect(x: 0, y: 0, width: size, height: size)
+        for (name, accessory) in [("bolt", bolt()), ("plug", plug())] {
+            let image = try XCTUnwrap(StatusIconRenderer.render(
+                scene: dualScene(accessory),
+                environment: StatusIconRenderEnvironment(
+                    size: size,
+                    scale: scale,
+                    foreground: CGColor(gray: 1, alpha: 1),
+                    criticalColor: StatusIconRenderer.defaultCriticalColor
+                ),
+                regions: .ringAccessory
+            ))
+            let pixels = try PixelBuffer(image: image)
+            let bounds = try XCTUnwrap(
+                pixels.alphaBounds(inSVGRect: full, size: size, scale: scale, minimumAlpha: 24),
+                "\(name) drew no ink on the dual ring"
+            )
+            XCTAssertGreaterThan(bounds.maxX - bounds.minX, 0, "\(name) has no width")
+            XCTAssertGreaterThan(bounds.maxY - bounds.minY, 0, "\(name) has no height")
+        }
     }
 }
 
