@@ -496,7 +496,7 @@
 "settings.panel.background.style.solid" = "Cor sólida";
 "settings.panel.background.style.liquidGlassUnavailable" = "Liquid Glass requer macOS 26 ou posterior.";
 "settings.panel.levelSliderColor" = "Cor do controle";
-"settings.panel.levelSliderColor.description" = "Cor de preenchimento dos controles de volume, brilho e microfone. Automático segue o painel: branco no escuro, preto no claro.";
+"settings.panel.levelSliderColor.description" = "Volume, saída, brilho, etc.";
 "settings.panel.levelSliderColor.white" = "Branco";
 "settings.panel.levelSliderColor.automatic" = "Automático";
 "settings.panel.openBehavior.title" = "Detalhes e abertura";

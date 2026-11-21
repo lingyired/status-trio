@@ -496,7 +496,7 @@
 "settings.panel.background.style.solid" = "単色";
 "settings.panel.background.style.liquidGlassUnavailable" = "リキッドグラスには macOS 26 以降が必要です。";
 "settings.panel.levelSliderColor" = "スライダーの色";
-"settings.panel.levelSliderColor.description" = "音量・明るさ・マイクのスライダーの塗りつぶし色。自動はパネルに合わせて、ダークでは白、ライトでは黒になります。";
+"settings.panel.levelSliderColor.description" = "音量・出力・明るさなど";
 "settings.panel.levelSliderColor.white" = "ホワイト";
 "settings.panel.levelSliderColor.automatic" = "自動";
 "settings.panel.openBehavior.title" = "詳細と開き方";

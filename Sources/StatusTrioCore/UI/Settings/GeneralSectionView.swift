@@ -171,7 +171,8 @@ struct GeneralSectionView: View {
             SettingsRow(
                 "slider.horizontal.3",
                 tint: .teal,
-                title: localization.string(.settingsPanelLevelSliderColor)
+                title: localization.string(.settingsPanelLevelSliderColor),
+                subtitle: localization.string(.settingsPanelLevelSliderColorDescription)
             ) {
                 PanelLevelSliderColorRow(
                     store: store,

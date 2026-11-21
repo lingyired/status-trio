@@ -496,7 +496,7 @@
 "settings.panel.background.style.solid" = "Сплошной цвет";
 "settings.panel.background.style.liquidGlassUnavailable" = "Liquid Glass требует macOS 26 или новее.";
 "settings.panel.levelSliderColor" = "Цвет ползунка";
-"settings.panel.levelSliderColor.description" = "Цвет заливки ползунков громкости, яркости и микрофона. Авто следует панели: белый в тёмном, чёрный в светлом.";
+"settings.panel.levelSliderColor.description" = "Громкость, вывод, яркость и др.";
 "settings.panel.levelSliderColor.white" = "Белый";
 "settings.panel.levelSliderColor.automatic" = "Авто";
 "settings.panel.openBehavior.title" = "Детали и открытие";

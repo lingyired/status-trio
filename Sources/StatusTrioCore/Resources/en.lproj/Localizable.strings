@@ -495,7 +495,7 @@
 "settings.panel.background.style.solid" = "Solid Color";
 "settings.panel.background.style.liquidGlassUnavailable" = "Liquid Glass requires macOS 26 or later.";
 "settings.panel.levelSliderColor" = "Slider Color";
-"settings.panel.levelSliderColor.description" = "Fill color of the volume, brightness, and microphone sliders. Automatic follows the panel: white in dark, black in light.";
+"settings.panel.levelSliderColor.description" = "Volume, output, brightness and more";
 "settings.panel.levelSliderColor.white" = "White";
 "settings.panel.levelSliderColor.automatic" = "Automatic";
 "settings.panel.openBehavior.title" = "Details & Opening";

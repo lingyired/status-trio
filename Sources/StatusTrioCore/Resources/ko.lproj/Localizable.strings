@@ -496,7 +496,7 @@
 "settings.panel.background.style.solid" = "단색";
 "settings.panel.background.style.liquidGlassUnavailable" = "리퀴드 글래스는 macOS 26 이상이 필요합니다.";
 "settings.panel.levelSliderColor" = "슬라이더 색상";
-"settings.panel.levelSliderColor.description" = "볼륨, 밝기 및 마이크 슬라이더의 채우기 색상입니다. 자동은 패널을 따라 어두우면 흰색, 밝으면 검은색입니다.";
+"settings.panel.levelSliderColor.description" = "볼륨, 출력, 밝기 등";
 "settings.panel.levelSliderColor.white" = "흰색";
 "settings.panel.levelSliderColor.automatic" = "자동";
 "settings.panel.openBehavior.title" = "세부 정보 및 열기 방식";

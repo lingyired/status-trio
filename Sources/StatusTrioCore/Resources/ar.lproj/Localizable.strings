@@ -496,7 +496,7 @@
 "settings.panel.background.style.solid" = "لون موحّد";
 "settings.panel.background.style.liquidGlassUnavailable" = "يتطلب Liquid Glass نظام macOS 26 أو أحدث.";
 "settings.panel.levelSliderColor" = "لون شريط التمرير";
-"settings.panel.levelSliderColor.description" = "لون تعبئة أشرطة التمرير الخاصة بمستوى الصوت والسطوع والميكروفون. تلقائي يتبع اللوحة: أبيض في الداكن وأسود في الفاتح.";
+"settings.panel.levelSliderColor.description" = "مستوى الصوت والإخراج والسطوع وغيرها";
 "settings.panel.levelSliderColor.white" = "أبيض";
 "settings.panel.levelSliderColor.automatic" = "تلقائي";
 "settings.panel.openBehavior.title" = "التفاصيل وطريقة الفتح";

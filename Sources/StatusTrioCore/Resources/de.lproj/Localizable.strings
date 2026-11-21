@@ -496,7 +496,7 @@
 "settings.panel.background.style.solid" = "Einfarbig";
 "settings.panel.background.style.liquidGlassUnavailable" = "Liquid Glass erfordert macOS 26 oder neuer.";
 "settings.panel.levelSliderColor" = "Reglerfarbe";
-"settings.panel.levelSliderColor.description" = "Füllfarbe der Lautstärke-, Helligkeits- und Mikrofonregler. Automatisch folgt dem Panel: Weiß im Dunkeln, Schwarz im Hellen.";
+"settings.panel.levelSliderColor.description" = "Lautstärke, Ausgabe, Helligkeit u. a.";
 "settings.panel.levelSliderColor.white" = "Weiß";
 "settings.panel.levelSliderColor.automatic" = "Automatisch";
 "settings.panel.openBehavior.title" = "Details & Öffnen";

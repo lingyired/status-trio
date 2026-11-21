@@ -496,7 +496,7 @@
 "settings.panel.background.style.solid" = "Tinta unita";
 "settings.panel.background.style.liquidGlassUnavailable" = "Liquid Glass richiede macOS 26 o versione successiva.";
 "settings.panel.levelSliderColor" = "Colore del cursore";
-"settings.panel.levelSliderColor.description" = "Colore di riempimento dei cursori di volume, luminosità e microfono. Automatico segue il pannello: bianco in scuro, nero in chiaro.";
+"settings.panel.levelSliderColor.description" = "Volume, uscita, luminosità, ecc.";
 "settings.panel.levelSliderColor.white" = "Bianco";
 "settings.panel.levelSliderColor.automatic" = "Automatico";
 "settings.panel.openBehavior.title" = "Dettagli e apertura";
