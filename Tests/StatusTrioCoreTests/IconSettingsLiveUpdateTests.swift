@@ -117,4 +117,23 @@ final class IconSettingsLiveUpdateTests: XCTestCase {
             )
         }
     }
+
+    /// #310 regression: the 1.10 plugin composition gated the battery ring on
+    /// battery.isPresent, so a battery-less Mac (and the dev-only no-battery
+    /// preview) dropped the outer ring entirely. It must stay a full ring.
+    func testBatteryLessDrawsFullRingThroughLivePipeline() throws {
+        let suite = "StatusTrioCoreTests.IconLive.\(UUID().uuidString)"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
+        defaults.removePersistentDomain(forName: suite)
+        addTeardownBlock { defaults.removePersistentDomain(forName: suite) }
+
+        let store = SettingsStore(defaults: defaults)
+        store.connectionCenterSource = .network
+        let view = try model(store, snapshot(charging: false, connected: true, batteryPresent: false))
+
+        let ring = try XCTUnwrap(view.output.scene.outerRing, "no-battery must still draw the outer ring")
+        XCTAssertEqual(ring.segments.first?.progress, 1, "a battery-less Mac reads as a full 100% ring")
+        XCTAssertEqual(ring.segments.first?.color, .primary, "a battery-less ring uses the foreground colour")
+        view.stop()
+    }
 }

@@ -36,6 +36,10 @@ extension IconPresentationResourceResolver {
         let volumeAvailability: IconSourceAvailability = snapshot.volume.scalar != nil
             ? .available
             : .unavailable(.unknown)
+        // The numeric battery sources (centre percentage, footer) are hidden
+        // without a battery, but the ring is not: #310 draws a battery-less Mac
+        // as a full decorative ring, so its source stays available and the
+        // mapper paints the 100% / full ring instead of falling back to nothing.
         let batteryAvailability: IconSourceAvailability = snapshot.battery.isPresent
             ? .available
             : .unavailable(.disconnected)
@@ -100,7 +104,7 @@ extension IconPresentationResourceResolver {
             CenterSource.bluetoothAudioOutput.rawValue: currentAudioOutputAvailability,
             CenterSource.systemBatteryPercentage.rawValue: batteryAvailability,
             CenterSource.connectedBluetoothDevice.rawValue: connectedDeviceAvailability,
-            RingSource.systemBattery.rawValue: batteryAvailability,
+            RingSource.systemBattery.rawValue: .available,
             RingSource.airPodsBattery.rawValue: airPodsAvailability,
             FooterSource.systemVolume.rawValue: volumeAvailability
         ], airPodsBattery: airPodsBattery, connectedBluetoothDeviceSymbol: connectedDeviceSymbol,

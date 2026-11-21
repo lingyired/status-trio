@@ -79,9 +79,9 @@ enum IconPreviewScenario: String, CaseIterable, Hashable, Sendable {
 
         let snapshot = StatusSnapshot(battery: battery, wifi: wifi, connection: connection, volume: volume)
         var availability = liveInputs.sources.availability
-        availability[RingSource.systemBattery.rawValue] = snapshot.battery.isPresent
-            ? .available
-            : .unavailable(.disconnected)
+        // Battery-less still draws the full decorative ring (#310); only the
+        // numeric centres go unavailable.
+        availability[RingSource.systemBattery.rawValue] = .available
         availability[CenterSource.systemBatteryPercentage.rawValue] = snapshot.battery.isPresent
             ? .available
             : .unavailable(.disconnected)

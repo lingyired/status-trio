@@ -72,9 +72,9 @@ enum IconPreviewInputBuilder {
             : nil
 
         var availability: [String: IconSourceAvailability] = [
-            RingSource.systemBattery.rawValue: samples.macBattery.isPresent
-                ? .available
-                : .unavailable(.disconnected),
+            // A battery-less sample still draws the full decorative ring (#310);
+            // only the numeric centres go unavailable.
+            RingSource.systemBattery.rawValue: .available,
             RingSource.airPodsBattery.rawValue: samples.airPods.leftAvailable || samples.airPods.rightAvailable
                 ? .available
                 : .unavailable(.unknown),
