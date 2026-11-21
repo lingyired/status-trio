@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="screenshots/status-trio-dock-state-strip-symmetric.png" width="1000" alt="ダークとライトの背景を左右対称に並べた 8 種類の Status Trio Dock アイコン状態。Wi-Fi、Bluetooth オーディオ、バッテリー、ドット、円弧の各状態を含みます">
+  <img src="screenshots/status-trio-dock-state-strip-symmetric-two-row.png" width="1000" alt="ダークとライトの背景を左右対称に並べた 16 種類の Status Trio Dock アイコン状態。Wi-Fi、Bluetooth オーディオ、バッテリー、ドット、円弧の各状態を含みます">
 </p>
 
 <p align="center">

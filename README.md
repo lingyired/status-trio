@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="screenshots/status-trio-dock-state-strip-symmetric.png" width="1000" alt="Eight Status Trio Dock icon states with symmetrically arranged dark and light backgrounds, including Wi-Fi, Bluetooth audio, battery, dots, and arc states">
+  <img src="screenshots/status-trio-dock-state-strip-symmetric-two-row.png" width="1000" alt="Sixteen Status Trio Dock icon states with symmetrically arranged dark and light backgrounds, including Wi-Fi, Bluetooth audio, battery, dots, and arc states">
 </p>
 
 <p align="center">

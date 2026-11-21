@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="screenshots/status-trio-dock-state-strip-symmetric.png" width="1000" alt="Ocho estados del icono de Status Trio en el Dock con fondos oscuros y claros dispuestos de forma simétrica, incluidos estados de Wi-Fi, audio por Bluetooth, batería, puntos y arco">
+  <img src="screenshots/status-trio-dock-state-strip-symmetric-two-row.png" width="1000" alt="Dieciséis estados del icono de Status Trio en el Dock con fondos oscuros y claros dispuestos de forma simétrica, incluidos estados de Wi-Fi, audio por Bluetooth, batería, puntos y arco">
 </p>
 
 <p align="center">

@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="screenshots/status-trio-dock-state-strip-symmetric.png" width="1000" alt="어두운 배경과 밝은 배경이 대칭으로 배치된 여덟 가지 Status Trio Dock 아이콘 상태. Wi-Fi, Bluetooth 오디오, 배터리, 점, 호 상태를 포함합니다">
+  <img src="screenshots/status-trio-dock-state-strip-symmetric-two-row.png" width="1000" alt="어두운 배경과 밝은 배경이 대칭으로 배치된 열여섯 가지 Status Trio Dock 아이콘 상태. Wi-Fi, Bluetooth 오디오, 배터리, 점, 호 상태를 포함합니다">
 </p>
 
 <p align="center">

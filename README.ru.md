@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="screenshots/status-trio-dock-state-strip-symmetric.png" width="1000" alt="Восемь состояний значка Status Trio в Dock с симметрично расположенными тёмными и светлыми фонами, включая состояния Wi-Fi, звука Bluetooth, батареи, точек и дуги">
+  <img src="screenshots/status-trio-dock-state-strip-symmetric-two-row.png" width="1000" alt="Шестнадцать состояний значка Status Trio в Dock с симметрично расположенными тёмными и светлыми фонами, включая состояния Wi-Fi, звука Bluetooth, батареи, точек и дуги">
 </p>
 
 <p align="center">

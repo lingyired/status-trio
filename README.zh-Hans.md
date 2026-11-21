@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="screenshots/status-trio-dock-state-strip-symmetric.png" width="1000" alt="Status Trio 八种程序坞图标状态，深色与浅色背景对称排列，包含 Wi-Fi、蓝牙音频、电池、圆点和圆弧状态">
+  <img src="screenshots/status-trio-dock-state-strip-symmetric-two-row.png" width="1000" alt="Status Trio 十六种程序坞图标状态，深色与浅色背景对称排列，包含 Wi-Fi、蓝牙音频、电池、圆点和圆弧状态">
 </p>
 
 <p align="center">

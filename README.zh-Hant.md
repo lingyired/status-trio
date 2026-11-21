@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="screenshots/status-trio-dock-state-strip-symmetric.png" width="1000" alt="Status Trio 八種 Dock 圖示狀態，深色與淺色背景對稱排列，包含 Wi-Fi、藍牙音訊、電池、圓點和圓弧狀態">
+  <img src="screenshots/status-trio-dock-state-strip-symmetric-two-row.png" width="1000" alt="Status Trio 十六種 Dock 圖示狀態，深色與淺色背景對稱排列，包含 Wi-Fi、藍牙音訊、電池、圓點和圓弧狀態">
 </p>
 
 <p align="center">
