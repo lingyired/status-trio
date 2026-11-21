@@ -42,6 +42,30 @@ enum PanelLevelSliderMetrics {
         return horizontalInset + CGFloat(clamped) * max(0, width - horizontalInset * 2)
     }
 
+    /// Fill width for a value in 0...1 while the thumb is drawn.
+    ///
+    /// The fill stops at the thumb's centre; the thumb itself covers the rest of
+    /// the way to the capsule edge. Painting past the centre would poke out above
+    /// and below the circle, because the 18pt thumb is taller than the 4–13pt
+    /// capsule and its silhouette narrows near the capsule's top/bottom edges
+    /// (#359).
+    static func coveredFillWidth(for value: Double, width: CGFloat) -> CGFloat {
+        let barWidth = max(0, width)
+        return min(barWidth, max(0, thumbCenterX(for: value, width: barWidth)))
+    }
+
+    /// Fill width for a value in 0...1 when no thumb is drawn.
+    ///
+    /// At rest the thumb is hidden, so the fill alone must show the value across
+    /// the whole capsule: a full value has to reach the right edge instead of
+    /// stopping one radius short (#359). Straight value-proportional width keeps
+    /// 0/50/99/100% honest.
+    static func restingFillWidth(for value: Double, width: CGFloat) -> CGFloat {
+        let barWidth = max(0, width)
+        let clamped = CGFloat(min(1, max(0, value)))
+        return min(barWidth, max(0, barWidth * clamped))
+    }
+
     static var labelFont: NSFont {
         .systemFont(ofSize: labelFontSize, weight: .medium)
     }
@@ -853,8 +877,12 @@ final class PanelLevelSliderView: NSSlider {
         trackImage?.draw(in: bar)
 
         if isEnabled, clampedDoubleValue > 0.001 {
-            let centerX = knobCenter(in: bounds).x
-            let fillWidth = min(max(0, centerX - bar.minX), bar.width)
+            // When the thumb is visible it hides the seam, so the fill stops at
+            // its centre; when it is hidden the fill must carry the value all the
+            // way to the capsule edge (#359).
+            let fillWidth = isThumbVisible
+                ? PanelLevelSliderMetrics.coveredFillWidth(for: clampedDoubleValue, width: bar.width)
+                : PanelLevelSliderMetrics.restingFillWidth(for: clampedDoubleValue, width: bar.width)
             if fillWidth > 0.5, let fillImage {
                 fillImage.draw(
                     in: NSRect(x: bar.minX, y: bar.minY, width: fillWidth, height: bar.height),

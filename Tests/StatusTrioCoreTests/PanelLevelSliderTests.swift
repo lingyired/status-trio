@@ -34,6 +34,66 @@ final class PanelLevelSliderTests: XCTestCase {
         )
     }
 
+    // MARK: Fill reaches the capsule's right edge at rest (#359)
+
+    func testRestingFillReachesCapsuleEdgeAtFullValue() {
+        XCTAssertEqual(
+            PanelLevelSliderMetrics.restingFillWidth(for: 1, width: controlWidth),
+            controlWidth,
+            accuracy: 0.001
+        )
+    }
+
+    func testRestingFillTracksValueAcrossTheCapsule() {
+        for value in [0.0, 0.25, 0.5, 0.75, 0.99] {
+            XCTAssertEqual(
+                PanelLevelSliderMetrics.restingFillWidth(for: value, width: controlWidth),
+                CGFloat(value) * controlWidth,
+                accuracy: 0.001,
+                "resting fill must match the value at \(value)"
+            )
+        }
+    }
+
+    func testCoveredFillStopsAtTheThumbCentre() {
+        // While the thumb is visible the fill must not run past its centre, or it
+        // pokes out above/below the circle on the shorter capsule (#359).
+        for value in stride(from: 0.0, through: 1.0, by: 0.05) {
+            let fill = PanelLevelSliderMetrics.coveredFillWidth(for: value, width: controlWidth)
+            XCTAssertEqual(
+                fill,
+                PanelLevelSliderMetrics.thumbCenterX(for: value, width: controlWidth),
+                accuracy: 0.001,
+                "covered fill must end at the thumb centre at \(value)"
+            )
+        }
+    }
+
+    func testFillNeverExceedsCapsuleWidth() {
+        for value in stride(from: 0.0, through: 1.0, by: 0.05) {
+            for width in [
+                PanelLevelSliderMetrics.restingFillWidth(for: value, width: controlWidth),
+                PanelLevelSliderMetrics.coveredFillWidth(for: value, width: controlWidth)
+            ] {
+                XCTAssertGreaterThanOrEqual(width, 0)
+                XCTAssertLessThanOrEqual(width, controlWidth + 0.001)
+            }
+        }
+    }
+
+    func testFillIsStableForZeroWidth() {
+        XCTAssertEqual(
+            PanelLevelSliderMetrics.restingFillWidth(for: 1, width: 0),
+            0,
+            accuracy: 0.001
+        )
+        XCTAssertEqual(
+            PanelLevelSliderMetrics.coveredFillWidth(for: 1, width: 0),
+            0,
+            accuracy: 0.001
+        )
+    }
+
     // MARK: Inline label avoidance at 0/10/50/90/100 %
 
     private func center(_ value: Double) -> CGFloat {
