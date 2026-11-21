@@ -349,6 +349,8 @@ enum LocalizationKey: String, CaseIterable, Hashable, Sendable {
     case settingsPanelLevelSliderColorDescription = "settings.panel.levelSliderColor.description"
     case settingsPanelLevelSliderColorWhite = "settings.panel.levelSliderColor.white"
     case settingsPanelLevelSliderColorAutomatic = "settings.panel.levelSliderColor.automatic"
+    case settingsPanelLevelSliderThickness = "settings.panel.levelSliderThickness"
+    case settingsPanelLevelSliderThicknessDescription = "settings.panel.levelSliderThickness.description"
     case settingsPanelOpenBehaviorTitle = "settings.panel.openBehavior.title"
     case settingsPanelShowsDetailsAlongside = "settings.panel.showsDetailsAlongside"
     case settingsPanelShowsDetailsAlongsideDescription = "settings.panel.showsDetailsAlongside.description"

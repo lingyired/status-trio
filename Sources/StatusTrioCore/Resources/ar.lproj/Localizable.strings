@@ -499,6 +499,8 @@
 "settings.panel.levelSliderColor.description" = "مستوى الصوت والإخراج والسطوع وغيرها";
 "settings.panel.levelSliderColor.white" = "أبيض";
 "settings.panel.levelSliderColor.automatic" = "تلقائي";
+"settings.panel.levelSliderThickness" = "نفس سُمك السطوع";
+"settings.panel.levelSliderThickness.description" = "رسم أشرطة مستوى الصوت والميكروفون بنفس ارتفاع كبسولة السطوع.";
 "settings.panel.openBehavior.title" = "التفاصيل وطريقة الفتح";
 "settings.panel.returnsToSummaryOnOpen" = "إعادة فتح آخر صفحة تفاصيل";
 "settings.panel.returnsToSummaryOnOpen.description" = "عند التفعيل، تعود لوحة الحالة عند إعادة فتحها إلى صفحة التفاصيل التي كانت معروضة عند إغلاقها؛ وإلا فتبدأ دائمًا من النظرة العامة.";

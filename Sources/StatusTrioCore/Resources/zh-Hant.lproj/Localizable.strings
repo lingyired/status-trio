@@ -499,6 +499,8 @@
 "settings.panel.levelSliderColor.description" = "音量、輸出、亮度等";
 "settings.panel.levelSliderColor.white" = "白色";
 "settings.panel.levelSliderColor.automatic" = "自動";
+"settings.panel.levelSliderThickness" = "與亮度滑條同粗";
+"settings.panel.levelSliderThickness.description" = "讓音量和麥克風滑條使用與亮度相同的膠囊高度。";
 "settings.panel.openBehavior.title" = "詳情與開啟方式";
 "settings.panel.returnsToSummaryOnOpen" = "重新開啟時恢復詳情頁";
 "settings.panel.returnsToSummaryOnOpen.description" = "開啟後，再次開啟狀態面板會回到上次收起時仍顯示的詳情頁；關閉後，每次只顯示主介面。";

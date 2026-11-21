@@ -82,6 +82,11 @@ enum SettingsPreferenceCatalog {
             enumeration("dockIconBackgroundPreference", \.dockIconBackgroundPreference, default: .system),
             enumeration("panelBackgroundStyle", \.panelBackgroundStyle, default: PanelBackgroundStyle.systemDefault),
             panelLevelSliderColorPreference,
+            boolean(
+                "panelLevelSliderMatchesBrightnessThickness",
+                \.panelLevelSliderMatchesBrightnessThickness,
+                default: false
+            ),
             enumeration("menuBarRightClickAction", \.menuBarRightClickAction, default: .contextMenu),
             number("refreshIntervalOnBatterySeconds", \.refreshIntervalOnBatterySeconds,
                    default: SettingsStore.defaultRefreshIntervalSeconds, range: SettingsStore.refreshIntervalRange, step: 1),

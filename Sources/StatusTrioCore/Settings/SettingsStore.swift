@@ -162,6 +162,10 @@ final class SettingsStore: ObservableObject {
     /// brightness, microphone). Defaults to `.automatic` (label colour: white on
     /// a dark panel, black on a light one); stored as a hand-parseable string (#359).
     static let panelLevelSliderColorDefaultsKey = "panelLevelSliderColor"
+    /// When true, the volume and microphone rows draw their capsules with the
+    /// taller brightness-style geometry instead of the slim compact track (#368).
+    static let panelLevelSliderMatchesBrightnessThicknessDefaultsKey =
+        "panelLevelSliderMatchesBrightnessThickness"
     static let prioritizesNetworkErrorsDefaultsKey = "prioritizesNetworkErrors"
     /// Migration-only keys from the split middle-slot settings.
     static let prioritizesNetworkErrorsOverInputSourceDefaultsKey = "prioritizesNetworkErrorsOverInputSource"
@@ -493,6 +497,19 @@ final class SettingsStore: ObservableObject {
             defaults.set(
                 panelLevelSliderColor.storageValue,
                 forKey: Self.panelLevelSliderColorDefaultsKey
+            )
+        }
+    }
+
+    /// Whether the volume and microphone rows use the same capsule thickness as
+    /// the brightness rows. Defaults to off, keeping the compact rows as the
+    /// out-of-the-box look (#368).
+    @Published var panelLevelSliderMatchesBrightnessThickness: Bool = false {
+        didSet {
+            guard panelLevelSliderMatchesBrightnessThickness != oldValue else { return }
+            defaults.set(
+                panelLevelSliderMatchesBrightnessThickness,
+                forKey: Self.panelLevelSliderMatchesBrightnessThicknessDefaultsKey
             )
         }
     }
@@ -2615,6 +2632,9 @@ final class SettingsStore: ObservableObject {
         self.panelLevelSliderColor = storedPanelLevelSliderColor
             .map(PanelLevelSliderColorSelection.init(storageValue:))
             ?? .default
+        self.panelLevelSliderMatchesBrightnessThickness = defaults.object(
+            forKey: Self.panelLevelSliderMatchesBrightnessThicknessDefaultsKey
+        ) as? Bool ?? false
         let storedMenuBarRightClickAction = defaults.string(
             forKey: Self.menuBarRightClickActionDefaultsKey
         )

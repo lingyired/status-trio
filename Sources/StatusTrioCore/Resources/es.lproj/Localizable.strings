@@ -499,6 +499,8 @@
 "settings.panel.levelSliderColor.description" = "Volumen, salida, brillo, etc.";
 "settings.panel.levelSliderColor.white" = "Blanco";
 "settings.panel.levelSliderColor.automatic" = "Automático";
+"settings.panel.levelSliderThickness" = "Mismo grosor que el brillo";
+"settings.panel.levelSliderThickness.description" = "Dibuja los controles de volumen y micrófono con la misma altura de cápsula que el brillo.";
 "settings.panel.openBehavior.title" = "Detalles y apertura";
 "settings.panel.returnsToSummaryOnOpen" = "Reabrir la última página de detalle";
 "settings.panel.returnsToSummaryOnOpen.description" = "Si se activa, al reabrir el panel de estado se vuelve a la página de detalle que estaba visible al cerrarlo; en caso contrario, siempre empieza en el resumen.";

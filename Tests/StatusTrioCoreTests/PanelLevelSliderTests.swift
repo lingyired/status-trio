@@ -243,6 +243,46 @@ final class PanelLevelSliderTests: XCTestCase {
         XCTAssertLessThan(width, 60)
     }
 
+    // MARK: Label contrast on custom fills (#368)
+
+    func testRelativeLuminanceMatchesKnownValues() {
+        XCTAssertEqual(
+            PanelLevelSliderColorContrast.relativeLuminance(of: .black) ?? -1,
+            0,
+            accuracy: 0.001
+        )
+        XCTAssertEqual(
+            PanelLevelSliderColorContrast.relativeLuminance(of: .white) ?? -1,
+            1,
+            accuracy: 0.001
+        )
+    }
+
+    func testLightFillUsesDarkInk() {
+        let ink = PanelLevelSliderColorContrast.textColor(forFill: .white, isDarkAppearance: true)
+        XCTAssertLessThan(
+            ink.usingColorSpace(.sRGB)?.redComponent ?? 1,
+            0.2,
+            "a white fill needs dark ink even on a dark panel"
+        )
+    }
+
+    func testDarkFillUsesLightInk() {
+        let ink = PanelLevelSliderColorContrast.textColor(forFill: .black, isDarkAppearance: false)
+        XCTAssertGreaterThan(
+            ink.usingColorSpace(.sRGB)?.redComponent ?? 0,
+            0.8,
+            "a black fill needs light ink even on a light panel"
+        )
+    }
+
+    func testCustomWhiteFillOnLightPanelStillUsesDarkInk() {
+        // The old appearance-only rule painted white ink here, which vanished
+        // on a custom white fill (#368).
+        let ink = PanelLevelSliderColorContrast.textColor(forFill: .white, isDarkAppearance: false)
+        XCTAssertLessThan(ink.usingColorSpace(.sRGB)?.redComponent ?? 1, 0.2)
+    }
+
     // MARK: AppKit control
 
     func testControlUsesNativeLinearContinuousSliderConfiguration() {

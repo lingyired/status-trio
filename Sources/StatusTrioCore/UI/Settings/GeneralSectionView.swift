@@ -179,6 +179,16 @@ struct GeneralSectionView: View {
                     localization: localization
                 )
             }
+
+            SettingsDivider()
+
+            SettingsToggleRow(
+                symbol: "rectangle.portrait.arrowtriangle.2.outward",
+                tint: .teal,
+                title: localization.string(.settingsPanelLevelSliderThickness),
+                subtitle: localization.string(.settingsPanelLevelSliderThicknessDescription),
+                isOn: $store.panelLevelSliderMatchesBrightnessThickness
+            )
         }
     }
 

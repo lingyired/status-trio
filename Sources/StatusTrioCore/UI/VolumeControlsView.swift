@@ -12,6 +12,7 @@ struct VolumeControlsSection: View {
     let scrollTargets: PopoverScrollTargets
     let onOpenSoundSettings: () -> Void
     var fillColor: Color = .primary
+    var matchesBrightnessThickness: Bool = false
 
     var body: some View {
         VolumeControlsView(
@@ -19,7 +20,8 @@ struct VolumeControlsSection: View {
             actions: actions,
             scrollTargets: scrollTargets,
             onOpenSoundSettings: onOpenSoundSettings,
-            fillColor: fillColor
+            fillColor: fillColor,
+            matchesBrightnessThickness: matchesBrightnessThickness
         )
     }
 }
@@ -38,6 +40,7 @@ struct VolumeControlsView: View {
     let scrollTargets: PopoverScrollTargets
     let onOpenSoundSettings: () -> Void
     var fillColor: Color = .primary
+    var matchesBrightnessThickness: Bool = false
 
     @State private var interaction: VolumeControlInteraction
 
@@ -46,13 +49,15 @@ struct VolumeControlsView: View {
         actions: StatusPanelActions,
         scrollTargets: PopoverScrollTargets,
         onOpenSoundSettings: @escaping () -> Void,
-        fillColor: Color = .primary
+        fillColor: Color = .primary,
+        matchesBrightnessThickness: Bool = false
     ) {
         self.state = state
         self.actions = actions
         self.scrollTargets = scrollTargets
         self.onOpenSoundSettings = onOpenSoundSettings
         self.fillColor = fillColor
+        self.matchesBrightnessThickness = matchesBrightnessThickness
         _interaction = State(
             initialValue: VolumeControlInteraction(
                 setVolume: { actions.setVolume($0) },
@@ -91,8 +96,12 @@ struct VolumeControlsView: View {
                     onEditingChanged: { isEditing in
                         handleVolumeEditing(isEditing)
                     },
-                    height: PanelLevelSliderMetrics.compactSlotHeight,
-                    barHeight: PanelLevelSliderMetrics.compactBarHeight
+                    height: matchesBrightnessThickness
+                        ? PanelLevelSliderMetrics.controlHeight
+                        : PanelLevelSliderMetrics.compactSlotHeight,
+                    barHeight: matchesBrightnessThickness
+                        ? PanelLevelSliderMetrics.barHeight
+                        : PanelLevelSliderMetrics.compactBarHeight
                 )
                     .background(VolumeControlScrollTarget(targets: scrollTargets))
 

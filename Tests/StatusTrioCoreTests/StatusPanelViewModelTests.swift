@@ -977,6 +977,17 @@ final class StatusPanelViewModelTests: XCTestCase {
         XCTAssertEqual(panelChanges, 2, "resetting the color must also update the panel immediately")
     }
 
+    func testSliderThicknessSettingMirrorsIntoPanelModel() {
+        let fixture = PanelStoreFixture()
+        let panel = fixture.makePanel()
+        defer { panel.stop(); fixture.store.stop() }
+        panel.start()
+
+        XCTAssertFalse(panel.panelLevelSliderMatchesBrightnessThickness)
+        fixture.settings.panelLevelSliderMatchesBrightnessThickness = true
+        XCTAssertTrue(panel.panelLevelSliderMatchesBrightnessThickness)
+    }
+
     /// The Settings switch drives the two weight tiers; the panel model must
     /// mirror both so the environment values reach every panel view.
     func testPanelTextWeightSettingsMirrorIntoPanelModel() throws {
