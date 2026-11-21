@@ -492,5 +492,63 @@ final class HardwareRingMapperTests: XCTestCase {
         }
         XCTAssertEqual(text.text, "37")
     }
+
+    func testChargingIndicatorFollowsConfiguredChargingMarker() {
+        let charging = battery(percent: 40, charging: true, connected: true)
+        let plugState = HardwareRingMapper.resolve(
+            snapshot: snapshot([:]), configuration: singleRing(topContent: .chargingIndicator),
+            battery: charging, batteryOptions: BatteryIconOptions(chargingMarker: .plug), now: now
+        )
+        guard case let .symbol(plugSymbol)? = plugState.accessory else {
+            return XCTFail("expected plug accessory")
+        }
+        XCTAssertEqual(plugSymbol.source, .primitive(.plug))
+
+        let hiddenState = HardwareRingMapper.resolve(
+            snapshot: snapshot([:]), configuration: singleRing(topContent: .chargingIndicator),
+            battery: charging, batteryOptions: BatteryIconOptions(chargingMarker: .hidden), now: now
+        )
+        XCTAssertNil(hiddenState.accessory)
+        XCTAssertEqual(hiddenState.gap, .closed)
+    }
+
+    func testChargingIndicatorFollowsConfiguredNoBatteryMarker() {
+        let hidden = HardwareRingMapper.resolve(
+            snapshot: snapshot([:]), configuration: singleRing(topContent: .chargingIndicator),
+            battery: battery(percent: 100, present: false),
+            batteryOptions: BatteryIconOptions(noBatteryMarker: .hidden), now: now
+        )
+        XCTAssertNil(hidden.accessory)
+
+        let bolt = HardwareRingMapper.resolve(
+            snapshot: snapshot([:]), configuration: singleRing(topContent: .chargingIndicator),
+            battery: battery(percent: 100, present: false),
+            batteryOptions: BatteryIconOptions(noBatteryMarker: .bolt), now: now
+        )
+        guard case let .symbol(symbol)? = bolt.accessory else {
+            return XCTFail("expected bolt accessory")
+        }
+        XCTAssertEqual(symbol.source, .primitive(.bolt))
+    }
+
+    func testChargingIndicatorDualLayoutUsesPrimitiveBolt() {
+        let config = HardwareRingConfiguration(
+            layout: .dual, primaryMetric: .cpuUsage, secondaryMetric: .gpuUsage,
+            topContent: .chargingIndicator
+        )
+        let state = HardwareRingMapper.resolve(
+            snapshot: snapshot([
+                .cpuUsage: sample(20, unit: .percent),
+                .gpuUsage: sample(30, unit: .percent),
+            ]),
+            configuration: config,
+            battery: battery(percent: 40, charging: true, connected: true), now: now
+        )
+        XCTAssertEqual(state.layout, .leftRight)
+        guard case let .symbol(symbol)? = state.accessory else {
+            return XCTFail("expected symbol accessory")
+        }
+        XCTAssertEqual(symbol.source, .primitive(.bolt))
+    }
 }
 

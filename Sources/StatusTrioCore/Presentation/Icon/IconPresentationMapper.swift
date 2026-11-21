@@ -99,28 +99,9 @@ enum IconPresentationMapper {
         // top gap closes and its own accessory (percentage/bolt/plug) is not
         // drawn — otherwise the same value would appear twice.
         let gap: RingGapStyle = closesRing ? .closed : gapStyle
-        let accessory: RingAccessoryState?
-        if closesRing {
-            accessory = nil
-        } else {
-            accessory = switch gapContent {
-            case .empty: nil
-            case .percentage:
-                .text(IconTextState(text: "\(battery.percentage)", color: .primary, scale: options.textScale))
-            case .bolt:
-                .symbol(IconSymbolState(
-                    source: .primitive(.bolt),
-                    color: .primary,
-                    scale: options.textScale
-                ))
-            case .plug:
-                .symbol(IconSymbolState(
-                    source: .primitive(.plug),
-                    color: .primary,
-                    scale: options.textScale
-                ))
-            }
-        }
+        let accessory: RingAccessoryState? = closesRing
+            ? nil
+            : gapContent.ringAccessory(battery: battery, scale: options.textScale)
         let effect: RingEffectState? = options.showsChargingEffect
                 && battery.isPresent
                 && battery.isCharging

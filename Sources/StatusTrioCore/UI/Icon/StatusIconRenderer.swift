@@ -1235,27 +1235,52 @@ extension StatusIconRenderer {
         statusPalette: BatteryStatusColorPalette,
         in context: CGContext
     ) {
-        guard case let .symbol(name, variableValue, fallback) = symbol.source else { return }
-        let resolvedName = resolvedCenterSymbolName(name: name, fallback: fallback, color: symbol.color)
-        let usesFallback = !availableSymbol(name)
-        let indicatorTextScale = symbol.scale
-        let center = StatusIconGeometry.batteryTopIndicatorCenter(
-            boltScale: batteryChargingBoltScale(textScale: indicatorTextScale)
-        )
-        let calibratedHeight = batteryTopIndicatorHeight(textScale: indicatorTextScale)
-        let availableHeight = max(1, center.y * 2 - 2)
-        let pointSize = airPodsTopSymbolPointSize(
-            name: resolvedName,
-            targetHeight: min(calibratedHeight, availableHeight)
-        )
-        drawOfficialSymbol(
-            name: resolvedName,
-            variableValue: usesFallback ? 1 : (variableValue ?? 1),
-            pointSize: pointSize,
-            center: center,
-            foreground: sceneColor(for: symbol.color, foreground: foreground, statusPalette: statusPalette),
-            in: context
-        )
+        switch symbol.source {
+        case let .symbol(name, variableValue, fallback):
+            let resolvedName = resolvedCenterSymbolName(name: name, fallback: fallback, color: symbol.color)
+            let usesFallback = !availableSymbol(name)
+            let indicatorTextScale = symbol.scale
+            let center = StatusIconGeometry.batteryTopIndicatorCenter(
+                boltScale: batteryChargingBoltScale(textScale: indicatorTextScale)
+            )
+            let calibratedHeight = batteryTopIndicatorHeight(textScale: indicatorTextScale)
+            let availableHeight = max(1, center.y * 2 - 2)
+            let pointSize = airPodsTopSymbolPointSize(
+                name: resolvedName,
+                targetHeight: min(calibratedHeight, availableHeight)
+            )
+            drawOfficialSymbol(
+                name: resolvedName,
+                variableValue: usesFallback ? 1 : (variableValue ?? 1),
+                pointSize: pointSize,
+                center: center,
+                foreground: sceneColor(for: symbol.color, foreground: foreground, statusPalette: statusPalette),
+                in: context
+            )
+        case .primitive(.bolt):
+            // #361: the dual (left/right) ring's top marker can be a hardware
+            // ring's charging bolt, which is a primitive rather than a symbol —
+            // draw it with the same battery geometry the single ring uses.
+            let indicatorScale = batteryChargingBoltScale(textScale: symbol.scale)
+            let bolt = StatusIconGeometry.batteryChargingBolt(scale: indicatorScale)
+            context.setFillColor(
+                sceneColor(for: symbol.color, foreground: foreground, statusPalette: statusPalette)
+            )
+            context.addPath(bolt)
+            context.fillPath()
+        case .primitive(.plug):
+            drawBatteryPlug(
+                boltScale: batteryChargingBoltScale(textScale: symbol.scale),
+                foreground: sceneColor(for: symbol.color, foreground: foreground, statusPalette: statusPalette),
+                in: context
+            )
+        case .primitive:
+            // The other primitives (wired port, screen/arrow wedges) are centre
+            // artwork, not top markers; nothing to draw in the accessory slot.
+            return
+        case .image:
+            return
+        }
     }
 
     private static func drawSceneRing(
