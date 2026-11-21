@@ -216,4 +216,19 @@ final class PhaseOneCorrectnessTests: XCTestCase {
         XCTAssertFalse(reopened.statusPanelMediumTextEnabled)
         XCTAssertTrue(reopened.keepsPanelOpenWhenOpeningSettings)
     }
+
+    /// The single "Bold panel text" switch must move both weight tiers together
+    /// so "on" restores the classic bold + medium look and "off" is all regular.
+    func testBoldPanelTextToggleDrivesBothBoldAndMediumTiers() throws {
+        let store = try makeStore()
+        XCTAssertFalse(store.statusPanelBoldTextEnabled, "defaults to the current regular look")
+
+        store.applyPanelBoldTextToggle(true)
+        XCTAssertTrue(store.statusPanelBoldTextEnabled)
+        XCTAssertTrue(store.statusPanelMediumTextEnabled)
+
+        store.applyPanelBoldTextToggle(false)
+        XCTAssertFalse(store.statusPanelBoldTextEnabled)
+        XCTAssertFalse(store.statusPanelMediumTextEnabled)
+    }
 }

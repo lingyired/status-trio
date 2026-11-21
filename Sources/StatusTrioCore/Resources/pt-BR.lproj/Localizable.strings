@@ -1316,10 +1316,8 @@
 
 "settings.popup.scrollWheelStep" = "Incremento da roda";
 "settings.popup.scrollWheelStep.description" = "Variação por passo de volume, brilho e microfone. O trackpad continua com ajuste contínuo.";
-"settings.panel.boldText" = "Desativar todo o negrito";
-"settings.panel.boldText.description" = "Remove o negrito de todos os títulos e valores do painel de status para comparar.";
-"settings.panel.mediumText" = "Desativar o peso médio";
-"settings.panel.mediumText.description" = "Também reduz títulos e valores de peso médio para regular para uma comparação totalmente plana.";
+"settings.panel.boldText" = "Texto do painel em negrito";
+"settings.panel.boldText.description" = "Títulos e valores em negrito (aparência original). Desativado, o texto volta ao peso normal.";
 "settings.panel.keepOpenForComparison" = "Manter o painel aberto ao abrir Ajustes";
 "settings.panel.keepOpenForComparison.description" = "Deixa o painel de status ao lado dos Ajustes para comparar as mudanças.";
 "updates.failure.title" = "Falha na atualização";

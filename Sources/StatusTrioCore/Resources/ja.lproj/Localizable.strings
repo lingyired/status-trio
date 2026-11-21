@@ -1316,10 +1316,8 @@
 
 "settings.popup.scrollWheelStep" = "ホイールの調整幅";
 "settings.popup.scrollWheelStep.description" = "1目盛りあたりの音量・明るさ・マイクの調整幅。トラックパッドは連続調整のままです。";
-"settings.panel.boldText" = "太字をすべて無効化";
-"settings.panel.boldText.description" = "比較用に、ステータスパネル内の見出しと数値の太字をすべて解除します。";
-"settings.panel.mediumText" = "中太字も無効化";
-"settings.panel.mediumText.description" = "medium（中太）の見出しと数値も regular に下げ、完全に平坦な表示で比較します。";
+"settings.panel.boldText" = "パネルの文字を太字にする";
+"settings.panel.boldText.description" = "見出しと数値を太字で表示します（以前の見た目に戻します）。オフにすると標準の太さになります。";
 "settings.panel.keepOpenForComparison" = "設定を開いてもパネルを閉じない";
 "settings.panel.keepOpenForComparison.description" = "設定ウィンドウの横にパネルを残して変更を比較できます。";
 "updates.failure.title" = "アップデートに失敗しました";

@@ -1316,10 +1316,8 @@
 
 "settings.popup.scrollWheelStep" = "Paso de la rueda";
 "settings.popup.scrollWheelStep.description" = "Cambio por paso para volumen, brillo y micrófono. El trackpad sigue siendo continuo.";
-"settings.panel.boldText" = "Desactivar todas las negritas";
-"settings.panel.boldText.description" = "Quita la negrita de todos los títulos y valores del panel de estado para comparar.";
-"settings.panel.mediumText" = "Desactivar el peso medio";
-"settings.panel.mediumText.description" = "También baja títulos y valores de peso medio a regular para una comparación totalmente plana.";
+"settings.panel.boldText" = "Texto del panel en negrita";
+"settings.panel.boldText.description" = "Los títulos y valores se muestran en negrita (aspecto original). Desactivado, se usa el grosor normal.";
 "settings.panel.keepOpenForComparison" = "Mantener el panel abierto al abrir Ajustes";
 "settings.panel.keepOpenForComparison.description" = "Deja el panel de estado junto a Ajustes para comparar los cambios.";
 "updates.failure.title" = "Error de actualización";

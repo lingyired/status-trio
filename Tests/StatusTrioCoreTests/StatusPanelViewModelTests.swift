@@ -955,6 +955,25 @@ final class StatusPanelViewModelTests: XCTestCase {
         }
         return condition()
     }
+
+    /// The Settings switch drives the two weight tiers; the panel model must
+    /// mirror both so the environment values reach every panel view.
+    func testPanelTextWeightSettingsMirrorIntoPanelModel() throws {
+        let fixture = PanelStoreFixture()
+        let panel = fixture.makePanel()
+        defer { panel.stop(); fixture.store.stop() }
+        panel.start()
+
+        XCTAssertFalse(panel.statusPanelBoldTextEnabled)
+
+        fixture.settings.applyPanelBoldTextToggle(true)
+        XCTAssertTrue(panel.statusPanelBoldTextEnabled)
+        XCTAssertTrue(panel.statusPanelMediumTextEnabled)
+
+        fixture.settings.applyPanelBoldTextToggle(false)
+        XCTAssertFalse(panel.statusPanelBoldTextEnabled)
+        XCTAssertFalse(panel.statusPanelMediumTextEnabled)
+    }
 }
 
 @MainActor

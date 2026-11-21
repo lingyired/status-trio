@@ -1819,6 +1819,16 @@ final class SettingsStore: ObservableObject {
         }
     }
 
+    /// Applies the single "Bold panel text" settings switch. One control drives
+    /// both weight tiers so the panel matches the classic, heavier look: on
+    /// enables semibold titles/values *and* medium-weight captions; off returns
+    /// both to regular. Kept here as one method so no surface can set only half
+    /// the pair and leave the panel half-bold.
+    func applyPanelBoldTextToggle(_ enabled: Bool) {
+        statusPanelBoldTextEnabled = enabled
+        statusPanelMediumTextEnabled = enabled
+    }
+
     @Published var keepsPanelOpenWhenOpeningSettings: Bool {
         didSet {
             defaults.set(
