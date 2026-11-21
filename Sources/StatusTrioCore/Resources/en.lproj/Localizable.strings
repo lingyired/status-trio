@@ -1207,6 +1207,7 @@
 "settings.hardwareRing.top.value" = "Metric value";
 "settings.hardwareRing.top.batteryPercentage" = "Battery level";
 "settings.hardwareRing.top.chargingIndicator" = "Charging indicator";
+"settings.hardwareRing.top.chargingIndicatorHint" = "Style follows the per-state choices under Battery > Top marker.";
 "settings.hardwareRing.top.hidden" = "Hidden";
 "settings.hardwareRing.top.metric" = "Top metric";
 "settings.hardwareRing.group.color" = "Colour";

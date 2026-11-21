@@ -1208,6 +1208,7 @@
 "settings.hardwareRing.top.value" = "指标数值";
 "settings.hardwareRing.top.batteryPercentage" = "电量";
 "settings.hardwareRing.top.chargingIndicator" = "充电标志";
+"settings.hardwareRing.top.chargingIndicatorHint" = "样式跟随「电池 → 顶部标识」中的按状态设置。";
 "settings.hardwareRing.top.hidden" = "隐藏";
 "settings.hardwareRing.top.metric" = "顶部指标";
 "settings.hardwareRing.group.color" = "颜色";

@@ -1207,6 +1207,7 @@
 "settings.hardwareRing.top.value" = "지표 값";
 "settings.hardwareRing.top.batteryPercentage" = "배터리 잔량";
 "settings.hardwareRing.top.chargingIndicator" = "충전 표시";
+"settings.hardwareRing.top.chargingIndicatorHint" = "스타일은 '배터리 > 상단 표시'의 상태별 설정을 따릅니다.";
 "settings.hardwareRing.top.hidden" = "숨김";
 "settings.hardwareRing.top.metric" = "상단 지표";
 "settings.hardwareRing.group.color" = "색상";

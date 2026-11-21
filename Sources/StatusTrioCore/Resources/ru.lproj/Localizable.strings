@@ -1208,6 +1208,7 @@
 "settings.hardwareRing.top.value" = "Значение метрики";
 "settings.hardwareRing.top.batteryPercentage" = "Уровень заряда";
 "settings.hardwareRing.top.chargingIndicator" = "Индикатор зарядки";
+"settings.hardwareRing.top.chargingIndicatorHint" = "Стиль соответствует настройкам для каждого состояния в разделе «Аккумулятор > Верхний маркер».";
 "settings.hardwareRing.top.hidden" = "Скрыто";
 "settings.hardwareRing.top.metric" = "Верхняя метрика";
 "settings.hardwareRing.group.color" = "Цвет";

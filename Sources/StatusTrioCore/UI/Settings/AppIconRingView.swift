@@ -287,6 +287,14 @@ struct AppIconRingView: View {
                 options: HardwareTopMode.allCases,
                 label: { topModeLabel($0) }
             )
+            if hardwareTopMode == .chargingIndicator {
+                // #361: the charging marker is the battery page's per-state top
+                // marker, not a separate style — point the user there.
+                SettingsDivider()
+                SettingsHintRow(
+                    text: localization.string(.settingsHardwareRingTopChargingIndicatorHint)
+                )
+            }
             if hardwareTopMode == .value {
                 SettingsDivider()
                 SettingsGroupedMenuRow(

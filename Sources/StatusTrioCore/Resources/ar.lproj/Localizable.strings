@@ -1208,6 +1208,7 @@
 "settings.hardwareRing.top.value" = "قيمة المقياس";
 "settings.hardwareRing.top.batteryPercentage" = "مستوى البطارية";
 "settings.hardwareRing.top.chargingIndicator" = "مؤشر الشحن";
+"settings.hardwareRing.top.chargingIndicatorHint" = "يتبع النمط الخيارات حسب الحالة في «البطارية > العلامة العلوية».";
 "settings.hardwareRing.top.hidden" = "مخفي";
 "settings.hardwareRing.top.metric" = "المقياس العلوي";
 "settings.hardwareRing.group.color" = "اللون";
