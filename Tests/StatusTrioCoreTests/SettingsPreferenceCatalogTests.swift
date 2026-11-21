@@ -28,7 +28,7 @@ final class SettingsPreferenceCatalogTests: XCTestCase {
             let snapshot = SettingsPreferenceCatalog.snapshot(store)
             let expected: Set<String> = [
                 "appIconPlacement", "dockIconBackgroundPreference", "panelBackgroundStyle",
-                "panelLevelSliderFillColor",
+                "panelLevelSliderColor",
                 "menuBarRightClickAction", "iconSize", "batteryOnBatteryMarker",
                 "batteryChargingMarker", "batteryConnectedMarker", "batteryNoBatteryMarker",
                 "showsBatteryPowerFlow", "showsBatteryPowerInfoBar", "showsHighEnergyApps",
@@ -71,7 +71,7 @@ final class SettingsPreferenceCatalogTests: XCTestCase {
             source.batteryStatusColors.discharging = .preset(.amber)
             source.batteryStatusColors.charging = .custom(.init(hue: 0.2, saturation: 0.6, brightness: 0.8))
             source.bluetoothIconColor = .custom(.init(hue: 0.1, saturation: 0.4, brightness: 0.9))
-            source.panelLevelSliderFillColor = IconRGBA(red: 0.2, green: 0.45, blue: 0.8, alpha: 1)
+            source.panelLevelSliderColor = .custom(IconRGBA(red: 0.2, green: 0.45, blue: 0.8, alpha: 1))
             source.bluetoothAudioIconChoice = .airpods
             source.setPopupSection(.brightness, enabled: true)
             source.movePopupSections(fromOffsets: IndexSet(integer: 7), toOffset: 0)
@@ -112,19 +112,17 @@ final class SettingsPreferenceCatalogTests: XCTestCase {
 
 
 
-    func testPanelLevelSliderFillColorRejectsInvalidComponents() {
+    func testPanelLevelSliderColorRejectsInvalidValues() {
         withStore { _, _ in
             let invalid: [SettingsTransferValue] = [
-                .object(["red": .number(2), "green": .number(0.5), "blue": .number(0.5), "alpha": .number(1)]),
-                .object(["red": .number(0.5), "green": .number(0.5), "blue": .number(0.5)]),
-                .string("white")
+                .string("custom:2,0.5,0.5,1"),
+                .string("custom:0.5,0.5,0.5"),
+                .string("white"),
+                .number(1)
             ]
-            let white = SettingsTransferValue.object([
-                "red": .number(1), "green": .number(1), "blue": .number(1), "alpha": .number(1)
-            ])
             for value in invalid {
-                let prepared = SettingsPreferenceCatalog.prepare(["panelLevelSliderFillColor": value])
-                XCTAssertEqual(prepared.values["panelLevelSliderFillColor"], white)
+                let prepared = SettingsPreferenceCatalog.prepare(["panelLevelSliderColor": value])
+                XCTAssertEqual(prepared.values["panelLevelSliderColor"], .string("automatic"))
                 XCTAssertFalse(prepared.warnings.isEmpty)
             }
         }

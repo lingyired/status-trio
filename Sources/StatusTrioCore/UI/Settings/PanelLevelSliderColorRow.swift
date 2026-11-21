@@ -2,65 +2,90 @@ import AppKit
 import SwiftUI
 
 /// Preset swatches, a custom picker and a reset for the status panel's level
-/// slider fill colour (#359). Mirrors the battery status colour row so both
-/// colour controls behave the same way: recommended swatches first, then the
-/// system colour picker, then a reset back to white.
+/// slider colour (#359). Mirrors the battery status colour row: an automatic
+/// choice first, then recommended colours, the system picker, and a reset.
+///
+/// `.automatic` follows the label colour, so the default fill is white on the
+/// dark panel and black on a light one instead of a pinned white.
 struct PanelLevelSliderColorRow: View {
     @ObservedObject var store: SettingsStore
     @ObservedObject var localization: Localization
 
     private struct Preset: Identifiable {
         let id: String
-        let rgba: IconRGBA
+        let selection: PanelLevelSliderColorSelection
+        let fill: Color
         let label: LocalizationKey
     }
 
     private var presets: [Preset] {
         var result: [Preset] = [
-            Preset(id: "white", rgba: .white, label: .settingsPanelLevelSliderColorWhite)
+            Preset(
+                id: "automatic",
+                selection: .automatic,
+                fill: .primary,
+                label: .settingsPanelLevelSliderColorAutomatic
+            ),
+            Preset(
+                id: "white",
+                selection: .custom(.white),
+                fill: IconAppearanceColorConversion.color(from: .white),
+                label: .settingsPanelLevelSliderColorWhite
+            )
         ]
         // The panel is always a dark material, so resolve each preset for the
         // dark appearance and store that exact value.
-        for preset in BatteryStatusColorPreset.allCases {
-            let cgColor = BatteryStatusColorResolver.presetColor(preset, darkAppearance: true)
+        for palettePreset in BatteryStatusColorPreset.allCases {
+            let cgColor = BatteryStatusColorResolver.presetColor(palettePreset, darkAppearance: true)
             let color = Color(cgColor: cgColor)
+            let rgba = IconAppearanceColorConversion.iconRGBA(from: color)
             result.append(Preset(
-                id: "preset-\(preset.rawValue)",
-                rgba: IconAppearanceColorConversion.iconRGBA(from: color),
-                label: presetKey(preset)
+                id: "preset-\(palettePreset.rawValue)",
+                selection: .custom(rgba),
+                fill: color,
+                label: presetKey(palettePreset)
             ))
         }
         return result
     }
 
-    private var currentColor: IconRGBA { store.panelLevelSliderFillColor }
+    private var currentSelection: PanelLevelSliderColorSelection {
+        store.panelLevelSliderColor
+    }
+
+    private var currentFill: Color {
+        switch currentSelection {
+        case .automatic:
+            return .primary
+        case let .custom(color):
+            return IconAppearanceColorConversion.color(from: color)
+        }
+    }
 
     var body: some View {
         HStack(spacing: 6) {
             ForEach(presets) { preset in
                 Button {
-                    store.panelLevelSliderFillColor = preset.rgba
+                    store.panelLevelSliderColor = preset.selection
                 } label: {
-                    swatch(
-                        fill: IconAppearanceColorConversion.color(from: preset.rgba),
-                        isSelected: nearlyEqual(currentColor, preset.rgba)
-                    )
+                    swatch(fill: preset.fill, isSelected: currentSelection == preset.selection)
                 }
                 .buttonStyle(.plain)
                 .help(localization.string(preset.label))
                 .accessibilityLabel(localization.string(preset.label))
                 .accessibilityAddTraits(
-                    nearlyEqual(currentColor, preset.rgba) ? [.isSelected] : []
+                    currentSelection == preset.selection ? [.isSelected] : []
                 )
             }
 
             ColorPicker(
                 localization.string(.settingsBatteryColorsCustom),
                 selection: Binding(
-                    get: { IconAppearanceColorConversion.color(from: currentColor) },
+                    get: { currentFill },
                     set: {
-                        store.panelLevelSliderFillColor =
+                        store.panelLevelSliderColor = .custom(
                             IconAppearanceColorConversion.iconRGBA(from: $0)
+                        )
                     }
                 ),
                 supportsOpacity: false
@@ -70,7 +95,7 @@ struct PanelLevelSliderColorRow: View {
             .accessibilityLabel(localization.string(.settingsBatteryColorsCustom))
 
             Button {
-                store.panelLevelSliderFillColor = .white
+                store.panelLevelSliderColor = .automatic
             } label: {
                 Image(systemName: "arrow.counterclockwise")
                     .font(.system(size: 12, weight: .medium))
@@ -79,7 +104,7 @@ struct PanelLevelSliderColorRow: View {
             .buttonStyle(.plain)
             .help(localization.string(.settingsBatteryColorsReset))
             .accessibilityLabel(localization.string(.settingsBatteryColorsReset))
-            .disabled(nearlyEqual(currentColor, .white))
+            .disabled(currentSelection == .automatic)
         }
     }
 
@@ -96,13 +121,6 @@ struct PanelLevelSliderColorRow: View {
             )
             .padding(3)
             .contentShape(Circle())
-    }
-
-    private func nearlyEqual(_ lhs: IconRGBA, _ rhs: IconRGBA) -> Bool {
-        abs(lhs.red - rhs.red) < 0.005
-            && abs(lhs.green - rhs.green) < 0.005
-            && abs(lhs.blue - rhs.blue) < 0.005
-            && abs(lhs.alpha - rhs.alpha) < 0.005
     }
 
     private func presetKey(_ preset: BatteryStatusColorPreset) -> LocalizationKey {

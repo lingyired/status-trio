@@ -43,8 +43,15 @@ struct StatusPopoverView: View {
     var host: Host = .primary
 
     /// Fill colour of the panel's level sliders, from General settings (#359).
+    /// `.automatic` follows the label colour (white on a dark panel, black on a
+    /// light one) instead of pinning a fixed value.
     private var levelSliderFillColor: Color {
-        IconAppearanceColorConversion.color(from: panel.settings.panelLevelSliderFillColor)
+        switch panel.settings.panelLevelSliderColor {
+        case .automatic:
+            return .primary
+        case let .custom(color):
+            return IconAppearanceColorConversion.color(from: color)
+        }
     }
 
     var body: some View {

@@ -158,10 +158,10 @@ final class SettingsStore: ObservableObject {
     /// to `.classicMaterial` so a downgrade never selects an unavailable
     /// background (issue #233).
     static let panelBackgroundStyleDefaultsKey = "panelBackgroundStyle"
-    /// Fill colour (RGBA) of the status panel's level sliders (volume,
-    /// brightness, microphone). Defaults to white; stored as JSON-encoded
-    /// `IconRGBA` (#359).
-    static let panelLevelSliderFillColorDefaultsKey = "panelLevelSliderFillColor"
+    /// Colour selection for the status panel's level sliders (volume,
+    /// brightness, microphone). Defaults to `.automatic` (label colour: white on
+    /// a dark panel, black on a light one); stored as a hand-parseable string (#359).
+    static let panelLevelSliderColorDefaultsKey = "panelLevelSliderColor"
     static let prioritizesNetworkErrorsDefaultsKey = "prioritizesNetworkErrors"
     /// Migration-only keys from the split middle-slot settings.
     static let prioritizesNetworkErrorsOverInputSourceDefaultsKey = "prioritizesNetworkErrorsOverInputSource"
@@ -483,14 +483,16 @@ final class SettingsStore: ObservableObject {
         }
     }
 
-    /// Fill colour of the status panel's level sliders (volume, brightness,
-    /// microphone). Defaults to white. Persisted as JSON-encoded `IconRGBA`.
-    @Published var panelLevelSliderFillColor: IconRGBA = .white {
+    /// Colour of the status panel's level sliders (volume, brightness,
+    /// microphone). Defaults to `.automatic` (label colour). Persisted as a
+    /// hand-parseable string so a corrupted value falls back to automatic.
+    @Published var panelLevelSliderColor: PanelLevelSliderColorSelection = .default {
         didSet {
-            guard panelLevelSliderFillColor != oldValue else { return }
-            if let data = try? JSONEncoder().encode(panelLevelSliderFillColor) {
-                defaults.set(data, forKey: Self.panelLevelSliderFillColorDefaultsKey)
-            }
+            guard panelLevelSliderColor != oldValue else { return }
+            defaults.set(
+                panelLevelSliderColor.storageValue,
+                forKey: Self.panelLevelSliderColorDefaultsKey
+            )
         }
     }
 
@@ -2583,10 +2585,12 @@ final class SettingsStore: ObservableObject {
         self.panelBackgroundStyle = PanelBackgroundStyle.resolved(
             storedPanelBackgroundStyle.flatMap(PanelBackgroundStyle.init(rawValue:))
         )
-        let storedPanelLevelSliderFillColor = defaults.data(
-            forKey: Self.panelLevelSliderFillColorDefaultsKey
-        ).flatMap { try? JSONDecoder().decode(IconRGBA.self, from: $0) }
-        self.panelLevelSliderFillColor = (storedPanelLevelSliderFillColor ?? .white).normalized()
+        let storedPanelLevelSliderColor = defaults.string(
+            forKey: Self.panelLevelSliderColorDefaultsKey
+        )
+        self.panelLevelSliderColor = storedPanelLevelSliderColor
+            .map(PanelLevelSliderColorSelection.init(storageValue:))
+            ?? .default
         let storedMenuBarRightClickAction = defaults.string(
             forKey: Self.menuBarRightClickActionDefaultsKey
         )

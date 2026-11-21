@@ -81,7 +81,7 @@ enum SettingsPreferenceCatalog {
             enumeration("appIconPlacement", \.appIconPlacement, default: .menuBar),
             enumeration("dockIconBackgroundPreference", \.dockIconBackgroundPreference, default: .system),
             enumeration("panelBackgroundStyle", \.panelBackgroundStyle, default: PanelBackgroundStyle.systemDefault),
-            panelLevelSliderFillColorPreference,
+            panelLevelSliderColorPreference,
             enumeration("menuBarRightClickAction", \.menuBarRightClickAction, default: .contextMenu),
             number("refreshIntervalOnBatterySeconds", \.refreshIntervalOnBatterySeconds,
                    default: SettingsStore.defaultRefreshIntervalSeconds, range: SettingsStore.refreshIntervalRange, step: 1),
@@ -341,33 +341,23 @@ enum SettingsPreferenceCatalog {
         }, encode: { .string($0.storageValue) })
     }
 
-    private static var panelLevelSliderFillColorPreference: Preference {
-        func decode(_ value: Value) -> IconRGBA? {
-            guard case let .object(parts) = value,
-                  case let .number(red)? = parts["red"],
-                  case let .number(green)? = parts["green"],
-                  case let .number(blue)? = parts["blue"],
-                  case let .number(alpha)? = parts["alpha"],
-                  [red, green, blue, alpha].allSatisfy({ $0.isFinite && (0...1).contains($0) })
-            else { return nil }
-            return IconRGBA(red: red, green: green, blue: blue, alpha: alpha)
+    private static var panelLevelSliderColorPreference: Preference {
+        func decode(_ value: Value) -> PanelLevelSliderColorSelection? {
+            guard case let .string(raw) = value,
+                  raw == "automatic" || validSliderColor(raw) else { return nil }
+            return PanelLevelSliderColorSelection(storageValue: raw)
         }
-        func encode(_ color: IconRGBA) -> Value {
-            .object([
-                "red": .number(color.red),
-                "green": .number(color.green),
-                "blue": .number(color.blue),
-                "alpha": .number(color.alpha)
-            ])
+        func encode(_ selection: PanelLevelSliderColorSelection) -> Value {
+            .string(selection.storageValue)
         }
         return Preference(
-            key: "panelLevelSliderFillColor",
-            defaultValue: encode(.white),
-            read: { encode($0.panelLevelSliderFillColor) },
+            key: "panelLevelSliderColor",
+            defaultValue: encode(.default),
+            read: { encode($0.panelLevelSliderColor) },
             isValid: { decode($0) != nil },
             write: { value, store in
-                guard let color = decode(value) else { return }
-                store.panelLevelSliderFillColor = color
+                guard let selection = decode(value) else { return }
+                store.panelLevelSliderColor = selection
             }
         )
     }
@@ -430,6 +420,17 @@ enum SettingsPreferenceCatalog {
         guard raw.hasPrefix("custom:") else { return false }
         let parts = raw.dropFirst("custom:".count).split(separator: ",", omittingEmptySubsequences: false)
         return parts.count == 3 && parts.allSatisfy { part in
+            guard let value = Double(part), value.isFinite else { return false }
+            return (0...1).contains(value)
+        }
+    }
+
+    /// Slider fill colour: `automatic` or `custom:r,g,b,a` with every component
+    /// in 0...1.
+    private static func validSliderColor(_ raw: String) -> Bool {
+        guard raw.hasPrefix("custom:") else { return false }
+        let parts = raw.dropFirst("custom:".count).split(separator: ",", omittingEmptySubsequences: false)
+        return parts.count == 4 && parts.allSatisfy { part in
             guard let value = Double(part), value.isFinite else { return false }
             return (0...1).contains(value)
         }
