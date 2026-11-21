@@ -1120,7 +1120,8 @@ notarization and not DMG, the single highest-leverage optimization target.
   .build incremental build cache, not "fixing a regression". It must be proven
   with an authorized non-publishing diagnostic (same SHA, cold vs restored
   cache, measured compile and artifact identity). It was previously deferred
-  when compile was ~100-190 s and now warrants re-evaluation.
+  when compile was ~100-190 s and now warrants re-evaluation. Re-evaluated on
+  2026-11-21: measured and rejected - see the .build cache experiment below.
 - Notarization durations include Apple/network wait, not local CPU.
 
 ### Instrumentation delivered in this increment
@@ -1133,3 +1134,36 @@ notarization and not DMG, the single highest-leverage optimization target.
   documented as overlapping and are never summed together.
 - No build, signing, notarization, or packaging behavior was changed; only
   measurement and summary output were added.
+
+## SwiftPM .build cache experiment — 2026-11-21 (measured, rejected)
+
+Diagnostic workflow: .github/workflows/compile-bench.yml. It is workflow_dispatch
+only, takes no secrets, and never signs, notarizes, packages, tags, or publishes.
+It runs the same runner (xcode-27), the same SHA (main), and the same command:
+swift build -c release --arch arm64 --arch x86_64.
+
+| Run | .build cache | Restore | Compile | Cache save |
+| --- | --- | ---: | ---: | ---: |
+| cold-1 (44860223908) | miss | 1 s | 258 s | 7 s |
+| cold-2 (44861369020) | miss (cache deleted first) | 1 s | 238 s | 7 s |
+| warm (44860680405) | hit | 10 s | 428 s | skipped |
+
+Result: restoring the 343 MB .build cache made the compile SLOWER (428 s) than
+two clean cold builds (258 s and 238 s). SwiftPM did not reuse the restored build
+database (likely absolute-path or build-database invalidation) and rebuilt
+essentially everything, then paid the restore cost. The whole-directory .build
+Actions cache is therefore rejected: it does not reduce compile time and can
+increase it.
+
+Caveats: three sequential runs on a self-hosted runner at a single SHA. The pure
+swift build cold time (238-258 s) is lower than the package swift-release-build
+phase measured on 2026-11-20 (451-524 s), so runner-to-runner variance is large;
+cross-run medians, not single numbers, must decide any future claim. This is
+compile-time evidence only and changes no artifact.
+
+Decision: do not add a SwiftPM build cache and do not narrow the built products
+(Package.swift ships the main app plus AirPods and power helpers and a dynamic
+library, so a -product narrowing risks omitting a shipped binary). No build,
+signing, notarization, or packaging change is adopted from this experiment. The
+remaining measured shares (notarization about 12%, DMG creation about 6%, ZIP and
+Sparkle about 2 s) are too small for their risk.
