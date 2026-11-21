@@ -67,44 +67,26 @@ client successfully reads its state. The app preserves that native report;
 it does not relabel it as approved. Settings displays both the reported
 approval and live helper availability, and the power control uses the latter.
 
-While a registered helper is unreachable but its native status is already
-`enabled`, the app probes on the two-second approval poll. A pending probe —
-reachable or not — is throttled to the health-check interval instead, because
-each probe starts the root daemon and a status that never leaves
-`requiresApproval` would otherwise restart it every two seconds. A failed
-pending probe never unregisters the helper or writes a power setting. Once
-reachable but still reported pending,
-the app stops registration retries and checks health every sixty seconds, or
-on activation, so it can detect revocation even if the native report never
-changes. Each probe starts the root daemon, which idle-exits about five
-seconds later, so the interval is deliberately much longer than the idle
-window rather than as fast as possible: a machine whose native status stays
-pending forever would otherwise spawn the daemon every few seconds
-indefinitely. Measured on macOS 27 before the throttle, a ten-second
-interval produced six daemon starts per minute; a build with the interval
-raised to sixty seconds but the retry still tied to "not responsive yet"
-still restarted the daemon every few seconds, which is why the throttle is
-keyed to the interval rather than to readiness.
+The app checks native status at launch, on the Battery and Keep Awake
+settings pages, and on return from Login Items opened through the app.
+Ordinary activation and the status panel use the last known state. Helper
+operations use XPC and query native status on failure or when registration
+has not yet been observed.
+The approval window observes status at 2, 6, 14, 30 and 60 seconds by default.
+Startup only observes an existing pending registration. Explicit opt-in and
+recovery can retry registration in that window. A successful XPC round trip
+ends the window, even if macOS still reports pending. An idle app has no
+standing native-status timer or XPC heartbeat.
 
-A read the user's own action asks for is the one exception: coming back to the
-app and ticking the App switch are the only signals that something happened,
-because switching the helper off and on in System Settings leaves the native
-status pending the whole time. The forced read made on return can land inside
-that transition and fail, and waiting out the full minute afterwards made the
-same gesture look like it randomly worked or randomly failed. A failed
-user-initiated read therefore re-probes at 3, 10 and 25 seconds; the window then
-closes and the steady interval resumes. Each new gesture opens its own window,
-so the extra daemon starts are bounded by how often the user acts, not by the
-timer, and the status line settles within seconds of the switch being turned
-back on. Pending failures are also logged when a read used to work or when the
-user just triggered it — never once a minute for a machine that simply never
-grants approval. With no activation, a stale readiness indication can last up to
-sixty seconds plus the XPC timeout and poll scheduling; this is polling,
-not an instantaneous approval notification. Feature opt-out cancels scheduled
-probes and ignores late replies. An XPC request already accepted by the client
-can still finish (including dispatching its queued connection) or reach its
-three-second transport timeout before the helper's idle exit begins. Opt-out
-does not synchronously tear down accepted transport work.
+An XPC failure can prompt a fresh native-status read. A pending failure never
+unregisters the helper. When a prior write may have left lid-sleep prevention
+on, the app gives cleanup up to five background probes and stops early when
+cleanup succeeds. Low-battery automation checks the Helper once when it needs
+to act and can use a subsequent readiness event if the initial check fails.
+Feature opt-out cancels scheduled work and ignores late replies. An accepted
+XPC request can finish or reach its transport timeout before the daemon exits.
+
+
 
 The plist deliberately has no `RunAtLoad` and no `KeepAlive`. Registration is
 not a permanently running process: after existing connections finish, the

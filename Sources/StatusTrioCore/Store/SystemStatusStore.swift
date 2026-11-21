@@ -44,10 +44,16 @@ protocol HelperReadinessProviding {
     /// Re-reads the helper's native status/readiness now (called on user action
     /// so a click never acts on a stale helper state).
     func refreshStatus()
+    func setBackgroundRecoveryNeeded(_ needed: Bool)
+    var recoveryProbePublisher: AnyPublisher<Void, Never> { get }
+    func verifyForUse() async -> Bool
 }
 
 extension HelperReadinessProviding {
     func refreshStatus() {}
+    func setBackgroundRecoveryNeeded(_ needed: Bool) {}
+    var recoveryProbePublisher: AnyPublisher<Void, Never> { Empty().eraseToAnyPublisher() }
+    func verifyForUse() async -> Bool { isReady }
 }
 
 /// Production provider. Resolves the shared manager lazily so a store that
@@ -60,15 +66,20 @@ struct SharedHelperReadiness: HelperReadinessProviding {
         PrivilegedHelperManager.shared.readinessPublisher
     }
 
-    func refreshStatus() {
-        PrivilegedHelperManager.shared.refresh()
+    func refreshStatus() { PrivilegedHelperManager.shared.refreshForUse() }
+    func setBackgroundRecoveryNeeded(_ needed: Bool) {
+        PrivilegedHelperManager.shared.setBackgroundRecoveryNeeded(needed)
     }
+    var recoveryProbePublisher: AnyPublisher<Void, Never> {
+        PrivilegedHelperManager.shared.recoveryProbePublisher
+    }
+    func verifyForUse() async -> Bool { await PrivilegedHelperManager.shared.verifyForUse() }
 }
 
 extension PrivilegedHelperManager: HelperReadinessProviding {
     /// The same `isReady` rule the UI gates the switches with, re-published so
     /// the automation can re-evaluate when approval or responsiveness lands.
-    func refreshStatus() { refresh() }
+    func refreshStatus() { refreshForUse() }
 
     var readinessPublisher: AnyPublisher<Bool, Never> {
         Publishers.CombineLatest3($isEnabled, $status, $isHelperResponsive)
@@ -186,6 +197,9 @@ final class SystemStatusStore: ObservableObject {
     let sleepControl: SleepControlController
     /// The low-battery → Low Power Mode automation (#246).
     private let lowPowerAutoEnable = LowPowerAutoEnableController()
+    private var autoLowPowerVerificationTask: Task<Void, Never>?
+    private var autoLowPowerVerificationRequested = false
+    private var autoLowPowerHelperVerified = false
     /// Helper readiness for the #246 automation. Production reads the shared
     /// manager; tests inject a fake.
     private let helperReadiness: any HelperReadinessProviding
@@ -703,6 +717,7 @@ final class SystemStatusStore: ObservableObject {
         lowPowerAutoEnableThresholdCancellable = nil
         lowPowerAutoEnableReadinessCancellable?.cancel()
         lowPowerAutoEnableReadinessCancellable = nil
+        resetAutoLowPowerVerification()
         boundLowPowerSettings = nil
         appleDeviceSettingsCancellable?.cancel()
         appleDeviceSettingsCancellable = nil
@@ -1685,10 +1700,6 @@ final class SystemStatusStore: ObservableObject {
             .removeDuplicates()
             .sink { [weak self] enabled in
                 guard let self else { return }
-                guard enabled else {
-                    self.lowPowerAutoEnable.reset()
-                    return
-                }
                 // Enabling the automation while the battery is already low must
                 // not wait for the next snapshot to act.
                 self.evaluateLowPowerAutoEnable(
@@ -1762,14 +1773,42 @@ final class SystemStatusStore: ObservableObject {
         let isEnabled = (automationOverride ?? settings.autoEnablesLowPowerMode)
             && (controlsOverride ?? settings.controlsLowPowerMode)
             && HighPowerModeController.supportsCurrentPlatform
-        let shouldEnable = lowPowerAutoEnable.evaluate(
-            battery: battery,
-            threshold: thresholdOverride ?? settings.autoLowPowerThreshold,
-            isEnabled: isEnabled,
-            isHelperReady: readinessOverride ?? helperReadiness.isReady
-        )
-        guard shouldEnable else { return }
-        lowPowerMode.setLowPowerMode(true)
+        let threshold = thresholdOverride ?? settings.autoLowPowerThreshold
+        if autoLowPowerVerificationRequested, autoLowPowerVerificationTask == nil,
+           let readinessOverride {
+            autoLowPowerHelperVerified = readinessOverride
+        }
+        guard lowPowerAutoEnable.updateCycle(battery: battery, threshold: threshold, isEnabled: isEnabled) else {
+            if !isEnabled || battery.isConnectedToPower || (battery.isPresent && battery.rawPercentage != nil) {
+                resetAutoLowPowerVerification()
+            }
+            return
+        }
+        guard !lowPowerAutoEnable.didAutoEnableThisCycle else { return }
+        if !autoLowPowerVerificationRequested {
+            autoLowPowerVerificationRequested = true
+            autoLowPowerVerificationTask = Task { [weak self, helperReadiness] in
+                guard !Task.isCancelled else { return }
+                let ready = await helperReadiness.verifyForUse()
+                guard !Task.isCancelled, let self else { return }
+                self.autoLowPowerVerificationTask = nil
+                self.evaluateLowPowerAutoEnable(battery: self.snapshot.battery, readinessOverride: ready)
+            }
+            return
+        }
+        // A battery update alone must not reuse cached readiness after a failed
+        // verification. A later positive readiness event can still finish this cycle.
+        guard autoLowPowerVerificationTask == nil, autoLowPowerHelperVerified else { return }
+        if lowPowerAutoEnable.evaluate(battery: battery, threshold: threshold, isEnabled: true) {
+            lowPowerMode.setLowPowerMode(true)
+        }
+    }
+
+    private func resetAutoLowPowerVerification() {
+        autoLowPowerVerificationTask?.cancel()
+        autoLowPowerVerificationTask = nil
+        autoLowPowerVerificationRequested = false
+        autoLowPowerHelperVerified = false
     }
 
     private func updateAppleRefreshDemand() {

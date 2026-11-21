@@ -6,6 +6,16 @@ private let singleInstanceLogger = Logger(
     category: "SingleInstance"
 )
 
+// The packaged launcher and swift run share the same AppKit entry point.
+@MainActor
+@_cdecl("StatusTrioRunApplication")
+public func runStatusTrioApplication() {
+    let application = NSApplication.shared
+    let delegate = AppDelegate()
+    application.delegate = delegate
+    application.run()
+}
+
 @MainActor
 public final class AppDelegate: NSObject, NSApplicationDelegate {
     private var environment: AppEnvironment?

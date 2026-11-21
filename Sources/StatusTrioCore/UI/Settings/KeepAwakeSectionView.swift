@@ -32,6 +32,7 @@ struct KeepAwakeSectionView: View {
             keepScreenGroup
             lidGroup
         }
+        .onAppear { helper.refreshForApprovalSettings() }
     }
 
     /// Master visibility + the privileged-helper setup.
