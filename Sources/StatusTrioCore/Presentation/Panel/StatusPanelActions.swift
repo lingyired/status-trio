@@ -52,6 +52,16 @@ final class StatusPanelActions {
     private let selectInputSourceCommand: (String) -> Void
     private let setVPNPowerCommand: (Bool) -> Void
 
+    /// Set by `StatusBarController` after `super.init()` so the view model can
+    /// dismiss the whole panel when an already-open detail entry is clicked
+    /// again (issue #369). Optional so existing test constructions stay valid.
+    var dismissPanelHandler: (() -> Void)?
+
+    /// Requests the panel's standard close path (same as Escape / outside click).
+    func dismissPanel() {
+        dismissPanelHandler?()
+    }
+
     private static let summaryBatteryLevelsToken = "bluetooth.summary"
     private static let nearbyBatteryDevicesToken = "bluetooth.summary.nearbyBatteryDevices"
 

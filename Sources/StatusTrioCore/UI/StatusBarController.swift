@@ -335,6 +335,12 @@ final class StatusBarController: NSObject {
         self.statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         super.init()
 
+        // Issue #369: let the panel close itself (same path as Escape / outside
+        // click) when an already-open detail entry is clicked again.
+        panelActions.dismissPanelHandler = { [weak self] in
+            self?.closePopover()
+        }
+
         statusItem.isVisible = isVisible
         configureButton()
         #if DEBUG

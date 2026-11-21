@@ -678,6 +678,7 @@ final class StatusPanelViewModel: ObservableObject {
             showSummaryPage()
             return
         }
+        guard !dismissIfAlreadyShowing(.battery) else { return }
         guard transition(to: .battery) else { return }
         actions.batteryDetailsAppeared()
         refreshBatteryDetails()
@@ -688,6 +689,7 @@ final class StatusPanelViewModel: ObservableObject {
             showSummaryPage()
             return
         }
+        guard !dismissIfAlreadyShowing(.wifi) else { return }
         let opensNewPage = route != .wifi
         if opensNewPage {
             wifiDisclosure = WiFiPanelDisclosureState(
@@ -705,6 +707,7 @@ final class StatusPanelViewModel: ObservableObject {
             showSummaryPage()
             return
         }
+        guard !dismissIfAlreadyShowing(.ethernet) else { return }
         guard transition(to: .ethernet) else { return }
         actions.wiredDetailsOpened()
         refreshWiredDetailsAndNetwork()
@@ -715,6 +718,7 @@ final class StatusPanelViewModel: ObservableObject {
             showSummaryPage()
             return
         }
+        guard !dismissIfAlreadyShowing(.inputSource) else { return }
         transition(to: .inputSource)
     }
 
@@ -725,6 +729,7 @@ final class StatusPanelViewModel: ObservableObject {
             showSummaryPage()
             return
         }
+        guard !dismissIfAlreadyShowing(.hardwareDetail(kind)) else { return }
         transition(to: .hardwareDetail(kind))
     }
 
@@ -1528,6 +1533,16 @@ final class StatusPanelViewModel: ObservableObject {
         if route != .summary { endCurrentPageActions() }
         route = next
         updateHardwareMetricsDemand()
+        return true
+    }
+
+    /// Issue #369: clicking the entry for the detail page that is already open
+    /// closes the whole panel instead of re-entering the same page. Hardware
+    /// details match only the same `kind`, so a different card still switches.
+    /// Returns true when the click was handled as a dismiss.
+    private func dismissIfAlreadyShowing(_ target: StatusPanelRoute) -> Bool {
+        guard route == target else { return false }
+        actions.dismissPanel()
         return true
     }
 
