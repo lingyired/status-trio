@@ -509,6 +509,57 @@ struct TopAppsServiceTests {
         #expect(service.observable.state == .measured(.memory, []))
     }
 
+    @Test func testReopeningMetricReplaysLastRowsBeforeRefresh() async {
+        let sampler = FakeTopAppsSampler()
+        let row = TopAppRow(id: .application(path: "/Applications/A.app"),
+                            name: "A", applicationPath: "/Applications/A.app",
+                            value: 12, upload: nil)
+        await sampler.setResults([.gpu: .measured([row])])
+        let service = makeService(sampler)
+        service.setDemand(.gpu)
+        await service.sampleNowForTesting()
+        #expect(service.observable.state == .measured(.gpu, [row]))
+
+        // Closing then reopening the same metric must replay the previous
+        // ranking immediately instead of falling back to a blank card.
+        service.setDemand(nil)
+        #expect(service.observable.state == .idle)
+        service.setDemand(.gpu)
+        #expect(service.observable.state == .measured(.gpu, [row]))
+        service.stop()
+    }
+
+    @Test func testCollectingBaselineRetriesQuickly() async throws {
+        let sampler = FakeTopAppsSampler()
+        await sampler.setResults([.gpu: .collecting])
+        let recorder = SleepRecorder()
+        let service = TopAppsService(sampler: sampler,
+                                     applications: { [] },
+                                     automaticScheduling: true,
+                                     sleepFor: { duration in
+                                         await recorder.record(duration)
+                                         try await Task.sleep(for: .seconds(60))
+                                     },
+                                     clock: { 0 })
+        service.setDemand(.gpu)
+        for _ in 0..<100 {
+            if await recorder.count > 0 { break }
+            try await Task.sleep(for: .milliseconds(5))
+        }
+        let slept = await recorder.last
+        #expect(slept != nil)
+        #expect(slept! >= .milliseconds(250))
+        #expect(slept! < .seconds(1))
+        service.stop()
+    }
+
+    @Test func testDefaultIntervals() {
+        #expect(TopAppsService.defaultInterval(for: .gpu) == 1)
+        #expect(TopAppsService.defaultInterval(for: .cpu) == 2)
+        #expect(TopAppsService.defaultInterval(for: .network) == 2)
+        #expect(TopAppsService.defaultInterval(for: .memory) == 6)
+    }
+
     @Test func testZeroRowsStayUntilANewAppReplacesThem() {
         func row(_ name: String, _ value: Double) -> TopAppRow {
             TopAppRow(id: .process(ProcessIdentity(pid: Int32(abs(name.hashValue % 10_000)), startedAt: 1)),

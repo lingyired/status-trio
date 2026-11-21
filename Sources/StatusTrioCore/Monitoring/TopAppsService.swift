@@ -41,12 +41,25 @@ final class TopAppsService {
     /// Keeps the list height stable: a row that drops to zero stays until a new
     /// application replaces it.
     private var retainedRows: [TopAppRow] = []
-    private var retainedMetric: TopAppMetric?
+    /// Last published rows per metric, kept across detail-page sessions so
+    /// reopening a page can replay the previous ranking instead of a blank card.
+    private var lastRowsByMetric: [TopAppMetric: [TopAppRow]] = [:]
+    /// True when the last read only established a cumulative baseline; the next
+    /// turn retries quickly instead of waiting a full interval.
+    private var lastSampleWasCollecting = false
 
-    /// Per-metric default cadence for the top-app list.
+    /// After a cumulative metric only establishes its baseline, retry once
+    /// quickly so the first frame appears in about half a second instead of a
+    /// full refresh interval.
+    static let collectingRetryInterval: Double = 0.5
+
+    /// Per-metric default cadence for the top-app list. GPU is cheap to read
+    /// through IOKit and drives the high-usage ranking, so it refreshes at 1 s;
+    /// the syscall and top readers stay slower to keep the page low-power.
     nonisolated static func defaultInterval(for metric: TopAppMetric) -> Double {
         switch metric {
-        case .cpu, .gpu, .network: return 2
+        case .gpu: return 1
+        case .cpu, .network: return 2
         case .memory: return 6
         }
     }
@@ -88,16 +101,20 @@ final class TopAppsService {
         guard metric != demand else { return }
 
         demand = metric
-        if metric != retainedMetric {
-            retainedRows = []
-            retainedMetric = metric
-        }
+        // Seed from the last ranking for this metric so reopening the page
+        // replays it immediately; a cold first open still shows the collecting
+        // placeholder until the first frame arrives.
+        retainedRows = metric.flatMap { lastRowsByMetric[$0] } ?? []
         sessionGeneration &+= 1
         loopTask?.cancel()
         loopTask = nil
         needsTrackerReset = true
         if let metric {
-            observable.update(.collecting(metric))
+            if retainedRows.isEmpty {
+                observable.update(.collecting(metric))
+            } else {
+                observable.update(.measured(metric, retainedRows))
+            }
         } else {
             observable.update(.idle)
             resetTrackersWhenIdle()
@@ -134,7 +151,8 @@ final class TopAppsService {
         isStopped = true
         demand = nil
         retainedRows = []
-        retainedMetric = nil
+        lastRowsByMetric.removeAll()
+        lastSampleWasCollecting = false
         sessionGeneration &+= 1
         loopTask?.cancel()
         loopTask = nil
@@ -167,7 +185,12 @@ final class TopAppsService {
                 let now = self.clock()
                 let elapsed = now >= started ? now - started : 0
                 let interval = max(0.1, self.intervalSeconds(metric))
-                let remaining = interval - Double(elapsed) / 1_000_000_000
+                // A baseline-only frame retries quickly so the ranking appears
+                // in about half a second; steady-state keeps the metric cadence.
+                let target = self.lastSampleWasCollecting
+                    ? min(Self.collectingRetryInterval, interval)
+                    : interval
+                let remaining = target - Double(elapsed) / 1_000_000_000
                 if remaining > 0 {
                     try? await self.sleepFor(.seconds(remaining))
                 } else {
@@ -180,6 +203,7 @@ final class TopAppsService {
     private func sampleOnce() async {
         guard let metric = demand, !inFlight, !isAsleep, !isStopped else { return }
         inFlight = true
+        lastSampleWasCollecting = false
         let session = sessionGeneration
 
         await resetTrackerIfNeeded()
@@ -213,10 +237,18 @@ final class TopAppsService {
 
         switch result {
         case .collecting:
-            observable.update(.collecting(metric))
+            lastSampleWasCollecting = true
+            if retainedRows.isEmpty {
+                observable.update(.collecting(metric))
+            } else {
+                // Keep the previous ranking visible while the new frame is
+                // collected, so reopening the page never flashes an empty card.
+                observable.update(.measured(metric, retainedRows))
+            }
         case .measured(let rows):
             retainedRows = Self.mergedRows(previous: retainedRows, incoming: rows,
                                            limit: Self.maximumRows)
+            lastRowsByMetric[metric] = retainedRows
             observable.update(.measured(metric, retainedRows))
         case .unsupported:
             observable.update(.unsupported(metric))
