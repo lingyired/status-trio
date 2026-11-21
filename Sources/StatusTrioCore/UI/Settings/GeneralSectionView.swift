@@ -174,24 +174,10 @@ struct GeneralSectionView: View {
                 title: localization.string(.settingsPanelLevelSliderColor),
                 subtitle: localization.string(.settingsPanelLevelSliderColorDescription)
             ) {
-                ColorPicker(
-                    localization.string(.settingsPanelLevelSliderColor),
-                    selection: Binding(
-                        get: {
-                            IconAppearanceColorConversion.color(
-                                from: store.panelLevelSliderFillColor
-                            )
-                        },
-                        set: {
-                            store.panelLevelSliderFillColor =
-                                IconAppearanceColorConversion.iconRGBA(from: $0)
-                        }
-                    ),
-                    supportsOpacity: false
+                PanelLevelSliderColorRow(
+                    store: store,
+                    localization: localization
                 )
-                .labelsHidden()
-                .fixedSize()
-                .accessibilityLabel(localization.string(.settingsPanelLevelSliderColor))
             }
         }
     }

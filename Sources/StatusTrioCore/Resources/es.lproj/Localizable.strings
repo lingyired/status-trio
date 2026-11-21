@@ -497,6 +497,7 @@
 "settings.panel.background.style.liquidGlassUnavailable" = "Liquid Glass requiere macOS 26 o posterior.";
 "settings.panel.levelSliderColor" = "Color del control";
 "settings.panel.levelSliderColor.description" = "Color de relleno de los controles de volumen, brillo y micrófono. Blanco por defecto.";
+"settings.panel.levelSliderColor.white" = "Blanco";
 "settings.panel.openBehavior.title" = "Detalles y apertura";
 "settings.panel.returnsToSummaryOnOpen" = "Reabrir la última página de detalle";
 "settings.panel.returnsToSummaryOnOpen.description" = "Si se activa, al reabrir el panel de estado se vuelve a la página de detalle que estaba visible al cerrarlo; en caso contrario, siempre empieza en el resumen.";

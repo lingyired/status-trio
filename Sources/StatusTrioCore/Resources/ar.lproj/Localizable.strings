@@ -497,6 +497,7 @@
 "settings.panel.background.style.liquidGlassUnavailable" = "يتطلب Liquid Glass نظام macOS 26 أو أحدث.";
 "settings.panel.levelSliderColor" = "لون شريط التمرير";
 "settings.panel.levelSliderColor.description" = "لون تعبئة أشرطة التمرير الخاصة بمستوى الصوت والسطوع والميكروفون. الافتراضي أبيض.";
+"settings.panel.levelSliderColor.white" = "أبيض";
 "settings.panel.openBehavior.title" = "التفاصيل وطريقة الفتح";
 "settings.panel.returnsToSummaryOnOpen" = "إعادة فتح آخر صفحة تفاصيل";
 "settings.panel.returnsToSummaryOnOpen.description" = "عند التفعيل، تعود لوحة الحالة عند إعادة فتحها إلى صفحة التفاصيل التي كانت معروضة عند إغلاقها؛ وإلا فتبدأ دائمًا من النظرة العامة.";

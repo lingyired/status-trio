@@ -496,6 +496,7 @@
 "settings.panel.background.style.liquidGlassUnavailable" = "Liquid Glass requires macOS 26 or later.";
 "settings.panel.levelSliderColor" = "Slider Color";
 "settings.panel.levelSliderColor.description" = "Fill color of the volume, brightness, and microphone sliders. Defaults to white.";
+"settings.panel.levelSliderColor.white" = "White";
 "settings.panel.openBehavior.title" = "Details & Opening";
 "settings.panel.returnsToSummaryOnOpen" = "Reopen the Last Detail Page";
 "settings.panel.returnsToSummaryOnOpen.description" = "When enabled, reopening the status panel returns to the detail page that was showing when it closed; otherwise it always starts on the summary page.";

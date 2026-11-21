@@ -497,6 +497,7 @@
 "settings.panel.background.style.liquidGlassUnavailable" = "Liquid Glass требует macOS 26 или новее.";
 "settings.panel.levelSliderColor" = "Цвет ползунка";
 "settings.panel.levelSliderColor.description" = "Цвет заливки ползунков громкости, яркости и микрофона. По умолчанию белый.";
+"settings.panel.levelSliderColor.white" = "Белый";
 "settings.panel.openBehavior.title" = "Детали и открытие";
 "settings.panel.returnsToSummaryOnOpen" = "Открывать последнюю страницу деталей";
 "settings.panel.returnsToSummaryOnOpen.description" = "Если включено, при повторном открытии панели состояния восстанавливается страница деталей, открытая при закрытии; иначе панель всегда открывается на обзоре.";

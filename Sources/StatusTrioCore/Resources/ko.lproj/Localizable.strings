@@ -497,6 +497,7 @@
 "settings.panel.background.style.liquidGlassUnavailable" = "리퀴드 글래스는 macOS 26 이상이 필요합니다.";
 "settings.panel.levelSliderColor" = "슬라이더 색상";
 "settings.panel.levelSliderColor.description" = "볼륨, 밝기 및 마이크 슬라이더의 채우기 색상입니다. 기본값은 흰색입니다.";
+"settings.panel.levelSliderColor.white" = "흰색";
 "settings.panel.openBehavior.title" = "세부 정보 및 열기 방식";
 "settings.panel.returnsToSummaryOnOpen" = "마지막 세부 정보 페이지 다시 열기";
 "settings.panel.returnsToSummaryOnOpen.description" = "켜면 상태 패널을 다시 열 때 닫을 때 보던 세부 정보 페이지로 돌아갑니다. 끄면 항상 요약에서 시작합니다.";

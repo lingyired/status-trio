@@ -497,6 +497,7 @@
 "settings.panel.background.style.liquidGlassUnavailable" = "リキッドグラスには macOS 26 以降が必要です。";
 "settings.panel.levelSliderColor" = "スライダーの色";
 "settings.panel.levelSliderColor.description" = "音量・明るさ・マイクのスライダーの塗りつぶし色。既定は白です。";
+"settings.panel.levelSliderColor.white" = "ホワイト";
 "settings.panel.openBehavior.title" = "詳細と開き方";
 "settings.panel.returnsToSummaryOnOpen" = "最後の詳細ページを再度開く";
 "settings.panel.returnsToSummaryOnOpen.description" = "有効にすると、ステータスパネルを開き直したときに、閉じる前に表示していた詳細ページに戻ります。無効の場合は常に概要から始まります。";
