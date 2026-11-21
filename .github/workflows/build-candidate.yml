@@ -211,6 +211,7 @@ jobs:
       RELEASE_MODE: ${{ inputs.release_mode }}
       RESOLVED_RELEASE_REPO: ${{ vars.RELEASE_REPO || 'lingyired/status-trio' }}
       RESOLVED_RELEASE_BRANCH: ${{ vars.RELEASE_BRANCH || 'main' }}
+      BUILD_TIMING_FILE: ${{ github.workspace }}/.build/ci-logs/package-build-timings.tsv
     steps:
       - name: Check out the frozen candidate
         uses: actions/checkout@v4
@@ -302,6 +303,9 @@ jobs:
           fi
           bash scripts/create-installer-dmg.sh --check
 
+      - name: Prepare package timing directory
+        run: mkdir -p "$(dirname "${BUILD_TIMING_FILE}")"
+
       - name: Build, sign, notarize, and package one release candidate
         env:
           SPARKLE_PRIVATE_KEY: ${{ secrets.SPARKLE_PRIVATE_KEY }}
@@ -329,6 +333,18 @@ jobs:
           path: dist/release-package/
           if-no-files-found: error
           retention-days: 30
+
+      - name: Summarize package performance
+        if: always()
+        run: python3 scripts/ci-diagnostics.py perf-summary "${BUILD_TIMING_FILE}"
+
+      - name: Upload package build timings
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: package-build-timings
+          path: ${{ env.BUILD_TIMING_FILE }}
+          if-no-files-found: warn
 
       - name: Summarize candidate artifact
         if: always()

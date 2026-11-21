@@ -260,6 +260,79 @@ final class StatusPanelScrollAreaTests: XCTestCase {
         XCTAssertEqual(metrics.thumbOffset, 0, accuracy: 0.5)
     }
 
+    // MARK: - Scroll bar visibility preference (#360)
+
+    func testSystemPreferenceDefaultsToAutomaticForUnknownValues() {
+        XCTAssertEqual(PanelScrollBarSystemPreference(rawValueString: nil), .automatic)
+        XCTAssertEqual(PanelScrollBarSystemPreference(rawValueString: "Unknown"), .automatic)
+        XCTAssertEqual(PanelScrollBarSystemPreference(rawValueString: "Automatic"), .automatic)
+        XCTAssertEqual(PanelScrollBarSystemPreference(rawValueString: "WhenScrolling"), .whenScrolling)
+        XCTAssertEqual(PanelScrollBarSystemPreference(rawValueString: "Always"), .always)
+    }
+
+    func testVisibilityPolicyMapsAllThreeSystemPreferences() {
+        // "Always" keeps the bar visible regardless of the input device.
+        XCTAssertEqual(
+            PanelScrollBarVisibilityPolicy.resolve(systemPreference: .always, scrollerStyle: .overlay),
+            .persistent
+        )
+        XCTAssertEqual(
+            PanelScrollBarVisibilityPolicy.resolve(systemPreference: .always, scrollerStyle: .legacy),
+            .persistent
+        )
+        // "When scrolling" always fades, whatever the input device.
+        XCTAssertEqual(
+            PanelScrollBarVisibilityPolicy.resolve(systemPreference: .whenScrolling, scrollerStyle: .overlay),
+            .transient
+        )
+        XCTAssertEqual(
+            PanelScrollBarVisibilityPolicy.resolve(systemPreference: .whenScrolling, scrollerStyle: .legacy),
+            .transient
+        )
+        // "Automatic" follows the device: trackpad (overlay) fades, mouse
+        // (legacy) stays visible — macOS's own behaviour.
+        XCTAssertEqual(
+            PanelScrollBarVisibilityPolicy.resolve(systemPreference: .automatic, scrollerStyle: .overlay),
+            .transient
+        )
+        XCTAssertEqual(
+            PanelScrollBarVisibilityPolicy.resolve(systemPreference: .automatic, scrollerStyle: .legacy),
+            .persistent
+        )
+    }
+
+    func testIndicatorVisibilityAcrossPoliciesAndScrollStates() {
+        // A page that fits never shows an indicator, whatever the preference.
+        XCTAssertFalse(
+            PanelScrollIndicatorVisibility(policy: .persistent, overflows: false, isScrolling: true).isVisible
+        )
+        XCTAssertFalse(
+            PanelScrollIndicatorVisibility(policy: .transient, overflows: false, isScrolling: true).isVisible
+        )
+
+        // Persistent: visible whenever the page overflows, even at rest.
+        XCTAssertTrue(
+            PanelScrollIndicatorVisibility(policy: .persistent, overflows: true, isScrolling: false).isVisible
+        )
+        XCTAssertTrue(
+            PanelScrollIndicatorVisibility(policy: .persistent, overflows: true, isScrolling: true).isVisible
+        )
+
+        // Transient: hidden at rest, visible while scrolling.
+        XCTAssertFalse(
+            PanelScrollIndicatorVisibility(policy: .transient, overflows: true, isScrolling: false).isVisible
+        )
+        XCTAssertTrue(
+            PanelScrollIndicatorVisibility(policy: .transient, overflows: true, isScrolling: true).isVisible
+        )
+    }
+
+    func testTransientFadeOutDelayStaysInTheAcceptedRange() {
+        // The issue asks for roughly 0.5–0.8s after the last scroll event.
+        XCTAssertGreaterThanOrEqual(PanelScrollIndicatorVisibility.fadeOutDelay, 0.5)
+        XCTAssertLessThanOrEqual(PanelScrollIndicatorVisibility.fadeOutDelay, 0.8)
+    }
+
     func testExpansionStateSurvivesCrossingTheCapAndCapRoundTrip() throws {
         let metrics = StatusPanelLayoutMetrics()
         metrics.update(maximumPanelHeight: 300)

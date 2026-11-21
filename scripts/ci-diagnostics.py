@@ -168,6 +168,75 @@ def timing_summary(path):
         print(output, end="")
 
 
+TOP_LEVEL_PHASES = [
+    "package-preflight", "app-build-sign-and-verify", "universal-package-contracts",
+    "dmg-staging", "app-notarization", "dmg-creation", "dmg-codesign",
+    "dmg-notarization", "app-zip-archive", "sparkle-signature-and-manifest",
+]
+# Leaf phases shown in the performance table. Parent phases
+# (app-build-sign-and-verify, mobile-battery-total) enclose children, so they are
+# excluded from the leaf ranking to avoid double counting.
+REPORT_PHASES = [
+    "swift-release-build", "mobile-battery-total", "bundle-assembly-and-icon-assets",
+    "app-codesign", "signed-bundle-contracts", "app-notarization", "dmg-creation",
+    "dmg-notarization", "app-zip-archive", "sparkle-signature-and-manifest",
+]
+
+
+def perf_summary(path):
+    """Emit a phase cost table with a defensible package-script total.
+
+    The total is the sum of sequential top-level package-release.sh phases, which
+    equals the packaging step wall time. Parent phases that enclose children are
+    never added into the total or the ranking.
+    """
+    values = {}
+    leaf = {}
+    warnings = []
+    if Path(path).is_file():
+        for index, line in enumerate(Path(path).read_text(errors="replace").splitlines(), 1):
+            try:
+                name, seconds, code = line.split("\t")
+                if not math.isfinite(float(seconds)):
+                    raise ValueError("invalid timing")
+                int(code)
+            except ValueError:
+                warnings.append(f"Unreadable timing row {index}; see the original step log.")
+                continue
+            values[name] = float(seconds)
+            if name not in ("app-build-sign-and-verify", "mobile-battery-total"):
+                leaf[name] = float(seconds)
+    known_total = sum(values.get(name, 0.0) for name in TOP_LEVEL_PHASES)
+    total = known_total if known_total > 0 else sum(leaf.values())
+    lines = ["### Package performance", ""]
+    if total > 0:
+        lines.append(f"Package script total: **{total:.0f}s** (sum of sequential top-level phases)")
+    else:
+        lines.append("Package script total: unavailable (no top-level phases recorded)")
+    lines += ["", "| Phase | Seconds | % of total |", "| --- | ---: | ---: |"]
+    report = [(name, values[name]) for name in REPORT_PHASES if name in values]
+    for name, seconds in sorted(report, key=lambda item: -item[1]):
+        pct = (100.0 * seconds / total) if total else 0.0
+        lines.append(f"| {cell(name)} | {cell(int(seconds))} | {pct:.0f}% |")
+    top = sorted(leaf.items(), key=lambda item: -item[1])[:3]
+    if top and total > 0:
+        lines += ["", "Slowest phases: " + ", ".join(
+            f"{cell(name)} {int(seconds)}s ({100.0 * seconds / total:.0f}%)"
+            for name, seconds in top)]
+    if warnings:
+        lines += ["", *warnings]
+    lines += ["", "Parent phases enclose children and are excluded from the total and ranking. "
+              "Notarization durations include Apple/network wait, not local CPU. "
+              "Cache restore/save and artifact upload are separate Actions steps."]
+    target = os.environ.get("GITHUB_STEP_SUMMARY")
+    output = "\n".join(lines) + "\n"
+    if target:
+        with open(target, "a") as handle:
+            handle.write(output)
+    else:
+        print(output, end="")
+
+
 if __name__ == "__main__":
     if sys.argv[1] == "record":
         record(sys.argv[2], int(sys.argv[3]), float(sys.argv[4]), sys.argv[5])
@@ -175,5 +244,7 @@ if __name__ == "__main__":
         summary(sys.argv[2])
     elif sys.argv[1] == "timings":
         timing_summary(sys.argv[2])
+    elif sys.argv[1] == "perf-summary":
+        perf_summary(sys.argv[2])
     else:
-        raise SystemExit("Expected record or summary")
+        raise SystemExit("Expected record, summary, timings, or perf-summary")

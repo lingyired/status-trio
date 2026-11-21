@@ -52,4 +52,20 @@ BUILD_TIMING_FILE="$WORK/icon.tsv" bash -euo pipefail \
 [[ "$rc" == 37 && ! -d "$WORK/icon-work" ]] || exit 1
 [[ -f "$WORK/icon.tsv" ]] || { echo "FAIL: icon cleanup replaced the build timing trap"; exit 1; }
 grep -Fq 'signed-bundle-contracts' "$WORK/icon.tsv"
+perf_tsv="$WORK/perf.tsv"
+printf '%s\t%s\t%s\n' \
+  package-preflight 2 0 \
+  swift-release-build 120 0 \
+  mobile-battery-total 10 0 \
+  app-build-sign-and-verify 150 0 \
+  app-notarization 30 0 \
+  dmg-creation 20 0 \
+  dmg-notarization 25 0 \
+  app-zip-archive 2 0 \
+  sparkle-signature-and-manifest 1 0 > "$perf_tsv"
+GITHUB_STEP_SUMMARY="$WORK/perf-summary.md" python3 "$ROOT/scripts/ci-diagnostics.py" \
+    perf-summary "$perf_tsv"
+grep -Fq 'Package script total: **230s**' "$WORK/perf-summary.md" || { cat "$WORK/perf-summary.md"; exit 1; }
+grep -Fq '| swift-release-build | 120 |' "$WORK/perf-summary.md" || exit 1
+grep -Fq 'Slowest phases: swift-release-build' "$WORK/perf-summary.md" || exit 1
 echo "Build timings preserve phase order and original failure status"
