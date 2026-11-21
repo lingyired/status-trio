@@ -189,7 +189,11 @@ struct SensorSMCReader: Sendable {
     private static func temperatureKeys(for platform: SensorPlatform) -> (cpu: [String], gpu: [String]) {
         switch platform {
         case .intel:
-            return ((0...9).map { "TC\($0)C" } + (0...9).map { "TC\($0)c" } + ["TCAC", "TCBC"],
+            // Core-die keys span hex indices 0–F (TCAC/TCBC are the A/B dies).
+            // Stats uses the TC%C / TC%c wildcard for the same coverage, which
+            // matters on high-core Intel Macs where indices exceed 9.
+            let hexCore = (0...15).map { String($0, radix: 16, uppercase: true) }
+            return (hexCore.map { "TC\($0)C" } + hexCore.map { "TC\($0)c" },
                     ["TCGC", "TG0D", "TGDD"])
         case .appleSilicon(let chip):
             // Exact brand names prevent an unknown future generation from

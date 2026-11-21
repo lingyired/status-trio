@@ -208,6 +208,22 @@ final class HardwareReaderTests: XCTestCase {
         }
     }
 
+    func testIntelCPUProbesAllHexCoreDieKeys() {
+        var keys: [String] = []
+        _ = SensorSMCReader.read(platform: .intel, includeTemperature: true, includeFans: false, at: start) { key in
+            keys.append(key)
+            return nil
+        }
+        // 16 uppercase + 16 lowercase core-die keys, plus the 4 Intel
+        // package/diode fallback keys probed when no core die responds.
+        XCTAssertEqual(keys.count, 36, "32 hex core-die keys + 4 fallback keys")
+        XCTAssertTrue(keys.contains("TCAC"), "hex index A core die")
+        XCTAssertTrue(keys.contains("TCBC"), "hex index B core die")
+        XCTAssertTrue(keys.contains("TCFC"), "hex index F core die")
+        XCTAssertTrue(keys.contains("TCAc"), "lowercase core-die family covers hex A")
+        XCTAssertFalse(keys.contains("TCGC"), "GPU keys are not probed without GPU demand")
+    }
+
     func testSensorDemandAndInvalidSamplesNeverCreateFakeZeros() {
         var keys: [String] = []
         let noDemand = SensorSMCReader.read(platform: .intel, includeTemperature: false, includeFans: false, at: start) { key in keys.append(key); return 0 }
