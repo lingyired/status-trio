@@ -45,6 +45,8 @@ jobs:
         run: rm -rf .build
 
       - name: Timed universal release compile
+        env:
+          BENCH_NOTE: ${{ inputs.note }}
         run: |
           set -euo pipefail
           start=$(date +%s)
@@ -58,7 +60,7 @@ jobs:
             echo ""
             echo "- cache-hit: ${{ steps.swift-cache.outputs.cache-hit }}"
             echo "- universal release compile: ${secs}s"
-            echo "- note: ${{ inputs.note }}"
+            printf '%s\n' "- note: ${BENCH_NOTE}"
           } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Save SwiftPM build cache

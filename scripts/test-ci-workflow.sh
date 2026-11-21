@@ -57,5 +57,12 @@ ruby -ryaml -e '
     abort "cache key #{arch} is not written to Actions outputs" unless
       key_step.fetch("run").include?(%Q{--github-output "$GITHUB_OUTPUT" --output-name key_#{arch}})
   end
-' "$ROOT/.github/workflows/release.yml"
-echo "CI workflow: early static checks, strict test wrapper and failure diagnostics passed"
+
+  bench = YAML.load_file(ARGV.fetch(1)).fetch("jobs").fetch("bench")
+  bench.fetch("steps").each do |step|
+    if step.fetch("run", "").match?(/\$\{\{[^}]*\binputs\b/)
+      abort "compile benchmark must pass workflow inputs through step environment, not shell source"
+    end
+  end
+' "$ROOT/.github/workflows/release.yml" "$ROOT/.github/workflows/compile-bench.yml"
+echo "CI workflow: early static checks, strict test wrapper, failure diagnostics and compile benchmark input checks passed"

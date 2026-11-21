@@ -956,6 +956,27 @@ final class StatusPanelViewModelTests: XCTestCase {
         return condition()
     }
 
+    func testSliderColorOnlyChangeInvalidatesTheOpenPanel() {
+        let fixture = PanelStoreFixture()
+        let panel = fixture.makePanel()
+        panel.start()
+        defer { panel.stop(); fixture.store.stop() }
+
+        var panelChanges = 0
+        let observation = panel.objectWillChange.sink { panelChanges += 1 }
+        defer { observation.cancel() }
+        let custom = PanelLevelSliderColorSelection.custom(.white)
+
+        fixture.settings.panelLevelSliderColor = custom
+        XCTAssertEqual(panelChanges, 1, "a new slider color must update the panel immediately")
+
+        fixture.settings.panelLevelSliderColor = custom
+        XCTAssertEqual(panelChanges, 1, "an unchanged color must not invalidate the panel again")
+
+        fixture.settings.panelLevelSliderColor = .automatic
+        XCTAssertEqual(panelChanges, 2, "resetting the color must also update the panel immediately")
+    }
+
     /// The Settings switch drives the two weight tiers; the panel model must
     /// mirror both so the environment values reach every panel view.
     func testPanelTextWeightSettingsMirrorIntoPanelModel() throws {

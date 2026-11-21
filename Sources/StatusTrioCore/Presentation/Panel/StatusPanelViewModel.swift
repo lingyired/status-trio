@@ -188,6 +188,7 @@ final class StatusPanelViewModel: ObservableObject {
     /// `hardwareMonitorMetricColors`; it still comes from settings so the panel
     /// and the settings colour row stay in sync.
     @Published private(set) var hardwareDiskRingColor: IconRGBA
+    @Published private(set) var panelLevelSliderColor: PanelLevelSliderColorSelection
     @Published private(set) var statusPanelBoldTextEnabled: Bool
     @Published private(set) var statusPanelMediumTextEnabled: Bool
     /// Broadband caps (Mbps) for the network-speed tiles.
@@ -277,6 +278,7 @@ final class StatusPanelViewModel: ObservableObject {
         hardwareMonitorMetrics = settings.visibleHardwareMetrics
         hardwareMonitorMetricColors = settings.hardwareMonitorMetricColors
         hardwareDiskRingColor = settings.hardwareDiskRingColor
+        panelLevelSliderColor = settings.panelLevelSliderColor
         statusPanelBoldTextEnabled = settings.statusPanelBoldTextEnabled
         statusPanelMediumTextEnabled = settings.statusPanelMediumTextEnabled
         showsHardwareRings = settings.showsHardwareRings
@@ -547,6 +549,14 @@ final class StatusPanelViewModel: ObservableObject {
             .sink { [weak self] mode in
                 guard let self, self.ssdRingDisplayMode != mode else { return }
                 self.ssdRingDisplayMode = mode
+            }
+            .store(in: &cancellables)
+
+        settings.$panelLevelSliderColor
+            .removeDuplicates()
+            .sink { [weak self] color in
+                guard let self, self.panelLevelSliderColor != color else { return }
+                self.panelLevelSliderColor = color
             }
             .store(in: &cancellables)
 
