@@ -1110,12 +1110,17 @@ notarization and not DMG, the single highest-leverage optimization target.
 - Three runs on one day, same toolchain, warm caches. They are representative of
   current notarized packages, but a same-SHA cold/warm A/B is still required
   before claiming any optimization.
-- The roughly 2-5x Swift compile growth versus the historical baseline should be
-  investigated first (source, toolchain, or runner change) before adding a
-  compile cache. A SwiftPM .build compile cache is the highest-potential lever
-  but must be proven with an authorized non-publishing diagnostic (cold vs warm,
-  same SHA). It was previously deferred when compile was ~100-190 s and now
-  warrants re-evaluation.
+- The roughly 2-5x Swift compile growth versus the historical baseline is mostly
+  real code growth, not a toolchain regression: since the ~120 s baseline
+  (v1.7.5 / 4d03476) the tree went from 307 to 577 Swift files and about +76k
+  source lines (Sources diffstat +76459/-3820), and Package.swift changed
+  (unified system-monitor pages, AirPods controls, input source, charge). The
+  compile cost tracks how much code must be rebuilt, not a broken runner. The
+  highest-leverage lever is reuse of unchanged modules, i.e. a correct SwiftPM
+  .build incremental build cache, not "fixing a regression". It must be proven
+  with an authorized non-publishing diagnostic (same SHA, cold vs restored
+  cache, measured compile and artifact identity). It was previously deferred
+  when compile was ~100-190 s and now warrants re-evaluation.
 - Notarization durations include Apple/network wait, not local CPU.
 
 ### Instrumentation delivered in this increment
