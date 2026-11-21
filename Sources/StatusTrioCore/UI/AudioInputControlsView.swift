@@ -86,6 +86,7 @@ struct AudioInputControlsView: View {
     let actions: StatusPanelActions
     let scrollTargets: PopoverScrollTargets
     let onOpenSoundSettings: () -> Void
+    var fillColor: Color = .primary
 
     @State private var volumeDraft = AudioInputVolumeDraft()
     @State private var isDeviceListExpanded = false
@@ -165,7 +166,7 @@ struct AudioInputControlsView: View {
                 PanelLevelSlider(
                     value: sliderValue,
                     isEnabled: state.canAdjust,
-                    tint: state.muteState == .muted ? Color.secondary : Color.primary,
+                    tint: state.muteState == .muted ? Color.secondary : fillColor,
                     accessibilityLabel: state.sliderLabel,
                     accessibilityValue: sliderAccessibilityValue,
                     accessibilityHint: state.canAdjust

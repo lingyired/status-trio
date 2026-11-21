@@ -81,6 +81,7 @@ enum SettingsPreferenceCatalog {
             enumeration("appIconPlacement", \.appIconPlacement, default: .menuBar),
             enumeration("dockIconBackgroundPreference", \.dockIconBackgroundPreference, default: .system),
             enumeration("panelBackgroundStyle", \.panelBackgroundStyle, default: PanelBackgroundStyle.systemDefault),
+            panelLevelSliderFillColorPreference,
             enumeration("menuBarRightClickAction", \.menuBarRightClickAction, default: .contextMenu),
             number("refreshIntervalOnBatterySeconds", \.refreshIntervalOnBatterySeconds,
                    default: SettingsStore.defaultRefreshIntervalSeconds, range: SettingsStore.refreshIntervalRange, step: 1),
@@ -338,6 +339,37 @@ enum SettingsPreferenceCatalog {
                   raw == "blue" || raw == "primary" || validCustomColor(raw) else { return nil }
             return BluetoothIconColorSelection(storageValue: raw)
         }, encode: { .string($0.storageValue) })
+    }
+
+    private static var panelLevelSliderFillColorPreference: Preference {
+        func decode(_ value: Value) -> IconRGBA? {
+            guard case let .object(parts) = value,
+                  case let .number(red)? = parts["red"],
+                  case let .number(green)? = parts["green"],
+                  case let .number(blue)? = parts["blue"],
+                  case let .number(alpha)? = parts["alpha"],
+                  [red, green, blue, alpha].allSatisfy({ $0.isFinite && (0...1).contains($0) })
+            else { return nil }
+            return IconRGBA(red: red, green: green, blue: blue, alpha: alpha)
+        }
+        func encode(_ color: IconRGBA) -> Value {
+            .object([
+                "red": .number(color.red),
+                "green": .number(color.green),
+                "blue": .number(color.blue),
+                "alpha": .number(color.alpha)
+            ])
+        }
+        return Preference(
+            key: "panelLevelSliderFillColor",
+            defaultValue: encode(.white),
+            read: { encode($0.panelLevelSliderFillColor) },
+            isValid: { decode($0) != nil },
+            write: { value, store in
+                guard let color = decode(value) else { return }
+                store.panelLevelSliderFillColor = color
+            }
+        )
     }
 
     private static var batteryColorsPreference: Preference {

@@ -36,6 +36,7 @@ struct GeneralSectionView: View {
     var body: some View {
         SettingsPage {
             systemGroup
+            appearanceGroup
             quickActionsGroup
             statusCheckGroup
             SettingsTransferView(
@@ -160,6 +161,38 @@ struct GeneralSectionView: View {
                 title: localization.string(.settingsRefreshIntervalOnPower),
                 value: $store.refreshIntervalOnPowerSeconds
             )
+        }
+    }
+
+    /// Panel appearance: the fill colour used by the volume, brightness and
+    /// microphone sliders in the status panel (#359).
+    private var appearanceGroup: some View {
+        SettingsGroup {
+            SettingsRow(
+                "slider.horizontal.3",
+                tint: .teal,
+                title: localization.string(.settingsPanelLevelSliderColor),
+                subtitle: localization.string(.settingsPanelLevelSliderColorDescription)
+            ) {
+                ColorPicker(
+                    localization.string(.settingsPanelLevelSliderColor),
+                    selection: Binding(
+                        get: {
+                            IconAppearanceColorConversion.color(
+                                from: store.panelLevelSliderFillColor
+                            )
+                        },
+                        set: {
+                            store.panelLevelSliderFillColor =
+                                IconAppearanceColorConversion.iconRGBA(from: $0)
+                        }
+                    ),
+                    supportsOpacity: false
+                )
+                .labelsHidden()
+                .fixedSize()
+                .accessibilityLabel(localization.string(.settingsPanelLevelSliderColor))
+            }
         }
     }
 

@@ -11,13 +11,15 @@ struct VolumeControlsSection: View {
     let actions: StatusPanelActions
     let scrollTargets: PopoverScrollTargets
     let onOpenSoundSettings: () -> Void
+    var fillColor: Color = .primary
 
     var body: some View {
         VolumeControlsView(
             state: model.volume,
             actions: actions,
             scrollTargets: scrollTargets,
-            onOpenSoundSettings: onOpenSoundSettings
+            onOpenSoundSettings: onOpenSoundSettings,
+            fillColor: fillColor
         )
     }
 }
@@ -35,6 +37,7 @@ struct VolumeControlsView: View {
     let actions: StatusPanelActions
     let scrollTargets: PopoverScrollTargets
     let onOpenSoundSettings: () -> Void
+    var fillColor: Color = .primary
 
     @State private var interaction: VolumeControlInteraction
 
@@ -42,12 +45,14 @@ struct VolumeControlsView: View {
         state: VolumePanelState,
         actions: StatusPanelActions,
         scrollTargets: PopoverScrollTargets,
-        onOpenSoundSettings: @escaping () -> Void
+        onOpenSoundSettings: @escaping () -> Void,
+        fillColor: Color = .primary
     ) {
         self.state = state
         self.actions = actions
         self.scrollTargets = scrollTargets
         self.onOpenSoundSettings = onOpenSoundSettings
+        self.fillColor = fillColor
         _interaction = State(
             initialValue: VolumeControlInteraction(
                 setVolume: { actions.setVolume($0) },
@@ -80,7 +85,7 @@ struct VolumeControlsView: View {
                 PanelLevelSlider(
                     value: volumeBinding,
                     isEnabled: state.canAdjust,
-                    tint: state.muted ? Color.secondary : Color.primary,
+                    tint: state.muted ? Color.secondary : fillColor,
                     accessibilityLabel: state.sliderLabel,
                     accessibilityValue: percentageText,
                     onEditingChanged: { isEditing in

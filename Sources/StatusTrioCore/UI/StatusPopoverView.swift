@@ -42,6 +42,11 @@ struct StatusPopoverView: View {
     var contentMeasurementID: UUID? = nil
     var host: Host = .primary
 
+    /// Fill colour of the panel's level sliders, from General settings (#359).
+    private var levelSliderFillColor: Color {
+        IconAppearanceColorConversion.color(from: panel.settings.panelLevelSliderFillColor)
+    }
+
     var body: some View {
         // One scroll surface for every route (#237). The area measures the page
         // at its natural height and only scrolls once the screen budget cannot
@@ -319,21 +324,24 @@ struct StatusPopoverView: View {
                 model: panel.volumeControl,
                 actions: panel.actions,
                 scrollTargets: scrollTargets,
-                onOpenSoundSettings: openSoundSettings
+                onOpenSoundSettings: openSoundSettings,
+                fillColor: levelSliderFillColor
             )
         case .brightness:
             BrightnessControlsView(
                 state: panel.brightness,
                 actions: panel.actions,
                 scrollTargets: scrollTargets,
-                onOpenDisplaySettings: openDisplaySettings
+                onOpenDisplaySettings: openDisplaySettings,
+                fillColor: levelSliderFillColor
             )
         case .audioInput:
             AudioInputControlsView(
                 state: panel.audioInput,
                 actions: panel.actions,
                 scrollTargets: scrollTargets,
-                onOpenSoundSettings: openSoundInputSettings
+                onOpenSoundSettings: openSoundInputSettings,
+                fillColor: levelSliderFillColor
             )
         case .inputSource:
             InputSourceStatusView(

@@ -495,6 +495,8 @@
 "settings.panel.background.style.classicMaterial" = "经典材质";
 "settings.panel.background.style.solid" = "纯色";
 "settings.panel.background.style.liquidGlassUnavailable" = "液态玻璃需要 macOS 26 或更高版本。";
+"settings.panel.levelSliderColor" = "滑条颜色";
+"settings.panel.levelSliderColor.description" = "音量、亮度和麦克风滑条的填充颜色，默认白色。";
 "settings.panel.openBehavior.title" = "详情与打开方式";
 "settings.panel.returnsToSummaryOnOpen" = "重新打开时恢复详情页";
 "settings.panel.returnsToSummaryOnOpen.description" = "开启后，再次打开状态面板会回到上次收起时仍显示的详情页；关闭后，每次只显示主界面。";

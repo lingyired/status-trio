@@ -158,6 +158,10 @@ final class SettingsStore: ObservableObject {
     /// to `.classicMaterial` so a downgrade never selects an unavailable
     /// background (issue #233).
     static let panelBackgroundStyleDefaultsKey = "panelBackgroundStyle"
+    /// Fill colour (RGBA) of the status panel's level sliders (volume,
+    /// brightness, microphone). Defaults to white; stored as JSON-encoded
+    /// `IconRGBA` (#359).
+    static let panelLevelSliderFillColorDefaultsKey = "panelLevelSliderFillColor"
     static let prioritizesNetworkErrorsDefaultsKey = "prioritizesNetworkErrors"
     /// Migration-only keys from the split middle-slot settings.
     static let prioritizesNetworkErrorsOverInputSourceDefaultsKey = "prioritizesNetworkErrorsOverInputSource"
@@ -476,6 +480,17 @@ final class SettingsStore: ObservableObject {
                 menuBarRightClickAction.rawValue,
                 forKey: Self.menuBarRightClickActionDefaultsKey
             )
+        }
+    }
+
+    /// Fill colour of the status panel's level sliders (volume, brightness,
+    /// microphone). Defaults to white. Persisted as JSON-encoded `IconRGBA`.
+    @Published var panelLevelSliderFillColor: IconRGBA = .white {
+        didSet {
+            guard panelLevelSliderFillColor != oldValue else { return }
+            if let data = try? JSONEncoder().encode(panelLevelSliderFillColor) {
+                defaults.set(data, forKey: Self.panelLevelSliderFillColorDefaultsKey)
+            }
         }
     }
 
@@ -2568,6 +2583,10 @@ final class SettingsStore: ObservableObject {
         self.panelBackgroundStyle = PanelBackgroundStyle.resolved(
             storedPanelBackgroundStyle.flatMap(PanelBackgroundStyle.init(rawValue:))
         )
+        let storedPanelLevelSliderFillColor = defaults.data(
+            forKey: Self.panelLevelSliderFillColorDefaultsKey
+        ).flatMap { try? JSONDecoder().decode(IconRGBA.self, from: $0) }
+        self.panelLevelSliderFillColor = (storedPanelLevelSliderFillColor ?? .white).normalized()
         let storedMenuBarRightClickAction = defaults.string(
             forKey: Self.menuBarRightClickActionDefaultsKey
         )

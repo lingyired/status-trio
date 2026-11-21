@@ -9,6 +9,7 @@ struct BrightnessControlsView: View {
     let actions: StatusPanelActions
     let scrollTargets: PopoverScrollTargets
     let onOpenDisplaySettings: () -> Void
+    var fillColor: Color = .primary
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -17,7 +18,8 @@ struct BrightnessControlsView: View {
                     row: row,
                     actions: actions,
                     scrollTargets: scrollTargets,
-                    onOpenDisplaySettings: onOpenDisplaySettings
+                    onOpenDisplaySettings: onOpenDisplaySettings,
+                    fillColor: fillColor
                 )
             }
         }
@@ -30,6 +32,7 @@ private struct BrightnessRowView: View {
     let actions: StatusPanelActions
     let scrollTargets: PopoverScrollTargets
     let onOpenDisplaySettings: () -> Void
+    var fillColor: Color = .primary
 
     @EnvironmentObject private var localization: Localization
 
@@ -58,6 +61,7 @@ private struct BrightnessRowView: View {
                         value: sliderBinding,
                         label: row.name,
                         isEnabled: true,
+                        tint: fillColor,
                         accessibilityLabel: row.accessibilityLabel,
                         accessibilityValue: row.percentageText,
                         onEditingChanged: { editing in
@@ -80,6 +84,7 @@ private struct BrightnessRowView: View {
                         value: sliderBinding,
                         label: row.name,
                         isEnabled: false,
+                        tint: fillColor,
                         accessibilityLabel: row.accessibilityLabel,
                         accessibilityValue: row.percentageText,
                         onEditingChanged: { _ in }
