@@ -40,6 +40,9 @@ struct TopAppsListView: View {
                         rowView(row)
                     }
                 }
+                // Rows have stable identities; a light animation keeps a
+                // re-rank from looking like a jump instead of freezing order.
+                .animation(.easeInOut(duration: 0.2), value: rows)
             }
         case .collecting(let stateMetric) where stateMetric == metric:
             message(.hardwareDetailTopAppsCollecting)

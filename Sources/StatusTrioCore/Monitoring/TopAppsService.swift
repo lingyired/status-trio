@@ -38,8 +38,8 @@ final class TopAppsService {
     /// The reset is deferred until that read returns and runs before any new
     /// read, so a late sample cannot overwrite the fresh baseline.
     private var needsTrackerReset = false
-    /// Keeps the list height stable: a row that drops to zero stays until a new
-    /// application replaces it.
+    /// Current ranked rows: a row that drops to zero still stays at the bottom
+    /// until a live application replaces it. Always re-sorted by value.
     private var retainedRows: [TopAppRow] = []
     /// Last published rows per metric, kept across detail-page sessions so
     /// reopening a page can replay the previous ranking instead of a blank card.
@@ -247,7 +247,7 @@ final class TopAppsService {
             }
         case .measured(let rows):
             retainedRows = Self.mergedRows(previous: retainedRows, incoming: rows,
-                                           limit: Self.maximumRows)
+                                           metric: metric, limit: Self.maximumRows)
             lastRowsByMetric[metric] = retainedRows
             observable.update(.measured(metric, retainedRows))
         case .unsupported:
@@ -259,11 +259,13 @@ final class TopAppsService {
 
     static let maximumRows = 8
 
-    /// Stable merge: previous order first (updated values, or zeroed when the app
-    /// stopped using the resource), then newly seen apps. A new app displaces a
-    /// zero row instead of growing the list.
+    /// Merge then rank. Previous apps keep a slot with refreshed values (or zero
+    /// when the app stopped using the resource) and newly seen apps are added;
+    /// the result is always re-sorted by the current value so a busy app moves up
+    /// and a new high-usage app lands in the right place. A zero row naturally
+    /// settles at the bottom and is the first to be dropped past the limit.
     static func mergedRows(previous: [TopAppRow], incoming: [TopAppRow],
-                           limit: Int) -> [TopAppRow] {
+                           metric: TopAppMetric, limit: Int) -> [TopAppRow] {
         guard limit > 0 else { return [] }
         var byID = Dictionary(uniqueKeysWithValues: incoming.map { ($0.id, $0) })
         var result: [TopAppRow] = []
@@ -280,6 +282,7 @@ final class TopAppsService {
             result.append(row)
             byID.removeValue(forKey: row.id)
         }
+        result = TopAppRanking.sorted(result, metric: metric)
         while result.count > limit {
             if let zeroIndex = result.lastIndex(where: {
                 $0.value == 0 && ($0.upload ?? 0) == 0
