@@ -499,6 +499,8 @@
 "settings.panel.levelSliderColor.description" = "볼륨, 출력, 밝기 등";
 "settings.panel.levelSliderColor.white" = "흰색";
 "settings.panel.levelSliderColor.automatic" = "자동";
+"settings.panel.levelSliderThickness" = "밝기와 같은 두께";
+"settings.panel.levelSliderThickness.description" = "볼륨 및 마이크 슬라이더를 밝기와 같은 캡슐 높이로 표시합니다.";
 "settings.panel.openBehavior.title" = "세부 정보 및 열기 방식";
 "settings.panel.returnsToSummaryOnOpen" = "마지막 세부 정보 페이지 다시 열기";
 "settings.panel.returnsToSummaryOnOpen.description" = "켜면 상태 패널을 다시 열 때 닫을 때 보던 세부 정보 페이지로 돌아갑니다. 끄면 항상 요약에서 시작합니다.";

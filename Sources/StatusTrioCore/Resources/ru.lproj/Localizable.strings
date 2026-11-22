@@ -499,6 +499,8 @@
 "settings.panel.levelSliderColor.description" = "Громкость, вывод, яркость и др.";
 "settings.panel.levelSliderColor.white" = "Белый";
 "settings.panel.levelSliderColor.automatic" = "Авто";
+"settings.panel.levelSliderThickness" = "Та же толщина, что и яркость";
+"settings.panel.levelSliderThickness.description" = "Рисовать ползунки громкости и микрофона с той же высотой капсулы, что и яркость.";
 "settings.panel.openBehavior.title" = "Детали и открытие";
 "settings.panel.returnsToSummaryOnOpen" = "Открывать последнюю страницу деталей";
 "settings.panel.returnsToSummaryOnOpen.description" = "Если включено, при повторном открытии панели состояния восстанавливается страница деталей, открытая при закрытии; иначе панель всегда открывается на обзоре.";

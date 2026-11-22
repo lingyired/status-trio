@@ -499,6 +499,8 @@
 "settings.panel.levelSliderColor.description" = "Volume, uscita, luminosità, ecc.";
 "settings.panel.levelSliderColor.white" = "Bianco";
 "settings.panel.levelSliderColor.automatic" = "Automatico";
+"settings.panel.levelSliderThickness" = "Stesso spessore della luminosità";
+"settings.panel.levelSliderThickness.description" = "Disegna i cursori di volume e microfono con la stessa altezza capsula della luminosità.";
 "settings.panel.openBehavior.title" = "Dettagli e apertura";
 "settings.panel.returnsToSummaryOnOpen" = "Riapri l’ultima pagina di dettaglio";
 "settings.panel.returnsToSummaryOnOpen.description" = "Quando è attivo, riaprendo il pannello di stato si torna alla pagina di dettaglio visualizzata alla chiusura; altrimenti si parte sempre dalla panoramica.";

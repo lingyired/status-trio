@@ -88,6 +88,7 @@ struct AudioInputControlsView: View {
     let scrollTargets: PopoverScrollTargets
     let onOpenSoundSettings: () -> Void
     var fillColor: Color = .primary
+    var matchesBrightnessThickness: Bool = false
 
     @State private var volumeDraft = AudioInputVolumeDraft()
     @State private var isDeviceListExpanded = false
@@ -176,8 +177,12 @@ struct AudioInputControlsView: View {
                     onEditingChanged: { editing in
                         volumeDraft.setEditing(editing)
                     },
-                    height: PanelLevelSliderMetrics.compactSlotHeight,
-                    barHeight: PanelLevelSliderMetrics.compactBarHeight
+                    height: matchesBrightnessThickness
+                        ? PanelLevelSliderMetrics.controlHeight
+                        : PanelLevelSliderMetrics.compactSlotHeight,
+                    barHeight: matchesBrightnessThickness
+                        ? PanelLevelSliderMetrics.barHeight
+                        : PanelLevelSliderMetrics.compactBarHeight
                 )
                 .help(state.canAdjust
                     ? localization.string(.audioInputVolume)

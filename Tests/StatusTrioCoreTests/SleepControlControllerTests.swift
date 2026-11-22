@@ -56,6 +56,8 @@ private final class FakeHelperReadiness: HelperReadinessProviding {
     private let subject: CurrentValueSubject<Bool, Never>
 
     var readinessPublisher: AnyPublisher<Bool, Never> { subject.eraseToAnyPublisher() }
+    let recoveryProbe = PassthroughSubject<Void, Never>()
+    var recoveryProbePublisher: AnyPublisher<Void, Never> { recoveryProbe.eraseToAnyPublisher() }
 
     init(isReady: Bool) {
         self.isReady = isReady
@@ -336,6 +338,23 @@ final class SleepControlControllerTests: XCTestCase {
 
         readiness.setReady(true)
         await waitUntil { client.setCalls.contains(false) }
+        XCTAssertFalse(client.disableSleep)
+    }
+
+    func testHealthyProbeRetriesOwnedCleanupAfterAWriteFailure() async {
+        let client = FakeDisableSleepClient(disableSleep: true)
+        client.shouldThrow = true
+        let ownership = FakeOwnership(owns: true)
+        let readiness = FakeHelperReadiness(isReady: true)
+        let control = make(client: client, readiness: readiness, ownership: ownership)
+        control.start()
+        defer { control.stop() }
+        await waitUntil { client.readCalls > 0 && !control.isApplyingLidSleep }
+        XCTAssertTrue(ownership.ownsDisableSleep)
+
+        client.shouldThrow = false
+        readiness.recoveryProbe.send()
+        await waitUntil { !ownership.ownsDisableSleep }
         XCTAssertFalse(client.disableSleep)
     }
 

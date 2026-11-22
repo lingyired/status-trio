@@ -9,6 +9,7 @@ let package = Package(
         .executable(name: "StatusTrioAirPodsHelper", targets: ["StatusTrioAirPodsHelper"]),
         .library(name: "AirPodsAudioContext", type: .dynamic, targets: ["AirPodsAudioContext"]),
         .executable(name: "StatusTrio", targets: ["StatusTrio"]),
+        .library(name: "StatusTrioCore", type: .dynamic, targets: ["StatusTrioCore"]),
         .executable(name: "StatusTrioPowerHelper", targets: ["StatusTrioPowerHelper"])
     ],
     dependencies: [

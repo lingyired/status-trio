@@ -189,6 +189,7 @@ final class StatusPanelViewModel: ObservableObject {
     /// and the settings colour row stay in sync.
     @Published private(set) var hardwareDiskRingColor: IconRGBA
     @Published private(set) var panelLevelSliderColor: PanelLevelSliderColorSelection
+    @Published private(set) var panelLevelSliderMatchesBrightnessThickness: Bool
     @Published private(set) var statusPanelBoldTextEnabled: Bool
     @Published private(set) var statusPanelMediumTextEnabled: Bool
     /// Broadband caps (Mbps) for the network-speed tiles.
@@ -282,6 +283,8 @@ final class StatusPanelViewModel: ObservableObject {
         hardwareMonitorMetricColors = settings.hardwareMonitorMetricColors
         hardwareDiskRingColor = settings.hardwareDiskRingColor
         panelLevelSliderColor = settings.panelLevelSliderColor
+        panelLevelSliderMatchesBrightnessThickness =
+            settings.panelLevelSliderMatchesBrightnessThickness
         statusPanelBoldTextEnabled = settings.statusPanelBoldTextEnabled
         statusPanelMediumTextEnabled = settings.statusPanelMediumTextEnabled
         showsHardwareRings = settings.showsHardwareRings
@@ -591,6 +594,15 @@ final class StatusPanelViewModel: ObservableObject {
             }
             .store(in: &cancellables)
 
+        settings.$panelLevelSliderMatchesBrightnessThickness
+            .removeDuplicates()
+            .sink { [weak self] matches in
+                guard let self,
+                      self.panelLevelSliderMatchesBrightnessThickness != matches else { return }
+                self.panelLevelSliderMatchesBrightnessThickness = matches
+            }
+            .store(in: &cancellables)
+
         settings.$statusPanelBoldTextEnabled
             .removeDuplicates()
             .sink { [weak self] enabled in
@@ -697,6 +709,7 @@ final class StatusPanelViewModel: ObservableObject {
             showSummaryPage()
             return
         }
+        guard !closeOpenDetailIfAlreadyShowing(.battery) else { return }
         guard transition(to: .battery) else { return }
         actions.batteryDetailsAppeared()
         refreshBatteryDetails()
@@ -707,6 +720,7 @@ final class StatusPanelViewModel: ObservableObject {
             showSummaryPage()
             return
         }
+        guard !closeOpenDetailIfAlreadyShowing(.wifi) else { return }
         let opensNewPage = route != .wifi
         if opensNewPage {
             wifiDisclosure = WiFiPanelDisclosureState(
@@ -724,6 +738,7 @@ final class StatusPanelViewModel: ObservableObject {
             showSummaryPage()
             return
         }
+        guard !closeOpenDetailIfAlreadyShowing(.ethernet) else { return }
         guard transition(to: .ethernet) else { return }
         actions.wiredDetailsOpened()
         refreshWiredDetailsAndNetwork()
@@ -734,6 +749,7 @@ final class StatusPanelViewModel: ObservableObject {
             showSummaryPage()
             return
         }
+        guard !closeOpenDetailIfAlreadyShowing(.inputSource) else { return }
         transition(to: .inputSource)
     }
 
@@ -744,6 +760,7 @@ final class StatusPanelViewModel: ObservableObject {
             showSummaryPage()
             return
         }
+        guard !closeOpenDetailIfAlreadyShowing(.hardwareDetail(kind)) else { return }
         transition(to: .hardwareDetail(kind))
     }
 
@@ -1547,6 +1564,18 @@ final class StatusPanelViewModel: ObservableObject {
         if route != .summary { endCurrentPageActions() }
         route = next
         updateHardwareMetricsDemand()
+        return true
+    }
+
+    /// Issue #369: clicking the entry for the detail page that is already open
+    /// closes that detail page (returning the main panel to its summary) instead
+    /// of re-entering the same page. The side panel is closed while the main
+    /// popover stays open, matching the back button's page semantics. Hardware
+    /// details match only the same `kind`, so a different card still switches.
+    /// Returns true when the click was handled as a close.
+    private func closeOpenDetailIfAlreadyShowing(_ target: StatusPanelRoute) -> Bool {
+        guard route == target else { return false }
+        showSummaryPage()
         return true
     }
 

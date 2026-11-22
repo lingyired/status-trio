@@ -114,6 +114,40 @@ struct PanelLevelSliderTrackingGeometry: Equatable {
     }
 }
 
+/// Picks readable ink for the inline label drawn on top of the filled capsule.
+/// The fill can be a user-chosen colour (#359), so contrast is derived from the
+/// fill's luminance instead of assuming the fill matches the panel appearance.
+enum PanelLevelSliderColorContrast {
+    /// WCAG relative luminance of an sRGB colour (0 = black, 1 = white).
+    static func relativeLuminance(of color: NSColor) -> CGFloat? {
+        guard let srgb = color.usingColorSpace(.sRGB) else { return nil }
+        func linear(_ channel: CGFloat) -> CGFloat {
+            channel <= 0.039_28
+                ? channel / 12.92
+                : pow((channel + 0.055) / 1.055, 2.4)
+        }
+        return 0.2126 * linear(srgb.redComponent)
+            + 0.7152 * linear(srgb.greenComponent)
+            + 0.0722 * linear(srgb.blueComponent)
+    }
+
+    /// Ink that stays readable on `fillColor`. Chooses whichever of white or
+    /// black yields the higher WCAG contrast; falls back to the panel's
+    /// appearance if the colour cannot be converted to sRGB.
+    static func textColor(forFill fillColor: NSColor, isDarkAppearance: Bool) -> NSColor {
+        guard let luminance = relativeLuminance(of: fillColor) else {
+            return isDarkAppearance
+                ? NSColor.black.withAlphaComponent(0.82)
+                : NSColor.white.withAlphaComponent(0.95)
+        }
+        let whiteContrast = 1.05 / (luminance + 0.05)
+        let blackContrast = (luminance + 0.05) / 0.05
+        return blackContrast >= whiteContrast
+            ? NSColor.black.withAlphaComponent(0.82)
+            : NSColor.white.withAlphaComponent(0.95)
+    }
+}
+
 /// Pure layout for the optional inline label: it lives inside the capsule and
 /// parks on whichever side of the thumb keeps it fully readable.
 enum PanelLevelSliderLabelLayout {
@@ -342,8 +376,15 @@ final class PanelLevelSliderView: NSSlider {
     /// a shorter slot than the brightness rows.
     var designHeight: CGFloat = PanelLevelSliderMetrics.controlHeight
     /// Visible capsule height for this control. Compact rows pass a slim value
-    /// so the blue capsule reads shorter than the standard rows.
-    var barHeight: CGFloat = PanelLevelSliderMetrics.barHeight
+    /// so the blue capsule reads shorter than the standard rows. Repaints the
+    /// cached track/fill bitmaps when the height changes (the #368 thickness
+    /// toggle can flip it live), otherwise a stale fill would be drawn thin
+    /// inside the newly taller capsule.
+    var barHeight: CGFloat = PanelLevelSliderMetrics.barHeight {
+        didSet {
+            if barHeight != oldValue { invalidateRaster() }
+        }
+    }
     private var barCornerRadius: CGFloat { barHeight / 2 }
 
     private var rasterGeneration = 0
@@ -1092,14 +1133,15 @@ final class PanelLevelSliderView: NSSlider {
 
     private func labelColor(side: PanelLevelSliderLabelLayout.Side) -> NSColor {
         guard isEnabled else { return .secondaryLabelColor }
-        // The filled (leading) portion is painted in `labelColor`, so its ink
-        // must invert it: dark text on the white fill of a dark appearance,
-        // light text on the dark fill of a light appearance. The unfilled track
+        // The filled (leading) portion is painted in the slider's fill colour,
+        // which the user may customise (#359, #368). Derive the ink from that
+        // colour so the label stays readable on any fill. The unfilled track
         // keeps primary label ink.
         if side == .leading {
-            return isDarkAppearance
-                ? NSColor.black.withAlphaComponent(0.82)
-                : NSColor.white.withAlphaComponent(0.95)
+            return PanelLevelSliderColorContrast.textColor(
+                forFill: effectiveFillColor,
+                isDarkAppearance: isDarkAppearance
+            )
         }
         return NSColor.labelColor.withAlphaComponent(0.9)
     }

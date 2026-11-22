@@ -332,7 +332,8 @@ struct StatusPopoverView: View {
                 actions: panel.actions,
                 scrollTargets: scrollTargets,
                 onOpenSoundSettings: openSoundSettings,
-                fillColor: levelSliderFillColor
+                fillColor: levelSliderFillColor,
+                matchesBrightnessThickness: panel.panelLevelSliderMatchesBrightnessThickness
             )
         case .brightness:
             BrightnessControlsView(
@@ -348,7 +349,8 @@ struct StatusPopoverView: View {
                 actions: panel.actions,
                 scrollTargets: scrollTargets,
                 onOpenSoundSettings: openSoundInputSettings,
-                fillColor: levelSliderFillColor
+                fillColor: levelSliderFillColor,
+                matchesBrightnessThickness: panel.panelLevelSliderMatchesBrightnessThickness
             )
         case .inputSource:
             InputSourceStatusView(

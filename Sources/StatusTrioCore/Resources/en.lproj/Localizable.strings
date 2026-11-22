@@ -498,6 +498,8 @@
 "settings.panel.levelSliderColor.description" = "Volume, output, brightness and more";
 "settings.panel.levelSliderColor.white" = "White";
 "settings.panel.levelSliderColor.automatic" = "Automatic";
+"settings.panel.levelSliderThickness" = "Match brightness thickness";
+"settings.panel.levelSliderThickness.description" = "Draw the volume and microphone sliders with the same capsule height as brightness.";
 "settings.panel.openBehavior.title" = "Details & Opening";
 "settings.panel.returnsToSummaryOnOpen" = "Reopen the Last Detail Page";
 "settings.panel.returnsToSummaryOnOpen.description" = "When enabled, reopening the status panel returns to the detail page that was showing when it closed; otherwise it always starts on the summary page.";

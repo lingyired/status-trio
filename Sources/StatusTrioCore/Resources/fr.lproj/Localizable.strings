@@ -499,6 +499,8 @@
 "settings.panel.levelSliderColor.description" = "Volume, sortie, luminosité, etc.";
 "settings.panel.levelSliderColor.white" = "Blanc";
 "settings.panel.levelSliderColor.automatic" = "Automatique";
+"settings.panel.levelSliderThickness" = "Même épaisseur que la luminosité";
+"settings.panel.levelSliderThickness.description" = "Dessiner les curseurs de volume et de microphone avec la même hauteur de capsule que la luminosité.";
 "settings.panel.openBehavior.title" = "Détails et ouverture";
 "settings.panel.returnsToSummaryOnOpen" = "Rouvrir la dernière page de détail";
 "settings.panel.returnsToSummaryOnOpen.description" = "Lorsque cette option est activée, rouvrir le panneau d’état revient à la page de détail affichée lors de sa fermeture ; sinon, il démarre toujours sur la vue d’ensemble.";

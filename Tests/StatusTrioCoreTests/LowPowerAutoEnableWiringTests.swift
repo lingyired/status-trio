@@ -30,6 +30,33 @@ final class LowPowerAutoEnableWiringTests: XCTestCase {
         store.stop()
     }
 
+    func testLowBatteryChecksStaleReadinessOncePerCycle() async {
+        let battery = FakeBatterySource()
+        let settings = makeSettings()
+        settings.controlsLowPowerMode = true
+        settings.autoEnablesLowPowerMode = true
+        settings.autoLowPowerThreshold = 20
+        let readiness = FakeHelperReadiness(isReady: true)
+        readiness.verificationResult = false
+        let client = RecordingLowPowerClient(reads: false)
+        let store = makeStore(battery: battery, client: client, readiness: readiness)
+        store.bindLowPowerModeSettings(settings)
+        store.start()
+        defer { store.stop() }
+
+        battery.send(batteryStatus(percent: 15, connectedToPower: false))
+        await settle()
+        battery.send(batteryStatus(percent: 14, connectedToPower: false))
+        await settle()
+        XCTAssertEqual(readiness.verificationCallCount, 1)
+        XCTAssertEqual(client.setCallCount, 0)
+
+        // An approval event can still make the current low-battery cycle usable.
+        readiness.isReady = false
+        readiness.isReady = true
+        await waitUntil { client.setCallCount == 1 }
+    }
+
     func testPluggedInLowBatteryDoesNotTurnItOn() async {
         let battery = FakeBatterySource()
         let settings = makeSettings()
@@ -664,6 +691,13 @@ private final class RecordingHighPowerClient: HighPowerModeClienting, @unchecked
 @MainActor
 private final class FakeHelperReadiness: HelperReadinessProviding {
     @Published var isReady: Bool
+    var verificationResult: Bool?
+    private(set) var verificationCallCount = 0
+
+    func verifyForUse() async -> Bool {
+        verificationCallCount += 1
+        return verificationResult ?? isReady
+    }
 
     var readinessPublisher: AnyPublisher<Bool, Never> {
         $isReady.eraseToAnyPublisher()

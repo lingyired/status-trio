@@ -28,7 +28,7 @@ final class SettingsPreferenceCatalogTests: XCTestCase {
             let snapshot = SettingsPreferenceCatalog.snapshot(store)
             let expected: Set<String> = [
                 "appIconPlacement", "dockIconBackgroundPreference", "panelBackgroundStyle",
-                "panelLevelSliderColor",
+                "panelLevelSliderColor", "panelLevelSliderMatchesBrightnessThickness",
                 "menuBarRightClickAction", "iconSize", "batteryOnBatteryMarker",
                 "batteryChargingMarker", "batteryConnectedMarker", "batteryNoBatteryMarker",
                 "showsBatteryPowerFlow", "showsBatteryPowerInfoBar", "showsHighEnergyApps",
@@ -72,6 +72,7 @@ final class SettingsPreferenceCatalogTests: XCTestCase {
             source.batteryStatusColors.charging = .custom(.init(hue: 0.2, saturation: 0.6, brightness: 0.8))
             source.bluetoothIconColor = .custom(.init(hue: 0.1, saturation: 0.4, brightness: 0.9))
             source.panelLevelSliderColor = .custom(IconRGBA(red: 0.2, green: 0.45, blue: 0.8, alpha: 1))
+            source.panelLevelSliderMatchesBrightnessThickness = true
             source.bluetoothAudioIconChoice = .airpods
             source.setPopupSection(.brightness, enabled: true)
             source.movePopupSections(fromOffsets: IndexSet(integer: 7), toOffset: 0)

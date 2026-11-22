@@ -977,6 +977,17 @@ final class StatusPanelViewModelTests: XCTestCase {
         XCTAssertEqual(panelChanges, 2, "resetting the color must also update the panel immediately")
     }
 
+    func testSliderThicknessSettingMirrorsIntoPanelModel() {
+        let fixture = PanelStoreFixture()
+        let panel = fixture.makePanel()
+        defer { panel.stop(); fixture.store.stop() }
+        panel.start()
+
+        XCTAssertFalse(panel.panelLevelSliderMatchesBrightnessThickness)
+        fixture.settings.panelLevelSliderMatchesBrightnessThickness = true
+        XCTAssertTrue(panel.panelLevelSliderMatchesBrightnessThickness)
+    }
+
     /// The Settings switch drives the two weight tiers; the panel model must
     /// mirror both so the environment values reach every panel view.
     func testPanelTextWeightSettingsMirrorIntoPanelModel() throws {
@@ -994,6 +1005,66 @@ final class StatusPanelViewModelTests: XCTestCase {
         fixture.settings.applyPanelBoldTextToggle(false)
         XCTAssertFalse(panel.statusPanelBoldTextEnabled)
         XCTAssertFalse(panel.statusPanelMediumTextEnabled)
+    }
+}
+
+/// Issue #369: clicking the *same* detail entry again closes that detail page
+/// (the side panel) while the main panel stays open; a different entry still
+/// switches pages.
+@MainActor
+struct DetailEntryToggleDismissTests {
+    @Test func clickingOpenHardwareEntryAgainClosesDetailToSummary() {
+        let fixture = PanelStoreFixture()
+        fixture.settings.setPopupSection(.hardwareMonitor, enabled: true)
+        let panel = fixture.makePanel()
+        defer { panel.stop(); fixture.store.stop() }
+
+        panel.showHardwareDetail(.cpu)
+        #expect(panel.route == .hardwareDetail(.cpu))
+
+        panel.showHardwareDetail(.cpu)
+        #expect(panel.route == .summary)
+
+        // After closing, a different hardware card still switches pages.
+        panel.showHardwareDetail(.memory)
+        #expect(panel.route == .hardwareDetail(.memory))
+    }
+
+    @Test func clickingOpenBatteryEntryAgainClosesDetailToSummary() {
+        let fixture = PanelStoreFixture()
+        let panel = fixture.makePanel()
+        defer { panel.stop(); fixture.store.stop() }
+
+        panel.showBatteryPage()
+        #expect(panel.route == .battery)
+        panel.showBatteryPage()
+        #expect(panel.route == .summary)
+    }
+
+    @Test func clickingOpenWiFiEntryAgainClosesDetailButWiredIsASwitch() {
+        let fixture = PanelStoreFixture()
+        let panel = fixture.makePanel()
+        defer { panel.stop(); fixture.store.stop() }
+
+        panel.showWiFiPage(showsDetailsInitially: true)
+        #expect(panel.route == .wifi)
+        panel.showWiFiPage(showsDetailsInitially: true)
+        #expect(panel.route == .summary)
+
+        panel.showWiredPage()
+        #expect(panel.route == .ethernet)
+    }
+
+    @Test func clickingOpenInputSourceEntryAgainClosesDetailToSummary() {
+        let fixture = PanelStoreFixture()
+        fixture.settings.setPopupSection(.inputSource, enabled: true)
+        let panel = fixture.makePanel()
+        defer { panel.stop(); fixture.store.stop() }
+
+        panel.showInputSourcePage()
+        #expect(panel.route == .inputSource)
+        panel.showInputSourcePage()
+        #expect(panel.route == .summary)
     }
 }
 

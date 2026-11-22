@@ -499,6 +499,8 @@
 "settings.panel.levelSliderColor.description" = "音量、输出、亮度等";
 "settings.panel.levelSliderColor.white" = "白色";
 "settings.panel.levelSliderColor.automatic" = "自动";
+"settings.panel.levelSliderThickness" = "与亮度滑杆同粗";
+"settings.panel.levelSliderThickness.description" = "让音量和麦克风滑杆使用与亮度相同的胶囊高度。";
 "settings.panel.openBehavior.title" = "详情与打开方式";
 "settings.panel.returnsToSummaryOnOpen" = "重新打开时恢复详情页";
 "settings.panel.returnsToSummaryOnOpen.description" = "开启后，再次打开状态面板会回到上次收起时仍显示的详情页；关闭后，每次只显示主界面。";

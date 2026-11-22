@@ -499,6 +499,8 @@
 "settings.panel.levelSliderColor.description" = "Lautstärke, Ausgabe, Helligkeit u. a.";
 "settings.panel.levelSliderColor.white" = "Weiß";
 "settings.panel.levelSliderColor.automatic" = "Automatisch";
+"settings.panel.levelSliderThickness" = "Gleiche Dicke wie Helligkeit";
+"settings.panel.levelSliderThickness.description" = "Lautstärke- und Mikrofonregler mit derselben Kapselhöhe wie die Helligkeit darstellen.";
 "settings.panel.openBehavior.title" = "Details & Öffnen";
 "settings.panel.returnsToSummaryOnOpen" = "Letzte Detailseite wieder öffnen";
 "settings.panel.returnsToSummaryOnOpen.description" = "Wenn aktiviert, kehrt das Statuspanel beim erneuten Öffnen zur zuletzt angezeigten Detailseite zurück; andernfalls startet es immer auf der Übersicht.";
