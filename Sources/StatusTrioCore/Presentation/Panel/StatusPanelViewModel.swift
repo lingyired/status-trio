@@ -205,6 +205,9 @@ final class StatusPanelViewModel: ObservableObject {
     /// Whether the RAM/SSD rings read as consumed or remaining.
     @Published private(set) var memoryRingDisplayMode: RingValueDisplayMode
     @Published private(set) var ssdRingDisplayMode: RingValueDisplayMode
+    @Published private(set) var cpuRingCenterContent: HardwareRingCenterContent
+    @Published private(set) var gpuRingCenterContent: HardwareRingCenterContent
+    @Published private(set) var hardwareTemperatureMonitoringEnabled: Bool
 
     private var isStarted = false
     private var bluetoothIsExpanded = false
@@ -288,6 +291,9 @@ final class StatusPanelViewModel: ObservableObject {
         enabledHardwareSummaryMetrics = settings.enabledHardwareSummaryMetrics
         memoryRingDisplayMode = settings.memoryRingDisplayMode
         ssdRingDisplayMode = settings.ssdRingDisplayMode
+        cpuRingCenterContent = settings.cpuRingCenterContent
+        gpuRingCenterContent = settings.gpuRingCenterContent
+        hardwareTemperatureMonitoringEnabled = settings.hardwareTemperatureMonitoringEnabled
         hardwareSpeedCapsMbps = [
             .downloadSpeed: settings.hardwareDownloadCapMbps,
             .uploadSpeed: settings.hardwareUploadCapMbps
@@ -549,6 +555,31 @@ final class StatusPanelViewModel: ObservableObject {
             .sink { [weak self] mode in
                 guard let self, self.ssdRingDisplayMode != mode else { return }
                 self.ssdRingDisplayMode = mode
+            }
+            .store(in: &cancellables)
+
+        settings.$cpuRingCenterContent
+            .removeDuplicates()
+            .sink { [weak self] content in
+                guard let self, self.cpuRingCenterContent != content else { return }
+                self.cpuRingCenterContent = content
+            }
+            .store(in: &cancellables)
+
+        settings.$gpuRingCenterContent
+            .removeDuplicates()
+            .sink { [weak self] content in
+                guard let self, self.gpuRingCenterContent != content else { return }
+                self.gpuRingCenterContent = content
+            }
+            .store(in: &cancellables)
+
+        settings.$hardwareTemperatureMonitoringEnabled
+            .removeDuplicates()
+            .sink { [weak self] enabled in
+                guard let self, self.hardwareTemperatureMonitoringEnabled != enabled else { return }
+                self.hardwareTemperatureMonitoringEnabled = enabled
+                self.scheduleHardwareDemandRecompute()
             }
             .store(in: &cancellables)
 

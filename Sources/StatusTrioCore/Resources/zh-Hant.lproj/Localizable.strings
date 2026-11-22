@@ -1187,6 +1187,12 @@
 "hardware.monitor.ringValue.ssd" = "SSD";
 "hardware.monitor.ringValue.used" = "已使用";
 "hardware.monitor.ringValue.remaining" = "剩餘";
+"hardware.monitor.settings.temperatureMonitoring" = "CPU/GPU 溫度監控";
+"hardware.monitor.settings.temperatureMonitoring.description" = "關閉後不再讀取 CPU/GPU 溫度，圓環改為顯示頻率或 —，選單列圓環也不再提供溫度選項。";
+"hardware.monitor.ringCenter.cpu" = "CPU 圓環中間";
+"hardware.monitor.ringCenter.gpu" = "GPU 圓環中間";
+"hardware.monitor.ringCenter.temperature" = "溫度";
+"hardware.monitor.ringCenter.frequency" = "頻率";
 "hardware.monitor.batteryTemperature" = "電池溫度";
 "hardware.monitor.batteryTemperature.help" = "電池組溫度。進度條使用 20–60°C 視覺刻度，不代表安全百分比。";
 "settings.tab.monitor" = "系統監控";

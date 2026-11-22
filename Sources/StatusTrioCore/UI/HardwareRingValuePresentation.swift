@@ -1,5 +1,24 @@
 import Foundation
 
+
+/// What a CPU/GPU ring shows in the middle of the arc. CPU offers both because
+/// its estimate comes from IOReport; GPU only exposes temperature because macOS
+/// has no reliable unprivileged GPU clock reading.
+enum HardwareRingCenterContent: String, CaseIterable, Identifiable, Codable, Sendable {
+    case temperature
+    case frequency
+
+    var id: Self { self }
+
+    var titleKey: LocalizationKey {
+        switch self {
+        case .temperature: .hardwareMonitorRingCenterTemperature
+        case .frequency: .hardwareMonitorRingCenterFrequency
+        }
+    }
+}
+
+
 /// Whether a RAM/SSD ring reads as consumed or remaining. CPU/GPU rings are
 /// always consumed; only memory and the SSD have a meaningful "free" side, so
 /// they are configurable independently (Settings → 监控 → 环内显示).

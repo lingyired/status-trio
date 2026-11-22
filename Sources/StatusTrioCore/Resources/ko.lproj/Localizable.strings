@@ -1186,6 +1186,12 @@
 "hardware.monitor.ringValue.ssd" = "SSD";
 "hardware.monitor.ringValue.used" = "사용 중";
 "hardware.monitor.ringValue.remaining" = "남음";
+"hardware.monitor.settings.temperatureMonitoring" = "CPU/GPU 온도 모니터링";
+"hardware.monitor.settings.temperatureMonitoring.description" = "끄면 CPU/GPU 온도를 더 이상 읽지 않고, 링은 주파수 또는 —를 표시하며, 메뉴 막대 링 선택에서도 온도를 고를 수 없습니다.";
+"hardware.monitor.ringCenter.cpu" = "CPU 링 중앙";
+"hardware.monitor.ringCenter.gpu" = "GPU 링 중앙";
+"hardware.monitor.ringCenter.temperature" = "온도";
+"hardware.monitor.ringCenter.frequency" = "주파수";
 "hardware.monitor.batteryTemperature" = "배터리 온도";
 "hardware.monitor.batteryTemperature.help" = "배터리 온도입니다. 막대는 20~60°C 시각 척도이며 안전 비율이 아닙니다.";
 "settings.tab.monitor" = "시스템 모니터";

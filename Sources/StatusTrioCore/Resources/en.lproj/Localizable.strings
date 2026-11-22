@@ -1186,6 +1186,12 @@
 "hardware.monitor.ringValue.ssd" = "SSD";
 "hardware.monitor.ringValue.used" = "Used";
 "hardware.monitor.ringValue.remaining" = "Remaining";
+"hardware.monitor.settings.temperatureMonitoring" = "CPU/GPU temperature monitoring";
+"hardware.monitor.settings.temperatureMonitoring.description" = "When off, CPU/GPU temperatures are no longer read, the rings show frequency or —, and the menu-bar ring choices hide temperature.";
+"hardware.monitor.ringCenter.cpu" = "CPU ring center";
+"hardware.monitor.ringCenter.gpu" = "GPU ring center";
+"hardware.monitor.ringCenter.temperature" = "Temperature";
+"hardware.monitor.ringCenter.frequency" = "Frequency";
 "hardware.monitor.batteryTemperature" = "Battery temp.";
 "hardware.monitor.batteryTemperature.help" = "Battery pack temperature. The bar uses a 20–60°C visual scale, not a safety percentage.";
 "settings.tab.monitor" = "System Monitor";

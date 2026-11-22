@@ -1187,6 +1187,12 @@
 "hardware.monitor.ringValue.ssd" = "SSD";
 "hardware.monitor.ringValue.used" = "Belegt";
 "hardware.monitor.ringValue.remaining" = "Frei";
+"hardware.monitor.settings.temperatureMonitoring" = "CPU/GPU-Temperaturüberwachung";
+"hardware.monitor.settings.temperatureMonitoring.description" = "Wenn deaktiviert, werden CPU/GPU-Temperaturen nicht mehr gelesen, die Ringe zeigen Frequenz oder —, und die Menüleisten-Ringauswahl bietet keine Temperatur mehr an.";
+"hardware.monitor.ringCenter.cpu" = "CPU-Ringmitte";
+"hardware.monitor.ringCenter.gpu" = "GPU-Ringmitte";
+"hardware.monitor.ringCenter.temperature" = "Temperatur";
+"hardware.monitor.ringCenter.frequency" = "Frequenz";
 "hardware.monitor.batteryTemperature" = "Akkutemperatur";
 "hardware.monitor.batteryTemperature.help" = "Akkutemperatur. Der Balken nutzt eine visuelle Skala von 20–60 °C, keinen Sicherheitsprozentsatz.";
 "settings.tab.monitor" = "Systemmonitor";

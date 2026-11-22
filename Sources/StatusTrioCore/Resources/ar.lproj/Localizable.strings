@@ -1187,6 +1187,12 @@
 "hardware.monitor.ringValue.ssd" = "SSD";
 "hardware.monitor.ringValue.used" = "مستخدم";
 "hardware.monitor.ringValue.remaining" = "متبقٍ";
+"hardware.monitor.settings.temperatureMonitoring" = "مراقبة درجة حرارة CPU/GPU";
+"hardware.monitor.settings.temperatureMonitoring.description" = "عند الإيقاف، لن تُقرأ درجات حرارة CPU/GPU بعد الآن، وستعرض الحلقات التردد أو —، ولن يعرض اختيار حلقة شريط القوائم درجة الحرارة.";
+"hardware.monitor.ringCenter.cpu" = "منتصف حلقة CPU";
+"hardware.monitor.ringCenter.gpu" = "منتصف حلقة GPU";
+"hardware.monitor.ringCenter.temperature" = "درجة الحرارة";
+"hardware.monitor.ringCenter.frequency" = "التردد";
 "hardware.monitor.batteryTemperature" = "حرارة البطارية";
 "hardware.monitor.batteryTemperature.help" = "درجة حرارة البطارية. يستخدم الشريط مقياسًا مرئيًا من 20 إلى 60 درجة مئوية وليس نسبة أمان.";
 "settings.tab.monitor" = "مراقبة النظام";

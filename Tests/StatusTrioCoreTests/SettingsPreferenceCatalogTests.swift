@@ -48,7 +48,7 @@ final class SettingsPreferenceCatalogTests: XCTestCase {
                 "autoEnablesLowPowerMode", "showsAppleDevicesAndBattery",
                 "refreshesAppleBatteriesInBackground", "appleBatteryRefreshIntervalMinutes",
                 "showsBluetoothListeningMode", "bluetoothAudioIconChoiceRawValue", "wifiSymbolScale",
-                "volumeDisplayStyle", "ringStrokeStyle", "hardwareBackgroundHistoryEnabled", "hardwarePanelRefreshSeconds", "hardwareHistoryWindowMinutes", "hardwareDownloadCapMbps", "hardwareUploadCapMbps", "hardwareNetworkChartFixedScale", "showsHardwareRings", "showsHardwareSummaryRow", "showsHardwareTopApps", "enabledHardwareRingSlots", "enabledHardwareSummaryMetrics", "memoryRingDisplayMode", "ssdRingDisplayMode", "refreshIntervalOnBatterySeconds",
+                "volumeDisplayStyle", "ringStrokeStyle", "hardwareBackgroundHistoryEnabled", "hardwarePanelRefreshSeconds", "hardwareHistoryWindowMinutes", "hardwareDownloadCapMbps", "hardwareUploadCapMbps", "hardwareNetworkChartFixedScale", "showsHardwareRings", "showsHardwareSummaryRow", "showsHardwareTopApps", "enabledHardwareRingSlots", "enabledHardwareSummaryMetrics", "memoryRingDisplayMode", "ssdRingDisplayMode", "hardwareTemperatureMonitoringEnabled", "cpuRingCenterContent", "gpuRingCenterContent", "refreshIntervalOnBatterySeconds",
                 "refreshIntervalOnPowerSeconds", "maxVisibleOutputDevices", "alwaysShowsAllOutputDevices",
                 "maxVisibleInputDevices", "alwaysShowsAllInputDevices", "showsBluetoothDeviceList",
                 "maxVisibleBluetoothDevices", "hidesGhostBluetoothDevices", "popupSectionOrder",

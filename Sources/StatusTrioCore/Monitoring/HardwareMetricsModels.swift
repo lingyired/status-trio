@@ -58,6 +58,8 @@ enum HardwareMetricUnit: Equatable, Sendable {
 enum HardwareMetricSource: Equatable, Sendable {
     case mach
     case smc
+    /// Apple HID event-system temperature fallback (base Apple M1 only).
+    case hid
     case ioAccelerator
     case powerIO
     case network
@@ -171,6 +173,10 @@ struct HardwareMetricsSnapshot: Equatable, Sendable {
     var samples: [HardwareMetricID: HardwareMetricSample] = [:]
     /// Fan controller count when known; `nil` until read, `0` on fanless Macs.
     var fanCount: Int?
+    /// Estimated CPU cluster frequency, sampled only while a ring or the CPU
+    /// detail page needs it. Carried beside the samples so the panel ring can
+    /// show it without opening the detail page.
+    var cpuFrequency: CPUFrequencyReading?
     /// Structured per-page detail, populated only while that detail page is open.
     var cpuDetail: CPUDetailReading?
     var gpuDetail: GPUDetailReading?
@@ -303,6 +309,12 @@ struct HardwareMetricsSnapshot: Equatable, Sendable {
         for (id, sample) in samples {
             let expired = sample.expiring(at: now)
             if expired != sample { copy.samples[id] = expired }
+        }
+        if let frequency = cpuFrequency {
+            let age = now.timeIntervalSince(frequency.sampledAt)
+            if age < -HardwareMetricSample.freshRange.upperBound || age > HardwareMetricSample.freshRange.upperBound {
+                copy.cpuFrequency = nil
+            }
         }
         return copy
     }

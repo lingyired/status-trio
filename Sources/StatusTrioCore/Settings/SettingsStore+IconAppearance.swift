@@ -48,8 +48,16 @@ extension SettingsStore {
                 $showsAirPodsTopSymbolInRing,
                 $airPodsRingFallback
             )
-            .combineLatest($hardwareRingConfiguration) { ring, hardwareRing in
-                (ring.0, ring.1, ring.2, ring.3, hardwareRing)
+            .combineLatest(
+                Publishers.CombineLatest($hardwareRingConfiguration, $hardwareTemperatureMonitoringEnabled)
+            ) { ring, hardware in
+                // Keep the stored selection intact so re-enabling temperature
+                // restores it. Only the effective rendering/demand projection
+                // falls back to usage while monitoring is off.
+                let effectiveRing = hardware.1
+                    ? hardware.0
+                    : hardware.0.replacingUnavailableTemperatures()
+                return (ring.0, ring.1, ring.2, ring.3, effectiveRing)
             }
             .combineLatest(
                 Publishers.CombineLatest3($hardwareMonitorMetricColors, $hardwareDownloadCapMbps, $hardwareUploadCapMbps)

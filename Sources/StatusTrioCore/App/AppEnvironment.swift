@@ -32,6 +32,7 @@ final class AppEnvironment {
     private var chargingEffectCancellables = Set<AnyCancellable>()
     private var inputSourceLifecycleCancellables = Set<AnyCancellable>()
     private var hardwareRingDemandWiring: IconHardwareDemandWiring?
+    private var hardwareSamplingSettingsCancellables = Set<AnyCancellable>()
     private var localIconDemandWiring: IconLiveDemandWiring?
     private var localIconPluginCancellables = Set<AnyCancellable>()
     private let localIconRefreshCoalescer = IconLiveResolutionCoalescer(
@@ -106,6 +107,7 @@ final class AppEnvironment {
         memoryPressureMonitor.start()
         iconPresentation.start()
         startHardwareRingDemand()
+        startHardwareSamplingSettings()
         startLocalIconPluginRuntime()
         hardwareBackgroundDemandController.start()
         startInputSourceMonitoringIfNeeded()
@@ -205,6 +207,7 @@ final class AppEnvironment {
         hardwareBackgroundDemandController.stop()
         hardwareRingDemandWiring?.stop()
         hardwareRingDemandWiring = nil
+        hardwareSamplingSettingsCancellables.removeAll()
         localIconDemandWiring?.stop()
         localIconDemandWiring = nil
         localIconPluginRuntime.stop()
@@ -286,6 +289,40 @@ final class AppEnvironment {
             demands: iconPresentation.$demand.eraseToAnyPublisher(),
             placements: settings.$appIconPlacement.eraseToAnyPublisher()
         )
+    }
+
+    /// Applies the temperature-monitoring switch to the shared sampler. Keeping
+    /// it here covers the background and menu-bar demands even while the panel is
+    /// closed; the panel view model only mirrors the setting for rendering.
+    private func startHardwareSamplingSettings() {
+        applyHardwareSamplingSettings(
+            temperatureEnabled: settings.hardwareTemperatureMonitoringEnabled,
+            cpuRingCenterContent: settings.cpuRingCenterContent)
+        // Published emits in willSet, so the sink must use the delivered values;
+        // reading the stored properties here would apply the previous toggle
+        // (off-to-on would leave sampling disabled).
+        Publishers.CombineLatest(
+            settings.$hardwareTemperatureMonitoringEnabled,
+            settings.$cpuRingCenterContent
+        )
+        .removeDuplicates { lhs, rhs in
+            lhs.0 == rhs.0 && lhs.1 == rhs.1
+        }
+        .sink { [weak self] enabled, content in
+            self?.applyHardwareSamplingSettings(
+                temperatureEnabled: enabled,
+                cpuRingCenterContent: content)
+        }
+        .store(in: &hardwareSamplingSettingsCancellables)
+    }
+
+    private func applyHardwareSamplingSettings(
+        temperatureEnabled: Bool,
+        cpuRingCenterContent: HardwareRingCenterContent
+    ) {
+        store.hardwareMetrics.temperatureMonitoringEnabled = temperatureEnabled
+        store.hardwareMetrics.wantsRingCPUFrequency =
+            !temperatureEnabled || cpuRingCenterContent == .frequency
     }
 
     private func startPreviewResourceLifecycleIfNeeded() {

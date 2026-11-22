@@ -1187,6 +1187,12 @@
 "hardware.monitor.ringValue.ssd" = "SSD";
 "hardware.monitor.ringValue.used" = "Занято";
 "hardware.monitor.ringValue.remaining" = "Свободно";
+"hardware.monitor.settings.temperatureMonitoring" = "Мониторинг температуры CPU/GPU";
+"hardware.monitor.settings.temperatureMonitoring.description" = "Если выключено, температура CPU/GPU не считывается, кольца показывают частоту или —, а в выборе кольца в строке меню больше нет температуры.";
+"hardware.monitor.ringCenter.cpu" = "Центр кольца CPU";
+"hardware.monitor.ringCenter.gpu" = "Центр кольца GPU";
+"hardware.monitor.ringCenter.temperature" = "Температура";
+"hardware.monitor.ringCenter.frequency" = "Частота";
 "hardware.monitor.batteryTemperature" = "Темп. батареи";
 "hardware.monitor.batteryTemperature.help" = "Температура батареи. Полоса использует визуальную шкалу 20–60 °C, а не процент безопасности.";
 "settings.tab.monitor" = "Монитор системы";

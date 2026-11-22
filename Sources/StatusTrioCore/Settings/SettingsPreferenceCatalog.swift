@@ -220,7 +220,13 @@ enum SettingsPreferenceCatalog {
             enumeration("memoryRingDisplayMode", \.memoryRingDisplayMode,
                         default: .used, allowed: RingValueDisplayMode.allCases),
             enumeration("ssdRingDisplayMode", \.ssdRingDisplayMode,
-                        default: .used, allowed: RingValueDisplayMode.allCases)
+                        default: .used, allowed: RingValueDisplayMode.allCases),
+            boolean("hardwareTemperatureMonitoringEnabled",
+                    \.hardwareTemperatureMonitoringEnabled, default: true),
+            enumeration("cpuRingCenterContent", \.cpuRingCenterContent,
+                        default: .temperature, allowed: HardwareRingCenterContent.allCases),
+            enumeration("gpuRingCenterContent", \.gpuRingCenterContent,
+                        default: .temperature, allowed: HardwareRingCenterContent.allCases)
             // Appearance-only ring colours (hardwareMonitorMetricColors and
             // hardwareDiskRingColor) are intentionally excluded from settings
             // transfer: they are per-surface cosmetics, not portable preferences.

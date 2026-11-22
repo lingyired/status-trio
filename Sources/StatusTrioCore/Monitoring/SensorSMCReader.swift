@@ -15,15 +15,19 @@ enum CPUTemperatureSource: Equatable, Sendable {
 }
 
 struct SensorReading: Equatable, Sendable {
-    let cpuTemperature: Double?
-    let cpuTemperatureSource: CPUTemperatureSource?
-    let gpuTemperature: Double?
+    var cpuTemperature: Double?
+    var cpuTemperatureSource: CPUTemperatureSource?
+    var gpuTemperature: Double?
     /// Battery pack temperature (°C) from the TB*T keys, when present.
     var batteryTemperature: Double? = nil
-    let fans: [FanReading]
+    var fans: [FanReading]
     /// nil: unreadable/unknown; 0: explicitly fanless.
-    let fanCount: Int?
+    var fanCount: Int?
     let sampledAt: Date
+    /// Where each on-die temperature actually came from. Defaults to SMC so the
+    /// existing SMC-only path and its tests are unchanged.
+    var cpuTemperatureOrigin: HardwareMetricSource = .smc
+    var gpuTemperatureOrigin: HardwareMetricSource = .smc
 
     var cpuTemperatureCount: Int {
         switch cpuTemperatureSource {
@@ -34,11 +38,18 @@ struct SensorReading: Equatable, Sendable {
     }
 
     var cpuTemperatureLabel: String? {
+        let hid = cpuTemperatureOrigin == .hid
         switch cpuTemperatureSource {
-        case .single: return "CPU sensor"
-        case .average: return "CPU average"
+        case .single: return hid ? "CPU HID sensor" : "CPU sensor"
+        case .average: return hid ? "CPU HID average" : "CPU average"
         case nil: return nil
         }
+    }
+
+    /// GPU samples have no count type, but the label still records whether the
+    /// reading was aggregated from the HID fallback.
+    var gpuTemperatureLabel: String {
+        gpuTemperatureOrigin == .hid ? "GPU HID" : "GPU area"
     }
 }
 
