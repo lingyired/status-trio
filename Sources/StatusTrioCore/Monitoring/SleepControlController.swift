@@ -230,6 +230,7 @@ final class SleepControlController: ObservableObject {
     private var lidOffTask: Task<Void, Never>?
     private var noticeTask: Task<Void, Never>?
     private var readinessCancellable: AnyCancellable?
+    private var recoveryProbeCancellable: AnyCancellable?
     private var hasStarted = false
     private var isStopped = false
 
@@ -242,7 +243,12 @@ final class SleepControlController: ObservableObject {
     private var lidInFlightWrite = false
     private var desiredLidSleep = false
     private var lidDisableAttempts = 0
-    private var lidPendingRecovery = false
+    private var lidPendingRecovery = false {
+        didSet {
+            guard lidPendingRecovery != oldValue, !isStopped else { return }
+            helperReadiness.setBackgroundRecoveryNeeded(lidPendingRecovery)
+        }
+    }
     /// Bumped whenever the user's lid intent changes. A residual recovery read
     /// (or its retry) that started under an older generation must not act on the
     /// newer session — otherwise a stale "off" reading can clear a fresh marker
@@ -300,11 +306,6 @@ final class SleepControlController: ObservableObject {
             || lidInFlightWrite || lidPendingRecovery || desiredLidSleep
     }
 
-    /// True while a failed lid-sleep clear is still awaiting recovery. The helper
-    /// self-check must not drop to the slow cadence while this is set, or the
-    /// residual `disablesleep=1` would go unnoticed.
-    var hasPendingLidRecovery: Bool { lidPendingRecovery }
-
     // MARK: - Lifecycle
 
     func start() {
@@ -322,6 +323,11 @@ final class SleepControlController: ObservableObject {
                     }
                 }
             }
+        recoveryProbeCancellable = helperReadiness.recoveryProbePublisher.sink { [weak self] in
+            guard let self, self.lidPendingRecovery, !self.lidWorkerRunning else { return }
+            self.probeHelperAndRecover()
+        }
+        if ownership.ownsDisableSleep, !isHelperReady { lidPendingRecovery = true }
         probeHelperAndRecover()
     }
 
@@ -330,8 +336,11 @@ final class SleepControlController: ObservableObject {
     func stop() {
         guard !isStopped else { return }
         isStopped = true
+        if lidPendingRecovery { helperReadiness.setBackgroundRecoveryNeeded(false) }
         readinessCancellable?.cancel()
         readinessCancellable = nil
+        recoveryProbeCancellable?.cancel()
+        recoveryProbeCancellable = nil
         displayOffTask?.cancel()
         lidOffTask?.cancel()
         lidWorkerTask?.cancel()
@@ -497,6 +506,7 @@ final class SleepControlController: ObservableObject {
             if lidRecoveryRequested {
                 lidRecoveryRequested = false
                 await performResidualRecovery()
+                if lidPendingRecovery, !desiredLidSleep { return }
                 continue
             }
             let target = desiredLidSleep
@@ -727,7 +737,7 @@ final class SleepControlController: ObservableObject {
                 self.helperCapability = self.isHelperReady ? .needsUpdate : .unavailable
             }
             await self.recoverResidualIfOwned()
-            if self.lidPendingRecovery {
+            if self.lidPendingRecovery, self.isPreventingLidSleep {
                 self.startLidWorkerIfNeeded()
             }
         }
@@ -764,17 +774,23 @@ final class SleepControlController: ObservableObject {
               helperReadiness.isReady,
               helperCapability.supportsDisableSleep,
               helperCapability != .needsUpdate else { return }
-        guard let current = try? await client.readDisableSleep() else { return }
+        guard let current = try? await client.readDisableSleep() else {
+            if canContinueResidualRecovery(generation) { lidPendingRecovery = true }
+            return
+        }
         guard canContinueResidualRecovery(generation) else { return }
         if !current {
             ownership.ownsDisableSleep = false
             lidPendingRecovery = false
             return
         }
-        guard let observed = try? await client.setDisableSleep(false) else { return }
-        // A toggle that arrived while the write was out owns the session now;
-        // keep its marker and let the worker converge to the new intent.
-        guard canContinueResidualRecovery(generation), observed == false else { return }
+        let observed = try? await client.setDisableSleep(false)
+        // A toggle that arrived while the write was out owns the session now.
+        guard canContinueResidualRecovery(generation) else { return }
+        guard observed == false else {
+            lidPendingRecovery = true
+            return
+        }
         ownership.ownsDisableSleep = false
         isPreventingLidSleep = false
         lidPendingRecovery = false

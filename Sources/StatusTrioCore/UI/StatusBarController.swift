@@ -115,7 +115,6 @@ final class StatusBarController: NSObject {
     private var powerDemandCancellable: AnyCancellable?
     private var panelBackgroundCancellable: AnyCancellable?
     private var reduceTransparencyCancellable: AnyCancellable?
-    private var helperQuiescenceCancellable: AnyCancellable?
     private var lidPolicyCancellables: Set<AnyCancellable> = []
     private var hoverPreferenceCancellable: AnyCancellable?
     /// Issue #355: whether hover-to-show is active. Off unless the user opts in.
@@ -437,10 +436,6 @@ final class StatusBarController: NSObject {
                 self?.detailPanel.refreshBackgroundForAccessibilityChange()
             }
 
-        // Keep the helper enabled but stretch its self-check cadence to 30 minutes
-        // when no visible panel section needs it. Hiding a section never disables
-        // the helper; a pending lid-sleep recovery keeps the normal cadence so a
-        // residual disablesleep=1 is still noticed.
         // Drive the lid-sleep battery policy from Settings.
         store.sleepControl.allowsLidSleepOnBattery = settings.allowLidSleepOnBattery
         store.sleepControl.autoDisablesLidSleepOnLowBattery = settings.autoDisableLidSleepOnLowBattery
@@ -458,20 +453,6 @@ final class StatusBarController: NSObject {
                 self.store.sleepControl.applyLidPowerPolicy()
             }
             .store(in: &lidPolicyCancellables)
-
-        helperQuiescenceCancellable = Publishers.CombineLatest3(
-            settings.$controlsLowPowerMode,
-            settings.$showsLidSleepButton,
-            settings.$enabledPopupSections
-        )
-        .receive(on: RunLoop.main)
-        .sink { [weak self] batteryOn, lidOn, sections in
-            guard let self else { return }
-            let anyVisible = (batteryOn && sections.contains(.battery))
-                || (lidOn && sections.contains(.quickActions))
-            let pending = self.store.sleepControl.hasPendingLidRecovery
-            PrivilegedHelperManager.shared.setQuiescent(!anyVisible && !pending)
-        }
 
         screenParametersCancellable = NotificationCenter.default.publisher(
             for: NSApplication.didChangeScreenParametersNotification,

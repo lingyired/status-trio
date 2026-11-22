@@ -1,6 +1,127 @@
 import Combine
+import Testing
 import XCTest
 @testable import StatusTrioCore
+
+@MainActor
+struct PrivilegedHelperIdleTests {
+    @Test func enabledHelperDoesNotKeepCheckingAfterStartup() async throws {
+        let service = FakePrivilegedHelperService(status: .enabled)
+        let manager = PrivilegedHelperManager(
+            service: service,
+            pollInterval: .milliseconds(5),
+            enabledHealthCheckInterval: .milliseconds(25)
+        )
+        try await waitForTestCondition { manager.isReady }
+        let reads = service.statusReadCount
+        let probes = service.verificationCallCount
+
+        try await Task.sleep(for: .milliseconds(150))
+
+        #expect(manager.isReady)
+        #expect(service.statusReadCount == reads)
+        #expect(service.verificationCallCount == probes)
+    }
+
+    @Test(arguments: [true, false])
+    func pendingStatusStopsBeingPolledAfterApprovalWindow(reachable: Bool) async throws {
+        let service = FakePrivilegedHelperService(status: .requiresApproval)
+        service.allowsPendingVerification = reachable
+        let manager = PrivilegedHelperManager(
+            service: service,
+            pollInterval: .milliseconds(5),
+            healthCheckInterval: .seconds(5)
+        )
+        if reachable {
+            try await waitForTestCondition { manager.isReady }
+        } else {
+            // One initial read, one failed XPC check, and five approval reads.
+            try await waitForTestCondition { service.statusReadCount >= 7 }
+        }
+        let reads = service.statusReadCount
+        let probes = service.verificationCallCount
+
+        try await Task.sleep(for: .milliseconds(100))
+
+        #expect(manager.requiresApproval)
+        #expect(manager.isReady == reachable)
+        #expect(service.statusReadCount == reads)
+        #expect(service.verificationCallCount == probes)
+        #expect(service.registerCallCount == 0)
+        #expect(service.recoveryUnregisterCallCount == 0)
+    }
+
+    @Test func backgroundRecoveryStopsAfterItsProbeBudget() async throws {
+        let service = FakePrivilegedHelperService(status: .enabled)
+        let manager = PrivilegedHelperManager(
+            service: service,
+            healthCheckInterval: .milliseconds(20),
+            enabledHealthCheckInterval: .milliseconds(20)
+        )
+        try await waitForTestCondition { manager.isReady }
+        let probes = service.verificationCallCount
+
+        manager.setBackgroundRecoveryNeeded(true)
+        try await waitForTestCondition { service.verificationCallCount >= probes + 5 }
+        try await Task.sleep(for: .milliseconds(150))
+
+        #expect(service.verificationCallCount == probes + 5)
+        manager.setBackgroundRecoveryNeeded(false)
+    }
+
+    @Test func ordinaryActivationDoesNotReadStatusOrProbe() async throws {
+        let service = FakePrivilegedHelperService(status: .enabled)
+        let manager = PrivilegedHelperManager(service: service)
+        try await waitForTestCondition { manager.isReady }
+        let reads = service.statusReadCount
+        let probes = service.verificationCallCount
+
+        for _ in 0..<10 { manager.refreshAfterActivation() }
+        await Task.yield()
+
+        #expect(service.statusReadCount == reads)
+        #expect(service.verificationCallCount == probes)
+    }
+
+    @Test func successfulOperationChecksXPCWithoutReadingNativeStatus() async throws {
+        let service = FakePrivilegedHelperService(status: .enabled)
+        let manager = PrivilegedHelperManager(service: service)
+        try await waitForTestCondition { manager.isReady }
+        let reads = service.statusReadCount
+        let probes = service.verificationCallCount
+
+        let ready = await manager.verifyForUse()
+
+        #expect(ready)
+        #expect(service.statusReadCount == reads)
+        #expect(service.verificationCallCount == probes + 1)
+    }
+
+    @Test func repeatedActivationSharesOneNativeStatusRead() async throws {
+        let service = FakePrivilegedHelperService(status: .enabled)
+        let manager = PrivilegedHelperManager(service: service)
+        try await waitForTestCondition { manager.isReady }
+        let reads = service.statusReadCount
+        let probes = service.verificationCallCount
+
+        manager.openLoginItemsSettings()
+        manager.refreshAfterActivation()
+        manager.refreshAfterActivation()
+        try await waitForTestCondition { service.verificationCallCount > probes }
+
+        #expect(service.verificationCallCount == probes + 1)
+        #expect(service.statusReadCount == reads + 1)
+    }
+
+    private func waitForTestCondition(_ condition: () -> Bool) async throws {
+        let clock = ContinuousClock()
+        let deadline = clock.now.advanced(by: .seconds(8))
+        while !condition(), clock.now < deadline {
+            try await Task.sleep(for: .milliseconds(5))
+        }
+        try #require(condition())
+    }
+}
 
 @MainActor
 final class PrivilegedHelperManagerTests: XCTestCase {
@@ -27,8 +148,7 @@ final class PrivilegedHelperManagerTests: XCTestCase {
         let service = FakePrivilegedHelperService(status: .enabled)
         let manager = PrivilegedHelperManager(
             service: service,
-            pollInterval: .milliseconds(10),
-            enabledStatusPollInterval: .seconds(30)
+            pollInterval: .milliseconds(10)
         )
         await waitUntil { manager.isReady }
         // Let the tick that was already scheduled at the approval cadence
@@ -79,6 +199,7 @@ final class PrivilegedHelperManagerTests: XCTestCase {
         XCTAssertTrue(manager.isReady)
         service.allowsPendingVerification = false
 
+        manager.openLoginItemsSettings()
         manager.refreshAfterActivation()
         await waitUntil { !manager.isReady }
 
@@ -154,6 +275,7 @@ final class PrivilegedHelperManagerTests: XCTestCase {
         // The helper goes away, and the user's gesture is the only signal the
         // app gets: the native status never moves.
         service.allowsPendingVerification = false
+        manager.openLoginItemsSettings()
         manager.refreshAfterActivation()
 
         // The failed gesture is retried within its window — far inside the
@@ -182,6 +304,7 @@ final class PrivilegedHelperManagerTests: XCTestCase {
         await waitUntil { manager.isReady }
         XCTAssertTrue(manager.isReady)
         service.allowsPendingVerification = false
+        manager.openLoginItemsSettings()
         manager.refreshAfterActivation()
         // Let the window spend itself, then confirm the reads stop arriving.
         try? await Task.sleep(for: .milliseconds(200))
@@ -215,6 +338,7 @@ final class PrivilegedHelperManagerTests: XCTestCase {
         )
         await waitUntil { manager.isReady }
         XCTAssertTrue(manager.isReady)
+        manager.setBackgroundRecoveryNeeded(true)
         service.allowsPendingVerification = false
         await waitUntil { !manager.isReady }
         XCTAssertFalse(manager.isReady)
@@ -490,9 +614,9 @@ final class PrivilegedHelperManagerTests: XCTestCase {
         XCTAssertEqual(service.recoveryUnregisterCallCount, 1)
     }
 
-    func testEnabledHelperIsRecheckedWithoutAUserAction() async {
-        // A helper that crashes after a successful verification used to stay
-        // "ready" until the user touched the switch: nothing ever read it again.
+    func testPendingCleanupKeepsCheckingAnEnabledHelper() async {
+        // An unfinished lid-sleep cleanup still needs health checks when the
+        // user is away from the app.
         let service = FakePrivilegedHelperService(status: .enabled)
         let manager = PrivilegedHelperManager(
             service: service,
@@ -501,6 +625,8 @@ final class PrivilegedHelperManagerTests: XCTestCase {
         )
         await waitUntil { manager.isReady }
         let readsAfterReady = service.verificationCallCount
+        let nativeReads = service.statusReadCount
+        manager.setBackgroundRecoveryNeeded(true)
 
         // Wait for the re-probes instead of a fixed sleep: a loaded CI runner can
         // starve the poll loop and make a fixed window flaky.
@@ -509,6 +635,11 @@ final class PrivilegedHelperManagerTests: XCTestCase {
         XCTAssertGreaterThanOrEqual(service.verificationCallCount, readsAfterReady + 2)
         XCTAssertTrue(manager.isReady)
         XCTAssertFalse(manager.didFailLastOperation)
+        XCTAssertEqual(service.statusReadCount, nativeReads)
+        manager.setBackgroundRecoveryNeeded(false)
+        let probesAfterCleanup = service.verificationCallCount
+        try? await Task.sleep(for: .milliseconds(100))
+        XCTAssertEqual(service.verificationCallCount, probesAfterCleanup)
         // Re-probing must not churn the registration of a healthy helper.
         XCTAssertEqual(service.recoveryUnregisterCallCount, 0)
         XCTAssertEqual(service.registerCallCount, 0)
@@ -525,6 +656,7 @@ final class PrivilegedHelperManagerTests: XCTestCase {
             enabledHealthCheckInterval: .milliseconds(20)
         )
         await waitUntil { manager.isReady }
+        manager.setBackgroundRecoveryNeeded(true)
 
         for expected in 1...3 {
             service.verificationFailuresRemaining = 1
@@ -558,6 +690,7 @@ final class PrivilegedHelperManagerTests: XCTestCase {
         let service = FakePrivilegedHelperService(status: .requiresApproval)
         service.registerError = TestFailure.registration
         let manager = PrivilegedHelperManager(service: service, pollInterval: .milliseconds(5))
+        manager.openLoginItemsSettings()
         for _ in 0..<10 { manager.refreshAfterActivation() }
         await waitUntil { service.registerCallCount == 5 }
         try? await Task.sleep(for: .milliseconds(50))
@@ -952,7 +1085,7 @@ final class FakePrivilegedHelperService: PrivilegedHelperServicing {
             await withCheckedContinuation { verificationContinuation = $0 }
             verificationContinuation = nil
         }
-        if status == .requiresApproval, !allowsPendingVerification {
+        if storedStatus == .requiresApproval, !allowsPendingVerification {
             throw NSError(domain: "XPCProbe", code: 4099)
         }
         if verificationFailuresRemaining > 0 {

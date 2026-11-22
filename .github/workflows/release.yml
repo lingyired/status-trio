@@ -567,6 +567,7 @@ jobs:
           RELEASE_REPO: ${{ env.RESOLVED_RELEASE_REPO }}
           RELEASE_BRANCH: ${{ env.RESOLVED_RELEASE_BRANCH }}
           OUTPUT_DIR: ${{ github.workspace }}/dist/release-package
+          STATUS_TRIO_SYMBOLS_DIR: ${{ github.workspace }}/dist/release-symbols
           RELEASE_NOTES_DIR: release-notes/${{ needs.verify.outputs.version }}
         run: bash scripts/package-release.sh
 
@@ -577,6 +578,14 @@ jobs:
           path: dist/release-package/
           if-no-files-found: error
           retention-days: 30
+
+      - name: Upload release symbolication files
+        uses: actions/upload-artifact@v4
+        with:
+          name: status-trio-release-symbols
+          path: dist/release-symbols/
+          if-no-files-found: error
+          retention-days: 90
 
       - name: Validate native dependency caches before saving
         env:

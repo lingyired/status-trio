@@ -132,7 +132,6 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
         }
         // The user may have approved the power helper in System Settings since
         // the last look; refresh so the toggle and its approval note are current.
-        PrivilegedHelperManager.shared.refresh()
         presentWindow(window, backgroundUITesting.isEnabled ? .background : .activating)
         if backgroundUITesting.isEnabled {
             let displayID = (window.screen?.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")]

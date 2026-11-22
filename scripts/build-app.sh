@@ -124,7 +124,38 @@ if [[ ! -d "$CORE_RESOURCE_BUNDLE" ]]; then
     exit 1
 fi
 
-cp "$BIN_PATH/StatusTrio" "$CONTENTS/MacOS/StatusTrio"
+# The SwiftPM executable remains available for swift run. The bundle links a
+# small launcher against the independently built SwiftPM dynamic product.
+CORE_LIBRARY="$CONTENTS/Frameworks/libStatusTrioCore.dylib"
+cp "$BIN_PATH/libStatusTrioCore.dylib" "$CORE_LIBRARY"
+# SwiftPM can embed the host toolchain search path in a build product.
+# Keep only the bundle-relative and system Swift runtime paths.
+while IFS= read -r core_rpath; do
+    case "$core_rpath" in
+        @loader_path|/usr/lib/swift) ;;
+        *) install_name_tool -delete_rpath "$core_rpath" "$CORE_LIBRARY" ;;
+    esac
+done < <(otool -l "$CORE_LIBRARY" | awk '$1 == "cmd" && $2 == "LC_RPATH" {rpath = 1} rpath && $1 == "path" { sub(/^[[:space:]]*path /, ""); sub(/ [(]offset [0-9]+[)]$/, ""); if (!seen[$0]++) print; rpath = 0 }')
+CORE_MINOS="$(vtool -show-build "$CORE_LIBRARY" | awk '/^[[:space:]]*minos[[:space:]]/ && !seen++ {print $2}')"
+[[ -n "$CORE_MINOS" ]] || { echo 'Error: missing core deployment target.' >&2; exit 1; }
+LAUNCHER_ARCHS=()
+for architecture in $(lipo -archs "$CORE_LIBRARY"); do
+    LAUNCHER_ARCHS+=(-arch "$architecture")
+done
+if [[ "$UNIVERSAL_BUILD" == "1" ]]; then
+    CORE_ARCHS="$(lipo -archs "$CORE_LIBRARY" | tr ' ' '\n' | LC_ALL=C sort | paste -sd ' ' -)"
+    [[ "$CORE_ARCHS" == "arm64 x86_64" ]] || { echo "Error: expected a Universal core library, found $CORE_ARCHS." >&2; exit 1; }
+fi
+CORE_METADATA_BINARY="$CONTENTS/Frameworks/StatusTrioCore.vtool"
+xcrun vtool -set-build-version macos "$CORE_MINOS" "$SDK_VERSION" -replace -output "$CORE_METADATA_BINARY" "$CORE_LIBRARY"
+mv "$CORE_METADATA_BINARY" "$CORE_LIBRARY"
+# Keep the launcher object until dsymutil has consumed its debug map.
+LAUNCHER_OBJECT="$BIN_PATH/StatusTrioBundleLauncher.o"
+xcrun --sdk macosx clang "${LAUNCHER_ARCHS[@]}" -mmacosx-version-min="$CORE_MINOS" -Os -g \
+    -c "$ROOT/Support/StatusTrioLauncher.c" -o "$LAUNCHER_OBJECT"
+xcrun --sdk macosx clang "${LAUNCHER_ARCHS[@]}" -mmacosx-version-min="$CORE_MINOS" \
+    -Wl,-rpath,@executable_path/../Frameworks "$LAUNCHER_OBJECT" \
+    -L "$CONTENTS/Frameworks" -lStatusTrioCore -o "$CONTENTS/MacOS/StatusTrio"
 cp -R "$CORE_RESOURCE_BUNDLE" "$CONTENTS/Resources/"
 
 SPARKLE_FRAMEWORK_SOURCE="$(find "$ROOT/.build/artifacts" -path '*/Sparkle.xcframework/macos-*/Sparkle.framework' -type d -print -quit)"
@@ -393,7 +424,18 @@ if [[ "$PRIVILEGED_HELPER" == "1" && "$SIGNING_IDENTITY" == "-" ]]; then
     echo "Warning: the privileged helper is bundled but Ad-hoc signed; Low Power Mode control will not work until it is signed with a Developer ID identity." >&2
 fi
 
+# Store symbolication files outside the distributable app before stripping.
+if [[ "$CONFIGURATION" == "release" ]]; then
+    SYMBOLS_DIR="${STATUS_TRIO_SYMBOLS_DIR:-$ROOT/.build/status-trio-symbols/$BUNDLE_ID}"
+    mkdir -p "$SYMBOLS_DIR"
+    for binary in "$CONTENTS/MacOS/StatusTrio" "$CORE_LIBRARY"; do
+        xcrun dsymutil "$binary" -o "$SYMBOLS_DIR/$(basename "$binary").dSYM"
+        xcrun strip -S -x "$binary"
+    done
+fi
+
 build_phase app-codesign
+codesign "${SIGNING_ARGS[@]}" "$CORE_LIBRARY"
 codesign "${SIGNING_ARGS[@]}" "$CONTENTS/Frameworks/Sparkle.framework"
 while IFS= read -r -d '' mobile_library; do
     codesign "${SIGNING_ARGS[@]}" "$mobile_library"
@@ -407,6 +449,7 @@ codesign "${SIGNING_ARGS[@]}" --entitlements "$ROOT/Support/AirPodsHelper.entitl
 codesign "${SIGNING_ARGS[@]}" --preserve-metadata=entitlements "$APP_DIR"
 codesign --verify --deep --strict --verbose=2 "$APP_DIR"
 build_phase signed-bundle-contracts
+bash "$ROOT/scripts/verify-core-library-bundle.sh" "$APP_DIR" "$DECLARED_MINOS"
 bash "$ROOT/scripts/verify-mobile-battery-bundle.sh" "$APP_DIR"
 bash "$ROOT/scripts/verify-privileged-helper-bundle.sh" "$APP_DIR"
 

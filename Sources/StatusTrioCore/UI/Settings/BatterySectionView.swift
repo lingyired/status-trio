@@ -27,6 +27,7 @@ struct BatterySectionView: View {
         }) {
             fullBatteryContent
         }
+        .onAppear { helper.refreshForApprovalSettings() }
     }
 
     @ViewBuilder

@@ -31,10 +31,8 @@ final class LowPowerModeControlSynchronizer {
         }
         .store(in: &cancellables)
 
-        // Approval happens in System Settings, so re-read the status when the app
-        // comes back to the foreground. Without this, a registration approved
-        // while the app was in the background keeps showing "waiting for
-        // approval" until the Settings window is closed and reopened.
+        // Forward activation so the manager can complete the one-shot return
+        // from Login Items. Ordinary foreground changes don't query the system.
         activationObserver = NotificationCenter.default.addObserver(
             forName: NSApplication.didBecomeActiveNotification,
             object: nil,
