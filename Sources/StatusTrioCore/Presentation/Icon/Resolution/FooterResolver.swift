@@ -10,7 +10,8 @@ enum FooterResolver {
             fallback: configuration.composition.footer.fallback.flatMap(IconContentLegacyAdapter.binding(for:)))
         let output = IconPluginSlotResolver.resolve(primary: selection.primary,
             fallback: selection.fallback, slot: .footer,
-            context: .init(inputs: inputs, configuration: configuration, legacy: legacy, now: now), registry: registry)
+            context: .init(inputs: inputs, configuration: configuration, legacy: legacy, now: now,
+                           bottomIndicatorMetric: inputs.system.bottomIndicatorMetric), registry: registry)
         guard case let .footer(state) = output.payload else { return (nil, output.trace) }
         return (state, output.trace)
     }

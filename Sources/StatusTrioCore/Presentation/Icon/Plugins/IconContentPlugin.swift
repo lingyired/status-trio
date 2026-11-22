@@ -54,6 +54,9 @@ struct IconContentContext: Sendable {
     /// The host can ask for a warning representation even when the ordinary
     /// source is unavailable (for example Wi-Fi switched off).
     var isAlertOverride = false
+    /// Which hardware-monitor metric the `.metric` bottom source draws. Only the
+    /// footer hardware presentation reads it; other slots ignore it.
+    var bottomIndicatorMetric: HardwareMonitorMetric = .cpuUsage
 }
 
 /// Compiled-in content reads a supplied snapshot. The host owns persistence,

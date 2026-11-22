@@ -14,6 +14,13 @@ public enum BottomIndicatorSource: String, CaseIterable, Identifiable, Codable, 
     case wifi
     /// The internal battery level.
     case battery
+    /// A hardware-monitor metric (CPU/GPU usage, memory, temperature, fan, or
+    /// network speed), mirroring the top marker's metric choices. The concrete
+    /// metric lives in `SettingsStore.bottomIndicatorMetric`; this case only
+    /// says "draw that metric". Kept as its own case (rather than more cases)
+    /// because the metric list is defined by `HardwareMonitorMetric` and grows
+    /// independently.
+    case metric
     /// Draw nothing in the bottom indicator area.
     case hidden
 

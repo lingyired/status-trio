@@ -43,7 +43,7 @@ final class SettingsPreferenceCatalogTests: XCTestCase {
                 "showsWiFiIconForTemporaryConnection", "showsWiFiIconForInternetSharing",
                 "showsLocalIPAddress", "showsSpatialAudioControls", "showsConversationAwarenessControls",
                 "connectionCenterSource", "inputSourceMarkerStyle", "prioritizesNetworkErrors",
-                "bluetoothIconColor", "usesBluetoothAudioVolumeColor", "showsBluetoothBatteryLevels",
+                "bluetoothIconColor", "usesBluetoothAudioVolumeColor", "bluetoothVolumeColor", "showsBluetoothBatteryLevels",
                 "showsWiFiPowerControl", "confirmsWiFiPowerOff", "showsBluetoothPowerControl",
                 "autoEnablesLowPowerMode", "showsAppleDevicesAndBattery",
                 "refreshesAppleBatteriesInBackground", "appleBatteryRefreshIntervalMinutes",

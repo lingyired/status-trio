@@ -99,13 +99,13 @@
 "settings.bluetooth.networkIconSourceAudioDescription" = "Suit la sortie audio Bluetooth actuelle — la valeur par défaut.";
 "settings.bluetooth.networkIconSourceDevices" = "Périphériques Bluetooth";
 "settings.bluetooth.networkIconSourceDevicesEmpty" = "Aucun appareil Bluetooth lu pour l’instant. Autorisez l’accès Bluetooth ci-dessus ou associez un appareil.";
-"settings.bluetooth.volumeColor" = "Utiliser le bleu pour le volume Bluetooth";
+"settings.bluetooth.volumeColor" = "Couleur du volume Bluetooth";
 "settings.bluetooth.iconColor" = "Couleur de l’icône Bluetooth";
 "settings.bluetooth.iconColorDescription" = "Choisissez la couleur de l’icône Bluetooth au centre : bleu par défaut, noir ou blanc de la barre des menus, ou une couleur personnalisée.";
 "settings.bluetooth.iconColor.blue" = "Bleu";
 "settings.bluetooth.iconColor.primary" = "Suivre le système";
 "settings.bluetooth.iconColor.custom" = "Couleur personnalisée";
-"settings.bluetooth.volumeColorDescription" = "Les points de volume actifs ou l’arc deviennent bleus lors d’une sortie audio Bluetooth.";
+"settings.bluetooth.volumeColorDescription" = "Couleur des points ou de l'arc de volume lorsque la sortie est en audio Bluetooth.";
 "settings.bluetooth.networkErrorPriority" = "Donner la priorité aux erreurs réseau";
 "settings.bluetooth.networkErrorPriorityDescription" = "Les erreurs de connexion et l’état hors ligne conservent l’icône réseau au lieu du périphérique Bluetooth.";
 "settings.bluetooth.batteryLevels" = "Afficher les niveaux de batterie Bluetooth";
@@ -624,6 +624,9 @@
 "settings.audio.bottomIndicatorSource.wifi" = "Wi-Fi";
 "settings.audio.bottomIndicatorSource.battery" = "Batterie";
 "settings.audio.bottomIndicatorSource.hidden" = "Masqué";
+"settings.audio.bottomIndicatorSource.metric" = "Personnalisé";
+"settings.audio.bottomIndicatorMetric" = "Personnalisé";
+"settings.audio.bottomIndicatorMetricDescription" = "Choisissez la mesure matérielle affichée par la barre. Le style à quatre points ou en arc reste identique.";
 "settings.audio.airPodsInlineControlsTitle" = "Commandes du casque";
 "settings.audio.airPodsInlineControls" = "Afficher les commandes AirPods dans le panneau du volume";
 "settings.audio.airPodsInlineControlsDescription" = "Affiche les commandes de perception des conversations, de l'audio spatial et de l'adaptatif à côté de votre sortie AirPods. Désactivez pour masquer ces commandes basées sur des API privées.";

@@ -172,6 +172,7 @@ final class SettingsStore: ObservableObject {
     static let replacesNetworkIconWithBluetoothAudioDefaultsKey = "replacesNetworkIconWithBluetoothAudio"
     static let bluetoothIconColorDefaultsKey = "bluetoothIconColor"
     static let usesBluetoothAudioVolumeColorDefaultsKey = "usesBluetoothAudioVolumeColor"
+    static let bluetoothVolumeColorDefaultsKey = "bluetoothVolumeColor"
     static let prioritizesNetworkErrorsOverBluetoothAudioDefaultsKey = "prioritizesNetworkErrorsOverBluetoothAudio"
     static let showsBluetoothBatteryLevelsDefaultsKey = "showsBluetoothBatteryLevels"
     static let showsWiFiPowerControlDefaultsKey = "showsWiFiPowerControl"
@@ -255,6 +256,23 @@ final class SettingsStore: ObservableObject {
     static let volumeDisplayStyleDefaultsKey = "volumeDisplayStyle"
     static let defaultBottomIndicatorSource: BottomIndicatorSource = .volume
     static let bottomIndicatorSourceDefaultsKey = "bottomIndicatorSource"
+    /// Which hardware-monitor metric the `.metric` bottom source draws. Kept
+    /// beside `bottomIndicatorSource` so the concrete metric can change without
+    /// touching the source enum.
+    static let defaultBottomIndicatorMetric: HardwareMonitorMetric = .cpuUsage
+    static let bottomIndicatorMetricDefaultsKey = "bottomIndicatorMetric"
+    /// The dot/arc style used by the `.metric` bottom source. It defaults to the
+    /// arc because a continuous fill reads the hardware metrics better than four
+    /// dots, and it is kept separate from `volumeDisplayStyle` so switching the
+    /// bottom source to a metric does not restyle the volume indicator.
+    static let defaultMetricBottomIndicatorStyle: VolumeDisplayStyle = .arc
+    static let metricBottomIndicatorStyleDefaultsKey = "metricBottomIndicatorStyle"
+    /// Per-source dot/arc styles for the Wi-Fi and battery bottom sources. Each
+    /// source keeps its own style so changing one no longer restyles the others.
+    static let defaultWifiBottomIndicatorStyle: VolumeDisplayStyle = .dots
+    static let wifiBottomIndicatorStyleDefaultsKey = "wifiBottomIndicatorStyle"
+    static let defaultBatteryBottomIndicatorStyle: VolumeDisplayStyle = .dots
+    static let batteryBottomIndicatorStyleDefaultsKey = "batteryBottomIndicatorStyle"
     static let defaultRingStrokeStyle: RingStrokeStyle = .regular
     static let ringStrokeStyleDefaultsKey = "ringStrokeStyle"
 
@@ -1024,6 +1042,28 @@ final class SettingsStore: ObservableObject {
         }
     }
 
+    /// The Bluetooth audio volume indicator colour (replaces the old blue switch).
+    @Published var bluetoothVolumeColor: BluetoothVolumeColorSelection = .automatic {
+        didSet {
+            defaults.set(bluetoothVolumeColor.storageValue,
+                         forKey: Self.bluetoothVolumeColorDefaultsKey)
+            // Keep the legacy boolean roughly accurate for older readers.
+            let enabled = bluetoothVolumeColor != .automatic
+            if usesBluetoothAudioVolumeColor != enabled {
+                usesBluetoothAudioVolumeColor = enabled
+            }
+        }
+    }
+
+    /// The colour role the volume footer uses for Bluetooth audio output.
+    /// `nil` keeps the normal primary colour.
+    var bluetoothVolumeColorRole: IconColorRole? {
+        switch bluetoothVolumeColor {
+        case .automatic: return nil
+        case let .custom(color): return .custom(color)
+        }
+    }
+
     @Published var showsBluetoothBatteryLevels: Bool {
         didSet {
             defaults.set(
@@ -1531,6 +1571,56 @@ final class SettingsStore: ObservableObject {
             defaults.set(bottomIndicatorSource.rawValue, forKey: Self.bottomIndicatorSourceDefaultsKey)
             synchronizeSlotBindingFromLegacySettings(for: .footer)
         }
+    }
+
+    /// The hardware-monitor metric drawn when `bottomIndicatorSource == .metric`.
+    /// Only meaningful in that mode; changing it never rewrites the source or the
+    /// persisted slot binding (the metric rides the runtime inputs, not the
+    /// binding), but it must still publish so the menu bar re-resolves.
+    @Published var bottomIndicatorMetric: HardwareMonitorMetric {
+        didSet {
+            defaults.set(bottomIndicatorMetric.rawValue, forKey: Self.bottomIndicatorMetricDefaultsKey)
+        }
+    }
+
+    /// The style used when the bottom source is `.metric` (defaults to arc).
+    @Published var metricBottomIndicatorStyle: VolumeDisplayStyle {
+        didSet {
+            defaults.set(metricBottomIndicatorStyle.rawValue,
+                         forKey: Self.metricBottomIndicatorStyleDefaultsKey)
+        }
+    }
+
+    /// The style used when the bottom source is `.wifi`.
+    @Published var wifiBottomIndicatorStyle: VolumeDisplayStyle {
+        didSet {
+            defaults.set(wifiBottomIndicatorStyle.rawValue,
+                         forKey: Self.wifiBottomIndicatorStyleDefaultsKey)
+        }
+    }
+
+    /// The style used when the bottom source is `.battery`.
+    @Published var batteryBottomIndicatorStyle: VolumeDisplayStyle {
+        didSet {
+            defaults.set(batteryBottomIndicatorStyle.rawValue,
+                         forKey: Self.batteryBottomIndicatorStyleDefaultsKey)
+        }
+    }
+
+    /// The dot/arc style one bottom source draws with. Every source is
+    /// independent; `.volume` keeps the original `volumeDisplayStyle` key.
+    func bottomIndicatorStyle(for source: BottomIndicatorSource) -> VolumeDisplayStyle {
+        switch source {
+        case .volume, .hidden: return volumeDisplayStyle
+        case .wifi: return wifiBottomIndicatorStyle
+        case .battery: return batteryBottomIndicatorStyle
+        case .metric: return metricBottomIndicatorStyle
+        }
+    }
+
+    /// The dot/arc style the currently selected bottom source draws with.
+    var effectiveBottomIndicatorStyle: VolumeDisplayStyle {
+        bottomIndicatorStyle(for: bottomIndicatorSource)
     }
 
     @Published var ringStrokeStyle: RingStrokeStyle {
@@ -2408,13 +2498,24 @@ final class SettingsStore: ObservableObject {
         )
     }
 
+    /// Bluetooth volume-colour-only options for the settings previews. Visual
+    /// option cards must ignore the picked Bluetooth device symbol/choice (only
+    /// the main live preview uses those), but they still need the volume colour.
+    var bluetoothVolumePreviewOptions: BluetoothAudioIconOptions {
+        BluetoothAudioIconOptions(
+            usesVolumeColor: usesBluetoothAudioVolumeColor,
+            volumeColorRole: bluetoothVolumeColorRole
+        )
+    }
+
     var bluetoothAudioIconOptions: BluetoothAudioIconOptions {
         BluetoothAudioIconOptions(
             iconColor: bluetoothIconColor,
             usesVolumeColor: usesBluetoothAudioVolumeColor,
             symbolScale: wifiSymbolScale,
             networkIconSymbolOverride: bluetoothNetworkIconSymbolName,
-            iconChoice: bluetoothAudioIconChoice
+            iconChoice: bluetoothAudioIconChoice,
+            volumeColorRole: bluetoothVolumeColorRole
         )
     }
 
@@ -2615,6 +2716,10 @@ final class SettingsStore: ObservableObject {
         let storedWifiSymbolScale = (defaults.object(forKey: Self.wifiSymbolScaleDefaultsKey) as? NSNumber)?.doubleValue
         let storedVolumeDisplayStyle = defaults.string(forKey: Self.volumeDisplayStyleDefaultsKey)
         let storedBottomIndicatorSource = defaults.string(forKey: Self.bottomIndicatorSourceDefaultsKey)
+        let storedBottomIndicatorMetric = defaults.string(forKey: Self.bottomIndicatorMetricDefaultsKey)
+        let storedMetricBottomIndicatorStyle = defaults.string(forKey: Self.metricBottomIndicatorStyleDefaultsKey)
+        let storedWifiBottomIndicatorStyle = defaults.string(forKey: Self.wifiBottomIndicatorStyleDefaultsKey)
+        let storedBatteryBottomIndicatorStyle = defaults.string(forKey: Self.batteryBottomIndicatorStyleDefaultsKey)
         let storedRingStrokeStyle = defaults.string(forKey: Self.ringStrokeStyleDefaultsKey)
         let storedOutputDeviceOrder = defaults.stringArray(forKey: Self.outputDeviceOrderDefaultsKey) ?? []
         let storedHiddenOutputDeviceUIDs = Set(
@@ -2939,6 +3044,17 @@ final class SettingsStore: ObservableObject {
         self.usesBluetoothAudioVolumeColor = defaults.object(
             forKey: Self.usesBluetoothAudioVolumeColorDefaultsKey
         ) as? Bool ?? false
+        if let storedBluetoothVolumeColor = defaults.string(forKey: Self.bluetoothVolumeColorDefaultsKey) {
+            self.bluetoothVolumeColor = BluetoothVolumeColorSelection(
+                storageValue: storedBluetoothVolumeColor)
+        } else {
+            // Migrate the old "use blue" switch onto the blue preset.
+            let legacyBlueEnabled = defaults.object(
+                forKey: Self.usesBluetoothAudioVolumeColorDefaultsKey) as? Bool ?? false
+            self.bluetoothVolumeColor = legacyBlueEnabled
+                ? .custom(BluetoothVolumeColorSelection.legacyBlue)
+                : .automatic
+        }
         self.showsBluetoothBatteryLevels = defaults.object(
             forKey: Self.showsBluetoothBatteryLevelsDefaultsKey
         ) as? Bool ?? true
@@ -3025,6 +3141,18 @@ final class SettingsStore: ObservableObject {
         self.bottomIndicatorSource = storedBottomIndicatorSource
             .flatMap(BottomIndicatorSource.init(rawValue:))
             ?? Self.defaultBottomIndicatorSource
+        self.bottomIndicatorMetric = storedBottomIndicatorMetric
+            .flatMap(HardwareMonitorMetric.init(rawValue:))
+            ?? Self.defaultBottomIndicatorMetric
+        self.metricBottomIndicatorStyle = storedMetricBottomIndicatorStyle
+            .flatMap(VolumeDisplayStyle.init(rawValue:))
+            ?? Self.defaultMetricBottomIndicatorStyle
+        self.wifiBottomIndicatorStyle = storedWifiBottomIndicatorStyle
+            .flatMap(VolumeDisplayStyle.init(rawValue:))
+            ?? Self.defaultWifiBottomIndicatorStyle
+        self.batteryBottomIndicatorStyle = storedBatteryBottomIndicatorStyle
+            .flatMap(VolumeDisplayStyle.init(rawValue:))
+            ?? Self.defaultBatteryBottomIndicatorStyle
         self.ringStrokeStyle = storedRingStrokeStyle
             .flatMap(RingStrokeStyle.init(rawValue:))
             ?? Self.defaultRingStrokeStyle

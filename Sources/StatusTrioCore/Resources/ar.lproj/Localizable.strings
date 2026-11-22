@@ -82,13 +82,13 @@
 "settings.bluetooth.networkIconSourceAudioDescription" = "يتبع مخرج صوت Bluetooth الحالي — الخيار الافتراضي.";
 "settings.bluetooth.networkIconSourceDevices" = "أجهزة Bluetooth";
 "settings.bluetooth.networkIconSourceDevicesEmpty" = "لم تتم قراءة أي أجهزة Bluetooth بعد. امنح إذن Bluetooth أعلاه أو اقترن بجهاز.";
-"settings.bluetooth.volumeColor" = "استخدام اللون الأزرق لمستوى صوت Bluetooth";
+"settings.bluetooth.volumeColor" = "لون صوت البلوتوث";
 "settings.bluetooth.iconColor" = "لون أيقونة Bluetooth";
 "settings.bluetooth.iconColorDescription" = "اختر لون أيقونة Bluetooth في المنتصف: الأزرق افتراضيًا، أو أسود/أبيض شريط القوائم، أو لون مخصص.";
 "settings.bluetooth.iconColor.blue" = "أزرق";
 "settings.bluetooth.iconColor.primary" = "تبع النظام";
 "settings.bluetooth.iconColor.custom" = "لون مخصص";
-"settings.bluetooth.volumeColorDescription" = "تتحول نقاط مستوى الصوت النشطة أو القوس إلى الأزرق عند الإخراج عبر Bluetooth.";
+"settings.bluetooth.volumeColorDescription" = "لون نقاط أو قوس مستوى الصوت عند إخراج صوت البلوتوث.";
 "settings.bluetooth.networkErrorPriority" = "إعطاء أولوية لأخطاء الشبكة";
 "settings.bluetooth.networkErrorPriorityDescription" = "تبقى أيقونة الشبكة ظاهرة عند انقطاع الاتصال أو غياب الإنترنت بدلًا من أيقونة جهاز Bluetooth.";
 "settings.bluetooth.batteryLevels" = "عرض مستويات بطارية Bluetooth";
@@ -624,6 +624,9 @@
 "settings.audio.bottomIndicatorSource.wifi" = "Wi-Fi";
 "settings.audio.bottomIndicatorSource.battery" = "البطارية";
 "settings.audio.bottomIndicatorSource.hidden" = "مخفي";
+"settings.audio.bottomIndicatorSource.metric" = "مخصص";
+"settings.audio.bottomIndicatorMetric" = "مخصص";
+"settings.audio.bottomIndicatorMetricDescription" = "اختر مؤشر العتاد الذي يعرضه الشريط. يبقى نمط النقاط الأربع أو القوس كما هو.";
 "settings.audio.airPodsInlineControlsTitle" = "عناصر تحكم السماعات";
 "settings.audio.airPodsInlineControls" = "عرض عناصر تحكم AirPods في لوحة الصوت";
 "settings.audio.airPodsInlineControlsDescription" = "يعرض أدوات التحكم في إدراك المحادثة والصوت المكاني والتكيّف بجانب مخرج AirPods. عطّل لإخفاء هذه الأدوات القائمة على واجهات برمجية خاصة.";

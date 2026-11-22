@@ -387,6 +387,21 @@ enum IconPresentationMapper {
                 color: color,
                 options: options
             )
+        case .metric:
+            // The live path renders this through the hardware-monitor footer
+            // plugin; this branch keeps the legacy mapper (previews, guide art)
+            // consistent when it is handed real hardware samples.
+            return HardwareRingMapper.footerState(
+                metric: inputs.bottomIndicatorMetric,
+                snapshot: inputs.sources.hardwareMetrics,
+                configuration: .default,
+                levels: inputs.sources.hardwareRingLevels,
+                metricColors: inputs.sources.hardwareMetricColors,
+                speedCapsMbps: inputs.sources.hardwareSpeedCapsMbps,
+                now: .now,
+                style: options.displayStyle,
+                strokeScale: options.ringStrokeScale
+            )
         }
     }
 
@@ -427,17 +442,24 @@ enum IconPresentationMapper {
         bluetoothOptions: BluetoothAudioIconOptions
     ) -> FooterState {
         let finiteScalar = volume.scalar.flatMap { $0.isFinite ? $0 : nil }
-        let mayUseBluetoothColor = bluetoothOptions.usesVolumeColor && volume.currentDevice?.isBluetoothAudio == true
+        // The custom Bluetooth audio colour applies only while a Bluetooth output
+        // is current. `nil` role keeps the normal primary colour.
+        let bluetoothColor: IconColorRole? = volume.currentDevice?.isBluetoothAudio == true
+            ? (bluetoothOptions.volumeColorRole
+                ?? (bluetoothOptions.usesVolumeColor ? .bluetooth : nil))
+            : nil
 
         switch options.displayStyle {
         case .dots:
             let steps = StatusMappings.volumeSteps(scalar: finiteScalar, isMuted: volume.isMuted) ?? 0
-            let color: IconColorRole = mayUseBluetoothColor && steps > 0 ? .bluetooth : .primary
+            let color: IconColorRole = (bluetoothColor != nil && steps > 0)
+                ? bluetoothColor! : .primary
             return .dots(DotsState(count: 4, activeCount: steps, color: color,
                                    strokeScale: options.ringStrokeScale))
         case .arc:
             let effectiveProgress = volume.isMuted ? 0 : (finiteScalar ?? 0)
-            let color: IconColorRole = mayUseBluetoothColor && effectiveProgress > 0 ? .bluetooth : .primary
+            let color: IconColorRole = (bluetoothColor != nil && effectiveProgress > 0)
+                ? bluetoothColor! : .primary
             return .arc(ArcState(progress: effectiveProgress, color: color,
                                  strokeScale: options.ringStrokeScale))
         }

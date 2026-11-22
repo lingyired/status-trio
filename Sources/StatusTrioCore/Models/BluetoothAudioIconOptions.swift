@@ -16,6 +16,10 @@ struct BluetoothAudioIconOptions: Equatable, Hashable, Sendable {
     let networkIconSymbolOverride: String?
     /// A global choice used only while the current output is Bluetooth audio.
     let iconChoice: BluetoothAudioIconChoice
+    /// The colour of the volume footer's active fill while the output is
+    /// Bluetooth audio. `nil` keeps the normal primary colour; the Bluetooth
+    /// audio colour control sets a custom colour.
+    let volumeColorRole: IconColorRole?
 
     static let standard = BluetoothAudioIconOptions(
         iconColor: .default,
@@ -28,12 +32,14 @@ struct BluetoothAudioIconOptions: Equatable, Hashable, Sendable {
         usesVolumeColor: Bool = false,
         symbolScale: Double = Self.defaultSymbolScale,
         networkIconSymbolOverride: String? = nil,
-        iconChoice: BluetoothAudioIconChoice = .automatic
+        iconChoice: BluetoothAudioIconChoice = .automatic,
+        volumeColorRole: IconColorRole? = nil
     ) {
         self.iconColor = iconColor
         self.usesVolumeColor = usesVolumeColor
         self.symbolScale = symbolScale
         self.networkIconSymbolOverride = networkIconSymbolOverride
         self.iconChoice = iconChoice
+        self.volumeColorRole = volumeColorRole
     }
 }

@@ -137,6 +137,58 @@ enum HardwareRingMapper {
         return RingSegmentState(progress: progress, color: color, position: position)
     }
 
+    /// The same metric reading the hardware ring would draw, rendered as the
+    /// footer's four-dot / arc bar. Reuses the ring's progress and colour rules
+    /// so the bottom indicator never disagrees with the ring about a metric.
+    /// Returns `nil` when the sample is stale/unavailable, matching the ring's
+    /// "do not invent a live reading" rule.
+    static func footerState(
+        metric: HardwareMonitorMetric,
+        snapshot: HardwareMetricsSnapshot,
+        configuration: HardwareRingConfiguration,
+        levels: [HardwareMonitorMetric: HardwareLoadLevel],
+        metricColors: [HardwareMonitorMetric: IconRGBA],
+        speedCapsMbps: [HardwareMonitorMetric: Double],
+        now: Date,
+        style: VolumeDisplayStyle,
+        strokeScale: Double
+    ) -> FooterState? {
+        let options = configuration.options(for: metric)
+        let sample = sample(for: metric, in: snapshot, auxiliary: [:])
+        let capMbps = speedCapsMbps[metric]
+        guard let progress = progress(metric: metric, sample: sample, options: options,
+                                      capMbps: capMbps, now: now) else {
+            return nil
+        }
+        if metric == .batteryLevel {
+            return footerBar(progress: progress, color: .primary, style: style, strokeScale: strokeScale)
+        }
+        let level: HardwareLoadLevel = metric.usesStatusSnapshot
+            ? .normal
+            : (levels[metric] ?? HardwareRingThresholdEngine.immediateLevel(value: sample.value ?? 0, options: options))
+        let baseColor = metricColors[metric]
+            ?? HardwareRingColorConfiguration.recommendedBaseColor(for: metric)
+        let color = segmentColor(level: level,
+                                 monochrome: configuration.color.monochrome,
+                                 thresholdColors: configuration.color.thresholdColors,
+                                 baseColor: baseColor)
+        return footerBar(progress: progress, color: color, style: style, strokeScale: strokeScale)
+    }
+
+    private static func footerBar(progress: Double, color: IconColorRole,
+                               style: VolumeDisplayStyle, strokeScale: Double) -> FooterState {
+        switch style {
+        case .dots:
+            return .dots(DotsState(
+                count: 4,
+                activeCount: StatusMappings.volumeSteps(scalar: progress, isMuted: false) ?? 0,
+                color: color,
+                strokeScale: strokeScale))
+        case .arc:
+            return .arc(ArcState(progress: progress, color: color, strokeScale: strokeScale))
+        }
+    }
+
     private static func segmentColor(
         level: HardwareLoadLevel,
         monochrome: Bool,

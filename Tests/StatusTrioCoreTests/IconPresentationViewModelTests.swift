@@ -761,4 +761,44 @@ final class IconPresentationViewModelTests: XCTestCase {
         XCTAssertEqual(mapCount, afterSwitch + 1, "hardware ring must reproject on a hardware tick")
         model.stop()
     }
+
+    /// A hardware metric in the bottom indicator must repaint on a hardware
+    /// tick even when the ring is the battery ring, or the metric appears only
+    /// on the next status-snapshot tick (seconds later).
+    func testHardwareTickReprojectsForMetricBottomIndicator() {
+        let snapshot = PresentationFixtures.snapshot()
+        let snapshots = CurrentValueSubject<StatusSnapshot, Never>(snapshot)
+        var settings = IconPresentationSettings(configuration: .standard, menuBarSize: 28, testsChargingEffect: false)
+        settings.iconConfiguration = .classic // system battery ring
+        settings.runtimeOptions = IconPresentationRuntimeOptions(
+            connectionCenterSource: .network,
+            prioritizesNetworkErrorsOverInputSource: true,
+            batteryFullThreshold: 100,
+            bluetoothAudioIconChoice: .automatic,
+            bottomIndicatorSource: .metric)
+        settings.slotBindings = IconSlotBindingsV1.migrated(from: .classic, bottomIndicatorSource: .metric)
+        let preferences = CurrentValueSubject<IconPresentationSettings, Never>(settings)
+        let hardware = CurrentValueSubject<HardwareMetricsSnapshot, Never>(.empty)
+        let scheduler = ManualIconPresentationScheduler()
+        let scene = IconSceneState(center: .text(IconTextState(text: "X", color: .primary, scale: 1)))
+        var mapCount = 0
+        let model = IconPresentationViewModel(
+            snapshot: snapshot,
+            settings: settings,
+            snapshots: snapshots.eraseToAnyPublisher(),
+            preferences: preferences.eraseToAnyPublisher(),
+            hardwareMetrics: hardware.eraseToAnyPublisher(),
+            resolveInputs: { IconPresentationInputs(snapshot: $0, audioIcon: nil) },
+            mapScene: { _, _, _, _ in mapCount += 1; return IconSceneMapping(scene: scene) },
+            snapshotScheduler: scheduler
+        )
+        model.start()
+        mapCount = 0
+
+        var tick = HardwareMetricsSnapshot()
+        tick.samples[.cpuUsage] = HardwareMetricSample(value: 50, unit: .percent, sampledAt: Date(), source: .mach, availability: .measured)
+        hardware.send(tick)
+        XCTAssertEqual(mapCount, 1, "metric bottom indicator must repaint on a hardware tick")
+        model.stop()
+    }
 }

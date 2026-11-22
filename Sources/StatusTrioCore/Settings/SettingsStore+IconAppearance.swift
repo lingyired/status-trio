@@ -164,19 +164,27 @@ extension SettingsStore {
     }
 
     private var bluetoothOptionsPublisher: AnyPublisher<BluetoothAudioIconOptions, Never> {
-        Publishers.CombineLatest3(
+        Publishers.CombineLatest4(
             $bluetoothIconColor,
             $usesBluetoothAudioVolumeColor,
-            $bluetoothNetworkIconSymbolName
+            $bluetoothNetworkIconSymbolName,
+            $bluetoothVolumeColor
         )
         .combineLatest($bluetoothAudioIconChoiceRawValue) { values, choiceRawValue in
-            BluetoothAudioIconOptions(
+            let volumeColorRole: IconColorRole? = {
+                switch values.3 {
+                case .automatic: return nil
+                case let .custom(color): return .custom(color)
+                }
+            }()
+            return BluetoothAudioIconOptions(
                 iconColor: values.0,
                 usesVolumeColor: values.1,
                 networkIconSymbolOverride: values.2,
                 iconChoice: BluetoothAudioIconChoice.persisted(choiceRawValue) { symbol in
                     NSImage(systemSymbolName: symbol, accessibilityDescription: nil) != nil
-                }
+                },
+                volumeColorRole: volumeColorRole
             )
         }
         .removeDuplicates()

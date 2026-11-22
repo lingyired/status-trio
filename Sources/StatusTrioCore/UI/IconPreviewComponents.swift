@@ -76,24 +76,54 @@ struct MenuBarPreviewBar<TrailingAccessory: View>: View {
     var inputSource: InputSourceDescriptor?
     /// The live High Power Mode state, so a preview can show its ring colour.
     var isHighPowerMode = false
+    /// The bottom indicator source/style, so the settings preview reflects the
+    /// chosen quantity (volume / Wi-Fi / battery / hardware metric) instead of
+    /// always drawing the volume bar.
+    var bottomIndicatorSource: BottomIndicatorSource = .volume
+    var bottomIndicatorMetric: HardwareMonitorMetric = .cpuUsage
+    var bottomIndicatorMetricColor: IconRGBA? = nil
+    var bottomIndicatorStyle: VolumeDisplayStyle? = nil
     /// Rendered after `rightContext` inside the same `HStack`, so a caller's
     /// control takes part in the bar's standard 14 pt element spacing instead of
     /// needing a reserved trailing inset that its localized width cannot match.
     var trailingAccessory: () -> TrailingAccessory
 
     var scene: IconSceneState {
-        IconPreviewScene.make(
+        let base = IconPreviewScene.make(
             status: status,
             configuration: IconPresentationConfiguration(
                 battery: batteryOptions,
                 connection: connectionOptions,
-                volume: volumeOptions,
+                volume: VolumeIconOptions(
+                    displayStyle: bottomIndicatorStyle ?? volumeOptions.displayStyle,
+                    ringStrokeScale: volumeOptions.ringStrokeScale),
                 bluetooth: bluetoothAudioOptions
             ),
             inputSource: inputSource,
-            isHighPowerMode: isHighPowerMode
+            isHighPowerMode: isHighPowerMode,
+            bottomIndicatorSource: bottomIndicatorSource
         )
-        .withChargingEffectEnabled(showsChargingEffect)
+        let resolved: IconSceneState
+        if bottomIndicatorSource == .metric {
+            // The legacy preview mapper has no hardware samples; draw the metric
+            // bar from the representative helper over the same ring + centre.
+            let style = bottomIndicatorStyle ?? volumeOptions.displayStyle
+            resolved = IconSceneState(
+                outerRing: base.outerRing,
+                center: base.center,
+                footer: BottomIndicatorMetricPreview.footerBar(
+                    metric: bottomIndicatorMetric,
+                    style: style,
+                    strokeScale: volumeOptions.ringStrokeScale,
+                    baseColor: bottomIndicatorMetricColor),
+                statusColors: base.statusColors,
+                bluetoothIconColor: base.bluetoothIconColor,
+                bottomIndicatorSource: .metric
+            )
+        } else {
+            resolved = base
+        }
+        return resolved.withChargingEffectEnabled(showsChargingEffect)
     }
 
     init(
@@ -110,6 +140,10 @@ struct MenuBarPreviewBar<TrailingAccessory: View>: View {
         showsChargingEffect: Bool = true,
         inputSource: InputSourceDescriptor? = nil,
         isHighPowerMode: Bool = false,
+        bottomIndicatorSource: BottomIndicatorSource = .volume,
+        bottomIndicatorMetric: HardwareMonitorMetric = .cpuUsage,
+        bottomIndicatorMetricColor: IconRGBA? = nil,
+        bottomIndicatorStyle: VolumeDisplayStyle? = nil,
         @ViewBuilder trailingAccessory: @escaping () -> TrailingAccessory
     ) {
         self.status = status
@@ -125,6 +159,10 @@ struct MenuBarPreviewBar<TrailingAccessory: View>: View {
         self.showsChargingEffect = showsChargingEffect
         self.inputSource = inputSource
         self.isHighPowerMode = isHighPowerMode
+        self.bottomIndicatorSource = bottomIndicatorSource
+        self.bottomIndicatorMetric = bottomIndicatorMetric
+        self.bottomIndicatorMetricColor = bottomIndicatorMetricColor
+        self.bottomIndicatorStyle = bottomIndicatorStyle
         self.trailingAccessory = trailingAccessory
     }
 

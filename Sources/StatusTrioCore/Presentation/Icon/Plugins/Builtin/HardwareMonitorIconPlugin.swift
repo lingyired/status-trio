@@ -3,10 +3,30 @@ import Foundation
 struct HardwareMonitorIconPlugin: IconContentPlugin {
     let descriptor = IconContentPluginDescriptor(id: "builtin.hardware-monitor", presentations: [
         .init(id: "ring", slot: .outerRing, title: .hardwareMonitorTitle,
-              isSelectable: true, summary: .hardwareMonitorSettingsMetricsDescription)
+              isSelectable: true, summary: .hardwareMonitorSettingsMetricsDescription),
+        // A footer presentation that draws one configured metric as the bottom
+        // indicator bar. Not user-selectable from the plugin picker: the bottom
+        // indicator's own source menu chooses the metric, and this binding is
+        // derived from `bottomIndicatorSource == .metric`.
+        .init(id: "footer", slot: .footer, title: .hardwareMonitorTitle,
+              isSelectable: false)
     ])
 
     func resolve(presentationID: String, context: IconContentContext) -> SourceResult<IconContentPayload> {
+        if presentationID == "footer" {
+            let state = HardwareRingMapper.footerState(
+                metric: context.bottomIndicatorMetric,
+                snapshot: context.inputs.sources.hardwareMetrics,
+                configuration: context.configuration.behaviors.hardwareRing,
+                levels: context.inputs.sources.hardwareRingLevels,
+                metricColors: context.inputs.sources.hardwareMetricColors,
+                speedCapsMbps: context.inputs.sources.hardwareSpeedCapsMbps,
+                now: context.now,
+                style: context.inputs.system.bottomIndicatorStyle,
+                strokeScale: context.legacy.volume.ringStrokeScale
+            )
+            return .available(.footer(state))
+        }
         guard presentationID == "ring" else { return .unavailable(.unavailable) }
         // The source is always selectable: even when every metric is currently
         // unreadable the ring keeps its (greyed) track rather than blanking the
@@ -33,6 +53,22 @@ struct HardwareMonitorIconPlugin: IconContentPlugin {
     }
 
     func dependencies(presentationID: String, context: IconContentDependencyContext) -> IconContentDependencies {
+        if presentationID == "footer" {
+            let metric = context.bottomIndicatorMetric
+            if metric.usesStatusSnapshot {
+                var samples: Set<IconPreviewSampleSource> = []
+                switch metric {
+                case .volume: samples.insert(.systemVolume)
+                case .wifiSignal: samples.insert(.network)
+                case .batteryLevel: samples.insert(.macBattery)
+                default: break
+                }
+                return .init(samples: samples)
+            }
+            return .init(samples: [.hardwareMonitor],
+                         requiresHardwareMonitor: true,
+                         hardwareMetricIDs: [metric.metricID])
+        }
         guard presentationID == "ring" else { return .init() }
         let configuration = context.configuration.behaviors.hardwareRing.normalized()
         // Top-marker-only readings (volume, Wi-Fi signal) ride the general status

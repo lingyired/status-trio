@@ -126,6 +126,7 @@ enum SettingsPreferenceCatalog {
                        return raw
                    }, encode: { .string($0) }),
             boolean("usesBluetoothAudioVolumeColor", \.usesBluetoothAudioVolumeColor, default: false),
+            mapped("bluetoothVolumeColor", \.bluetoothVolumeColor, default: BluetoothVolumeColorSelection.default, decode: { value in guard case let .string(raw) = value else { return nil }; let parsed = BluetoothVolumeColorSelection(storageValue: raw); return parsed.storageValue == raw ? parsed : nil }, encode: { .string($0.storageValue) }),
             enumeration("volumeDisplayStyle", \.volumeDisplayStyle, default: SettingsStore.defaultVolumeDisplayStyle),
             enumeration("ringStrokeStyle", \.ringStrokeStyle, default: SettingsStore.defaultRingStrokeStyle),
             slotBindingsPreference

@@ -69,12 +69,20 @@ struct VolumeIndicatorPreview: View {
     /// The selected bottom data source, so the style preview shows the same
     /// quantity the settings page will actually draw.
     var source: BottomIndicatorSource = .volume
+    /// The metric the `.metric` source draws, so the style preview matches the
+    /// live artwork.
+    var sourceMetric: HardwareMonitorMetric = .cpuUsage
     let isDarkBackground: Bool
     @ObservedObject var store: SettingsStore
     @ObservedObject var statusStore: SystemStatusStore
 
     var previewScene: IconSceneState {
-        IconPreviewScene.make(
+        if source == .metric {
+            return BottomIndicatorMetricPreview.scene(
+                metric: sourceMetric, style: style, strokeScale: store.ringStrokeStyle.scale,
+                baseColor: store.hardwareColor(for: sourceMetric))
+        }
+        return IconPreviewScene.make(
             status: menuBarPreviewStatus(from: statusStore),
             configuration: IconPresentationConfiguration(
                 battery: store.batteryIconOptions,
@@ -83,7 +91,7 @@ struct VolumeIndicatorPreview: View {
                     displayStyle: style,
                     ringStrokeScale: store.ringStrokeStyle.scale
                 ),
-                bluetooth: .standard
+                bluetooth: store.bluetoothVolumePreviewOptions
             ),
             bottomIndicatorSource: source
         )

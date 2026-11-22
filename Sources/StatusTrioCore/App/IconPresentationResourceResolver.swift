@@ -29,7 +29,9 @@ enum IconPresentationResourceResolver {
                 runtimeOptions: runtimeOptions,
                 systemPower: systemPower,
                 isHighPowerMode: isHighPowerMode,
-                bottomIndicatorSource: runtimeOptions?.bottomIndicatorSource ?? .volume
+                bottomIndicatorSource: runtimeOptions?.bottomIndicatorSource ?? .volume,
+                bottomIndicatorMetric: runtimeOptions?.bottomIndicatorMetric ?? .cpuUsage,
+                bottomIndicatorStyle: runtimeOptions?.bottomIndicatorStyle ?? .dots
             )
         }
 
@@ -49,7 +51,9 @@ enum IconPresentationResourceResolver {
             runtimeOptions: runtimeOptions,
             systemPower: systemPower,
             isHighPowerMode: isHighPowerMode,
-            bottomIndicatorSource: runtimeOptions?.bottomIndicatorSource ?? .volume
+            bottomIndicatorSource: runtimeOptions?.bottomIndicatorSource ?? .volume,
+            bottomIndicatorMetric: runtimeOptions?.bottomIndicatorMetric ?? .cpuUsage,
+            bottomIndicatorStyle: runtimeOptions?.bottomIndicatorStyle ?? .dots
         )
     }
 }

@@ -99,13 +99,13 @@
 "settings.bluetooth.networkIconSourceAudioDescription" = "Следует текущему аудиовыходу Bluetooth — значение по умолчанию.";
 "settings.bluetooth.networkIconSourceDevices" = "Bluetooth-устройства";
 "settings.bluetooth.networkIconSourceDevicesEmpty" = "Устройства Bluetooth ещё не прочитаны. Разрешите доступ к Bluetooth выше или сопрягите устройство.";
-"settings.bluetooth.volumeColor" = "Показывать громкость Bluetooth синим";
+"settings.bluetooth.volumeColor" = "Цвет громкости Bluetooth";
 "settings.bluetooth.iconColor" = "Цвет значка Bluetooth";
 "settings.bluetooth.iconColorDescription" = "Выберите цвет значка Bluetooth в центре: по умолчанию синий, чёрный или белый цвет строки меню либо свой цвет.";
 "settings.bluetooth.iconColor.blue" = "Синий";
 "settings.bluetooth.iconColor.primary" = "Как в системе";
 "settings.bluetooth.iconColor.custom" = "Свой цвет";
-"settings.bluetooth.volumeColorDescription" = "Активные точки громкости или дуга становятся синими при выводе звука через Bluetooth.";
+"settings.bluetooth.volumeColorDescription" = "Цвет точек или дуги громкости при выводе звука через Bluetooth.";
 "settings.bluetooth.networkErrorPriority" = "Приоритет ошибок сети";
 "settings.bluetooth.networkErrorPriorityDescription" = "При ошибке подключения или отсутствии сети остаётся значок сети вместо устройства Bluetooth.";
 "settings.bluetooth.batteryLevels" = "Показывать заряд устройств Bluetooth";
@@ -624,6 +624,9 @@
 "settings.audio.bottomIndicatorSource.wifi" = "Wi-Fi";
 "settings.audio.bottomIndicatorSource.battery" = "Батарея";
 "settings.audio.bottomIndicatorSource.hidden" = "Скрыто";
+"settings.audio.bottomIndicatorSource.metric" = "Пользовательский";
+"settings.audio.bottomIndicatorMetric" = "Пользовательский";
+"settings.audio.bottomIndicatorMetricDescription" = "Выберите, какую аппаратную метрику показывает полоса. Стиль из четырёх точек или дуги не меняется.";
 "settings.audio.airPodsInlineControlsTitle" = "Управление наушниками";
 "settings.audio.airPodsInlineControls" = "Показывать элементы управления AirPods на панели громкости";
 "settings.audio.airPodsInlineControlsDescription" = "Показывает элементы управления распознаванием разговора, пространственным и адаптивным звуком рядом с вашим выводом AirPods. Отключите, чтобы скрыть эти элементы на основе приватных API.";

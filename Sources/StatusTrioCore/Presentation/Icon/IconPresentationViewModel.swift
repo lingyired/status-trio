@@ -308,26 +308,33 @@ final class IconPresentationViewModel: ObservableObject {
         publishLatestOutput()
     }
 
-    /// A hardware-metric tick only affects the icon while a hardware ring is on
-    /// screen; when it is not, the resolved scene is unchanged and `output`
-    /// equality short-circuits the publish, so this is cheap for battery/AirPods
-    /// users. Sampling itself is demand-driven elsewhere.
+    /// A hardware-metric tick re-resolves the icon whenever the current scene
+    /// actually demands hardware metrics — the hardware ring **or** a hardware
+    /// metric in the bottom indicator / another slot. Re-resolving only for the
+    /// ring made a metric bottom source wait for the next status-snapshot tick
+    /// (seconds) before it appeared. When nothing demands hardware metrics the
+    /// resolved scene is unchanged and `output` equality short-circuits anyway.
     private func receive(hardwareMetrics: HardwareMetricsSnapshot) {
         guard synchronizedStart else { return }
-        // Only re-resolve when the hardware ring is actually selected (primary or
-        // fallback). Panel/card hardware ticks must not re-parse an icon that is
-        // drawing the Mac battery, AirPods or another source.
-        let isHardwareRing: Bool
+        // Re-resolve when the hardware ring is selected (primary or fallback) or a
+        // hardware metric drives the bottom indicator. Panel/card ticks never
+        // re-parse an icon that draws the Mac battery / AirPods / other source.
+        let usesHardwareRing: Bool
+        let usesHardwareFooter: Bool
         if let bindings = latestSettings.slotBindings {
-            let selection = bindings.selection(for: .outerRing)
-            isHardwareRing = selection.primary?.pluginID == "builtin.hardware-monitor"
-                || selection.fallback?.pluginID == "builtin.hardware-monitor"
+            let ring = bindings.selection(for: .outerRing)
+            usesHardwareRing = ring.primary?.pluginID == "builtin.hardware-monitor"
+                || ring.fallback?.pluginID == "builtin.hardware-monitor"
+            let footer = bindings.selection(for: .footer)
+            usesHardwareFooter = footer.primary?.pluginID == "builtin.hardware-monitor"
+                || footer.fallback?.pluginID == "builtin.hardware-monitor"
         } else {
             let composition = latestSettings.iconConfiguration.composition.outerRing
-            isHardwareRing = composition.primary == .hardwareMonitor
+            usesHardwareRing = composition.primary == .hardwareMonitor
                 || composition.fallback == .hardwareMonitor
+            usesHardwareFooter = latestSettings.runtimeOptions?.bottomIndicatorSource == .metric
         }
-        guard isHardwareRing else { return }
+        guard usesHardwareRing || usesHardwareFooter else { return }
         snapshotScheduler.cancel()
         publishLatestOutput()
     }
@@ -416,7 +423,7 @@ final class IconPresentationViewModel: ObservableObject {
     /// the closure only ever sees a status snapshot: a missing icon file has to
     /// degrade to the source's short label on the live icon exactly as it does
     /// in the settings previews.
-    private static func resolvedInputs(
+    static func resolvedInputs(
         snapshot: StatusSnapshot,
         inputSource: InputSourceDescriptor?,
         systemPower: SystemPowerSample?,
@@ -446,7 +453,14 @@ final class IconPresentationViewModel: ObservableObject {
             isHighPowerMode: isHighPowerMode,
             sources: inputs.sources,
             bottomIndicatorSource: settingsRuntimeOptions?.bottomIndicatorSource
-                ?? inputs.bottomIndicatorSource
+                ?? inputs.bottomIndicatorSource,
+            // The metric source's metric and dot/arc style are runtime-only too;
+            // dropping them here made the live icon fall back to CPU usage + dots
+            // even after the settings page switched to arc.
+            bottomIndicatorMetric: settingsRuntimeOptions?.bottomIndicatorMetric
+                ?? inputs.bottomIndicatorMetric,
+            bottomIndicatorStyle: settingsRuntimeOptions?.bottomIndicatorStyle
+                ?? inputs.bottomIndicatorStyle
         )
     }
 }

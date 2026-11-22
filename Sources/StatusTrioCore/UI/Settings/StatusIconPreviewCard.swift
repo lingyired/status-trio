@@ -171,7 +171,11 @@ struct StatusIconPreviewCard: View {
             inputSource: inputSourceController?.state.iconDescriptor(
                 markerStyle: store.inputSourceMarkerStyle
             ),
-            isHighPowerMode: isHighPowerMode
+            isHighPowerMode: isHighPowerMode,
+            bottomIndicatorSource: store.bottomIndicatorSource,
+            bottomIndicatorMetric: store.bottomIndicatorMetric,
+            bottomIndicatorMetricColor: store.hardwareColor(for: store.bottomIndicatorMetric),
+            bottomIndicatorStyle: store.effectiveBottomIndicatorStyle
         ) {
             appearanceToggle
         }

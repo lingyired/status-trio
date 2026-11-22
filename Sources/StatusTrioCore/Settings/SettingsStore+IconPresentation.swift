@@ -19,14 +19,39 @@ extension SettingsStore {
                 $inputSourceMarkerStyle,
                 $bottomIndicatorSource
             ),
-            Publishers.CombineLatest($iconSlotBindings, $iconConfiguration)
+            Publishers.CombineLatest4(
+                $bottomIndicatorMetric,
+                Publishers.CombineLatest4(
+                    $wifiBottomIndicatorStyle,
+                    $batteryBottomIndicatorStyle, $metricBottomIndicatorStyle,
+                    $bluetoothVolumeColor
+                ),
+                $iconSlotBindings, $iconConfiguration
+            )
         )
-        .map { appearanceAndFlags, _ in
+        .map { appearanceAndFlags, metricAndBindings in
             let (appearance, testsChargingEffect, markerStyle, bottomIndicatorSource) = appearanceAndFlags
+            let (bottomIndicatorMetric, styles, _, _) = metricAndBindings
+            let bottomIndicatorStyle: VolumeDisplayStyle
+            switch bottomIndicatorSource {
+            case .volume, .hidden: bottomIndicatorStyle = appearance.volumeOptions.displayStyle
+            case .wifi: bottomIndicatorStyle = styles.0
+            case .battery: bottomIndicatorStyle = styles.1
+            case .metric: bottomIndicatorStyle = styles.2
+            }
+            // `styles.3` is the publisher's NEW Bluetooth volume colour, so this
+            // avoids the `@Published` willSet lag of reading the live store.
+            let bluetoothVolumeColorRole: IconColorRole? = {
+                switch styles.3 {
+                case .automatic: return nil
+                case let .custom(color): return .custom(color)
+                }
+            }()
             let slotBindings = self.effectiveIconSlotBindings(
                 appearance: appearance,
                 inputSourceMarkerStyle: markerStyle,
-                bottomIndicatorSource: bottomIndicatorSource
+                bottomIndicatorSource: bottomIndicatorSource,
+                bottomIndicatorMetric: bottomIndicatorMetric
             )
             return IconPresentationSettings(
                 configuration: IconPresentationConfiguration(
@@ -46,7 +71,10 @@ extension SettingsStore {
                     prioritizesNetworkErrorsOverInputSource: appearance.connectionOptions.prioritizesNetworkErrors,
                     batteryFullThreshold: appearance.batteryOptions.fullThreshold,
                     bluetoothAudioIconChoice: appearance.bluetoothAudioOptions.iconChoice,
-                    bottomIndicatorSource: bottomIndicatorSource
+                    bottomIndicatorSource: bottomIndicatorSource,
+                    bottomIndicatorMetric: bottomIndicatorMetric,
+                    bottomIndicatorStyle: bottomIndicatorStyle,
+                    bluetoothVolumeColorRole: bluetoothVolumeColorRole
                 ),
                 slotBindings: slotBindings,
                 hardwareMetricColors: appearance.hardwareMetricColors,

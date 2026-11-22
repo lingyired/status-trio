@@ -20,9 +20,24 @@ struct AppIconBottomIndicatorView: View {
     var body: some View {
         SettingsGroup(localization.string(.settingsBottomIndicatorTitle)) {
             sourcePicker
+
+            if store.bottomIndicatorSource == .metric {
+                // Style sits at the top of the metric section, then the metric
+                // picker, then the colour options mirrored from the top arc.
+                SettingsDivider()
+                stylePicker
+                SettingsDivider()
+                metricPicker
+                metricColorRows
+                SettingsDivider()
+                // Mirror the ring's advanced settings for the selected metric.
+                HardwareMetricAdvancedRow(store: store, metric: store.bottomIndicatorMetric)
+            }
+
             LocalIconPluginSlotPicker(slot: .footer, store: store)
 
-            if store.bottomIndicatorSource.showsStyleOptions {
+            if store.bottomIndicatorSource != .metric,
+               store.bottomIndicatorSource.showsStyleOptions {
                 // Follows the full-width picker (no leading icon column), so the
                 // divider aligns with the picker content edge.
                 SettingsDivider(inset: SettingsMetrics.rowPaddingH)
@@ -31,13 +46,14 @@ struct AppIconBottomIndicatorView: View {
 
             if store.bottomIndicatorSource == .volume {
                 SettingsDivider()
-                SettingsToggleRow(
-                    symbol: "speaker.wave.2.fill",
-                    tint: .cyan,
+                SettingsRow(
+                    "speaker.wave.2.fill",
+                    tint: .blue,
                     title: localization.string(.settingsBluetoothVolumeColor),
-                    subtitle: localization.string(.settingsBluetoothVolumeColorDescription),
-                    isOn: $store.usesBluetoothAudioVolumeColor
-                )
+                    subtitle: localization.string(.settingsBluetoothVolumeColorDescription)
+                ) {
+                    BluetoothVolumeColorRow(store: store)
+                }
             }
 
             if store.bottomIndicatorSource == .battery {
@@ -122,13 +138,17 @@ struct AppIconBottomIndicatorView: View {
                 case .volume: return localization.string(.settingsBottomIndicatorSourceVolume)
                 case .wifi: return localization.string(.settingsBottomIndicatorSourceWiFi)
                 case .battery: return localization.string(.settingsBottomIndicatorSourceBattery)
+                case .metric: return localization.string(.settingsBottomIndicatorSourceMetric)
                 case .hidden: return localization.string(.settingsBottomIndicatorSourceHidden)
                 }
             },
             preview: { source in
                 BottomIndicatorSourcePreview(
                     source: source,
-                    style: store.volumeDisplayStyle,
+                    metric: store.bottomIndicatorMetric,
+                    baseColor: store.hardwareColor(for: store.bottomIndicatorMetric),
+                    bluetoothOptions: store.bluetoothVolumePreviewOptions,
+                    style: store.bottomIndicatorStyle(for: source),
                     strokeScale: store.ringStrokeStyle.scale,
                     isDarkBackground: previewIsDark
                 )
@@ -136,6 +156,105 @@ struct AppIconBottomIndicatorView: View {
         )
     }
 
+    /// The hardware-monitor metric the `.metric` source draws. Mirrors the ring
+    /// page's top-marker metric menu so the bottom indicator can show any of the
+    /// same readings (CPU/GPU usage and temperature, memory, fan, network speed).
+    private var metricPicker: some View {
+        SettingsGroupedMenuRow(
+            symbol: store.bottomIndicatorMetric.systemImage,
+            tint: .gray,
+            title: localization.string(.settingsBottomIndicatorMetric),
+            subtitle: localization.string(.settingsBottomIndicatorMetricDescription),
+            selection: $store.bottomIndicatorMetric,
+            groups: footerMetricGroups,
+            label: { localization.string($0.titleKey) }
+        )
+    }
+
+    /// Metric choices grouped like the ring's top marker. Temperature readings
+    /// only appear when temperature monitoring is enabled, matching the ring.
+    private var footerMetricGroups: [(title: String, options: [HardwareMonitorMetric])] {
+        let cpu: [HardwareMonitorMetric] =
+            store.hardwareTemperatureMonitoringEnabled ? [.cpuUsage, .cpuTemperature] : [.cpuUsage]
+        let gpu: [HardwareMonitorMetric] =
+            store.hardwareTemperatureMonitoringEnabled ? [.gpuUsage, .gpuTemperature] : [.gpuUsage]
+        return [
+            ("CPU", cpu),
+            ("GPU", gpu),
+            (localization.string(.settingsHardwareRingGroupOther),
+             [.memoryUsage, .batteryTemperature, .fan, .downloadSpeed, .uploadSpeed]),
+        ]
+    }
+
+    /// Colour options for the metric bottom source, mirroring the top arc's
+    /// colour group. They edit the shared hardware-monitor colour settings, so a
+    /// change takes effect on the top arc, the bottom indicator and the system
+    /// monitoring panel alike.
+    @ViewBuilder
+    private var metricColorRows: some View {
+        SettingsDivider()
+        SettingsToggleRow(
+            symbol: "circle.lefthalf.filled",
+            tint: .purple,
+            title: localization.string(.settingsHardwareRingMonochrome),
+            subtitle: localization.string(.settingsHardwareRingMonochromeDescription),
+            isOn: Binding(
+                get: { store.hardwareRingConfiguration.color.monochrome },
+                set: { setColorMonochrome($0) }
+            )
+        )
+        SettingsDivider()
+        SettingsToggleRow(
+            symbol: "exclamationmark.triangle",
+            tint: .orange,
+            title: localization.string(.settingsHardwareRingThresholdColors),
+            subtitle: localization.string(.settingsHardwareRingThresholdColorsDescription),
+            isOn: Binding(
+                get: { store.hardwareRingConfiguration.color.thresholdColors },
+                set: { setColorThresholdColors($0) }
+            )
+        )
+        .disabled(store.hardwareRingConfiguration.color.monochrome)
+        if !store.hardwareRingConfiguration.color.monochrome {
+            SettingsDivider()
+            SettingsRow(
+                title: localization.string(store.bottomIndicatorMetric.titleKey),
+                subtitle: nil,
+                leading: {
+                    SettingsIcon(symbol: store.bottomIndicatorMetric.systemImage, tint: .purple)
+                },
+                trailing: {
+                    IconDesignerColorWell(
+                        selection: Binding(
+                            get: {
+                                IconAppearanceColorConversion.color(
+                                    from: store.hardwareColor(for: store.bottomIndicatorMetric))
+                            },
+                            set: {
+                                store.setHardwareColor(
+                                    IconAppearanceColorConversion.iconRGBA(from: $0),
+                                    for: store.bottomIndicatorMetric)
+                            }
+                        ),
+                        onEditingChanged: { _ in }
+                    )
+                    .frame(width: 44, height: 22)
+                }
+            )
+        }
+    }
+
+    private func setColorMonochrome(_ on: Bool) {
+        var configuration = store.hardwareRingConfiguration
+        configuration.color.monochrome = on
+        store.hardwareRingConfiguration = configuration
+    }
+
+    private func setColorThresholdColors(_ on: Bool) {
+        var configuration = store.hardwareRingConfiguration
+        configuration.color.thresholdColors = on
+        store.hardwareRingConfiguration = configuration
+    }
     /// The shared four-dot / arc appearance chooser, kept from the old volume
     /// indicator so switching the source does not move or restyle this control.
     private var stylePicker: some View {
@@ -144,7 +263,17 @@ struct AppIconBottomIndicatorView: View {
             tint: .indigo,
             title: localization.string(.settingsAudioIndicatorStyle),
             subtitle: localization.string(.settingsAudioIndicatorStyleDescription),
-            selection: $store.volumeDisplayStyle,
+            selection: Binding(
+                get: { store.effectiveBottomIndicatorStyle },
+                set: { newValue in
+                    switch store.bottomIndicatorSource {
+                    case .volume, .hidden: store.volumeDisplayStyle = newValue
+                    case .wifi: store.wifiBottomIndicatorStyle = newValue
+                    case .battery: store.batteryBottomIndicatorStyle = newValue
+                    case .metric: store.metricBottomIndicatorStyle = newValue
+                    }
+                }
+            ),
             options: [VolumeDisplayStyle.dots, .arc],
             previewSize: CGSize(width: 68, height: 44),
             caption: { style in
@@ -157,6 +286,7 @@ struct AppIconBottomIndicatorView: View {
                 VolumeIndicatorPreview(
                     style: style,
                     source: store.bottomIndicatorSource,
+                    sourceMetric: store.bottomIndicatorMetric,
                     isDarkBackground: previewIsDark,
                     store: store,
                     statusStore: statusStore
@@ -172,6 +302,9 @@ struct AppIconBottomIndicatorView: View {
 /// a fixed sample so every card shows exactly what the footer will look like.
 private struct BottomIndicatorSourcePreview: View {
     let source: BottomIndicatorSource
+    let metric: HardwareMonitorMetric
+    let baseColor: IconRGBA?
+    let bluetoothOptions: BluetoothAudioIconOptions
     let style: VolumeDisplayStyle
     let strokeScale: Double
     let isDarkBackground: Bool
@@ -181,6 +314,9 @@ private struct BottomIndicatorSourcePreview: View {
             MenuBarPreviewBackdrop(isDarkBackground: isDarkBackground, cornerRadius: 6)
             if let image = BottomIndicatorPreviewScene.image(
                 for: source,
+                metric: metric,
+                baseColor: baseColor,
+                bluetoothOptions: bluetoothOptions,
                 style: style,
                 strokeScale: strokeScale,
                 isDarkBackground: isDarkBackground
@@ -214,21 +350,43 @@ private enum BottomIndicatorPreviewScene {
         volume: VolumeStatus(
             scalar: 0.6,
             isMuted: false,
-            deviceName: "MacBook Speakers"
+            deviceName: "AirPods",
+            currentDevice: AudioOutputDevice(
+                id: 0,
+                name: "AirPods",
+                uid: "bottom-indicator.preview.bluetooth",
+                isCurrent: true,
+                volume: 0.6,
+                transport: .bluetooth
+            )
         )
     )
 
     static func image(
         for source: BottomIndicatorSource,
+        metric: HardwareMonitorMetric,
+        baseColor: IconRGBA?,
+        bluetoothOptions: BluetoothAudioIconOptions,
         style: VolumeDisplayStyle,
         strokeScale: Double,
         isDarkBackground: Bool
     ) -> NSImage? {
+        if source == .metric {
+            let scene = BottomIndicatorMetricPreview.scene(
+                metric: metric, style: style, strokeScale: strokeScale,
+                baseColor: baseColor)
+            return StatusIconPreviewCache.shared.image(
+                scene: scene,
+                size: 28,
+                scale: 2,
+                appearance: MenuBarPreviewBackdrop.appearance(isDarkBackground: isDarkBackground)
+            )
+        }
         let configuration = IconPresentationConfiguration(
             battery: .standard,
             connection: .standard,
             volume: VolumeIconOptions(displayStyle: style, ringStrokeScale: strokeScale),
-            bluetooth: .standard
+            bluetooth: bluetoothOptions
         )
         let inputs = IconPresentationInputs(
             snapshot: snapshot,

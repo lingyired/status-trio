@@ -100,12 +100,14 @@ enum IconCompositionResolver {
             dependencies: dependencies(
                 for: [ring.trace, center.trace, footer.trace],
                 configuration: configuration,
+                bottomIndicatorMetric: inputs.system.bottomIndicatorMetric,
                 registry: registry
             ),
             demand: demand(
                 bindings: effectiveBindings,
                 traces: [ring.trace, center.trace, footer.trace],
                 configuration: configuration,
+                bottomIndicatorMetric: inputs.system.bottomIndicatorMetric,
                 registry: registry
             )
         )
@@ -114,9 +116,12 @@ enum IconCompositionResolver {
     private static func dependencies(
         for traces: [SlotResolutionTrace],
         configuration: IconConfigurationV1,
+        bottomIndicatorMetric: HardwareMonitorMetric,
         registry: IconContentPluginRegistry
     ) -> IconContentDependencies {
-        let context = IconContentDependencyContext(configuration: configuration, targetIsAudio: false)
+        let context = IconContentDependencyContext(
+            configuration: configuration, targetIsAudio: false,
+            bottomIndicatorMetric: bottomIndicatorMetric)
         var result = IconContentDependencies()
         for trace in traces {
             guard let binding = trace.binding else { continue }
@@ -129,6 +134,7 @@ enum IconCompositionResolver {
         bindings: IconSlotBindingsV1,
         traces: [SlotResolutionTrace],
         configuration: IconConfigurationV1,
+        bottomIndicatorMetric: HardwareMonitorMetric,
         registry: IconContentPluginRegistry
     ) -> IconPresentationDemand {
         var selected = Set<IconContentBinding>()
@@ -155,7 +161,9 @@ enum IconCompositionResolver {
         return IconPresentationDemand(
             selectedBindings: selected,
             subscribedBindings: subscribed,
-            dependencies: dependencies(for: traces, configuration: configuration, registry: registry)
+            dependencies: dependencies(
+                for: traces, configuration: configuration,
+                bottomIndicatorMetric: bottomIndicatorMetric, registry: registry)
         )
     }
 
@@ -209,7 +217,8 @@ enum IconCompositionResolver {
                 usesVolumeColor: bluetooth.usesVolumeColor,
                 symbolScale: bluetooth.symbolScale,
                 networkIconSymbolOverride: bluetooth.networkIconSymbolOverride,
-                iconChoice: bluetooth.iconChoice
+                iconChoice: bluetooth.iconChoice,
+                volumeColorRole: bluetooth.volumeColorRole
             )
         )
     }

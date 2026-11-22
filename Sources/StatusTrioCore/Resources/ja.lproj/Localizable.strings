@@ -99,13 +99,13 @@
 "settings.bluetooth.networkIconSourceAudioDescription" = "現在の Bluetooth オーディオ出力に従います（デフォルト）。";
 "settings.bluetooth.networkIconSourceDevices" = "Bluetooth 機器";
 "settings.bluetooth.networkIconSourceDevicesEmpty" = "Bluetooth 機器をまだ読み取れていません。上部で Bluetooth の権限を許可するか、機器をペアリングしてください。";
-"settings.bluetooth.volumeColor" = "Bluetooth の音量を青色で表示";
+"settings.bluetooth.volumeColor" = "Bluetooth 音量の色";
 "settings.bluetooth.iconColor" = "Bluetooth アイコンの色";
 "settings.bluetooth.iconColorDescription" = "メニューバー中央の Bluetooth アイコンの色を選択します。既定の青、メニューバーの黒/白、またはカスタム色。";
 "settings.bluetooth.iconColor.blue" = "青";
 "settings.bluetooth.iconColor.primary" = "システムに従う";
 "settings.bluetooth.iconColor.custom" = "カスタム色";
-"settings.bluetooth.volumeColorDescription" = "Bluetooth でオーディオを出力すると、音量の点または円弧のアクティブ部分が青色になります。";
+"settings.bluetooth.volumeColorDescription" = "Bluetooth 音声出力時の音量ドット／円弧の色。";
 "settings.bluetooth.networkErrorPriority" = "ネットワークエラーを優先";
 "settings.bluetooth.networkErrorPriorityDescription" = "接続エラーやオフライン状態では、Bluetooth 機器ではなくネットワークアイコンを表示します。";
 "settings.bluetooth.batteryLevels" = "Bluetooth のバッテリー残量を表示";
@@ -624,6 +624,9 @@
 "settings.audio.bottomIndicatorSource.wifi" = "Wi-Fi";
 "settings.audio.bottomIndicatorSource.battery" = "バッテリー";
 "settings.audio.bottomIndicatorSource.hidden" = "非表示";
+"settings.audio.bottomIndicatorSource.metric" = "カスタム";
+"settings.audio.bottomIndicatorMetric" = "カスタム";
+"settings.audio.bottomIndicatorMetricDescription" = "バーに表示するハードウェア指標を選択します。4 ドットまたは円弧のスタイルは変わりません。";
 "settings.audio.airPodsInlineControlsTitle" = "ヘッドフォンコントロール";
 "settings.audio.airPodsInlineControls" = "音量パネルに AirPods コントロールを表示";
 "settings.audio.airPodsInlineControlsDescription" = "AirPods 出力の横に会話認識・空間オーディオ・アダプティブのコントロールを表示します。私的 API ベースのこれらのコントロールを隠すにはオフにします。";

@@ -18,7 +18,19 @@ struct HardwareMonitorSectionView: View {
             if store.showsHardwareRings { ringValueGroup }
             bottomBarGroup
             colorGroup
+            advancedThresholdGroup
         }
+    }
+
+    /// Advanced per-metric settings (warning/critical thresholds, display range,
+    /// speed cap) for every hardware metric, mirroring the ring's advanced group.
+    private var advancedThresholdGroup: some View {
+        HardwareMetricAdvancedGroup(
+            store: store,
+            metrics: HardwareMonitorMetric.allCases.filter { !$0.usesStatusSnapshot },
+            title: .settingsHardwareRingGroupAdvanced,
+            showsReset: true
+        )
     }
 
     private var placementGroup: some View {

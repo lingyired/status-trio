@@ -45,12 +45,18 @@ enum IconContentLegacyAdapter {
         case .volume: .init(pluginID: "builtin.system-volume", presentationID: "footer")
         case .wifi: .init(pluginID: "builtin.network", presentationID: "footer")
         case .battery: .init(pluginID: "builtin.system-battery", presentationID: "footer")
+        case .metric: .init(pluginID: "builtin.hardware-monitor", presentationID: "footer")
         case .hidden: nil
         }
     }
 
     static func bottomIndicatorSource(for binding: IconContentBinding) -> BottomIndicatorSource? {
-        BottomIndicatorSource.allCases.first { Self.binding(for: $0) == binding }
+        if binding.pluginID == "builtin.hardware-monitor", binding.presentationID == "footer" {
+            return .metric
+        }
+        return BottomIndicatorSource.allCases
+            .filter { $0 != .metric }
+            .first { Self.binding(for: $0) == binding }
     }
 
     static func ringSource(for binding: IconContentBinding) -> RingSource? {

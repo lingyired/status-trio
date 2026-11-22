@@ -99,13 +99,13 @@
 "settings.bluetooth.networkIconSourceAudioDescription" = "현재 Bluetooth 오디오 출력을 따릅니다(기본값).";
 "settings.bluetooth.networkIconSourceDevices" = "Bluetooth 기기";
 "settings.bluetooth.networkIconSourceDevicesEmpty" = "아직 Bluetooth 기기를 읽지 못했습니다. 위에서 Bluetooth 권한을 허용하거나 기기를 페어링하세요.";
-"settings.bluetooth.volumeColor" = "Bluetooth 볼륨을 파란색으로 표시";
+"settings.bluetooth.volumeColor" = "Bluetooth 볼륨 색상";
 "settings.bluetooth.iconColor" = "Bluetooth 아이콘 색상";
 "settings.bluetooth.iconColorDescription" = "메뉴 막대 가운데 Bluetooth 아이콘의 색상을 선택합니다. 기본 파란색, 메뉴 막대의 검정/흰색 또는 사용자 지정 색상.";
 "settings.bluetooth.iconColor.blue" = "파란색";
 "settings.bluetooth.iconColor.primary" = "시스템 따르기";
 "settings.bluetooth.iconColor.custom" = "사용자 지정 색상";
-"settings.bluetooth.volumeColorDescription" = "Bluetooth 오디오 출력 중에는 활성 볼륨 점 또는 호가 파란색으로 표시됩니다.";
+"settings.bluetooth.volumeColorDescription" = "Bluetooth 오디오 출력 시 볼륨 점/호의 색상입니다.";
 "settings.bluetooth.networkErrorPriority" = "네트워크 오류 우선";
 "settings.bluetooth.networkErrorPriorityDescription" = "연결 오류나 오프라인 상태에서는 Bluetooth 기기 아이콘 대신 네트워크 아이콘을 유지합니다.";
 "settings.bluetooth.batteryLevels" = "Bluetooth 배터리 잔량 표시";
@@ -624,6 +624,9 @@
 "settings.audio.bottomIndicatorSource.wifi" = "Wi-Fi";
 "settings.audio.bottomIndicatorSource.battery" = "배터리";
 "settings.audio.bottomIndicatorSource.hidden" = "숨김";
+"settings.audio.bottomIndicatorSource.metric" = "사용자화";
+"settings.audio.bottomIndicatorMetric" = "사용자화";
+"settings.audio.bottomIndicatorMetricDescription" = "막대에 표시할 하드웨어 지표를 선택합니다. 4개 점 또는 호 스타일은 그대로입니다.";
 "settings.audio.airPodsInlineControlsTitle" = "헤드폰 제어";
 "settings.audio.airPodsInlineControls" = "볼륨 패널에 AirPods 제어 표시";
 "settings.audio.airPodsInlineControlsDescription" = "AirPods 출력 옆에 대화 인식, 공간 오디오, 적응형 제어를 표시합니다. 비공개 API 기반의 이러한 제어를 숨기려면 끕니다.";

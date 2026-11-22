@@ -24,6 +24,16 @@ struct IconPresentationRuntimeOptions: Equatable, Sendable {
     /// field), carried alongside the other opaque settings so the live scene
     /// and the settings previews read the same value.
     var bottomIndicatorSource: BottomIndicatorSource = .volume
+    /// The hardware-monitor metric drawn when the bottom source is `.metric`.
+    /// Runtime-only like the source above; changing it never rewrites the
+    /// persisted slot binding.
+    var bottomIndicatorMetric: HardwareMonitorMetric = .cpuUsage
+    /// The dot/arc style the bottom indicator draws with right now (the metric
+    /// source has its own arc-by-default style). Runtime-only.
+    var bottomIndicatorStyle: VolumeDisplayStyle = .dots
+    /// The colour role the volume footer uses for Bluetooth audio output, carried
+    /// so the resolver's legacy projection also sees the custom colour.
+    var bluetoothVolumeColorRole: IconColorRole? = nil
 
     func applying(to configuration: IconPresentationConfiguration) -> IconPresentationConfiguration {
         let battery = configuration.battery
@@ -58,13 +68,17 @@ struct IconPresentationRuntimeOptions: Equatable, Sendable {
                 prioritizesNetworkErrors: prioritizesNetworkErrorsOverInputSource,
                 wifiScale: connection.wifiScale
             ),
-            volume: configuration.volume,
+            volume: VolumeIconOptions(
+                displayStyle: bottomIndicatorStyle,
+                ringStrokeScale: configuration.volume.ringStrokeScale
+            ),
             bluetooth: BluetoothAudioIconOptions(
                 iconColor: bluetooth.iconColor,
                 usesVolumeColor: bluetooth.usesVolumeColor,
                 symbolScale: bluetooth.symbolScale,
                 networkIconSymbolOverride: bluetooth.networkIconSymbolOverride,
-                iconChoice: bluetoothAudioIconChoice
+                iconChoice: bluetoothAudioIconChoice,
+                volumeColorRole: bluetoothVolumeColorRole ?? bluetooth.volumeColorRole
             )
         )
     }
@@ -96,6 +110,10 @@ struct IconPresentationInputs: Equatable, Sendable {
     /// the V1 schema) so the mapper reads the same source for the live scene,
     /// the settings previews and the empty-battery simulation.
     var bottomIndicatorSource: BottomIndicatorSource = .volume
+    /// The hardware-monitor metric used when `bottomIndicatorSource == .metric`.
+    var bottomIndicatorMetric: HardwareMonitorMetric = .cpuUsage
+    /// The dot/arc style the bottom indicator draws with right now.
+    var bottomIndicatorStyle: VolumeDisplayStyle = .dots
 
     init(
         snapshot: StatusSnapshot,
@@ -105,7 +123,9 @@ struct IconPresentationInputs: Equatable, Sendable {
         systemPower: SystemPowerSample? = nil,
         isHighPowerMode: Bool = false,
         sources: IconSourceSnapshot = .empty,
-        bottomIndicatorSource: BottomIndicatorSource = .volume
+        bottomIndicatorSource: BottomIndicatorSource = .volume,
+        bottomIndicatorMetric: HardwareMonitorMetric = .cpuUsage,
+        bottomIndicatorStyle: VolumeDisplayStyle = .dots
     ) {
         self.snapshot = snapshot
         self.audioIcon = audioIcon
@@ -115,5 +135,7 @@ struct IconPresentationInputs: Equatable, Sendable {
         self.isHighPowerMode = isHighPowerMode
         self.sources = sources
         self.bottomIndicatorSource = bottomIndicatorSource
+        self.bottomIndicatorMetric = bottomIndicatorMetric
+        self.bottomIndicatorStyle = bottomIndicatorStyle
     }
 }
