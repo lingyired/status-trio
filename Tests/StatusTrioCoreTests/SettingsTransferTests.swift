@@ -158,6 +158,57 @@ struct SettingsTransferSessionTests {
         #expect(store.popupScrollWheelStepPercent == 10)
     }
 
+    @Test func bottomIndicatorMetricAndEveryStyleRoundTripThroughAnExportedFile() throws {
+        let (source, sourceLocalization, sourceDirectory, sourceDefaults, sourceName) = try fixture()
+        let (target, targetLocalization, targetDirectory, targetDefaults, targetName) = try fixture()
+        defer {
+            sourceDefaults.removePersistentDomain(forName: sourceName)
+            targetDefaults.removePersistentDomain(forName: targetName)
+        }
+
+        source.bottomIndicatorSource = .metric
+        source.bottomIndicatorMetric = .gpuUsage
+        source.metricBottomIndicatorStyle = .dots
+        source.wifiBottomIndicatorStyle = .arc
+        source.batteryBottomIndicatorStyle = .arc
+        source.volumeDisplayStyle = .dots
+        let exporter = SettingsTransferSession(
+            store: source, localization: sourceLocalization, backupDirectory: sourceDirectory)
+        let importer = SettingsTransferSession(
+            store: target, localization: targetLocalization, backupDirectory: targetDirectory)
+
+        let preview = try importer.stageImport(exporter.exportData())
+        #expect(preview.warnings.isEmpty)
+        _ = try importer.applyImport()
+        let reloaded = SettingsStore(defaults: targetDefaults, systemChargeLimit: { nil })
+        for store in [target, reloaded] {
+            #expect(store.bottomIndicatorSource == .metric)
+            #expect(store.bottomIndicatorMetric == .gpuUsage)
+            #expect(store.effectiveBottomIndicatorStyle == .dots)
+            #expect(store.wifiBottomIndicatorStyle == .arc)
+            #expect(store.batteryBottomIndicatorStyle == .arc)
+            #expect(store.volumeDisplayStyle == .dots)
+        }
+    }
+
+    @Test(arguments: [false, true])
+    func importingTemperatureUsesTheImportedMonitoringSetting(_ enablesMonitoring: Bool) throws {
+        let (store, localization, directory, defaults, name) = try fixture()
+        defer { defaults.removePersistentDomain(forName: name) }
+        store.hardwareTemperatureMonitoringEnabled = false
+        store.bottomIndicatorSource = .metric
+        let session = SettingsTransferSession(store: store, localization: localization, backupDirectory: directory)
+
+        _ = try session.stageImport(SettingsTransferDocument(appVersion: "1.10.4", preferences: [
+            "bottomIndicatorMetric": .string("gpuTemperature"),
+            "hardwareTemperatureMonitoringEnabled": .bool(enablesMonitoring)
+        ]).encoded())
+        _ = try session.applyImport()
+        let expected: HardwareMonitorMetric = enablesMonitoring ? .gpuTemperature : .gpuUsage
+        #expect(store.iconRuntimePresentationOptions.bottomIndicatorMetric == expected)
+        #expect(defaults.string(forKey: SettingsStore.bottomIndicatorMetricDefaultsKey) == expected.rawValue)
+    }
+
     @Test func backupCanBeImportedByANewSession() throws {
         let (store, localization, directory, defaults, name) = try fixture()
         defer { defaults.removePersistentDomain(forName: name) }

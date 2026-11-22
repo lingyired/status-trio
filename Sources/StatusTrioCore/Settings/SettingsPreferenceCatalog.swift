@@ -128,6 +128,12 @@ enum SettingsPreferenceCatalog {
             boolean("usesBluetoothAudioVolumeColor", \.usesBluetoothAudioVolumeColor, default: false),
             mapped("bluetoothVolumeColor", \.bluetoothVolumeColor, default: BluetoothVolumeColorSelection.default, decode: { value in guard case let .string(raw) = value else { return nil }; let parsed = BluetoothVolumeColorSelection(storageValue: raw); return parsed.storageValue == raw ? parsed : nil }, encode: { .string($0.storageValue) }),
             enumeration("volumeDisplayStyle", \.volumeDisplayStyle, default: SettingsStore.defaultVolumeDisplayStyle),
+            enumeration("wifiBottomIndicatorStyle", \.wifiBottomIndicatorStyle,
+                        default: SettingsStore.defaultWifiBottomIndicatorStyle),
+            enumeration("batteryBottomIndicatorStyle", \.batteryBottomIndicatorStyle,
+                        default: SettingsStore.defaultBatteryBottomIndicatorStyle),
+            enumeration("metricBottomIndicatorStyle", \.metricBottomIndicatorStyle,
+                        default: SettingsStore.defaultMetricBottomIndicatorStyle),
             enumeration("ringStrokeStyle", \.ringStrokeStyle, default: SettingsStore.defaultRingStrokeStyle),
             slotBindingsPreference
         ]
@@ -229,6 +235,10 @@ enum SettingsPreferenceCatalog {
                         default: .used, allowed: RingValueDisplayMode.allCases),
             boolean("hardwareTemperatureMonitoringEnabled",
                     \.hardwareTemperatureMonitoringEnabled, default: true),
+            // Apply the temperature switch before restoring the metric it makes available.
+            enumeration("bottomIndicatorMetric", \.bottomIndicatorMetric,
+                        default: SettingsStore.defaultBottomIndicatorMetric,
+                        allowed: HardwareMonitorMetric.allCases.filter { !$0.usesStatusSnapshot }),
             enumeration("cpuRingCenterContent", \.cpuRingCenterContent,
                         default: .temperature, allowed: HardwareRingCenterContent.allCases),
             enumeration("gpuRingCenterContent", \.gpuRingCenterContent,

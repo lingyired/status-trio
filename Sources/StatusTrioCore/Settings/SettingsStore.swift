@@ -1465,7 +1465,7 @@ final class SettingsStore: ObservableObject {
             defaults.set(hardwareTemperatureMonitoringEnabled,
                          forKey: Self.hardwareTemperatureMonitoringEnabledDefaultsKey)
             if !hardwareTemperatureMonitoringEnabled {
-                normalizeHardwareRingForTemperatureAvailability()
+                normalizeIconMetricsForTemperatureAvailability()
             }
         }
     }
@@ -1483,14 +1483,16 @@ final class SettingsStore: ObservableObject {
         didSet { defaults.set(gpuRingCenterContent.rawValue, forKey: Self.gpuRingCenterContentDefaultsKey) }
     }
 
-    /// Rewrites a saved menu-bar ring selection that points at a temperature
-    /// metric to the matching usage metric. This is intentional when monitoring
-    /// is turned off: the fallback selection persists, so re-enabling temperature
-    /// does not silently pull the user back to a temperature arc.
-    func normalizeHardwareRingForTemperatureAvailability() {
+    /// Persist usable CPU/GPU metrics for both icon slots when monitoring is off.
+    /// Re-enabling monitoring keeps the fallback selection until the user edits it.
+    private func normalizeIconMetricsForTemperatureAvailability() {
         let normalized = hardwareRingConfiguration.replacingUnavailableTemperatures()
         if normalized != hardwareRingConfiguration {
             hardwareRingConfiguration = normalized
+        }
+        let metric = bottomIndicatorMetric.withoutCPUGPUTemperature
+        if bottomIndicatorMetric != metric {
+            bottomIndicatorMetric = metric
         }
     }
 
@@ -1579,7 +1581,12 @@ final class SettingsStore: ObservableObject {
     /// binding), but it must still publish so the menu bar re-resolves.
     @Published var bottomIndicatorMetric: HardwareMonitorMetric {
         didSet {
-            defaults.set(bottomIndicatorMetric.rawValue, forKey: Self.bottomIndicatorMetricDefaultsKey)
+            let metric = hardwareTemperatureMonitoringEnabled
+                ? bottomIndicatorMetric : bottomIndicatorMetric.withoutCPUGPUTemperature
+            if metric != bottomIndicatorMetric {
+                bottomIndicatorMetric = metric
+            }
+            defaults.set(metric.rawValue, forKey: Self.bottomIndicatorMetricDefaultsKey)
         }
     }
 
@@ -3135,9 +3142,8 @@ final class SettingsStore: ObservableObject {
                 ?? Self.defaultWifiSymbolScale
         )
         defaults.removeObject(forKey: Self.bluetoothSymbolScaleDefaultsKey)
-        self.volumeDisplayStyle = storedVolumeDisplayStyle
-            .flatMap(VolumeDisplayStyle.init(rawValue:))
-            ?? Self.defaultVolumeDisplayStyle
+        let legacyIndicatorStyle = storedVolumeDisplayStyle.flatMap(VolumeDisplayStyle.init(rawValue:))
+        self.volumeDisplayStyle = legacyIndicatorStyle ?? Self.defaultVolumeDisplayStyle
         self.bottomIndicatorSource = storedBottomIndicatorSource
             .flatMap(BottomIndicatorSource.init(rawValue:))
             ?? Self.defaultBottomIndicatorSource
@@ -3147,12 +3153,20 @@ final class SettingsStore: ObservableObject {
         self.metricBottomIndicatorStyle = storedMetricBottomIndicatorStyle
             .flatMap(VolumeDisplayStyle.init(rawValue:))
             ?? Self.defaultMetricBottomIndicatorStyle
+        // Volume, Wi-Fi and battery shared the legacy style. Seed each new
+        // key once so later volume edits cannot change the other sources.
+        let migratedWifiStyle = legacyIndicatorStyle ?? Self.defaultWifiBottomIndicatorStyle
+        let migratedBatteryStyle = legacyIndicatorStyle ?? Self.defaultBatteryBottomIndicatorStyle
         self.wifiBottomIndicatorStyle = storedWifiBottomIndicatorStyle
-            .flatMap(VolumeDisplayStyle.init(rawValue:))
-            ?? Self.defaultWifiBottomIndicatorStyle
+            .flatMap(VolumeDisplayStyle.init(rawValue:)) ?? migratedWifiStyle
         self.batteryBottomIndicatorStyle = storedBatteryBottomIndicatorStyle
-            .flatMap(VolumeDisplayStyle.init(rawValue:))
-            ?? Self.defaultBatteryBottomIndicatorStyle
+            .flatMap(VolumeDisplayStyle.init(rawValue:)) ?? migratedBatteryStyle
+        if defaults.object(forKey: Self.wifiBottomIndicatorStyleDefaultsKey) == nil {
+            defaults.set(migratedWifiStyle.rawValue, forKey: Self.wifiBottomIndicatorStyleDefaultsKey)
+        }
+        if defaults.object(forKey: Self.batteryBottomIndicatorStyleDefaultsKey) == nil {
+            defaults.set(migratedBatteryStyle.rawValue, forKey: Self.batteryBottomIndicatorStyleDefaultsKey)
+        }
         self.ringStrokeStyle = storedRingStrokeStyle
             .flatMap(RingStrokeStyle.init(rawValue:))
             ?? Self.defaultRingStrokeStyle
@@ -3364,7 +3378,7 @@ final class SettingsStore: ObservableObject {
         self.gpuRingCenterContent = HardwareRingCenterContent(
             rawValue: defaults.string(forKey: Self.gpuRingCenterContentDefaultsKey) ?? "") ?? .temperature
         if !hardwareTemperatureMonitoringEnabled {
-            normalizeHardwareRingForTemperatureAvailability()
+            normalizeIconMetricsForTemperatureAvailability()
         }
         localIconPluginDirectories =
             defaults.stringArray(forKey: Self.localIconPluginDirectoriesDefaultsKey) ?? []

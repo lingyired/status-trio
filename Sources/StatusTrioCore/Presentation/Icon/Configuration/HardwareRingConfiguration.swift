@@ -336,23 +336,14 @@ struct HardwareRingConfiguration: Codable, Equatable, Hashable, Sendable {
     /// temperature monitoring is turned off so a saved ring selection cannot
     /// keep pointing at an unreadable metric.
     func replacingUnavailableTemperatures() -> HardwareRingConfiguration {
-        func replacement(_ metric: HardwareMonitorMetric) -> HardwareMonitorMetric {
-            switch metric {
-            case .cpuTemperature: return .cpuUsage
-            case .gpuTemperature: return .gpuUsage
-            default: return metric
-            }
-        }
         var copy = normalized()
-        copy.primaryMetric = replacement(copy.primaryMetric)
-        if let secondary = copy.secondaryMetric {
-            copy.secondaryMetric = replacement(secondary)
-        }
+        copy.primaryMetric = copy.primaryMetric.withoutCPUGPUTemperature
+        copy.secondaryMetric = copy.secondaryMetric?.withoutCPUGPUTemperature
         switch copy.topContent {
         case .symbol(let metric):
-            copy.topContent = .symbol(replacement(metric))
+            copy.topContent = .symbol(metric.withoutCPUGPUTemperature)
         case .value(let metric):
-            copy.topContent = .value(replacement(metric))
+            copy.topContent = .value(metric.withoutCPUGPUTemperature)
         case .automatic, .batteryPercentage, .chargingIndicator, .hidden:
             break
         }
