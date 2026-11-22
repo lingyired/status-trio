@@ -155,6 +155,8 @@ final class PrivilegedHelperManager: ObservableObject {
     /// Offsets used to re-probe after a user-initiated read fails. See
     /// `defaultPendingProbeBackoff`.
     private let pendingProbeBackoff: [Duration]
+    /// At most one activation-driven status read per interval.
+    private let activationStatusRefreshInterval: Duration
     private var pendingProbeAttempts = 0
     private var verificationTask: Task<Void, Never>?
     private var registrationRetryTask: Task<Void, Never>?
@@ -187,13 +189,18 @@ final class PrivilegedHelperManager: ObservableObject {
     static let defaultPendingProbeBackoff: [Duration] = [
         .seconds(3), .seconds(10), .seconds(25),
     ]
+    /// Debounce for an activation-driven status re-read. Approval can only
+    /// change while the app is in the background, so one read per interval is
+    /// enough; rapid app switching shares the same read instead of re-querying.
+    static let defaultActivationStatusRefreshInterval: Duration = .seconds(60)
 
     init(
         service: PrivilegedHelperServicing = SystemPrivilegedHelperService(),
         pollInterval: Duration = .seconds(2),
         healthCheckInterval: Duration = PrivilegedHelperManager.defaultPendingHealthCheckInterval,
         enabledHealthCheckInterval: Duration = PrivilegedHelperManager.defaultEnabledHealthCheckInterval,
-        pendingProbeBackoff: [Duration] = PrivilegedHelperManager.defaultPendingProbeBackoff
+        pendingProbeBackoff: [Duration] = PrivilegedHelperManager.defaultPendingProbeBackoff,
+        activationStatusRefreshInterval: Duration = PrivilegedHelperManager.defaultActivationStatusRefreshInterval
     ) {
         self.service = service
         self.isAvailable = service.isSupported
@@ -204,6 +211,7 @@ final class PrivilegedHelperManager: ObservableObject {
         self.healthCheckInterval = healthCheckInterval
         self.enabledHealthCheckInterval = enabledHealthCheckInterval
         self.pendingProbeBackoff = pendingProbeBackoff
+        self.activationStatusRefreshInterval = activationStatusRefreshInterval
         // A previous session may have quit while the registration was still
         // waiting for approval, so start watching for the system to accept it.
         if initialStatus == .requiresApproval { startRegistrationRetryWindow(allowRegistration: false) }
@@ -311,13 +319,25 @@ final class PrivilegedHelperManager: ObservableObject {
     }
 
     /// Returning from approval can precede the system's permission update.
+    /// Ordinary activations re-read once but share that read within
+    /// `activationStatusRefreshInterval`, so switching apps cannot turn into a
+    /// tight query loop.
     func refreshAfterActivation() {
-        guard awaitsApprovalReturn else { return }
-        awaitsApprovalReturn = false
-        lastApprovalStatusRead = ContinuousClock.now
+        guard isAvailable, isEnabled, recoveringGeneration != generation else { return }
+        let now = ContinuousClock.now
+        if awaitsApprovalReturn {
+            awaitsApprovalReturn = false
+            lastApprovalStatusRead = now
+            publishSystemState()
+            checkHelperIfNeeded(forceRead: true, userInitiated: true)
+            startRegistrationRetryWindow()
+            return
+        }
+        if let lastApprovalStatusRead,
+           now - lastApprovalStatusRead < activationStatusRefreshInterval { return }
+        lastApprovalStatusRead = now
         publishSystemState()
-        checkHelperIfNeeded(forceRead: true, userInitiated: true)
-        startRegistrationRetryWindow()
+        checkHelperIfNeeded(forceRead: !isReady, userInitiated: !isReady)
     }
 
     /// Every probe of a pending helper starts the root daemon, which then

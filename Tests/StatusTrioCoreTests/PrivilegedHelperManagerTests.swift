@@ -69,18 +69,36 @@ struct PrivilegedHelperIdleTests {
         manager.setBackgroundRecoveryNeeded(false)
     }
 
-    @Test func ordinaryActivationDoesNotReadStatusOrProbe() async throws {
+    @Test func repeatedActivationCoalescesToOneStatusRead() async throws {
         let service = FakePrivilegedHelperService(status: .enabled)
         let manager = PrivilegedHelperManager(service: service)
         try await waitForTestCondition { manager.isReady }
         let reads = service.statusReadCount
         let probes = service.verificationCallCount
 
+        // Ten rapid activations share a single status read.
         for _ in 0..<10 { manager.refreshAfterActivation() }
         await Task.yield()
 
-        #expect(service.statusReadCount == reads)
+        #expect(service.statusReadCount == reads + 1)
         #expect(service.verificationCallCount == probes)
+    }
+
+    @Test func activationAfterTheIntervalRefreshesAgain() async throws {
+        let service = FakePrivilegedHelperService(status: .enabled)
+        let manager = PrivilegedHelperManager(
+            service: service,
+            activationStatusRefreshInterval: .milliseconds(30)
+        )
+        try await waitForTestCondition { manager.isReady }
+        let reads = service.statusReadCount
+
+        manager.refreshAfterActivation()
+        #expect(service.statusReadCount == reads + 1)
+
+        try await Task.sleep(for: .milliseconds(80))
+        manager.refreshAfterActivation()
+        #expect(service.statusReadCount == reads + 2)
     }
 
     @Test func successfulOperationChecksXPCWithoutReadingNativeStatus() async throws {

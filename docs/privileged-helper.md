@@ -69,9 +69,10 @@ approval and live helper availability, and the power control uses the latter.
 
 The app checks native status at launch, on the Battery and Keep Awake
 settings pages, and on return from Login Items opened through the app.
-Ordinary activation and the status panel use the last known state. Helper
-operations use XPC and query native status on failure or when registration
-has not yet been observed.
+Ordinary activation re-reads once, throttled to at most one read per minute
+so switching apps cannot become a query loop, and the status panel uses the
+last known state. Helper operations use XPC and query native status on
+failure or when registration has not yet been observed.
 The approval window observes status at 2, 6, 14, 30 and 60 seconds by default.
 Startup only observes an existing pending registration. Explicit opt-in and
 recovery can retry registration in that window. A successful XPC round trip
