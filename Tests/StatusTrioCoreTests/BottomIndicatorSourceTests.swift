@@ -769,6 +769,50 @@ final class BottomIndicatorSourceTests: XCTestCase {
         }
         XCTAssertEqual(d.color, .custom(custom))
     }
+
+    func testUpgradeSeedsIndependentStylesFromTheLegacySharedArc() {
+        let suite = makeSuite()
+        suite.defaults.set("arc", forKey: SettingsStore.volumeDisplayStyleDefaultsKey)
+        suite.defaults.set("wifi", forKey: SettingsStore.bottomIndicatorSourceDefaultsKey)
+        let store = SettingsStore(defaults: suite.defaults)
+        XCTAssertEqual(store.effectiveBottomIndicatorStyle, .arc)
+        XCTAssertEqual(store.batteryBottomIndicatorStyle, .arc)
+        XCTAssertEqual(store.metricBottomIndicatorStyle, .arc)
+
+        store.volumeDisplayStyle = .dots
+        store.wifiBottomIndicatorStyle = .dots
+        let reopened = SettingsStore(defaults: suite.defaults)
+        XCTAssertEqual(reopened.wifiBottomIndicatorStyle, .dots)
+        XCTAssertEqual(reopened.batteryBottomIndicatorStyle, .arc,
+                       "Changing volume must not overwrite the migrated battery style on relaunch")
+    }
+
+    func testDisablingTemperaturePublishesAndPersistsTheMatchingUsageFooter() {
+        for (temperature, usage): (HardwareMonitorMetric, HardwareMonitorMetric) in [
+            (.cpuTemperature, .cpuUsage), (.gpuTemperature, .gpuUsage)
+        ] {
+            let suite = makeSuite()
+            let store = SettingsStore(defaults: suite.defaults)
+            store.bottomIndicatorSource = .metric
+            store.bottomIndicatorMetric = temperature
+            var latest: IconPresentationSettings?
+            let observation = store.iconPresentationPublisher.sink { latest = $0 }
+            store.hardwareTemperatureMonitoringEnabled = false
+            XCTAssertEqual(store.bottomIndicatorMetric, usage)
+            XCTAssertEqual(latest?.runtimeOptions?.bottomIndicatorMetric, usage)
+            store.hardwareTemperatureMonitoringEnabled = true
+            XCTAssertEqual(store.bottomIndicatorMetric, usage)
+            XCTAssertEqual(SettingsStore(defaults: suite.defaults).bottomIndicatorMetric, usage)
+            withExtendedLifetime(observation) {}
+        }
+    }
+
+    func testStartupRepairsAnUnavailableSavedFooterTemperature() {
+        let suite = makeSuite()
+        suite.defaults.set(false, forKey: SettingsStore.hardwareTemperatureMonitoringEnabledDefaultsKey)
+        suite.defaults.set("gpuTemperature", forKey: SettingsStore.bottomIndicatorMetricDefaultsKey)
+        let store = SettingsStore(defaults: suite.defaults, systemChargeLimit: { nil })
+        XCTAssertEqual(store.bottomIndicatorMetric, .gpuUsage)
+        XCTAssertEqual(suite.defaults.string(forKey: SettingsStore.bottomIndicatorMetricDefaultsKey), "gpuUsage")
+    }
 }
-
-

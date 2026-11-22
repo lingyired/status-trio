@@ -26,6 +26,15 @@ enum HardwareMonitorMetric: String, Codable, CaseIterable, Identifiable, Sendabl
 
     var id: Self { self }
 
+    /// CPU and GPU usage remain available when their temperature monitoring is off.
+    var withoutCPUGPUTemperature: Self {
+        switch self {
+        case .cpuTemperature: .cpuUsage
+        case .gpuTemperature: .gpuUsage
+        default: self
+        }
+    }
+
     /// Metrics offered in the ring's shared "Other" arc group. CPU and GPU are
     /// listed separately by the settings view.
     static let otherArcMetrics: [HardwareMonitorMetric] = [
