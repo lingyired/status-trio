@@ -13,7 +13,7 @@
 
 ## System Monitor
 
-- CPU and GPU temperature monitoring can be turned off, the CPU ring can show an estimated clock speed, and Macs with the original M1 chip can try a fallback when normal temperature readings fail.
+- CPU and GPU temperature monitoring can be turned off, the CPU ring can show an estimated clock speed, and Macs with the original M1 chip can try a fallback sensor when normal temperature readings fail; that fallback can use noticeably more CPU, so turn temperature monitoring off if you don't need it.
 - Adjust warning thresholds, display ranges or network speed limits for the relevant metrics in System Monitor and Bottom Indicator settings.
 - CPU, GPU, memory and network top-app lists now sort by current usage on every refresh (#370).
 

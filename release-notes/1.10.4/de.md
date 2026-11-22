@@ -13,7 +13,7 @@
 
 ## Systemmonitor
 
-- Die Temperaturüberwachung für CPU und GPU lässt sich abschalten. Der CPU-Ring kann den geschätzten Takt anzeigen. Macs mit dem ursprünglichen M1-Chip versuchen eine alternative Messung, wenn der normale Temperaturwert fehlt.
+- Die Temperaturüberwachung für CPU und GPU lässt sich abschalten. Der CPU-Ring kann den geschätzten Takt anzeigen. Macs mit dem ursprünglichen M1-Chip versuchen einen alternativen Sensor, wenn der normale Temperaturwert fehlt; diese Messung kann spürbar mehr CPU-Leistung beanspruchen, daher lässt sich die Temperaturüberwachung bei Bedarf abschalten.
 - Warnschwellen, Anzeigebereiche und Limits für die Netzwerkgeschwindigkeit lassen sich für die jeweiligen Messwerte im Systemmonitor und in den Einstellungen der unteren Anzeige anpassen.
 - Die Ranglisten für CPU, GPU, Arbeitsspeicher und Netzwerk werden bei jeder Aktualisierung nach aktueller Auslastung sortiert (#370).
 

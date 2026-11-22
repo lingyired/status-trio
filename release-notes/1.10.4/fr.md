@@ -13,7 +13,7 @@
 
 ## Moniteur système
 
-- La surveillance de la température du CPU et du GPU peut être désactivée. L’anneau du CPU peut afficher une fréquence estimée. Les Mac équipés de la puce M1 d’origine peuvent tenter une autre mesure si la lecture habituelle échoue.
+- La surveillance de la température du CPU et du GPU peut être désactivée. L’anneau du CPU peut afficher une fréquence estimée. Les Mac équipés de la puce M1 d’origine peuvent essayer un capteur de secours si la lecture habituelle échoue ; cette lecture peut consommer nettement plus de CPU, désactivez donc la surveillance de température si vous n’en avez pas besoin.
 - Les seuils d’alerte, les plages d’affichage et les limites de débit réseau se règlent pour les mesures concernées dans le moniteur système et les réglages de l’indicateur inférieur.
 - Les listes des apps les plus gourmandes en CPU, GPU, mémoire et réseau sont retriées selon l’usage actuel à chaque actualisation (#370).
 

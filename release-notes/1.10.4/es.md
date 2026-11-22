@@ -13,7 +13,7 @@
 
 ## Monitor del sistema
 
-- Se puede desactivar la monitorización de temperatura de CPU y GPU. El anillo de CPU puede mostrar una frecuencia estimada y los Mac con el chip M1 original pueden probar una lectura alternativa cuando falla la habitual.
+- Se puede desactivar la monitorización de temperatura de CPU y GPU. El anillo de CPU puede mostrar una frecuencia estimada. Los Mac con el chip M1 original pueden probar un sensor alternativo cuando falla la lectura habitual; esa lectura puede consumir bastante más CPU, así que puedes desactivar la monitorización de temperatura si no la necesitas.
 - Ajusta los umbrales de aviso, los rangos de visualización o los límites de velocidad de red de las métricas correspondientes en el monitor del sistema y en los ajustes del indicador inferior.
 - Las listas de aplicaciones con mayor uso de CPU, GPU, memoria y red se ordenan según el uso actual en cada actualización (#370).
 

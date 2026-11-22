@@ -13,7 +13,7 @@
 
 ## Monitor di sistema
 
-- Il monitoraggio della temperatura di CPU e GPU si può disattivare. L’anello della CPU può mostrare una frequenza stimata. I Mac con chip M1 originale possono tentare una lettura alternativa se quella standard non riesce.
+- Il monitoraggio della temperatura di CPU e GPU si può disattivare. L’anello della CPU può mostrare una frequenza stimata. I Mac con chip M1 originale possono provare un sensore alternativo se la lettura standard non riesce; quella lettura può usare parecchia CPU in più, quindi puoi disattivare il monitoraggio della temperatura se non ti serve.
 - Nelle impostazioni del monitor di sistema e dell’indicatore inferiore puoi regolare soglie di avviso, intervalli di visualizzazione o limiti di velocità di rete per le metriche interessate.
 - Le classifiche delle app per CPU, GPU, memoria e rete vengono riordinate in base all’utilizzo corrente a ogni aggiornamento (#370).
 
