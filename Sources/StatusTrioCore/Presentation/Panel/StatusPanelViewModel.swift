@@ -678,7 +678,7 @@ final class StatusPanelViewModel: ObservableObject {
             showSummaryPage()
             return
         }
-        guard !dismissIfAlreadyShowing(.battery) else { return }
+        guard !closeOpenDetailIfAlreadyShowing(.battery) else { return }
         guard transition(to: .battery) else { return }
         actions.batteryDetailsAppeared()
         refreshBatteryDetails()
@@ -689,7 +689,7 @@ final class StatusPanelViewModel: ObservableObject {
             showSummaryPage()
             return
         }
-        guard !dismissIfAlreadyShowing(.wifi) else { return }
+        guard !closeOpenDetailIfAlreadyShowing(.wifi) else { return }
         let opensNewPage = route != .wifi
         if opensNewPage {
             wifiDisclosure = WiFiPanelDisclosureState(
@@ -707,7 +707,7 @@ final class StatusPanelViewModel: ObservableObject {
             showSummaryPage()
             return
         }
-        guard !dismissIfAlreadyShowing(.ethernet) else { return }
+        guard !closeOpenDetailIfAlreadyShowing(.ethernet) else { return }
         guard transition(to: .ethernet) else { return }
         actions.wiredDetailsOpened()
         refreshWiredDetailsAndNetwork()
@@ -718,7 +718,7 @@ final class StatusPanelViewModel: ObservableObject {
             showSummaryPage()
             return
         }
-        guard !dismissIfAlreadyShowing(.inputSource) else { return }
+        guard !closeOpenDetailIfAlreadyShowing(.inputSource) else { return }
         transition(to: .inputSource)
     }
 
@@ -729,7 +729,7 @@ final class StatusPanelViewModel: ObservableObject {
             showSummaryPage()
             return
         }
-        guard !dismissIfAlreadyShowing(.hardwareDetail(kind)) else { return }
+        guard !closeOpenDetailIfAlreadyShowing(.hardwareDetail(kind)) else { return }
         transition(to: .hardwareDetail(kind))
     }
 
@@ -1537,12 +1537,14 @@ final class StatusPanelViewModel: ObservableObject {
     }
 
     /// Issue #369: clicking the entry for the detail page that is already open
-    /// closes the whole panel instead of re-entering the same page. Hardware
+    /// closes that detail page (returning the main panel to its summary) instead
+    /// of re-entering the same page. The side panel is closed while the main
+    /// popover stays open, matching the back button's page semantics. Hardware
     /// details match only the same `kind`, so a different card still switches.
-    /// Returns true when the click was handled as a dismiss.
-    private func dismissIfAlreadyShowing(_ target: StatusPanelRoute) -> Bool {
+    /// Returns true when the click was handled as a close.
+    private func closeOpenDetailIfAlreadyShowing(_ target: StatusPanelRoute) -> Bool {
         guard route == target else { return false }
-        actions.dismissPanel()
+        showSummaryPage()
         return true
     }
 

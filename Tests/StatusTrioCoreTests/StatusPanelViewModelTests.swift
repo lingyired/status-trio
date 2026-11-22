@@ -1008,81 +1008,63 @@ final class StatusPanelViewModelTests: XCTestCase {
     }
 }
 
-/// Issue #369: clicking the *same* detail entry again must close the whole
-/// panel; clicking a different entry still switches pages.
+/// Issue #369: clicking the *same* detail entry again closes that detail page
+/// (the side panel) while the main panel stays open; a different entry still
+/// switches pages.
 @MainActor
 struct DetailEntryToggleDismissTests {
-    @Test func clickingOpenHardwareEntryAgainDismisses() {
+    @Test func clickingOpenHardwareEntryAgainClosesDetailToSummary() {
         let fixture = PanelStoreFixture()
         fixture.settings.setPopupSection(.hardwareMonitor, enabled: true)
-        var dismissals = 0
-        let actions = StatusPanelActions()
-        actions.dismissPanelHandler = { dismissals += 1 }
-        let panel = fixture.makePanel(actions: actions)
+        let panel = fixture.makePanel()
         defer { panel.stop(); fixture.store.stop() }
 
         panel.showHardwareDetail(.cpu)
         #expect(panel.route == .hardwareDetail(.cpu))
-        #expect(dismissals == 0)
 
         panel.showHardwareDetail(.cpu)
-        #expect(panel.route == .hardwareDetail(.cpu))
-        #expect(dismissals == 1)
+        #expect(panel.route == .summary)
 
-        // A different hardware card switches pages rather than dismissing.
+        // After closing, a different hardware card still switches pages.
         panel.showHardwareDetail(.memory)
         #expect(panel.route == .hardwareDetail(.memory))
-        #expect(dismissals == 1)
     }
 
-    @Test func clickingOpenBatteryEntryAgainDismisses() {
+    @Test func clickingOpenBatteryEntryAgainClosesDetailToSummary() {
         let fixture = PanelStoreFixture()
-        var dismissals = 0
-        let actions = StatusPanelActions()
-        actions.dismissPanelHandler = { dismissals += 1 }
-        let panel = fixture.makePanel(actions: actions)
+        let panel = fixture.makePanel()
         defer { panel.stop(); fixture.store.stop() }
 
         panel.showBatteryPage()
         #expect(panel.route == .battery)
         panel.showBatteryPage()
-        #expect(panel.route == .battery)
-        #expect(dismissals == 1)
+        #expect(panel.route == .summary)
     }
 
-    @Test func clickingOpenWiFiEntryAgainDismissesButWiredIsASwitch() {
+    @Test func clickingOpenWiFiEntryAgainClosesDetailButWiredIsASwitch() {
         let fixture = PanelStoreFixture()
-        var dismissals = 0
-        let actions = StatusPanelActions()
-        actions.dismissPanelHandler = { dismissals += 1 }
-        let panel = fixture.makePanel(actions: actions)
+        let panel = fixture.makePanel()
         defer { panel.stop(); fixture.store.stop() }
 
         panel.showWiFiPage(showsDetailsInitially: true)
         #expect(panel.route == .wifi)
         panel.showWiFiPage(showsDetailsInitially: true)
-        #expect(panel.route == .wifi)
-        #expect(dismissals == 1)
+        #expect(panel.route == .summary)
 
         panel.showWiredPage()
         #expect(panel.route == .ethernet)
-        #expect(dismissals == 1)
     }
 
-    @Test func clickingOpenInputSourceEntryAgainDismisses() {
+    @Test func clickingOpenInputSourceEntryAgainClosesDetailToSummary() {
         let fixture = PanelStoreFixture()
         fixture.settings.setPopupSection(.inputSource, enabled: true)
-        var dismissals = 0
-        let actions = StatusPanelActions()
-        actions.dismissPanelHandler = { dismissals += 1 }
-        let panel = fixture.makePanel(actions: actions)
+        let panel = fixture.makePanel()
         defer { panel.stop(); fixture.store.stop() }
 
         panel.showInputSourcePage()
         #expect(panel.route == .inputSource)
         panel.showInputSourcePage()
-        #expect(panel.route == .inputSource)
-        #expect(dismissals == 1)
+        #expect(panel.route == .summary)
     }
 }
 
