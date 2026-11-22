@@ -667,7 +667,7 @@ if [[ -n "$ZIP_FILENAME" ]]; then
     done
 fi
 
-PUBLIC_VERIFY_ATTEMPTS="${PUBLIC_VERIFY_ATTEMPTS:-6}"
+PUBLIC_VERIFY_ATTEMPTS="${PUBLIC_VERIFY_ATTEMPTS:-10}"
 PUBLIC_VERIFY_DELAY_SECONDS="${PUBLIC_VERIFY_DELAY_SECONDS:-5}"
 [[ "$PUBLIC_VERIFY_ATTEMPTS" =~ ^[1-9][0-9]*$ ]] ||
     die "PUBLIC_VERIFY_ATTEMPTS must be a positive integer."
@@ -681,12 +681,24 @@ PUBLIC_DMG_SHA256=""
 PUBLIC_ERROR="$TEMP_ROOT/public-error.log"
 PUBLIC_VERIFIED=false
 
+# Prefer the GitHub contents API, which reflects the just-pushed appcast commit
+# immediately. raw.githubusercontent.com can still serve a stale copy from its
+# CDN cache, which once made a successful publish look like a mismatch.
+fetch_public_feed() {
+    local destination="$1"
+    if gh api "$APPCAST_API_PATH?ref=$RELEASE_BRANCH" -H "Accept: application/vnd.github.raw" \
+        > "$destination" 2>>"$PUBLIC_ERROR"; then
+        return 0
+    fi
+    curl -fsSL --connect-timeout 15 --max-time 300 "$PUBLIC_FEED_URL" > "$destination" 2>>"$PUBLIC_ERROR"
+}
+
 for ((attempt = 1; attempt <= PUBLIC_VERIFY_ATTEMPTS; attempt++)); do
     : > "$PUBLIC_ERROR"
     if curl -fsSL --connect-timeout 15 --max-time 300 "$DMG_URL" > "$PUBLIC_DMG_PATH" 2>"$PUBLIC_ERROR"; then
         PUBLIC_DMG_SHA256="$(file_sha256 "$PUBLIC_DMG_PATH")"
         if [[ "$PUBLIC_DMG_SHA256" == "$DMG_SHA256" ]] &&
-            curl -fsSL --connect-timeout 15 --max-time 300 "$PUBLIC_FEED_URL" > "$REMOTE_FEED" 2>>"$PUBLIC_ERROR" &&
+            fetch_public_feed "$REMOTE_FEED" &&
             verify_appcast_item "$REMOTE_FEED" 2>>"$PUBLIC_ERROR"; then
             PUBLIC_VERIFIED=true
             break
