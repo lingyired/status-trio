@@ -243,6 +243,22 @@ final class PanelLevelSliderTests: XCTestCase {
         XCTAssertLessThan(width, 60)
     }
 
+    func testFixedFramePinsLabelToTheLeadingEdge() {
+        let frame = PanelLevelSliderLabelLayout.fixedFrame(controlWidth: controlWidth)
+        XCTAssertEqual(frame.side, .leading)
+        XCTAssertEqual(
+            frame.originX,
+            PanelLevelSliderMetrics.labelLeadingInset,
+            accuracy: 0.001
+        )
+        XCTAssertEqual(
+            frame.width,
+            controlWidth - PanelLevelSliderMetrics.labelLeadingInset
+                - PanelLevelSliderMetrics.horizontalInset,
+            accuracy: 0.001
+        )
+    }
+
     // MARK: Label contrast on custom fills (#368)
 
     func testRelativeLuminanceMatchesKnownValues() {
@@ -314,7 +330,12 @@ final class PanelLevelSliderTests: XCTestCase {
         XCTAssertEqual(cellRect?.midY ?? 0, knobCenter.y, accuracy: 0.001)
         XCTAssertEqual(
             cellRect?.width ?? 0,
-            PanelLevelSliderMetrics.thumbDiameter,
+            PanelLevelSliderMetrics.thumbSize.width,
+            accuracy: 0.001
+        )
+        XCTAssertEqual(
+            cellRect?.height ?? 0,
+            PanelLevelSliderMetrics.thumbSize.height,
             accuracy: 0.001
         )
     }

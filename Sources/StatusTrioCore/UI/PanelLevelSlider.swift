@@ -14,11 +14,21 @@ enum PanelLevelSliderMetrics {
     static let compactBarHeight: CGFloat = 4
     /// Visible capsule height for rows whose label lives inside the capsule.
     static let barHeight: CGFloat = 13
-    /// White thumb circle diameter.
-    static let thumbDiameter: CGFloat = 18
+    /// Thumb height; the pill keeps this height in every state.
+    static let thumbDiameter: CGFloat = 16
+    /// Half the thumb height, kept for the legacy label-layout math.
     static var thumbRadius: CGFloat { thumbDiameter / 2 }
-    /// Distance kept from the capsule's leading/trailing edge.
-    static var horizontalInset: CGFloat { thumbRadius }
+    /// Thumb shape: a horizontal rounded rectangle (capsule), matching the
+    /// system slider knob, used in both the solid and Liquid Glass states.
+    static var thumbSize: CGSize {
+        CGSize(width: 20, height: thumbDiameter)
+    }
+    static var thumbHalfWidth: CGFloat { thumbSize.width / 2 }
+    static var thumbCornerRadius: CGFloat { thumbSize.height / 2 }
+    static var glassThumbSize: CGSize { thumbSize }
+    /// Distance kept from the capsule's leading/trailing edge so the pill never
+    /// overhangs the track at 0% / 100%.
+    static var horizontalInset: CGFloat { thumbHalfWidth }
     static var barCornerRadius: CGFloat { barHeight / 2 }
 
     /// Inline label inset from the capsule's leading edge.
@@ -169,6 +179,23 @@ enum PanelLevelSliderLabelLayout {
         return (text as NSString).size(withAttributes: attrs).width
     }
 
+    /// Fixed leading frame used by the panel: the label never follows the thumb,
+    /// so the fill can split it mid-glyph. The draw paints the text twice and
+    /// clips an inverted copy to the filled capsule. Truncates at the capsule's
+    /// trailing inset so it stays inside the rounded ends.
+    static func fixedFrame(controlWidth: CGFloat) -> Frame {
+        let available = max(
+            0,
+            controlWidth - PanelLevelSliderMetrics.labelLeadingInset
+                - PanelLevelSliderMetrics.horizontalInset
+        )
+        return Frame(
+            side: .leading,
+            originX: PanelLevelSliderMetrics.labelLeadingInset,
+            width: available
+        )
+    }
+
     /// Decides the parked side. The leading (filled) side always wins when the
     /// whole text fits there; only then does the label move to the trailing
     /// side of the thumb, and if neither side fits it truncates on the roomier
@@ -266,6 +293,10 @@ struct PanelLevelSlider: View {
     /// the metric default.
     var barHeight: CGFloat = PanelLevelSliderMetrics.barHeight
 
+    @Environment(\.panelCardSurfaceStyle) private var cardSurfaceStyle
+    /// True while a pointer drag is in flight; drives the Liquid Glass thumb.
+    @State private var isDragging = false
+
     var body: some View {
         GeometryReader { proxy in
             Representable(
@@ -279,15 +310,28 @@ struct PanelLevelSlider: View {
                 onValueChanged: { newValue in
                     value = newValue
                 },
-                onEditingChanged: onEditingChanged,
+                onEditingChanged: { editing in
+                    isDragging = editing
+                    onEditingChanged(editing)
+                },
                 height: height,
-                barHeight: barHeight
+                barHeight: barHeight,
+                hidesKnob: showsGlassThumb
             )
             .frame(width: proxy.size.width, height: proxy.size.height)
         }
         .frame(height: height)
         // Accessibility lives on the native NSSlider so VoiceOver sees one
         // adjustable control with the same label/value the old Slider exposed.
+    }
+
+    /// While the pointer drags on a native-glass panel, the AppKit view swaps
+    /// its solid knob for an `NSGlassEffectView` thumb (#368 follow-up). The
+    /// glass lives in the AppKit hierarchy so it is not occluded by the track.
+    private var showsGlassThumb: Bool {
+        cardSurfaceStyle == .glass
+            && PanelBackgroundStyle.isLiquidGlassAvailable
+            && isDragging
     }
 }
 
@@ -304,6 +348,7 @@ private extension PanelLevelSlider {
         let onEditingChanged: (Bool) -> Void
         let height: CGFloat
         let barHeight: CGFloat
+        let hidesKnob: Bool
 
         func makeNSView(context: Context) -> PanelLevelSliderView {
             let slider = PanelLevelSliderView()
@@ -312,6 +357,7 @@ private extension PanelLevelSlider {
             slider.isEnabled = isEnabled
             slider.designHeight = height
             slider.barHeight = barHeight
+            slider.hidesKnob = hidesKnob
             slider.doubleValue = clamped(currentValue)
             slider.setLabel(label, animated: false)
             applyAccessibility(to: slider)
@@ -323,6 +369,7 @@ private extension PanelLevelSlider {
             nsView.fillColor = NSColor(tint)
             nsView.designHeight = height
             nsView.barHeight = barHeight
+            nsView.hidesKnob = hidesKnob
             nsView.onValueChanged = onValueChanged
             nsView.onEditingChanged = onEditingChanged
             nsView.setLabel(label, animated: true)
@@ -386,6 +433,63 @@ final class PanelLevelSliderView: NSSlider {
         }
     }
     private var barCornerRadius: CGFloat { barHeight / 2 }
+
+    /// When true the native solid knob is skipped and an `NSGlassEffectView`
+    /// thumb is layered on during a drag on a Liquid Glass panel (#368).
+    var hidesKnob: Bool = false {
+        didSet {
+            if hidesKnob != oldValue {
+                syncGlassKnob()
+                needsDisplay = true
+            }
+        }
+    }
+
+    /// The Liquid Glass thumb shown while dragging on a glass panel, if any.
+    private var glassKnobView: NSView?
+
+    /// Creates/removes and repositions the glass thumb to match the knob. Called
+    /// from the SwiftUI update, layout, and drawing so it follows the drag.
+    private func syncGlassKnob(createIfNeeded: Bool = true) {
+        guard hidesKnob else {
+            glassKnobView?.removeFromSuperview()
+            glassKnobView = nil
+            return
+        }
+        guard #available(macOS 26.0, *) else { return }
+        if glassKnobView == nil, createIfNeeded {
+            // A horizontal rounded rectangle (capsule) like the system slider
+            // thumb; the glass is clipped to that shape so it reads as a pill
+            // instead of the bare NSGlassEffectView lens.
+            let container = NSView()
+            container.wantsLayer = true
+            container.layer?.masksToBounds = true
+            let glass = NSGlassEffectView()
+            glass.style = .regular
+            glass.autoresizingMask = [.width, .height]
+            container.addSubview(glass)
+            container.autoresizingMask = []
+            addSubview(container)
+            glassKnobView = container
+        }
+        guard let glassKnobView else { return }
+        let center = knobCenter(in: bounds)
+        let size = PanelLevelSliderMetrics.glassThumbSize
+        let frame = NSRect(
+            x: center.x - size.width / 2,
+            y: center.y - size.height / 2,
+            width: size.width,
+            height: size.height
+        )
+        if glassKnobView.frame != frame {
+            glassKnobView.frame = frame
+            glassKnobView.layer?.cornerRadius = size.height / 2
+            for subview in glassKnobView.subviews {
+                subview.frame = NSRect(origin: .zero, size: size)
+                (subview as? NSGlassEffectView)?.cornerRadius = size.height / 2
+            }
+        }
+    }
 
     private var rasterGeneration = 0
     private var rasterBuiltGeneration = -1
@@ -559,9 +663,10 @@ final class PanelLevelSliderView: NSSlider {
     /// empty track (a jump that should glide).
     private func isPointOnThumb(_ point: NSPoint) -> Bool {
         let center = knobCenter(in: bounds)
-        let dx = point.x - center.x
-        let dy = point.y - center.y
-        return (dx * dx + dy * dy).squareRoot() <= PanelLevelSliderMetrics.thumbRadius
+        let size = PanelLevelSliderMetrics.thumbSize
+        let dx = abs(point.x - center.x)
+        let dy = abs(point.y - center.y)
+        return dx <= size.width / 2 && dy <= size.height / 2
     }
 
     func barRect(in bounds: NSRect) -> NSRect {
@@ -602,47 +707,19 @@ final class PanelLevelSliderView: NSSlider {
     }
 
     func refreshLabel(animated: Bool) {
+        // The panel pins the label to the leading edge instead of sliding it
+        // around the thumb, so the fill can split it mid-glyph (#368). The
+        // draw paints the text twice and clips an inverted copy to the fill.
+        labelAnimation = nil
+        stopLabelAnimationTimer()
         guard labelText != nil, bounds.width > 0 else {
-            labelAnimation = nil
-            stopLabelAnimationTimer()
             labelSide = nil
             needsDisplay = true
             return
         }
-        let textWidth = labelTextWidth
-        let centerX = knobCenter(in: bounds).x
-        let side = PanelLevelSliderLabelLayout.side(
-            thumbCenterX: centerX,
-            controlWidth: bounds.width,
-            textWidth: textWidth
-        )
-        let target = PanelLevelSliderLabelLayout.frame(
-            side: side,
-            thumbCenterX: centerX,
-            controlWidth: bounds.width,
-            textWidth: textWidth
-        )
-
-        if animated, bounds.width > 0, let previousSide = labelSide,
-           previousSide != target.side {
-            let startX = currentLabelOriginX()
-            labelAnimation = LabelAnimation(
-                fromX: startX,
-                toX: target.originX,
-                startTime: ProcessInfo.processInfo.systemUptime,
-                side: target.side
-            )
-            labelSide = target.side
-            startLabelAnimationTimerIfNeeded()
-        } else if labelAnimation != nil {
-            labelAnimation?.toX = target.originX
-            labelAnimation?.side = target.side
-            labelSide = target.side
-            startLabelAnimationTimerIfNeeded()
-        } else {
-            labelOriginX = target.originX
-            labelSide = target.side
-        }
+        let frame = PanelLevelSliderLabelLayout.fixedFrame(controlWidth: bounds.width)
+        labelOriginX = frame.originX
+        labelSide = frame.side
         needsDisplay = true
     }
 
@@ -650,6 +727,7 @@ final class PanelLevelSliderView: NSSlider {
         super.layout()
         trackingGeometry.updateLiveRect(bounds)
         refreshLabel(animated: false)
+        syncGlassKnob()
     }
 
     // MARK: Label animation.
@@ -914,6 +992,7 @@ final class PanelLevelSliderView: NSSlider {
 
     override func draw(_ dirtyRect: NSRect) {
         ensureRaster()
+        syncGlassKnob(createIfNeeded: false)
         let bar = barRect(in: bounds)
         trackImage?.draw(in: bar)
 
@@ -936,15 +1015,16 @@ final class PanelLevelSliderView: NSSlider {
 
         drawLabel()
 
-        guard isThumbVisible else { return }
+        guard isThumbVisible, !hidesKnob else { return }
         let center = knobCenter(in: bounds)
+        let size = PanelLevelSliderMetrics.thumbSize
         let margin = PanelLevelSliderMetrics.knobRasterMargin
         knobImage?.draw(
             in: NSRect(
-                x: center.x - PanelLevelSliderMetrics.thumbRadius - margin,
-                y: center.y - PanelLevelSliderMetrics.thumbRadius - margin,
-                width: PanelLevelSliderMetrics.thumbDiameter + margin * 2,
-                height: PanelLevelSliderMetrics.thumbDiameter + margin * 2
+                x: center.x - size.width / 2 - margin,
+                y: center.y - size.height / 2 - margin,
+                width: size.width + margin * 2,
+                height: size.height + margin * 2
             )
         )
     }
@@ -999,12 +1079,16 @@ final class PanelLevelSliderView: NSSlider {
             path.fill()
         }
 
-        let diameter = PanelLevelSliderMetrics.thumbDiameter
+        let thumbSize = PanelLevelSliderMetrics.thumbSize
         let margin = PanelLevelSliderMetrics.knobRasterMargin
-        let knobSize = NSSize(width: diameter + margin * 2, height: diameter + margin * 2)
+        let knobSize = NSSize(
+            width: thumbSize.width + margin * 2,
+            height: thumbSize.height + margin * 2
+        )
         let knobColor: NSColor = isEnabled
             ? (dark ? NSColor.white : NSColor(calibratedWhite: 0.99, alpha: 1))
             : NSColor(white: dark ? 0.55 : 0.8, alpha: 1)
+        let knobRadius = PanelLevelSliderMetrics.thumbCornerRadius
         knobImage = Self.rasterized(size: knobSize, scale: scale) { _ in
             let shadow = NSShadow()
             shadow.shadowColor = NSColor.black.withAlphaComponent(0.16)
@@ -1012,7 +1096,14 @@ final class PanelLevelSliderView: NSSlider {
             shadow.shadowOffset = .zero
             shadow.set()
             let path = NSBezierPath(
-                ovalIn: NSRect(x: margin, y: margin, width: diameter, height: diameter)
+                roundedRect: NSRect(
+                    x: margin,
+                    y: margin,
+                    width: thumbSize.width,
+                    height: thumbSize.height
+                ),
+                xRadius: knobRadius,
+                yRadius: knobRadius
             )
             knobColor.setFill()
             path.fill()
@@ -1094,18 +1185,7 @@ final class PanelLevelSliderView: NSSlider {
 
     private func drawLabel() {
         guard let text = labelText, !text.isEmpty, bounds.width > 0 else { return }
-        let textWidth = labelTextWidth
-        let centerX = knobCenter(in: bounds).x
-        let frame = PanelLevelSliderLabelLayout.frame(
-            side: labelSide ?? PanelLevelSliderLabelLayout.side(
-                thumbCenterX: centerX,
-                controlWidth: bounds.width,
-                textWidth: textWidth
-            ),
-            thumbCenterX: centerX,
-            controlWidth: bounds.width,
-            textWidth: textWidth
-        )
+        let frame = PanelLevelSliderLabelLayout.fixedFrame(controlWidth: bounds.width)
         guard frame.isVisible else { return }
 
         let font = PanelLevelSliderMetrics.labelFont
@@ -1113,37 +1193,82 @@ final class PanelLevelSliderView: NSSlider {
         let paragraph = NSMutableParagraphStyle()
         paragraph.lineBreakMode = .byTruncatingMiddle
         paragraph.alignment = .left
-        let attributes: [NSAttributedString.Key: Any] = [
-            .font: font,
-            .foregroundColor: labelColor(side: frame.side),
-            .paragraphStyle: paragraph,
-        ]
         let rect = NSRect(
-            x: currentLabelOriginX(),
+            x: frame.originX,
             y: (bounds.height - height) / 2,
             width: frame.width,
             height: height
         )
-        (text as NSString).draw(
-            with: rect,
-            options: [.usesLineFragmentOrigin, .truncatesLastVisibleLine],
-            attributes: attributes
-        )
-    }
+        let options: NSString.DrawingOptions = [.usesLineFragmentOrigin, .truncatesLastVisibleLine]
 
-    private func labelColor(side: PanelLevelSliderLabelLayout.Side) -> NSColor {
-        guard isEnabled else { return .secondaryLabelColor }
-        // The filled (leading) portion is painted in the slider's fill colour,
-        // which the user may customise (#359, #368). Derive the ink from that
-        // colour so the label stays readable on any fill. The unfilled track
-        // keeps primary label ink.
-        if side == .leading {
-            return PanelLevelSliderColorContrast.textColor(
-                forFill: effectiveFillColor,
-                isDarkAppearance: isDarkAppearance
+        func draw(_ color: NSColor) {
+            (text as NSString).draw(
+                with: rect,
+                options: options,
+                attributes: [
+                    .font: font,
+                    .foregroundColor: color,
+                    .paragraphStyle: paragraph,
+                ]
             )
         }
+
+        guard isEnabled else {
+            draw(trackLabelColor)
+            return
+        }
+        let bar = barRect(in: bounds)
+        let fillWidth = min(
+            bar.width,
+            isThumbVisible
+                ? PanelLevelSliderMetrics.coveredFillWidth(for: clampedDoubleValue, width: bar.width)
+                : PanelLevelSliderMetrics.restingFillWidth(for: clampedDoubleValue, width: bar.width)
+        )
+        // No fill: the whole label sits on the track.
+        guard fillWidth > 0.5 else {
+            draw(trackLabelColor)
+            return
+        }
+        // Fill covers the whole capsule: the whole label is inverted.
+        if fillWidth >= bar.width - 0.5 {
+            draw(filledLabelColor)
+            return
+        }
+        // Split: paint each side once, clipped to its own region, so the edge is
+        // crisp and no glyph is drawn twice (which would leave a light halo).
+        NSGraphicsContext.saveGraphicsState()
+        NSBezierPath(rect: NSRect(
+            x: bar.minX,
+            y: bar.minY,
+            width: fillWidth,
+            height: bar.height
+        )).addClip()
+        draw(filledLabelColor)
+        NSGraphicsContext.restoreGraphicsState()
+
+        NSGraphicsContext.saveGraphicsState()
+        NSBezierPath(rect: NSRect(
+            x: bar.minX + fillWidth,
+            y: bar.minY,
+            width: bar.width - fillWidth,
+            height: bar.height
+        )).addClip()
+        draw(trackLabelColor)
+        NSGraphicsContext.restoreGraphicsState()
+    }
+
+    /// Ink for text over the unfilled track (primary label colour).
+    private var trackLabelColor: NSColor {
+        guard isEnabled else { return .secondaryLabelColor }
         return NSColor.labelColor.withAlphaComponent(0.9)
+    }
+
+    /// Ink for text over the filled capsule, derived from the fill's luminance.
+    private var filledLabelColor: NSColor {
+        PanelLevelSliderColorContrast.textColor(
+            forFill: effectiveFillColor,
+            isDarkAppearance: isDarkAppearance
+        )
     }
 
     private func drawKnob() {
@@ -1267,12 +1392,12 @@ final class PanelLevelSliderCell: NSSliderCell {
         // Use the same frozen/live width `trackRect` reports so the cell's
         // value mapping and the drawn thumb cannot disagree mid-gesture.
         let center = slider.knobCenter(forWidth: slider.effectiveTrackWidth)
-        let radius = PanelLevelSliderMetrics.thumbRadius
+        let size = PanelLevelSliderMetrics.thumbSize
         return NSRect(
-            x: center.x - radius,
-            y: center.y - radius,
-            width: radius * 2,
-            height: radius * 2
+            x: center.x - size.width / 2,
+            y: center.y - size.height / 2,
+            width: size.width,
+            height: size.height
         )
     }
 }
