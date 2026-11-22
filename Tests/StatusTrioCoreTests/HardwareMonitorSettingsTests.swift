@@ -139,4 +139,35 @@ final class HardwareMonitorSettingsTests: XCTestCase {
         XCTAssertEqual(store.enabledHardwareSummaryMetrics, Set(HardwareSummaryMetric.allCases),
                        "an all-invalid set must not leave an empty block")
     }
+
+    func testTemperatureMonitoringDefaultsOnAndPersists() {
+        let (defaults, name) = makeSuite()
+        defer { defaults.removePersistentDomain(forName: name) }
+        let store = SettingsStore(defaults: defaults)
+        XCTAssertTrue(store.hardwareTemperatureMonitoringEnabled)
+        XCTAssertEqual(store.cpuRingCenterContent, .temperature)
+        XCTAssertEqual(store.gpuRingCenterContent, .temperature)
+
+        store.hardwareTemperatureMonitoringEnabled = false
+        store.cpuRingCenterContent = .frequency
+        let reloaded = SettingsStore(defaults: defaults)
+        XCTAssertFalse(reloaded.hardwareTemperatureMonitoringEnabled)
+        XCTAssertEqual(reloaded.cpuRingCenterContent, .frequency)
+    }
+
+    func testDisablingTemperatureMonitoringAppliesRingFallbacksPermanently() {
+        let (defaults, name) = makeSuite()
+        defer { defaults.removePersistentDomain(forName: name) }
+        let store = SettingsStore(defaults: defaults)
+        store.hardwareRingConfiguration = HardwareRingConfiguration(
+            layout: .dual, primaryMetric: .cpuUsage, secondaryMetric: .cpuTemperature,
+            topContent: .value(.cpuTemperature))
+        store.hardwareTemperatureMonitoringEnabled = false
+        XCTAssertEqual(store.hardwareRingConfiguration.primaryMetric, .cpuUsage)
+        XCTAssertEqual(store.hardwareRingConfiguration.secondaryMetric, .gpuUsage)
+        XCTAssertEqual(store.hardwareRingConfiguration.topContent, .value(.cpuUsage))
+        store.hardwareTemperatureMonitoringEnabled = true
+        XCTAssertEqual(store.hardwareRingConfiguration.secondaryMetric, .gpuUsage,
+                       "re-enabling temperature must not restore the old temperature selection")
+    }
 }

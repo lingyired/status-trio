@@ -327,7 +327,10 @@ final class StatusPanelRouteTests: XCTestCase {
         XCTAssertEqual(panel.wifiDisclosure, disclosure)
     }
 
-    func testRepeatingCurrentWiFiRouteKeepsDisclosure() {
+    /// Issue #369: repeating the entry for the page that is already open closes
+    /// that detail page (back to the summary) instead of re-entering it, while
+    /// keeping the stored disclosure state for the next open.
+    func testRepeatingCurrentWiFiRouteClosesDetailAndKeepsDisclosure() {
         let fixture = PanelStoreFixture()
         let panel = fixture.makePanel()
         panel.start()
@@ -344,7 +347,7 @@ final class StatusPanelRouteTests: XCTestCase {
         panel.setWiFiShowsDetails(false)
         panel.showWiFiPage(showsDetailsInitially: true)
 
-        XCTAssertEqual(panel.route, .wifi)
+        XCTAssertEqual(panel.route, .summary)
         XCTAssertFalse(panel.wifiDisclosure.showsDetails)
     }
 }

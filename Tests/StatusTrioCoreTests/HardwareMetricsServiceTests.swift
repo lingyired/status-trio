@@ -114,6 +114,42 @@ final class HardwareMetricsServiceTests: XCTestCase {
         service.stopAll()
     }
 
+    func testRingFrequencyDoesNotStarveTemperatureDemand() async {
+        let clock = Clock()
+        let recorder = Recorder()
+        let service = HardwareMetricsService(automaticScheduling: false, now: { clock.date },
+                                             reader: recorder.countingReader(usage: 20))
+        service.wantsRingCPUFrequency = true
+        service.begin(.menuBarArc, metrics: [.cpuUsage, .cpuTemperature])
+        service.begin(.panel, metrics: [.cpuUsage, .cpuTemperature])
+        await awaitSettled(service, recorderCalls: { recorder.calls.count }, expected: 1)
+        XCTAssertTrue(recorder.calls.contains { $0.contains(.cpuTemperature) },
+                      "a menu-bar temperature arc must keep requesting the temperature")
+        service.stopAll()
+    }
+
+    func testTemperatureMonitoringOffRemovesTemperatureFromReads() async {
+        let clock = Clock()
+        let recorder = Recorder()
+        let service = HardwareMetricsService(automaticScheduling: false, now: { clock.date },
+                                             reader: recorder.countingReader(usage: 10))
+        service.temperatureMonitoringEnabled = false
+        service.begin(.panel, metrics: [.cpuUsage, .cpuTemperature, .gpuTemperature])
+        await awaitSettled(service, recorderCalls: { recorder.calls.count }, expected: 1)
+        let first = recorder.calls.first ?? []
+        XCTAssertTrue(first.contains(.cpuUsage))
+        XCTAssertFalse(first.contains(.cpuTemperature))
+        XCTAssertFalse(first.contains(.gpuTemperature))
+
+        service.temperatureMonitoringEnabled = true
+        service.forceRefresh()
+        await awaitSettled(service, recorderCalls: { recorder.calls.count }, expected: 2)
+        let second = recorder.calls.last ?? []
+        XCTAssertTrue(second.contains(.cpuTemperature))
+        XCTAssertTrue(second.contains(.gpuTemperature))
+        service.stopAll()
+    }
+
     func testTickIntervalFollowsFastestDemandedMetric() async {
         let clock = Clock()
         let service = HardwareMetricsService(automaticScheduling: false,

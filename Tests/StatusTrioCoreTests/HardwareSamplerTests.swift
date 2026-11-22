@@ -186,6 +186,48 @@ final class HardwareSamplerTests: XCTestCase {
         XCTAssertEqual(HardwareSampler.detailKindsToBuild([.fan], ids: [.cpuUsage]), Set<HardwareDetailKind>())
     }
 
+    func testHIDCPUTemperatureCarriesHIDSourceCountAndLabel() {
+        var reading = SensorReading(cpuTemperature: 61, cpuTemperatureSource: .average(3),
+                                    gpuTemperature: nil, fans: [], fanCount: nil, sampledAt: date)
+        reading.cpuTemperatureOrigin = .hid
+        let snapshot = HardwareSampler.map(ids: [.cpuTemperature], cpu: nil, gpu: nil,
+                                           sensors: reading, isFirstCPURead: false, at: date)
+        let sample = snapshot[.cpuTemperature]
+        XCTAssertEqual(sample.source, .hid)
+        XCTAssertEqual(sample.value, 61)
+        XCTAssertEqual(sample.metadata.sourceCount, 3)
+        XCTAssertEqual(sample.sensorLabel, "CPU HID average")
+    }
+
+    func testHIDCPUSingleSensorUsesSingleLabel() {
+        var reading = SensorReading(cpuTemperature: 61, cpuTemperatureSource: .single,
+                                    gpuTemperature: nil, fans: [], fanCount: nil, sampledAt: date)
+        reading.cpuTemperatureOrigin = .hid
+        let snapshot = HardwareSampler.map(ids: [.cpuTemperature], cpu: nil, gpu: nil,
+                                           sensors: reading, isFirstCPURead: false, at: date)
+        XCTAssertEqual(snapshot[.cpuTemperature].sensorLabel, "CPU HID sensor")
+        XCTAssertEqual(snapshot[.cpuTemperature].metadata.sourceCount, 1)
+    }
+
+    func testHIDGPUTemperatureReportsHIDSourceAndLabel() {
+        var reading = SensorReading(cpuTemperature: nil, cpuTemperatureSource: nil,
+                                    gpuTemperature: 52, fans: [], fanCount: nil, sampledAt: date)
+        reading.gpuTemperatureOrigin = .hid
+        let snapshot = HardwareSampler.map(ids: [.gpuTemperature], cpu: nil, gpu: nil,
+                                           sensors: reading, isFirstCPURead: false, at: date)
+        XCTAssertEqual(snapshot[.gpuTemperature].source, .hid)
+        XCTAssertEqual(snapshot[.gpuTemperature].value, 52)
+        XCTAssertEqual(snapshot[.gpuTemperature].sensorLabel, "GPU HID")
+    }
+
+    func testSMTemperatureStaysSMCByDefault() {
+        let snapshot = HardwareSampler.map(ids: [.cpuTemperature, .gpuTemperature], cpu: nil, gpu: nil,
+                                           sensors: sensors(cpu: 60, gpu: 55), isFirstCPURead: false, at: date)
+        XCTAssertEqual(snapshot[.cpuTemperature].source, .smc)
+        XCTAssertEqual(snapshot[.gpuTemperature].source, .smc)
+        XCTAssertEqual(snapshot[.gpuTemperature].sensorLabel, "GPU area")
+    }
+
     private func sensors(cpu: Double? = nil, gpu: Double? = nil, battery: Double? = nil,
                          fanCount: Int? = nil, fans: [FanReading] = []) -> SensorReading {
         SensorReading(cpuTemperature: cpu, cpuTemperatureSource: cpu == nil ? nil : .average(2),

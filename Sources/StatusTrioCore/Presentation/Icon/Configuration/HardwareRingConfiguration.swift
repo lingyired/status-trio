@@ -332,6 +332,33 @@ struct HardwareRingConfiguration: Codable, Equatable, Hashable, Sendable {
 
     static let `default` = HardwareRingConfiguration()
 
+    /// Maps any CPU/GPU temperature metric to its usage counterpart. Used when
+    /// temperature monitoring is turned off so a saved ring selection cannot
+    /// keep pointing at an unreadable metric.
+    func replacingUnavailableTemperatures() -> HardwareRingConfiguration {
+        func replacement(_ metric: HardwareMonitorMetric) -> HardwareMonitorMetric {
+            switch metric {
+            case .cpuTemperature: return .cpuUsage
+            case .gpuTemperature: return .gpuUsage
+            default: return metric
+            }
+        }
+        var copy = normalized()
+        copy.primaryMetric = replacement(copy.primaryMetric)
+        if let secondary = copy.secondaryMetric {
+            copy.secondaryMetric = replacement(secondary)
+        }
+        switch copy.topContent {
+        case .symbol(let metric):
+            copy.topContent = .symbol(replacement(metric))
+        case .value(let metric):
+            copy.topContent = .value(replacement(metric))
+        case .automatic, .batteryPercentage, .chargingIndicator, .hidden:
+            break
+        }
+        return copy.normalized()
+    }
+
     /// The top marker now offers only value or hidden. Legacy saved symbol /
     /// automatic choices migrate to a numeric value for the same metric so an
     /// upgrade never keeps drawing the unreadable menu-bar glyph.

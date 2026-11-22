@@ -1,6 +1,8 @@
 import Combine
 import Foundation
 
+
+
 /// One panel-session sample row used to prefill detail charts. Primary metrics
 /// are sampled on the summary already, so recording them here adds no sampling
 /// cost; rows are capped at the largest selectable detail window and dropped when
@@ -131,6 +133,28 @@ final class HardwareMonitorObservable: ObservableObject {
         snapshotSubject.send(stored)
     }
 
+    /// Drops stored and cached readings for metrics that are no longer allowed to
+    /// be sampled at all (temperature monitoring off), so neither the live view
+    /// nor the last-known cache can show a stale value.
+    func dropMetrics(_ ids: Set<HardwareMetricID>, now: Date) {
+        var changed = false
+        for id in ids {
+            if stored.samples.removeValue(forKey: id) != nil { changed = true }
+            if lastKnown.removeValue(forKey: id) != nil { changed = true }
+        }
+        guard changed else { return }
+        objectWillChange.send()
+        snapshotSubject.send(stored)
+    }
+
+    /// Drops the live CPU frequency when a ring stops needing it.
+    func clearCPUFrequency(now: Date) {
+        guard stored.cpuFrequency != nil else { return }
+        stored.cpuFrequency = nil
+        objectWillChange.send()
+        snapshotSubject.send(stored)
+    }
+
     /// Removes the live snapshot for metrics that just lost their last consumer,
     /// so a hidden card cannot keep displaying a value the data source no longer
     /// refreshes. The last good reading is retained in `lastKnown` but marked
@@ -184,6 +208,42 @@ final class HardwareMetricsService: ObservableObject {
     /// panel is the sole non-background consumer, so icon/dock consumers keep
     /// their own fast needs.
     var panelIntervalSeconds: TimeInterval = 0
+
+    /// Master switch for CPU/GPU temperature sampling. When false, temperature
+    /// IDs are removed from every demand set so no SMC or HID temperature read
+    /// happens anywhere (panel, icon, detail, background).
+    var temperatureMonitoringEnabled = true {
+        didSet {
+            guard oldValue != temperatureMonitoringEnabled else { return }
+            generation &+= 1
+            if !temperatureMonitoringEnabled {
+                observable.dropMetrics([.cpuTemperature, .gpuTemperature], now: now())
+            }
+            let rawIDs = demands.values.reduce(into: Set<HardwareMetricID>()) { $0.formUnion($1) }
+            sampler.updateTemperatureDemand(
+                hasCPU: temperatureMonitoringEnabled && rawIDs.contains(.cpuTemperature),
+                hasGPU: temperatureMonitoringEnabled && rawIDs.contains(.gpuTemperature))
+            forcedIDs.formIntersection(requestedIDs)
+            if temperatureMonitoringEnabled {
+                forcedIDs.formUnion(requestedIDs)
+            }
+            pruneSnapshot()
+            if isRunning, !isAsleep { refreshIfNeeded(forceFamilies: []) }
+        }
+    }
+
+    /// True while the status-panel CPU ring shows an IOReport frequency estimate.
+    /// The CPU detail page always samples frequency on its own.
+    var wantsRingCPUFrequency = false {
+        didSet {
+            guard oldValue != wantsRingCPUFrequency else { return }
+            forcedIDs.formUnion(requestedIDs)
+            if !wantsRingCPUFrequency, detailKind != .cpu {
+                observable.clearCPUFrequency(now: now())
+            }
+            if isRunning, !isAsleep { refreshIfNeeded(forceFamilies: []) }
+        }
+    }
 
     static let defaultMetricIDs: Set<HardwareMetricID> = [
         .cpuUsage, .gpuUsage, .memoryUsage, .cpuTemperature, .batteryTemperature, .fanRPM(index: 0)
@@ -248,7 +308,21 @@ final class HardwareMetricsService: ObservableObject {
     deinit { loopTask?.cancel() }
 
     private var requestedIDs: Set<HardwareMetricID> {
-        demands.values.reduce(into: []) { $0.formUnion($1) }
+        var ids = demands.values.reduce(into: Set<HardwareMetricID>()) { $0.formUnion($1) }
+        if !temperatureMonitoringEnabled {
+            ids.remove(.cpuTemperature)
+            ids.remove(.gpuTemperature)
+        }
+        return ids
+    }
+
+    /// Keeps the sampler's temperature fallback state aligned with the metrics
+    /// that still have a consumer. When both temperature metrics disappear the
+    /// HID client and service cache are released.
+    private func syncTemperatureDemand() {
+        let ids = requestedIDs
+        sampler.updateTemperatureDemand(hasCPU: ids.contains(.cpuTemperature),
+                                        hasGPU: ids.contains(.gpuTemperature))
     }
 
     /// Sets which detail payload the sampler should build. Clears the other
@@ -282,6 +356,7 @@ final class HardwareMetricsService: ObservableObject {
         let previous = requestedIDs
         demands[demand] = metrics
         generation &+= 1
+        syncTemperatureDemand()
         let removed = previous.subtracting(requestedIDs)
         if !removed.isEmpty {
             observable.pruneInactive(removed, now: now())
@@ -305,6 +380,7 @@ final class HardwareMetricsService: ObservableObject {
     func end(_ demand: Demand) {
         guard demands.removeValue(forKey: demand) != nil else { return }
         generation &+= 1
+        syncTemperatureDemand()
         if demands.isEmpty {
             stopLoop()
         } else {
@@ -317,6 +393,7 @@ final class HardwareMetricsService: ObservableObject {
     func stopAll() {
         demands.removeAll()
         generation &+= 1
+        syncTemperatureDemand()
         stopLoop()
     }
 
@@ -333,6 +410,7 @@ final class HardwareMetricsService: ObservableObject {
         observable.clearDetailPayloads(except: nil)
         sampler.releaseFrequencyReader()
         sampler.resetNetworkSession()
+        sampler.releaseTemperatureFallback()
     }
 
     func wake() {
@@ -414,6 +492,9 @@ final class HardwareMetricsService: ObservableObject {
         needReaderReset = false
         let sampler = self.sampler
         let includeDetail = detailKind
+        // A closed detail page can still need CPU frequency when the panel ring
+        // shows it; the icon-only demand never does.
+        let wantsRingFrequency = wantsRingCPUFrequency && (demands[.panel]?.contains(.cpuUsage) == true)
         let injected = reader
         Task { [weak self] in
             // A surface can close before this task reaches its first suspension.
@@ -430,7 +511,7 @@ final class HardwareMetricsService: ObservableObject {
             if let injected { snapshot = await injected(due, date) }
             else {
                 snapshot = await sampler.read(ids: due, at: date,
-                                              includeCPUFrequency: includeDetail == .cpu,
+                                              includeCPUFrequency: includeDetail == .cpu || wantsRingFrequency,
                                               details: includeDetail.map { [$0] } ?? [])
             }
             guard let self else { return }
@@ -479,6 +560,7 @@ final class HardwareMetricsService: ObservableObject {
                     return true
                 }
             }
+            if let frequency = snapshot.cpuFrequency { merged.cpuFrequency = frequency }
             if let detail = snapshot.cpuDetail { merged.cpuDetail = detail }
             if let detail = snapshot.gpuDetail { merged.gpuDetail = detail }
             if let detail = snapshot.memoryDetail { merged.memoryDetail = detail }

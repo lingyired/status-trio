@@ -1189,6 +1189,12 @@
 "hardware.monitor.ringValue.ssd" = "SSD";
 "hardware.monitor.ringValue.used" = "使用中";
 "hardware.monitor.ringValue.remaining" = "空き";
+"hardware.monitor.settings.temperatureMonitoring" = "CPU/GPU 温度モニタリング";
+"hardware.monitor.settings.temperatureMonitoring.description" = "オフにすると CPU/GPU 温度を読み取らず、リングは周波数または — を表示し、メニューバーのリング選択でも温度を選べなくなります。";
+"hardware.monitor.ringCenter.cpu" = "CPU リング中央";
+"hardware.monitor.ringCenter.gpu" = "GPU リング中央";
+"hardware.monitor.ringCenter.temperature" = "温度";
+"hardware.monitor.ringCenter.frequency" = "周波数";
 "hardware.monitor.batteryTemperature" = "バッテリー温度";
 "hardware.monitor.batteryTemperature.help" = "バッテリー温度です。バーは 20〜60°C の目安スケールで、安全率ではありません。";
 "settings.tab.monitor" = "システムモニター";

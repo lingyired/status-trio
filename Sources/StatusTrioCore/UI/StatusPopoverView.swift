@@ -373,6 +373,9 @@ struct StatusPopoverView: View {
                                        },
                                        memoryRingDisplayMode: panel.memoryRingDisplayMode,
                                        ssdRingDisplayMode: panel.ssdRingDisplayMode,
+                                       cpuRingCenterContent: panel.cpuRingCenterContent,
+                                       gpuRingCenterContent: panel.gpuRingCenterContent,
+                                       hardwareTemperatureMonitoringEnabled: panel.hardwareTemperatureMonitoringEnabled,
                                        summaryMetrics: panel.enabledHardwareSummaryMetrics)
         }
     }

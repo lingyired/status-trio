@@ -206,6 +206,9 @@ final class StatusPanelViewModel: ObservableObject {
     /// Whether the RAM/SSD rings read as consumed or remaining.
     @Published private(set) var memoryRingDisplayMode: RingValueDisplayMode
     @Published private(set) var ssdRingDisplayMode: RingValueDisplayMode
+    @Published private(set) var cpuRingCenterContent: HardwareRingCenterContent
+    @Published private(set) var gpuRingCenterContent: HardwareRingCenterContent
+    @Published private(set) var hardwareTemperatureMonitoringEnabled: Bool
 
     private var isStarted = false
     private var bluetoothIsExpanded = false
@@ -291,6 +294,9 @@ final class StatusPanelViewModel: ObservableObject {
         enabledHardwareSummaryMetrics = settings.enabledHardwareSummaryMetrics
         memoryRingDisplayMode = settings.memoryRingDisplayMode
         ssdRingDisplayMode = settings.ssdRingDisplayMode
+        cpuRingCenterContent = settings.cpuRingCenterContent
+        gpuRingCenterContent = settings.gpuRingCenterContent
+        hardwareTemperatureMonitoringEnabled = settings.hardwareTemperatureMonitoringEnabled
         hardwareSpeedCapsMbps = [
             .downloadSpeed: settings.hardwareDownloadCapMbps,
             .uploadSpeed: settings.hardwareUploadCapMbps
@@ -555,6 +561,31 @@ final class StatusPanelViewModel: ObservableObject {
             }
             .store(in: &cancellables)
 
+        settings.$cpuRingCenterContent
+            .removeDuplicates()
+            .sink { [weak self] content in
+                guard let self, self.cpuRingCenterContent != content else { return }
+                self.cpuRingCenterContent = content
+            }
+            .store(in: &cancellables)
+
+        settings.$gpuRingCenterContent
+            .removeDuplicates()
+            .sink { [weak self] content in
+                guard let self, self.gpuRingCenterContent != content else { return }
+                self.gpuRingCenterContent = content
+            }
+            .store(in: &cancellables)
+
+        settings.$hardwareTemperatureMonitoringEnabled
+            .removeDuplicates()
+            .sink { [weak self] enabled in
+                guard let self, self.hardwareTemperatureMonitoringEnabled != enabled else { return }
+                self.hardwareTemperatureMonitoringEnabled = enabled
+                self.scheduleHardwareDemandRecompute()
+            }
+            .store(in: &cancellables)
+
         settings.$panelLevelSliderColor
             .removeDuplicates()
             .sink { [weak self] color in
@@ -678,6 +709,7 @@ final class StatusPanelViewModel: ObservableObject {
             showSummaryPage()
             return
         }
+        guard !closeOpenDetailIfAlreadyShowing(.battery) else { return }
         guard transition(to: .battery) else { return }
         actions.batteryDetailsAppeared()
         refreshBatteryDetails()
@@ -688,6 +720,7 @@ final class StatusPanelViewModel: ObservableObject {
             showSummaryPage()
             return
         }
+        guard !closeOpenDetailIfAlreadyShowing(.wifi) else { return }
         let opensNewPage = route != .wifi
         if opensNewPage {
             wifiDisclosure = WiFiPanelDisclosureState(
@@ -705,6 +738,7 @@ final class StatusPanelViewModel: ObservableObject {
             showSummaryPage()
             return
         }
+        guard !closeOpenDetailIfAlreadyShowing(.ethernet) else { return }
         guard transition(to: .ethernet) else { return }
         actions.wiredDetailsOpened()
         refreshWiredDetailsAndNetwork()
@@ -715,6 +749,7 @@ final class StatusPanelViewModel: ObservableObject {
             showSummaryPage()
             return
         }
+        guard !closeOpenDetailIfAlreadyShowing(.inputSource) else { return }
         transition(to: .inputSource)
     }
 
@@ -725,6 +760,7 @@ final class StatusPanelViewModel: ObservableObject {
             showSummaryPage()
             return
         }
+        guard !closeOpenDetailIfAlreadyShowing(.hardwareDetail(kind)) else { return }
         transition(to: .hardwareDetail(kind))
     }
 
@@ -1528,6 +1564,18 @@ final class StatusPanelViewModel: ObservableObject {
         if route != .summary { endCurrentPageActions() }
         route = next
         updateHardwareMetricsDemand()
+        return true
+    }
+
+    /// Issue #369: clicking the entry for the detail page that is already open
+    /// closes that detail page (returning the main panel to its summary) instead
+    /// of re-entering the same page. The side panel is closed while the main
+    /// popover stays open, matching the back button's page semantics. Hardware
+    /// details match only the same `kind`, so a different card still switches.
+    /// Returns true when the click was handled as a close.
+    private func closeOpenDetailIfAlreadyShowing(_ target: StatusPanelRoute) -> Bool {
+        guard route == target else { return false }
+        showSummaryPage()
         return true
     }
 

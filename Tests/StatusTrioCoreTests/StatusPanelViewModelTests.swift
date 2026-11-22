@@ -1008,6 +1008,66 @@ final class StatusPanelViewModelTests: XCTestCase {
     }
 }
 
+/// Issue #369: clicking the *same* detail entry again closes that detail page
+/// (the side panel) while the main panel stays open; a different entry still
+/// switches pages.
+@MainActor
+struct DetailEntryToggleDismissTests {
+    @Test func clickingOpenHardwareEntryAgainClosesDetailToSummary() {
+        let fixture = PanelStoreFixture()
+        fixture.settings.setPopupSection(.hardwareMonitor, enabled: true)
+        let panel = fixture.makePanel()
+        defer { panel.stop(); fixture.store.stop() }
+
+        panel.showHardwareDetail(.cpu)
+        #expect(panel.route == .hardwareDetail(.cpu))
+
+        panel.showHardwareDetail(.cpu)
+        #expect(panel.route == .summary)
+
+        // After closing, a different hardware card still switches pages.
+        panel.showHardwareDetail(.memory)
+        #expect(panel.route == .hardwareDetail(.memory))
+    }
+
+    @Test func clickingOpenBatteryEntryAgainClosesDetailToSummary() {
+        let fixture = PanelStoreFixture()
+        let panel = fixture.makePanel()
+        defer { panel.stop(); fixture.store.stop() }
+
+        panel.showBatteryPage()
+        #expect(panel.route == .battery)
+        panel.showBatteryPage()
+        #expect(panel.route == .summary)
+    }
+
+    @Test func clickingOpenWiFiEntryAgainClosesDetailButWiredIsASwitch() {
+        let fixture = PanelStoreFixture()
+        let panel = fixture.makePanel()
+        defer { panel.stop(); fixture.store.stop() }
+
+        panel.showWiFiPage(showsDetailsInitially: true)
+        #expect(panel.route == .wifi)
+        panel.showWiFiPage(showsDetailsInitially: true)
+        #expect(panel.route == .summary)
+
+        panel.showWiredPage()
+        #expect(panel.route == .ethernet)
+    }
+
+    @Test func clickingOpenInputSourceEntryAgainClosesDetailToSummary() {
+        let fixture = PanelStoreFixture()
+        fixture.settings.setPopupSection(.inputSource, enabled: true)
+        let panel = fixture.makePanel()
+        defer { panel.stop(); fixture.store.stop() }
+
+        panel.showInputSourcePage()
+        #expect(panel.route == .inputSource)
+        panel.showInputSourcePage()
+        #expect(panel.route == .summary)
+    }
+}
+
 @MainActor
 struct AirPodsDiscoveryTriggerTests {
     @Test(.timeLimit(.minutes(1)))

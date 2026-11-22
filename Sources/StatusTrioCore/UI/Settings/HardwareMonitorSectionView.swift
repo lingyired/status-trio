@@ -13,6 +13,7 @@ struct HardwareMonitorSectionView: View {
             placementGroup
             refreshGroup
             networkCapGroup
+            temperatureMonitoringGroup
             ringGroup
             if store.showsHardwareRings { ringValueGroup }
             bottomBarGroup
@@ -276,6 +277,23 @@ struct HardwareMonitorSectionView: View {
             localization.string(.hardwareMonitorRingValueGroup),
             footnote: localization.string(.hardwareMonitorRingValueGroupDescription)
         ) {
+            ringCenterRow(title: localization.string(.hardwareMonitorRingCenterCPU),
+                          symbol: "cpu", tint: .blue,
+                          selection: Binding(
+                            get: {
+                                store.hardwareTemperatureMonitoringEnabled
+                                    ? store.cpuRingCenterContent : .frequency
+                            },
+                            set: { store.cpuRingCenterContent = $0 }),
+                          options: store.hardwareTemperatureMonitoringEnabled
+                              ? HardwareRingCenterContent.allCases : [.frequency])
+            SettingsDivider()
+            ringCenterRow(title: localization.string(.hardwareMonitorRingCenterGPU),
+                          symbol: "cpu", tint: .purple,
+                          selection: Binding(get: { store.gpuRingCenterContent },
+                                             set: { store.gpuRingCenterContent = $0 }),
+                          options: [.temperature])
+            SettingsDivider()
             ringValueRow(title: localization.string(.hardwareMonitorMemory),
                          symbol: "memorychip", tint: .purple,
                          selection: Binding(get: { store.memoryRingDisplayMode },
@@ -285,6 +303,37 @@ struct HardwareMonitorSectionView: View {
                          symbol: "internaldrive", tint: .teal,
                          selection: Binding(get: { store.ssdRingDisplayMode },
                                             set: { store.ssdRingDisplayMode = $0 }))
+        }
+    }
+
+    private var temperatureMonitoringGroup: some View {
+        SettingsGroup(
+            footnote: localization.string(.hardwareMonitorSettingsTemperatureMonitoringDescription)
+        ) {
+            SettingsToggleRow(
+                symbol: "thermometer.medium",
+                tint: .orange,
+                title: localization.string(.hardwareMonitorSettingsTemperatureMonitoring),
+                subtitle: nil,
+                isOn: Binding(
+                    get: { store.hardwareTemperatureMonitoringEnabled },
+                    set: { store.hardwareTemperatureMonitoringEnabled = $0 }
+                )
+            )
+        }
+    }
+
+    private func ringCenterRow(title: String, symbol: String, tint: Color,
+                               selection: Binding<HardwareRingCenterContent>,
+                               options: [HardwareRingCenterContent]) -> some View {
+        SettingsRow(symbol, tint: tint, title: title, subtitle: nil) {
+            Picker(title, selection: selection) {
+                ForEach(options) { content in
+                    Text(localization.string(content.titleKey)).tag(content)
+                }
+            }
+            .labelsHidden()
+            .settingsMenuPickerWidth()
         }
     }
 

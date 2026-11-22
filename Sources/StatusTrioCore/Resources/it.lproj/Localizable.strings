@@ -1189,6 +1189,12 @@
 "hardware.monitor.ringValue.ssd" = "SSD";
 "hardware.monitor.ringValue.used" = "Usato";
 "hardware.monitor.ringValue.remaining" = "Rimanente";
+"hardware.monitor.settings.temperatureMonitoring" = "Monitoraggio temperatura CPU/GPU";
+"hardware.monitor.settings.temperatureMonitoring.description" = "Se disattivato, le temperature CPU/GPU non vengono più lette, gli anelli mostrano la frequenza o — e l’anello della barra dei menu non offre più la temperatura.";
+"hardware.monitor.ringCenter.cpu" = "Centro dell’anello CPU";
+"hardware.monitor.ringCenter.gpu" = "Centro dell’anello GPU";
+"hardware.monitor.ringCenter.temperature" = "Temperatura";
+"hardware.monitor.ringCenter.frequency" = "Frequenza";
 "hardware.monitor.batteryTemperature" = "Temp. batteria";
 "hardware.monitor.batteryTemperature.help" = "Temperatura della batteria. La barra usa una scala visiva 20–60 °C, non una percentuale di sicurezza.";
 "settings.tab.monitor" = "Monitor di sistema";

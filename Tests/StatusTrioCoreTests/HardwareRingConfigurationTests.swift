@@ -186,4 +186,34 @@ extension HardwareRingConfigurationTests {
         XCTAssertFalse(HardwareMonitorMetric.colorEditableArcMetrics.contains(.batteryLevel))
         XCTAssertTrue(HardwareMonitorMetric.colorEditableArcMetrics.contains(.memoryUsage))
     }
+
+    func testReplacingUnavailableTemperaturesFallsBackToUsageEverywhere() {
+        let configuration = HardwareRingConfiguration(
+            layout: .dual,
+            primaryMetric: .cpuTemperature,
+            secondaryMetric: .gpuTemperature,
+            topContent: .value(.gpuTemperature))
+        let replaced = configuration.replacingUnavailableTemperatures()
+        XCTAssertEqual(replaced.primaryMetric, .cpuUsage)
+        XCTAssertEqual(replaced.secondaryMetric, .gpuUsage)
+        XCTAssertEqual(replaced.topContent, .value(.gpuUsage))
+    }
+
+    func testReplacingUnavailableTemperaturesAvoidsDuplicatePrimaryMetric() {
+        let configuration = HardwareRingConfiguration(
+            layout: .dual,
+            primaryMetric: .cpuUsage,
+            secondaryMetric: .cpuTemperature,
+            topContent: .value(.cpuUsage))
+        let replaced = configuration.replacingUnavailableTemperatures()
+        XCTAssertEqual(replaced.primaryMetric, .cpuUsage)
+        XCTAssertEqual(replaced.secondaryMetric, .gpuUsage,
+                       "the duplicate CPU usage must normalize to a distinct metric")
+    }
+
+    func testReplacingUnavailableTemperaturesLeavesOtherMetricsAlone() {
+        let configuration = HardwareRingConfiguration(
+            layout: .single, primaryMetric: .memoryUsage, topContent: .symbol(.fan))
+        XCTAssertEqual(configuration.replacingUnavailableTemperatures(), configuration)
+    }
 }

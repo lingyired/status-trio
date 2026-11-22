@@ -225,7 +225,27 @@ struct AppIconRingView: View {
     }
 
     private var hardwareSecondaryMetric: HardwareMonitorMetric {
-        store.hardwareRingConfiguration.normalizedSecondaryMetric ?? .gpuUsage
+        // Use the same effective configuration as the rendered icon: when a
+        // temperature selection is unavailable, replacing it can create a
+        // duplicate of the primary metric and normalize to the next distinct
+        // metric (GPU usage). Showing the pre-normalization value here made the
+        // settings row disagree with the rendered arc.
+        let configuration = store.hardwareTemperatureMonitoringEnabled
+            ? store.hardwareRingConfiguration
+            : store.hardwareRingConfiguration.replacingUnavailableTemperatures()
+        return configuration.normalizedSecondaryMetric ?? .gpuUsage
+    }
+
+    /// When temperature monitoring is off the stored selection is preserved,
+    /// but the picker shows the usage metric it currently falls back to so the
+    /// filtered option list never leaves a blank control.
+    private func effectiveRingMetric(_ metric: HardwareMonitorMetric) -> HardwareMonitorMetric {
+        guard !store.hardwareTemperatureMonitoringEnabled else { return metric }
+        switch metric {
+        case .cpuTemperature: return .cpuUsage
+        case .gpuTemperature: return .gpuUsage
+        default: return metric
+        }
     }
 
     private var hardwareArcGroup: some View {
@@ -243,11 +263,11 @@ struct AppIconRingView: View {
             )
             SettingsDivider()
             SettingsGroupedMenuRow(
-                symbol: store.hardwareRingConfiguration.primaryMetric.systemImage,
+                symbol: effectiveRingMetric(store.hardwareRingConfiguration.primaryMetric).systemImage,
                 tint: .green,
                 title: localization.string(.settingsHardwareRingPrimaryMetric),
                 selection: Binding(
-                    get: { store.hardwareRingConfiguration.primaryMetric },
+                    get: { effectiveRingMetric(store.hardwareRingConfiguration.primaryMetric) },
                     set: { setPrimaryMetric($0) }
                 ),
                 groups: hardwareRingMetricGroups,
@@ -543,9 +563,9 @@ struct AppIconRingView: View {
     private var hardwareTopReading: HardwareTopReading {
         switch store.hardwareRingConfiguration.topContent {
         case .batteryPercentage: return .batteryLevel
-        case let .value(metric), let .symbol(metric): return .metric(metric)
+        case let .value(metric), let .symbol(metric): return .metric(effectiveRingMetric(metric))
         case .automatic, .hidden, .chargingIndicator:
-            return .metric(store.hardwareRingConfiguration.primaryMetric)
+            return .metric(effectiveRingMetric(store.hardwareRingConfiguration.primaryMetric))
         }
     }
 
@@ -678,9 +698,13 @@ struct AppIconRingView: View {
     /// Volume and Wi-Fi signal strength are included so they can fill either an
     /// arc or the top reading.
     private var hardwareRingMetricGroups: [(title: String, options: [HardwareMonitorMetric])] {
-        [
-            ("CPU", [.cpuUsage, .cpuTemperature]),
-            ("GPU", [.gpuUsage, .gpuTemperature]),
+        let cpuOptions: [HardwareMonitorMetric] = store.hardwareTemperatureMonitoringEnabled
+            ? [.cpuUsage, .cpuTemperature] : [.cpuUsage]
+        let gpuOptions: [HardwareMonitorMetric] = store.hardwareTemperatureMonitoringEnabled
+            ? [.gpuUsage, .gpuTemperature] : [.gpuUsage]
+        return [
+            ("CPU", cpuOptions),
+            ("GPU", gpuOptions),
             (localization.string(.settingsHardwareRingGroupOther),
              HardwareMonitorMetric.otherArcMetrics)
         ]

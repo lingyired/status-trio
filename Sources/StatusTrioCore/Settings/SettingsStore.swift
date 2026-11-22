@@ -226,6 +226,9 @@ final class SettingsStore: ObservableObject {
     static let enabledHardwareSummaryMetricsDefaultsKey = "enabledHardwareSummaryMetricsV1"
     static let memoryRingDisplayModeDefaultsKey = "memoryRingDisplayModeV1"
     static let ssdRingDisplayModeDefaultsKey = "ssdRingDisplayModeV1"
+    static let hardwareTemperatureMonitoringEnabledDefaultsKey = "hardwareTemperatureMonitoringEnabledV1"
+    static let cpuRingCenterContentDefaultsKey = "cpuRingCenterContentV1"
+    static let gpuRingCenterContentDefaultsKey = "gpuRingCenterContentV1"
     static let hardwareSpeedCapRange: ClosedRange<Double> = 1...100000
     static let defaultHardwareDownloadCapMbps: Double = 1000
     static let defaultHardwareUploadCapMbps: Double = 100
@@ -1259,6 +1262,12 @@ final class SettingsStore: ObservableObject {
             if let data = try? JSONEncoder().encode(hardwareRingConfiguration.normalized()) {
                 defaults.set(data, forKey: Self.hardwareRingConfigurationDefaultsKey)
             }
+            if !hardwareTemperatureMonitoringEnabled {
+                let normalized = hardwareRingConfiguration.replacingUnavailableTemperatures()
+                if normalized != hardwareRingConfiguration {
+                    hardwareRingConfiguration = normalized
+                }
+            }
         }
     }
 
@@ -1407,6 +1416,42 @@ final class SettingsStore: ObservableObject {
     /// Whether the SSD ring reads as consumed or remaining (default consumed).
     @Published var ssdRingDisplayMode: RingValueDisplayMode {
         didSet { defaults.set(ssdRingDisplayMode.rawValue, forKey: Self.ssdRingDisplayModeDefaultsKey) }
+    }
+
+    /// Master switch for CPU/GPU temperature sampling. Off means no SMC or HID
+    /// temperature reads anywhere; panel rings fall back to frequency (CPU) or a dash.
+    @Published var hardwareTemperatureMonitoringEnabled: Bool = true {
+        didSet {
+            defaults.set(hardwareTemperatureMonitoringEnabled,
+                         forKey: Self.hardwareTemperatureMonitoringEnabledDefaultsKey)
+            if !hardwareTemperatureMonitoringEnabled {
+                normalizeHardwareRingForTemperatureAvailability()
+            }
+        }
+    }
+
+    /// What the CPU ring shows in its center. CPU frequency is an IOReport
+    /// estimate; GPU has no reliable unprivileged frequency source, so only the
+    /// CPU setting offers the frequency option.
+    @Published var cpuRingCenterContent: HardwareRingCenterContent = .temperature {
+        didSet { defaults.set(cpuRingCenterContent.rawValue, forKey: Self.cpuRingCenterContentDefaultsKey) }
+    }
+
+    /// Kept separate for forward compatibility; the UI currently only offers
+    /// temperature for the GPU ring.
+    @Published var gpuRingCenterContent: HardwareRingCenterContent = .temperature {
+        didSet { defaults.set(gpuRingCenterContent.rawValue, forKey: Self.gpuRingCenterContentDefaultsKey) }
+    }
+
+    /// Rewrites a saved menu-bar ring selection that points at a temperature
+    /// metric to the matching usage metric. This is intentional when monitoring
+    /// is turned off: the fallback selection persists, so re-enabling temperature
+    /// does not silently pull the user back to a temperature arc.
+    func normalizeHardwareRingForTemperatureAvailability() {
+        let normalized = hardwareRingConfiguration.replacingUnavailableTemperatures()
+        if normalized != hardwareRingConfiguration {
+            hardwareRingConfiguration = normalized
+        }
     }
 
     /// Turn one ring card on or off. The final remaining ring cannot be removed.
@@ -3184,6 +3229,15 @@ final class SettingsStore: ObservableObject {
             rawValue: defaults.string(forKey: Self.memoryRingDisplayModeDefaultsKey) ?? "") ?? .used
         self.ssdRingDisplayMode = RingValueDisplayMode(
             rawValue: defaults.string(forKey: Self.ssdRingDisplayModeDefaultsKey) ?? "") ?? .used
+        self.hardwareTemperatureMonitoringEnabled =
+            defaults.object(forKey: Self.hardwareTemperatureMonitoringEnabledDefaultsKey) as? Bool ?? true
+        self.cpuRingCenterContent = HardwareRingCenterContent(
+            rawValue: defaults.string(forKey: Self.cpuRingCenterContentDefaultsKey) ?? "") ?? .temperature
+        self.gpuRingCenterContent = HardwareRingCenterContent(
+            rawValue: defaults.string(forKey: Self.gpuRingCenterContentDefaultsKey) ?? "") ?? .temperature
+        if !hardwareTemperatureMonitoringEnabled {
+            normalizeHardwareRingForTemperatureAvailability()
+        }
         localIconPluginDirectories =
             defaults.stringArray(forKey: Self.localIconPluginDirectoriesDefaultsKey) ?? []
         bootstrapIconConfiguration()

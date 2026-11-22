@@ -272,6 +272,23 @@ final class HardwareReaderTests: XCTestCase {
         }
     }
 
+    func testHIDOriginChangesCPULabelAndKeepsCount() {
+        var reading = SensorReading(cpuTemperature: 62, cpuTemperatureSource: .average(2),
+                                    gpuTemperature: nil, fans: [], fanCount: nil, sampledAt: start)
+        XCTAssertEqual(reading.cpuTemperatureLabel, "CPU average")
+        reading.cpuTemperatureOrigin = .hid
+        XCTAssertEqual(reading.cpuTemperatureLabel, "CPU HID average")
+        XCTAssertEqual(reading.cpuTemperatureCount, 2)
+    }
+
+    func testGPUOriginControlsGPULabel() {
+        var reading = SensorReading(cpuTemperature: nil, cpuTemperatureSource: nil,
+                                    gpuTemperature: 50, fans: [], fanCount: nil, sampledAt: start)
+        XCTAssertEqual(reading.gpuTemperatureLabel, "GPU area")
+        reading.gpuTemperatureOrigin = .hid
+        XCTAssertEqual(reading.gpuTemperatureLabel, "GPU HID")
+    }
+
     private func ticks(_ user: UInt32, _ idle: UInt32) -> CPUTicks {
         CPUTicks(user: user, system: 0, idle: idle, nice: 0)
     }

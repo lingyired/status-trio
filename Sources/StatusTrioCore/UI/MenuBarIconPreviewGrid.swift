@@ -31,6 +31,11 @@ struct HardwareRingStrip: View {
     /// Ring value semantics for RAM and SSD; CPU/GPU are always consumed.
     var memoryDisplayMode: RingValueDisplayMode = .used
     var ssdDisplayMode: RingValueDisplayMode = .used
+    /// What the CPU/GPU ring draws in its center. GPU only supports temperature
+    /// today; when monitoring is off both rings drop the temperature reading.
+    var cpuCenterContent: HardwareRingCenterContent = .temperature
+    var gpuCenterContent: HardwareRingCenterContent = .temperature
+    var temperatureMonitoringEnabled: Bool = true
 
     /// Capacity is read once when the strip appears, not on every redraw: the
     /// volume query is a real filesystem/APFS lookup and was running on every
@@ -148,10 +153,12 @@ struct HardwareRingStrip: View {
     private func spec(for slot: HardwareRingSlot) -> (top: String, center: String, progress: Double, color: IconRGBA, centerScale: Double) {
         switch slot {
         case .cpu:
-            let center = temperatureText(.cpuTemperature)
+            let useTemperature = temperatureMonitoringEnabled && cpuCenterContent == .temperature
+            let center = useTemperature ? temperatureText(.cpuTemperature) : frequencyText()
             return (percentText(.cpuUsage), center, percent(.cpuUsage), color(.cpuUsage), fittedCenterScale(center, base: 1.05))
         case .gpu:
-            let center = temperatureText(.gpuTemperature)
+            let useTemperature = temperatureMonitoringEnabled && gpuCenterContent == .temperature
+            let center = useTemperature ? temperatureText(.gpuTemperature) : "--"
             return (percentText(.gpuUsage), center, percent(.gpuUsage), color(.gpuUsage), fittedCenterScale(center, base: 1.05))
         case .ram:
             let value = HardwareRingValuePresentation.memory(
@@ -201,6 +208,14 @@ struct HardwareRingStrip: View {
     private func temperatureText(_ id: HardwareMetricID) -> String {
         guard let sample = sample(id), let value = sample.value, value.isFinite else { return "--" }
         return "\(Int(value.rounded()))°"
+    }
+
+    /// Compact estimated CPU clock for the ring center, e.g. "3.2G".
+    private func frequencyText() -> String {
+        guard let frequency = hardware.snapshot.cpuFrequency else { return "--" }
+        let value = frequency.performanceGHz ?? frequency.efficiencyGHz ?? frequency.superGHz
+        guard let value, value.isFinite, value > 0 else { return "--" }
+        return String(format: "%.1fG", value)
     }
 
 }

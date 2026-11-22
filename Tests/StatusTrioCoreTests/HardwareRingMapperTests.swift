@@ -225,6 +225,26 @@ final class HardwareRingMapperTests: XCTestCase {
         XCTAssertEqual(text.text, "55°")
     }
 
+    func testDualRingTopAndRightTemperatureRenderWithTemperatureSample() {
+        let snap = snapshot([
+            .cpuUsage: sample(20, unit: .percent),
+            .cpuTemperature: sample(66, unit: .celsius)
+        ])
+        let config = HardwareRingConfiguration(
+            layout: .dual,
+            primaryMetric: .cpuUsage,
+            secondaryMetric: .cpuTemperature,
+            topContent: .value(.cpuTemperature))
+        let state = HardwareRingMapper.resolve(snapshot: snap, configuration: config, now: now)
+        guard case let .text(text)? = state.accessory else {
+            return XCTFail("expected temperature text accessory")
+        }
+        XCTAssertEqual(text.text, "66°")
+        XCTAssertEqual(state.segments.count, 2)
+        XCTAssertGreaterThan(state.segments[1].progress, 0,
+                             "the right CPU temperature arc must not be inactive")
+    }
+
     func testHiddenTopMarker() {
         let snap = snapshot([.cpuUsage: sample(45, unit: .percent)])
         let config = HardwareRingConfiguration(layout: .single, primaryMetric: .cpuUsage, topContent: .hidden)

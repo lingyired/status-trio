@@ -19,6 +19,9 @@ struct HardwareMonitorSummaryView: View {
     /// Whether the RAM / SSD rings read as consumed or remaining.
     var memoryRingDisplayMode: RingValueDisplayMode = .used
     var ssdRingDisplayMode: RingValueDisplayMode = .used
+    var cpuRingCenterContent: HardwareRingCenterContent = .temperature
+    var gpuRingCenterContent: HardwareRingCenterContent = .temperature
+    var hardwareTemperatureMonitoringEnabled: Bool = true
     /// Bottom info-bar metrics the user kept enabled.
     var summaryMetrics: Set<HardwareSummaryMetric> = Set(HardwareSummaryMetric.allCases)
 
@@ -51,7 +54,10 @@ struct HardwareMonitorSummaryView: View {
                                   visibleSlots: ringSlots,
                                   animatesProgress: false,
                                   memoryDisplayMode: memoryRingDisplayMode,
-                                  ssdDisplayMode: ssdRingDisplayMode)
+                                  ssdDisplayMode: ssdRingDisplayMode,
+                                  cpuCenterContent: cpuRingCenterContent,
+                                  gpuCenterContent: gpuRingCenterContent,
+                                  temperatureMonitoringEnabled: hardwareTemperatureMonitoringEnabled)
             }
             if showsSummaryRow, !visibleItems.isEmpty {
                 CompactSummaryInfoBar(items: visibleItems) { metric in
