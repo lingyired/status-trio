@@ -21,6 +21,7 @@ extension AppEnvironment {
             volumeMonitor: volumeMonitor,
             brightnessMonitor: brightnessMonitor,
             inputMonitor: inputMonitor,
+            volumeFeedback: VolumeFeedbackPlayer(),
             refreshInterval: refreshInterval,
             bluetoothDevices: BluetoothDeviceController(
                 // The accessory power sources are the second battery source, read
