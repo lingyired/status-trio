@@ -20,8 +20,16 @@ enum SMCReadOnlyClient {
         case batteryLittleEndianMilliUnits
     }
 
+    /// Injected at Direct launch with the concrete IOKit service name. Store
+    /// leaves it nil so no connection is attempted and this file carries no
+    /// private service-name literal (compiles in the App Store target).
+    nonisolated(unsafe) static var smcServiceName: String?
+
     static func withConnection<T>(_ body: (Exchange) -> T) -> T? {
-        let service = IOServiceGetMatchingService(kIOMainPortDefault, IOServiceMatching("AppleSMC"))
+        guard let name = smcServiceName else { return nil }
+        let service = name.withCString {
+            IOServiceGetMatchingService(kIOMainPortDefault, IOServiceMatching($0))
+        }
         guard service != 0 else { return nil }
         defer { IOObjectRelease(service) }
         var connection: io_connect_t = 0

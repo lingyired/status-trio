@@ -51,6 +51,7 @@ extension AppEnvironment {
     ) -> AppEnvironment {
         SystemChargeLimitReader.installDirectDefaults()
         SystemVolumeFeedbackPreference.installDirectDefaults()
+        SMCReadOnlyClient.installDirectDefaults()
         let settings = SettingsStore(
             backgroundUITestingForcesHardwareMonitor:
                 backgroundUITesting.isEnabled && backgroundUITesting.opensHardwareDetailRaw != nil

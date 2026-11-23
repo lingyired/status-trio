@@ -29,3 +29,4 @@ Sources/StatusTrioCore/App/UpdateCycleState.swift
 Sources/StatusTrioCore/Monitoring/CPUFrequencyReader.swift
 
 Sources/StatusTrioCore/Models/SystemIconAppearanceReader.swift
+Sources/StatusTrioCore/Monitoring/DirectSMCServiceName.swift
