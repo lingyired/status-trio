@@ -67,7 +67,7 @@
 优先级：**SMC 实测（PBwo → PDBR → PBLR）→ AppleARMBacklight 估算 → 不可用**。
 
 - M3 Air（Mac15,12）`PDBR` 不存在、`PBLR` 恒为 0：0 不再作为有效背光分支发布，改为尝试 `AppleARMBacklight` 估算。
-- 估算值 = `BrightnessMicroAmps.value / max × current-for-max-backlight ÷ 1000 × 6.0 V`；6 V 是 macpow 的明确假设，不是实测电压，UI 以 `≈` 和 “Estimated” 标注。
+- 估算值 = `BrightnessMicroAmps.value / max × current-for-max-backlight(µA) ÷ 1,000,000 × 6.0 V`；6 V 是 macpow 的明确假设，不是实测电压，UI 以 `≈` 和 “Estimated” 标注。
 - 缺少有效电流或校准数据时返回 `nil`，不伪造功耗；估算导致 residual 超出容差时丢弃估算分支，而不是发布异常负 residual。
 - `DISP/DISPEXT` 不作为背光功率；它们只代表 SoC 显示控制器。
 - 显示器、USB 汇总、逐端口低于 `BatteryPowerFlowState.minimumVisibleWatts`（0.05 W）的 0 分支不绘制。
