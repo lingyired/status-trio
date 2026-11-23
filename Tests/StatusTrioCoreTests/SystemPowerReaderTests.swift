@@ -333,13 +333,17 @@ extension SystemPowerReaderTests {
     func testBacklightEstimateFormulaUsesCalibrationAndNamedVoltage() {
         let watts = AppleARMBacklightPowerEstimator.estimatedWatts(
             currentMicroAmps: 500, maximumMicroAmps: 1_000,
-            calibrationMilliamps: 800, assumedVoltage: 6)
+            calibrationMicroAmps: 800_000, assumedVoltage: 6)
         XCTAssertEqual(watts ?? 0, 2.4, accuracy: 0.0001)
         XCTAssertNil(AppleARMBacklightPowerEstimator.estimatedWatts(
             currentMicroAmps: 500, maximumMicroAmps: 0,
-            calibrationMilliamps: 800))
+            calibrationMicroAmps: 800_000))
         XCTAssertNil(AppleARMBacklightPowerEstimator.estimatedWatts(
             currentMicroAmps: 500, maximumMicroAmps: 1_000,
-            calibrationMilliamps: 0))
+            calibrationMicroAmps: 0))
+        // Mac15,9 live values: 3199/13799 × 904383 µA × 6 V ≈ 1.26 W.
+        XCTAssertEqual(AppleARMBacklightPowerEstimator.estimatedWatts(
+            currentMicroAmps: 3_199, maximumMicroAmps: 13_799,
+            calibrationMicroAmps: 904_383) ?? 0, 1.258, accuracy: 0.01)
     }
 }

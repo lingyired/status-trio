@@ -56,7 +56,7 @@ final class AppleARMBacklightPowerEstimator: BacklightPowerEstimating, @unchecke
 
     private let lock = NSLock()
     private var service: io_service_t = 0
-    private var calibrationMilliamps: Double?
+    private var calibrationMicroAmps: Double?
     private var retryAfter: Date = .distantPast
 
     deinit {
@@ -69,7 +69,7 @@ final class AppleARMBacklightPowerEstimator: BacklightPowerEstimating, @unchecke
             IOObjectRelease(service)
             service = 0
         }
-        calibrationMilliamps = nil
+        calibrationMicroAmps = nil
         retryAfter = .distantPast
         lock.unlock()
     }
@@ -87,11 +87,12 @@ final class AppleARMBacklightPowerEstimator: BacklightPowerEstimating, @unchecke
               current.value > 0, current.max > 0, calibration > 0 else {
             return nil
         }
-        let fraction = min(max(current.value / current.max, 0), 1)
-        let milliamps = fraction * calibration
-        let watts = milliamps / 1000 * Self.assumedVoltage
-        guard watts.isFinite,
-              (Self.minimumVisibleWatts...Self.maximumPlausibleWatts).contains(watts) else {
+        guard let watts = Self.estimatedWatts(currentMicroAmps: current.value,
+                                              maximumMicroAmps: current.max,
+                                              calibrationMicroAmps: calibration) else {
+            return nil
+        }
+        guard (Self.minimumVisibleWatts...Self.maximumPlausibleWatts).contains(watts) else {
             return nil
         }
         return DisplayPowerSample(watts: watts, readAt: date, provenance: .estimated,
@@ -117,13 +118,15 @@ final class AppleARMBacklightPowerEstimator: BacklightPowerEstimating, @unchecke
     }
 
     private func calibrationLocked(from properties: [String: Any]) -> Double? {
-        if let calibrationMilliamps { return calibrationMilliamps }
+        if let calibrationMicroAmps { return calibrationMicroAmps }
         guard let parameters = properties["backlight-calibration-parameters"] as? [String: Any],
               let value = Self.number(parameters["current-for-max-backlight"]),
-              value.isFinite, (1...20_000).contains(value) else {
+              value.isFinite, (1_000...2_000_000).contains(value) else {
             return nil
         }
-        calibrationMilliamps = value
+        // The key is in microamps (904383 on Mac15,9 = 904.383 mA for the
+        // maximum backlight), matching BrightnessMicroAmps' scale.
+        calibrationMicroAmps = value
         return value
     }
 
@@ -144,12 +147,13 @@ final class AppleARMBacklightPowerEstimator: BacklightPowerEstimating, @unchecke
     }
 
     static func estimatedWatts(currentMicroAmps value: Double, maximumMicroAmps maximum: Double,
-                               calibrationMilliamps: Double,
+                               calibrationMicroAmps: Double,
                                assumedVoltage: Double = AppleARMBacklightPowerEstimator.assumedVoltage) -> Double? {
-        guard value.isFinite, maximum.isFinite, calibrationMilliamps.isFinite,
-              value > 0, maximum > 0, calibrationMilliamps > 0 else { return nil }
+        guard value.isFinite, maximum.isFinite, calibrationMicroAmps.isFinite,
+              value > 0, maximum > 0, calibrationMicroAmps > 0 else { return nil }
         let fraction = min(max(value / maximum, 0), 1)
-        let watts = fraction * calibrationMilliamps / 1000 * assumedVoltage
+        // microamps -> amps; the 6 V string voltage is the named assumption.
+        let watts = fraction * calibrationMicroAmps / 1_000_000 * assumedVoltage
         guard watts.isFinite else { return nil }
         return watts
     }
