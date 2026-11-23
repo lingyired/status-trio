@@ -10,6 +10,12 @@ final class BatteryPowerBreakdownTests: XCTestCase {
         SystemPowerSample(watts: watts, readAt: now.addingTimeInterval(offset))
     }
 
+    private func displaySample(_ watts: Double, at offset: TimeInterval = 0,
+                               provenance: PowerMeasurementProvenance = .measured) -> DisplayPowerSample {
+        DisplayPowerSample(watts: watts, readAt: now.addingTimeInterval(offset),
+                           provenance: provenance, source: "PDBR", assumedVoltage: nil)
+    }
+
     private func usb(_ watts: Double, at offset: TimeInterval = 0) -> USBOutputSample {
         USBOutputSample(watts: watts, readAt: now.addingTimeInterval(offset), ports: [USBPortOutput(channel: 1, watts: watts)])
     }
@@ -17,7 +23,7 @@ final class BatteryPowerBreakdownTests: XCTestCase {
     func testSplitsAdapterInputIntoMeasuredBranchesAndSystemResidual() throws {
         let split = try XCTUnwrap(BatteryPowerBreakdown.resolve(
             adapterInput: sample(60, at: -1), charging: 10, discharge: nil,
-            display: sample(8, at: -1), usb: usb(5, at: -1), now: now))
+            display: displaySample(8, at: -1), usb: usb(5, at: -1), now: now))
         XCTAssertEqual(split.source, .adapter)
         XCTAssertEqual(split.sourceWatts, 60)
         XCTAssertEqual(split.display?.watts, 8)
@@ -30,39 +36,39 @@ final class BatteryPowerBreakdownTests: XCTestCase {
         // 20 W cannot pay for 4 W of charging, 8 W of backlight and 30 W of USB.
         XCTAssertNil(BatteryPowerBreakdown.resolve(
             adapterInput: sample(20), charging: 4, discharge: nil,
-            display: sample(8), usb: usb(30), now: now))
+            display: displaySample(8), usb: usb(30), now: now))
     }
 
     func testTreatsSmallNegativeResidualAsRounding() throws {
         let split = try XCTUnwrap(BatteryPowerBreakdown.resolve(
             adapterInput: sample(43.6), charging: 0, discharge: nil,
-            display: sample(8), usb: usb(36), now: now))
+            display: displaySample(8), usb: usb(36), now: now))
         XCTAssertEqual(split.system.watts, 0)
     }
 
     func testRequiresEveryBranchToShareOneWindow() {
         XCTAssertNil(BatteryPowerBreakdown.resolve(
             adapterInput: sample(60, at: -120), charging: 0, discharge: nil,
-            display: sample(8), usb: nil, now: now))
+            display: displaySample(8), usb: nil, now: now))
         XCTAssertNil(BatteryPowerBreakdown.resolve(
             adapterInput: sample(60), charging: 0, discharge: nil,
-            display: sample(8, at: -120), usb: nil, now: now))
+            display: displaySample(8, at: -120), usb: nil, now: now))
         XCTAssertNil(BatteryPowerBreakdown.resolve(
             adapterInput: sample(60), charging: 0, discharge: nil,
-            display: sample(8), usb: usb(4, at: -120), now: now))
+            display: displaySample(8), usb: usb(4, at: -120), now: now))
     }
 
     func testMissingAnchorsProduceNoSplit() {
         XCTAssertNil(BatteryPowerBreakdown.resolve(
             adapterInput: nil, charging: 0, discharge: nil,
-            display: sample(8), usb: nil, now: now))
+            display: displaySample(8), usb: nil, now: now))
         // An unread charge rail would silently inflate the residual.
         XCTAssertNil(BatteryPowerBreakdown.resolve(
             adapterInput: sample(60), charging: nil, discharge: nil,
-            display: sample(8), usb: nil, now: now))
+            display: displaySample(8), usb: nil, now: now))
         XCTAssertNil(BatteryPowerBreakdown.resolve(
             adapterInput: sample(0), charging: 0, discharge: nil,
-            display: sample(8), usb: nil, now: now))
+            display: displaySample(8), usb: nil, now: now))
     }
 
     func testUnreadableDisplayStillLeavesACoherentSplit() throws {
@@ -80,7 +86,7 @@ final class BatteryPowerBreakdownTests: XCTestCase {
         // has to start at the battery instead of disappearing.
         let split = try XCTUnwrap(BatteryPowerBreakdown.resolve(
             adapterInput: sample(0.17, at: -1), charging: 0, discharge: 54,
-            display: sample(3.09, at: -1), usb: usb(2.45, at: -1), now: now))
+            display: displaySample(3.09, at: -1), usb: usb(2.45, at: -1), now: now))
         XCTAssertEqual(split.source, .battery)
         XCTAssertEqual(split.sourceWatts, 54, accuracy: 0.0001)
         XCTAssertEqual(split.system.watts, 48.46, accuracy: 0.0001)
@@ -89,7 +95,7 @@ final class BatteryPowerBreakdownTests: XCTestCase {
     func testPrefersTheAdapterWhileItSuppliesPower() throws {
         let split = try XCTUnwrap(BatteryPowerBreakdown.resolve(
             adapterInput: sample(60, at: -1), charging: 0, discharge: 12,
-            display: sample(8, at: -1), usb: nil, now: now))
+            display: displaySample(8, at: -1), usb: nil, now: now))
         XCTAssertEqual(split.source, .adapter)
         XCTAssertEqual(split.sourceWatts, 60, accuracy: 0.0001)
     }
@@ -97,13 +103,13 @@ final class BatteryPowerBreakdownTests: XCTestCase {
     func testBatteryResidualThatCannotBeRoundingProducesNoSplit() {
         XCTAssertNil(BatteryPowerBreakdown.resolve(
             adapterInput: sample(0.17), charging: 0, discharge: 5,
-            display: sample(8), usb: usb(4), now: now))
+            display: displaySample(8), usb: usb(4), now: now))
     }
 
     func testNoSplitWhenNeitherTheAdapterNorTheBatterySuppliesPower() {
         XCTAssertNil(BatteryPowerBreakdown.resolve(
             adapterInput: sample(0.17), charging: 0, discharge: 0.4,
-            display: sample(3), usb: nil, now: now))
+            display: displaySample(3), usb: nil, now: now))
     }
 
     func testUSBOutputReaderSumsMeasuredPortsAndIgnoresNegotiatedBudget() {
@@ -129,7 +135,7 @@ final class BatteryPowerBreakdownTests: XCTestCase {
     func testIdleAdapterKeepsItsPortOnABatterySourceSplit() throws {
         let split = try XCTUnwrap(BatteryPowerBreakdown.resolve(
             adapterInput: sample(0.17), charging: 0, discharge: 12,
-            display: sample(3), usb: nil, inputPortType: "MagSafe 3", now: now))
+            display: displaySample(3), usb: nil, inputPortType: "MagSafe 3", now: now))
         XCTAssertEqual(split.source, .battery)
         XCTAssertEqual(split.inputPortType, "MagSafe 3")
     }
@@ -502,5 +508,37 @@ final class BatteryPowerFlowLayoutTests: XCTestCase {
         XCTAssertLessThan(hosting.fittingSize.height, 120,
                           "A 0.3% branch must shrink instead of holding a full fixed card")
         XCTAssertGreaterThan(hosting.fittingSize.height, 90)
+    }
+}
+
+extension BatteryPowerBreakdownTests {
+    func testEstimatedDisplayIsSubtractedAndMarksSystemEstimated() throws {
+        let split = try XCTUnwrap(BatteryPowerBreakdown.resolve(
+            adapterInput: sample(60, at: -1), charging: 0, discharge: nil,
+            display: displaySample(5, at: -1, provenance: .estimated),
+            usb: nil, now: now))
+        XCTAssertEqual(split.display?.watts, 5)
+        XCTAssertEqual(split.system.watts, 55, accuracy: 0.0001)
+        XCTAssertEqual(split.displayProvenance, .estimated)
+        XCTAssertTrue(split.systemIsEstimated)
+    }
+
+    func testMeasuredDisplayDoesNotMarkSystemEstimated() throws {
+        let split = try XCTUnwrap(BatteryPowerBreakdown.resolve(
+            adapterInput: sample(60, at: -1), charging: 0, discharge: nil,
+            display: displaySample(5, at: -1), usb: nil, now: now))
+        XCTAssertFalse(split.systemIsEstimated)
+    }
+}
+
+extension BatteryPowerBreakdownTests {
+    func testEstimateThatBreaksTheBudgetIsDroppedInsteadOfPublished() throws {
+        let split = try XCTUnwrap(BatteryPowerBreakdown.resolve(
+            adapterInput: sample(10, at: -1), charging: 0, discharge: nil,
+            display: displaySample(20, at: -1, provenance: .estimated),
+            usb: nil, now: now))
+        XCTAssertNil(split.display)
+        XCTAssertFalse(split.systemIsEstimated)
+        XCTAssertEqual(split.system.watts, 10, accuracy: 0.0001)
     }
 }

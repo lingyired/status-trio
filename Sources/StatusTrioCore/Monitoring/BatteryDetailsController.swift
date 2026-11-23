@@ -118,6 +118,10 @@ final class BatteryDetailsController: ObservableObject {
         needsRefresh = false
         details = nil
         energyApps.deactivate()
+        // The backlight estimator caches one IORegistry service and calibration
+        // constant. The details page is the only consumer, so closing it releases
+        // both instead of leaving a private service handle for the app lifetime.
+        AppleARMBacklightPowerEstimator.shared.reset()
     }
 
     func refresh(now: Date = Date()) {

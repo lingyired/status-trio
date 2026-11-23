@@ -1,6 +1,10 @@
 import Foundation
 
 struct BatteryPowerFlowState: Equatable, Sendable {
+    /// UI visibility threshold for a flow branch. It is deliberately not a
+    /// sensor-validity threshold: a real 0.01 W reading is still not worth a
+    /// 62 pt card, and a measured 0 W branch must not be drawn at all.
+    static let minimumVisibleWatts: Double = 0.05
     /// Which rail a branch represents. The view maps this to a symbol and tint;
     /// the state itself stays free of AppKit concerns.
     enum Kind: Equatable, Sendable {

@@ -30,8 +30,13 @@ struct BatteryPowerBreakdown: Equatable, Sendable {
     let source: Source
     /// Adapter input watts, or battery discharge watts, depending on `source`.
     let sourceWatts: Double
-    /// Built-in display backlight (`PDBR`, else `PBLR`). Nil when this Mac exposes neither.
+    /// Built-in display backlight (`PBwo`/`PDBR`/`PBLR`, else a marked
+    /// `AppleARMBacklight` estimate). Nil when no source is usable.
     let display: Component?
+    /// Whether `display` is measured or estimated. An estimated display branch
+    /// makes the residual system branch estimated too, because the residual is
+    /// `source - charging - display - usb`.
+    var displayProvenance: PowerMeasurementProvenance = .measured
     /// Power sourced to accessories over USB / Thunderbolt, all ports summed.
     let usb: Component?
     /// The same output, one entry per port, named when the accessory is known.
@@ -44,6 +49,8 @@ struct BatteryPowerBreakdown: Equatable, Sendable {
     let readAt: Date
 
     var components: [Component] { [display, usb, system].compactMap { $0 } }
+
+    var systemIsEstimated: Bool { displayProvenance == .estimated }
 
     /// Residual tolerance: sensor rails are sampled by one overall refresh but
     /// the SMC updates each rail on its own cadence, so a rail can be one tick
@@ -61,7 +68,7 @@ struct BatteryPowerBreakdown: Equatable, Sendable {
         adapterInput: SystemPowerSample?,
         charging: Double?,
         discharge: Double?,
-        display: SystemPowerSample?,
+        display: DisplayPowerSample?,
         usb: USBOutputSample?,
         inputPortType: String? = nil,
         now: Date = Date()
@@ -89,7 +96,7 @@ struct BatteryPowerBreakdown: Equatable, Sendable {
         source: Source,
         sourceWatts: Double,
         subtractCharging: Double,
-        display: SystemPowerSample?,
+        display: DisplayPowerSample?,
         usb: USBOutputSample?,
         now: Date
     ) -> BatteryPowerBreakdown? {
@@ -99,11 +106,22 @@ struct BatteryPowerBreakdown: Equatable, Sendable {
         let displayWatts = display?.watts ?? 0
         let usbWatts = usb?.watts ?? 0
         let residual = sourceWatts - subtractCharging - displayWatts - usbWatts
-        if residual < -residualTolerance { return nil }
+        if residual < -residualTolerance {
+            // An estimate that does not fit the budget is not a measurement we
+            // may publish. Drop only the estimated display branch and keep the
+            // rest of the split; a measured rail is still a hard failure.
+            if display?.provenance == .estimated {
+                return make(source: source, sourceWatts: sourceWatts,
+                            subtractCharging: subtractCharging, display: nil,
+                            usb: usb, now: now)
+            }
+            return nil
+        }
         return BatteryPowerBreakdown(
             source: source,
             sourceWatts: sourceWatts,
             display: display.map { Component(watts: $0.watts, readAt: $0.readAt) },
+            displayProvenance: display?.provenance ?? .measured,
             usb: usb.map { Component(watts: $0.watts, readAt: $0.readAt) },
             usbPorts: usb?.ports ?? [],
             system: Component(watts: max(0, residual), readAt: now),
