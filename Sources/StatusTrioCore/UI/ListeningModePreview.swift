@@ -35,6 +35,51 @@ enum ListeningModePreview {
         )
     }
 
+    /// Temporary development-only fixtures, intentionally excluded from settings transfer.
+    /// The normal Settings preview and all release builds keep their usual rows.
+    static var usesLayoutShowcase: Bool {
+        #if DEBUG
+        Bundle.main.bundleIdentifier?.hasPrefix("com.lingsmbp.StatusTrio.dev.") == true
+            && UserDefaults.standard.bool(forKey: "airPodsLayoutShowcase")
+        #else
+        false
+        #endif
+    }
+
+    static func applyingLayoutVariants(to rows: [PanelAudioDeviceRow]) -> [PanelAudioDeviceRow] {
+        var previewIndex = 0
+        return rows.map { original in
+            guard original.isPreview else { return original }
+            var row = original
+            let index = previewIndex
+            previewIndex += 1
+            let name: String
+            switch index % 3 {
+            case 0:
+                name = "AirPods Pro 2 · 全部控件"
+            case 1:
+                name = "AirPods Pro 2 · 空间音频 + 对话感知"
+                row.listeningMode = nil
+                row.listeningModeAddress = nil
+            default:
+                name = "AirPods Pro 2 · 仅对话感知"
+                row.listeningMode = nil
+                row.listeningModeAddress = nil
+                row.airPodsSpatialSupported = false
+            }
+            return PanelAudioDeviceRow(
+                key: row.key, name: name, symbol: row.symbol,
+                selected: row.selected, enabled: row.enabled, accessibilityLabel: name,
+                helpText: row.helpText, volumeText: row.volumeText,
+                listeningModeAddress: row.listeningModeAddress, listeningMode: row.listeningMode,
+                listeningModeUnavailableText: row.listeningModeUnavailableText,
+                isPreview: row.isPreview, supportsAirPodsSystemControls: row.supportsAirPodsSystemControls,
+                airPodsSpatialSupported: row.airPodsSpatialSupported,
+                airPodsConversationSupported: row.airPodsConversationSupported
+            )
+        }
+    }
+
     /// The requested count, clamped to the Settings range so a stale larger value in
     /// `UserDefaults` cannot mint a runaway list.
     static func clampedDeviceCount(_ count: Int) -> Int {
@@ -74,7 +119,7 @@ enum ListeningModePreview {
     static func outputRows(for config: Configuration, volume: Double? = nil) -> [AudioOutputDevice] {
         guard config.isEnabled, clampedDeviceCount(config.deviceCount) > 0 else { return [] }
         let name = resolvedDeviceName(config)
-        return (1...clampedDeviceCount(config.deviceCount)).compactMap { index in
+        return (1...clampedDeviceCount(config.deviceCount)).compactMap { index -> AudioOutputDevice? in
             let id = "\(BluetoothListeningModeController.previewAddressPrefix)\(index)"
             guard let endpoint = BluetoothListeningModeController.syntheticEndpoint(for: id) else {
                 return nil
@@ -82,10 +127,65 @@ enum ListeningModePreview {
             return AudioOutputDevice(
                 id: endpoint,
                 name: name,
+                uid: previewUID(for: id),
                 isCurrent: true,
                 volume: volume,
-                transport: .bluetooth
+                transport: .bluetooth,
+                modelUID: previewModelUID
             )
         }
+    }
+
+    /// The synthetic UID keeps the preview row recognisable to the inline-control
+    /// gate without pretending to be a real CoreAudio endpoint.
+    static func previewUID(for id: String) -> String {
+        "\(id):output"
+    }
+
+    static func isSyntheticPreviewUID(_ uid: String?) -> Bool {
+        uid?.hasPrefix(BluetoothListeningModeController.previewAddressPrefix) == true
+    }
+
+    /// An AirPods Pro 2 (USB-C) product/vendor pair, so the preview row draws the
+    /// AirPods Pro glyph and passes the real model gate.
+    static let previewModelUID = "2024 4c"
+
+    /// Synthetic inline-control data so Settings > Bluetooth > preview can exercise
+    /// the whole AirPods disclosure without hardware. It never reaches CoreAudio or
+    /// a Bluetooth channel; the row renders these values and mutates them locally.
+    /// Titles use the same localization keys as the real controls so the preview
+    /// reads in the selected language.
+    static func systemControlSnapshot(
+        _ localization: Localization,
+        spatialSupported: Bool = true,
+        conversationSupported: Bool = true
+    ) -> AirPodsSystemSnapshot {
+        AirPodsSystemSnapshot(
+            conversation: [
+                AirPodsSystemOption(
+                    title: localization.string(.batteryDetailsOn), selected: true,
+                    symbol: "person.wave.2.fill"),
+                AirPodsSystemOption(
+                    title: localization.string(.bluetoothListeningModeOff), selected: false,
+                    symbol: "person.wave.2.fill", dimWaves: true)
+            ],
+            spatial: [
+                AirPodsSystemOption(
+                    title: localization.string(.bluetoothListeningModeOff), selected: false,
+                    symbol: "person.spatialaudio.stereo.fill", dimWaves: true),
+                AirPodsSystemOption(
+                    title: localization.string(.airPodsSpatialFixed), selected: false,
+                    symbol: "person.spatialaudio.stereo.fill"),
+                AirPodsSystemOption(
+                    title: localization.string(.airPodsSpatialHeadTracked), selected: true,
+                    symbol: "spatialize-stereo-head-tracked")
+            ],
+            adaptive: 65,
+            loaded: true,
+            conversationLoaded: true,
+            spatialLoaded: true,
+            supportsSpatial: spatialSupported,
+            supportsConversation: conversationSupported
+        )
     }
 }

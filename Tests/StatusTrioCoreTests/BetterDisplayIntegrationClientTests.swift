@@ -404,6 +404,21 @@ struct BetterDisplayIntegrationClientTests {
         #expect(bridge.activeObserverCount == 0)
     }
 
+    @Test("Deallocation from a background thread cleans up on the main actor")
+    func backgroundDeallocationCleansUpOnMainActor() async {
+        let bridge = FakeBetterDisplayNotificationBridge()
+        let box = ClientReleaseBox(makeClient(bridge: bridge))
+        box.client?.start { _ in }
+        #expect(bridge.activeObserverCount > 0)
+
+        await Task.detached {
+            box.client = nil
+        }.value
+
+        await bridge.waitForActiveObserverCount(0)
+        #expect(bridge.cancelThreads.allOnMainThread)
+    }
+
     @Test("Launch and termination notifications map without reading their object")
     func lifecycleNotificationsMapToEvents() async throws {
         let bridge = FakeBetterDisplayNotificationBridge()
@@ -463,8 +478,19 @@ struct BetterDisplayIntegrationClientTests {
         bridge: FakeBetterDisplayNotificationBridge,
         maximumPendingRequests: Int = 32
     ) -> BetterDisplayIntegrationClient {
-        BetterDisplayIntegrationClient(
+        // These tests drive responses through an in-memory fake bridge, so the
+        // only real-world dependency left in the request path is the timeout
+        // watchdog. On a loaded main actor the default three-second wall-clock
+        // sleep can elapse before the already-delivered response is serviced,
+        // turning a resolved request into a spurious `.timedOut`. Parking the
+        // deadline makes the response path deterministic; the sleeper is
+        // retained by the closure the client stores. The dedicated
+        // default-deadline test below still asserts the real three-second value
+        // and its `.timedOut` outcome.
+        let deadlineSleeper = ParkedDeadlineSleeper()
+        return BetterDisplayIntegrationClient(
             bridge: bridge,
+            deadlineSleep: { duration in try await deadlineSleeper.sleep(duration) },
             maximumPendingRequests: maximumPendingRequests
         )
     }
@@ -530,6 +556,8 @@ private final class FakeBetterDisplayNotificationBridge: BetterDisplayNotificati
         case removeObserver(String)
     }
 
+    nonisolated let cancelThreads = CancelThreadRecorder()
+
     private struct HandlerRecord {
         let name: Notification.Name
         let handler: @Sendable (String?) -> Void
@@ -561,7 +589,9 @@ private final class FakeBetterDisplayNotificationBridge: BetterDisplayNotificati
         let id = UUID()
         handlers[id] = HandlerRecord(name: name, handler: handler)
         operations.append(.addObserver(name.rawValue))
-        return FakeBetterDisplayNotificationObservation { [weak self] in
+        let cancelThreads = self.cancelThreads
+        return FakeBetterDisplayNotificationObservation {
+            cancelThreads.record()
             Task { @MainActor [weak self] in
                 self?.removeObserver(id: id, name: name)
             }
@@ -650,5 +680,44 @@ private final class FakeBetterDisplayNotificationObservation:
             return cancellation
         }
         cancellation?()
+    }
+}
+
+/// Deadline sleeper for tests whose request is answered by the in-memory fake
+/// bridge. Iterating an `AsyncStream` parks without consuming wall-clock time,
+/// so a delivered response is always the first outcome, and cancellation of the
+/// watchdog task ends the loop instead of leaving a suspended continuation
+/// behind. The dedicated default-deadline test still exercises the real
+/// three-second value.
+private struct ParkedDeadlineSleeper: Sendable {
+    func sleep(_ duration: Duration) async throws {
+        let (stream, keepAlive) = AsyncStream<Void>.makeStream()
+        defer { keepAlive.finish() }
+        for await _ in stream {}
+    }
+}
+
+/// Records the thread on which a notification observation is cancelled. The
+/// client's cleanup domain is the main actor, so every value must be `true`.
+private final class CancelThreadRecorder: @unchecked Sendable {
+    private let lock = NSLock()
+    private var values: [Bool] = []
+
+    func record() {
+        lock.withLock { values.append(Thread.isMainThread) }
+    }
+
+    var allOnMainThread: Bool {
+        lock.withLock { !values.isEmpty && values.allSatisfy { $0 } }
+    }
+}
+
+/// Test-only transfer of a main-actor object to another thread so the release
+/// (and therefore `deinit`) happens off the main actor.
+private final class ClientReleaseBox: @unchecked Sendable {
+    var client: BetterDisplayIntegrationClient?
+
+    init(_ client: BetterDisplayIntegrationClient?) {
+        self.client = client
     }
 }

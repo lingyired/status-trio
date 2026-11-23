@@ -36,7 +36,10 @@ struct BoundedProcessDualStreamTests {
         let elapsed = ContinuousClock.now - started
 
         #expect(outcome == .exited(Data(Self.payload("out").utf8)))
-        #expect(elapsed < .seconds(3), "took \(elapsed), which is the deadline path")
+        // A shared IO queue deadlocks until the 10 s deadline, so anything well
+        // under that proves the streams were read concurrently. Eight seconds
+        // leaves room for a loaded full-suite run; 4.2 s was observed there.
+        #expect(elapsed < .seconds(8), "took \(elapsed), which is the deadline path")
     }
 
     /// The blocking entry point the Wi-Fi and Bluetooth readers use, same shape.
@@ -53,7 +56,7 @@ struct BoundedProcessDualStreamTests {
         let elapsed = ContinuousClock.now - started
 
         #expect(outcome == .exited(Data(Self.payload("out").utf8)))
-        #expect(elapsed < .seconds(3), "took \(elapsed), which is the deadline path")
+        #expect(elapsed < .seconds(8), "took \(elapsed), which is the deadline path")
     }
 
     /// `BoundedProcessOutcome` carries stdout only, so stderr is observed through
@@ -75,6 +78,28 @@ struct BoundedProcessDualStreamTests {
         )
 
         #expect(outcome == .outputTooLarge)
+    }
+
+    /// The stdout side of the same limit. The stderr-only case above would
+    /// still pass if stdout were abandoned at the cap, so each stream gets its
+    /// own over-limit writer.
+    @Test func rejectsStdoutOverTheLimitWithoutWaitingForStderr() async throws {
+        let script = try makeScript(
+            stdout: String(repeating: "o", count: 150_000),
+            stderr: "small"
+        )
+        defer { try? FileManager.default.removeItem(at: script) }
+
+        let started = ContinuousClock.now
+        let outcome = BoundedProcessInvocation.runSync(
+            executableURL: script,
+            arguments: [],
+            timeout: .seconds(10),
+            outputLimit: 100_000
+        )
+
+        #expect(outcome == .outputTooLarge)
+        #expect(ContinuousClock.now - started < .seconds(8))
     }
 
     /// Each payload is written to a file and `cat`-ed, so neither a shell

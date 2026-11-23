@@ -12,6 +12,9 @@ enum IconPresentationResourceResolver {
     static func inputs(
         snapshot: StatusSnapshot,
         inputSource: InputSourceDescriptor? = nil,
+        systemPower: SystemPowerSample? = nil,
+        isHighPowerMode: Bool = false,
+        runtimeOptions: IconPresentationRuntimeOptions? = nil,
         fileExists: (URL) -> Bool = { FileManager.default.fileExists(atPath: $0.path) },
         isSymbolAvailable: (String) -> Bool = { symbol in
             NSImage(systemSymbolName: symbol, accessibilityDescription: nil) != nil
@@ -22,7 +25,13 @@ enum IconPresentationResourceResolver {
             return IconPresentationInputs(
                 snapshot: snapshot,
                 audioIcon: nil,
-                inputSource: resolvedInputSource
+                inputSource: resolvedInputSource,
+                runtimeOptions: runtimeOptions,
+                systemPower: systemPower,
+                isHighPowerMode: isHighPowerMode,
+                bottomIndicatorSource: runtimeOptions?.bottomIndicatorSource ?? .volume,
+                bottomIndicatorMetric: runtimeOptions?.bottomIndicatorMetric ?? .cpuUsage,
+                bottomIndicatorStyle: runtimeOptions?.bottomIndicatorStyle ?? .dots
             )
         }
 
@@ -38,7 +47,13 @@ enum IconPresentationResourceResolver {
         return IconPresentationInputs(
             snapshot: snapshot,
             audioIcon: source,
-            inputSource: resolvedInputSource
+            inputSource: resolvedInputSource,
+            runtimeOptions: runtimeOptions,
+            systemPower: systemPower,
+            isHighPowerMode: isHighPowerMode,
+            bottomIndicatorSource: runtimeOptions?.bottomIndicatorSource ?? .volume,
+            bottomIndicatorMetric: runtimeOptions?.bottomIndicatorMetric ?? .cpuUsage,
+            bottomIndicatorStyle: runtimeOptions?.bottomIndicatorStyle ?? .dots
         )
     }
 }

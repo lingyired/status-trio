@@ -101,7 +101,10 @@ struct DDCVolumeReply: Equatable, Sendable {
     /// echoed VCP, then the checksum. Checking the result code first let a
     /// stale or garbled frame with a stray `01` byte report a refusal the
     /// display never made, which aborted the P1-P4 compatibility probe.
-    static func classify(_ bytes: [UInt8]) -> DDCVolumeReplyKind {
+    /// Classifies a raw reply buffer. `expectedVCP` names the feature the request
+    /// asked for, so a volume reply is accepted for `0x62` and a brightness reply
+    /// for `0x10`. Everything else about the error semantics is unchanged.
+    static func classify(_ bytes: [UInt8], expectedVCP: UInt8 = DDCPacket.volumeVCP) -> DDCVolumeReplyKind {
         guard bytes.count == 11 else {
             if !bytes.isEmpty, bytes.allSatisfy({ $0 == 0xFF }) { return .untouched }
             if !bytes.isEmpty, bytes.allSatisfy({ $0 == 0 }) { return .zeros }
@@ -110,7 +113,7 @@ struct DDCVolumeReply: Equatable, Sendable {
         if bytes.allSatisfy({ $0 == 0 }) { return .zeros }
         if bytes.allSatisfy({ $0 == 0xFF }) { return .untouched }
         guard bytes[0] == 0x6E, bytes[1] == 0x88, bytes[2] == 0x02 else { return .wrongHeader }
-        guard bytes[4] == 0x62 else { return .wrongVCP }
+        guard bytes[4] == expectedVCP else { return .wrongVCP }
         guard bytes.prefix(10).reduce(UInt8(0x50), ^) == bytes[10] else { return .badChecksum }
         switch bytes[3] {
         case 0: break
@@ -124,8 +127,8 @@ struct DDCVolumeReply: Equatable, Sendable {
         return .valid(Self(current: current, maximum: maximum))
     }
 
-    static func decode(_ bytes: [UInt8]) -> Self? {
-        guard case .valid(let reply) = classify(bytes) else { return nil }
+    static func decode(_ bytes: [UInt8], expectedVCP: UInt8 = DDCPacket.volumeVCP) -> Self? {
+        guard case .valid(let reply) = classify(bytes, expectedVCP: expectedVCP) else { return nil }
         return reply
     }
 

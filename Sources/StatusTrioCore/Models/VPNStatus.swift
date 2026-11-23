@@ -45,6 +45,12 @@ struct VPNStatus: Equatable, Sendable {
     let tunnelInterfaces: [String]
     /// The name of the connected system VPN service, when one is up.
     let serviceName: String?
+    /// Configured system VPN services in `SCNetworkServiceCopyAll` order. The
+    /// first is the summary row's default connect target (#272).
+    var services: [VPNServiceReading] = []
+    /// Set only when Mihomo's read-only control API can attribute an active
+    /// tunnel interface to it. The row still says TUN, with the client name.
+    var mihomoTunnel: MihomoTunnelInfo? = nil
     /// The active system-wide proxy, when one is configured.
     let proxy: VPNProxyStatus?
 
@@ -53,6 +59,23 @@ struct VPNStatus: Equatable, Sendable {
         serviceName: nil,
         proxy: nil
     )
+
+    var showsPowerControl: Bool { !services.isEmpty }
+
+    var powerControlIsOn: Bool {
+        services.contains { $0.state == .connected || $0.state == .connecting }
+    }
+
+    /// Stop the service that is actually up; a disconnected first entry must
+    /// not make the switch stop a service that is not carrying traffic.
+    var powerControlService: VPNServiceReading? {
+        if powerControlIsOn {
+            return services.first {
+                $0.state == .connected || $0.state == .connecting || $0.state == .disconnecting
+            } ?? services.first
+        }
+        return services.first(where: \.isEnabled) ?? services.first
+    }
 
     /// True when traffic is going through a tunnel or a system VPN service.
     var isTunnelConnected: Bool {
@@ -65,10 +88,39 @@ struct VPNStatus: Equatable, Sendable {
     }
 }
 
-/// A system VPN service and whether it reports itself connected.
+enum VPNConnectionState: Equatable, Sendable {
+    case invalid
+    case disconnected
+    case connecting
+    case connected
+    case disconnecting
+}
+
+/// A system VPN service as SystemConfiguration reports it, including the
+/// stable service ID used for starts and stops (#272).
 struct VPNServiceReading: Equatable, Sendable {
+    let serviceID: String
     let name: String
-    let isConnected: Bool
+    let state: VPNConnectionState
+    let isEnabled: Bool
+
+    var isConnected: Bool { state == .connected }
+
+    init(serviceID: String, name: String, state: VPNConnectionState, isEnabled: Bool) {
+        self.serviceID = serviceID
+        self.name = name
+        self.state = state
+        self.isEnabled = isEnabled
+    }
+
+    init(name: String, isConnected: Bool) {
+        self.init(
+            serviceID: name,
+            name: name,
+            state: isConnected ? .connected : .disconnected,
+            isEnabled: true
+        )
+    }
 }
 
 /// One raw reading of the three signals, before any rule is applied.
@@ -89,6 +141,7 @@ enum VPNStatusResolver {
         VPNStatus(
             tunnelInterfaces: reading.tunnelInterfaces.sorted(),
             serviceName: reading.services.first { $0.isConnected }?.name,
+            services: reading.services,
             proxy: reading.proxy
         )
     }

@@ -13,9 +13,29 @@ manually restored the limit to `80`.
 
 The user reviewed that evidence and explicitly chose to replicate the native
 button's behavior, including its lack of automatic recovery. Status Trio stores
-the valid pre-request limit as a fallback, persists the operation session, and
-offers an explicit "Cancel Charge to Full" action. It never restores the limit
-automatically, watches the battery in the background, or runs a periodic task.
+the operation session and offers an explicit "Cancel Charge to Full" action. It
+never restores the limit automatically, watches the battery in the background,
+or runs a periodic task.
+
+Two follow-ups were requested on October 31, 2026:
+
+- The macOS battery menu can start the same temporary override without a
+  Status Trio session. The controller now recognizes that state and offers the
+  same cancellation while the battery can still charge; at 100%, already
+  charged, or unplugged it hides the row.
+- The October 31 re-check showed that `powerd` empties the persisted `policies`
+  array while the native override runs, so there is no reliable limit to read
+  back. Cancel therefore restores an explicit setting, "Restore Limit After
+  Cancelling" (80–95%). Its first-run default is the limit macOS currently
+  enforces, or 95% when the system has no readable limit; the settings row
+  can refill it from the system on demand. 100% ("no limit") is not a restore
+  target: a stored 100% from an older build migrates to the system limit (or
+  95%) on load.
+- A successful cancellation no longer bounces straight back to the button. The
+  row keeps a "Charge limit restored" status while the system charges toward
+  the restored limit, and the button returns once the battery reaches that
+  limit, charging stops early, or the override ends. This removes the repeated
+  charge/cancel loop when the restored limit is still above the current charge.
 
 Research started October 27, 2026; regression verification continued October 28,
 2026, Asia/Shanghai. Both authorized write experiments ran on October 28, 2026.
@@ -283,8 +303,21 @@ The product implementation follows this audit:
   successfully read limit. Cancellation always tries `enableMCL:` first and
   reads the enabled state and limit again. Only a successful call with a
   verifiable non-target state can fall back once to `setMCLLimit:error:`,
-  then `enableMCL:`, followed by another verification read. Errors or a
-  different restored sub-100 limit stop the operation without more writes.
+  followed by another verification read. The fallback deliberately does not
+  call `enableMCL:` again: PowerUI reapplies its saved pre-override limit on
+  every enable call, which rewrote 90% back to 80% on macOS 27.2. Errors stop
+  the operation without more writes.
+- Issue #243: a cancel can read an intermediate sub-100 limit that is not the
+  target — the session's original limit may still be active, and PowerUI may
+  report the limit it persisted for the system. The bridge takes the session's
+  recorded `originalLimit` as `expectedLimit`; a limit equal to it may be
+  replaced by the one bounded fallback, and only a sub-100 limit that is
+  neither the target nor the expected limit stops the write. Without a
+  recorded original limit (macOS started the override), a mismatch is reported
+  and the panel asks once before replacing the read limit. A 100% target now
+  passes the public range check and clears the limit through the same path.
+- Restore failures carry a stable failure category instead of surfacing raw
+  PowerUI English; the panel maps it to localized copy.
 - A valid active limit from the user or another app supersedes the saved
   session without a restore write. A session restored after relaunch, a
   potentially external `100%` state, a state-read error, or a fallback requires a
@@ -407,8 +440,10 @@ writes remain limited to the explicit user action:
 2. `enableMCL:` is tried first. A fresh enabled/limit read can finish the
    cancellation without a setting write.
 3. Only if that successful call leaves a verifiable non-target state does
-   `setMCLLimit:error:` apply the validated target before one more
-   `enableMCL:`. A newly observed different sub-100 limit stops the fallback.
+   `setMCLLimit:error:` apply the validated target. Do not call `enableMCL:`
+   afterwards: PowerUI reapplies its saved pre-override limit on each enable
+   (observed 90% -> 80% on macOS 27.2). A newly observed sub-100 limit that is
+   neither the target nor the expected session limit stops the fallback.
 4. The bridge re-reads PowerUI and reports success only when the limit is active
    at the requested value.
 
@@ -440,8 +475,13 @@ limit (`80`, `85`, `90`, `95`); record the exact OS build and Mac model.
 3. Click Cancel Charge to Full manually. If confirmation is shown, verify the
    displayed target before the second click.
 4. Record the enabled state and stored limit after `enableMCL:`, and after
-   `setMCLLimit:error:` plus `enableMCL:` if fallback was needed. Compare the
-   final value with System Settings and the actual charging state.
+   `setMCLLimit:error:` if fallback was needed. Compare the final value with
+   System Settings and the actual charging state. Do not add another
+   `enableMCL:` after the target write.
+   A read taken immediately after the write can report MCL still disengaged
+   or primed while the stored limit already equals the target; that counts as
+   restored. A single invalid read is re-read once, because a transient read
+   failure must not turn a completed write into a reported failure.
 5. Test one external limit change and one application relaunch. The external
    valid limit must survive; the relaunched session must require confirmation.
 
@@ -457,6 +497,45 @@ Do not force discharge or invoke the old exploratory write executable. Capture
 intermediate selector results with an attached debugger during the manual
 button action if needed; automated tests must continue to use fake clients.
 
+## Optimized Battery Charging path (issue #292)
+
+When the user keeps the charge limit at 100% but turns on Optimized Battery
+Charging, macOS pauses at about 80–90% and still shows its own "Charge to Full
+Now". That state has **no sub-100% MCL limit**, so `temporarilyDisableMCL:` is
+the wrong call (our bridge refuses it: `mclEnabledRawValue == 0`,
+`mclLimit == 100`).
+
+Live read-only observation on macOS 27.2 (build 26B123), Apple silicon, at a
+paused 88%:
+
+| Reading | Value |
+| --- | --- |
+| `isMCLCurrentlyEnabled:` raw | `0` |
+| `getMCLLimitWithError:` | `100` |
+| `smartChargingUIState:...` | state `12`, uiLimit `80`, overrideAllowed `true` |
+| `isOBCEngaged:chargeLimit:chargingOverrideAllowed:withError:` | engaged `true`, limit `80`, overrideAllowed `true` |
+| `isSmartChargingCurrentlyEnabled:` | `1` |
+
+`ControlCenter` only references two charge writes: `temporarilyDisableMCL:` and
+`temporarilyEnableCharging:`. The native action therefore uses
+`temporarilyEnableCharging:` for this pause. A single authorized request on the
+same machine returned `YES`, disengaged OBC (`uiState` 12→3, uiLimit 100,
+overrideAllowed false) and charging began **about 60–70 seconds later** — so
+Status Trio must keep the action hidden until charging actually starts rather
+than firing a second request.
+
+Resulting bridge rule (`chargeToFullNow`):
+
+- active sub-100% limit → `temporarilyDisableMCL:` (existing flow, cancellable);
+- otherwise, only when `chargingOverrideAllowed` is true →
+  `temporarilyEnableCharging:` (no cancel row; hide until charging begins);
+- otherwise refuse, so no dead button is exposed.
+
+The display condition without an active limit is gated on
+`chargingOverrideAllowed`, which is exactly the overridable-pause signal; with
+an active limit the existing behaviour (show while charging toward the limit)
+is unchanged.
+
 ## Sources and provenance
 
 - Apple's [About Optimized Battery Charging and Charge Limit on Mac](https://support.apple.com/en-us/102338),
@@ -468,3 +547,40 @@ button action if needed; automated tests must continue to use fake clients.
 - The user's supplied `StatusTrio_ChargeToFullNow_Codex_Plan.md` provided
   candidate Apple API names. JuiceLeft's license was inspected to confirm
   its restricted terms; its implementation was not read or reused.
+
+## #280 macOS 27.2 visibility diagnosis
+
+`scripts/probe-charge-to-full-now.sh --inspect` is the read-only diagnostic
+path for a machine where the button is missing. It reports the OS build and
+architecture, PowerUI class/signature availability, `isMCLSupported`,
+`mclEnabledRaw`, `mclLimit`, `availableChargeLimits`, the smart-charging UI
+state, `chargingOverrideAllowed`, the battery reading, and a
+`newRequestVisibility` classification such as:
+
+- `available`
+- `hidden:no-battery`
+- `hidden:on-battery`
+- `hidden:battery-full`
+- `hidden:no-active-limit-or-override`
+- `unavailable:state-read-failed`
+- `unknown:battery-read-failed`
+
+The classification covers only a new request with the panel open and the
+capability present. A saved override/cancel session and the #231 summary
+visibility setting are resolved by `ChargeToFullNowController` and are outside
+the probe. The probe never writes a charge limit, never calls
+`temporarilyDisableMCL:`, and never claims a successful charge request.
+
+Measured on this Mac (macOS 27.2, build 26B123, arm64) on 2026-11-06:
+PowerUI loaded, all expected signatures matched, `isMCLSupported = true`, the
+battery was present/connected/charged at 100%, and the visibility was
+`hidden:battery-full`. A later read observed an active 80% limit; it too stays
+hidden at 100% because there is nothing left to charge. That is the existing
+product rule, not a 27.2 capability failure. Other 27 beta builds, Intel Macs,
+and the user's exact battery state at report time remain **NOT RUN**.
+
+The battery details row now renders the existing
+`battery.action.chargeToFullNowUnavailable` explanation for
+`ChargeToFullNowPresentation.unavailable` instead of reserving an empty action
+area. This makes an actually unsupported machine explain itself without
+changing the #231 summary/details visibility rules.

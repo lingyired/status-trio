@@ -38,7 +38,7 @@ make_manifest() {
     local signature="$5"
     local signing="${6:-developer_id}"
     local notarization="${7:-accepted_and_stapled}"
-    ruby -rjson -e '
+    ruby -rjson -rdigest -e '
         path, dmg, sha, length, signature, signing, notarization = ARGV
         File.write(
           path,
@@ -61,6 +61,12 @@ make_manifest() {
               sha256: sha,
               length: length,
               ed_signature: signature
+            },
+            zip: {
+              filename: "StatusTrio-1.0.0.zip",
+              sha256: Digest::SHA256.file(File.join(File.dirname(dmg), "StatusTrio-1.0.0.zip")).hexdigest,
+              length: File.size(File.join(File.dirname(dmg), "StatusTrio-1.0.0.zip")).to_s,
+              ed_signature: "fixture-zip-signature"
             },
             signing: { kind: signing },
             notarization: { status: notarization },
@@ -85,6 +91,9 @@ printf 'fixture package\n' > "$PACKAGE/StatusTrio-1.0.0.dmg"
 DMG_SHA="$(sha256 "$PACKAGE/StatusTrio-1.0.0.dmg")"
 DMG_LENGTH="$(stat -f '%z' "$PACKAGE/StatusTrio-1.0.0.dmg")"
 printf '%s  StatusTrio-1.0.0.dmg\n' "$DMG_SHA" > "$PACKAGE/StatusTrio-1.0.0.dmg.sha256"
+printf 'fixture app ZIP\n' > "$PACKAGE/StatusTrio-1.0.0.zip"
+ZIP_SHA="$(sha256 "$PACKAGE/StatusTrio-1.0.0.zip")"
+printf '%s  StatusTrio-1.0.0.zip\n' "$ZIP_SHA" > "$PACKAGE/StatusTrio-1.0.0.zip.sha256"
 printf '# Version %%VERSION%% (Build %%BUILD%%)\n- English.\n' > "$PACKAGE/release-notes/1.0.0/en.md"
 printf '# 版本 %%VERSION%%（构建 %%BUILD%%）\n- 中文。\n' > "$PACKAGE/release-notes/1.0.0/zh-Hans.md"
 printf '# Version 1.0.0 （English + 中文， 中文在下方）\n\n## English\n\n- English.\n\n## 中文\n\n- 中文。\n' > "$PACKAGE/release-body.md"
@@ -144,7 +153,7 @@ release_json() {
         id="$(<"$state/release-id")"
     fi
     if [[ -f "$state/assets" ]]; then
-        assets="[$(asset_json StatusTrio-1.0.0.dmg "$dmg"),$(asset_json StatusTrio-1.0.0.dmg.sha256 "$checksum"),$(asset_json release-manifest.json "$manifest")]"
+        assets="[$(asset_json StatusTrio-1.0.0.dmg "$dmg"),$(asset_json StatusTrio-1.0.0.dmg.sha256 "$checksum"),$(asset_json StatusTrio-1.0.0.zip "$package/StatusTrio-1.0.0.zip"),$(asset_json StatusTrio-1.0.0.zip.sha256 "$package/StatusTrio-1.0.0.zip.sha256"),$(asset_json release-manifest.json "$manifest")]"
     else
         assets="[]"
     fi
@@ -219,7 +228,11 @@ if [[ "$1" == "api" ]]; then
             ;;
         GET:repos/example/status-trio/contents/appcast.xml?ref=*)
             if [[ "$accept" == *"raw"* ]]; then
-                body="$(cat "$state/appcast")"
+                if [[ "${FAKE_API_APPCAST_MODE:-valid}" == "invalid" ]]; then
+                    body='<rss version="2.0"><channel/></rss>'
+                else
+                    body="$(cat "$state/appcast")"
+                fi
             elif [[ "$jq_filter" == ".sha" ]]; then
                 body="$(shasum -a 1 "$state/appcast" | awk '{print $1}')"
             else
@@ -360,6 +373,9 @@ case "$url" in
         else
             cat "${FAKE_PACKAGE_DIR:?}/StatusTrio-1.0.0.dmg"
         fi
+        ;;
+    https://github.com/example/status-trio/releases/download/v1.0.0/StatusTrio-1.0.0.zip|https://github.com/example/status-trio/releases/download/v1.0.0/StatusTrio-1.0.0.zip.sha256)
+        cat "${FAKE_PACKAGE_DIR:?}/$(basename "$url")"
         ;;
     https://raw.githubusercontent.com/example/status-trio/main/appcast.xml)
         if [[ "${FAKE_PUBLIC_APPCAST_MODE:-valid}" == "invalid" ]]; then
@@ -717,9 +733,18 @@ reset_state
 make_manifest "$PACKAGE/release-manifest.json" "$PACKAGE/StatusTrio-1.0.0.dmg" \
     "$DMG_SHA" "$DMG_LENGTH" "fixture-signature"
 run_publish >/dev/null
+FAKE_API_APPCAST_MODE=invalid \
 FAKE_PUBLIC_APPCAST_MODE=invalid PUBLIC_VERIFY_ATTEMPTS=2 expect_failure \
     "public appcast mismatch" run_publish
 assert_contains "$WORK/output.log" "Public DMG or appcast did not match"
+
+# A stale raw CDN copy must not fail a publish the contents API already shows.
+reset_state
+make_manifest "$PACKAGE/release-manifest.json" "$PACKAGE/StatusTrio-1.0.0.dmg" \
+    "$DMG_SHA" "$DMG_LENGTH" "fixture-signature"
+run_publish >/dev/null
+FAKE_PUBLIC_APPCAST_MODE=invalid PUBLIC_VERIFY_ATTEMPTS=2 run_publish >/dev/null || \
+    fail "stale raw appcast cache rejected a publish the contents API confirmed"
 
 reset_state
 make_manifest "$PACKAGE/release-manifest.json" "$PACKAGE/StatusTrio-1.0.0.dmg" \

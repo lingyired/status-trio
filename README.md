@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="screenshots/status-trio-dock-state-strip-symmetric.png" width="1000" alt="Eight Status Trio Dock icon states with symmetrically arranged dark and light backgrounds, including Wi-Fi, Bluetooth audio, battery, dots, and arc states">
+  <img src="screenshots/status-trio-dock-state-strip-symmetric-two-row.png" width="1000" alt="Sixteen Status Trio Dock icon states with symmetrically arranged dark and light backgrounds, including Wi-Fi, Bluetooth audio, battery, dots, and arc states">
 </p>
 
 <p align="center">
@@ -58,7 +58,7 @@ Status Trio is a native macOS status app that combines Wi-Fi, battery, and volum
 
 - **One icon, three signals** — battery, Wi-Fi, and volume share one icon in the menu bar, the Dock, or both, and a Bluetooth device that is playing can take the middle spot with its own symbol.
 - **Bluetooth** — the volume indicator turns blue while it plays. The panel lists paired devices you can tap to connect or disconnect, shows battery levels by default, and stays off until you enable it.
-- **Battery** — percentage, charging or plugged in, time to full, and a color when it runs low. Open the row for adapter power, voltage, current, cycle count, and Low Power Mode.
+- **Battery** — percentage, charging or plugged in, time to full, and a color when it runs low. Open the row for adapter power, voltage, current, cycle count, and Low Power Mode, plus optional estimated power flow and a CPU energy-impact list. Supported Apple silicon Macs on macOS 26.4 or later can also override the charge limit with **Charge to Full Now**.
 - **Wi-Fi** — the network you are on and how strong the signal is. Open it to see nearby networks, check the link details, or switch Wi-Fi off. Switching between networks happens in the Wi-Fi pane of System Settings.
 - **Volume** — level, mute, and the output device, drawn as dots or an arc. Scroll the whole panel or just the control, and pick which direction turns it up.
 - **Make it yours** — icon size, symbol scale, ring thickness, status colors, and which sections the popover shows, in the order you want.
@@ -87,22 +87,15 @@ The official release is signed with Developer ID and notarized by Apple. Open it
 
 ## Input, audio, and everyday controls
 
-- **Input-source icon** — show the current input method in the middle of the menu bar and Dock icon instead of the network glyph. Choose it in **Settings › Network**; choose an enabled input source from the panel to switch to it.
+- **Input-source icon** — show the current input method in the middle of the menu bar and Dock icon instead of the network glyph. Choose **Current Input Source** under **Settings › App Icon › Middle Icon**; choose an enabled input source from the panel to switch to it.
 - **Global shortcut** — assign a shortcut in **Settings › General** to open or close the status panel from another app. No shortcut is assigned by default.
 - **Bluetooth controls** — turn Bluetooth on or off from the panel, connect or disconnect paired devices, and switch listening modes on supported AirPods and HUAWEI FreeBuds. Optional Apple-device battery rows are configured in **Settings › Bluetooth**; availability depends on the device and connection.
 - **Audio input and output** — select speakers or microphones, adjust output and input levels, and control compatible external-display speakers through DDC. Display volume support depends on the hardware and connection.
 - **Charging and appearance** — enable charging effects for the menu bar and Dock. On macOS 26 and later, the app icon in Finder and Launchpad also follows the system light or dark appearance.
 
-## New on main (not yet released)
-
-The following features are in the source on `main`, but are not included in the current GitHub / Homebrew release, **1.7.5**:
-
-- **Battery power flow and CPU energy impact** — the battery panel can show estimated charger input, power flowing into the battery, and system power. An optional list ranks up to five apps by CPU energy, falling back to CPU activity when energy counters are unavailable. This is not total app energy consumption or a copy of the macOS high-energy list. Enabling the list starts periodic background sampling; turning it off stops sampling. See [power flow and CPU energy impact](docs/battery-power-flow.md).
-- **Charge to Full Now, with cancellation** — a button for supported Apple silicon Macs on macOS 26.4 or later temporarily overrides the native charge limit. It uses a private PowerUI interface and is enabled by default only when the capability is available; you can turn it off in Battery settings. **The charge limit may remain at 100% after charging or unplugging; it is not automatically restored.** Use **Cancel Charge to Full** to request restoration, or check and restore the limit in System Settings. Availability and behavior depend on macOS. See [behavior and verification](docs/charge-to-full-now-poc.md).
-
 ## Bluetooth audio
 
-While audio plays over Bluetooth, two switches under **Settings › Bluetooth** let the middle glyph become that device's own symbol — AirPods, headphones, speakers, and other devices supply their own — and let the volume dots or arc turn blue. Both are off by default. **Let network errors take priority**, on by default, keeps the network icon while the connection itself is in trouble:
+Pick **Bluetooth Device** as the middle icon under **Settings › App Icon › Middle Icon** and the middle glyph becomes that device's own symbol while it plays — AirPods, headphones, speakers, and other devices supply their own — and the volume dots or arc can turn blue. **Show network problems instead**, on by default, keeps the network icon while the connection itself is in trouble. The same picker also offers Network, Current Input Source, Battery Percentage, and Power (Watts):
 
 <p align="center">
   <img src="screenshots/menu-bar-airpods.jpg" width="1000" alt="Status Trio menu bar icon showing the AirPods glyph while AirPods are connected, with its status popover open">
@@ -132,7 +125,7 @@ The same live icon can live in the Dock instead of the menu bar, or in both plac
   <sub>Bluetooth panel preview</sub>
 </p>
 
-The Dock icon draws the same combined icon as the menu bar, so with Bluetooth audio replacement enabled the device glyph takes over the middle there too. Its background can follow the system icon style or be pinned to a fixed shade:
+The Dock icon draws the same combined icon as the menu bar, so with Bluetooth Device selected as the middle icon the device glyph takes over the middle there too. Its background can follow the system icon style or be pinned to a fixed shade:
 
 <p align="center">
   <img src="screenshots/status-trio-dock-icons.png" width="880" alt="Status Trio Dock icon in dark, light, and clear backgrounds, in two rows: the Wi-Fi state and Bluetooth audio replacing the Wi-Fi icon with blue volume dots">
@@ -198,15 +191,28 @@ The ad-hoc-signed bundle is intended for local personal use. Gatekeeper may reje
 Two boundaries macOS and this project draw deliberately. Both are explained in [Known limitations](docs/known-limitations.md).
 
 - **Switching networks happens in System Settings.** Choosing a network in the popover opens the Wi-Fi pane; Status Trio never reads or stores Wi-Fi passwords, because macOS offers no public API to connect with a saved password and every alternative ends with the app holding them.
-- **Charge-limit controls depend on the version.** Release 1.7.5 opens System Settings for charging overrides. The opt-in action on `main` uses a private interface and requires explicit cancellation to request restoration; see [New on main](#new-on-main-not-yet-released). Low Power Mode uses a separate [opt-in privileged helper](docs/privileged-helper.md).
+- **Charge-limit control uses a private interface.** The opt-in **Charge to Full Now** action appears only on supported Apple silicon Macs on macOS 26.4 or later, uses a private PowerUI interface, and can be turned off in Battery settings; availability and behavior depend on macOS. The limit may stay at 100% after charging or unplugging and is not restored automatically, so restore it in System Settings if needed. Low Power Mode uses a separate [opt-in privileged helper](docs/privileged-helper.md).
 
 ## Languages
 
 Status Trio follows the macOS preferred language by default and includes English, Simplified Chinese, Traditional Chinese, Japanese, Korean, Spanish, French, German, Italian, Brazilian Portuguese, Russian, and Arabic.
 
+## Community
+
+Status Trio has a Chinese-language community for questions, feedback, and release discussion.
+
+- **QQ group:** `735856753` — scan the QR code below.
+- **WeChat group:** scan the QR code below.
+
+<p align="center">
+  <img src="screenshots/status-trio-qq-group.png" width="220" alt="Status Trio QQ group QR code">
+  &nbsp;&nbsp;
+  <img src="screenshots/status-trio-wechat-group.png" width="220" alt="Status Trio WeChat group QR code">
+</p>
+
 ## Privacy
 
-Status Trio reads system status locally. Optional anonymous usage statistics are sent to the first-party service only after you enable them; upgrades start with statistics off, and new installs ask during onboarding. The heartbeat contains a random installation ID, app and macOS versions, language, and icon placement, with no names, account details, network details, or hardware identifiers. See [telemetry and privacy](docs/privacy-telemetry.md). Status Trio does not read or store Wi-Fi passwords or request Keychain access. Location access is optional for the current Wi-Fi network name and details; Bluetooth access is requested when you enable the Bluetooth panel. On `main`, the optional charge-to-full control uses a private PowerUI interface only when enabled; see its behavior and limits above.
+Status Trio reads system status locally. Optional anonymous usage statistics are sent to the first-party service only after you enable them; upgrades start with statistics off, and new installs ask during onboarding. The heartbeat contains a random installation ID, app and macOS versions, language, and icon placement, with no names, account details, network details, or hardware identifiers. See [telemetry and privacy](docs/privacy-telemetry.md). Status Trio does not read or store Wi-Fi passwords or request Keychain access. Location access is optional for the current Wi-Fi network name and details; Bluetooth access is requested when you enable the Bluetooth panel. The optional charge-to-full control uses a private PowerUI interface only when enabled; see [known limitations](docs/known-limitations.md) for its behavior and limits.
 
 ## Development
 
@@ -275,7 +281,12 @@ For the three icon regions, update timing, Swift examples, and extension boundar
 
 Copyright 2026 lingyired.
 
-Licensed under the Apache License, Version 2.0. See [LICENSE](LICENSE) and [NOTICE](NOTICE).
+Status Trio is licensed under the Apache License, Version 2.0. See [LICENSE](LICENSE) and [NOTICE](NOTICE).
+
+Bundled third-party components carry their own licenses and do not change the project's Apache-2.0 license:
+
+- [Third-party licenses and dependency notices](docs/legal/third-party-licenses.md)
+- [Third-party source and build/replacement instructions](Support/MobileBatteryHelper/ThirdPartyNotices/NOTICE.md)
 
 ## Author
 

@@ -1,4 +1,5 @@
 import CoreGraphics
+import Foundation
 import XCTest
 @testable import StatusTrioCore
 
@@ -305,6 +306,194 @@ final class StatusIconGeometryTests: XCTestCase {
     ) {
         XCTAssertEqual(actual.x, expected.x, accuracy: accuracy, file: file, line: line)
         XCTAssertEqual(actual.y, expected.y, accuracy: accuracy, file: file, line: line)
+    }
+
+    // MARK: - Split top gap (#205)
+
+    /// In split mode the visible arc spans the whole 0–100% scale, so progress
+    /// `p` must fill `p` of the visible arc length.
+    func testSplitFillProgressFillsTheVisibleArcEvenly() {
+        let width = StatusIconGeometry.batteryChargingBoltTopGapWidth
+        let visibleArc = StatusIconGeometry.visibleFraction(
+            forProgress: 1,
+            hasTopGap: true,
+            topGapWidth: width
+        )
+
+        for progress in [0.0, 0.1, 0.25, 0.4, 0.5, 0.6, 0.75, 0.9, 1.0] {
+            let drawn = StatusIconGeometry.splitFillProgress(
+                forProgress: progress,
+                hasTopGap: true,
+                topGapWidth: width
+            )
+            let covered = StatusIconGeometry.visibleFraction(
+                forProgress: drawn,
+                hasTopGap: true,
+                topGapWidth: width
+            )
+            XCTAssertEqual(covered, progress * visibleArc, accuracy: 1e-9)
+        }
+    }
+
+    /// 51 and 59 used to collapse onto the gap's leading edge; split mode must
+    /// give them visibly different arc ends.
+    func testSplitFillProgressSeparatesLevelsThatUsedToShareTheGapEdge() {
+        let width = StatusIconGeometry.batteryChargingBoltTopGapWidth
+        let low = StatusIconGeometry.splitFillProgress(
+            forProgress: 0.51,
+            hasTopGap: true,
+            topGapWidth: width
+        )
+        let high = StatusIconGeometry.splitFillProgress(
+            forProgress: 0.59,
+            hasTopGap: true,
+            topGapWidth: width
+        )
+
+        XCTAssertGreaterThan(high - low, 0.01)
+    }
+
+    /// At 50% the left visible half is exactly full: the fill reaches the gap's
+    /// leading edge and never crosses it.
+    func testSplitFillProgressSendsHalfToTheGapEdge() {
+        let width = StatusIconGeometry.batteryChargingBoltTopGapWidth
+        let visibleArc = StatusIconGeometry.visibleFraction(
+            forProgress: 1,
+            hasTopGap: true,
+            topGapWidth: width
+        )
+        let half = StatusIconGeometry.splitFillProgress(
+            forProgress: 0.5,
+            hasTopGap: true,
+            topGapWidth: width
+        )
+
+        XCTAssertEqual(
+            StatusIconGeometry.visibleFraction(
+                forProgress: half,
+                hasTopGap: true,
+                topGapWidth: width
+            ),
+            visibleArc / 2,
+            accuracy: 1e-9
+        )
+        // The half point stays on the visible left segment, not inside the gap.
+        XCTAssertLessThan(half, StatusIconGeometry.visibleFraction(
+            forProgress: 1,
+            hasTopGap: true,
+            topGapWidth: width
+        ))
+    }
+
+    /// Matches the issue's suggested checkpoints for both gap widths (bolt/plug
+    /// 50 and percentage 64): 0.5 -> gap leading edge, 0.25 -> half the left
+    /// visible arc, 0.75 -> half the right visible arc, 1.0 -> closed ring.
+    func testSplitFillProgressMatchesIssueCheckpointsForBothGapWidths() {
+        for width in [
+            StatusIconGeometry.batteryChargingBoltTopGapWidth,
+            StatusIconGeometry.batteryValueTopGapWidth,
+        ] {
+            let visibleArc = StatusIconGeometry.visibleFraction(
+                forProgress: 1,
+                hasTopGap: true,
+                topGapWidth: width
+            )
+            let gapStart = StatusIconGeometry.visibleFraction(
+                forProgress: 0.5,
+                hasTopGap: true,
+                topGapWidth: width
+            )
+
+            let half = StatusIconGeometry.splitFillProgress(
+                forProgress: 0.5, hasTopGap: true, topGapWidth: width
+            )
+            XCTAssertEqual(
+                StatusIconGeometry.visibleFraction(forProgress: half, hasTopGap: true, topGapWidth: width),
+                gapStart,
+                accuracy: 1e-9
+            )
+
+            let quarter = StatusIconGeometry.splitFillProgress(
+                forProgress: 0.25, hasTopGap: true, topGapWidth: width
+            )
+            XCTAssertEqual(
+                StatusIconGeometry.visibleFraction(forProgress: quarter, hasTopGap: true, topGapWidth: width),
+                visibleArc * 0.25,
+                accuracy: 1e-9
+            )
+
+            let threeQuarter = StatusIconGeometry.splitFillProgress(
+                forProgress: 0.75, hasTopGap: true, topGapWidth: width
+            )
+            XCTAssertEqual(
+                StatusIconGeometry.visibleFraction(
+                    forProgress: threeQuarter, hasTopGap: true, topGapWidth: width
+                ),
+                visibleArc * 0.75,
+                accuracy: 1e-9
+            )
+
+            XCTAssertEqual(
+                StatusIconGeometry.splitFillProgress(
+                    forProgress: 1, hasTopGap: true, topGapWidth: width
+                ),
+                1,
+                accuracy: 1e-9
+            )
+        }
+    }
+
+    func testSplitFillProgressMatchesPlainProgressWithoutAGap() {
+        for progress in [0.0, 0.37, 0.5, 1.0] {
+            XCTAssertEqual(
+                StatusIconGeometry.splitFillProgress(
+                    forProgress: progress,
+                    hasTopGap: false
+                ),
+                progress,
+                accuracy: 1e-12
+            )
+        }
+    }
+
+    // MARK: - Three-digit value top gap
+
+    /// A three-digit value like "100" is wider than two digits, so its top-gap
+    /// arc must open further to keep the glyph ink clear of the arc ends. Narrow
+    /// values keep the historical fixed width.
+    func testValueTopGapWidensToClearThreeDigitInk() {
+        let fixed = StatusIconGeometry.batteryValueTopGapWidth
+        let radius: CGFloat = 51.5
+        let clearance = StatusIconGeometry.batteryValueTopGapClearance
+
+        // Two digits at the default scale stay on the fixed width.
+        XCTAssertEqual(
+            StatusIconGeometry.batteryValueGapWidth(clearingInkWidth: 42.53),
+            fixed,
+            accuracy: 1e-9
+        )
+
+        // Three digits ("100" ≈ 60 units of ink at the default 1.8 scale) open
+        // the gap, and the arc ends then clear the ink by the declared amount.
+        let threeDigitInk: CGFloat = 59.88
+        let widened = StatusIconGeometry.batteryValueGapWidth(clearingInkWidth: threeDigitInk)
+        XCTAssertGreaterThan(widened, fixed + 5)
+
+        let halfGapAngle = widened / (2 * radius)
+        let endOffsetX = radius * CGFloat(sin(Double(halfGapAngle)))
+        XCTAssertGreaterThanOrEqual(
+            endOffsetX,
+            threeDigitInk / 2 + clearance - 1e-6
+        )
+
+        // Wider ink can never produce a narrower gap.
+        XCTAssertGreaterThanOrEqual(
+            StatusIconGeometry.batteryValueGapWidth(clearingInkWidth: 72.98),
+            widened
+        )
+        // Non-finite or empty ink falls back to the fixed width.
+        XCTAssertEqual(StatusIconGeometry.batteryValueGapWidth(clearingInkWidth: 0), fixed)
+        XCTAssertEqual(StatusIconGeometry.batteryValueGapWidth(clearingInkWidth: .nan), fixed)
     }
 }
 

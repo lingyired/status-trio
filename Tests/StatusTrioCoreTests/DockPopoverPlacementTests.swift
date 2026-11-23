@@ -25,6 +25,94 @@ struct DockPlacementTests {
     }
 }
 
+struct DockRevealInsetTests {
+    private let screen = NSRect(x: 0, y: 0, width: 1440, height: 900)
+
+    @Test func reservesTheBottomsEdgeForACollapsedDock() {
+        let inset = DockReveal.inset(
+            screenFrame: screen,
+            visibleFrame: screen,
+            pointer: NSPoint(x: 100, y: 20)
+        )
+
+        #expect(inset.bottom == DockReveal.extent)
+        #expect(inset.left == 0 && inset.right == 0 && inset.top == 0)
+    }
+
+    @Test func reservesTheLeftEdgeForACollapsedDock() {
+        let inset = DockReveal.inset(
+            screenFrame: screen,
+            visibleFrame: screen,
+            pointer: NSPoint(x: 20, y: 400)
+        )
+
+        #expect(inset.left == DockReveal.sideExtent)
+        #expect(inset.bottom == 0 && inset.right == 0 && inset.top == 0)
+    }
+
+    @Test func reservesTheRightEdgeForACollapsedDock() {
+        let inset = DockReveal.inset(
+            screenFrame: screen,
+            visibleFrame: screen,
+            pointer: NSPoint(x: 1420, y: 400)
+        )
+
+        #expect(inset.right == DockReveal.sideExtent)
+        #expect(inset.bottom == 0 && inset.left == 0 && inset.top == 0)
+    }
+
+    @Test func leavesNoInsetForAVisibleBottomDock() {
+        // A visible Dock already shrinks visibleFrame, so placement clears it.
+        let visible = NSRect(x: 0, y: 70, width: 1440, height: 805)
+
+        let inset = DockReveal.inset(
+            screenFrame: screen,
+            visibleFrame: visible,
+            pointer: NSPoint(x: 100, y: 20)
+        )
+
+        #expect(inset.bottom == 0 && inset.left == 0 && inset.right == 0)
+    }
+
+    @Test func leavesNoInsetForAVisibleLeftDock() {
+        let visible = NSRect(x: 70, y: 0, width: 1370, height: 875)
+
+        let inset = DockReveal.inset(
+            screenFrame: screen,
+            visibleFrame: visible,
+            pointer: NSPoint(x: 20, y: 400)
+        )
+
+        #expect(inset.left == 0 && inset.bottom == 0 && inset.right == 0)
+    }
+
+    @Test func aCollapsedDockTakesItsOrientationFromThePointer() {
+        #expect(
+            DockReveal.collapsedPlacement(
+                screenFrame: screen, visibleFrame: screen, pointer: NSPoint(x: 720, y: 20)
+            ) == .bottom
+        )
+        #expect(
+            DockReveal.collapsedPlacement(
+                screenFrame: screen, visibleFrame: screen, pointer: NSPoint(x: 20, y: 450)
+            ) == .left
+        )
+        #expect(
+            DockReveal.collapsedPlacement(
+                screenFrame: screen, visibleFrame: screen, pointer: NSPoint(x: 1420, y: 450)
+            ) == .right
+        )
+        // A visible Dock keeps its frame-derived orientation.
+        #expect(
+            DockReveal.collapsedPlacement(
+                screenFrame: screen,
+                visibleFrame: NSRect(x: 70, y: 0, width: 1370, height: 875),
+                pointer: NSPoint(x: 20, y: 450)
+            ) == nil
+        )
+    }
+}
+
 struct DockPopoverAnchorTests {
     @Test func anchorsAboveABottomDock() {
         let anchor = DockPopoverAnchor.make(
@@ -126,6 +214,61 @@ struct DockAreaPointerTests {
                 screenFrame: screen,
                 visibleFrame: visible
             )
+        )
+    }
+}
+
+struct DockRevealEdgeTests {
+    private let screen = NSRect(x: 0, y: 0, width: 2048, height: 1152)
+
+    @Test func visibleDockEdgeUsesTheVisibleFrameEdge() {
+        let visibleBottom = NSRect(x: 0, y: 90, width: 2048, height: 1032)
+        #expect(
+            DockReveal.dockEdge(
+                screenFrame: screen,
+                visibleFrame: visibleBottom,
+                placement: .bottom
+            ) == 90
+        )
+
+        let visibleLeft = NSRect(x: 64, y: 0, width: 1984, height: 1122)
+        #expect(
+            DockReveal.dockEdge(
+                screenFrame: screen,
+                visibleFrame: visibleLeft,
+                placement: .left
+            ) == 64
+        )
+        #expect(
+            DockReveal.dockEdge(
+                screenFrame: screen,
+                visibleFrame: NSRect(x: 0, y: 0, width: 1984, height: 1122),
+                placement: .right
+            ) == 1984
+        )
+    }
+
+    @Test func collapsedDockEdgeReservesTheRevealExtent() {
+        #expect(
+            DockReveal.dockEdge(
+                screenFrame: screen,
+                visibleFrame: screen,
+                placement: .bottom
+            ) == DockReveal.extent
+        )
+        #expect(
+            DockReveal.dockEdge(
+                screenFrame: screen,
+                visibleFrame: screen,
+                placement: .left
+            ) == DockReveal.sideExtent
+        )
+        #expect(
+            DockReveal.dockEdge(
+                screenFrame: screen,
+                visibleFrame: screen,
+                placement: .right
+            ) == screen.maxX - DockReveal.sideExtent
         )
     }
 }

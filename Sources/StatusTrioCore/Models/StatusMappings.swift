@@ -1,9 +1,18 @@
 import Foundation
 
 enum BatteryColorRole: Equatable, Sendable {
+    // Plain use on battery, not connected to power (#357). Resolves to the
+    // user-chosen discharging colour; its `.system` default is the label colour,
+    // identical to `foreground`. `foreground` is still returned for the
+    // monochrome charging mode and when state colours are switched off.
+    case discharging
     case foreground
     case critical
     case lowPower
+    /// The system is in High Power Mode (#235). Mutually exclusive with
+    /// `lowPower`; it wins over `charging` because High Power Mode is itself a
+    /// connected-power state.
+    case highPower
     case charging
 }
 
@@ -19,38 +28,19 @@ enum BatteryGapContent: Equatable, Sendable {
     case empty
 }
 
-enum WiFiSummaryAction: Equatable, Sendable {
-    case openDetails
-    case requestNameAccess
-    case openLocationSettings
-}
-
 enum StatusMappings {
     static func wifiBars(rssi: Int?) -> Int {
         guard let rssi else { return 0 }
         switch rssi {
         // Parentheses are required for this negative partial range in Swift 6.
-        case (-60)...:
+        case (-70)...:
             return 3
-        case -78 ... -61:
+        case -78 ... -71:
             return 2
         case -88 ... -79:
             return 1
         default:
             return 0
-        }
-    }
-
-    static func wifiSummaryAction(for wifi: WiFiStatus) -> WiFiSummaryAction {
-        guard wifi.state.isNetworkAssociated else { return .openDetails }
-
-        switch wifi.nameAccess {
-        case .authorized:
-            return .openDetails
-        case .notDetermined:
-            return .requestNameAccess
-        case .denied, .restricted:
-            return .openLocationSettings
         }
     }
 
@@ -66,73 +56,87 @@ enum StatusMappings {
 
     static func batteryColorRole(
         _ battery: BatteryStatus,
-        criticalThreshold: Int = 20
+        criticalThreshold: Int = 20,
+        isHighPowerMode: Bool = false,
+        /// A battery-less Mac is always on AC power, so its decorative ring still
+        /// reflects the "connected to power" colour (#309). Charging and
+        /// Low/High Power Mode keep their usual precedence.
+        treatAsConnected: Bool = false,
+        /// When on, the charging / connected-to-power state draws in the plain
+        /// foreground colour instead of the charging colour (#309). Low, High
+        /// Power Mode and critical keep their own colours.
+        monochromeCharging: Bool = false
     ) -> BatteryColorRole {
         let threshold = min(100, max(0, criticalThreshold))
         if battery.percentage < threshold { return .critical }
         if battery.isLowPowerMode { return .lowPower }
-        if battery.isCharging || battery.isConnectedToPower { return .charging }
-        return .foreground
+        if isHighPowerMode { return .highPower }
+        if battery.isCharging || battery.isConnectedToPower || treatAsConnected {
+            return monochromeCharging ? .foreground : .charging
+        }
+        return .discharging
     }
 
-    /// A charging battery keeps the bolt. A connected power source that is not
-    /// charging — including a battery that is already full — shows the plug,
-    /// or the percentage when the user asked for the number in that state and
-    /// the percentage is available at all.
+    /// Each power state carries its own top-gap marker (#315): a charging
+    /// battery, a connected-but-not-charging one, and plain battery use can each
+    /// show the percentage, the bolt, the plug, or nothing. A battery-less Mac
+    /// has no real level, so its decorative plug/bolt is drawn from
+    /// `noBatteryMarker` and a percentage choice falls back to the plug.
     static func batteryGapContent(
         _ battery: BatteryStatus,
         options: BatteryIconOptions
     ) -> BatteryGapContent {
-        if battery.isPresent, options.showsChargingIndicator {
-            if battery.isCharging { return .bolt }
-            let showsPercentageForPower = options.showsPercentageWhenConnected
-                && options.showsPercentage
-            if battery.isConnectedToPower, !showsPercentageForPower {
-                return .plug
-            }
+        let marker: BatteryTopMarker
+        if !battery.isPresent {
+            marker = options.noBatteryMarker
+        } else if battery.isCharging {
+            marker = options.chargingMarker
+        } else if battery.isConnectedToPower {
+            marker = options.connectedMarker
+        } else {
+            marker = options.onBatteryMarker
         }
 
-        return options.showsPercentage ? .percentage : .empty
+        switch marker {
+        case .percentage:
+            // A battery-less Mac never claims the placeholder 100% as a number.
+            return battery.isPresent ? .percentage : .plug
+        case .bolt:
+            return .bolt
+        case .plug:
+            return .plug
+        case .hidden:
+            return .empty
+        }
     }
 
     /// How far around the ring the battery arc is drawn.
     ///
-    /// The arc is measured against `fullThreshold`, not against a fixed 100%,
-    /// so a level-limited battery can close the ring at the level the user
-    /// picked (#105). `fullThreshold` defaults to 100 and therefore keeps the
-    /// raw-percentage behaviour for every caller with no opinion of its own.
+    /// The full-ring level only applies while the Mac is on power. A charge
+    /// limit holds the battery below 100%, so on power the ring closes at the
+    /// level the user picked (#105). On battery the limit is irrelevant — the
+    /// Mac is running off the pack — so the arc falls back to the real 100%
+    /// scale; otherwise a 29% charge drawn against an 80% threshold would look
+    /// far fuller than the number (#318). `fullThreshold` defaults to 100, so
+    /// callers with no opinion keep the raw-percentage behaviour.
     static func batteryProgress(
         _ battery: BatteryStatus,
         fullThreshold: Int = BatteryIconOptions.defaultFullThreshold
     ) -> Double {
-        let threshold = min(100, max(1, fullThreshold))
+        let threshold = battery.isConnectedToPower
+            ? min(100, max(1, fullThreshold))
+            : 100
         return min(1, max(0, Double(battery.percentage) / Double(threshold)))
     }
 
-    static func shouldReplaceNetworkIcon(
+    /// Availability only; source selection and outage priority belong to the scene.
+    static func canShowBluetoothIcon(
         currentDevice: AudioOutputDevice?,
-        wifi: WiFiStatus,
-        connection: NetworkConnection,
         options: BluetoothAudioIconOptions
     ) -> Bool {
-        guard options.replacesNetworkIcon else { return false }
-
-        // A picked device pins the glyph, so the current output is irrelevant
-        // to the decision. Without one, the replacement still requires the
-        // current output to be Bluetooth audio.
-        if options.networkIconSymbolOverride == nil {
-            guard currentDevice?.transport == .bluetooth
-                    || currentDevice?.transport == .bluetoothLowEnergy else {
-                return false
-            }
-        }
-
-        guard options.prioritizesNetworkErrors else { return true }
-
-        // A wired connection is not a Wi-Fi error and can still coexist with
-        // Bluetooth audio.
-        if connection == .offline { return false }
-        return !wifi.state.isBluetoothReplacementNetworkError
+        options.networkIconSymbolOverride != nil
+            || currentDevice?.transport == .bluetooth
+            || currentDevice?.transport == .bluetoothLowEnergy
     }
 
     /// Whether the machine is genuinely offline right now.

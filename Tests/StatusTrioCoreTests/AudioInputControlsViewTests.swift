@@ -10,11 +10,14 @@ final class AudioInputControlsViewTests: XCTestCase {
         let controlsEnd = try XCTUnwrap(source.range(of: "    @ViewBuilder\n    private var muteIcon"))
         let controls = String(source[controlsStart.lowerBound..<controlsEnd.lowerBound])
 
-        XCTAssertTrue(controls.contains("Slider("), "volume control layout must contain the slider")
-        XCTAssertTrue(controls.contains(".disabled(!state.canAdjust)"))
+        XCTAssertTrue(
+            controls.contains("PanelLevelSlider("),
+            "volume control layout must use the shared panel slider"
+        )
+        XCTAssertTrue(controls.contains("isEnabled: state.canAdjust"))
         XCTAssertTrue(controls.contains("if state.scalar == nil"))
         XCTAssertTrue(controls.contains("Text(\"—\")"))
-        XCTAssertTrue(controls.contains(".accessibilityValue(sliderAccessibilityValue)"))
+        XCTAssertTrue(controls.contains("accessibilityValue: sliderAccessibilityValue"))
         XCTAssertTrue(controls.contains(".audioInputVolumeUnavailable"))
     }
 

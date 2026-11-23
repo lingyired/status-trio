@@ -11,20 +11,11 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
     private let localization: Localization
     private let inputSourceController: InputSourceController
     private let globalShortcutController: GlobalShortcutController?
-    private let launchAtLogin: LaunchAtLoginManager
-    private let helper: PrivilegedHelperFacade
-    private let updaterManager: UpdateStateFacade
     private let chargeToFullNow: ChargeToFullNowController?
-    var platformServicesForTesting: (updater: UpdateStateFacade, helper: PrivilegedHelperFacade) {
-        (updaterManager, helper)
-    }
-    var distributionCapabilityPolicyForTesting: DistributionCapabilityPolicy {
-        capabilityPolicy
-    }
-    private let capabilityPolicy: DistributionCapabilityPolicy
-    private let systemIconAppearance: () -> SystemIconAppearanceTheme
     private let activationPolicy: AppActivationPolicy
     private let showIconGuide: () -> Void
+    private let backgroundUITesting: BackgroundUITestingConfiguration
+    private let presentWindow: @MainActor (NSWindow, SettingsWindowPresentation) -> Void
     private var localizationCancellable: AnyCancellable?
     private var authorizationCancellable: AnyCancellable?
     private var ownsActivationPolicy = false
@@ -37,6 +28,9 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
     /// takes it, because the first presentation posts its notification before
     /// the SwiftUI view necessarily exists.
     private var pendingSection: SettingsView.Section?
+    /// The leaf within `pendingSection` when a caller wants a specific subpage
+    /// rather than the category's default one.
+    private var pendingSubtopic: SettingsSubtopic?
 
     init(
         store: SettingsStore,
@@ -47,14 +41,11 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
         chargingEffectClock: ChargingEffectClock = ChargingEffectClock(),
         inputSourceController: InputSourceController? = nil,
         globalShortcutController: GlobalShortcutController? = nil,
-        launchAtLogin: LaunchAtLoginManager,
-        helper: PrivilegedHelperFacade = PrivilegedHelperFacade(service: UnsupportedPrivilegedHelperService()),
-        updaterManager: UpdateStateFacade = UpdateStateFacade(service: SystemManagedUpdateService()),
-        capabilityPolicy: DistributionCapabilityPolicy = .runtimeDefault,
-        systemIconAppearance: @escaping () -> SystemIconAppearanceTheme = {
-            .default
-        },
-        chargeToFullNow: ChargeToFullNowController? = nil
+        chargeToFullNow: ChargeToFullNowController? = nil,
+        backgroundUITesting: BackgroundUITestingConfiguration = .disabled,
+        presentWindow: @escaping @MainActor (NSWindow, SettingsWindowPresentation) -> Void = {
+            window, mode in mode.present(window)
+        }
     ) {
         self.store = store
         self.statusStore = statusStore
@@ -62,14 +53,11 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
         self.localization = localization
         self.inputSourceController = inputSourceController ?? InputSourceController()
         self.globalShortcutController = globalShortcutController
-        self.launchAtLogin = launchAtLogin
-        self.helper = helper
-        self.updaterManager = updaterManager
-        self.capabilityPolicy = capabilityPolicy
-        self.systemIconAppearance = systemIconAppearance
         self.chargeToFullNow = chargeToFullNow
         self.activationPolicy = activationPolicy
         self.showIconGuide = showIconGuide
+        self.backgroundUITesting = backgroundUITesting
+        self.presentWindow = presentWindow
         self.lastBluetoothAuthorization = statusStore.bluetoothDevices.authorizationStatus
         super.init(window: nil)
 
@@ -117,23 +105,44 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
     /// Shows the window and, when requested, reveals one sidebar tab. The
     /// status panel uses this to open the app's own battery settings.
     func show(section: SettingsView.Section?) {
+        show(section: section, subtopic: nil)
+    }
+
+    /// Shows the window and opens one leaf subpage. Existing callers that only
+    /// know the category keep using `show(section:)`, which maps to the
+    /// category's default (or last visited) leaf.
+    func show(subtopic: SettingsSubtopic) {
+        show(section: subtopic.section, subtopic: subtopic)
+    }
+
+    func show(section: SettingsView.Section?, subtopic: SettingsSubtopic?) {
         if let section {
             pendingSection = section
+            pendingSubtopic = subtopic?.section == section ? subtopic : nil
         }
         dockActivationLogger.notice("Settings.show existing=\(self.window != nil)")
         let window = window ?? makeWindow()
         self.window = window
         statusStore.setSettingsVisible(true)
         applyLocalization()
-        enterActivationPolicyIfNeeded()
+        if !backgroundUITesting.isEnabled {
+            enterActivationPolicyIfNeeded()
+        } else {
+            BackgroundUIWindowPlacement.position(window, display: backgroundUITesting.display)
+        }
         // The user may have approved the power helper in System Settings since
         // the last look; refresh so the toggle and its approval note are current.
-        if !capabilityPolicy.blocksControl(.privilegedHelper) {
-            helper.refresh()
+        presentWindow(window, backgroundUITesting.isEnabled ? .background : .activating)
+        if backgroundUITesting.isEnabled {
+            let displayID = (window.screen?.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")]
+                as? NSNumber)?.uint32Value ?? 0
+            dockActivationLogger.notice(
+                """
+                Settings.background requestedDisplay=\(self.backgroundUITesting.display.rawValue, privacy: .public) \
+                displayID=\(displayID) \(dockActivationFocusSnapshot(window: window), privacy: .public)
+                """
+            )
         }
-        window.makeKeyAndOrderFront(nil)
-        window.orderFrontRegardless()
-        NSApp.activate(ignoringOtherApps: true)
         setPreviewWindowVisible(true)
         if pendingSection != nil {
             NotificationCenter.default.post(name: .settingsSelectSection, object: nil)
@@ -144,6 +153,12 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
     func takePendingSection() -> SettingsView.Section? {
         defer { pendingSection = nil }
         return pendingSection
+    }
+
+    /// The leaf requested alongside `takePendingSection`, if any.
+    func takePendingSubtopic() -> SettingsSubtopic? {
+        defer { pendingSubtopic = nil }
+        return pendingSubtopic
     }
 
     func windowWillClose(_ notification: Notification) {
@@ -160,6 +175,10 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
     /// or reopen one the user has closed.
     func resurface() {
         guard let window else { return }
+        guard !backgroundUITesting.isEnabled else {
+            dockActivationLogger.notice("Settings.resurface suppressed for background UI testing")
+            return
+        }
         // Opening the status panel can publish the first authorization read.
         // Settings must not steal that user interaction or dismiss its panel.
         guard !statusStore.isPopoverVisible else {
@@ -167,9 +186,7 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
             return
         }
         dockActivationLogger.notice("Settings.resurface existing=true")
-        window.makeKeyAndOrderFront(nil)
-        window.orderFrontRegardless()
-        NSApp.activate(ignoringOtherApps: true)
+        presentWindow(window, .activating)
         setPreviewWindowVisible(true)
     }
 
@@ -191,14 +208,30 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
         )
     }
 
+    /// Frame autosave key for the Settings window. Kept in one place so the
+    /// restore-on-launch path and the AppKit save path cannot drift apart.
+    static let frameAutosaveName = "SettingsWindow.Sidebar.v1"
+
     private func makeWindow() -> NSWindow {
-        let contentSize = NSSize(width: SettingsView.width, height: SettingsView.height)
+        let contentSize = SettingsView.defaultContentSize(for: NSScreen.main?.visibleFrame)
         let window = NSWindow(
             contentRect: NSRect(origin: .zero, size: contentSize),
-            styleMask: [.titled, .closable, .fullSizeContentView],
+            // `.resizable` gives the green title-bar button its zoom/full-screen
+            // behaviour and lets the user drag the edges. The minimum content
+            // size keeps the fixed sidebar and detail controls from colliding
+            // (#304).
+            styleMask: [.titled, .closable, .resizable, .fullSizeContentView],
             backing: .buffered,
             defer: false
         )
+        window.contentMinSize = NSSize(
+            width: SettingsView.minimumWidth,
+            height: SettingsView.minimumHeight
+        )
+        // Standard macOS full-screen support for a resizable, titled window.
+        // Settings presents in temporary regular activation mode with the Dock
+        // visible, which full screen keeps (#304).
+        window.collectionBehavior.insert(.fullScreenPrimary)
 
         let rootView = LocalizedRootView(localization: localization) {
             SettingsView(
@@ -207,16 +240,12 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
                 localization: localization,
                 inputSourceController: inputSourceController,
                 globalShortcutController: globalShortcutController,
-                launchAtLogin: launchAtLogin,
-                updaterManager: updaterManager,
-                helper: helper,
-                capabilityPolicy: capabilityPolicy,
                 chargeToFullNow: chargeToFullNow,
                 onShowIconGuide: showIconGuide,
-                consumePendingSection: { [weak self] in self?.takePendingSection() }
+                consumePendingSection: { [weak self] in self?.takePendingSection() },
+                consumePendingSubtopic: { [weak self] in self?.takePendingSubtopic() }
             )
             .environmentObject(chargingEffectClock)
-            .environment(\.systemIconAppearance, systemIconAppearance)
         }
 
         window.contentView = NSHostingView(rootView: rootView)
@@ -226,9 +255,24 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
         window.titleVisibility = .hidden
         window.titlebarAppearsTransparent = true
         window.titlebarSeparatorStyle = .none
-        window.setFrameAutosaveName("SettingsWindow.Sidebar.v1")
-        window.center()
-        window.setContentSize(contentSize)
+        if backgroundUITesting.isEnabled {
+            // Test launches must stay deterministic: fixed default size, centred,
+            // and never touching the developer's saved Settings frame.
+            window.setContentSize(contentSize)
+            window.center()
+        } else if !window.setFrameUsingName(Self.frameAutosaveName) {
+            // First launch (no saved frame): use the default size and centre it.
+            // On later launches `setFrameUsingName` has already restored both the
+            // saved size and position, so do not overwrite them with
+            // `setContentSize`/`center` (#304).
+            window.setContentSize(contentSize)
+            window.center()
+        }
+        if !backgroundUITesting.isEnabled {
+            // Register for future saves only after restoring, so the initial
+            // default frame is not written over the user's last frame.
+            window.setFrameAutosaveName(Self.frameAutosaveName)
+        }
         return window
     }
 

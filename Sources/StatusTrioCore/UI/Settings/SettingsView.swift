@@ -5,6 +5,9 @@ import SwiftUI
 /// Human-centered, multi-column settings window matching modern macOS standards.
 struct SettingsView: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    /// Drives the restrained, unemphasized selection colour while the window is
+    /// not key.
+    @Environment(\.controlActiveState) private var controlActiveState
     @ObservedObject var store: SettingsStore
     @ObservedObject var statusStore: SystemStatusStore
     @ObservedObject var localization: Localization
@@ -12,19 +15,19 @@ struct SettingsView: View {
     /// guides that do not carry the app's controller.
     var inputSourceController: InputSourceController? = nil
     var globalShortcutController: GlobalShortcutController? = nil
-    let launchAtLogin: LaunchAtLoginManager
-    @ObservedObject var updaterManager: UpdateStateFacade
-    @ObservedObject var helper: PrivilegedHelperFacade
-    let capabilityPolicy: DistributionCapabilityPolicy
     var chargeToFullNow: ChargeToFullNowController? = nil
     let onShowIconGuide: () -> Void
     /// Returns the tab the window controller wants to reveal, if any. The
     /// controller stores the request because the first presentation can post
     /// its notification before SwiftUI has subscribed.
     var consumePendingSection: () -> Section? = { nil }
+    /// The optional leaf within `consumePendingSection`'s tab, for deep links
+    /// that target a specific subpage.
+    var consumePendingSubtopic: () -> SettingsSubtopic? = { nil }
 
-    @State private var selectedSection: Section = .appIcon
-    @State private var previewIsDark: Bool = true
+    @StateObject private var navigation = SettingsNavigationModel()
+    /// Kept above the category switch so leaving General does not discard undo or preview.
+    @StateObject private var transferSession: SettingsTransferSession
 
     init(
         store: SettingsStore,
@@ -32,60 +35,78 @@ struct SettingsView: View {
         localization: Localization,
         inputSourceController: InputSourceController? = nil,
         globalShortcutController: GlobalShortcutController? = nil,
-        launchAtLogin: LaunchAtLoginManager,
-        updaterManager: UpdateStateFacade = UpdateStateFacade(service: SystemManagedUpdateService()),
-        helper: PrivilegedHelperFacade = PrivilegedHelperFacade(service: UnsupportedPrivilegedHelperService()),
-        capabilityPolicy: DistributionCapabilityPolicy = .runtimeDefault,
         chargeToFullNow: ChargeToFullNowController? = nil,
         onShowIconGuide: @escaping () -> Void,
-        consumePendingSection: @escaping () -> Section? = { nil }
+        consumePendingSection: @escaping () -> Section? = { nil },
+        consumePendingSubtopic: @escaping () -> SettingsSubtopic? = { nil }
     ) {
         self.store = store
         self.statusStore = statusStore
         self.localization = localization
         self.inputSourceController = inputSourceController
         self.globalShortcutController = globalShortcutController
-        self.launchAtLogin = launchAtLogin
-        self.updaterManager = updaterManager
-        self.helper = helper
-        self.capabilityPolicy = capabilityPolicy
         self.chargeToFullNow = chargeToFullNow
         self.onShowIconGuide = onShowIconGuide
         self.consumePendingSection = consumePendingSection
+        self.consumePendingSubtopic = consumePendingSubtopic
+        _transferSession = StateObject(wrappedValue: SettingsTransferSession(store: store, localization: localization))
     }
+    /// The live system appearance, so the menu bar preview starts in the same
+    /// light/dark mode as the real menu bar instead of always opening dark.
+    @Environment(\.colorScheme) private var systemColorScheme
+    /// `nil` means "follow the live system appearance". It only becomes a value
+    /// after the user taps the preview card's dark/light toggle, so that manual
+    /// choice overrides the system for the rest of the window's lifetime.
+    @State private var previewOverrideIsDark: Bool?
 
     enum Section: String, CaseIterable, Identifiable {
         case appIcon
         case battery
+        case keepAwake
         case network
         case bluetooth
         case audio
+        case brightness
+        case monitor
         case popover
         case general
         case about
 
         var id: String { rawValue }
 
-        var symbol: String {
+        /// The mark the sidebar tile carries.
+        ///
+        /// Bluetooth has no SF Symbol on any release, so its tile draws the
+        /// rune. Audio borrows the speaker the Audio page's own rows use, so
+        /// the sidebar and the page it opens agree on one glyph.
+        var glyph: SettingsGlyph {
             switch self {
-            case .appIcon: return "macwindow.on.rectangle"
-            case .battery: return SymbolFallback.name("battery.100percent", "battery.100")
-            case .network: return "wifi"
-            case .bluetooth: return "wave.3.right.circle.fill"
-            case .audio:   return "hifispeaker.fill"
-            case .popover: return "list.bullet.rectangle"
-            case .general: return "gearshape.fill"
-            case .about:   return "info.circle.fill"
+            case .appIcon: return .symbol("macwindow.on.rectangle")
+            case .battery: return .symbol(SymbolFallback.name("battery.100percent", "battery.100"))
+            case .keepAwake: return .symbol("moon.zzz.fill")
+            case .network: return .symbol("wifi")
+            case .bluetooth: return .bluetoothRune
+            case .audio:   return .symbol("speaker.wave.3.fill")
+            case .brightness: return .symbol(SymbolFallback.name("sun.max.fill", "sun.max"))
+            case .monitor: return .symbol(SymbolFallback.name("gauge.with.dots.needle.bottom.50percent", "gauge"))
+            case .popover: return .symbol("list.bullet.rectangle")
+            case .general: return .symbol("gearshape.fill")
+            case .about:   return .symbol("info.circle.fill")
             }
         }
 
+        /// The tile colour for the coloured sidebar icon, matching the old
+        /// System-Settings-style sidebar (one hue per category).
         var tint: Color {
             switch self {
             case .appIcon: return .indigo
             case .battery: return .green
+            case .keepAwake: return .indigo
             case .network: return .blue
             case .bluetooth: return .blue
             case .audio:   return .cyan
+            case .brightness: return .orange
+            case .monitor: return .teal
             case .popover: return .purple
             case .general: return .gray
             case .about:   return .orange
@@ -97,9 +118,12 @@ struct SettingsView: View {
             switch self {
             case .appIcon: return localization.string(.settingsTabAppIcon)
             case .battery: return localization.string(.settingsTabBattery)
+            case .keepAwake: return localization.string(.settingsPopupOrderQuickActions)
             case .network: return localization.string(.settingsTabNetwork)
             case .bluetooth: return localization.string(.settingsTabBluetooth)
             case .audio:   return localization.string(.settingsTabAudio)
+            case .brightness: return localization.string(.settingsTabBrightness)
+            case .monitor: return localization.string(.settingsTabMonitor)
             case .popover: return localization.string(.settingsTabPanel)
             case .general: return localization.string(.settingsPageGeneral)
             case .about:   return localization.string(.settingsTabAbout)
@@ -128,100 +152,316 @@ struct SettingsView: View {
 
     private func applyRequestedSectionIfAvailable() {
         guard let section = consumePendingSection() else { return }
-        select(section)
+        let subtopic = consumePendingSubtopic()
+        withAnimation(reduceMotion ? nil : .easeInOut(duration: SettingsSidebarMetrics.expandAnimationDuration)) {
+            navigation.apply(section: section, subtopic: subtopic)
+        }
     }
 
+    private func subtopics(for section: Section) -> [SettingsSubtopic] {
+        section.subtopics
+    }
+
+    /// Moves the selection. Kept as a thin animated wrapper so the sidebar
+    /// buttons and the model stay decoupled.
     private func select(_ section: Section) {
-        withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.16)) {
-            selectedSection = section
+        withAnimation(reduceMotion ? nil : .easeInOut(duration: SettingsSidebarMetrics.expandAnimationDuration)) {
+            navigation.select(section)
+        }
+    }
+
+    /// Reveals one leaf subtopic beneath its parent category.
+    private func selectSubtopic(_ subtopic: SettingsSubtopic) {
+        withAnimation(reduceMotion ? nil : .easeInOut(duration: SettingsSidebarMetrics.expandAnimationDuration)) {
+            navigation.selectSubtopic(subtopic)
         }
     }
 
     // MARK: - Sidebar
 
+    /// Functional status categories shown in the scrollable top group.
+    private static let scrollableSections: [Section] = [
+        .appIcon, .battery, .network, .bluetooth, .audio, .brightness, .keepAwake, .monitor, .popover,
+    ]
+
+    /// App-wide panes pinned below the divider so they stay reachable when the
+    /// window is short and the top list scrolls.
+    private static let pinnedSections: [Section] = [.general, .about]
+
     private var sidebar: some View {
-        VStack(alignment: .leading, spacing: 3) {
-            // Breathing space below traffic lights
-            Color.clear.frame(height: 42)
+        VStack(spacing: 0) {
+            // Breathing space below traffic lights stays fixed; only the top
+            // group below it scrolls.
+            Color.clear.frame(height: SettingsSidebarMetrics.topInset)
 
-            ForEach(Section.allCases) { section in
-                Button {
-                    select(section)
-                } label: {
-                    HStack(alignment: .center, spacing: 10) {
-                        SettingsIcon(symbol: section.symbol, tint: section.tint)
-
-                        VStack(alignment: .leading, spacing: 1) {
-                            Text(section.title(localization))
-                                .font(.system(size: 13, weight: selectedSection == section ? .medium : .regular))
-                                .foregroundStyle(selectedSection == section ? Color.white : Color.primary)
-                                .lineLimit(1)
-
-                            if section == .about {
-                                Text(
-                                    DevelopmentBuildPresentation.aboutSidebarDetail(
-                                        version: AppMetadata.versionDisplayString,
-                                        codename: AppMetadata.developmentCodename
-                                    )
-                                )
-                                    .font(.system(size: 9, weight: .regular, design: .rounded))
-                                    .foregroundStyle(
-                                        selectedSection == section
-                                            ? Color.white.opacity(0.72)
-                                            : Color.secondary
-                                    )
-                                    .lineLimit(2)
-                                    .truncationMode(.tail)
-                                    .fixedSize(horizontal: false, vertical: true)
-                            }
+            // The functional categories scroll on their own so a long expanded
+            // category can never clip the traffic-light header, and the current
+            // selection is kept in view.
+            ScrollViewReader { proxy in
+                ScrollView(.vertical, showsIndicators: false) {
+                    VStack(alignment: .leading, spacing: SettingsSidebarMetrics.categoryGroupSpacing) {
+                        ForEach(Self.scrollableSections) { section in
+                            categoryBlock(section)
                         }
-
-                        Spacer(minLength: 0)
                     }
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 6)
-                    .background(
-                        RoundedRectangle(cornerRadius: 7, style: .continuous)
-                            .fill(selectedSection == section ? Color.accentColor : Color.clear)
-                    )
-                    .contentShape(Rectangle())
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, SettingsSidebarMetrics.horizontalPadding)
+                    .padding(.bottom, 6)
                 }
-                .buttonStyle(.plain)
+                .onAppear { revealSelection(proxy, animated: false) }
+                // macOS 13-compatible single-parameter onChange closures.
+                .onChange(of: navigation.selectedSection) { _ in revealSelection(proxy) }
+                .onChange(of: navigation.selectedSubtopic) { _ in revealSelection(proxy) }
+                .onChange(of: navigation.expandedSection) { _ in revealSelection(proxy) }
             }
 
-            Spacer(minLength: 0)
+            // Subtle system hairline between functional and app-wide groups.
+            Rectangle()
+                .fill(Color(nsColor: .separatorColor))
+                .frame(height: 1 / max(NSScreen.main?.backingScaleFactor ?? 2, 1))
+                .opacity(0.6)
+                .padding(.horizontal, SettingsSidebarMetrics.groupSeparatorInset)
+
+            // App-wide panes stay pinned; they never scroll out of reach.
+            VStack(alignment: .leading, spacing: SettingsSidebarMetrics.categoryGroupSpacing) {
+                ForEach(Self.pinnedSections) { section in
+                    categoryBlock(section)
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal, SettingsSidebarMetrics.horizontalPadding)
+            .padding(.vertical, SettingsSidebarMetrics.pinnedGroupVerticalPadding)
+            .padding(.bottom, 2)
         }
-        .padding(.horizontal, 10)
+    }
+
+    /// A category row plus its leaves when expanded, shared by both groups so
+    /// the top and bottom lists render identically.
+    @ViewBuilder
+    private func categoryBlock(_ section: Section) -> some View {
+        VStack(alignment: .leading, spacing: 0) {
+            categoryRow(section)
+
+            if navigation.expandedSection == section, section.hasSubtopics {
+                ForEach(subtopics(for: section)) { subtopic in
+                    subtopicRow(subtopic)
+                }
+            }
+        }
+    }
+
+    /// Scrolls the active row into view without ever shifting it horizontally.
+    private func revealSelection(_ proxy: ScrollViewProxy, animated: Bool = true) {
+        let target: AnyHashable?
+        if
+            navigation.selectedSection.hasSubtopics,
+            Self.scrollableSections.contains(navigation.selectedSection),
+            let subtopic = navigation.selectedSubtopic
+        {
+            target = AnyHashable(subtopic)
+        } else if Self.scrollableSections.contains(navigation.selectedSection) {
+            target = AnyHashable(navigation.selectedSection)
+        } else {
+            // The pinned app-wide group is always visible; nothing to scroll.
+            target = nil
+        }
+        guard let target else { return }
+
+        if animated {
+            withAnimation(reduceMotion ? nil : .easeInOut(duration: SettingsSidebarMetrics.expandAnimationDuration)) {
+                proxy.scrollTo(target, anchor: .center)
+            }
+        } else {
+            proxy.scrollTo(target, anchor: .center)
+        }
+    }
+
+    /// A key window uses a light accent wash; a background window uses the
+    /// system's unemphasized selection colour so no saturated accent lingers.
+    private var selectionFill: Color {
+        controlActiveState == .inactive
+            ? Color(nsColor: .unemphasizedSelectedContentBackgroundColor)
+            : Color.accentColor.opacity(SettingsSidebarMetrics.activeSelectionOpacity)
+    }
+
+    private func categoryRow(_ section: Section) -> some View {
+        let isSelected = navigation.selectedSection == section
+        let isParent = section.hasSubtopics
+        let isExpanded = navigation.expandedSection == section
+        // A simple category shows its own selection pill. An expandable parent
+        // never paints one: its selected leaf carries the highlight instead.
+        let showsSelection = isSelected && !isParent
+
+        return Button {
+            select(section)
+        } label: {
+            HStack(alignment: .center, spacing: SettingsSidebarMetrics.iconTextSpacing) {
+                SettingsIcon(
+                    glyph: section.glyph,
+                    tint: section.tint,
+                    size: SettingsSidebarMetrics.tileSize
+                )
+
+                Text(section.title(localization))
+                    .font(.system(
+                        size: SettingsSidebarMetrics.categoryFontSize,
+                        weight: isSelected ? .medium : .regular
+                    ))
+                    .foregroundStyle(Color.primary)
+                    .lineLimit(1)
+
+                Spacer(minLength: 8)
+
+                if section == .about {
+                    Text("v\(AppMetadata.versionShortString)")
+                        .font(.system(
+                            size: SettingsSidebarMetrics.aboutVersionFontSize,
+                            weight: .regular,
+                            design: .rounded
+                        ))
+                        .foregroundStyle(.tertiary)
+                        .monospacedDigit()
+                        .lineLimit(1)
+                        .fixedSize()
+                }
+
+                if isParent {
+                    Image(systemName: "chevron.right")
+                        .font(.system(
+                            size: SettingsSidebarMetrics.chevronPointSize,
+                            weight: .semibold
+                        ))
+                        .foregroundStyle(.secondary)
+                        // Rotate in lockstep with the expand animation rather
+                        // than swapping glyphs, so the arrow never jumps.
+                        .rotationEffect(.degrees(isExpanded ? 90 : 0))
+                }
+            }
+            .padding(.horizontal, SettingsSidebarMetrics.rowHorizontalPadding)
+            .frame(height: SettingsSidebarMetrics.categoryRowHeight)
+            .background(
+                RoundedRectangle(
+                    cornerRadius: SettingsSidebarMetrics.categoryCornerRadius,
+                    style: .continuous
+                )
+                .fill(showsSelection ? selectionFill : Color.clear)
+            )
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityAddTraits(showsSelection ? [.isSelected] : [])
+        // The About row shows only the short version so it cannot wrap or
+        // truncate; the full identity (version + development codename) stays
+        // available in the tooltip and in the About pane itself.
+        .help(
+            section == .about
+                ? DevelopmentBuildPresentation.aboutSidebarDetail(
+                    version: AppMetadata.versionDisplayString,
+                    codename: AppMetadata.developmentCodename
+                )
+                : section.title(localization)
+        )
+        // Stable scroll target for `ScrollViewReader`.
+        .id(section)
+    }
+
+    private func subtopicRow(_ subtopic: SettingsSubtopic) -> some View {
+        let isSelected = navigation.selectedSubtopic == subtopic
+
+        return Button {
+            selectSubtopic(subtopic)
+        } label: {
+            HStack(spacing: 0) {
+                Text(subtopic.title(localization))
+                    .font(.system(
+                        size: SettingsSidebarMetrics.subtopicFontSize,
+                        weight: isSelected ? .medium : .regular
+                    ))
+                    .foregroundStyle(isSelected ? Color.primary : Color.secondary)
+                    // Compact rows stay one line where the locale fits; longer
+                    // translations wrap to a second line instead of truncating.
+                    .lineLimit(2)
+                    .truncationMode(.tail)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                Spacer(minLength: 0)
+            }
+            .padding(.horizontal, SettingsSidebarMetrics.subtopicRowHorizontalPadding)
+            .frame(minHeight: SettingsSidebarMetrics.subtopicRowHeight)
+            .background(
+                RoundedRectangle(
+                    cornerRadius: SettingsSidebarMetrics.subtopicCornerRadius,
+                    style: .continuous
+                )
+                .fill(isSelected ? selectionFill : Color.clear)
+            )
+            // Inset the whole row (background included) so the highlight never
+            // spans the full sidebar and the text nests under its parent.
+            .padding(.leading, SettingsSidebarMetrics.subtopicIndent)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .help(subtopic.title(localization))
+        .accessibilityAddTraits(isSelected ? [.isSelected] : [])
+        // Stable scroll target for `ScrollViewReader`.
+        .id(subtopic)
+    }
+
+    // MARK: - Menu bar preview appearance
+
+    /// `true` when the preview should draw the dark menu bar backdrop. It follows
+    /// the live system appearance until the user taps the card's toggle, so the
+    /// preview opens in the same light/dark mode as the real menu bar (#290).
+    private var previewIsDark: Bool {
+        Self.previewIsDark(override: previewOverrideIsDark, systemColorScheme: systemColorScheme)
+    }
+
+    /// Resolves the preview backdrop: a manual override wins, otherwise the live
+    /// system appearance decides. Kept as a static so it can be tested without a
+    /// live window.
+    static func previewIsDark(override: Bool?, systemColorScheme: ColorScheme) -> Bool {
+        override ?? (systemColorScheme == .dark)
+    }
+
+    /// Binding for the section panes: a manual toggle is remembered for this
+    /// window, while an untouched preview keeps tracking the system appearance.
+    private var previewIsDarkBinding: Binding<Bool> {
+        Binding(
+            get: { previewIsDark },
+            set: { previewOverrideIsDark = $0 }
+        )
     }
 
     // MARK: - Detail
 
     @ViewBuilder
     private var detail: some View {
-        switch selectedSection {
+        switch navigation.selectedSection {
         case .appIcon:
             AppIconSectionView(
                 store: store,
                 statusStore: statusStore,
-                previewIsDark: $previewIsDark,
-                onShowIconGuide: onShowIconGuide
+                inputSourceController: inputSourceController,
+                previewIsDark: previewIsDarkBinding,
+                onShowIconGuide: onShowIconGuide,
+                subtopic: subtopicIfSelectionMatches(.appIcon)
             )
         case .battery:
             BatterySectionView(
                 store: store,
                 statusStore: statusStore,
-                previewIsDark: $previewIsDark,
-                helper: helper,
-                capabilityPolicy: capabilityPolicy,
-                chargeToFullNow: chargeToFullNow
+                previewIsDark: previewIsDarkBinding,
+                chargeToFullNow: chargeToFullNow,
+                subtopic: subtopicIfSelectionMatches(.battery)
             )
+        case .keepAwake:
+            KeepAwakeSectionView(store: store)
         case .network:
             NetworkSectionView(
                 store: store,
                 statusStore: statusStore,
                 inputSourceController: inputSourceController,
-                previewIsDark: $previewIsDark,
-                capabilityPolicy: capabilityPolicy
+                previewIsDark: previewIsDarkBinding
             )
         case .bluetooth:
             BluetoothSectionView(
@@ -229,16 +469,20 @@ struct SettingsView: View {
                 statusStore: statusStore,
                 bluetoothDevices: statusStore.bluetoothDevices,
                 appleDeviceDiscovery: statusStore.appleDeviceDiscovery,
-                previewIsDark: $previewIsDark,
-                capabilityPolicy: capabilityPolicy
+                previewIsDark: previewIsDarkBinding,
+                subtopic: subtopicIfSelectionMatches(.bluetooth)
             )
         case .audio:
             AudioSectionView(
                 store: store,
                 statusStore: statusStore,
-                previewIsDark: $previewIsDark,
-                capabilityPolicy: capabilityPolicy
+                previewIsDark: previewIsDarkBinding,
+                subtopic: subtopicIfSelectionMatches(.audio)
             )
+        case .brightness:
+            BrightnessSectionView(store: store, statusStore: statusStore)
+        case .monitor:
+            HardwareMonitorSectionView(store: store)
         case .popover:
             PopoverSectionView(store: store, statusStore: statusStore)
         case .general:
@@ -246,19 +490,44 @@ struct SettingsView: View {
                 store: store,
                 localization: localization,
                 globalShortcutController: globalShortcutController,
-                launchAtLogin: launchAtLogin,
-                updaterManager: updaterManager,
-                capabilityPolicy: capabilityPolicy
+                statusStore: statusStore,
+                chargeToFullNow: chargeToFullNow,
+                transferSession: transferSession
             )
         case .about:
-            AboutSectionView(
-                updaterManager: updaterManager,
-                capabilityPolicy: capabilityPolicy
-            )
+            AboutSectionView()
         }
     }
 
-    static let sidebarWidth: CGFloat = 190
+    /// Reveals the active subtopic only when it belongs to the given section,
+    /// so a single-pane or cross-category selection never bleeds into detail.
+    private func subtopicIfSelectionMatches(_ section: Section) -> SettingsSubtopic? {
+        guard let selected = navigation.selectedSubtopic, selected.section == section else {
+            return nil
+        }
+        return selected
+    }
+
+    static let sidebarWidth: CGFloat = 196
+    /// Default content size the first time the window opens. Once the user has
+    /// resized or moved it, the window restores its saved frame instead (#304).
     static let width: CGFloat = 720
-    static let height: CGFloat = 530
+    /// Tall enough for the full sidebar to be visible without scrolling on a
+    /// normal display. Short screens clamp to their visible area.
+    static let height: CGFloat = 600
+
+    /// First-open content size. The saved frame still wins on later launches.
+    static func defaultContentSize(for visibleFrame: NSRect?) -> NSSize {
+        guard let visibleFrame else { return NSSize(width: width, height: height) }
+        let availableHeight = max(minimumHeight, visibleFrame.height - 80)
+        return NSSize(width: width, height: min(height, availableHeight))
+    }
+    /// Smallest content size the user can drag the window down to. The fixed
+    /// 196pt sidebar plus the detail column's widest control (a 180pt pop-up)
+    /// and one line of label copy still fit; narrow rows wrap instead of
+    /// truncating, and pages scroll vertically, so height only needs to stay
+    /// usable rather than exactly fit every page. Keep these below the default
+    /// size so "zoom" and free resizing still have range (#304).
+    static let minimumWidth: CGFloat = 640
+    static let minimumHeight: CGFloat = 460
 }

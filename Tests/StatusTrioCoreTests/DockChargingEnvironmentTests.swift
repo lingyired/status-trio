@@ -5,7 +5,7 @@ import Testing
 /// End-to-end wiring for the Dock charging animation: the user's Dock-only
 /// placement claims the shared clock, the clock's phases reach the Dock
 /// presenter, and going back to a menu-bar placement releases both.
-@Suite(.serialized)
+@Suite(.serialized, .enabled(if: VisibleUITests.isEnabled, Comment(rawValue: VisibleUITests.reason)))
 @MainActor
 struct DockChargingEnvironmentTests {
     @Test func recoveredPresentationReclaimsDockOwnershipBeforeStaticRendering() async throws {
@@ -28,7 +28,7 @@ struct DockChargingEnvironmentTests {
 
         fixture.environment.appIconController.flushPendingPresentationForTesting()
         let assignmentsBeforeSceneChange = fixture.application.assignments
-        fixture.settings.showsBatteryPercentageInConnectionSlot = true
+        fixture.settings.connectionCenterSource = .batteryPercentage
         fixture.environment.appIconController.flushPendingPresentationForTesting()
         #expect(fixture.application.assignments == assignmentsBeforeSceneChange)
     }
@@ -340,25 +340,6 @@ struct DockChargingEnvironmentTests {
         try await fixture.waitForDockVisibilityPollingToStop()
         #expect(dockVisibility.stopCount == 1)
     }
-
-    @Test func systemAppearancePollRefreshesDockVisibility() async throws {
-        let dockVisibility = DockVisibilityMonitorSpy()
-        let fixture = try DockChargingEnvironmentFixture(
-            placement: .dock,
-            dockVisibilityMonitor: dockVisibility
-        )
-        defer { fixture.tearDown() }
-        fixture.settings.showsMenuBarChargingEffect = false
-        fixture.settings.showsDockChargingEffect = true
-
-        fixture.environment.start()
-        try await fixture.waitForDockVisibilityPolling()
-        let refreshCount = dockVisibility.refreshCount
-
-        fixture.environment.appIconController.systemPollDidFire?()
-
-        #expect(dockVisibility.refreshCount == refreshCount + 1)
-    }
 }
 
 @MainActor
@@ -435,8 +416,7 @@ private final class DockChargingEnvironmentFixture {
             localization: localization,
             activationPolicy: activationPolicy,
             showIconGuide: {},
-            chargingEffectClock: clock,
-            launchAtLogin: LaunchAtLoginManager()
+            chargingEffectClock: clock
         )
         let statusBar = StatusBarController(
             store: store,

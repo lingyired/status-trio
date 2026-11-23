@@ -1,0 +1,2 @@
+[gpuload] label=05-gpu-compute device=Apple M3 Max grid=65536 inner=4096 seconds=55 start_mono=200300.438 pid=11490
+[gpuload] stopped mono=200355.439 elapsed=55.001 dispatches=73477

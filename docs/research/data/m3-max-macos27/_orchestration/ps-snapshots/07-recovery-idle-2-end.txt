@@ -1,0 +1,30 @@
+# ps snapshot: 07-recovery-idle-2-end  wall=2026-10-30T23:11:51+0800 mono=200498.890026
+# --- top 25 by cpu ---
+  PID  PPID  %CPU %MEM COMM
+81860     1  80.7  6.9 /Applications/BlueStacks.app/Contents/MacOS/BlueStacks
+  619     1  57.3  0.8 /System/Library/PrivateFrameworks/SkyLight.framework/Resources/WindowServer
+51207  9342  21.3  0.0 /usr/sbin/lsof
+75058  1300  15.3  0.4 /Applications/Microsoft Edge.app/Contents/Frameworks/Microsoft Edge Framework.framework/Versions/155.0.4283.45/Helpers/Microsoft Edge Helper (Renderer).app/Contents/MacOS/Microsoft Edge Helper (Renderer)
+18255 17803  14.5  0.0 /Users/lingsmbp/Downloads/macpow
+ 1345  1300  13.9  0.4 /Applications/Microsoft Edge.app/Contents/Frameworks/Microsoft Edge Framework.framework/Versions/155.0.4283.45/Helpers/Microsoft Edge Helper.app/Contents/MacOS/Microsoft Edge Helper
+ 3846     1  12.2  0.0 /System/Library/PrivateFrameworks/Ecosystem.framework/Support/ecosystemd
+17763     1  10.5  0.1 /System/Applications/Utilities/Terminal.app/Contents/MacOS/Terminal
+ 5090     1  10.3  0.0 /usr/libexec/diagnosticd
+  808     1  10.3  0.1 /usr/sbin/coreaudiod
+ 1309     1   8.5  0.1 /System/Applications/Utilities/Activity Monitor.app/Contents/MacOS/Activity Monitor
+84549 84507   6.6  0.0 /usr/bin/log
+ 1300     1   4.9  1.2 /Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge
+ 3951  1409   3.0  0.2 /Applications/Doubao.app/Contents/Helpers/Doubao Browser.app/Contents/Frameworks/Doubao Browser Framework.framework/Versions/147.0.7727.149/Helpers/Doubao Browser Helper (Renderer).app/Contents/MacOS/Doubao Browser Helper (Renderer)
+ 1318     1   2.7  0.4 /Applications/UURemote.app/Contents/MacOS/UURemote
+16696     1   2.4  0.1 /Applications/BestDock.app/Contents/MacOS/BestDock
+ 1409  1313   2.3  0.4 /Applications/Doubao.app/Contents/Helpers/Doubao Browser.app/Contents/MacOS/Doubao Browser
+  590     1   2.2  0.0 /System/Library/CoreServices/launchservicesd
+  623     1   2.1  0.1 /System/Library/CoreServices/loginwindow.app/Contents/MacOS/loginwindow
+59354 59341   2.0  0.3 /Applications/DeepSeek Harness.app/Contents/Frameworks/DeepSeek Harness Helper (Renderer).app/Contents/MacOS/DeepSeek Harness Helper (Renderer)
+  789     1   1.9  0.0 /usr/sbin/BTLEServer
+  545     1   1.8  0.1 /usr/libexec/logd
+40411 38968   1.7  0.2 /Applications/OpenBot.app/Contents/Frameworks/OpenBot Helper (Renderer).app/Contents/MacOS/OpenBot Helper (Renderer)
+  613     1   1.5  0.0 /usr/sbin/notifyd
+38968     1   1.4  0.4 /Applications/OpenBot.app/Contents/MacOS/OpenBot
+# --- our loaders / sampler ---
+(none)

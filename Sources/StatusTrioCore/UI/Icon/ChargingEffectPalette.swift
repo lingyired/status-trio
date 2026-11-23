@@ -8,18 +8,15 @@ enum ChargingEffectPalette {
 
     static func automaticHighlight(for fillColor: CGColor) -> CGColor {
         guard let base = components(of: fillColor) else {
-            return CGColor(
-                colorSpace: sRGBColorSpace,
-                components: [1, 1, 1, 1]
-            ) ?? CGColor(gray: 1, alpha: 1)
+            return CGColor(gray: 1, alpha: fillColor.alpha)
         }
 
-        let white = RGB(red: 1, green: 1, blue: 1)
+        let white = RGB(red: 1, green: 1, blue: 1, alpha: base.alpha)
         if contrastRatio(between: base, and: white) >= minimumContrastRatio {
             return contrastingMix(from: base, toward: white)
         }
 
-        let black = RGB(red: 0, green: 0, blue: 0)
+        let black = RGB(red: 0, green: 0, blue: 0, alpha: base.alpha)
         if contrastRatio(between: base, and: black) >= minimumContrastRatio {
             return contrastingMix(from: base, toward: black)
         }
@@ -38,7 +35,7 @@ enum ChargingEffectPalette {
         guard let base = components(of: fillColor) else { return fillColor }
         guard let highlighted = components(of: automaticHighlight),
               relativeLuminance(highlighted) > relativeLuminance(base) else {
-            return blend(fillColor, with: CGColor(gray: 1, alpha: 1), amount: 0.35)
+            return blend(fillColor, with: CGColor(gray: 1, alpha: fillColor.alpha), amount: 0.35)
         }
         return automaticHighlight
     }
@@ -55,6 +52,7 @@ enum ChargingEffectPalette {
         let red: Double
         let green: Double
         let blue: Double
+        let alpha: Double
     }
 
     private static func components(of color: CGColor) -> RGB? {
@@ -68,7 +66,8 @@ enum ChargingEffectPalette {
         return RGB(
             red: min(1, max(0, Double(values[0]))),
             green: min(1, max(0, Double(values[1]))),
-            blue: min(1, max(0, Double(values[2])))
+            blue: min(1, max(0, Double(values[2]))),
+            alpha: values.count >= 4 ? min(1, max(0, Double(values[3]))) : 1
         )
     }
 
@@ -93,7 +92,7 @@ enum ChargingEffectPalette {
             CGFloat(color.red),
             CGFloat(color.green),
             CGFloat(color.blue),
-            1
+            CGFloat(color.alpha)
         ]
         return CGColor(colorSpace: sRGBColorSpace, components: values)
             ?? CGColor(gray: 1, alpha: 1)
@@ -103,7 +102,8 @@ enum ChargingEffectPalette {
         RGB(
             red: start.red + (end.red - start.red) * amount,
             green: start.green + (end.green - start.green) * amount,
-            blue: start.blue + (end.blue - start.blue) * amount
+            blue: start.blue + (end.blue - start.blue) * amount,
+            alpha: start.alpha + (end.alpha - start.alpha) * amount
         )
     }
 

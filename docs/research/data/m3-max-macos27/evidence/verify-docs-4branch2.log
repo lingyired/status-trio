@@ -1,0 +1,186 @@
+Local verification
+mode: docs
+head: 364b3c3381a5b44c40b1640e182e687d1e1c3043
+branch: feat/battery-power-breakdown
+uncommitted: 101 changes
+scope: docs
+not verified: UI/runtime behavior, hardware, signing, notarization, DMG, release, appcast
+toolchain:
+
+== Xcode version ==
+  $ xcodebuild -version
+Xcode 27.0
+Build version 27A266a
+
+== Swift version ==
+  $ swift --version
+swift-driver version: 1.168.6 Apple Swift version 6.4 (swiftlang-6.4.0.34.1 clang-2100.3.34.1)
+Target: arm64-apple-macosx27.2.0
+
+== macOS SDK version ==
+  $ xcrun --sdk macosx --show-sdk-version
+27.0
+
+== Shell syntax ==
+  $ bash -e -c for\ script\;\ do\ bash\ -n\ \"\$script\"\;\ done bash scripts/build-app.sh scripts/build-mobile-battery-helper.sh scripts/build-timing.sh scripts/build-worktree.sh scripts/check-forbidden-patterns.sh scripts/check-mobile-battery-dependency.sh scripts/check-mobile-battery-rpath.sh scripts/check-release-workflow-policy.sh scripts/check-workflow-policy.sh scripts/ci-run-stage.sh scripts/generate-app-icon-icns.sh scripts/measure-dock-charging-cpu.sh scripts/measure-menu-bar-charging-cpu.sh scripts/package-release.sh scripts/prepare-mobile-battery-sources.sh scripts/prepare-release-body.sh scripts/probe-charge-to-full-now.sh scripts/publish-release.sh scripts/release.sh scripts/test-app-icon-contract.sh scripts/test-appcast-minimum-system-version.sh scripts/test-build-timing.sh scripts/test-ci-diagnostics.sh scripts/test-ci-workflow.sh scripts/test-macos13-bundle-contract.sh scripts/test-macos13-deployment-contract-regressions.sh scripts/test-macos13-deployment-contract.sh scripts/test-macos13-sparkle-contract.sh scripts/test-macos13-sparkle-metadata.sh scripts/test-mobile-battery-build-cache.sh scripts/test-mobile-battery-clang-version.sh scripts/test-mobile-battery-helper.sh scripts/test-mobile-battery-rpaths.sh scripts/test-mobile-battery-source-cache.sh scripts/test-otool-dependencies.sh scripts/test-powerui-charge-restore.sh scripts/test-privileged-helper-bundle-contract.sh scripts/test-release-notarization.sh scripts/test-release-pipeline.sh scripts/test-release-recovery.sh scripts/test-release-workflow-policy.sh scripts/test-verify-local-bundle.sh scripts/test-verify-local.sh scripts/test-workflow-policy.sh scripts/test.sh scripts/validate-appcast-notes.sh scripts/validate-release-recovery.sh scripts/verify-local.sh scripts/verify-mobile-battery-bundle.sh scripts/verify-platform-version.sh scripts/verify-privileged-helper-bundle.sh
+
+== Documentation: LocalizationTests ==
+  $ bash scripts/test.sh LocalizationTests
+No forbidden actor-isolated method references found under /Users/lingsmbp/Documents/aiwork/status-trio/.worktrees/battery-power-breakdown/Sources
+Building for debugging...
+[Using on-disk description]
+[12 / 22] StatusTrio_StatusTrioCore
+Build complete! (0.46秒)
+Test Suite 'Selected tests' started at 2026-10-31 00:21:22.018.
+Test Suite 'StatusTrioPowerHelperTests.xctest' started at 2026-10-31 00:21:22.019.
+Test Suite 'StatusTrioPowerHelperTests.xctest' passed at 2026-10-31 00:21:22.019.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-31 00:21:22.019.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-31 00:21:22.086.
+Test Suite 'StatusTrioCoreTests.xctest' started at 2026-10-31 00:21:22.087.
+Test Suite 'LocalizationTests' started at 2026-10-31 00:21:22.087.
+Test Case '-[StatusTrioCoreTests.LocalizationTests testAboutLinkLabelsStayCompact]' started.
+Test Case '-[StatusTrioCoreTests.LocalizationTests testAboutLinkLabelsStayCompact]' passed (0.016 seconds).
+Test Case '-[StatusTrioCoreTests.LocalizationTests testAppIconPlacementLabelsStayCompact]' started.
+Test Case '-[StatusTrioCoreTests.LocalizationTests testAppIconPlacementLabelsStayCompact]' passed (0.000 seconds).
+Test Case '-[StatusTrioCoreTests.LocalizationTests testAppleDeviceBatteryCopyDescribesNearbyNamedRowsWithoutConsentInEveryLanguage]' started.
+Test Case '-[StatusTrioCoreTests.LocalizationTests testAppleDeviceBatteryCopyDescribesNearbyNamedRowsWithoutConsentInEveryLanguage]' passed (0.000 seconds).
+Test Case '-[StatusTrioCoreTests.LocalizationTests testDockIconBackgroundLabelsStayCompact]' started.
+Test Case '-[StatusTrioCoreTests.LocalizationTests testDockIconBackgroundLabelsStayCompact]' passed (0.000 seconds).
+Test Case '-[StatusTrioCoreTests.LocalizationTests testEveryLanguageHasEveryNonEmptyKey]' started.
+Test Case '-[StatusTrioCoreTests.LocalizationTests testEveryLanguageHasEveryNonEmptyKey]' passed (0.038 seconds).
+Test Case '-[StatusTrioCoreTests.LocalizationTests testEveryParameterizedKeyUsesMatchingPlaceholders]' started.
+Test Case '-[StatusTrioCoreTests.LocalizationTests testEveryParameterizedKeyUsesMatchingPlaceholders]' passed (0.004 seconds).
+Test Case '-[StatusTrioCoreTests.LocalizationTests testFormattedStringUsesSelectedLanguageLocale]' started.
+Test Case '-[StatusTrioCoreTests.LocalizationTests testFormattedStringUsesSelectedLanguageLocale]' passed (0.004 seconds).
+Test Case '-[StatusTrioCoreTests.LocalizationTests testGermanResourceOverridesEnglish]' started.
+Test Case '-[StatusTrioCoreTests.LocalizationTests testGermanResourceOverridesEnglish]' passed (0.003 seconds).
+Test Case '-[StatusTrioCoreTests.LocalizationTests testInvalidStoredLanguageFallsBackToSystem]' started.
+Test Case '-[StatusTrioCoreTests.LocalizationTests testInvalidStoredLanguageFallsBackToSystem]' passed (0.002 seconds).
+Test Case '-[StatusTrioCoreTests.LocalizationTests testLanguageChangeRefreshesAfterResolvedLanguageIsUpdated]' started.
+Test Case '-[StatusTrioCoreTests.LocalizationTests testLanguageChangeRefreshesAfterResolvedLanguageIsUpdated]' passed (0.002 seconds).
+Test Case '-[StatusTrioCoreTests.LocalizationTests testManualLanguagePersistsAndResolves]' started.
+Test Case '-[StatusTrioCoreTests.LocalizationTests testManualLanguagePersistsAndResolves]' passed (0.002 seconds).
+Test Case '-[StatusTrioCoreTests.LocalizationTests testNaturalScrollingDescriptionMentionsThirdPartyScrollApps]' started.
+Test Case '-[StatusTrioCoreTests.LocalizationTests testNaturalScrollingDescriptionMentionsThirdPartyScrollApps]' passed (0.001 seconds).
+Test Case '-[StatusTrioCoreTests.LocalizationTests testOnlyChineseLanguagesUseTheExtendedAboutLinks]' started.
+Test Case '-[StatusTrioCoreTests.LocalizationTests testOnlyChineseLanguagesUseTheExtendedAboutLinks]' passed (0.000 seconds).
+Test Case '-[StatusTrioCoreTests.LocalizationTests testResolvedBundlesAreCachedPerLanguage]' started.
+Test Case '-[StatusTrioCoreTests.LocalizationTests testResolvedBundlesAreCachedPerLanguage]' passed (0.000 seconds).
+Test Case '-[StatusTrioCoreTests.LocalizationTests testSystemLanguageFollowsInjectedPreferences]' started.
+Test Case '-[StatusTrioCoreTests.LocalizationTests testSystemLanguageFollowsInjectedPreferences]' passed (0.001 seconds).
+Test Suite 'LocalizationTests' passed at 2026-10-31 00:21:22.162.
+	 Executed 15 tests, with 0 failures (0 unexpected) in 0.074 (0.075) seconds
+Test Suite 'MenuBarHelpLocalizationTests' started at 2026-10-31 00:21:22.162.
+Test Case '-[StatusTrioCoreTests.MenuBarHelpLocalizationTests testEveryMenuBarHelpKeyLoadsInEveryLanguage]' started.
+Test Case '-[StatusTrioCoreTests.MenuBarHelpLocalizationTests testEveryMenuBarHelpKeyLoadsInEveryLanguage]' passed (0.007 seconds).
+Test Case '-[StatusTrioCoreTests.MenuBarHelpLocalizationTests testLongAndRightToLeftHelpLayoutsKeepAFixedPopoverSize]' started.
+Test Case '-[StatusTrioCoreTests.MenuBarHelpLocalizationTests testLongAndRightToLeftHelpLayoutsKeepAFixedPopoverSize]' passed (0.134 seconds).
+Test Suite 'MenuBarHelpLocalizationTests' passed at 2026-10-31 00:21:22.304.
+	 Executed 2 tests, with 0 failures (0 unexpected) in 0.141 (0.142) seconds
+Test Suite 'ShortcutRecordingLocalizationTests' started at 2026-10-31 00:21:22.304.
+Test Case '-[StatusTrioCoreTests.ShortcutRecordingLocalizationTests testDescriptionsExplainInputMethodAndAppConflictsInEveryLanguage]' started.
+Test Case '-[StatusTrioCoreTests.ShortcutRecordingLocalizationTests testDescriptionsExplainInputMethodAndAppConflictsInEveryLanguage]' passed (0.000 seconds).
+Test Case '-[StatusTrioCoreTests.ShortcutRecordingLocalizationTests testFeedbackMapsToDistinctLocalizationKeys]' started.
+Test Case '-[StatusTrioCoreTests.ShortcutRecordingLocalizationTests testFeedbackMapsToDistinctLocalizationKeys]' passed (0.000 seconds).
+Test Suite 'ShortcutRecordingLocalizationTests' passed at 2026-10-31 00:21:22.304.
+	 Executed 2 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'StatusTrioCoreTests.xctest' passed at 2026-10-31 00:21:22.304.
+	 Executed 19 tests, with 0 failures (0 unexpected) in 0.216 (0.217) seconds
+Test Suite 'Selected tests' passed at 2026-10-31 00:21:22.304.
+	 Executed 19 tests, with 0 failures (0 unexpected) in 0.216 (0.218) seconds
+􀟈  Test run started.
+􀄵  Testing Library Version: 2084
+􀄵  Target Platform: arm64e-apple-macos14.0
+􀟈  Suite ChargingEffectLocalizationTests started.
+􀟈  Test everyLocaleHasChargingEffectAndBoltHeartbeatStrings() started.
+􁁛  Test everyLocaleHasChargingEffectAndBoltHeartbeatStrings() passed after 0.019 seconds.
+􁁛  Suite ChargingEffectLocalizationTests passed after 0.019 seconds.
+􁁛  Test run with 1 test in 1 suite passed after 0.019 seconds.
+
+== Documentation: LocalizationParityTests ==
+  $ bash scripts/test.sh LocalizationParityTests
+No forbidden actor-isolated method references found under /Users/lingsmbp/Documents/aiwork/status-trio/.worktrees/battery-power-breakdown/Sources
+Building for debugging...
+[Using on-disk description]
+[1 / 1]
+Build complete! (0.56秒)
+Test Suite 'Selected tests' started at 2026-10-31 00:21:26.843.
+Test Suite 'StatusTrioPowerHelperTests.xctest' started at 2026-10-31 00:21:26.844.
+Test Suite 'StatusTrioPowerHelperTests.xctest' passed at 2026-10-31 00:21:26.844.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-31 00:21:26.844.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-31 00:21:26.916.
+Test Suite 'StatusTrioCoreTests.xctest' started at 2026-10-31 00:21:26.917.
+Test Suite 'LocalizationParityTests' started at 2026-10-31 00:21:26.917.
+Test Case '-[StatusTrioCoreTests.LocalizationParityTests testAudioInputTranslationsAreNotEmpty]' started.
+Test Case '-[StatusTrioCoreTests.LocalizationParityTests testAudioInputTranslationsAreNotEmpty]' passed (0.466 seconds).
+Test Case '-[StatusTrioCoreTests.LocalizationParityTests testEveryLanguageDeclaresExactlyTheEnglishKeys]' started.
+Test Case '-[StatusTrioCoreTests.LocalizationParityTests testEveryLanguageDeclaresExactlyTheEnglishKeys]' passed (0.486 seconds).
+Test Case '-[StatusTrioCoreTests.LocalizationParityTests testEveryLanguageKeepsTheEnglishFormatPlaceholders]' started.
+Test Case '-[StatusTrioCoreTests.LocalizationParityTests testEveryLanguageKeepsTheEnglishFormatPlaceholders]' passed (0.734 seconds).
+Test Case '-[StatusTrioCoreTests.LocalizationParityTests testEveryLocalizedValueDiffersFromItsKeyPlaceholder]' started.
+Test Case '-[StatusTrioCoreTests.LocalizationParityTests testEveryLocalizedValueDiffersFromItsKeyPlaceholder]' passed (0.482 seconds).
+Test Case '-[StatusTrioCoreTests.LocalizationParityTests testPersonalHotspotSectionIsLocalizedInEveryLanguage]' started.
+Test Case '-[StatusTrioCoreTests.LocalizationParityTests testPersonalHotspotSectionIsLocalizedInEveryLanguage]' passed (0.481 seconds).
+Test Case '-[StatusTrioCoreTests.LocalizationParityTests testTelemetryConsentControlAndPrivacyLinkUseTheirOwnCopy]' started.
+Test Case '-[StatusTrioCoreTests.LocalizationParityTests testTelemetryConsentControlAndPrivacyLinkUseTheirOwnCopy]' passed (0.484 seconds).
+Test Case '-[StatusTrioCoreTests.LocalizationParityTests testTelemetryConsentTranslationsArePresentInEveryLanguage]' started.
+Test Case '-[StatusTrioCoreTests.LocalizationParityTests testTelemetryConsentTranslationsArePresentInEveryLanguage]' passed (0.484 seconds).
+Test Suite 'LocalizationParityTests' passed at 2026-10-31 00:21:30.534.
+	 Executed 7 tests, with 0 failures (0 unexpected) in 3.617 (3.617) seconds
+Test Suite 'StatusTrioCoreTests.xctest' passed at 2026-10-31 00:21:30.534.
+	 Executed 7 tests, with 0 failures (0 unexpected) in 3.617 (3.617) seconds
+Test Suite 'Selected tests' passed at 2026-10-31 00:21:30.534.
+	 Executed 7 tests, with 0 failures (0 unexpected) in 3.617 (3.618) seconds
+
+== Documentation: ChargingEffectLocalizationTests ==
+  $ bash scripts/test.sh ChargingEffectLocalizationTests
+No forbidden actor-isolated method references found under /Users/lingsmbp/Documents/aiwork/status-trio/.worktrees/battery-power-breakdown/Sources
+Building for debugging...
+[Using on-disk description]
+[1 / 1]
+Build complete! (0.54秒)
+􀟈  Test run started.
+􀄵  Testing Library Version: 2084
+􀄵  Target Platform: arm64e-apple-macos14.0
+􀟈  Suite ChargingEffectLocalizationTests started.
+􀟈  Test everyLocaleHasChargingEffectAndBoltHeartbeatStrings() started.
+􁁛  Test everyLocaleHasChargingEffectAndBoltHeartbeatStrings() passed after 0.019 seconds.
+􁁛  Suite ChargingEffectLocalizationTests passed after 0.019 seconds.
+􁁛  Test run with 1 test in 1 suite passed after 0.019 seconds.
+
+== Documentation: MenuBarHelpLocalizationTests ==
+  $ bash scripts/test.sh MenuBarHelpLocalizationTests
+No forbidden actor-isolated method references found under /Users/lingsmbp/Documents/aiwork/status-trio/.worktrees/battery-power-breakdown/Sources
+Building for debugging...
+[Using on-disk description]
+Build complete! (0.39秒)
+Test Suite 'Selected tests' started at 2026-10-31 00:21:40.052.
+Test Suite 'StatusTrioPowerHelperTests.xctest' started at 2026-10-31 00:21:40.054.
+Test Suite 'StatusTrioPowerHelperTests.xctest' passed at 2026-10-31 00:21:40.054.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-31 00:21:40.054.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-31 00:21:40.132.
+Test Suite 'StatusTrioCoreTests.xctest' started at 2026-10-31 00:21:40.133.
+Test Suite 'MenuBarHelpLocalizationTests' started at 2026-10-31 00:21:40.133.
+Test Case '-[StatusTrioCoreTests.MenuBarHelpLocalizationTests testEveryMenuBarHelpKeyLoadsInEveryLanguage]' started.
+Test Case '-[StatusTrioCoreTests.MenuBarHelpLocalizationTests testEveryMenuBarHelpKeyLoadsInEveryLanguage]' passed (0.026 seconds).
+Test Case '-[StatusTrioCoreTests.MenuBarHelpLocalizationTests testLongAndRightToLeftHelpLayoutsKeepAFixedPopoverSize]' started.
+Test Case '-[StatusTrioCoreTests.MenuBarHelpLocalizationTests testLongAndRightToLeftHelpLayoutsKeepAFixedPopoverSize]' passed (0.166 seconds).
+Test Suite 'MenuBarHelpLocalizationTests' passed at 2026-10-31 00:21:40.326.
+	 Executed 2 tests, with 0 failures (0 unexpected) in 0.192 (0.193) seconds
+Test Suite 'StatusTrioCoreTests.xctest' passed at 2026-10-31 00:21:40.326.
+	 Executed 2 tests, with 0 failures (0 unexpected) in 0.192 (0.193) seconds
+Test Suite 'Selected tests' passed at 2026-10-31 00:21:40.326.
+	 Executed 2 tests, with 0 failures (0 unexpected) in 0.192 (0.194) seconds
+
+== Documentation policy ==
+  $ bash scripts/test-workflow-policy.sh
+workflow policy contract passed
+
+Local verification passed: mode=docs head=364b3c3381a5b44c40b1640e182e687d1e1c3043
+This is documentation/localization evidence, not a full suite or runtime check.

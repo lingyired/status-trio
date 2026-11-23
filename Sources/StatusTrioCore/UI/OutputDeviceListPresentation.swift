@@ -33,23 +33,22 @@ enum OutputDeviceListPresentation {
         _ devices: [AudioOutputDevice],
         using order: [String]
     ) -> [AudioOutputDevice] {
-        guard !order.isEmpty else { return devices }
+        AudioDeviceOrder.ordered(devices, using: order, uid: \.uid)
+    }
 
-        var ranks: [String: Int] = [:]
-        for (index, uid) in order.enumerated() where ranks[uid] == nil {
-            ranks[uid] = index
-        }
+    /// The status-panel list. A hidden device still appears while it is the
+    /// active output, so the list never loses its selected row.
+    static func panelDevices(
+        _ devices: [AudioOutputDevice],
+        order: [String],
+        hiddenUIDs: Set<String>
+    ) -> [AudioOutputDevice] {
+        orderedDevices(devices, using: order)
+            .filter { $0.isCurrent || !isHidden($0, in: hiddenUIDs) }
+    }
 
-        return devices.enumerated()
-            .sorted { lhs, rhs in
-                let leftRank = lhs.element.uid.flatMap { ranks[$0] } ?? Int.max
-                let rightRank = rhs.element.uid.flatMap { ranks[$0] } ?? Int.max
-                if leftRank != rightRank {
-                    return leftRank < rightRank
-                }
-                return lhs.offset < rhs.offset
-            }
-            .map(\.element)
+    static func isHidden(_ device: AudioOutputDevice, in hiddenUIDs: Set<String>) -> Bool {
+        AudioDeviceOrder.isHidden(uid: device.uid, in: hiddenUIDs)
     }
 
     static func visibleDevices<Device>(

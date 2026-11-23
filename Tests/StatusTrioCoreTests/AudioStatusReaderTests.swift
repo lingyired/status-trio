@@ -24,9 +24,12 @@ final class AudioStatusReaderTests: XCTestCase {
         XCTAssertEqual(result.volume?.scalar, 0.5)
     }
 
-    func testEnumerationIsSkippedWhenThereIsNoDefaultOutputDevice() {
+    func testEnumerationStillRunsWhenTheVolumeReadFails() {
+        // #296: a transiently invalid default output makes the volume read
+        // return nil, but the device topology is still enumerable. Enumeration
+        // must not be skipped, or the whole output list disappears.
         let deviceReads = ReadCounter()
-        let device = AudioOutputDevice(id: 42, name: "Speakers", isCurrent: true)
+        let device = AudioOutputDevice(id: 42, name: "Speakers", isCurrent: false)
 
         let result = CoreAudioStatusReader.assemble(
             includeOutputDevices: true,
@@ -38,8 +41,8 @@ final class AudioStatusReaderTests: XCTestCase {
         )
 
         XCTAssertNil(result.volume)
-        XCTAssertNil(result.outputDevices, "Without a default device the list cannot be current")
-        XCTAssertEqual(deviceReads.calls, 0, "A missing default device must short-circuit enumeration")
+        XCTAssertEqual(result.outputDevices, [device], "Enumeration is decoupled from the volume read")
+        XCTAssertEqual(deviceReads.calls, 1, "A failed volume read must still enumerate the requested device list")
     }
 
     func testEnumerationRunsWhenRequestedWithADefaultOutputDevice() {

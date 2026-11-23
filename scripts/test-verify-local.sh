@@ -81,7 +81,8 @@ set -euo pipefail
 printf 'release-policy\n' >> "${VERIFY_TRACE:?}"
 SH
     for script in test-mobile-battery-build-cache.sh test-ci-diagnostics.sh \
-        test-ci-workflow.sh test-build-timing.sh; do
+        test-ci-workflow.sh test-build-timing.sh test-launch-computer-use.sh \
+        test-background-ui-configuration.sh test-ui-focus-coverage.sh; do
         printf '#!/usr/bin/env bash\nexit 0\n' > "$fixture/scripts/$script"
     done
     cat > "$fixture/scripts/test-powerui-charge-restore.sh" <<'SH'
@@ -99,10 +100,25 @@ SH
 set -euo pipefail
 printf 'release-notarization\n' >> "${VERIFY_TRACE:?}"
 SH
+    cat > "$fixture/scripts/test-dmg-installer.sh" <<'SH'
+#!/usr/bin/env bash
+set -euo pipefail
+printf 'dmg-installer\n' >> "${VERIFY_TRACE:?}"
+SH
     cat > "$fixture/scripts/test-mobile-battery-clang-version.sh" <<'SH'
 #!/usr/bin/env bash
 set -euo pipefail
 printf 'clang\n' >> "${VERIFY_TRACE:?}"
+SH
+    cat > "$fixture/scripts/test-gitee-mirror.sh" <<'SH'
+#!/usr/bin/env bash
+set -euo pipefail
+printf 'gitee-mirror\n' >> "${VERIFY_TRACE:?}"
+SH
+    cat > "$fixture/scripts/test-gitee-sync-workflow.sh" <<'SH'
+#!/usr/bin/env bash
+set -euo pipefail
+printf 'gitee-workflow\n' >> "${VERIFY_TRACE:?}"
 SH
     cat > "$fixture/scripts/test-verify-local.sh" <<'SH'
 #!/usr/bin/env bash
@@ -321,7 +337,7 @@ bash "$WORK/repo/scripts/verify-local.sh" full >"$WORK/full.log" 2>&1 ||
     fail "full verification failed"
 for expected in forbidden "swift test" "swift build -c release" powerui-restore deployment deployment-regressions \
     appcast helper-contract mobile-helper mobile-rpaths otool sparkle mobile-source-cache release-policy \
-    release-pipeline release-notarization clang self-test \
+    release-pipeline release-notarization dmg-installer clang gitee-mirror gitee-workflow self-test \
     workflow-policy bundle-self-test bundle app-icon-contract \
     test-app-store-project-contract test-app-store-source-closure \
     test-app-store-bundle-contract test-app-store-archive-dsyms test-dual-distribution-workflows \

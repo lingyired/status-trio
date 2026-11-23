@@ -61,11 +61,11 @@ import sys
 
 package = pathlib.Path(sys.argv[1]).read_text()
 verify = package.index('scripts/verify-platform-version.sh')
-create_dmg = package.index('hdiutil create')
+create_dmg = package.index('DMG_APP_NAME="$APP_NAME" bash "$ROOT/scripts/create-installer-dmg.sh"')
 assert verify < create_dmg, "release metadata verification must precede DMG creation"
 
 publisher = pathlib.Path(sys.argv[2]).read_text()
-for forbidden in ("swift build", "scripts/build-app.sh", "hdiutil create", "notarytool submit"):
+for forbidden in ("swift build", "scripts/build-app.sh", "hdiutil create", "scripts/create-installer-dmg.sh", "notarytool submit"):
     assert forbidden not in publisher, f"publisher must not contain {forbidden}"
 PY
 

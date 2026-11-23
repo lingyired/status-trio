@@ -82,7 +82,7 @@ final class BetterDisplayVolumeCoordinator {
         debounce: Duration = .milliseconds(150),
         sleep: @escaping Sleep = { try await Task.sleep(for: $0) },
         readFramebuffers: @escaping @Sendable () async -> [BetterDisplayFramebufferIdentity] = {
-            []
+            await BetterDisplayFramebufferReader.readInBackground()
         },
         onUpdate: @escaping @MainActor (BetterDisplayVolumeUpdate) -> Void
     ) {

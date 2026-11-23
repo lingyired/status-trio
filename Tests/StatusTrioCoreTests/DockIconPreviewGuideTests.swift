@@ -5,7 +5,7 @@ import Testing
 
 @MainActor
 struct DockIconPreviewGuideTests {
-    /// The guide shows 10 states (`IconGuideState.all`) at 56 pt
+    /// The guide shows 10 states (`IconGuideState.all`) at 44 pt
     /// (`Sources/StatusTrioCore/UI/IconGuideView.swift:541-550`) and the
     /// appearance picker re-renders all of them. Each card may rasterize at most
     /// once per (state, appearance), and revisiting the guide must rasterize

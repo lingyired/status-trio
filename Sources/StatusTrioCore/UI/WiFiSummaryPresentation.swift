@@ -14,9 +14,10 @@ enum WiFiSummaryPresentation {
         connection: NetworkConnection,
         localization: Localization
     ) -> String? {
-        // Share the visible-summary gate with its accessibility value. A radio
-        // may still be associated while the primary path is offline or changing.
-        guard summarySSID(wifi, connection: connection) != nil else { return nil }
+        // Link measurements do not require a network name. Keep the primary
+        // Wi-Fi path gate so stale radio readings cannot describe another path.
+        guard connection == .wifi,
+              wifi.state == .connected || wifi.state == .hotspot else { return nil }
         let band = wifi.band.map {
             localization.format(.wifiSummaryBand, $0.gigahertz.formatted(
                 .number.locale(Locale(identifier: localization.resolvedLanguage.rawValue))

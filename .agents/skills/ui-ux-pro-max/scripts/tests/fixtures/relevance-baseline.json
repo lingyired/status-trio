@@ -1707,21 +1707,21 @@
           "Guideline": "Let Nuxt UI declare module dependencies"
         },
         {
-          "Category": "Icons",
-          "Guideline": "Install required icon collections locally"
+          "Category": "Theming",
+          "Guideline": "Read generated theme file to find slot names"
         }
       ],
       "diagnostics": {
         "abstained": false,
         "calibration_version": "2026-08-12-v1",
-        "margin": 3.1826026810457666,
+        "margin": 3.838208672372261,
         "normalized_query": "install the Nuxt UI module",
         "query_rewrites": [],
         "reason": "matched",
-        "runner_up_score": 9.430568542253825,
+        "runner_up_score": 9.354004973008944,
         "search_query": "install the Nuxt UI module",
         "token_coverage": 1.0,
-        "top_score": 12.613171223299592
+        "top_score": 13.192213645381205
       },
       "expectedRoute": null,
       "grades": [
@@ -1745,25 +1745,25 @@
           "Guideline": "Use semantic color props"
         },
         {
-          "Category": "Theming",
-          "Guideline": "Use @theme directive for custom colors"
+          "Category": "Performance",
+          "Guideline": "Enable component detection for Nuxt"
         },
         {
-          "Category": "Installation",
-          "Guideline": "Let Nuxt UI declare module dependencies"
+          "Category": "Theming",
+          "Guideline": "Define complete custom palettes with @theme static"
         }
       ],
       "diagnostics": {
         "abstained": false,
         "calibration_version": "2026-08-12-v1",
-        "margin": 0.48203542343964934,
+        "margin": 13.200313041581737,
         "normalized_query": "style Nuxt UI components through meaning-based color props",
         "query_rewrites": [],
         "reason": "matched",
-        "runner_up_score": 7.263126698989611,
+        "runner_up_score": 9.334552712447977,
         "search_query": "style Nuxt UI components through meaning-based color props",
-        "token_coverage": 0.7777777777777778,
-        "top_score": 7.74516212242926
+        "token_coverage": 1.0,
+        "top_score": 22.534865754029713
       },
       "expectedRoute": null,
       "grades": [
@@ -1955,25 +1955,25 @@
           "Guideline": "Use useState for local state"
         },
         {
-          "Category": "State",
-          "Guideline": "Initialize state lazily"
-        },
-        {
           "Category": "Hooks",
           "Guideline": "Follow rules of hooks"
+        },
+        {
+          "Category": "State",
+          "Guideline": "Initialize state lazily"
         }
       ],
       "diagnostics": {
         "abstained": false,
         "calibration_version": "2026-08-12-v1",
-        "margin": 6.437424023576185,
+        "margin": 6.620812025571922,
         "normalized_query": "React useState for component local state",
         "query_rewrites": [],
         "reason": "matched",
-        "runner_up_score": 6.055591405394695,
+        "runner_up_score": 6.214454784565012,
         "search_query": "React useState for component local state",
         "token_coverage": 1.0,
-        "top_score": 12.49301542897088
+        "top_score": 12.835266810136934
       },
       "expectedRoute": null,
       "grades": [
@@ -2008,14 +2008,14 @@
       "diagnostics": {
         "abstained": false,
         "calibration_version": "2026-08-12-v1",
-        "margin": 1.6932484336579066,
+        "margin": 1.858850894384167,
         "normalized_query": "remove subscriptions and timers when a React effect unmounts",
         "query_rewrites": [],
         "reason": "matched",
-        "runner_up_score": 7.784357771546359,
+        "runner_up_score": 7.931414442853006,
         "search_query": "remove subscriptions and timers when a React effect unmounts",
         "token_coverage": 0.7142857142857143,
-        "top_score": 9.477606205204266
+        "top_score": 9.790265337237173
       },
       "expectedRoute": null,
       "grades": [
@@ -2302,14 +2302,14 @@
       "diagnostics": {
         "abstained": false,
         "calibration_version": "2026-08-12-v1",
-        "margin": 7.076134819591472,
+        "margin": 7.080993541615083,
         "normalized_query": "Three.js OrbitControls must be imported separately",
         "query_rewrites": [],
         "reason": "matched",
-        "runner_up_score": 8.693423066563268,
+        "runner_up_score": 8.686482541063965,
         "search_query": "Three.js OrbitControls must be imported separately",
         "token_coverage": 1.0,
-        "top_score": 15.76955788615474
+        "top_score": 15.767476082679048
       },
       "expectedRoute": null,
       "grades": [
@@ -2337,21 +2337,21 @@
           "Guideline": "Single Renderer Per Page"
         },
         {
-          "Category": "Animation",
-          "Guideline": "Pause Render Loop on Tab Hidden"
+          "Category": "Raycasting",
+          "Guideline": "NDC Mouse Coordinates"
         }
       ],
       "diagnostics": {
         "abstained": false,
         "calibration_version": "2026-08-12-v1",
-        "margin": 3.10124290892679,
+        "margin": 3.131031647168797,
         "normalized_query": "avoid excessive GPU work on retina screens by limiting renderer DPR",
         "query_rewrites": [],
         "reason": "matched",
-        "runner_up_score": 4.439617524910303,
+        "runner_up_score": 4.455624545484412,
         "search_query": "avoid excessive GPU work on retina screens by limiting renderer DPR",
         "token_coverage": 0.4444444444444444,
-        "top_score": 7.540860433837093
+        "top_score": 7.586656192653209
       },
       "expectedRoute": null,
       "grades": [
@@ -3277,7 +3277,7 @@
     "typoRecoveryAt3": 1.0
   },
   "oracleFingerprint": "02e7226428c64a995ec24ae104ce4d186f5f91bf0f062556e90ef9b0fcb6d67a",
-  "runtimeFingerprint": "0d096d52499c2dd84ef80b2e45a1793bc4ed7c9be8fe5948b08151790959b376",
+  "runtimeFingerprint": "3f902a88e2f9bd5f12965664cd31a60a31117de69f8b19ad1968536ea3c984b7",
   "samples": {
     "cases": 90,
     "designSystem": 8,

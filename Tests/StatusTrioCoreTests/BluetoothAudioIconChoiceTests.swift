@@ -144,17 +144,13 @@ struct BluetoothAudioIconChoiceTests {
     }
 
     @Test func globalChoiceAppliesOnlyToBluetoothAndLEAudio() {
-        let options = BluetoothAudioIconOptions(
-            replacesNetworkIcon: true,
-            prioritizesNetworkErrors: false,
-            iconChoice: .airpodsPro
-        )
+        let options = BluetoothAudioIconOptions(iconChoice: .airpodsPro)
         let bluetoothScene = scene(transport: .bluetooth, options: options)
         let lowEnergyScene = scene(transport: .bluetoothLowEnergy, options: options)
         let wiredScene = scene(transport: .usb, options: options)
         let expected = CenterState.symbol(IconSymbolState(
             source: .symbol(name: "airpods.pro", variableValue: nil, fallback: "headphones"),
-            color: .bluetooth,
+            color: .bluetoothIcon,
             scale: BluetoothAudioIconOptions.defaultSymbolScale
         ))
 
@@ -165,27 +161,20 @@ struct BluetoothAudioIconChoiceTests {
 
     @Test func unsupportedChoiceFallsBackToAutomaticAndPickedNetworkDeviceWins() {
         let unsupported = BluetoothAudioIconOptions(
-            replacesNetworkIcon: true,
-            prioritizesNetworkErrors: false,
             iconChoice: BluetoothAudioIconChoice.persisted("airpods.pro.gen3", isSymbolAvailable: { _ in false })
         )
         let automaticScene = scene(transport: .bluetooth, options: unsupported)
         #expect(automaticScene.center == CenterState.symbol(IconSymbolState(
             source: .symbol(name: "headphones", variableValue: nil, fallback: nil),
-            color: .bluetooth,
+            color: .bluetoothIcon,
             scale: BluetoothAudioIconOptions.defaultSymbolScale
         )))
 
-        let pickedDevice = BluetoothAudioIconOptions(
-            replacesNetworkIcon: true,
-            prioritizesNetworkErrors: false,
-            networkIconSymbolOverride: "picked.device",
-            iconChoice: .airpodsPro
-        )
+        let pickedDevice = BluetoothAudioIconOptions(networkIconSymbolOverride: "picked.device", iconChoice: .airpodsPro)
         let pickedScene = scene(transport: .usb, options: pickedDevice)
         #expect(pickedScene.center == CenterState.symbol(IconSymbolState(
             source: .symbol(name: "picked.device", variableValue: nil, fallback: "dot.radiowaves.left.and.right"),
-            color: .bluetooth,
+            color: .bluetoothIcon,
             scale: BluetoothAudioIconOptions.defaultSymbolScale
         )))
     }
@@ -203,20 +192,16 @@ struct BluetoothAudioIconChoiceTests {
         let automatic = IconPresentationConfiguration.standard
         let selected = IconPresentationConfiguration(
             battery: .standard,
-            connection: .standard,
+            connection: ConnectionIconOptions(centerSource: .bluetoothDevice),
             volume: .standard,
-            bluetooth: BluetoothAudioIconOptions(
-                replacesNetworkIcon: true,
-                prioritizesNetworkErrors: false,
-                iconChoice: .overEarHeadphones
-            )
+            bluetooth: BluetoothAudioIconOptions(iconChoice: .overEarHeadphones)
         )
 
         let automaticScene = IconPreviewScene.make(snapshot: snapshot, configuration: automatic)
         let selectedScene = IconPreviewScene.make(snapshot: snapshot, configuration: selected)
         #expect(selectedScene.center == CenterState.symbol(IconSymbolState(
             source: .symbol(name: symbol, variableValue: nil, fallback: "headphones"),
-            color: .bluetooth,
+            color: .bluetoothIcon,
             scale: BluetoothAudioIconOptions.defaultSymbolScale
         )))
         #expect(DockIconRenderKey(scene: automaticScene, backgroundStyle: .dark, pixelLength: 512)
@@ -253,7 +238,7 @@ struct BluetoothAudioIconChoiceTests {
         )
         let configuration = IconPresentationConfiguration(
             battery: .standard,
-            connection: .standard,
+            connection: ConnectionIconOptions(centerSource: .bluetoothDevice),
             volume: .standard,
             bluetooth: options
         )

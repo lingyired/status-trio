@@ -1,0 +1,30 @@
+# ps snapshot: buffer-after-cpu-medium  wall=2026-10-30T23:06:30+0800 mono=200177.459711
+# --- top 25 by cpu ---
+  PID  PPID  %CPU %MEM COMM
+81860     1  65.8  6.9 /Applications/BlueStacks.app/Contents/MacOS/BlueStacks
+  619     1  62.4  0.8 /System/Library/PrivateFrameworks/SkyLight.framework/Resources/WindowServer
+59354 59341  39.6  0.4 /Applications/DeepSeek Harness.app/Contents/Frameworks/DeepSeek Harness Helper (Renderer).app/Contents/MacOS/DeepSeek Harness Helper (Renderer)
+59342 59341  36.6  0.1 /Applications/DeepSeek Harness.app/Contents/Frameworks/DeepSeek Harness Helper.app/Contents/MacOS/DeepSeek Harness Helper
+75058  1300  16.9  0.4 /Applications/Microsoft Edge.app/Contents/Frameworks/Microsoft Edge Framework.framework/Versions/155.0.4283.45/Helpers/Microsoft Edge Helper (Renderer).app/Contents/MacOS/Microsoft Edge Helper (Renderer)
+16696     1  16.8  0.1 /Applications/BestDock.app/Contents/MacOS/BestDock
+49076     1  16.6  0.1 /Applications/AlDente.app/Contents/MacOS/AlDente
+  590     1  15.1  0.0 /System/Library/CoreServices/launchservicesd
+ 1345  1300  12.9  0.4 /Applications/Microsoft Edge.app/Contents/Frameworks/Microsoft Edge Framework.framework/Versions/155.0.4283.45/Helpers/Microsoft Edge Helper.app/Contents/MacOS/Microsoft Edge Helper
+63065     1  11.4  0.7 /Applications/magpie.app/Contents/MacOS/magpie
+18255 17803  11.1  0.0 /Users/lingsmbp/Downloads/macpow
+  808     1  10.2  0.1 /usr/sbin/coreaudiod
+ 5090     1   7.6  0.0 /usr/libexec/diagnosticd
+17763     1   7.2  0.1 /System/Applications/Utilities/Terminal.app/Contents/MacOS/Terminal
+84549 84507   6.3  0.0 /usr/bin/log
+  723     1   4.8  0.0 /System/Library/PrivateFrameworks/BackgroundTaskManagement.framework/Resources/backgroundtaskmanagementd
+  722     1   4.6  0.0 /System/Library/CoreServices/TimeMachine/backupd
+  993     1   4.0  0.0 /System/Library/CoreServices/WindowManager.app/Contents/MacOS/WindowManager
+ 3846     1   3.5  0.0 /System/Library/PrivateFrameworks/Ecosystem.framework/Support/ecosystemd
+  613     1   2.4  0.0 /usr/sbin/notifyd
+ 1045     1   1.9  0.3 /System/Library/Frameworks/CoreServices.framework/Versions/A/Frameworks/Metadata.framework/Versions/A/Support/corespotlightd
+40411 38968   1.7  0.2 /Applications/OpenBot.app/Contents/Frameworks/OpenBot Helper (Renderer).app/Contents/MacOS/OpenBot Helper (Renderer)
+ 1300     1   1.4  1.2 /Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge
+46070     1   1.4  0.1 /System/Library/Frameworks/VideoToolbox.framework/Versions/A/XPCServices/VTDecoderXPCService.xpc/Contents/MacOS/VTDecoderXPCService
+38968     1   1.3  0.4 /Applications/OpenBot.app/Contents/MacOS/OpenBot
+# --- our loaders / sampler ---
+(none)

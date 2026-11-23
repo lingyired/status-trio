@@ -4,7 +4,7 @@ import XCTest
 @testable import StatusTrioCore
 
 @MainActor
-final class SettingsWindowControllerTests: XCTestCase {
+final class SettingsWindowControllerTests: VisibleUITestCase {
     func testShowCreatesReusesAndLocalizesSingleWindow() throws {
         let suiteName = "StatusTrioCoreTests.SettingsWindow.\(UUID().uuidString)"
         let defaults = try XCTUnwrap(UserDefaults(suiteName: suiteName))
@@ -18,8 +18,7 @@ final class SettingsWindowControllerTests: XCTestCase {
             statusStore: makeStatusStore(),
             localization: localization,
             activationPolicy: AppActivationPolicy(application: activationApplication),
-            showIconGuide: {},
-            launchAtLogin: LaunchAtLoginManager()
+            showIconGuide: {}
         )
         XCTAssertNil(controller.window)
 
@@ -28,7 +27,14 @@ final class SettingsWindowControllerTests: XCTestCase {
         defer { window.close() }
 
         XCTAssertEqual(window.title, "设置")
-        XCTAssertFalse(window.styleMask.contains(.resizable))
+        // #304: the Settings window is user-resizable and supports the standard
+        // green-button zoom/full-screen behaviour.
+        XCTAssertTrue(window.styleMask.contains(.resizable))
+        XCTAssertTrue(window.collectionBehavior.contains(.fullScreenPrimary))
+        XCTAssertEqual(
+            window.contentMinSize,
+            NSSize(width: SettingsView.minimumWidth, height: SettingsView.minimumHeight)
+        )
         XCTAssertTrue(window.isVisible)
         XCTAssertEqual(activationApplication.policies, [.regular])
 
@@ -38,6 +44,53 @@ final class SettingsWindowControllerTests: XCTestCase {
         controller.show()
         XCTAssertTrue(controller.window === window)
         XCTAssertEqual(activationApplication.policies, [.regular])
+    }
+
+    func testShowRestoresSavedFrameInsteadOfDefaultSize() throws {
+        // #304: after the user resizes/moves the window, reopening it must reuse
+        // the saved frame rather than snapping back to the default 720×600 and
+        // re-centring (the old always-on `setContentSize`/`center` path).
+        let suiteName = "StatusTrioCoreTests.SettingsWindowFrame.\(UUID().uuidString)"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suiteName))
+        let autosaveKey = "NSWindow Frame \(SettingsWindowController.frameAutosaveName)"
+        let standard = UserDefaults.standard
+        let previousSavedFrame = standard.object(forKey: autosaveKey)
+        defer {
+            if let previousSavedFrame {
+                standard.set(previousSavedFrame, forKey: autosaveKey)
+            } else {
+                standard.removeObject(forKey: autosaveKey)
+            }
+            defaults.removeTestSuite(named: suiteName)
+        }
+
+        let savedContentRect = NSRect(x: 140, y: 160, width: 800, height: 620)
+        let scratch = NSWindow(
+            contentRect: savedContentRect,
+            styleMask: [.titled, .resizable],
+            backing: .buffered,
+            defer: false
+        )
+        scratch.saveFrame(usingName: SettingsWindowController.frameAutosaveName)
+        // `saveFrame` records the whole frame, so compare against it rather than
+        // the content rect used to build the scratch window.
+        let expectedFrame = scratch.frame
+
+        let controller = SettingsWindowController(
+            store: SettingsStore(defaults: defaults),
+            statusStore: makeStatusStore(),
+            localization: Localization(defaults: defaults, preferredLanguages: ["en"]),
+            activationPolicy: AppActivationPolicy(application: SettingsActivationPolicyApplicationSpy()),
+            showIconGuide: {}
+        )
+        controller.show()
+        let window = try XCTUnwrap(controller.window)
+        defer { window.close() }
+
+        XCTAssertEqual(window.frame.size.width, expectedFrame.size.width, accuracy: 1)
+        XCTAssertEqual(window.frame.size.height, expectedFrame.size.height, accuracy: 1)
+        XCTAssertEqual(window.frame.origin.x, expectedFrame.origin.x, accuracy: 1)
+        XCTAssertEqual(window.frame.origin.y, expectedFrame.origin.y, accuracy: 1)
     }
 
     func testClosingWindowReleasesContentForNextPresentation() throws {
@@ -51,8 +104,7 @@ final class SettingsWindowControllerTests: XCTestCase {
             statusStore: makeStatusStore(),
             localization: Localization(defaults: defaults, preferredLanguages: ["en"]),
             activationPolicy: AppActivationPolicy(application: activationApplication),
-            showIconGuide: {},
-            launchAtLogin: LaunchAtLoginManager()
+            showIconGuide: {}
         )
 
         controller.show()
@@ -80,8 +132,7 @@ final class SettingsWindowControllerTests: XCTestCase {
             statusStore: makeStatusStore(),
             localization: Localization(defaults: defaults, preferredLanguages: ["en"]),
             activationPolicy: policy,
-            showIconGuide: {},
-            launchAtLogin: LaunchAtLoginManager()
+            showIconGuide: {}
         )
 
         controller.show()
@@ -107,8 +158,7 @@ final class SettingsWindowControllerTests: XCTestCase {
             statusStore: statusStore,
             localization: Localization(defaults: defaults, preferredLanguages: ["en"]),
             activationPolicy: AppActivationPolicy(application: activationApplication),
-            showIconGuide: {},
-            launchAtLogin: LaunchAtLoginManager()
+            showIconGuide: {}
         )
 
         controller.show()
@@ -235,8 +285,7 @@ final class SettingsWindowControllerTests: XCTestCase {
             localization: Localization(defaults: defaults, preferredLanguages: ["en"]),
             activationPolicy: AppActivationPolicy(application: SettingsActivationPolicyApplicationSpy()),
             showIconGuide: {},
-            globalShortcutController: shortcutController,
-            launchAtLogin: LaunchAtLoginManager()
+            globalShortcutController: shortcutController
         )
 
         controller.show()
@@ -258,8 +307,7 @@ final class SettingsWindowControllerTests: XCTestCase {
             statusStore: makeStatusStore(),
             localization: Localization(defaults: defaults, preferredLanguages: ["en"]),
             activationPolicy: AppActivationPolicy(application: SettingsActivationPolicyApplicationSpy()),
-            showIconGuide: {},
-            launchAtLogin: LaunchAtLoginManager()
+            showIconGuide: {}
         )
         let request = expectation(forNotification: .settingsSelectSection, object: nil)
 
@@ -271,8 +319,107 @@ final class SettingsWindowControllerTests: XCTestCase {
         XCTAssertTrue(window.isVisible)
     }
 
+    func testShowWithSubtopicAnnouncesAndQueuesOneLeafRequest() throws {
+        let suiteName = "StatusTrioCoreTests.SettingsSubtopicRoute.\(UUID().uuidString)"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suiteName))
+        defer { defaults.removeTestSuite(named: suiteName) }
+        let controller = SettingsWindowController(
+            store: SettingsStore(defaults: defaults),
+            statusStore: makeStatusStore(),
+            localization: Localization(defaults: defaults, preferredLanguages: ["en"]),
+            activationPolicy: AppActivationPolicy(application: SettingsActivationPolicyApplicationSpy()),
+            showIconGuide: {}
+        )
+        let request = expectation(forNotification: .settingsSelectSection, object: nil)
+
+        controller.show(subtopic: .appIconRing)
+        wait(for: [request], timeout: 1)
+
+        let window = try XCTUnwrap(controller.window)
+        defer { window.close() }
+        XCTAssertTrue(window.isVisible)
+        // The category and its leaf are consumed together, so a second read
+        // yields nothing rather than leaking a stale request into the next open.
+        XCTAssertNil(controller.takePendingSection())
+        XCTAssertNil(controller.takePendingSubtopic())
+    }
+
+    #if DEBUG
+    func testBackgroundPresentationReusesClosesAndRebuildsWithoutRegularPolicy() throws {
+        var presentations: [SettingsWindowPresentation] = []
+        try withAuthorizationFixture(
+            configuration: BackgroundUITestingConfiguration(arguments: ["--background-ui-testing"]),
+            presentWindow: { window, mode in
+                presentations.append(mode)
+                window.orderFront(nil)
+            }
+        ) { controller, statusStore, _, application in
+            var visibility: [Bool] = []
+            controller.startPreviewResourceObservation { visibility.append($0) }
+            controller.show()
+            let first = try XCTUnwrap(controller.window)
+            XCTAssertEqual(first.frameAutosaveName, "")
+            controller.show(section: .battery)
+            XCTAssertTrue(controller.window === first)
+            XCTAssertEqual(presentations, [.background, .background])
+            XCTAssertTrue(application.policies.isEmpty)
+            first.close()
+            XCTAssertNil(controller.window)
+            controller.show()
+            let second = try XCTUnwrap(controller.window)
+            XCTAssertFalse(first === second)
+            second.close()
+            XCTAssertEqual(visibility, [false, true, false, true, false])
+            XCTAssertTrue(application.policies.isEmpty)
+            statusStore.setSettingsVisible(false)
+        }
+    }
+
+    func testBackgroundPermissionDecisionDoesNotPresentOrReopenSettings() throws {
+        var presentations = 0
+        try withAuthorizationFixture(
+            configuration: BackgroundUITestingConfiguration(arguments: ["--background-ui-testing"]),
+            presentWindow: { window, _ in
+                presentations += 1
+                window.orderFront(nil)
+            }
+        ) { controller, statusStore, monitor, application in
+            controller.show()
+            let window = try XCTUnwrap(controller.window)
+            window.orderOut(nil)
+            monitor.authorization = .allowed
+            statusStore.bluetoothDevices.prepareForPresentation()
+            XCTAssertFalse(window.isVisible)
+            XCTAssertEqual(presentations, 1)
+            window.close()
+            controller.resurface()
+            XCTAssertNil(controller.window)
+            XCTAssertEqual(presentations, 1)
+            XCTAssertTrue(application.policies.isEmpty)
+        }
+    }
+    #endif
+
+    func testNormalPresentationKeepsActivatingStrategyAndAutosave() throws {
+        var presentations: [SettingsWindowPresentation] = []
+        try withAuthorizationFixture(presentWindow: { _, mode in presentations.append(mode) }) {
+            controller, _, _, application in
+            controller.show()
+            let window = try XCTUnwrap(controller.window)
+            defer { window.close() }
+            controller.resurface()
+            XCTAssertEqual(presentations, [.activating, .activating])
+            XCTAssertEqual(application.policies, [.regular])
+            XCTAssertEqual(window.frameAutosaveName, "SettingsWindow.Sidebar.v1")
+        }
+    }
+
     private func withAuthorizationFixture(
         initialAuthorization: BluetoothAuthorizationStatus = .notDetermined,
+        configuration: BackgroundUITestingConfiguration = .disabled,
+        presentWindow: @escaping @MainActor (NSWindow, SettingsWindowPresentation) -> Void = {
+            window, mode in mode.present(window)
+        },
         _ body: (SettingsWindowController, SystemStatusStore,
                  SettingsBluetoothStateMonitor, SettingsActivationPolicyApplicationSpy) throws -> Void
     ) throws {
@@ -297,7 +444,8 @@ final class SettingsWindowControllerTests: XCTestCase {
             localization: Localization(defaults: defaults, preferredLanguages: ["en"]),
             activationPolicy: AppActivationPolicy(application: application),
             showIconGuide: {},
-            launchAtLogin: LaunchAtLoginManager()
+            backgroundUITesting: configuration,
+            presentWindow: presentWindow
         )
         try body(controller, statusStore, monitor, application)
     }

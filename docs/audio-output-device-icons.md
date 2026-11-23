@@ -144,10 +144,30 @@ draws Wi-Fi or a Bluetooth audio device:
 
 - The base point size is `38 pt`.
 - The default scale is `160%`, producing a `60.8 pt` center icon.
-- The adjustable range is `100%–180%`.
-- The saved setting is used directly as the multiplier. It must not be
-  normalized against the default again.
-- The menu bar and Dock renderers use the same base size and scale semantics.
+- The adjustable range is `100%–180%` in the legacy Wi-Fi/Bluetooth controls;
+  Icon Designer stores its shared center Appearance scale in `1.0–3.0`.
+- The menu bar and Dock renderers receive one resolved scene and therefore use
+  the same base size and scale semantics.
 
-`SettingsStore` exposes shared center-symbol scale constants to keep the Wi-Fi
-and Bluetooth defaults and ranges from drifting apart.
+Wi-Fi scale consolidation
+
+The Icon Designer's Appearance value is now the single persisted center scale.
+Older V1 payloads stored a Wi-Fi source scale in addition to center Appearance;
+loading them folds that scale into Appearance once and writes a migration marker.
+The composition resolver supplies neutral Wi-Fi source scale (`1.0`) because
+`IconPaletteResolver` applies center Appearance after mapping. The separate
+legacy compatibility projection supplies the effective Wi-Fi multiplier for
+callers that do not run that Appearance pass.
+
+Migration is selection-aware: the old Wi-Fi multiplier is folded when the
+configured center primary is Network or `automaticLegacy`. An explicit
+Bluetooth-audio or Mac battery-percentage primary keeps its saved Appearance
+size; a Wi-Fi fallback in that configuration loses its old Wi-Fi-only scale.
+When Network is primary, any configured fallback shares the migrated center
+Appearance size. `automaticLegacy` can also resolve to non-Wi-Fi content, which
+shares the migrated size. These are the unavoidable tradeoffs of the existing
+shared center Appearance slot; live simulation state is never persisted to
+choose a migration outcome.
+
+`SettingsStore.wifiSymbolScale` remains a compatibility bridge: reads expose the
+effective multiplier and writes update the unified Appearance value.

@@ -12,12 +12,19 @@ struct DockIconRenderKey: Hashable {
             outerRing: OuterRingState(
                 segments: ring.segments,
                 gap: ring.gap,
+                layout: ring.layout,
+                isPartial: ring.isPartial,
                 accessory: ring.accessory,
                 effect: nil,
-                strokeScale: ring.strokeScale
+                strokeScale: ring.strokeScale,
+                inactiveColor: ring.inactiveColor,
+                gapProgressMode: ring.gapProgressMode
             ),
             center: scene.center,
-            footer: scene.footer
+            footer: scene.footer,
+            statusColors: scene.statusColors,
+            bluetoothIconColor: scene.bluetoothIconColor,
+            bottomIndicatorSource: scene.bottomIndicatorSource
         )
     }
 

@@ -18,7 +18,7 @@ extension NSApplication: ApplicationActivating {}
 /// window nests inside the regular mode that window already holds.
 @MainActor
 final class ManualUpdatePresentation {
-    let activationPolicy: AppActivationPolicy
+    private let activationPolicy: AppActivationPolicy
     private let application: any ApplicationActivating
     private var isPresenting = false
 

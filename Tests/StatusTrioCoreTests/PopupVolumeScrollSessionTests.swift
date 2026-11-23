@@ -58,7 +58,7 @@ final class PopupVolumeScrollSessionTests: XCTestCase {
 
     func testSessionRequestsUnmuteOnlyOnceForIncrease() {
         var session = PopupVolumeScrollSession()
-        let muted = makeVolumeState(isMuted: true, canMute: true)
+        let muted = makeVolumeState(isMuted: true, canMute: true, isAutoMuted: true)
         _ = session.scalar(at: 1, identity: identity, fallback: 0.5)
 
         XCTAssertTrue(
@@ -86,7 +86,7 @@ final class PopupVolumeScrollSessionTests: XCTestCase {
 
     func testResetAllowsUnmuteRequestInNextSession() {
         var session = PopupVolumeScrollSession()
-        let muted = makeVolumeState(isMuted: true, canMute: true)
+        let muted = makeVolumeState(isMuted: true, canMute: true, isAutoMuted: true)
         _ = session.scalar(at: 1, identity: identity, fallback: 0.5)
         XCTAssertTrue(
             session.shouldUnmute(in: muted, isIncreasing: true)
@@ -102,7 +102,7 @@ final class PopupVolumeScrollSessionTests: XCTestCase {
 
     func testScrollSessionUsesTheCurrentOutputMuteStateAfterTransition() {
         var session = PopupVolumeScrollSession()
-        let mutedFirst = makeVolumeState(isMuted: true, canMute: true)
+        let mutedFirst = makeVolumeState(isMuted: true, canMute: true, isAutoMuted: true)
         _ = session.scalar(at: 1, identity: identity, fallback: 0.2)
         XCTAssertTrue(
             session.shouldUnmute(in: mutedFirst, isIncreasing: true)
@@ -125,10 +125,25 @@ final class PopupVolumeScrollSessionTests: XCTestCase {
         )
     }
 
+    func testManualMuteIsNotClearedByScrollingUp() {
+        var session = PopupVolumeScrollSession()
+        let manualMute = makeVolumeState(
+            isMuted: true,
+            canMute: true,
+            isAutoMuted: false
+        )
+        _ = session.scalar(at: 1, identity: identity, fallback: 0.5)
+
+        XCTAssertFalse(
+            session.shouldUnmute(in: manualMute, isIncreasing: true)
+        )
+    }
+
     private func makeVolumeState(
         identity: VolumeControlInteractionIdentity? = nil,
         isMuted: Bool,
-        canMute: Bool
+        canMute: Bool,
+        isAutoMuted: Bool = false
     ) -> VolumePanelState {
         let identity = identity ?? self.identity
         let output = AudioOutputDevice(
@@ -151,6 +166,7 @@ final class PopupVolumeScrollSessionTests: XCTestCase {
                 outputDevices: [output],
                 canSetVolume: true,
                 canMute: canMute,
+                isAutoMuted: isAutoMuted,
                 muteState: isMuted ? .muted : .unmuted,
                 externalVolumeTransitionGeneration: identity.transitionGeneration
             ),

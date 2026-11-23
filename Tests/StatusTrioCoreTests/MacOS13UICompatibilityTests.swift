@@ -7,6 +7,7 @@ final class MacOS13UICompatibilityTests: XCTestCase {
             "Sources/StatusTrioCore/UI/AudioInputControlsView.swift",
             "Sources/StatusTrioCore/UI/BluetoothDeviceList.swift",
             "Sources/StatusTrioCore/UI/BluetoothStatusView.swift",
+            "Sources/StatusTrioCore/UI/HardwareMonitorCardView.swift",
             "Sources/StatusTrioCore/UI/IconGuideView.swift",
             "Sources/StatusTrioCore/UI/Settings/StatusIconPreviewCard.swift",
             "Sources/StatusTrioCore/UI/VolumeControlsView.swift"
@@ -28,13 +29,18 @@ final class MacOS13UICompatibilityTests: XCTestCase {
         }
     }
 
-    func testStatusPopoverUsesVenturaSafeHostingSizing() throws {
-        let source = try String(
+    func testStatusPanelUsesLayoutMetricsAsItsOnlyWindowSizingSource() throws {
+        let statusBarSource = try String(
             contentsOf: packageRoot.appendingPathComponent("Sources/StatusTrioCore/UI/StatusBarController.swift"),
             encoding: .utf8
         )
-        XCTAssertTrue(source.contains("if #available(macOS 14.0, *)"))
-        XCTAssertTrue(source.contains("hostingController.sizingOptions = [.preferredContentSize]"))
+        let panelSource = try String(
+            contentsOf: packageRoot.appendingPathComponent("Sources/StatusTrioCore/UI/AnchoredStatusPanel.swift"),
+            encoding: .utf8
+        )
+        XCTAssertFalse(statusBarSource.contains("hostingController.sizingOptions = [.preferredContentSize]"))
+        XCTAssertFalse(statusBarSource.contains("window.setContentSize(hostingController.preferredContentSize)"))
+        XCTAssertTrue(panelSource.contains("size.height = layoutMetrics.contentHeight ?? size.height"))
     }
 
     func testOnboardingUsesVenturaSafeHostingSizing() throws {
@@ -166,6 +172,8 @@ final class MacOS13UICompatibilityTests: XCTestCase {
     /// available. `translate` is the one row the resolver still downgrades, to
     /// `character.bubble`.
     private static let auditedPostVenturaSymbols: Set<String> = [
+        "ring", // Plugin presentation ID, never an SF Symbol name.
+        "fan", // Detail-page launch argument value, never an SF Symbol name.
         "airpods.gen4",
         "airpods.max",
         "airpods.pro",
@@ -180,6 +188,7 @@ final class MacOS13UICompatibilityTests: XCTestCase {
         "beats.solobuds",
         "beats.studiobuds.plus",
         "flask.fill",
+        "gauge.with.dots.needle.bottom.50percent",
         "headphones.over.ear",
         "headset",
         "homepod.mini",
@@ -188,6 +197,8 @@ final class MacOS13UICompatibilityTests: XCTestCase {
         "macmini.gen2",
         "microphone",
         "powerplug.portrait.fill",
+        "person.spatialaudio.fill",
+        "person.spatialaudio.stereo.fill",
         "right",
         "smartphone",
         "translate",

@@ -89,7 +89,7 @@ struct DockIconPreviewWiringTests {
         store.ringStrokeStyle = .bold
         store.showsBatteryPercentage = false
         store.usesBatteryStatusColors = false
-        store.replacesNetworkIconWithBluetoothAudio = true
+        store.connectionCenterSource = .bluetoothDevice
 
         let status = MenuBarStatus(snapshot: harness.statusStore.snapshot)
         let appearance = StatusIconAppearance(settings: store)

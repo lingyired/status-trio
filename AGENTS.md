@@ -6,6 +6,15 @@ Ordinary development does not require GitHub Actions. Use focused local tests
 while developing, then run the verification profile sized to the risk before
 delivery and merge.
 
+### Iteration vs. delivery
+
+A full profile is a **delivery gate, not a per-edit step**. While iterating, run
+only the focused filter that covers the behavior you touched, e.g.
+`bash scripts/test.sh 'SettingsViewTests'` or
+`bash scripts/test.sh 'IconPresentationMapperTests'`. Do not re-run the full
+Swift suite after every edit; run it once on the final integrated tree before
+merge. The profiles below size the *delivery* check, not each save.
+
 Pick one bounded profile with
 `bash scripts/verify-local.sh <quick|docs|full> [swift-test-filter]`:
 
@@ -75,8 +84,10 @@ automatically by Codex.
 | --- | --- | --- |
 | Documentation, copy, localization, translations | `.agents/rules/release.md` only for release copy; otherwise the affected UI rule | `docs`; release-note coverage when applicable |
 | Ordinary isolated feature or unit test | Rule for its subsystem | Focused `quick` tests; add the subsystem regression filter |
-| State/store, `@MainActor`, `Sendable`, actor isolation, concurrency, `deinit`, SwiftUI bindings, generic/resource plumbing | `.agents/rules/performance.md`, `.agents/rules/macos-compatibility.md` | `full` |
-| Icon scene, renderer, `StatusIconRenderer`, `StatusIconGeometry`, `IconPresentationMapper`, `IconSceneState`, `StatusBarController` icon path, `AppIconController`, `DockIconRenderKey`, `DockIconRenderer` | `.agents/rules/rendering.md` | `full`, plus `Issue30WiFiAlignmentTests` and Dock/Menu Bar parity tests |
+| State/store schema, migration, `@MainActor`, `Sendable`, actor isolation, concurrency, `deinit`, generic/resource plumbing | `.agents/rules/performance.md`, `.agents/rules/macos-compatibility.md` | `full` before delivery; while iterating, the focused store/behavior tests |
+| Settings pane layout, control styling, copy or previews that only read existing state (no change to mapper, renderer, scene or stored schema) | `.agents/rules/rendering.md` only if a preview calls the renderer | `quick` with the pane's focused tests (e.g. `SettingsViewTests`); `full` only if the same change also touches rendering/model below |
+| Settings export/import allowlist (`SettingsPreferenceCatalog`), transfer document/session | `.agents/rules/rendering.md` only if a preview calls the renderer | Focused `SettingsTransfer*` and `SettingsPreferenceCatalogTests`; `quick` |
+| Icon scene, renderer, `StatusIconRenderer`, `StatusIconGeometry`, `IconPresentationMapper`, `IconSceneState`, `StatusBarController` icon path, `AppIconController`, `DockIconRenderKey`, `DockIconRenderer` | `.agents/rules/rendering.md` | `full` before delivery, plus `Issue30WiFiAlignmentTests` and Dock/Menu Bar parity tests; iterate with the focused renderer/mapper filter |
 | Bluetooth, nearby BLE, audio, battery, permission or privacy behavior | `.agents/rules/bluetooth.md` or the matching device rule | Affected focused tests; `full` for lifecycle or permission changes |
 | Wi-Fi, Ethernet, VPN, SSID/location, Settings pane route | `.agents/rules/network.md` | Focused network tests and `StatusMenuBuilderTests` for route changes |
 | Helper, XPC, LaunchDaemon, signing or privileged behavior | `.agents/rules/release-validation.md` | `full`; manual Developer ID and XPC checks remain `NOT RUN` until performed |
@@ -86,6 +97,16 @@ automatically by Codex.
 `bash scripts/test.sh [filter]` remains the single Swift test entry point. It
 always runs `scripts/check-forbidden-patterns.sh`, including when a filter is
 provided. Do not duplicate its test or filter logic in a second wrapper.
+
+Ordinary test runs must not present native windows or menu-bar items.
+Fixtures that require them use `VisibleUITestCase` (XCTest) or the
+`VisibleUITests.isEnabled` suite condition (Swift Testing). They are explicitly
+skipped by default, including under direct `swift test`; their functional
+assertions stay intact. Only set `STATUS_TRIO_ALLOW_VISIBLE_UI_TESTS=1` in an
+authorized visible/isolated session with assessed effects. This opt-in does
+not make those tests background-safe. Report skipped UI coverage separately;
+do not enable it merely to make a full profile exercise every test. New
+fixtures that create real status items or order windows must use this boundary.
 
 For any icon work, use the existing isolated-ink and full-composite
 `Issue30WiFiAlignmentTests`; never replace them with a tolerance that hides a
@@ -109,8 +130,9 @@ half-unit shift. Keep `ChargingEffectRenderingTests` fingerprints honest.
 - Preserve permission boundaries and low-power idle behavior. Do not add
   polling, animation, logging, caches, or background work without an owner and
   a stop path.
-- Development bundles must display their `STDevelopmentCodename` beside the
-  status-panel Settings control and in the Settings About identity area.
+- Development bundles must display their `STDevelopmentCodename` in the
+  Settings About identity area. Keep the status-panel Settings label free of the
+  codename.
   Release bundles must not show a development codename. Build manual
   development bundles through `scripts/build-worktree.sh` so the codename is
   populated; never infer it from a checkout or process at runtime.
@@ -155,6 +177,13 @@ do not copy long reports for repeated runs.
 - If a setting is intentionally menu-bar-only, state that in the issue/spec,
   document the limitation, and add a test.
 
+- Icon Designer dimension controls and rendering follow
+  `docs/icon-sizing-standard.md`: one measured 100–180% center-size scale for
+  every primary and fallback source, the shared 80–120% outer/footer stroke
+  scale, and the existing outer battery text percentage baseline. Keep legacy
+  storage and rendering unchanged until the user explicitly edits them; do not
+  reintroduce per-source UI ranges.
+
 See `.agents/rules/rendering.md` and
 `docs/issue-30-wifi-centering-analysis.md`.
 
@@ -170,24 +199,52 @@ See `.agents/rules/rendering.md` and
 - Keep `StatusMenuBuilderTests.testSystemSettingsURLFallbackOrder` aligned with
   the route order.
 
+## Settings Transfer Catalog
+
+Settings export/import is driven by an explicit allowlist,
+`SettingsPreferenceCatalog` (`Sources/StatusTrioCore/Settings/SettingsPreferenceCatalog.swift`).
+It is deliberately independent of the UserDefaults domain: a persisted property
+is not transferable just because it exists.
+
+- Whenever a setting is added or its meaning/defaults change, explicitly decide
+  whether it belongs in settings export/import. If it does, add it to the
+  catalog (default, read, validation, write) and cover it in
+  `SettingsPreferenceCatalogTests` and the transfer tests; if it does not, that
+  is an intentional exclusion and should be evident from the catalog/comment.
+- Never assume a new `@Published` setting is transferable automatically. Device
+  identities/configuration, Helper state, consent/privacy, telemetry,
+  onboarding, global shortcuts and development/test state stay out of the
+  transfer document.
+- A setting that is exported must round-trip through the existing published
+  setters so the Menu Bar and Dock stay in sync; see "Menu Bar and Dock Icon
+  Parity".
+
 ## Release Boundaries
 
 - Release CI is required only before a formal release, not for ordinary commits,
   pull requests, or merges.
-- The only release entry point is a maintainer-dispatched manual
-  `release.yml` run. A `v*` tag push must never publish automatically.
-- Dispatch from `main` with a frozen lowercase 40-character `candidate_sha`.
-  The `verify` and `native` jobs run the full suite and native contracts on
-  that exact commit; `package` waits for both and builds one Universal
-  artifact; `publish` downloads that artifact without rebuilding, repackaging,
-  signing, or notarizing.
-- The `verify` and parallel `native` jobs must not receive signing or
-  notarization secrets. `package` and `publish` wait for both. Formal
-  publication always uses the reviewed `distribution` Environment;
-  owner-triggered diagnostics may use `distribution-owner-signing`, while all
-  other triggering actors and reruns use `distribution`. Publication is allowed
-  only when the candidate SHA, manifest SHA, Release Tag, appcast, DMG digest,
-  and public URLs all agree.
+- Formal releases use maintainer-dispatched manual workflows; a `v*` tag push
+  must never publish automatically:
+  - `build-candidate.yml` builds one notarized `release_candidate` from a frozen
+    lowercase 40-character `candidate_sha` with `release_mode=fast|strict`.
+  - `publish-candidate.yml` publishes that candidate by `candidate_run_id` and
+    downloads its artifact without rebuilding, repackaging, signing, or
+    notarizing.
+- The legacy `release.yml` (`verify`/`native`/`package`/`publish` with
+  `package_run_id` recovery) remains a compatible entry point for schema v1
+  manifests; both paths share `scripts/publish-release.sh`.
+- `fast` skips the remote full Swift/native suite (local testing is the
+  developer's declared prerequisite); `strict` runs the full suite and native
+  contracts. Both produce the same signed/notarized artifact. `fast` records
+  `verification.status=declared`, `strict` records `passed`. A `strict`
+  candidate is publishable only when its `verify`/`native` jobs succeeded, or
+  an independent `verify-candidate.yml` strict-evidence artifact is supplied.
+- `verify`/`native` must not receive signing or notarization secrets. Formal
+  publication always uses the reviewed `distribution` Environment; owner
+  diagnostics may use `distribution-owner-signing`, while all other triggering
+  actors and reruns use `distribution`. Publication is allowed only when the
+  candidate run, manifest, Release Tag, appcast, DMG/ZIP digests, and public
+  URLs all agree.
 - A failed Appcast or upload may be retried only with the same verified artifact.
   A retry must not create a second Release or rewrite a public appcast item.
 - Never publish a different SHA, rebuild during publish, or let a tag point at
@@ -222,6 +279,65 @@ detailed release and recovery rules.
 - Before removing a worktree, verify there are no uncommitted changes and no
   running app/process from it. Never use destructive bulk deletion.
 - Do not alter another agent's worktree, shared branch, or uncommitted files.
+
+## Background UI Testing
+
+- **Project policy and scope:** live Status Trio UI work defaults to background
+  execution. Read `.agents/skills/background-ui-testing/SKILL.md` before live
+  launch, attachment, capture or input. The project, its agent and tools own
+  the test cases, steps, assertions, functional acceptance and reports; the
+  skill governs non-disruptive execution only. Do not add setting changes,
+  navigation or screenshots as a capability gate. Static review and non-GUI
+  tests use their normal workflows and do not require a live app. For another
+  app, use that app's supported target and route, not Status Trio's launcher.
+- **Target and launch:** bind to a verified, still-owned Debug background test
+  instance from this worktree when suitable. Use
+  `bash scripts/launch-computer-use.sh --reuse [--display secondary]` to inspect
+  a matching launcher-created Debug instance without rebuilding or reopening.
+  Reuse does not grant cleanup ownership. When a launch or rebuild is needed,
+  use `bash scripts/launch-computer-use.sh [--display secondary]`.
+  It builds through `build-worktree.sh` and checks the branch-specific dev
+  identity. Any existing instance or Bundle ID collision stops a new launch;
+  only the instance's owner may close it before rebuilding. Invalid reserved
+  Debug arguments reject startup before UI presentation; Release ignores the
+  test flags. A secondary display
+  is placement, not input isolation; check actual placement and any fallback.
+- **Computer Use providers:** assess the exact operations needed from the
+  provider exposed to this session. Codex native Computer Use, `kimi-cu` MCP,
+  `agent-desktop` and other instance-scoped AX/DOM/window providers are
+  candidates, not blanket compatibility claims. Honor an explicit user or
+  project tool preference when available. Installed-but-unconnected is
+  unavailable. Input must be instance-scoped, never foreground/global input;
+  Status Trio also prohibits `osascript`/System Events, `CGEventPost`, `cliclick`
+  and per-pixel pointer automation. If no provider is exposed, use the project
+  convention `BLOCKED (no Computer Use provider)` for affected input steps,
+  naming the providers checked and what connecting one would unlock.
+- **Observation and evidence:** reuse suitable bounded observations; otherwise
+  use `scripts/measure-ui-focus.swift` for foreground identity, target
+  activity/policy, window bounds and activation events. It does not establish
+  keyboard routing, pointer, clipboard or all workspace effects. Assess those
+  effects for each needed route and disclose observation blind spots. Scope
+  claims to the actual instance, provider, operation and covered interval.
+  The observer binds the first single target (or the specified `--pid`) and
+  ends coverage if that identity disappears, changes or becomes ambiguous.
+  Renew expired coverage before continuing, without restarting the app or
+  repeating functional tests solely for that reason. Keep functional results
+  and background-interference conclusions distinct in the existing report;
+  no new status scheme or report template is required.
+- **Limits, fallback and cleanup:** stop only affected steps when targeting or
+  side effects are unknown, activation/global input is required, or evidence
+  contradicts the safe route. Never activate then restore. Known exclusions
+  include enabling Bluetooth via either the Bluetooth page's "Show in status
+  panel" control or the status-panel page's Bluetooth visibility control:
+  both explicitly activate the app; leave these tests `NOT RUN` in background
+  mode. Historical Settings/guide results do not establish menu-bar, real Dock,
+  text-input, shortcut-recording or system-dialog support. Human judgement,
+  system authorization and normal/Release activation checks may require an
+  explicitly authorized foreground/manual handoff; continue independent safe
+  work. Restore only still-owned isolated changes and stop only observers and
+  test resources within this run's cleanup scope. Preserve concurrent changes.
+  See `docs/background-computer-use-testing.zh-Hans.md` for current Chinese
+  guidance and `docs/background-computer-use-testing.md` for historical evidence.
 
 ## Project Skills
 

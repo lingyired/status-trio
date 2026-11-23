@@ -2,7 +2,31 @@ import Foundation
 import Testing
 @testable import StatusTrioCore
 
+private struct LegacyDiscoveryOnlyReader: MobileBatteryReading {
+    func discover() async throws -> [AppleDeviceCandidate] { [] }
+    func read(selectedIDs: Set<AppleDeviceID>) async throws -> MobileBatteryReadResult {
+        MobileBatteryReadResult()
+    }
+}
+
 struct MobileBatterySnapshotTests {
+    @Test func legacyDiscoveryDefaultWrapperDoesNotInventRouteCounts() async throws {
+        let result = try await LegacyDiscoveryOnlyReader().discoverWithDiagnostics()
+        #expect(result.candidates.isEmpty)
+        #expect(result.routeDiagnostics == nil)
+    }
+
+    @Test func discoveryErrorClassificationIsFixedAndSeparatesSchemaFromMalformedJSON() {
+        #expect(MobileBatteryDiscoveryFailureCategory.from(
+            DecodingError.dataCorrupted(.init(codingPath: [], debugDescription: "external"))
+        ) == .invalidEnvelope)
+        #expect(MobileBatteryDiscoveryFailureCategory.from(MobileBatteryWireError.invalidEnvelope) == .invalidEnvelope)
+        #expect(MobileBatteryDiscoveryFailureCategory.from(MobileBatteryWireError.unsupportedSchema(99)) == .unsupportedSchema)
+        #expect(MobileBatteryDiscoveryFailureCategory.from(MobileBatteryHelperError.unavailable) == .helperUnavailable)
+        #expect(MobileBatteryDiscoveryFailureCategory.from(MobileBatteryHelperError.processFailed) == .helperFailed)
+        #expect(MobileBatteryDiscoveryFailureCategory.from(MobileBatteryHelperError.outputTooLarge) == .helperOutputTooLarge)
+    }
+
     @Test func decodesMetadataOnlyDiscoveryIntoSourceQualifiedCandidates() throws {
         let json = Data(#"{"schemaVersion":1,"candidates":[{"id":"ipad-1","name":"Tablet","model":"iPad14,3","transport":"usb","trustRequired":false},{"id":"watch-1","parentID":"phone-1","name":"Watch","model":"Watch7,4","transport":"network","trustRequired":false}],"failures":[]}"#.utf8)
         let candidates = try MobileBatteryWire.decodeDiscovery(json, expectedParentID: "phone-1")
@@ -103,6 +127,29 @@ struct MobileBatterySnapshotTests {
         let result = try decode(json)
         #expect(result.snapshots.map(\.id) == ["good"])
         #expect(!result.failures.isEmpty)
+    }
+
+    /// Discovery carries Watches inline in `--discover-device`'s `candidates`
+    /// array, where `decodeDiscovery` handles them. `decodeWatchCandidates` reads
+    /// the separate `watchCandidates` list that only the `--read-phone` envelope
+    /// emits, so it is a read-envelope helper and not a discovery source.
+    @Test func decodeWatchCandidatesReadsTheReadPhoneCompanionList() throws {
+        let json = Data(#"{"schemaVersion":1,"devices":[],"failures":[],"watchCandidates":[{"id":"w1","parentID":"p","transport":"usb"},{"id":"other","parentID":"q","transport":"network"},{"id":"w2","parentID":"p","transport":"network"}]}"#.utf8)
+        let routes = try MobileBatteryWire.decodeWatchCandidates(json, expectedParentID: "p")
+        #expect(routes == [
+            WatchRoute(id: "w1", parentID: "p", transport: .usb),
+            WatchRoute(id: "w2", parentID: "p", transport: .network),
+        ])
+    }
+
+    /// Diagnostic categories are whitelisted: a helper string the app does not
+    /// know collapses to `other`, and a malformed failure list yields no
+    /// diagnostics instead of discarding the whole discovery response.
+    @Test func decodeDiscoveryFailuresUsesTheKnownCategoryWhitelist() {
+        let json = Data(#"{"schemaVersion":1,"candidates":[],"failures":[{"id":"p","error":"trust-required"},{"id":"q","error":"session-unavailable"},{"id":"r","error":"unexpected-helper-string"}]}"#.utf8)
+        let failures = MobileBatteryWire.decodeDiscoveryFailures(json)
+        #expect(failures.map(\.category) == ["trust-required", "session-unavailable", "other"])
+        #expect(MobileBatteryWire.decodeDiscoveryFailures(Data("not json".utf8)).isEmpty)
     }
 
     private func decode(_ json: String) throws -> MobileBatteryReadResult {

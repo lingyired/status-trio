@@ -115,6 +115,8 @@ final class InputSourceController: ObservableObject {
     private let switcher: any InputSourceSwitching
     private let notifications: any InputSourceNotificationObserving
     private let confirmationScheduler: any InputSourceConfirmationScheduling
+    private let modifierObserver: any InputSourceModifierObserving
+    private var modifierGeneration = 0
     private let notificationRefreshScheduler: any InputSourceConfirmationScheduling
     private let systemEvents: SystemEventObserverBag
     private var observationTokens: [NSObjectProtocol] = []
@@ -127,9 +129,11 @@ final class InputSourceController: ObservableObject {
         notifications: (any InputSourceNotificationObserving)? = nil,
         confirmationScheduler: any InputSourceConfirmationScheduling = TaskInputSourceConfirmationScheduler(),
         notificationRefreshScheduler: any InputSourceConfirmationScheduling = TaskInputSourceConfirmationScheduler(),
-        systemEvents: SystemEventObserverBag? = nil
+        systemEvents: SystemEventObserverBag? = nil,
+        modifierObserver: any InputSourceModifierObserving = SystemInputSourceModifierObserver()
     ) {
         self.reader = reader
+        self.modifierObserver = modifierObserver
         self.switcher = switcher
         self.notifications = notifications ?? SystemInputSourceNotificationObserver()
         self.confirmationScheduler = confirmationScheduler
@@ -143,11 +147,20 @@ final class InputSourceController: ObservableObject {
         observeNotifications()
         observeSystemEvents()
         refresh()
+        modifierGeneration &+= 1
+        let generation = modifierGeneration
+        modifierObserver.start { [weak self] modifiers in
+            guard let self, self.isStarted, self.modifierGeneration == generation,
+                  self.state.modifiers != modifiers else { return }
+            self.state.modifiers = modifiers
+        }
     }
 
     func stop() {
         guard isStarted else { return }
         isStarted = false
+        modifierGeneration &+= 1
+        modifierObserver.stop()
         confirmationGeneration &+= 1
         confirmationScheduler.cancel()
         notificationRefreshScheduler.cancel()
@@ -229,10 +242,12 @@ final class InputSourceController: ObservableObject {
     }
 
     private func readState() -> InputSourceState {
-        InputSourceState.resolved(
+        var result = InputSourceState.resolved(
             selectedID: reader.currentKeyboardInputSourceID(),
             rawSources: reader.keyboardInputSources()
         )
+        result.modifiers = state.modifiers
+        return result
     }
 
     private func publish(_ next: InputSourceState) {

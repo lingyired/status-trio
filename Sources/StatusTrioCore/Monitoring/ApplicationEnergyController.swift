@@ -20,12 +20,7 @@ final class ApplicationEnergyController: ObservableObject {
     private var needsRefresh = false
     private var refreshTask: Task<Void, Never>?
 
-    init(reader: @escaping Reader = { _ in
-            ApplicationEnergySnapshot(
-                readAt: ProcessInfo.processInfo.systemUptime,
-                processes: []
-            )
-         },
+    init(reader: @escaping Reader = { ApplicationEnergyReader().read(applications: $0) },
          applications: @escaping @MainActor () -> [EnergyApplication] = {
              NSWorkspace.shared.runningApplications.compactMap { app in
                  guard !app.isTerminated, app.activationPolicy != .prohibited,

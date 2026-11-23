@@ -44,6 +44,7 @@ final class PresentationTextMapperTests: XCTestCase {
                     isCharging: true,
                     isLowPowerMode: true,
                     isConnectedToPower: true,
+                    percentage: 80,
                     timeToFullChargeMinutes: 85
                 ),
                 localization: localization
@@ -52,7 +53,7 @@ final class PresentationTextMapperTests: XCTestCase {
         )
         XCTAssertEqual(
             PanelPresentationMapper.batterySubtitle(
-                makeBattery(isCharging: true, isConnectedToPower: true),
+                makeBattery(isCharging: true, isConnectedToPower: true, percentage: 80),
                 localization: localization
             ),
             "正在计算充满时间"
@@ -80,6 +81,196 @@ final class PresentationTextMapperTests: XCTestCase {
         )
     }
 
+    func testBatterySubtitleShowsTrickleChargingAtFullPercentage() {
+        let localization = makeLocalization(.simplifiedChinese)
+        let trickle = localization.string(.batteryStateTrickleCharging)
+        XCTAssertEqual(trickle, "仍在进行涓流充电")
+
+        // 100%, still charging, not yet reported charged → trickle copy.
+        XCTAssertEqual(
+            PanelPresentationMapper.batterySubtitle(
+                makeBattery(isCharging: true, isConnectedToPower: true, percentage: 100),
+                localization: localization
+            ),
+            trickle
+        )
+        // 99% and 80% keep the estimate path; only exactly-full uses trickle.
+        XCTAssertEqual(
+            PanelPresentationMapper.batterySubtitle(
+                makeBattery(
+                    isCharging: true,
+                    isConnectedToPower: true,
+                    percentage: 99,
+                    timeToFullChargeMinutes: 35
+                ),
+                localization: localization
+            ),
+            "预计 35 分钟充满"
+        )
+        XCTAssertEqual(
+            PanelPresentationMapper.batterySubtitle(
+                makeBattery(
+                    isCharging: true,
+                    isConnectedToPower: true,
+                    percentage: 80,
+                    timeToFullChargeMinutes: 85
+                ),
+                localization: localization
+            ),
+            "预计 1 小时 25 分钟充满"
+        )
+        // System-reported charged always wins, even at 100% while charging.
+        XCTAssertEqual(
+            PanelPresentationMapper.batterySubtitle(
+                makeBattery(
+                    isCharging: true,
+                    isCharged: true,
+                    isConnectedToPower: true,
+                    percentage: 100
+                ),
+                localization: localization
+            ),
+            "已充满"
+        )
+        // 100%, unplugged, not charged → normal external-power state.
+        XCTAssertEqual(
+            PanelPresentationMapper.batterySubtitle(
+                makeBattery(isConnectedToPower: true, percentage: 100),
+                localization: localization
+            ),
+            "已连接电源"
+        )
+        // A charging flag while unplugged must never claim trickle charging.
+        XCTAssertEqual(
+            PanelPresentationMapper.batterySubtitle(
+                makeBattery(isCharging: true, isConnectedToPower: false, percentage: 100),
+                localization: localization
+            ),
+            "正在计算充满时间"
+        )
+
+        localization.setPreference(.language(.english))
+        XCTAssertEqual(
+            localization.string(.batteryStateTrickleCharging),
+            "Still trickle charging"
+        )
+    }
+    func testUnpluggedBatteryDoesNotShowChargeToFullPlaceholder() {
+        let localization = makeLocalization(.simplifiedChinese)
+        for action: ChargeToFullNowPresentation in [.applying, .chargingToFull, .cancelling] {
+            XCTAssertEqual(
+                PanelPresentationMapper.batterySubtitle(
+                    makeBattery(isConnectedToPower: false),
+                    localization: localization,
+                    chargeToFullNow: action
+                ),
+                "电池供电"
+            )
+        }
+    }
+
+    func testBatteryRuntimeFormattingAndUnknownFallback() {
+        let localization = makeLocalization(.simplifiedChinese)
+        let cases: [(Int?, String)] = [
+            (1, "约 1分钟可用"),
+            (2, "约 2分钟可用"),
+            (59, "约 59分钟可用"),
+            (60, "约 1小时可用"),
+            (61, "约 1小时1分钟可用"),
+            (85, "约 1小时25分钟可用"),
+            (120, "约 2小时可用"),
+            (1441, "约 24小时1分钟可用"),
+            (nil, "电池供电"),
+            (0, "电池供电"),
+            (-1, "电池供电")
+        ]
+        for (minutes, expected) in cases {
+            let status = makeBattery(timeToEmptyMinutes: minutes)
+            let summary = PanelPresentationMapper.battery(status, localization: localization)
+            XCTAssertEqual(summary.subtitle, expected)
+            XCTAssertEqual(summary.accessibilityValue, expected)
+        }
+    }
+
+    func testBatteryRuntimePreservesHigherPriorityStates() {
+        let localization = makeLocalization(.simplifiedChinese)
+        let cases: [(BatteryStatus, String)] = [
+            (makeBattery(isPresent: false, timeToEmptyMinutes: 85), "无电池设备"),
+            (makeBattery(isCharged: true, timeToEmptyMinutes: 85), "已充满"),
+            (makeBattery(isCharging: true, timeToEmptyMinutes: 85), "正在计算充满时间"),
+            (makeBattery(isCharging: true, timeToFullChargeMinutes: 25, timeToEmptyMinutes: 85),
+             "预计 25 分钟充满"),
+            (makeBattery(isConnectedToPower: true, timeToEmptyMinutes: 85), "已连接电源"),
+            (makeBattery(isLowPowerMode: true, isConnectedToPower: true, timeToEmptyMinutes: 85),
+             "低电量模式"),
+            (makeBattery(isLowPowerMode: true, timeToEmptyMinutes: 85),
+             "低电量模式 · 约 1小时25分钟可用"),
+            (makeBattery(isLowPowerMode: true, timeToEmptyMinutes: 0), "低电量模式")
+        ]
+        for (status, expected) in cases {
+            XCTAssertEqual(
+                PanelPresentationMapper.batterySubtitle(status, localization: localization),
+                expected
+            )
+        }
+        // `.applying` on battery (no adapter) must not masquerade as charging;
+        // the real runtime text wins instead.
+        XCTAssertEqual(
+            PanelPresentationMapper.batterySubtitle(
+                makeBattery(timeToEmptyMinutes: 85),
+                localization: localization,
+                chargeToFullNow: .applying
+            ),
+            "约 1小时25分钟可用"
+        )
+    }
+
+    func testBatteryRuntimeUsesSelectedLanguageAndGrammaticalNumber() {
+        let localization = makeLocalization(.simplifiedChinese)
+        localization.setPreference(.language(.english))
+        let cases = [
+            (1, "About 1 minute remaining"),
+            (2, "About 2 minutes remaining"),
+            (60, "About 1 hour remaining"),
+            (61, "About 1 hour, 1 minute remaining"),
+            (120, "About 2 hours remaining")
+        ]
+        for (minutes, expected) in cases {
+            XCTAssertEqual(
+                PanelPresentationMapper.batterySubtitle(
+                    makeBattery(timeToEmptyMinutes: minutes), localization: localization
+                ),
+                expected
+            )
+        }
+        let localizedHour: [AppLanguage: String] = [
+            .english: "hour", .simplifiedChinese: "小时", .traditionalChinese: "小時",
+            .japanese: "時間", .korean: "시간", .spanish: "hora", .french: "heure",
+            .german: "Stunde", .italian: "ora", .brazilianPortuguese: "hora",
+            .russian: "час", .arabic: "ساعة"
+        ]
+        for language in AppLanguage.allCases {
+            localization.setPreference(.language(language))
+            let combined = PanelPresentationMapper.batterySubtitle(
+                makeBattery(timeToEmptyMinutes: 61), localization: localization
+            )
+            XCTAssertTrue(combined.contains(localizedHour[language]!), language.rawValue)
+            let template = localization.string(.batteryTimeRemaining)
+            XCTAssertNotEqual(template, LocalizationKey.batteryTimeRemaining.rawValue)
+            XCTAssertTrue(template.contains("%@"))
+            if language != .english {
+                XCTAssertNotEqual(template, "About %@ remaining", language.rawValue)
+            }
+            for minutes in [1, 2, 5, 60, 61, 85, 120] {
+                let subtitle = PanelPresentationMapper.batterySubtitle(
+                    makeBattery(timeToEmptyMinutes: minutes), localization: localization
+                )
+                XCTAssertFalse(subtitle.contains("%@"), language.rawValue)
+                XCTAssertNotEqual(subtitle, localization.string(.batteryStateOnBattery))
+            }
+        }
+    }
+
     func testBatteryTimeToFullFormatting() {
         let localization = makeLocalization(.simplifiedChinese)
         let cases: [(Int?, String)] = [
@@ -103,6 +294,98 @@ final class PresentationTextMapperTests: XCTestCase {
                 "minutes: \(String(describing: minutes))"
             )
         }
+    }
+
+    func testBatteryTimeToFullFormattingTargetsChargeLimit() {
+        let localization = makeLocalization(.simplifiedChinese)
+        let cases: [(Int?, String)] = [
+            (1, "预计 1 分钟充到 90%"),
+            (60, "预计 1 小时充到 90%"),
+            (85, "预计 1 小时 25 分钟充到 90%"),
+            (nil, "正在计算充满时间")
+        ]
+
+        for (minutes, expected) in cases {
+            XCTAssertEqual(
+                PanelPresentationMapper.batteryTimeToFullText(
+                    minutes: minutes,
+                    targetPercent: 90,
+                    localization: localization
+                ),
+                expected,
+                "minutes: \(String(describing: minutes))"
+            )
+        }
+    }
+
+    func testChargeTimeEstimateScalesToChargeLimit() {
+        let scaled = PanelPresentationMapper.chargeTimeEstimate(
+            makeBattery(
+                isCharging: true,
+                isConnectedToPower: true,
+                percentage: 82,
+                timeToFullChargeMinutes: 67,
+                chargeLimitPercent: 90
+            ),
+            chargeToFullNow: .hidden
+        )
+        XCTAssertEqual(scaled.minutes, 30)
+        XCTAssertEqual(scaled.targetPercent, 90)
+
+        let alreadyAtLimit = PanelPresentationMapper.chargeTimeEstimate(
+            makeBattery(
+                isCharging: true,
+                isConnectedToPower: true,
+                percentage: 90,
+                timeToFullChargeMinutes: 67,
+                chargeLimitPercent: 90
+            ),
+            chargeToFullNow: .hidden
+        )
+        XCTAssertEqual(alreadyAtLimit.minutes, 67)
+        XCTAssertNil(alreadyAtLimit.targetPercent)
+
+        let override = PanelPresentationMapper.chargeTimeEstimate(
+            makeBattery(
+                isCharging: true,
+                isConnectedToPower: true,
+                percentage: 82,
+                timeToFullChargeMinutes: 67,
+                chargeLimitPercent: 90
+            ),
+            chargeToFullNow: .chargingToFull
+        )
+        XCTAssertEqual(override.minutes, 67)
+        XCTAssertNil(override.targetPercent)
+
+        let noLimit = PanelPresentationMapper.chargeTimeEstimate(
+            makeBattery(
+                isCharging: true,
+                isConnectedToPower: true,
+                percentage: 50,
+                timeToFullChargeMinutes: 85
+            ),
+            chargeToFullNow: .hidden
+        )
+        XCTAssertEqual(noLimit.minutes, 85)
+        XCTAssertNil(noLimit.targetPercent)
+    }
+
+    func testBatterySubtitleUsesChargeLimitEstimate() {
+        let localization = makeLocalization(.simplifiedChinese)
+        XCTAssertEqual(
+            PanelPresentationMapper.batterySubtitle(
+                makeBattery(
+                    isCharging: true,
+                    isConnectedToPower: true,
+                    percentage: 82,
+                    timeToFullChargeMinutes: 67,
+                    chargeLimitPercent: 90
+                ),
+                localization: localization
+            ),
+            "预计 30 分钟充到 90%"
+        )
     }
 
     func testWiFiValueAndSubtitleForEveryState() {
@@ -136,7 +419,7 @@ final class PresentationTextMapperTests: XCTestCase {
         let localization = makeLocalization(.simplifiedChinese)
 
         XCTAssertEqual(localization.string(.menuSettings), "设置…")
-        XCTAssertEqual(localization.string(.wifiActionRequestNameAccess), "允许定位以显示 Wi-Fi 名称")
+        XCTAssertEqual(localization.string(.wifiActionRequestNameAccess), "允许定位以显示 Wi-Fi 网络")
         XCTAssertEqual(localization.string(.wifiActionOpenLocationSettings), "去设置中允许定位")
         XCTAssertEqual(localization.string(.wifiActionOpenSettings), "打开 Wi-Fi 设置")
         XCTAssertEqual(localization.string(.batteryActionOpenSettings), "打开系统电源设置")
@@ -395,11 +678,56 @@ final class PresentationTextMapperTests: XCTestCase {
         )
         XCTAssertEqual(
             PanelPresentationMapper.vpnTitle(bareTunnel, localization: localization),
-            "VPN"
+            "TUN"
         )
         XCTAssertEqual(
             PanelPresentationMapper.vpnSubtitle(bareTunnel, localization: localization),
             "已连接"
+        )
+
+        let attributed = VPNStatus(
+            tunnelInterfaces: ["utun4"],
+            serviceName: nil,
+            services: [],
+            mihomoTunnel: MihomoTunnelInfo(
+                provider: "Clash Verge", device: "utun4", isEnabled: true
+            ),
+            proxy: nil
+        )
+        XCTAssertEqual(
+            PanelPresentationMapper.vpnTitle(attributed, localization: localization),
+            "Clash Verge TUN"
+        )
+
+        let mismatched = VPNStatus(
+            tunnelInterfaces: ["utun5"],
+            serviceName: nil,
+            services: [],
+            mihomoTunnel: MihomoTunnelInfo(
+                provider: "Clash Verge", device: "utun4", isEnabled: true
+            ),
+            proxy: nil
+        )
+        XCTAssertEqual(
+            PanelPresentationMapper.vpnTitle(mismatched, localization: localization),
+            "TUN"
+        )
+        let disabledTunWithProxy = VPNStatus(
+            tunnelInterfaces: [],
+            serviceName: nil,
+            services: [],
+            mihomoTunnel: MihomoTunnelInfo(
+                provider: "Clash Verge", device: "", isEnabled: false
+            ),
+            proxy: VPNProxyStatus(kind: .http, host: "127.0.0.1", port: 10808)
+        )
+        XCTAssertEqual(
+            PanelPresentationMapper.vpnTitle(disabledTunWithProxy, localization: localization),
+            "系统代理"
+        )
+        XCTAssertEqual(
+            PanelPresentationMapper.vpnSubtitle(disabledTunWithProxy, localization: localization),
+            "127.0.0.1:10808"
         )
     }
 
@@ -491,7 +819,9 @@ final class PresentationTextMapperTests: XCTestCase {
         isLowPowerMode: Bool = false,
         isConnectedToPower: Bool = false,
         percentage: Int = 100,
-        timeToFullChargeMinutes: Int? = nil
+        timeToFullChargeMinutes: Int? = nil,
+        timeToEmptyMinutes: Int? = nil,
+        chargeLimitPercent: Int? = nil
     ) -> BatteryStatus {
         BatteryStatus(
             rawPercentage: percentage,
@@ -499,8 +829,10 @@ final class PresentationTextMapperTests: XCTestCase {
             isCharging: isCharging,
             isCharged: isCharged,
             timeToFullChargeMinutes: timeToFullChargeMinutes,
+            timeToEmptyMinutes: timeToEmptyMinutes,
             isLowPowerMode: isLowPowerMode,
-            isConnectedToPower: isConnectedToPower
+            isConnectedToPower: isConnectedToPower,
+            chargeLimitPercent: chargeLimitPercent
         )
     }
 }

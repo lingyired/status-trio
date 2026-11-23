@@ -4,7 +4,7 @@ import XCTest
 @testable import StatusTrioCore
 
 @MainActor
-final class BatterySummaryInteractionTests: XCTestCase {
+final class BatterySummaryInteractionTests: VisibleUITestCase {
     func testTitleBlankAreaAndChevronOpenDetailsWhileGearOnlyOpensSettings() throws {
         let suite = "BatterySummaryInteractionTests.\(UUID().uuidString)"
         let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))

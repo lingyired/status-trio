@@ -1,54 +1,79 @@
-import AppKit
 import Combine
+import Foundation
 import Testing
 @testable import StatusTrioCore
 
 @MainActor
 struct UpdaterManagerTests {
     @Test
-    func startUsesTheFactoryConfiguredSharedActivationPolicy() {
+    func settingAutomaticallyChecksForUpdatesPublishesChange() {
         let manager = UpdaterManager.shared
-        let application = UpdaterActivationPolicySpy()
-        let activationPolicy = AppActivationPolicy(application: application)
-        defer { manager.configure(activationPolicy: AppActivationPolicy(application: application)) }
-
-        manager.configure(activationPolicy: activationPolicy)
-        manager.start()
-
-        #expect(manager.manualUpdatePresentation?.activationPolicy === activationPolicy)
-    }
-
-    @Test
-    func settingAutomaticallyChecksForUpdatesPublishesFacadeChange() {
-        let manager = UpdaterManager.shared
-        let facade = UpdateStateFacade(service: manager)
         let originalValue = manager.automaticallyChecksForUpdates
         defer {
             manager.automaticallyChecksForUpdatesBinding.wrappedValue = originalValue
         }
 
         var didPublishChange = false
-        let cancellable = facade.$state
-            .dropFirst()
-            .sink { state in
-                didPublishChange = state.automaticallyChecksForUpdates == !originalValue
-            }
+        let cancellable = manager.objectWillChange.sink {
+            didPublishChange = true
+        }
         defer { cancellable.cancel() }
 
         manager.automaticallyChecksForUpdatesBinding.wrappedValue = !originalValue
 
         #expect(didPublishChange)
-        #expect(facade.automaticallyChecksForUpdates == !originalValue)
         #expect(manager.automaticallyChecksForUpdates == !originalValue)
     }
-}
 
-@MainActor
-private final class UpdaterActivationPolicySpy: ApplicationActivationPolicyApplying {
-    private(set) var currentActivationPolicy: NSApplication.ActivationPolicy = .accessory
+    @Test
+    func feedURLStringMirrorsThroughActiveSourceAndResets() {
+        let manager = UpdaterManager.shared
+        let originalProvider = manager.directFeedURLString
+        defer {
+            manager.directFeedURLString = originalProvider
+            manager.restoreInitialUpdateSource()
+        }
 
-    func setActivationPolicy(_ activationPolicy: NSApplication.ActivationPolicy) -> Bool {
-        currentActivationPolicy = activationPolicy
-        return true
+        let direct = "https://raw.githubusercontent.com/lingyired/status-trio/main/appcast.xml"
+        manager.directFeedURLString = { direct }
+        manager.restoreInitialUpdateSource()
+
+        #expect(manager.currentProxiedFeedURLString() == direct)
+
+        let toGitee = manager.advanceUpdateSource(after: URLError(.timedOut))
+        #expect(toGitee)
+        #expect(
+            manager.currentProxiedFeedURLString()
+                == "https://gitee.com/lingyired/status-trio/raw/main/appcast-gitee.xml"
+        )
+
+        let toProxy = manager.advanceUpdateSource(after: URLError(.timedOut))
+        #expect(toProxy)
+        #expect(
+            manager.currentProxiedFeedURLString()
+                == "https://gh-proxy.com/" + direct
+        )
+
+        let toGhFast = manager.advanceUpdateSource(after: URLError(.timedOut))
+        #expect(toGhFast)
+        #expect(
+            manager.currentProxiedFeedURLString()
+                == "https://ghfast.top/" + direct
+        )
+
+        let pastGhFast = manager.advanceUpdateSource(after: URLError(.timedOut))
+        #expect(!pastGhFast)
+        #expect(manager.currentProxiedFeedURLString() == direct)
+    }
+
+    @Test
+    func feedURLStringIsNilWhenInfoPlistHasNoFeed() {
+        let manager = UpdaterManager.shared
+        let originalProvider = manager.directFeedURLString
+        defer { manager.directFeedURLString = originalProvider }
+
+        manager.directFeedURLString = { nil }
+
+        #expect(manager.currentProxiedFeedURLString() == nil)
     }
 }

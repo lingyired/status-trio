@@ -66,12 +66,23 @@ private func menuBarPreviewStatus(from statusStore: SystemStatusStore) -> MenuBa
 
 struct VolumeIndicatorPreview: View {
     let style: VolumeDisplayStyle
+    /// The selected bottom data source, so the style preview shows the same
+    /// quantity the settings page will actually draw.
+    var source: BottomIndicatorSource = .volume
+    /// The metric the `.metric` source draws, so the style preview matches the
+    /// live artwork.
+    var sourceMetric: HardwareMonitorMetric = .cpuUsage
     let isDarkBackground: Bool
     @ObservedObject var store: SettingsStore
     @ObservedObject var statusStore: SystemStatusStore
 
     var previewScene: IconSceneState {
-        IconPreviewScene.make(
+        if source == .metric {
+            return BottomIndicatorMetricPreview.scene(
+                metric: sourceMetric, style: style, strokeScale: store.ringStrokeStyle.scale,
+                baseColor: store.hardwareColor(for: sourceMetric))
+        }
+        return IconPreviewScene.make(
             status: menuBarPreviewStatus(from: statusStore),
             configuration: IconPresentationConfiguration(
                 battery: store.batteryIconOptions,
@@ -80,8 +91,9 @@ struct VolumeIndicatorPreview: View {
                     displayStyle: style,
                     ringStrokeScale: store.ringStrokeStyle.scale
                 ),
-                bluetooth: .standard
-            )
+                bluetooth: store.bluetoothVolumePreviewOptions
+            ),
+            bottomIndicatorSource: source
         )
     }
 
@@ -89,7 +101,7 @@ struct VolumeIndicatorPreview: View {
         ZStack {
             MenuBarPreviewBackdrop(isDarkBackground: isDarkBackground)
 
-            Image(nsImage: StatusIconRenderer.image(
+            Image(nsImage: StatusIconPreviewCache.shared.image(
                 scene: previewScene,
                 size: 28,
                 scale: NSScreen.main?.backingScaleFactor ?? 2,
@@ -264,14 +276,18 @@ struct RingStrokeStylePreview: View {
             status: menuBarPreviewStatus(from: statusStore),
             configuration: IconPresentationConfiguration(
                 battery: BatteryIconOptions(
-                    showsPercentage: store.showsBatteryPercentage,
-                    showsChargingIndicator: store.showsChargingIndicator,
+                    splitGapProgress: store.batterySplitGapProgress,
                     usesStatusColors: store.usesBatteryStatusColors,
                     criticalThreshold: Int(store.batteryCriticalThreshold.rounded()),
-                    showsPercentageWhenConnected: store.showsPercentageWhenConnected,
                     fullThreshold: Int(store.batteryFullThreshold.rounded()),
                     textScale: store.batterySymbolScale * BatteryIconOptions.defaultTextScale,
-                    ringStrokeScale: style.scale
+                    ringStrokeScale: style.scale,
+                    batteryStatusColors: store.batteryStatusColors,
+                    onBatteryMarker: store.batteryOnBatteryMarker,
+                    chargingMarker: store.batteryChargingMarker,
+                    connectedMarker: store.batteryConnectedMarker,
+                    noBatteryMarker: store.batteryNoBatteryMarker,
+                    monochromeCharging: store.monochromeChargingRing
                 ),
                 connection: store.connectionIconOptions,
                 volume: VolumeIconOptions(
@@ -279,7 +295,8 @@ struct RingStrokeStylePreview: View {
                     ringStrokeScale: style.scale
                 ),
                 bluetooth: .standard
-            )
+            ),
+            isHighPowerMode: statusStore.highPowerMode.isHighPowerMode
         )
     }
 
@@ -287,7 +304,7 @@ struct RingStrokeStylePreview: View {
         ZStack {
             MenuBarPreviewBackdrop(isDarkBackground: isDarkBackground)
 
-            Image(nsImage: StatusIconRenderer.image(
+            Image(nsImage: StatusIconPreviewCache.shared.image(
                 scene: previewScene,
                 size: 28,
                 scale: NSScreen.main?.backingScaleFactor ?? 2,

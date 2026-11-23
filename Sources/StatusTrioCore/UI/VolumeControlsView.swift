@@ -1,5 +1,32 @@
 import SwiftUI
 
+/// Observing container for the volume row.
+///
+/// The panel observes `StatusPanelViewModel` as a whole, so a volume tick would
+/// otherwise invalidate every section. This wrapper is the only view that
+/// observes `VolumeControlModel`, which keeps a tick's invalidation scoped to
+/// the volume row (#263).
+struct VolumeControlsSection: View {
+    @ObservedObject var model: VolumeControlModel
+    let actions: StatusPanelActions
+    let scrollTargets: PopoverScrollTargets
+    let onOpenSoundSettings: () -> Void
+    var fillColor: Color = .primary
+    var matchesBrightnessThickness: Bool = false
+
+    var body: some View {
+        VolumeControlsView(
+            state: model.volume,
+            actions: actions,
+            scrollTargets: scrollTargets,
+            onOpenSoundSettings: onOpenSoundSettings,
+            fillColor: fillColor,
+            matchesBrightnessThickness: matchesBrightnessThickness
+        )
+    }
+}
+
+
 struct VolumeControlsView: View {
     private struct SynchronizationSnapshot: Equatable {
         let scalar: Double?
@@ -12,6 +39,8 @@ struct VolumeControlsView: View {
     let actions: StatusPanelActions
     let scrollTargets: PopoverScrollTargets
     let onOpenSoundSettings: () -> Void
+    var fillColor: Color = .primary
+    var matchesBrightnessThickness: Bool = false
 
     @State private var interaction: VolumeControlInteraction
 
@@ -19,12 +48,16 @@ struct VolumeControlsView: View {
         state: VolumePanelState,
         actions: StatusPanelActions,
         scrollTargets: PopoverScrollTargets,
-        onOpenSoundSettings: @escaping () -> Void
+        onOpenSoundSettings: @escaping () -> Void,
+        fillColor: Color = .primary,
+        matchesBrightnessThickness: Bool = false
     ) {
         self.state = state
         self.actions = actions
         self.scrollTargets = scrollTargets
         self.onOpenSoundSettings = onOpenSoundSettings
+        self.fillColor = fillColor
+        self.matchesBrightnessThickness = matchesBrightnessThickness
         _interaction = State(
             initialValue: VolumeControlInteraction(
                 setVolume: { actions.setVolume($0) },
@@ -45,6 +78,7 @@ struct VolumeControlsView: View {
                         systemName: state.muteSymbol,
                         font: .system(size: 15, weight: .medium)
                     )
+                        .frame(width: PanelSummaryActionMetrics.leadingGlyphSlot)
                         .foregroundStyle(state.muted ? Color.red : Color.secondary)
                         .contentShape(Rectangle())
                 }
@@ -53,18 +87,22 @@ struct VolumeControlsView: View {
                 .help(state.muteHelp)
                 .accessibilityLabel(state.muteHelp)
 
-                Slider(
+                PanelLevelSlider(
                     value: volumeBinding,
-                    in: 0...1,
+                    isEnabled: state.canAdjust,
+                    tint: state.muted ? Color.secondary : fillColor,
+                    accessibilityLabel: state.sliderLabel,
+                    accessibilityValue: percentageText,
                     onEditingChanged: { isEditing in
                         handleVolumeEditing(isEditing)
-                    }
+                    },
+                    height: matchesBrightnessThickness
+                        ? PanelLevelSliderMetrics.controlHeight
+                        : PanelLevelSliderMetrics.compactSlotHeight,
+                    barHeight: matchesBrightnessThickness
+                        ? PanelLevelSliderMetrics.barHeight
+                        : PanelLevelSliderMetrics.compactBarHeight
                 )
-                    .tint(state.muted ? Color.secondary : Color.accentColor)
-                    .disabled(!state.canAdjust)
-                    .accessibilityLabel(state.sliderLabel)
-                    .accessibilityValue(percentageText)
-                    .padding(.horizontal, 2)
                     .background(VolumeControlScrollTarget(targets: scrollTargets))
 
                 Text(percentageText)
@@ -74,7 +112,7 @@ struct VolumeControlsView: View {
                     .accessibilityHidden(true)
 
                 Button(action: onOpenSoundSettings) {
-                    PanelActionGlyph(systemName: "gearshape")
+                    PanelActionGlyph(systemName: "gearshape", size: PanelSummaryActionMetrics.actionSlot)
                         .foregroundStyle(.secondary)
                         .contentShape(Rectangle())
                 }
@@ -84,7 +122,6 @@ struct VolumeControlsView: View {
             }
 
             if state.showsDeviceList {
-                Divider().padding(.top, 2)
                 OutputDeviceList(
                     rows: state.rows,
                     previewRows: state.previewRows,
@@ -93,7 +130,8 @@ struct VolumeControlsView: View {
                     collapseLabel: state.collapseLabel,
                     previewLanguageCode: state.previewLanguageCode,
                     onSelect: { actions.selectOutput($0) },
-                    onSelectListeningMode: { actions.setListeningMode(address: $0, mode: $1) }
+                    onSelectListeningMode: { actions.setListeningMode(address: $0, mode: $1) },
+                    skeleton: state.deviceListPlaceholder
                 )
             }
         }
@@ -125,9 +163,17 @@ struct VolumeControlsView: View {
 
     private func handleVolumeEditing(_ isEditing: Bool) {
         if isEditing {
+            // Tell the store a pointer gesture owns the slider so the panel
+            // publishes level changes without its 10 Hz coalescer.
+            actions.beginVolumeAdjustment()
             interaction.beginEditing()
         } else {
             interaction.endEditing(identity: state.interactionIdentity)
+            // endEditing flushes the draft only on some paths; calling the
+            // finish command unconditionally also clears the gesture flag so a
+            // cancelled/invalidated drag cannot leave the panel bypassing the
+            // coalescer forever.
+            actions.finishVolumeAdjustment()
         }
     }
 

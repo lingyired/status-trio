@@ -34,6 +34,14 @@
 `merged`、`built` 和 `released` 不是同义词；只有公开 Release 与 appcast 都
 核验完成，才可称为 `released`。
 
+## DMG 安装页
+
+package job 准备并检查 `create-dmg 1.3.0`；版本不符或 Finder 布局失败会明确停止，不回退为空白安装页。默认 `DMG_INSTALL_PAGE=styled` 生成双语安装页；`DMG_INSTALL_PAGE=plain` 是仅用于显式回退的旧布局（App + Applications 链接）。暂存目录只含 App，由 create-dmg 创建 Applications 拖放链接。背景包含双语拖拽、安装完成及从应用启动台打开的说明。
+
+背景源是 `scripts/generate-dmg-background.swift`，运行 `swift scripts/generate-dmg-background.swift assets/dmg` 可重建 1x/2x PNG。打包直接使用 1320×840、144 DPI 的 `background@2x.png`，逻辑尺寸为 660×420pt，不依赖 Finder 自动寻找同名资源。需要设计预览时附加 `--preview Support/AppIcon.png`，预览里的图标和标签不进入正式背景。
+
+`scripts/create-installer-dmg.sh` 在独占临时目录创建镜像；失败时根据 `hdiutil info -plist` 的 image-path 归属清理本次挂载，清理失败保留文件并报错。真实执行会使用 Finder AppleScript，需单独评估对用户桌面的影响。日常 `test-dmg-installer.sh`、公证回归和 full profile 都使用离线工具，不打开 Finder，不创建真实 DMG。真实 Finder 的 Retina、浅/深外观、拖放安装及启动入口仍需人工验收。
+
 ## 触发方式
 
 ### Formal release dispatch
@@ -382,3 +390,63 @@ PUBLISH=false bash scripts/release.sh
 workflow dispatch，确保同一 SHA 的验证、Universal package、签名/公证和发布
 记录都在 Actions 中完成。只有在 workflow 不可用且维护者明确要求手动 fallback
 时，才允许使用本地兼容入口。
+
+## Build Candidate → Publish Existing Candidate（候选包流水线）
+
+除上面的 `release.yml`（保留为兼容入口）外，发布链路提供三份拆分工作流，
+实现「同一版本只构建一次、测试通过的包与最终公开包字节一致」：
+
+1. `.github/workflows/build-candidate.yml`（**Build Candidate**）
+   - 输入 `candidate_sha`（必填）、`release_mode`（`fast` / `strict`，
+     默认 `fast`），版本/构建号可留空从 `Support/Info.plist` 和 run number 推导。
+   - `prepare` 校验 SHA、`origin/main` 归属、Bundle ID、最低 macOS 13、SDK 26+、
+     完整 12 语言 Release Notes、Sparkle 凭据是否存在，并锁定版本/构建号/Tag。
+   - `strict` 额外运行完整 Swift 测试和 Native 契约测试；`fast` 跳过远程完整
+     测试，但安装包本身仍走 Developer ID 签名 + Apple 公证 + Sparkle 签名。
+   - `package` 以 `CANDIDATE_TYPE=release_candidate`、`NOTARIZE=true`、
+     `PUBLISH_MODE=false` 调用 `scripts/package-release.sh`，产出
+     `status-trio-release-package` Artifact。Fast/Strict 产出的安装包质量要求相同。
+
+2. `.github/workflows/publish-candidate.yml`（**Publish Existing Candidate**）
+   - 唯一输入 `candidate_run_id`（可选 `strict_evidence_run_id`）。
+   - 下载原始 Artifact，读取其中 manifest 自动解析 version/build/tag/source_sha，
+     用 `scripts/validate-candidate-provenance.sh` 校验来源、Artifact Digest、
+     验证等级与（可选）strict 证据，再调用 `scripts/publish-release.sh` 发布。
+   - **绝不**调用 `swift build`、`xcodebuild build`、`scripts/build-app.sh`、
+     `scripts/package-release.sh`、`codesign --sign`、`notarytool submit`、
+     `create-dmg` 或 `hdiutil create`；由
+     `scripts/check-candidate-workflow-policy.sh` 静态强制。
+   - 保留受保护的 `distribution` Environment 人工审批，并与 `release.yml` 共用
+     并发组 `status-trio-release-publish`，避免同版本并发发布。
+
+3. `.github/workflows/verify-candidate.yml`（**可选 Strict 补验**）
+   - 输入 `candidate_run_id`，对同一源 SHA 运行完整 Swift/Native 测试，写入
+     不可变的 `strict-evidence.json` 并作为 `status-trio-strict-evidence`
+     Artifact 存储；不重建、不重公证原始包。Publish 阶段可用其把 Fast 候选
+     升级为「已通过 Strict 测试」发布。
+
+### release_candidate 与 diagnostic
+
+`publish=false`（本次不发布）与 `publishable=false`（不可发布）是两个维度：
+
+- `release_candidate`：具备 Developer ID 签名、Apple 公证、DMG/ZIP Sparkle 签名、
+  完整 Release Notes，可测试后直接发布。任一必需条件缺失立即失败，绝不静默
+  退回 Ad-hoc。
+- `diagnostic`：仅用于诊断，永不 Promote；不要求 Sparkle 私钥。
+
+manifest 升级为 schema v2（保留 v1 兼容），新增
+`candidate.{id,source_sha,build_run_id,build_workflow,release_mode,publishable,created_at}`
+和 `verification.{level,status,evidence}`。`build_run_id` 等运行时元数据由可信 CI
+注入；manifest 哈希不是唯一信任依据，发布前仍校验原始 Run、Artifact Digest 与来源。
+
+### 验证与性能
+
+- `scripts/test-release-candidate-provenance.sh`：离线校验 fast/strict、SHA/Artifact
+  绑定、过期、自恢复、strict 证据。
+- `scripts/test-release-candidate-publish-gate.sh`：离线校验 `publish-release.sh`
+  对 schema v2 候选的门禁（不可发布 / strict 未通过 / SHA 不一致 / Ad-hoc 拒绝）。
+- `scripts/test-candidate-workflow-policy.sh`：静态断言 Publish 工作流不含任何
+  构建、签名或公证步骤。
+- 性能断言：同一 Candidate 从测试到公开发布，**编译次数为 0，公证提交次数为 0**。
+  实际耗时以 GitHub Actions 日志为准，不预设固定分钟数。
+

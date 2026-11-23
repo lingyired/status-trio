@@ -11,7 +11,19 @@ struct BatteryPowerPresentation {
     /// source-accurate. A battery only charges on external power.
     let chargingWatts: Double?
 
-    init(details: BatteryDetails, isConnectedToPower: Bool) {
+    init(details: BatteryDetails, isConnectedToPower: Bool, isBatteryPresent: Bool = true) {
+        if !isBatteryPresent {
+            // A Mac with no battery has only the whole-machine total. It is
+            // never relabelled as discharge and never replaced with a fake 0 W.
+            chargingWatts = nil
+            title = .batteryDetailsWatt
+            watts = details.systemPower?.watts
+            timestamp = details.systemPower?.readAt
+            timestampTitle = .batteryDetailsSystemReadAt
+            unavailableTitle = details.powerAvailability == .collecting
+                ? .batteryDetailsCollecting : .batteryDetailsUnavailable
+            return
+        }
         chargingWatts = isConnectedToPower
             ? details.power.flatMap { $0.watts > 0 ? $0.watts : nil }
             : nil

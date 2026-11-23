@@ -17,6 +17,29 @@ struct AppIconControllerTests {
         #expect(harness.log.events == ["policy:regular", "dock:image", "menu:false"])
     }
 
+    @Test func dockIconRerendersAfterSystemAppearanceChange() throws {
+        let harness = try AppIconControllerHarness(
+            initialPlacement: .dock,
+            systemTheme: {
+                SystemIconAppearanceTheme(style: .defaultStyle, appearance: .automatic)
+            }
+        )
+        defer { harness.cleanUp() }
+        harness.controller.start()
+        harness.log.reset()
+        #expect(harness.appearanceObservation.startCount == 1)
+
+        harness.dockAppearance.isDark = true
+        harness.appearanceObservation.fire()
+
+        #expect(harness.log.renderCount == 1)
+        #expect(harness.log.backgroundStyles.last == .dark)
+        #expect(harness.application.applicationIconImage != nil)
+
+        harness.controller.stop()
+        #expect(harness.appearanceObservation.stopCount == 1)
+    }
+
     @Test func rejectedDockActivationKeepsMenuBarVisible() throws {
         let harness = try AppIconControllerHarness(acceptsActivationPolicy: false)
         defer { harness.cleanUp() }
@@ -287,6 +310,192 @@ struct AppIconControllerTests {
         guard case .arc = harness.log.lastScene?.footer else { Issue.record("Expected the arc footer."); return }
     }
 
+    // MARK: Issue #263 — Dock-only volume coalescing
+
+    /// A continuous volume burst may repaint the Dock at a bounded rate, but
+    /// the newest value must still land exactly and the menu bar is untouched.
+    @Test func continuousVolumeChangesCoalesceDockRepaintsAndLandTheFinalValue() async throws {
+        let scheduler = ManualIconPresentationScheduler()
+        let sleeper = ManualEventSleeper()
+        let fixedDate = Date()
+        let harness = try AppIconControllerHarness(
+            initialPlacement: .dock,
+            initialVolume: VolumeStatus(scalar: 0.50, isMuted: false, deviceName: "Speakers"),
+            snapshotScheduler: scheduler,
+            volumeRenderCoalescer: DockVolumeRenderCoalescer(
+                minimumInterval: 0.05,
+                now: { fixedDate },
+                sleep: { await sleeper.sleep($0) }
+            )
+        )
+        defer { harness.cleanUp() }
+        harness.settings.volumeDisplayStyle = .arc
+        harness.controller.start()
+        harness.log.reset()
+
+        try await publishDockVolume(0.51, on: harness, scheduler: scheduler)
+        #expect(harness.log.renderCount == 1, "The first value in a quiet period repaints immediately.")
+        #expect(harness.log.lastFooterProgress == 0.51)
+
+        try await publishDockVolume(0.52, on: harness, scheduler: scheduler)
+        try await publishDockVolume(0.53, on: harness, scheduler: scheduler)
+        #expect(harness.log.renderCount == 1, "A volume burst must not repaint the Dock per value.")
+
+        await sleeper.waitForCallCount(1)
+        sleeper.releaseAll()
+        await sleeper.waitForCompletionCount(1)
+        await waitForDockRenderCount(2, on: harness)
+        #expect(harness.log.lastFooterProgress == 0.53, "The trailing repaint must use the newest value.")
+    }
+
+    /// A non-volume scene change must not wait behind a pending volume repaint.
+    @Test func batteryChangeDuringAVolumeBurstRepaintsImmediately() async throws {
+        let scheduler = ManualIconPresentationScheduler()
+        let sleeper = ManualEventSleeper()
+        let fixedDate = Date()
+        let harness = try AppIconControllerHarness(
+            initialPlacement: .dock,
+            initialVolume: VolumeStatus(scalar: 0.50, isMuted: false, deviceName: "Speakers"),
+            snapshotScheduler: scheduler,
+            volumeRenderCoalescer: DockVolumeRenderCoalescer(
+                minimumInterval: 0.05,
+                now: { fixedDate },
+                sleep: { await sleeper.sleep($0) }
+            )
+        )
+        defer { harness.cleanUp() }
+        harness.settings.volumeDisplayStyle = .arc
+        harness.controller.start()
+        harness.log.reset()
+
+        try await publishDockVolume(0.51, on: harness, scheduler: scheduler)
+        try await publishDockVolume(0.52, on: harness, scheduler: scheduler)
+        await sleeper.waitForCallCount(1)
+        #expect(harness.log.renderCount == 1)
+
+        try await waitForStoreSnapshot(harness) {
+            harness.publishDifferentSnapshot()
+        }
+        try #require(scheduler.hasPendingAction)
+        scheduler.runScheduled()
+
+        #expect(harness.log.renderCount == 2, "A battery change must bypass the volume coalescer.")
+
+        sleeper.releaseAll()
+        #expect(harness.log.renderCount == 2, "The cancelled volume repaint must not run again.")
+    }
+
+    /// A volume display-style setting is not a volume value change: it must
+    /// repaint immediately instead of waiting for the volume coalescer.
+    @Test func settingsChangeDuringAVolumeBurstRepaintsImmediately() async throws {
+        let scheduler = ManualIconPresentationScheduler()
+        let sleeper = ManualEventSleeper()
+        let fixedDate = Date()
+        let harness = try AppIconControllerHarness(
+            initialPlacement: .dock,
+            initialVolume: VolumeStatus(scalar: 0.50, isMuted: false, deviceName: "Speakers"),
+            snapshotScheduler: scheduler,
+            volumeRenderCoalescer: DockVolumeRenderCoalescer(
+                minimumInterval: 0.05,
+                now: { fixedDate },
+                sleep: { await sleeper.sleep($0) }
+            )
+        )
+        defer { harness.cleanUp() }
+        harness.settings.volumeDisplayStyle = .arc
+        harness.controller.start()
+        harness.log.reset()
+
+        try await publishDockVolume(0.51, on: harness, scheduler: scheduler)
+        try await publishDockVolume(0.52, on: harness, scheduler: scheduler)
+        await sleeper.waitForCallCount(1)
+        #expect(harness.log.renderCount == 1)
+
+        harness.settings.volumeDisplayStyle = .dots
+
+        #expect(harness.log.renderCount == 2, "A settings change must bypass the volume coalescer.")
+        guard case .dots = harness.log.lastScene?.footer else {
+            Issue.record("Expected the dots footer after the settings change.")
+            return
+        }
+
+        sleeper.releaseAll()
+        #expect(harness.log.renderCount == 2, "The cancelled volume repaint must not run again.")
+    }
+
+    /// Stopping the controller must drop a pending volume repaint.
+    @Test func stoppingDropsAPendingVolumeRepaint() async throws {
+        let scheduler = ManualIconPresentationScheduler()
+        let sleeper = ManualEventSleeper()
+        let fixedDate = Date()
+        let harness = try AppIconControllerHarness(
+            initialPlacement: .dock,
+            initialVolume: VolumeStatus(scalar: 0.50, isMuted: false, deviceName: "Speakers"),
+            snapshotScheduler: scheduler,
+            volumeRenderCoalescer: DockVolumeRenderCoalescer(
+                minimumInterval: 0.05,
+                now: { fixedDate },
+                sleep: { await sleeper.sleep($0) }
+            )
+        )
+        defer { harness.cleanUp() }
+        harness.settings.volumeDisplayStyle = .arc
+        harness.controller.start()
+        harness.log.reset()
+
+        try await publishDockVolume(0.51, on: harness, scheduler: scheduler)
+        try await publishDockVolume(0.52, on: harness, scheduler: scheduler)
+        await sleeper.waitForCallCount(1)
+        #expect(harness.log.renderCount == 1)
+
+        harness.controller.stop()
+        sleeper.releaseAll()
+        await Task.yield()
+
+        #expect(harness.log.renderCount == 1, "Stopping must leave no trailing volume repaint.")
+    }
+
+    private func publishDockVolume(
+        _ scalar: Double,
+        on harness: AppIconControllerHarness,
+        scheduler: ManualIconPresentationScheduler
+    ) async throws {
+        harness.publishVolume(VolumeStatus(scalar: scalar, isMuted: false, deviceName: "Speakers"))
+        try await waitForStoreVolume(scalar, on: harness)
+        try #require(
+            scheduler.hasPendingAction,
+            "The volume update must schedule the controlled presentation debounce."
+        )
+        scheduler.runScheduled()
+    }
+
+    /// `StoreSnapshotWait` only waits for the fixture battery change, so poll
+    /// the store's published snapshot for the volume value instead.
+    private func waitForStoreVolume(
+        _ scalar: Double,
+        on harness: AppIconControllerHarness
+    ) async throws {
+        for _ in 0..<500 {
+            if harness.store.snapshot.volume.scalar == scalar { return }
+            try await Task.sleep(for: .milliseconds(1))
+        }
+        try #require(
+            harness.store.snapshot.volume.scalar == scalar,
+            "The store never received volume \(scalar)."
+        )
+    }
+
+    private func waitForDockRenderCount(
+        _ count: Int,
+        on harness: AppIconControllerHarness
+    ) async {
+        for _ in 0..<500 {
+            if harness.log.renderCount >= count { return }
+            await Task.yield()
+        }
+        Issue.record("The Dock render count never reached \(count).")
+    }
+
     @Test func changingRingStrokeStyleRendersWithUpdatedOptions() throws {
         let harness = try AppIconControllerHarness(initialPlacement: .dock)
         defer { harness.cleanUp() }
@@ -340,9 +549,9 @@ struct AppIconControllerTests {
         harness.controller.flushPendingPresentationForTesting()
         harness.log.reset()
 
-        harness.settings.replacesNetworkIconWithBluetoothAudio = true
+        harness.settings.connectionCenterSource = .bluetoothDevice
         harness.settings.usesBluetoothAudioVolumeColor = true
-        harness.settings.prioritizesNetworkErrorsOverBluetoothAudio = false
+        harness.settings.prioritizesNetworkErrors = false
         #expect(harness.log.renderCount == 0, "The burst must wait for the controlled drain.")
         harness.controller.flushPendingPresentationForTesting()
 
@@ -1117,6 +1326,8 @@ final class AppIconControllerHarness {
     let store: SystemStatusStore
     let controller: AppIconController
     let iconPresentation: IconPresentationViewModel
+    let dockAppearance: MutableDockAppearance
+    let appearanceObservation: AppearanceObservationSpy
 
     private let suiteName: String
     private let defaults: UserDefaults
@@ -1138,6 +1349,7 @@ final class AppIconControllerHarness {
         initialReplacesNetworkIcon: Bool = false,
         snapshotScheduler: any IconPresentationScheduling = TestTaskIconPresentationScheduler(),
         renderCoalescer: IconRenderCoalescer? = nil,
+        volumeRenderCoalescer: DockVolumeRenderCoalescer? = nil,
         imageCache: DockIconImageCache? = nil
     ) throws {
         suiteName = "StatusTrioCoreTests.AppIconController.\(UUID().uuidString)"
@@ -1162,7 +1374,7 @@ final class AppIconControllerHarness {
         if let initialShowsDockChargingEffect {
             settings.showsDockChargingEffect = initialShowsDockChargingEffect
         }
-        settings.replacesNetworkIconWithBluetoothAudio = initialReplacesNetworkIcon
+        settings.connectionCenterSource = initialReplacesNetworkIcon ? .bluetoothDevice : .network
         self.settings = settings
 
         let store = SystemStatusStore(
@@ -1187,6 +1399,11 @@ final class AppIconControllerHarness {
 
         let activationPolicy = AppActivationPolicy(application: application)
         self.activationPolicy = activationPolicy
+
+        let dockAppearance = MutableDockAppearance(isDark: isDarkAppearance)
+        self.dockAppearance = dockAppearance
+        let appearanceObservation = AppearanceObservationSpy()
+        self.appearanceObservation = appearanceObservation
 
         controller = AppIconController(
             settings: settings,
@@ -1226,9 +1443,11 @@ final class AppIconControllerHarness {
                 return image
             },
             theme: systemTheme,
-            isDarkAppearance: { isDarkAppearance },
+            isDarkAppearance: { dockAppearance.isDark },
             notificationCenter: notificationCenter,
+            appearanceObservation: appearanceObservation,
             renderCoalescer: renderCoalescer,
+            volumeRenderCoalescer: volumeRenderCoalescer,
             imageCache: imageCache
         )
 
@@ -1288,6 +1507,10 @@ final class AppIconEventLog {
         case .arc(let arc): arc.strokeScale
         case nil: nil
         }
+    }
+    var lastFooterProgress: Double? {
+        guard case let .arc(arc)? = lastScene?.footer else { return nil }
+        return arc.progress
     }
 
     func reset() {
@@ -1397,4 +1620,34 @@ final class AppIconControllableVolumeMonitor: VolumeMonitoring {
     func stop() {}
     func refresh() {}
     func recover() {}
+}
+
+@MainActor
+final class MutableDockAppearance {
+    var isDark: Bool
+
+    init(isDark: Bool) {
+        self.isDark = isDark
+    }
+}
+
+@MainActor
+final class AppearanceObservationSpy: SystemAppearanceObserving {
+    private var onChange: (@MainActor () -> Void)?
+    private(set) var startCount = 0
+    private(set) var stopCount = 0
+
+    func start(onChange: @escaping @MainActor () -> Void) {
+        startCount += 1
+        self.onChange = onChange
+    }
+
+    func stop() {
+        stopCount += 1
+        onChange = nil
+    }
+
+    func fire() {
+        onChange?()
+    }
 }

@@ -26,6 +26,7 @@ enum DockIconSheet {
         let tint: CGColor
         let status: MenuBarStatus
         let bluetoothAudioOptions: BluetoothAudioIconOptions
+        let connectionOptions: ConnectionIconOptions
     }
 
     private static let margin: CGFloat = 36
@@ -66,17 +67,16 @@ enum DockIconSheet {
                 en: "Wi-Fi connected",
                 tint: SheetCanvas.Palette.light.networkTint,
                 status: status(playsBluetoothAudio: false),
-                bluetoothAudioOptions: .standard
+                bluetoothAudioOptions: .standard,
+                connectionOptions: .standard
             ),
             Row(
                 zh: "蓝牙音频取代 Wi-Fi 图标",
                 en: "Bluetooth audio replaces the Wi-Fi icon",
                 tint: SheetCanvas.Palette.light.bluetoothTint,
                 status: status(playsBluetoothAudio: true),
-                bluetoothAudioOptions: BluetoothAudioIconOptions(
-                    replacesNetworkIcon: true,
-                    usesVolumeColor: true
-                )
+                bluetoothAudioOptions: BluetoothAudioIconOptions(usesVolumeColor: true),
+                connectionOptions: ConnectionIconOptions(centerSource: .bluetoothDevice)
             )
         ]
     }
@@ -196,12 +196,12 @@ enum DockIconSheet {
                 42
             ),
             (
-                "蓝牙图标需先在「设置 › 蓝牙音频」中开启「使用蓝牙音频设备图标代替网络图标」。",
+                "蓝牙图标需先在「设置 › 应用图标 › 中间图标」中把中间图标设为「蓝牙设备」。",
                 "PingFangSC-Regular",
                 62
             ),
             (
-                "The Bluetooth icon needs “Replace the network icon with the Bluetooth audio device” turned on in Settings › Bluetooth Audio.",
+                "Choose Bluetooth Device as the middle icon in Settings › App Icon › Middle Icon to show the Bluetooth icon.",
                 "HelveticaNeue",
                 80
             )
@@ -250,6 +250,7 @@ enum DockIconSheet {
 
         guard let image = renderDockFixture(
                 status: row.status,
+            connectionOptions: row.connectionOptions,
             bluetoothAudioOptions: row.bluetoothAudioOptions,
             backgroundStyle: variant.style
         ) else {

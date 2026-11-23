@@ -21,6 +21,105 @@ protocol BluetoothStateMonitoring: AnyObject {
     func stop()
 }
 
+
+/// Reads the operating system's paired-device database from the system
+/// profiler. It deliberately does not perform a Bluetooth inquiry, so nearby
+/// BLE advertisements never appear as paired devices.
+///
+/// The profiler is the only source of device names: `IOBluetoothDevice
+/// .nameOrAddress` returns a cached name that keeps reporting the old value
+/// after the device is renamed, while the profiler reports what the system
+/// currently uses. Battery levels already come from the same report.
+final class SystemProfilerBluetoothPairedDeviceWorker: @unchecked Sendable, BluetoothPairedDeviceReading {
+    typealias OutputProvider = @Sendable () -> Data?
+    private static let queueLabel = "StatusTrio.SystemProfilerBluetoothPairedDeviceWorker"
+
+    /// Guards `queue`, `queueGeneration` and `hasOutstandingRead`. `read` is
+    /// called from the controller's main-actor context while a retired queue's
+    /// block may still be running, so the retirement state is read and written
+    /// under this lock rather than on whatever thread happens to call in.
+    private let stateLock = NSLock()
+    private var queue = DispatchQueue(label: queueLabel, qos: .utility)
+    private var queueGeneration: UInt64 = 0
+    private var hasOutstandingRead = false
+    private let outputProvider: OutputProvider
+    private let reportCache: BluetoothProfilerReportCache
+
+    init(
+        outputProvider: @escaping OutputProvider = SystemProfilerBluetoothPairedDeviceWorker.readSystemProfilerOutput,
+        reportCache: BluetoothProfilerReportCache = .shared
+    ) {
+        self.outputProvider = outputProvider
+        self.reportCache = reportCache
+    }
+
+    func read(completion: @escaping @Sendable (BluetoothWorkerResult) -> Void) {
+        // A read that never returned would block this one behind it on the same
+        // serial queue for the lifetime of the process, so retire that queue and
+        // give this read a fresh one. The abandoned block keeps the old queue
+        // alive until it eventually returns, which is what lets the controller's
+        // watchdog retry a hung `/usr/sbin/system_profiler` at all.
+        let generation: UInt64
+        let currentQueue: DispatchQueue
+        (generation, currentQueue) = stateLock.withLock {
+            if hasOutstandingRead {
+                queueGeneration &+= 1
+                queue = DispatchQueue(label: Self.queueLabel, qos: .utility)
+            }
+            hasOutstandingRead = true
+            return (queueGeneration, queue)
+        }
+
+        let outputProvider = self.outputProvider
+        currentQueue.async { [weak self] in
+            let result: BluetoothWorkerResult
+            let cacheEpoch = self?.reportCache.currentEpoch
+            if let data = outputProvider(),
+               let devices = BluetoothPairedDeviceReader.parse(json: data) {
+                // The battery reader reuses these exact bytes instead of spawning a
+                // second profiler moments later.
+                if let self, let cacheEpoch {
+                    self.reportCache.store(data, ifCurrent: cacheEpoch)
+                }
+                result = .success(devices)
+            } else {
+                result = .failed
+            }
+            if let self {
+                self.stateLock.withLock {
+                    // Only the read on the current queue may clear the flag; a
+                    // late completion from a retired queue must not, or the next
+                    // read would queue behind a block that is still hung.
+                    if generation == self.queueGeneration {
+                        self.hasOutstandingRead = false
+                    }
+                }
+            }
+            completion(result)
+        }
+    }
+
+    /// Comfortably under the controller's five-second read watchdog, so a
+    /// stalled profiler ends the read itself instead of being abandoned.
+    static let readTimeout: Duration = .seconds(4)
+
+    /// The one bounded `system_profiler` read in the app.
+    ///
+    /// `readDataToEndOfFile()` plus `waitUntilExit()` has no deadline: a
+    /// profiler wedged in IOBluetooth, or a descendant holding the inherited
+    /// pipe, would block this worker's serial queue for the rest of the process
+    /// and leave the watchdog to abandon another thread per retry.
+    static func readSystemProfilerOutput() -> Data? {
+        let outcome = BoundedProcessInvocation.runSync(
+            executableURL: URL(fileURLWithPath: "/usr/sbin/system_profiler"),
+            arguments: ["-json", "SPBluetoothDataType"],
+            timeout: readTimeout
+        )
+        guard case .exited(let data) = outcome else { return nil }
+        return data
+    }
+}
+
 enum BluetoothPairedDeviceReader {
     /// `nil` means the report could not be read at all; an empty array means the
     /// machine has no paired devices. The two stay distinct so a read failure is
@@ -215,14 +314,29 @@ final class CoreBluetoothStateMonitor: NSObject, @preconcurrency CBCentralManage
 @MainActor
 final class BluetoothDeviceController: ObservableObject {
     @Published private(set) var devices: [BluetoothDevice] = []
+    /// The last successfully read devices, kept only in memory for this process.
+    /// The panel draws these rows instantly while the fresh read is in flight,
+    /// so reopening does not wait on the OS. Bounded and never written to disk:
+    /// device names and addresses stay out of `UserDefaults`.
+    private(set) var cachedDevices: [BluetoothDevice] = []
+    private static let cachedDeviceLimit = 24
+    /// Whether a device read has completed since the controller last released
+    /// its transient state. The status panel reads it to tell "no devices yet"
+    /// from "the list has not loaded again since reopening", so it can draw a
+    /// cache-sized skeleton instead of an empty list during that window.
+    @Published private(set) var hasLoadedDevices = false
     @Published private(set) var availability: BluetoothAvailability = .idle
     @Published private(set) var batteryLevels: [String: BluetoothBatteryLevel] = [:]
+    @Published private(set) var batteryLevelsUpdatedAt: Date?
     @Published private(set) var nearbyBatteryDevices: [NearbyBluetoothBatteryDevice] = []
     /// Whether the last level read failed outright.
     ///
     /// `batteryLevels` cannot say it: an empty dictionary is also what a report
     /// without any readable level looks like.
     @Published private(set) var batteryLevelsReadFailed = false
+    /// Whether a battery-level read has completed since the claim was taken, so
+    /// the panel can keep a placeholder line until the first real reading lands.
+    @Published private(set) var hasCompletedBatteryRead = false
 
     private let worker: any BluetoothPairedDeviceReading
     private let appleBluetoothAudioDiagnosticReporter: AppleBluetoothAudioDiagnosticReporter
@@ -275,6 +389,7 @@ final class BluetoothDeviceController: ObservableObject {
     /// Set from the registration result, so "monitoring" means the system
     /// accepted the registration rather than that it was merely attempted.
     private var isMonitoringConnectionEventNotifications = false
+    private var connectionEventRegistrationAttempted = false
     /// The accessory battery debounce latch and gate, shaped exactly like the
     /// connect-event pair above: one read per burst, and a late completion from a
     /// superseded debounce cannot start a read the next registration did not ask
@@ -286,6 +401,16 @@ final class BluetoothDeviceController: ObservableObject {
     private var isMonitoringAccessoryBatteryNotifications = false
     private(set) var isActive = false
     private var batteryRequestGate = AsyncRequestGate()
+    /// Advanced by every valid connection event, before its debounce latch is
+    /// consulted. A device snapshot carries the generation that was current when
+    /// its profiler read started; only a snapshot from the current generation may
+    /// release battery reads. A connection change therefore invalidates the
+    /// battery gate immediately, not one debounce (or one profiler run) later.
+    private var connectionGeneration: UInt64 = 0
+    /// The connection generation the currently published device list was read
+    /// under. It trails `connectionGeneration` from the first event until the
+    /// next profiler read completes.
+    private var deviceSnapshotGeneration: UInt64 = 0
     /// One device read at a time, with at most one coalesced follow-up. Without
     /// this, every trigger started its own `/usr/sbin/system_profiler` process.
     private var isDeviceReadInFlight = false
@@ -303,6 +428,11 @@ final class BluetoothDeviceController: ObservableObject {
     private let readWatchdog: ReadWatchdog
     private var batteryLevelsEnabled = false
     private var periodicRefreshTask: Task<Void, Never>?
+    /// Counts refresh triggers that came from an event, a user action or a
+    /// surface change. The safety net captures it before sleeping and skips its
+    /// own read when one of those already ran, so a connection change is not
+    /// followed by a redundant profiler pass.
+    private var externalRefreshEpoch: UInt64 = 0
     /// Identifies the current safety-net task. A cancelled task's `defer` only
     /// clears the reference while it is still the current generation, so a
     /// stop/start pair in one main-actor turn cannot leave the new task
@@ -342,6 +472,7 @@ final class BluetoothDeviceController: ObservableObject {
     private var nearbyBLEBackgroundSelectedIDs: Set<UUID> = []
     private var nearbyBLEBackgroundRefreshInterval: Duration?
     private var nearbyBLESystemSleeping = false
+    private var nearbyBLEDisplaySleeping = false
     private var visibleNearbyBLERequests: [String: Set<UUID>] = [:]
     private var nearbyScannerGeneration: UInt64 = 0
     private var nearbyScannerCallbackIsInstalled = false
@@ -366,7 +497,6 @@ final class BluetoothDeviceController: ObservableObject {
     @Published private(set) var isDiscoveringNearbyBLEDevices = false
 
     private let actionPerformer: any BluetoothDeviceActionPerforming
-    private let allowsDeviceActions: Bool
     private let actionTimeout: Duration
     private let actionTimeoutSleep: @Sendable (Duration) async throws -> Void
     private let failureVisibleDuration: Duration
@@ -382,16 +512,18 @@ final class BluetoothDeviceController: ObservableObject {
     private var deviceActionTokenCounter: UInt64 = 0
 
     init(
-        worker: any BluetoothPairedDeviceReading = UnavailableBluetoothPairedDeviceReader(),
+        worker: any BluetoothPairedDeviceReading = SystemProfilerBluetoothPairedDeviceWorker(),
         appleBluetoothAudioDiagnosticReporter: AppleBluetoothAudioDiagnosticReporter = AppleBluetoothAudioDiagnosticReporter(),
         stateMonitor: any BluetoothStateMonitoring = CoreBluetoothStateMonitor(),
-        batteryReader: any BluetoothBatteryReading = UnavailableBluetoothBatteryReader(),
+        batteryReader: any BluetoothBatteryReading = SystemProfilerBluetoothBatteryWorker(),
         accessoryBatteryReader: (any BluetoothAccessoryBatteryReading)? = nil,
         notificationCenter: NotificationCenter = .default,
         workspaceNotificationCenter: NotificationCenter = NSWorkspace.shared.notificationCenter,
-        safetyNetInterval: Duration = .seconds(30),
+        safetyNetInterval: Duration = .seconds(120),
         safetyNetSleep: @escaping @Sendable (Duration) async throws -> Void = {
-            try await Task.sleep(for: $0)
+            // Tolerance lets the system coalesce the safety-net wake with
+            // whatever else the process is doing; precision is irrelevant.
+            try await Task.sleep(for: $0, tolerance: $0 / 5)
         },
         systemObservers: SystemEventObserverBag? = nil,
         connectionEvents: (any BluetoothConnectionEventMonitoring)? = nil,
@@ -409,7 +541,6 @@ final class BluetoothDeviceController: ObservableObject {
             try await Task.sleep(for: $0)
         },
         actionPerformer: any BluetoothDeviceActionPerforming = IOBluetoothDeviceActionPerformer(),
-        allowsDeviceActions: Bool = true,
         actionTimeout: Duration = .seconds(10),
         actionTimeoutSleep: @escaping @Sendable (Duration) async throws -> Void = {
             try await Task.sleep(for: $0)
@@ -448,7 +579,6 @@ final class BluetoothDeviceController: ObservableObject {
             sleep: readTimeoutSleep
         )
         self.actionPerformer = actionPerformer
-        self.allowsDeviceActions = allowsDeviceActions
         self.actionTimeout = actionTimeout
         self.actionTimeoutSleep = actionTimeoutSleep
         self.failureVisibleDuration = failureVisibleDuration
@@ -539,7 +669,65 @@ final class BluetoothDeviceController: ObservableObject {
         }
     }
 
+    static let legacyActivationToken = "bluetooth.legacy.activation"
+    static let settingsActivationToken = "bluetooth.settings.activation"
+    static let popoverActivationToken = "bluetooth.popover.activation"
+    static let settingsPaneActivationToken = "bluetooth.settingsPane.activation"
+
+    private var activationRequests: Set<String> = []
+
+    var hasActivationOwnerOtherThanLegacy: Bool {
+        activationRequests.contains { $0 != Self.legacyActivationToken }
+    }
+
+    /// Claims controller activation for one owner. Permission is never requested
+    /// here; callers must already have an allowed grant.
+    @discardableResult
+    func requestActivation(_ token: String) -> Bool {
+        guard BluetoothPanelActivation.shouldActivate(authorization: authorization) else { return false }
+        activationRequests.insert(token)
+        startMonitoringIfNeeded()
+        if availability == .available { updateConnectionEventMonitoring() }
+        return true
+    }
+
+    /// Explicit user-requested activation is the only path that may start the
+    /// authorization flow from `.notDetermined`. Source-demand claims must use
+    /// `requestActivation`, which never raises a permission prompt.
+    @discardableResult
+    func requestExplicitActivation(_ token: String) -> Bool {
+        guard authorization == .notDetermined
+                || BluetoothPanelActivation.shouldActivate(authorization: authorization) else { return false }
+        activationRequests.insert(token)
+        startMonitoringIfNeeded()
+        if availability == .available { updateConnectionEventMonitoring() }
+        return true
+    }
+
+    func releaseActivation(_ token: String) {
+        guard activationRequests.remove(token) != nil else { return }
+        if activationRequests.isEmpty { stopMonitoring() }
+        else { updateConnectionEventMonitoring() }
+    }
+
+    /// Compatibility owner for existing standalone callers and tests.
     func activate() {
+        activationRequests.insert(Self.legacyActivationToken)
+        startMonitoringIfNeeded()
+    }
+
+    func deactivate() {
+        releaseActivation(Self.legacyActivationToken)
+    }
+
+    /// Process teardown releases every claim; ordinary surfaces must release
+    /// only their own token so another owner remains active.
+    func shutdown() {
+        activationRequests.removeAll()
+        stopMonitoring()
+    }
+
+    private func startMonitoringIfNeeded() {
         guard !isActive else { return }
         isActive = true
         systemObservers.install(
@@ -554,12 +742,13 @@ final class BluetoothDeviceController: ObservableObject {
         schedulePeriodicRefresh()
     }
 
-    func deactivate() {
+    private func stopMonitoring() {
         guard isActive else { return }
         isActive = false
         invalidateDeviceRead()
         stopNearbyBatteryScanner(clearResults: true)
         batteryLevelRequests.removeAll()
+        backgroundBatteryLevelRequests.removeAll()
         updateBatteryLevelRequests()
         stopAccessoryBatteryEvents()
         stopPeriodicRefresh()
@@ -583,6 +772,7 @@ final class BluetoothDeviceController: ObservableObject {
         clearBatteryLevels()
         clearDeviceActions()
         devices = []
+        hasLoadedDevices = false
         batteryLevelsReadFailed = false
         nearbyBLEDiscoveryRequests.removeAll()
         visibleNearbyBLERequests.removeAll()
@@ -595,8 +785,46 @@ final class BluetoothDeviceController: ObservableObject {
         availability = .idle
     }
 
-    func refresh() {
+    /// Clears the cached device rows the panel would otherwise draw while a
+    /// fresh read is in flight.
+    ///
+    /// The cache exists so reopening the panel shows last-known names instantly
+    /// instead of waiting on the OS read. That tradeoff only makes sense while
+    /// Bluetooth is reachable: once the radio is switched off the monitoring is
+    /// suspended with no read coming to overwrite the cache, so the cached
+    /// rows — with their stale connected markers — would keep rendering until
+    /// the radio turns back on. This drops them on the power-off path while
+    /// leaving the ordinary panel-close/reopen cache alone (that path still
+    /// goes through `releaseTransientState`, which keeps `cachedDevices`).
+    func clearCachedDevicesForPowerOff() {
+        cachedDevices = []
+        devices = []
+        hasLoadedDevices = false
+        clearDeviceActions()
+    }
+
+    func refresh(isSafetyNet: Bool = false) {
         guard isActive, availability == .available else { return }
+        performDeviceRefresh(isSafetyNet: isSafetyNet)
+    }
+
+    /// Retries a device read after a `.failed` read without an app restart.
+    ///
+    /// Only `.failed` is retryable: a powered-off, unauthorized or unavailable
+    /// radio is refused, so a manual refresh never starts a read that cannot
+    /// succeed. The retry still goes through the single-read latch and the
+    /// merged-follow-up rule, so repeated taps cannot storm `system_profiler`
+    /// or start a permanent poll. The `.failed` state is kept until the retry
+    /// actually succeeds, so last-known devices are never painted as live.
+    func retryDeviceReadAfterFailure() {
+        guard isActive, availability == .failed else { return }
+        performDeviceRefresh(isSafetyNet: false)
+    }
+
+    private func performDeviceRefresh(isSafetyNet: Bool) {
+        if !isSafetyNet {
+            externalRefreshEpoch &+= 1
+        }
         // Coalesce bursts: at most one read and one follow-up are retained,
         // whatever order the triggers arrive in.
         guard !isDeviceReadInFlight else {
@@ -606,6 +834,11 @@ final class BluetoothDeviceController: ObservableObject {
         isDeviceReadInFlight = true
         readToken &+= 1
         let token = readToken
+        // The list this read is about to fetch describes the connections at this
+        // generation. A connection event that lands while the profiler runs moves
+        // the generation on, so this completion publishes devices but cannot
+        // release battery reads.
+        let snapshotGeneration = connectionGeneration
         readWatchdog.arm { [weak self] in
             self?.abandonTimedOutRead(token: token)
         }
@@ -626,11 +859,24 @@ final class BluetoothDeviceController: ObservableObject {
                         self.appleBluetoothAudioDiagnosticReporter.report($0)
                     }
                     self.devices = devices
+                    // Expire primary and accessory values even without battery
+                    // demand; the next read may be delayed or never requested.
+                    self.batteryLevels = self.connectedBatteryLevels(self.batteryLevels)
+                    self.deviceSnapshotGeneration = snapshotGeneration
+                    self.cachedDevices = Array(devices.prefix(Self.cachedDeviceLimit))
+                    self.hasLoadedDevices = true
                     // The BLE route matches a phone's advertised name against
                     // this list, so it has to follow the report as it lands.
                     self.updateKnownNearbyAppleNames()
                     self.reconcileDeviceActions()
                     self.availability = .available
+                    // A failed read retires the safety net, so a successful
+                    // recovery (a manual refresh after `.failed`) has to rebuild
+                    // it; otherwise the recovered session would stop polling at
+                    // the next tick and never notice another change.
+                    if self.periodicRefreshTask == nil {
+                        self.schedulePeriodicRefresh()
+                    }
                     self.refreshBatteryLevels()
                 case .poweredOff:
                     self.availability = .poweredOff
@@ -651,7 +897,7 @@ final class BluetoothDeviceController: ObservableObject {
                 }
                 if self.isRefreshPending {
                     self.isRefreshPending = false
-                    self.refresh()
+                    self.refresh(isSafetyNet: isSafetyNet)
                 }
             }
         }
@@ -661,7 +907,13 @@ final class BluetoothDeviceController: ObservableObject {
     /// asks the Nearby scanner for a new bounded scan when its surface is active.
     /// The ordinary safety-net `refresh()` path never reaches CoreBluetooth.
     func refreshFromUser() {
-        refresh()
+        if availability == .failed {
+            // A failed read blocks the ordinary `.available`-only `refresh()`;
+            // the user explicitly asking is the one signal allowed to retry it.
+            retryDeviceReadAfterFailure()
+        } else {
+            refresh()
+        }
         guard isNearbyBLEScannerDemanded else { return }
         // A user asking for a refresh is the one signal that may retry a device
         // automatic scans have given up on — for example one whose pairing
@@ -710,6 +962,7 @@ final class BluetoothDeviceController: ObservableObject {
     /// the outcome independent of that order, where a single boolean let the
     /// last writer win and left the detail page reading nothing.
     private var batteryLevelRequests: Set<String> = []
+    private var backgroundBatteryLevelRequests: Set<String> = []
 
     /// Applies the Apple-device feature and persisted UUID metadata. UUIDs are
     /// identities, not a read allowlist; a read still requires a visible row.
@@ -821,6 +1074,22 @@ final class BluetoothDeviceController: ObservableObject {
         }
     }
 
+    /// Display sleep pauses nearby BLE work for the same reason system sleep
+    /// does: the screen is off, so no surface can show a battery level, and
+    /// the radio would keep waking for scans nothing reads. A display wake
+    /// restores whatever demand remains; the store's popover-visible path
+    /// repairs a missed screensDidWake.
+    func setDisplaySleeping(_ sleeping: Bool) {
+        guard nearbyBLEDisplaySleeping != sleeping else { return }
+        nearbyBLEDisplaySleeping = sleeping
+        if sleeping {
+            nearbyBatteryScanner?.stop()
+            isDiscoveringNearbyBLEDevices = false
+        } else {
+            updateNearbyBatteryScanner()
+        }
+    }
+
     var backgroundReadNearbyBLEDeviceIDs: Set<UUID> {
         nearbyBLEBackgroundRefreshEnabled
             ? nearbyBLEBackgroundSelectedIDs.subtracting(nearbyBLEHiddenIDs)
@@ -841,6 +1110,21 @@ final class BluetoothDeviceController: ObservableObject {
             return
         }
         updateBatteryLevelRequests()
+    }
+
+    /// Claims event-driven accessory battery updates while the app is in the
+    /// background. Callers must have an explicit user opt-in; this does not
+    /// start a periodic timer or BLE discovery.
+    func requestBackgroundBatteryLevels(_ token: String) {
+        backgroundBatteryLevelRequests.insert(token)
+        requestBatteryLevels(token)
+        updateAccessoryBatteryEvents()
+    }
+
+    func releaseBackgroundBatteryLevels(_ token: String) {
+        backgroundBatteryLevelRequests.remove(token)
+        releaseBatteryLevels(token)
+        updateAccessoryBatteryEvents()
     }
 
     /// Releases a surface's claim, whatever the order it arrives in.
@@ -885,7 +1169,7 @@ final class BluetoothDeviceController: ObservableObject {
     /// `BluetoothStatusView`) is released
     /// only from SwiftUI `onDisappear`, and the popover's content view
     /// controller is retained after close: a skipped `onDisappear` would
-    /// otherwise leave the claim set non-empty and restart a 30 s poll for the
+    /// otherwise leave the claim set non-empty and restart a 120 s poll for the
     /// life of the process. A view claim may only narrow this one, never
     /// sustain the poll on its own.
     static let popoverSurfaceToken = "bluetooth.popover"
@@ -944,11 +1228,14 @@ final class BluetoothDeviceController: ObservableObject {
 
         if mappedAvailability == .available {
             schedulePeriodicRefresh()
+            updateConnectionEventMonitoring()
+            updateAccessoryBatteryEvents()
             refresh()
             updateNearbyBatteryScanner()
         } else {
             invalidateDeviceRead()
             devices = []
+            hasLoadedDevices = false
             clearDeviceActions()
             clearBatteryLevels()
             stopPeriodicRefresh()
@@ -958,6 +1245,12 @@ final class BluetoothDeviceController: ObservableObject {
 
     private func refreshBatteryLevels() {
         guard isActive, batteryLevelsEnabled, availability == .available else { return }
+        // A battery read is only meaningful for the device list it will be merged
+        // against. After a connection change the published list predates the
+        // change, so a warm claim must wait for a profiler read from the current
+        // generation instead of refreshing a level for a device that may have
+        // just left.
+        guard deviceSnapshotGeneration == connectionGeneration else { return }
         let request = batteryRequestGate.advance()
         batteryReader.read { [weak self] levels in
             Task { @MainActor [weak self] in
@@ -971,14 +1264,26 @@ final class BluetoothDeviceController: ObservableObject {
                 // `nil` is a report that could not be read, which is a different
                 // state from a report that carries no level for any device: the
                 // panel reports it once instead of staying silent.
+                let connectedLevels = levels.map { self.connectedBatteryLevels($0) }
                 self.batteryLevelsReadFailed = levels == nil
-                self.batteryLevels = levels ?? [:]
+                self.batteryLevels = connectedLevels ?? [:]
+                self.batteryLevelsUpdatedAt = levels == nil ? nil : Date()
+                self.hasCompletedBatteryRead = true
                 // The primary source is published first and on its own. The
                 // second source is an addition to it, never a precondition for
                 // it, so a read that never answers cannot hold the list back.
-                self.readAccessoryLevelsIfNeeded(request: request, levels: levels)
+                self.readAccessoryLevelsIfNeeded(request: request, levels: connectedLevels)
             }
         }
+    }
+
+    private func connectedBatteryLevels(
+        _ levels: [String: BluetoothBatteryLevel]
+    ) -> [String: BluetoothBatteryLevel] {
+        let connectedAddresses = Set(devices.filter(\.isConnected).map {
+            BluetoothBatteryReader.normalizedAddress($0.id)
+        })
+        return levels.filter { connectedAddresses.contains(BluetoothBatteryReader.normalizedAddress($0.key)) }
     }
 
     /// Reads the accessory power sources for the devices the paired-device
@@ -997,7 +1302,6 @@ final class BluetoothDeviceController: ObservableObject {
         guard BluetoothBatteryLevelFallback.isNeeded(levels: levels, devices: devices) else {
             return
         }
-        let devices = devices
         accessoryBatteryReader.read { [weak self] accessories in
             Task { @MainActor [weak self] in
                 guard let self,
@@ -1011,12 +1315,21 @@ final class BluetoothDeviceController: ObservableObject {
                 // the primary read's verdict stands, and a second line saying the
                 // same thing would only repeat it.
                 guard let accessories else { return }
+                // Resolve against the *current* device list, not the one captured
+                // when the read started. A device can disconnect while `pmset`
+                // runs; its snapshot then still says "connected", and merging
+                // against it would hand a level to a device that already left.
                 let merged = BluetoothBatteryLevelFallback.merged(
                     levels: self.batteryLevels,
                     accessories: accessories,
-                    devices: devices
+                    devices: self.devices
                 )
                 self.batteryLevels = merged
+                if !merged.isEmpty {
+                    // The merged values were observed by the accessory read,
+                    // even when the primary report failed and supplied no date.
+                    self.batteryLevelsUpdatedAt = Date()
+                }
                 // The report's failure is cleared exactly when the second source
                 // gave the list something to show. A failed report that still
                 // leaves every row silent keeps its line, so the panel never goes
@@ -1032,6 +1345,8 @@ final class BluetoothDeviceController: ObservableObject {
         _ = batteryRequestGate.advance()
         batteryLevelsReadFailed = false
         batteryLevels = [:]
+        batteryLevelsUpdatedAt = nil
+        hasCompletedBatteryRead = false
     }
 
     private var currentNearbyBLEReadPermit: Set<UUID> {
@@ -1039,6 +1354,7 @@ final class BluetoothDeviceController: ObservableObject {
               isActive,
               availability == .available,
               !nearbyBLESystemSleeping,
+              !nearbyBLEDisplaySleeping,
               (hasVisibleSurface && hasBluetoothSummarySurface || nearbyBLEBackgroundRefreshEnabled) else { return [] }
         let visible = visibleNearbyBLERequests.values.reduce(into: Set<UUID>()) { $0.formUnion($1) }
         let permitted = nearbyBLEBackgroundRefreshEnabled
@@ -1050,6 +1366,7 @@ final class BluetoothDeviceController: ObservableObject {
     private var isNearbyBLEScannerDemanded: Bool {
         isActive && availability == .available && nearbyBLEEnabled
             && !nearbyBLESystemSleeping
+            && !nearbyBLEDisplaySleeping
             && (hasVisibleSurface && hasBluetoothSummarySurface || nearbyBLEBackgroundRefreshEnabled)
     }
 
@@ -1061,6 +1378,7 @@ final class BluetoothDeviceController: ObservableObject {
         guard nearbyBLEEnabled, nearbyBatteryLevelsEnabled, nearbyBLEListVisible,
               isActive, availability == .available,
               !nearbyBLESystemSleeping,
+              !nearbyBLEDisplaySleeping,
               (hasActiveNearbyBLEDiscoverySurface || nearbyBLEBackgroundRefreshEnabled),
               let nearbyBatteryScanner else { return [] }
         let now = Date()
@@ -1324,7 +1642,7 @@ final class BluetoothDeviceController: ObservableObject {
 
     private func schedulePeriodicRefresh() {
         guard isActive, hasVisibleSurface, availability == .available else { return }
-        startConnectionEvents()
+        updateConnectionEventMonitoring()
         updateAccessoryBatteryEvents()
         guard periodicRefreshTask == nil else { return }
         let interval = safetyNetInterval
@@ -1343,6 +1661,7 @@ final class BluetoothDeviceController: ObservableObject {
                 }
             }
             while !Task.isCancelled {
+                let epoch = self?.externalRefreshEpoch
                 do {
                     try await sleep(interval)
                 } catch {
@@ -1351,7 +1670,12 @@ final class BluetoothDeviceController: ObservableObject {
                 guard let self, self.isActive, self.hasVisibleSurface, self.availability == .available else {
                     return
                 }
-                self.refresh()
+                // A connection or accessory notification may have refreshed the
+                // list while this task was parked. Repeating the profiler run
+                // would duplicate work the event already did.
+                if let epoch, self.externalRefreshEpoch == epoch {
+                    self.refresh(isSafetyNet: true)
+                }
             }
         }
     }
@@ -1362,15 +1686,24 @@ final class BluetoothDeviceController: ObservableObject {
         periodicRefreshGeneration &+= 1
         periodicRefreshTask?.cancel()
         periodicRefreshTask = nil
-        stopConnectionEvents()
-        stopAccessoryBatteryEvents()
+        updateConnectionEventMonitoring()
+        updateAccessoryBatteryEvents()
     }
 
-    /// Connection notifications only matter while a Bluetooth surface is on
-    /// screen: nothing else displays device state, and the registration is a
-    /// system resource the app should not hold for its whole lifetime.
+    /// Connection events are needed by a visible Bluetooth surface, or by the
+    /// icon source's lightweight background monitor claim. They replace a
+    /// background polling timer for the always-present menu bar icon.
+    private func updateConnectionEventMonitoring() {
+        let shouldListen = isActive
+            && availability == .available
+            && (hasVisibleSurface || activationRequests.contains(IconSourceDemandBridge.batteryLevelsToken))
+        if shouldListen { startConnectionEvents() }
+        else { stopConnectionEvents() }
+    }
+
     private func startConnectionEvents() {
-        guard !isMonitoringConnectionEventNotifications, let connectionEvents else { return }
+        guard !connectionEventRegistrationAttempted, let connectionEvents else { return }
+        connectionEventRegistrationAttempted = true
         // The handler arrives on IOBluetooth's own thread, so it hops to the
         // main actor before touching controller state.
         isMonitoringConnectionEventNotifications = connectionEvents.start { [weak self] in
@@ -1379,6 +1712,8 @@ final class BluetoothDeviceController: ObservableObject {
     }
 
     private func stopConnectionEvents() {
+        guard connectionEventRegistrationAttempted else { return }
+        connectionEventRegistrationAttempted = false
         _ = connectionEventGate.advance()
         isConnectionEventReadScheduled = false
         // Unconditional: a refused registration (`start` returned `false`) can
@@ -1395,7 +1730,9 @@ final class BluetoothDeviceController: ObservableObject {
     /// follows the battery claim and the visible surface together, where the
     /// connect registration follows the surface alone.
     private func updateAccessoryBatteryEvents() {
-        guard isActive, batteryLevelsEnabled, hasVisibleSurface, availability == .available else {
+        guard isActive, batteryLevelsEnabled,
+              (hasVisibleSurface || !backgroundBatteryLevelRequests.isEmpty),
+              availability == .available else {
             stopAccessoryBatteryEvents()
             return
         }
@@ -1454,8 +1791,7 @@ final class BluetoothDeviceController: ObservableObject {
     /// input device needs one; anything else is ignored, so a stale view cannot
     /// put a question on screen that the policy would not ask.
     func requestDisconnectConfirmation(for device: BluetoothDevice) {
-        guard allowsDeviceActions,
-              BluetoothDeviceActionPolicy.requiresConfirmation(for: device) else { return }
+        guard BluetoothDeviceActionPolicy.requiresConfirmation(for: device) else { return }
         pendingDisconnectConfirmation = BluetoothBatteryReader.normalizedAddress(device.id)
     }
 
@@ -1469,9 +1805,7 @@ final class BluetoothDeviceController: ObservableObject {
     /// report does, never because this call returned: the request only starts a
     /// wait that ends in the report changing or in a visible failure.
     func performDeviceAction(for device: BluetoothDevice) {
-        guard allowsDeviceActions,
-              isActive,
-              availability == .available else { return }
+        guard isActive, availability == .available else { return }
         let address = BluetoothBatteryReader.normalizedAddress(device.id)
         switch deviceActionStates[address] {
         case .none, .failed:
@@ -1591,6 +1925,12 @@ final class BluetoothDeviceController: ObservableObject {
     /// notification would otherwise start its own profiler run.
     private func receiveConnectionEvent() {
         guard isActive, isMonitoringConnectionEventNotifications else { return }
+        // The notification carries no address, so every event invalidates the
+        // whole battery read. This happens before the debounce latch is consulted:
+        // a second event in one burst must still clear, and a warm claim must not
+        // restart a read against the pre-change device list.
+        connectionGeneration &+= 1
+        clearBatteryLevels()
         guard !isConnectionEventReadScheduled else { return }
         isConnectionEventReadScheduled = true
         let request = connectionEventGate.advance()

@@ -84,6 +84,37 @@ final class OutputDeviceListPresentationTests: XCTestCase {
         XCTAssertEqual(ordered.map(\.id), [2, 4, 1, 3, 5])
     }
 
+    func testSettingsListKeepsTheSavedOrderForHiddenDevices() {
+        let devices = makeDevices(count: 4)
+
+        let listed = OutputDeviceListPresentation.orderedDevices(
+            devices,
+            using: ["device-2", "device-1", "device-4", "device-3"]
+        )
+
+        XCTAssertEqual(
+            listed.map(\.id),
+            [2, 1, 4, 3],
+            "hidden devices are excluded by the panel, not reordered in Settings"
+        )
+    }
+
+    func testPanelListDropsHiddenDevicesButKeepsTheActiveOutput() {
+        let devices = makeDevices(count: 4) + [
+            AudioOutputDevice(id: 5, name: "No UID", uid: nil, isCurrent: false)
+        ]
+
+        let listed = OutputDeviceListPresentation.panelDevices(
+            devices,
+            order: [],
+            hiddenUIDs: ["device-1", "device-3"]
+        )
+
+        // device-1 is the active output, so it stays even though it is hidden.
+        XCTAssertEqual(listed.map(\.id), [1, 2, 4, 5])
+        XCTAssertFalse(OutputDeviceListPresentation.isHidden(devices[4], in: ["device-1"]))
+    }
+
     private func makeDevices(count: Int) -> [AudioOutputDevice] {
         (1...count).map { index in
             AudioOutputDevice(

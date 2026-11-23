@@ -58,17 +58,17 @@ between the Sharing preferences pane and InternetSharing" and warns its details
 would be a version-sensitive write to a root-owned file that the system can change
 underneath it, so the popover hands this one job back to the pane that owns it.
 
-## Charge-limit controls depend on the app version and macOS
+## Charge-limit controls depend on macOS
 
-The current public GitHub and Homebrew release, **1.7.5**, leaves charge-limit
-overrides to macOS. When charging is paused, it reports the actual state and the
-battery row's gear button opens System Settings.
+By default Status Trio leaves charge-limit overrides to macOS. When charging is
+paused, it reports the actual state and the battery row's gear button opens
+System Settings.
 
-The source on `main` adds a **Charge to Full Now** button for supported Apple
-silicon Macs running macOS 26.4 or later. It is enabled by default only when the
-capability is available and can be turned off in Battery settings. It uses the
-same private PowerUI request observed behind the native action. There is no
-public API or cross-version guarantee for this operation. Unsupported systems
+Status Trio also offers an opt-in **Charge to Full Now** button for supported
+Apple silicon Macs running macOS 26.4 or later. It is enabled by default only
+when the capability is available and can be turned off in Battery settings. It
+uses the same private PowerUI request observed behind the native action. There is
+no public API or cross-version guarantee for this operation. Unsupported systems
 do not offer the action.
 
 **The charge limit may remain at 100% after charging completes or the adapter is
@@ -77,6 +77,39 @@ The implementation saves an operation session and offers **Cancel Charge to
 Full** to request restoration. An ambiguous or restored session can require
 another explicit confirmation. A failed request is not proof of restoration:
 check the charge limit in System Settings and restore it there if needed.
+
+**Cancel Charge to Full restores the app's stored restore target (80–95%).** That
+value defaults to the limit macOS currently enforces, or a safe fallback when the
+system has no readable limit. The editable “Restore Limit After Cancelling” row
+in Settings → Battery is currently hidden because the system does not report a
+usable limit; the stored value still drives cancellation, so a target saved from
+an earlier build is kept until it can be edited again.
+
+The override's 100% limit is not restored automatically: a test Mac kept it
+even after charging to full and reconnecting power. Cancelling therefore never
+assumes the system restored the pre-override limit. It reads the limit around
+the enable step, accepts the session's recorded original limit as an
+intermediate value, applies the configured target with one bounded write, and
+only stops when the observed sub-100 limit is neither the target nor the
+original limit. When the override was started from the macOS battery menu, so
+no original limit was recorded, a different sub-100 limit is shown and the app
+asks once before replacing it. This removes the previous dead end where
+cancelling failed with "The charge limit changed" and retrying could never
+succeed.
+
+The same cancellation is offered when the override starts from the macOS
+battery menu instead. It only appears while the battery can still charge: at
+100%, already charged, or unplugged, the row hides like the native action
+disappears. macOS removes the persisted policy from the world-readable
+`powerd` charging plist while that override runs, which is why the restore
+target is an explicit setting rather than a remembered guess.
+
+After a successful cancel, the action area keeps a **Charge limit restored**
+status instead of immediately offering **Charge to Full Now** again. The
+button returns once the battery reaches the restored limit, the system stops
+charging early, the override ends, 30 seconds pass without charging, or the
+panel is closed. This avoids a charge/cancel loop when the restored limit is
+still above the current charge.
 See [implementation, observed native behavior, and verification
 limits](charge-to-full-now-poc.md).
 
@@ -112,6 +145,21 @@ public half of the mechanism; the key names belong to `powerd`, and a key that g
 away only means those notifications stop arriving, which leaves the safety-net poll
 as the only trigger, exactly as before.
 
+## Apple TV and HomePod have no trustworthy Bluetooth identity
+
+The Bluetooth device list draws a glyph only for the class the paired-device
+report declares, and refines that glyph by name. An Apple TV is not a normal
+Bluetooth audio device: it lives on AirPlay, and CoreAudio only exposes it while
+it is already the active system output, without a model name — so it cannot be
+identified or discovered in the Bluetooth list (or the idle audio-output list).
+A HomePod can appear in the paired report as one entry per unit, but that report
+carries no stereo-pair or room grouping and no verified product identity, so two
+HomePods cannot be folded into one row, and a unit renamed to its room name falls
+back to the generic audio glyph. Per the issues' own rule ("if it cannot be
+identified, do not support it"), Status Trio does not guess here. Full support
+would need AirPlay/Bonjour discovery and a route helper — a separate feature. See
+[issue #100 / #101 analysis](issue-100-101-apple-tv-homepod-bluetooth.md).
+
 ## Telemetry cannot identify uninstalls
 
 When anonymous usage statistics are enabled, the app sends a small heartbeat
@@ -139,11 +187,12 @@ battery ring's progress arc, the active volume dots or arc fill, and the whole
 ring while the charging effect animates) are drawn in a custom raster above it
 and cannot follow.
 
-So an icon that is monochrome throughout — the usual unplugged case, or any
-configuration with status colours turned off — tracks a dragged Space perfectly,
-while an icon showing `critical`, `lowPower`, `powered`, or `bluetooth` re-tints
+An icon whose scene has no chromatic regions tracks a dragged Space throughout.
+An icon showing `critical`, `lowPower`, `powered`, or `bluetooth` re-tints
 everything except those coloured primitives and settles on the correct colour
-when the switch completes. This is a menu-bar-only behaviour: the Dock icon is a
+when the switch completes. Charging effects can also require an overlay even
+with status colours turned off; turning colours off does not change the existing
+animation-region policy. This is a menu-bar-only behaviour: the Dock icon is a
 single full-colour render and is unaffected. See
 [issue #112](https://github.com/lingyired/status-trio/issues/112).
 
@@ -165,4 +214,64 @@ Space-drag tinting working. This does not establish acceptance for every macOS
 version or for the complete application's animation and lifecycle. See the
 [integration and verification scope](verification/issue-165-template-image-view.md).
 The [earlier experiments](verification/inactive-display-icon-dimming.md) describe
-the rejected full-raster and template-button arrangements.
+the rejected full-raster and template-button arrangements. Colour settings keep
+this arrangement and require the same Space-drag and unfocused-display acceptance
+checks.
+
+## Custom battery colours and reference contrast
+
+Charging, Low Power Mode and critical-battery ring fills can each use the system
+semantic colour, a preset, or a custom colour. A custom HSB selection is shared
+between light and dark appearances and retained when status colours are disabled.
+Disabling status colours ignores these overrides and preserves the existing
+monochrome animation behaviour.
+
+Custom-colour visibility is checked against black and white reference backgrounds
+and their composited ring tracks. The settings report reference contrast and
+whether the rendered colour was adjusted to reach the 1.2:1 floor; the stored
+selection stays unchanged. These references do not measure the live wallpaper or
+the translucent menu bar, so they cannot guarantee contrast against every
+background. The charging highlight continues to derive from the resolved fill
+using its existing contrast policy.
+
+System semantic green, yellow and red depend on macOS and appearance. They are a
+system-defined baseline, rather than a guarantee of identical pixels to Apple's
+battery menu item. Custom colours remain in the chromatic overlay and inherit
+the Space-drag limitation above.
+
+## Custom status panel instead of `NSPopover`
+
+The status panel is a custom borderless `NSPanel` rather than an `NSPopover`,
+because AppKit has no public API to remove the popover's arrow (issue #186).
+The visible result is the same panel without the arrow, but a few popover
+behaviours are intentionally not reproduced:
+
+- The panel repositions when it is shown, when its content size changes and when
+  the screen configuration changes. It does not continuously follow the status
+  item frame while it is open.
+- There is no popover show/close animation and no detach-by-drag interaction.
+- Clicking another window of this app (for example an already-open Settings
+  window) dismisses the panel (issue #267). Clicking another app, the status
+  item, pressing Escape, or choosing any panel action still closes it; actions
+  that open Settings close it explicitly. The dismissal decision and the
+  notification wiring are covered by tests, but the real click/key handoff is
+  `NOT RUN` in this checkout: the only available session was screen-locked, so
+  this is not yet a live-click acceptance. The Debug background-testing panel
+  route disables focus-loss dismissal by design and therefore cannot prove this
+  behaviour. See
+  [the issue #267 verification record](verification/issue-267-panel-dismiss.md).
+- While the app is regular (the Settings or first-run window is open, so the Dock
+  icon is visible) the panel presents without force-activating the app. That
+  keeps it usable over another app's full-screen Space instead of switching
+  Spaces and dismissing itself (issue #183); the trade-off is that the app does
+  not come to the front until you click into it or open a window.
+- The glass background uses public `NSGlassEffectView` (macOS 26+) or
+  `NSVisualEffectView` (macOS 13–25), not the private `NSPopoverFrame`. See
+  [the issue #186 verification record](verification/issue-186-arrowless-status-panel.md).
+- On macOS 26+ the Liquid Glass material resolves to `NSAppearanceNameDarkAqua`
+  (not the old popover's vibrant appearance), so secondary text and some
+  template artwork read slightly fainter than the previous `NSPopover` panel.
+  This is accepted as the platform's system-native appearance.
+- The Reduce Transparency state is read when the panel background is built.
+  Toggling it while the retained content is still cached applies on the next
+  content rebuild (the five-second retention window after close), not live.

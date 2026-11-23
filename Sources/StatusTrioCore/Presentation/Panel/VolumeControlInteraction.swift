@@ -30,6 +30,9 @@ struct VolumeControlInteraction {
     private var hasPendingUnmanagedWrite = false
     private var requiresFreshGesture = false
     private var hasReceivedValidState = false
+    /// Guards against emitting the same precise-zero write on every drag tick
+    /// while still allowing one explicit zeroing per gesture.
+    private var hasEmittedZeroForCurrentGesture = false
 
     init(
         setVolume: @escaping (Double) -> Void,
@@ -55,6 +58,7 @@ struct VolumeControlInteraction {
             isEditing = false
             isInvalidated = !canUseScalar
             hasPendingUnmanagedWrite = false
+            hasEmittedZeroForCurrentGesture = false
             if wasPointerEditing && hasReceivedValidState {
                 requiresFreshGesture = true
             }
@@ -69,6 +73,7 @@ struct VolumeControlInteraction {
             isEditing = false
             isInvalidated = true
             hasPendingUnmanagedWrite = false
+            hasEmittedZeroForCurrentGesture = false
             if wasPointerEditing && hasReceivedValidState {
                 requiresFreshGesture = true
             }
@@ -81,12 +86,14 @@ struct VolumeControlInteraction {
         if !isEditing, let readableScalar {
             value = readableScalar
             hasPendingUnmanagedWrite = false
+            hasEmittedZeroForCurrentGesture = false
         }
     }
 
     mutating func beginEditing() {
         guard !isInvalidated else { return }
         requiresFreshGesture = false
+        hasEmittedZeroForCurrentGesture = false
         isEditing = true
     }
 
@@ -106,13 +113,24 @@ struct VolumeControlInteraction {
         if !isEditing {
             hasPendingUnmanagedWrite = true
         }
-        guard nextValue != value else { return }
+        if nextValue == value {
+            // A gesture that resolves to exact zero must still run the
+            // precise-zero mute even when the system already reports 0 but is
+            // not muted (e.g. clicking the far-left end at 0%). Emit at most
+            // once per gesture so repeated drag ticks do not hammer Core Audio.
+            guard nextValue == 0, !hasEmittedZeroForCurrentGesture else { return }
+            hasEmittedZeroForCurrentGesture = true
+            setVolume(0)
+            return
+        }
         value = nextValue
+        hasEmittedZeroForCurrentGesture = (nextValue == 0)
         setVolume(nextValue)
     }
 
     mutating func endEditing(identity: VolumeControlInteractionIdentity) {
         guard self.identity == identity else { return }
+        defer { hasEmittedZeroForCurrentGesture = false }
         if requiresFreshGesture {
             // Mouseup reports the current output identity after a transition.
             // Consume the stale pointer transaction without flushing its draft.

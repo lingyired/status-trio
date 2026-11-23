@@ -7,25 +7,16 @@ enum BetterDisplayFramebufferReader {
     }
 
     static func read() -> [BetterDisplayFramebufferIdentity] {
-        var iterator: io_iterator_t = IO_OBJECT_NULL
-        guard IOServiceGetMatchingServices(
-            kIOMainPortDefault, IOServiceMatching("IOMobileFramebufferShim"), &iterator
-        ) == KERN_SUCCESS else { return [] }
-        defer { IOObjectRelease(iterator) }
-
         var result: [BetterDisplayFramebufferIdentity] = []
-        while true {
-            let entry = IOIteratorNext(iterator)
-            guard entry != IO_OBJECT_NULL else { break }
-            defer { IOObjectRelease(entry) }
+        FramebufferEnumeration.forEach { entry in
             let name = property("IONameMatched", entry: entry) as? String
             let width = property("DisplayWidth", entry: entry) as? Int
             let height = property("DisplayHeight", entry: entry) as? Int
             guard DDCDisplayTransport.isConnectedExternalFramebuffer(
                 ioNameMatched: name, displayWidth: width, displayHeight: height
-            ) else { continue }
+            ) else { return }
             var path = [CChar](repeating: 0, count: MemoryLayout<io_string_t>.size)
-            guard IORegistryEntryGetPath(entry, "IOService", &path) == KERN_SUCCESS else { continue }
+            guard IORegistryEntryGetPath(entry, "IOService", &path) == KERN_SUCCESS else { return }
             let bytes = path.prefix { $0 != 0 }.map { UInt8(bitPattern: $0) }
             result.append(BetterDisplayFramebufferIdentity(
                 registryLocation: String(decoding: bytes, as: UTF8.self),

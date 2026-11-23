@@ -260,12 +260,13 @@ expected_native = <<~COMMANDS.lines.map(&:strip)
   bash "$CI_TOOLS_ROOT/scripts/test-build-timing.sh"
   bash scripts/test-release-pipeline.sh
   bash scripts/test-release-notarization.sh
+  bash scripts/test-dmg-installer.sh
   bash scripts/test-mobile-battery-clang-version.sh
   bash scripts/test-verify-local.sh
   bash scripts/test-verify-local-bundle.sh
   bash scripts/test-workflow-policy.sh
 COMMANDS
-abort "release policy: native must run all 19 contracts unconditionally with strict diagnostics" unless
+abort "release policy: native must run all 20 contracts unconditionally with strict diagnostics" unless
   native_lines.first == %q{bash "$CI_TOOLS_ROOT/scripts/ci-run-stage.sh" native bash -euo pipefail <<'NATIVE'} &&
   native_lines.last == "NATIVE" && native_lines[1...-1] == expected_native
 recovery = verify.find { |step| step["name"] == "Run trusted release recovery regressions" }
@@ -326,5 +327,26 @@ abort "release policy: unexpected cache action in release jobs" unless
     j.fetch("steps").none? { |s| s.fetch("uses", "").start_with?("actions/cache") }
   }
 RUBY
+
+# Publish Existing Candidate must never regain build, sign, or notarize power.
+# Guarded by file existence so the legacy release.yml fixtures (which only copy
+# release.yml) keep exercising their own contract unchanged.
+PUBLISH_CANDIDATE_WORKFLOW="$ROOT/.github/workflows/publish-candidate.yml"
+if [[ -f "$PUBLISH_CANDIDATE_WORKFLOW" ]]; then
+    require_text "$PUBLISH_CANDIDATE_WORKFLOW" "candidate_run_id:"
+    require_text "$PUBLISH_CANDIDATE_WORKFLOW" "bash scripts/publish-release.sh"
+    require_text "$PUBLISH_CANDIDATE_WORKFLOW" "environment:"
+    for forbidden in \
+        "bash scripts/package-release.sh" \
+        "bash scripts/build-app.sh" \
+        "swift build" \
+        "xcodebuild build" \
+        "codesign --sign" \
+        "notarytool submit" \
+        "hdiutil create" \
+        "create-dmg"; do
+        forbid_text "$PUBLISH_CANDIDATE_WORKFLOW" "$forbidden"
+    done
+fi
 
 echo "release workflow policy check passed"

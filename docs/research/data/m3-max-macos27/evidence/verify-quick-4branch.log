@@ -1,0 +1,1100 @@
+Local verification
+mode: quick
+head: 364b3c3381a5b44c40b1640e182e687d1e1c3043
+branch: feat/battery-power-breakdown
+uncommitted: 91 changes
+scope: quick
+not verified: UI/runtime behavior, hardware, signing, notarization, DMG, release, appcast
+toolchain:
+
+== Xcode version ==
+  $ xcodebuild -version
+Xcode 27.0
+Build version 27A266a
+
+== Swift version ==
+  $ swift --version
+swift-driver version: 1.168.6 Apple Swift version 6.4 (swiftlang-6.4.0.34.1 clang-2100.3.34.1)
+Target: arm64-apple-macosx27.2.0
+
+== macOS SDK version ==
+  $ xcrun --sdk macosx --show-sdk-version
+27.0
+
+== Shell syntax ==
+  $ bash -e -c for\ script\;\ do\ bash\ -n\ \"\$script\"\;\ done bash scripts/build-app.sh scripts/build-mobile-battery-helper.sh scripts/build-timing.sh scripts/build-worktree.sh scripts/check-forbidden-patterns.sh scripts/check-mobile-battery-dependency.sh scripts/check-mobile-battery-rpath.sh scripts/check-release-workflow-policy.sh scripts/check-workflow-policy.sh scripts/ci-run-stage.sh scripts/generate-app-icon-icns.sh scripts/measure-dock-charging-cpu.sh scripts/measure-menu-bar-charging-cpu.sh scripts/package-release.sh scripts/prepare-mobile-battery-sources.sh scripts/prepare-release-body.sh scripts/probe-charge-to-full-now.sh scripts/publish-release.sh scripts/release.sh scripts/test-app-icon-contract.sh scripts/test-appcast-minimum-system-version.sh scripts/test-build-timing.sh scripts/test-ci-diagnostics.sh scripts/test-ci-workflow.sh scripts/test-macos13-bundle-contract.sh scripts/test-macos13-deployment-contract-regressions.sh scripts/test-macos13-deployment-contract.sh scripts/test-macos13-sparkle-contract.sh scripts/test-macos13-sparkle-metadata.sh scripts/test-mobile-battery-build-cache.sh scripts/test-mobile-battery-clang-version.sh scripts/test-mobile-battery-helper.sh scripts/test-mobile-battery-rpaths.sh scripts/test-mobile-battery-source-cache.sh scripts/test-otool-dependencies.sh scripts/test-powerui-charge-restore.sh scripts/test-privileged-helper-bundle-contract.sh scripts/test-release-notarization.sh scripts/test-release-pipeline.sh scripts/test-release-recovery.sh scripts/test-release-workflow-policy.sh scripts/test-verify-local-bundle.sh scripts/test-verify-local.sh scripts/test-workflow-policy.sh scripts/test.sh scripts/validate-appcast-notes.sh scripts/validate-release-recovery.sh scripts/verify-local.sh scripts/verify-mobile-battery-bundle.sh scripts/verify-platform-version.sh scripts/verify-privileged-helper-bundle.sh
+quick filter: Battery|SystemPowerReader
+
+== Forbidden patterns + focused tests ==
+  $ bash scripts/test.sh Battery\|SystemPowerReader
+No forbidden actor-isolated method references found under /Users/lingsmbp/Documents/aiwork/status-trio/.worktrees/battery-power-breakdown/Sources
+Building for debugging...
+[Using on-disk description]
+Build complete! (0.38秒)
+Test Suite 'Selected tests' started at 2026-10-31 00:19:17.343.
+Test Suite 'StatusTrioPowerHelperTests.xctest' started at 2026-10-31 00:19:17.344.
+Test Suite 'StatusTrioPowerHelperTests.xctest' passed at 2026-10-31 00:19:17.344.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-31 00:19:17.344.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-31 00:19:17.419.
+Test Suite 'StatusTrioCoreTests.xctest' started at 2026-10-31 00:19:17.420.
+Test Suite 'AppleDeviceDiscoveryControllerTests' started at 2026-10-31 00:19:17.420.
+Test Case '-[StatusTrioCoreTests.AppleDeviceDiscoveryControllerTests testForegroundClaimRequiresEnabledMasterAndNeverReadsBattery]' started.
+Test Case '-[StatusTrioCoreTests.AppleDeviceDiscoveryControllerTests testForegroundClaimRequiresEnabledMasterAndNeverReadsBattery]' passed (0.001 seconds).
+Test Suite 'AppleDeviceDiscoveryControllerTests' passed at 2026-10-31 00:19:17.421.
+	 Executed 1 test, with 0 failures (0 unexpected) in 0.001 (0.001) seconds
+Test Suite 'BatteryDetailsControllerTests' started at 2026-10-31 00:19:17.421.
+Test Case '-[StatusTrioCoreTests.BatteryDetailsControllerTests testActiveReflectsWhetherCollectionIsRunning]' started.
+Test Case '-[StatusTrioCoreTests.BatteryDetailsControllerTests testActiveReflectsWhetherCollectionIsRunning]' passed (0.000 seconds).
+Test Case '-[StatusTrioCoreTests.BatteryDetailsControllerTests testBlockedReadDoesNotBlockMainActorAndCoalescesRequests]' started.
+Test Case '-[StatusTrioCoreTests.BatteryDetailsControllerTests testBlockedReadDoesNotBlockMainActorAndCoalescesRequests]' passed (0.007 seconds).
+Test Case '-[StatusTrioCoreTests.BatteryDetailsControllerTests testClosingDiscardsLateResultsAndDoesNotStartPendingRead]' started.
+Test Case '-[StatusTrioCoreTests.BatteryDetailsControllerTests testClosingDiscardsLateResultsAndDoesNotStartPendingRead]' passed (0.037 seconds).
+Test Case '-[StatusTrioCoreTests.BatteryDetailsControllerTests testExpiredOrFuturePowerIsNotPublishedWhenBackgroundReadReturns]' started.
+Test Case '-[StatusTrioCoreTests.BatteryDetailsControllerTests testExpiredOrFuturePowerIsNotPublishedWhenBackgroundReadReturns]' passed (0.006 seconds).
+Test Case '-[StatusTrioCoreTests.BatteryDetailsControllerTests testExpiredPowerIsRemovedEvenWhileNextReadIsBlocked]' started.
+Test Case '-[StatusTrioCoreTests.BatteryDetailsControllerTests testExpiredPowerIsRemovedEvenWhileNextReadIsBlocked]' passed (0.006 seconds).
+Test Case '-[StatusTrioCoreTests.BatteryDetailsControllerTests testRepeatedActivationWithTheSameStateKeepsTheFirstRead]' started.
+Test Case '-[StatusTrioCoreTests.BatteryDetailsControllerTests testRepeatedActivationWithTheSameStateKeepsTheFirstRead]' passed (0.006 seconds).
+Test Case '-[StatusTrioCoreTests.BatteryDetailsControllerTests testStateUpdateWhileActiveReachesTheNextRead]' started.
+Test Case '-[StatusTrioCoreTests.BatteryDetailsControllerTests testStateUpdateWhileActiveReachesTheNextRead]' passed (0.003 seconds).
+Test Case '-[StatusTrioCoreTests.BatteryDetailsControllerTests testSystemPowerExpiresWhileTheNextReadIsBlocked]' started.
+Test Case '-[StatusTrioCoreTests.BatteryDetailsControllerTests testSystemPowerExpiresWhileTheNextReadIsBlocked]' passed (0.006 seconds).
+Test Case '-[StatusTrioCoreTests.BatteryDetailsControllerTests testTransitionDiscardsOldResultAndReopenGetsFreshRead]' started.
+Test Case '-[StatusTrioCoreTests.BatteryDetailsControllerTests testTransitionDiscardsOldResultAndReopenGetsFreshRead]' passed (0.009 seconds).
+Test Suite 'BatteryDetailsControllerTests' passed at 2026-10-31 00:19:17.503.
+	 Executed 9 tests, with 0 failures (0 unexpected) in 0.082 (0.082) seconds
+Test Suite 'BatteryDetailsLayoutTests' started at 2026-10-31 00:19:17.503.
+Test Case '-[StatusTrioCoreTests.BatteryDetailsLayoutTests testBatteryActionGlyphsShareTheSummaryVisualCenter]' started.
+Test Case '-[StatusTrioCoreTests.BatteryDetailsLayoutTests testBatteryActionGlyphsShareTheSummaryVisualCenter]' passed (0.161 seconds).
+Test Case '-[StatusTrioCoreTests.BatteryDetailsLayoutTests testBatteryDetailsShowChargeToFullAboveTheSettingsActions]' started.
+Test Case '-[StatusTrioCoreTests.BatteryDetailsLayoutTests testBatteryDetailsShowChargeToFullAboveTheSettingsActions]' passed (0.055 seconds).
+Test Case '-[StatusTrioCoreTests.BatteryDetailsLayoutTests testBatteryPageFitsPopoverInEnglishAndChinese]' started.
+Test Case '-[StatusTrioCoreTests.BatteryDetailsLayoutTests testBatteryPageFitsPopoverInEnglishAndChinese]' passed (0.087 seconds).
+Test Case '-[StatusTrioCoreTests.BatteryDetailsLayoutTests testBreakdownPageFitsPopoverWithFiveBranches]' started.
+Test Case '-[StatusTrioCoreTests.BatteryDetailsLayoutTests testBreakdownPageFitsPopoverWithFiveBranches]' passed (0.347 seconds).
+Test Case '-[StatusTrioCoreTests.BatteryDetailsLayoutTests testConnectedPageFitsEveryLanguageWithAndWithoutSystemTelemetry]' started.
+Test Case '-[StatusTrioCoreTests.BatteryDetailsLayoutTests testConnectedPageFitsEveryLanguageWithAndWithoutSystemTelemetry]' passed (0.452 seconds).
+Test Case '-[StatusTrioCoreTests.BatteryDetailsLayoutTests testFullPowerFlowAndApplicationListFitLightAndDarkPanels]' started.
+Test Case '-[StatusTrioCoreTests.BatteryDetailsLayoutTests testFullPowerFlowAndApplicationListFitLightAndDarkPanels]' passed (0.142 seconds).
+Test Case '-[StatusTrioCoreTests.BatteryDetailsLayoutTests testThreeDigitInputPowerStaysInsideTheFlowCard]' started.
+Test Case '-[StatusTrioCoreTests.BatteryDetailsLayoutTests testThreeDigitInputPowerStaysInsideTheFlowCard]' passed (0.013 seconds).
+Test Suite 'BatteryDetailsLayoutTests' passed at 2026-10-31 00:19:18.763.
+	 Executed 7 tests, with 0 failures (0 unexpected) in 1.259 (1.259) seconds
+Test Suite 'BatteryDetailsTests' started at 2026-10-31 00:19:18.763.
+Test Case '-[StatusTrioCoreTests.BatteryDetailsTests testAvailablePowerReportsAvailable]' started.
+Test Case '-[StatusTrioCoreTests.BatteryDetailsTests testAvailablePowerReportsAvailable]' passed (0.000 seconds).
+Test Case '-[StatusTrioCoreTests.BatteryDetailsTests testBatteryNetPowerUsesOneSourceAndPreservesDischargeSign]' started.
+Test Case '-[StatusTrioCoreTests.BatteryDetailsTests testBatteryNetPowerUsesOneSourceAndPreservesDischargeSign]' passed (0.000 seconds).
+Test Case '-[StatusTrioCoreTests.BatteryDetailsTests testChargingAndACIdleHaveDistinctSemantics]' started.
+Test Case '-[StatusTrioCoreTests.BatteryDetailsTests testChargingAndACIdleHaveDistinctSemantics]' passed (0.000 seconds).
+Test Case '-[StatusTrioCoreTests.BatteryDetailsTests testConnectedIntelMacUsesSystemPowerWhenBatteryCurrentIsNegative]' started.
+Test Case '-[StatusTrioCoreTests.BatteryDetailsTests testConnectedIntelMacUsesSystemPowerWhenBatteryCurrentIsNegative]' passed (0.000 seconds).
+Test Case '-[StatusTrioCoreTests.BatteryDetailsTests testConnectedIntelMacUsesSystemPowerWhenBatteryCurrentIsZero]' started.
+Test Case '-[StatusTrioCoreTests.BatteryDetailsTests testConnectedIntelMacUsesSystemPowerWhenBatteryCurrentIsZero]' passed (0.000 seconds).
+Test Case '-[StatusTrioCoreTests.BatteryDetailsTests testDefaultAvailabilityFailsClosed]' started.
+Test Case '-[StatusTrioCoreTests.BatteryDetailsTests testDefaultAvailabilityFailsClosed]' passed (0.000 seconds).
+Test Case '-[StatusTrioCoreTests.BatteryDetailsTests testIdleBatteryOnAdapterDoesNotPublishBatteryNetPower]' started.
+Test Case '-[StatusTrioCoreTests.BatteryDetailsTests testIdleBatteryOnAdapterDoesNotPublishBatteryNetPower]' passed (0.000 seconds).
+Test Case '-[StatusTrioCoreTests.BatteryDetailsTests testMissingStaleAndFutureTelemetryFailClosed]' started.
+Test Case '-[StatusTrioCoreTests.BatteryDetailsTests testMissingStaleAndFutureTelemetryFailClosed]' passed (0.000 seconds).
+Test Case '-[StatusTrioCoreTests.BatteryDetailsTests testPositiveSMCSampleShowsChargingWhileFlagsStillLag]' started.
+Test Case '-[StatusTrioCoreTests.BatteryDetailsTests testPositiveSMCSampleShowsChargingWhileFlagsStillLag]' passed (0.000 seconds).
+Test Case '-[StatusTrioCoreTests.BatteryDetailsTests testPowerTransitionsRequireAConsistentNewSample]' started.
+Test Case '-[StatusTrioCoreTests.BatteryDetailsTests testPowerTransitionsRequireAConsistentNewSample]' passed (0.001 seconds).
+Test Case '-[StatusTrioCoreTests.BatteryDetailsTests testPublicRemainingTimeUsesSecondsAndUnknownDoesNotFallBackToRegistry]' started.
+Test Case '-[StatusTrioCoreTests.BatteryDetailsTests testPublicRemainingTimeUsesSecondsAndUnknownDoesNotFallBackToRegistry]' passed (0.000 seconds).
+Test Case '-[StatusTrioCoreTests.BatteryDetailsTests testSystemPowerIsIndependentOfBatteryCurrentAndAvailability]' started.
+Test Case '-[StatusTrioCoreTests.BatteryDetailsTests testSystemPowerIsIndependentOfBatteryCurrentAndAvailability]' passed (0.000 seconds).
+Test Case '-[StatusTrioCoreTests.BatteryDetailsTests testSystemPowerIsOnlySampledForAPresentBatteryOnExternalPower]' started.
+Test Case '-[StatusTrioCoreTests.BatteryDetailsTests testSystemPowerIsOnlySampledForAPresentBatteryOnExternalPower]' passed (0.000 seconds).
+Test Case '-[StatusTrioCoreTests.BatteryDetailsTests testUnsigned64BitNegativeCurrentIsDecodedAndBounded]' started.
+Test Case '-[StatusTrioCoreTests.BatteryDetailsTests testUnsigned64BitNegativeCurrentIsDecodedAndBounded]' passed (0.000 seconds).
+Test Case '-[StatusTrioCoreTests.BatteryDetailsTests testUnsupportedTelemetryIsUnavailableRatherThanCollecting]' started.
+Test Case '-[StatusTrioCoreTests.BatteryDetailsTests testUnsupportedTelemetryIsUnavailableRatherThanCollecting]' passed (0.000 seconds).
+Test Suite 'BatteryDetailsTests' passed at 2026-10-31 00:19:18.766.
+	 Executed 15 tests, with 0 failures (0 unexpected) in 0.002 (0.003) seconds
+Test Suite 'BatteryMonitorTests' started at 2026-10-31 00:19:18.766.
+Test Case '-[StatusTrioCoreTests.BatteryMonitorTests testDeinitRemovesSourceWhenStopWasNotCalled]' started.
+Test Case '-[StatusTrioCoreTests.BatteryMonitorTests testDeinitRemovesSourceWhenStopWasNotCalled]' passed (0.000 seconds).
+Test Case '-[StatusTrioCoreTests.BatteryMonitorTests testIOPSNotificationCallbackRefreshesUntilStopped]' started.
+Test Case '-[StatusTrioCoreTests.BatteryMonitorTests testIOPSNotificationCallbackRefreshesUntilStopped]' passed (0.001 seconds).
+Test Case '-[StatusTrioCoreTests.BatteryMonitorTests testMissingReaderResultUsesFullValue]' started.
+Test Case '-[StatusTrioCoreTests.BatteryMonitorTests testMissingReaderResultUsesFullValue]' passed (0.000 seconds).
+Test Case '-[StatusTrioCoreTests.BatteryMonitorTests testMonitorConvertsReaderOutput]' started.
+Test Case '-[StatusTrioCoreTests.BatteryMonitorTests testMonitorConvertsReaderOutput]' passed (0.000 seconds).
+Test Case '-[StatusTrioCoreTests.BatteryMonitorTests testMonitorOnlyEmitsTimeWhileCharging]' started.
+Test Case '-[StatusTrioCoreTests.BatteryMonitorTests testMonitorOnlyEmitsTimeWhileCharging]' passed (0.000 seconds).
+Test Case '-[StatusTrioCoreTests.BatteryMonitorTests testNilIOPSNotificationSourceStillRefreshesAndStops]' started.
+Test Case '-[StatusTrioCoreTests.BatteryMonitorTests testNilIOPSNotificationSourceStillRefreshesAndStops]' passed (0.000 seconds).
+Test Case '-[StatusTrioCoreTests.BatteryMonitorTests testNonPresentReadingUsesFullValue]' started.
+Test Case '-[StatusTrioCoreTests.BatteryMonitorTests testNonPresentReadingUsesFullValue]' passed (0.000 seconds).
+Test Case '-[StatusTrioCoreTests.BatteryMonitorTests testParserConvertsValidInternalBatteryDescription]' started.
+Test Case '-[StatusTrioCoreTests.BatteryMonitorTests testParserConvertsValidInternalBatteryDescription]' passed (0.000 seconds).
+Test Case '-[StatusTrioCoreTests.BatteryMonitorTests testParserReadsChargedStateAndTimeToFullCharge]' started.
+Test Case '-[StatusTrioCoreTests.BatteryMonitorTests testParserReadsChargedStateAndTimeToFullCharge]' passed (0.000 seconds).
+Test Case '-[StatusTrioCoreTests.BatteryMonitorTests testParserRejectsInvalidInternalBatteryDescription]' started.
+Test Case '-[StatusTrioCoreTests.BatteryMonitorTests testParserRejectsInvalidInternalBatteryDescription]' passed (0.000 seconds).
+Test Case '-[StatusTrioCoreTests.BatteryMonitorTests testParserRejectsNonBatteryDescription]' started.
+Test Case '-[StatusTrioCoreTests.BatteryMonitorTests testParserRejectsNonBatteryDescription]' passed (0.000 seconds).
+Test Case '-[StatusTrioCoreTests.BatteryMonitorTests testParserTreatsMissingAndNonPositiveTimeToFullAsUnknown]' started.
+Test Case '-[StatusTrioCoreTests.BatteryMonitorTests testParserTreatsMissingAndNonPositiveTimeToFullAsUnknown]' passed (0.000 seconds).
+Test Case '-[StatusTrioCoreTests.BatteryMonitorTests testPowerStateNotificationRefreshesUntilStopped]' started.
+Test Case '-[StatusTrioCoreTests.BatteryMonitorTests testPowerStateNotificationRefreshesUntilStopped]' passed (0.000 seconds).
+Test Case '-[StatusTrioCoreTests.BatteryMonitorTests testRecoverAfterStopDoesNotReinstallOrEmit]' started.
+Test Case '-[StatusTrioCoreTests.BatteryMonitorTests testRecoverAfterStopDoesNotReinstallOrEmit]' passed (0.000 seconds).
+Test Case '-[StatusTrioCoreTests.BatteryMonitorTests testRecoverReinstallsNotificationsAndKeepsStreamAlive]' started.
+Test Case '-[StatusTrioCoreTests.BatteryMonitorTests testRecoverReinstallsNotificationsAndKeepsStreamAlive]' passed (0.000 seconds).
+Test Case '-[StatusTrioCoreTests.BatteryMonitorTests testRefreshAfterStopDoesNotReadOrEmitAnotherUpdate]' started.
+Test Case '-[StatusTrioCoreTests.BatteryMonitorTests testRefreshAfterStopDoesNotReadOrEmitAnotherUpdate]' passed (0.000 seconds).
+Test Case '-[StatusTrioCoreTests.BatteryMonitorTests testStartAfterStopDoesNotRestart]' started.
+Test Case '-[StatusTrioCoreTests.BatteryMonitorTests testStartAfterStopDoesNotRestart]' passed (0.000 seconds).
+Test Case '-[StatusTrioCoreTests.BatteryMonitorTests testStartAndStopAreIdempotent]' started.
+Test Case '-[StatusTrioCoreTests.BatteryMonitorTests testStartAndStopAreIdempotent]' passed (0.000 seconds).
+Test Case '-[StatusTrioCoreTests.BatteryMonitorTests testStartImmediatelyEmitsCurrentReading]' started.
+Test Case '-[StatusTrioCoreTests.BatteryMonitorTests testStartImmediatelyEmitsCurrentReading]' passed (0.000 seconds).
+Test Case '-[StatusTrioCoreTests.BatteryMonitorTests testZeroMaxCapacityFallsBackToCurrentCapacity]' started.
+Test Case '-[StatusTrioCoreTests.BatteryMonitorTests testZeroMaxCapacityFallsBackToCurrentCapacity]' passed (0.000 seconds).
+Test Suite 'BatteryMonitorTests' passed at 2026-10-31 00:19:18.770.
+	 Executed 20 tests, with 0 failures (0 unexpected) in 0.004 (0.005) seconds
+Test Suite 'BatteryPopoverPanelTests' started at 2026-10-31 00:19:18.770.
+Test Case '-[StatusTrioCoreTests.BatteryPopoverPanelTests testBatterySummaryOnlyOffersDetailsWhenTheBatteryIsPresent]' started.
+Test Case '-[StatusTrioCoreTests.BatteryPopoverPanelTests testBatterySummaryOnlyOffersDetailsWhenTheBatteryIsPresent]' passed (0.000 seconds).
+Test Case '-[StatusTrioCoreTests.BatteryPopoverPanelTests testClosingPopoverDetailsStopsBatteryCollection]' started.
+Test Case '-[StatusTrioCoreTests.BatteryPopoverPanelTests testClosingPopoverDetailsStopsBatteryCollection]' passed (0.018 seconds).
+Test Case '-[StatusTrioCoreTests.BatteryPopoverPanelTests testOpenBatteryPageCountsAsActivePopoverDetails]' started.
+Test Case '-[StatusTrioCoreTests.BatteryPopoverPanelTests testOpenBatteryPageCountsAsActivePopoverDetails]' passed (0.015 seconds).
+Test Case '-[StatusTrioCoreTests.BatteryPopoverPanelTests testOpenPanelIsReportedUntilThePageActuallyDisappears]' started.
+Test Case '-[StatusTrioCoreTests.BatteryPopoverPanelTests testOpenPanelIsReportedUntilThePageActuallyDisappears]' passed (0.015 seconds).
+Test Suite 'BatteryPopoverPanelTests' passed at 2026-10-31 00:19:18.819.
+	 Executed 4 tests, with 0 failures (0 unexpected) in 0.049 (0.049) seconds
+Test Suite 'BatteryPowerBreakdownPresentationTests' started at 2026-10-31 00:19:18.819.
+Test Case '-[StatusTrioCoreTests.BatteryPowerBreakdownPresentationTests testSplitReplacesTheSystemNodeWithFourBranches]' started.
+Test Case '-[StatusTrioCoreTests.BatteryPowerBreakdownPresentationTests testSplitReplacesTheSystemNodeWithFourBranches]' passed (0.002 seconds).
+Test Case '-[StatusTrioCoreTests.BatteryPowerBreakdownPresentationTests testSwitchIsPersistedIndependently]' started.
+Test Case '-[StatusTrioCoreTests.BatteryPowerBreakdownPresentationTests testSwitchIsPersistedIndependently]' passed (0.005 seconds).
+Test Case '-[StatusTrioCoreTests.BatteryPowerBreakdownPresentationTests testSwitchOffOrMissingSplitKeepsTheLegacyDiagram]' started.
+Test Case '-[StatusTrioCoreTests.BatteryPowerBreakdownPresentationTests testSwitchOffOrMissingSplitKeepsTheLegacyDiagram]' passed (0.001 seconds).
+Test Suite 'BatteryPowerBreakdownPresentationTests' passed at 2026-10-31 00:19:18.828.
+	 Executed 3 tests, with 0 failures (0 unexpected) in 0.008 (0.008) seconds
+Test Suite 'BatteryPowerBreakdownTests' started at 2026-10-31 00:19:18.828.
+Test Case '-[StatusTrioCoreTests.BatteryPowerBreakdownTests testMissingAnchorsProduceNoSplit]' started.
+Test Case '-[StatusTrioCoreTests.BatteryPowerBreakdownTests testMissingAnchorsProduceNoSplit]' passed (0.000 seconds).
+Test Case '-[StatusTrioCoreTests.BatteryPowerBreakdownTests testRejectsResidualThatCannotBeRounding]' started.
+Test Case '-[StatusTrioCoreTests.BatteryPowerBreakdownTests testRejectsResidualThatCannotBeRounding]' passed (0.000 seconds).
+Test Case '-[StatusTrioCoreTests.BatteryPowerBreakdownTests testRequiresEveryBranchToShareOneWindow]' started.
+Test Case '-[StatusTrioCoreTests.BatteryPowerBreakdownTests testRequiresEveryBranchToShareOneWindow]' passed (0.000 seconds).
+Test Case '-[StatusTrioCoreTests.BatteryPowerBreakdownTests testSplitsAdapterInputIntoMeasuredBranchesAndSystemResidual]' started.
+Test Case '-[StatusTrioCoreTests.BatteryPowerBreakdownTests testSplitsAdapterInputIntoMeasuredBranchesAndSystemResidual]' passed (0.000 seconds).
+Test Case '-[StatusTrioCoreTests.BatteryPowerBreakdownTests testTreatsSmallNegativeResidualAsRounding]' started.
+Test Case '-[StatusTrioCoreTests.BatteryPowerBreakdownTests testTreatsSmallNegativeResidualAsRounding]' passed (0.000 seconds).
+Test Case '-[StatusTrioCoreTests.BatteryPowerBreakdownTests testUnreadableDisplayStillLeavesACoherentSplit]' started.
+Test Case '-[StatusTrioCoreTests.BatteryPowerBreakdownTests testUnreadableDisplayStillLeavesACoherentSplit]' passed (0.000 seconds).
+Test Case '-[StatusTrioCoreTests.BatteryPowerBreakdownTests testUSBOutputReaderSumsMeasuredPortsAndIgnoresNegotiatedBudget]' started.
+Test Case '-[StatusTrioCoreTests.BatteryPowerBreakdownTests testUSBOutputReaderSumsMeasuredPortsAndIgnoresNegotiatedBudget]' passed (0.000 seconds).
+Test Suite 'BatteryPowerBreakdownTests' passed at 2026-10-31 00:19:18.828.
+	 Executed 7 tests, with 0 failures (0 unexpected) in 0.001 (0.001) seconds
+Test Suite 'BatteryPowerFlowLayoutTests' started at 2026-10-31 00:19:18.829.
+Test Case '-[StatusTrioCoreTests.BatteryPowerFlowLayoutTests testFourBranchDiagramUsesCompactHeight]' started.
+Test Case '-[StatusTrioCoreTests.BatteryPowerFlowLayoutTests testFourBranchDiagramUsesCompactHeight]' passed (0.008 seconds).
+Test Suite 'BatteryPowerFlowLayoutTests' passed at 2026-10-31 00:19:18.836.
+	 Executed 1 test, with 0 failures (0 unexpected) in 0.008 (0.008) seconds
+Test Suite 'BatteryPowerFlowTests' started at 2026-10-31 00:19:18.836.
+Test Case '-[StatusTrioCoreTests.BatteryPowerFlowTests testActualInputNeverUsesAdapterRatingAndRejectsStaleOrDisconnectedTelemetry]' started.
+Test Case '-[StatusTrioCoreTests.BatteryPowerFlowTests testActualInputNeverUsesAdapterRatingAndRejectsStaleOrDisconnectedTelemetry]' passed (0.000 seconds).
+Test Case '-[StatusTrioCoreTests.BatteryPowerFlowTests testHighEnergyAppsSettingsExplainBackgroundSamplingAndExposeItsInterval]' started.
+Test Case '-[StatusTrioCoreTests.BatteryPowerFlowTests testHighEnergyAppsSettingsExplainBackgroundSamplingAndExposeItsInterval]' passed (0.001 seconds).
+Test Case '-[StatusTrioCoreTests.BatteryPowerFlowTests testPowerFlowHonorsEachSwitchAndPreservesIndependentMeasuredValues]' started.
+Test Case '-[StatusTrioCoreTests.BatteryPowerFlowTests testPowerFlowHonorsEachSwitchAndPreservesIndependentMeasuredValues]' passed (0.001 seconds).
+Test Case '-[StatusTrioCoreTests.BatteryPowerFlowTests testRibbonWidthsStayQuantitativeWhenAnotherDestinationIsHidden]' started.
+Test Case '-[StatusTrioCoreTests.BatteryPowerFlowTests testRibbonWidthsStayQuantitativeWhenAnotherDestinationIsHidden]' passed (0.000 seconds).
+Test Case '-[StatusTrioCoreTests.BatteryPowerFlowTests testSettingsKeepIndependentSelectionsAcrossLaunches]' started.
+Test Case '-[StatusTrioCoreTests.BatteryPowerFlowTests testSettingsKeepIndependentSelectionsAcrossLaunches]' passed (0.004 seconds).
+Test Suite 'BatteryPowerFlowTests' passed at 2026-10-31 00:19:18.843.
+	 Executed 5 tests, with 0 failures (0 unexpected) in 0.006 (0.006) seconds
+Test Suite 'BatteryPowerPresentationTests' started at 2026-10-31 00:19:18.843.
+Test Case '-[StatusTrioCoreTests.BatteryPowerPresentationTests testChargeRowNeedsPositiveCurrentOnExternalPower]' started.
+Test Case '-[StatusTrioCoreTests.BatteryPowerPresentationTests testChargeRowNeedsPositiveCurrentOnExternalPower]' passed (0.000 seconds).
+Test Case '-[StatusTrioCoreTests.BatteryPowerPresentationTests testChargingKeepsItsOwnRowOnExternalPower]' started.
+Test Case '-[StatusTrioCoreTests.BatteryPowerPresentationTests testChargingKeepsItsOwnRowOnExternalPower]' passed (0.000 seconds).
+Test Case '-[StatusTrioCoreTests.BatteryPowerPresentationTests testConnectedUsesSystemPowerEvenWhenBatteryIsIdleOrCharging]' started.
+Test Case '-[StatusTrioCoreTests.BatteryPowerPresentationTests testConnectedUsesSystemPowerEvenWhenBatteryIsIdleOrCharging]' passed (0.000 seconds).
+Test Case '-[StatusTrioCoreTests.BatteryPowerPresentationTests testDisconnectedUsesDischargeMagnitudeAndBatterySampleTime]' started.
+Test Case '-[StatusTrioCoreTests.BatteryPowerPresentationTests testDisconnectedUsesDischargeMagnitudeAndBatterySampleTime]' passed (0.000 seconds).
+Test Case '-[StatusTrioCoreTests.BatteryPowerPresentationTests testMissingSelectedSourceNeverFallsBackToTheOtherMetric]' started.
+Test Case '-[StatusTrioCoreTests.BatteryPowerPresentationTests testMissingSelectedSourceNeverFallsBackToTheOtherMetric]' passed (0.000 seconds).
+Test Case '-[StatusTrioCoreTests.BatteryPowerPresentationTests testPowerSourceTransitionDoesNotShowAnOldChargingOrIdleBatteryAsDischarge]' started.
+Test Case '-[StatusTrioCoreTests.BatteryPowerPresentationTests testPowerSourceTransitionDoesNotShowAnOldChargingOrIdleBatteryAsDischarge]' passed (0.000 seconds).
+Test Suite 'BatteryPowerPresentationTests' passed at 2026-10-31 00:19:18.844.
+	 Executed 6 tests, with 0 failures (0 unexpected) in 0.001 (0.001) seconds
+Test Suite 'BatterySummaryInteractionTests' started at 2026-10-31 00:19:18.844.
+Test Case '-[StatusTrioCoreTests.BatterySummaryInteractionTests testTitleBlankAreaAndChevronOpenDetailsWhileGearOnlyOpensSettings]' started.
+Test Case '-[StatusTrioCoreTests.BatterySummaryInteractionTests testTitleBlankAreaAndChevronOpenDetailsWhileGearOnlyOpensSettings]' passed (0.107 seconds).
+Test Suite 'BatterySummaryInteractionTests' passed at 2026-10-31 00:19:18.951.
+	 Executed 1 test, with 0 failures (0 unexpected) in 0.107 (0.107) seconds
+Test Suite 'BluetoothAccessoryBatteryEventTests' started at 2026-10-31 00:19:18.951.
+Test Case '-[StatusTrioCoreTests.BluetoothAccessoryBatteryEventTests testAccessoryBatteryEventsCoalesceIntoOneDebouncedRefresh]' started.
+Test Case '-[StatusTrioCoreTests.BluetoothAccessoryBatteryEventTests testAccessoryBatteryEventsCoalesceIntoOneDebouncedRefresh]' passed (0.004 seconds).
+Test Case '-[StatusTrioCoreTests.BluetoothAccessoryBatteryEventTests testADefaultControllerHasNoAccessoryEventSource]' started.
+Test Case '-[StatusTrioCoreTests.BluetoothAccessoryBatteryEventTests testADefaultControllerHasNoAccessoryEventSource]' passed (0.000 seconds).
+Test Case '-[StatusTrioCoreTests.BluetoothAccessoryBatteryEventTests testAFailedReportKeepsItsLineWhenTheSecondSourceAddsNothing]' started.
+Test Case '-[StatusTrioCoreTests.BluetoothAccessoryBatteryEventTests testAFailedReportKeepsItsLineWhenTheSecondSourceAddsNothing]' passed (0.003 seconds).
+Test Case '-[StatusTrioCoreTests.BluetoothAccessoryBatteryEventTests testAFailedReportLiftsItsLineWhenTheSecondSourceFillsIt]' started.
+Test Case '-[StatusTrioCoreTests.BluetoothAccessoryBatteryEventTests testAFailedReportLiftsItsLineWhenTheSecondSourceFillsIt]' passed (0.003 seconds).
+Test Case '-[StatusTrioCoreTests.BluetoothAccessoryBatteryEventTests testAnUnavailableEventSourceLeavesTheSafetyNetAsTheOnlySource]' started.
+Test Case '-[StatusTrioCoreTests.BluetoothAccessoryBatteryEventTests testAnUnavailableEventSourceLeavesTheSafetyNetAsTheOnlySource]' passed (0.000 seconds).
+Test Case '-[StatusTrioCoreTests.BluetoothAccessoryBatteryEventTests testAppEnvironmentWiresTheAccessorySources]' started.
+Test Case '-[StatusTrioCoreTests.BluetoothAccessoryBatteryEventTests testAppEnvironmentWiresTheAccessorySources]' passed (0.018 seconds).
+Test Case '-[StatusTrioCoreTests.BluetoothAccessoryBatteryEventTests testAReportThatCoversEveryDeviceDoesNotReadTheSecondSource]' started.
+Test Case '-[StatusTrioCoreTests.BluetoothAccessoryBatteryEventTests testAReportThatCoversEveryDeviceDoesNotReadTheSecondSource]' passed (0.004 seconds).
+Test Case '-[StatusTrioCoreTests.BluetoothAccessoryBatteryEventTests testReleasingTheSurfaceStopsTheAccessoryRegistration]' started.
+Test Case '-[StatusTrioCoreTests.BluetoothAccessoryBatteryEventTests testReleasingTheSurfaceStopsTheAccessoryRegistration]' passed (0.000 seconds).
+Test Case '-[StatusTrioCoreTests.BluetoothAccessoryBatteryEventTests testTheSecondSourceFillsADeviceTheReportHasNoLevelFor]' started.
+Test Case '-[StatusTrioCoreTests.BluetoothAccessoryBatteryEventTests testTheSecondSourceFillsADeviceTheReportHasNoLevelFor]' passed (0.003 seconds).
+Test Suite 'BluetoothAccessoryBatteryEventTests' passed at 2026-10-31 00:19:18.987.
+	 Executed 9 tests, with 0 failures (0 unexpected) in 0.036 (0.036) seconds
+Test Suite 'BluetoothBatteryLevelHandoffTests' started at 2026-10-31 00:19:18.987.
+Test Case '-[StatusTrioCoreTests.BluetoothBatteryLevelHandoffTests testASecondSurfaceKeepsReadingLevelsAfterTheSummaryLeaves]' started.
+Test Case '-[StatusTrioCoreTests.BluetoothBatteryLevelHandoffTests testASecondSurfaceKeepsReadingLevelsAfterTheSummaryLeaves]' passed (0.660 seconds).
+Test Case '-[StatusTrioCoreTests.BluetoothBatteryLevelHandoffTests testSwiftUIRunsTheOutgoingSummaryHookLast]' started.
+Test Case '-[StatusTrioCoreTests.BluetoothBatteryLevelHandoffTests testSwiftUIRunsTheOutgoingSummaryHookLast]' passed (0.325 seconds).
+Test Case '-[StatusTrioCoreTests.BluetoothBatteryLevelHandoffTests testTurningTheSettingOffReleasesTheSummaryClaimImmediately]' started.
+Test Case '-[StatusTrioCoreTests.BluetoothBatteryLevelHandoffTests testTurningTheSettingOffReleasesTheSummaryClaimImmediately]' passed (0.649 seconds).
+Test Suite 'BluetoothBatteryLevelHandoffTests' passed at 2026-10-31 00:19:20.621.
+	 Executed 3 tests, with 0 failures (0 unexpected) in 1.634 (1.634) seconds
+Test Suite 'BluetoothBatteryLevelTextFallbackTests' started at 2026-10-31 00:19:20.621.
+Test Case '-[StatusTrioCoreTests.BluetoothBatteryLevelTextFallbackTests testAvailableSymbolStillKeepsThePercentageText]' started.
+Test Case '-[StatusTrioCoreTests.BluetoothBatteryLevelTextFallbackTests testAvailableSymbolStillKeepsThePercentageText]' passed (0.001 seconds).
+Test Case '-[StatusTrioCoreTests.BluetoothBatteryLevelTextFallbackTests testMissingSymbolFallsBackToItsTextLabel]' started.
+Test Case '-[StatusTrioCoreTests.BluetoothBatteryLevelTextFallbackTests testMissingSymbolFallsBackToItsTextLabel]' passed (0.001 seconds).
+Test Suite 'BluetoothBatteryLevelTextFallbackTests' passed at 2026-10-31 00:19:20.623.
+	 Executed 2 tests, with 0 failures (0 unexpected) in 0.002 (0.002) seconds
+Test Suite 'BluetoothDeviceListPresentationTests' started at 2026-10-31 00:19:20.623.
+Test Case '-[StatusTrioCoreTests.BluetoothDeviceListPresentationTests testAirPodsWithBatteryStillLeadOtherBatteryRows]' started.
+Test Case '-[StatusTrioCoreTests.BluetoothDeviceListPresentationTests testAirPodsWithBatteryStillLeadOtherBatteryRows]' passed (0.000 seconds).
+Test Case '-[StatusTrioCoreTests.BluetoothDeviceListPresentationTests testConnectedDevicesWithBatteryLeadWithinTheirGroup]' started.
+Test Case '-[StatusTrioCoreTests.BluetoothDeviceListPresentationTests testConnectedDevicesWithBatteryLeadWithinTheirGroup]' passed (0.000 seconds).
+Test Case '-[StatusTrioCoreTests.BluetoothDeviceListPresentationTests testCrossSourceRowBatteryAliasCountsForOrdering]' started.
+Test Case '-[StatusTrioCoreTests.BluetoothDeviceListPresentationTests testCrossSourceRowBatteryAliasCountsForOrdering]' passed (0.000 seconds).
+Test Case '-[StatusTrioCoreTests.BluetoothDeviceListPresentationTests testDisconnectedDevicesWithBatteryLeadDisconnectedGroup]' started.
+Test Case '-[StatusTrioCoreTests.BluetoothDeviceListPresentationTests testDisconnectedDevicesWithBatteryLeadDisconnectedGroup]' passed (0.000 seconds).
+Test Case '-[StatusTrioCoreTests.BluetoothDeviceListPresentationTests testDisplayRowsRankBatteryAheadOfTheSavedOrder]' started.
+Test Case '-[StatusTrioCoreTests.BluetoothDeviceListPresentationTests testDisplayRowsRankBatteryAheadOfTheSavedOrder]' passed (0.000 seconds).
+Test Case '-[StatusTrioCoreTests.BluetoothDeviceListPresentationTests testNearbyRowBatteryLevelsLeadTheDisconnectedGroup]' started.
+Test Case '-[StatusTrioCoreTests.BluetoothDeviceListPresentationTests testNearbyRowBatteryLevelsLeadTheDisconnectedGroup]' passed (0.000 seconds).
+Test Case '-[StatusTrioCoreTests.BluetoothDeviceListPresentationTests testNearbyRowWithoutVisibleBatteryDoesNotLeadTheDisconnectedGroup]' started.
+Test Case '-[StatusTrioCoreTests.BluetoothDeviceListPresentationTests testNearbyRowWithoutVisibleBatteryDoesNotLeadTheDisconnectedGroup]' passed (0.000 seconds).
+Test Case '-[StatusTrioCoreTests.BluetoothDeviceListPresentationTests testSharedProjectionChoosesNewestValidReadingWithoutUsingBatteryEqualityAsIdentity]' started.
+Test Case '-[StatusTrioCoreTests.BluetoothDeviceListPresentationTests testSharedProjectionChoosesNewestValidReadingWithoutUsingBatteryEqualityAsIdentity]' passed (0.001 seconds).
+Test Case '-[StatusTrioCoreTests.BluetoothDeviceListPresentationTests testSharedProjectionKeepsAmbiguousOrBatteryOnlyNameMatchesSeparate]' started.
+Test Case '-[StatusTrioCoreTests.BluetoothDeviceListPresentationTests testSharedProjectionKeepsAmbiguousOrBatteryOnlyNameMatchesSeparate]' passed (0.000 seconds).
+Test Suite 'BluetoothDeviceListPresentationTests' passed at 2026-10-31 00:19:20.627.
+	 Executed 9 tests, with 0 failures (0 unexpected) in 0.003 (0.003) seconds
+Test Suite 'BluetoothDeviceRowLayoutTests' started at 2026-10-31 00:19:20.627.
+Test Case '-[StatusTrioCoreTests.BluetoothDeviceRowLayoutTests testALongNameTruncatesWithoutPushingTheBatteryAway]' started.
+Test Case '-[StatusTrioCoreTests.BluetoothDeviceRowLayoutTests testALongNameTruncatesWithoutPushingTheBatteryAway]' passed (0.030 seconds).
+Test Case '-[StatusTrioCoreTests.BluetoothDeviceRowLayoutTests testPendingExternalBatteryStatusIsBlankButAvailabilityStatusIsVisible]' started.
+Test Case '-[StatusTrioCoreTests.BluetoothDeviceRowLayoutTests testPendingExternalBatteryStatusIsBlankButAvailabilityStatusIsVisible]' passed (0.046 seconds).
+Test Suite 'BluetoothDeviceRowLayoutTests' passed at 2026-10-31 00:19:20.703.
+	 Executed 2 tests, with 0 failures (0 unexpected) in 0.076 (0.076) seconds
+Test Suite 'BluetoothNearbyBatteryLifecycleTests' started at 2026-10-31 00:19:20.703.
+Test Case '-[StatusTrioCoreTests.BluetoothNearbyBatteryLifecycleTests testClosingPanelRetainsVisibleReadingButStopsScanner]' started.
+Test Case '-[StatusTrioCoreTests.BluetoothNearbyBatteryLifecycleTests testClosingPanelRetainsVisibleReadingButStopsScanner]' passed (0.000 seconds).
+Test Case '-[StatusTrioCoreTests.BluetoothNearbyBatteryLifecycleTests testDeactivateClearsReadingsButKeepsTheFeatureOptInForReopen]' started.
+Test Case '-[StatusTrioCoreTests.BluetoothNearbyBatteryLifecycleTests testDeactivateClearsReadingsButKeepsTheFeatureOptInForReopen]' passed (0.000 seconds).
+Test Case '-[StatusTrioCoreTests.BluetoothNearbyBatteryLifecycleTests testDeactivateStopsScannerAndClearsNearbyResults]' started.
+Test Case '-[StatusTrioCoreTests.BluetoothNearbyBatteryLifecycleTests testDeactivateStopsScannerAndClearsNearbyResults]' passed (0.000 seconds).
+Test Case '-[StatusTrioCoreTests.BluetoothNearbyBatteryLifecycleTests testDeinitWithoutDeactivateStopsNearbyScanner]' started.
+Test Case '-[StatusTrioCoreTests.BluetoothNearbyBatteryLifecycleTests testDeinitWithoutDeactivateStopsNearbyScanner]' passed (0.000 seconds).
+Test Case '-[StatusTrioCoreTests.BluetoothNearbyBatteryLifecycleTests testHidingEitherCompatibleAliasRevokesForegroundBLEReadAndRejectsLateCallback]' started.
+Test Case '-[StatusTrioCoreTests.BluetoothNearbyBatteryLifecycleTests testHidingEitherCompatibleAliasRevokesForegroundBLEReadAndRejectsLateCallback]' passed (0.001 seconds).
+Test Case '-[StatusTrioCoreTests.BluetoothNearbyBatteryLifecycleTests testKnownAppleNamesFollowTheSystemDeviceList]' started.
+Test Case '-[StatusTrioCoreTests.BluetoothNearbyBatteryLifecycleTests testKnownAppleNamesFollowTheSystemDeviceList]' passed (0.000 seconds).
+Test Case '-[StatusTrioCoreTests.BluetoothNearbyBatteryLifecycleTests testLeavingBluetoothSummaryStopsNearbyScanWhilePopoverRemainsOpen]' started.
+Test Case '-[StatusTrioCoreTests.BluetoothNearbyBatteryLifecycleTests testLeavingBluetoothSummaryStopsNearbyScanWhilePopoverRemainsOpen]' passed (0.000 seconds).
+Test Case '-[StatusTrioCoreTests.BluetoothNearbyBatteryLifecycleTests testManualRefreshUsesNearbyScannerSeparately]' started.
+Test Case '-[StatusTrioCoreTests.BluetoothNearbyBatteryLifecycleTests testManualRefreshUsesNearbyScannerSeparately]' passed (0.000 seconds).
+Test Case '-[StatusTrioCoreTests.BluetoothNearbyBatteryLifecycleTests testReleaseTransientStateCancelsNearbyExpiryWork]' started.
+Test Case '-[StatusTrioCoreTests.BluetoothNearbyBatteryLifecycleTests testReleaseTransientStateCancelsNearbyExpiryWork]' passed (0.035 seconds).
+Test Case '-[StatusTrioCoreTests.BluetoothNearbyBatteryLifecycleTests testReleasingLastNearbyRequestClearsCacheAndStopsScanner]' started.
+Test Case '-[StatusTrioCoreTests.BluetoothNearbyBatteryLifecycleTests testReleasingLastNearbyRequestClearsCacheAndStopsScanner]' passed (0.000 seconds).
+Test Case '-[StatusTrioCoreTests.BluetoothNearbyBatteryLifecycleTests testReleasingPopoverStopsImmediatelyAndRejectsOldCallbacks]' started.
+Test Case '-[StatusTrioCoreTests.BluetoothNearbyBatteryLifecycleTests testReleasingPopoverStopsImmediatelyAndRejectsOldCallbacks]' passed (0.000 seconds).
+Test Case '-[StatusTrioCoreTests.BluetoothNearbyBatteryLifecycleTests testScannerRequiresActiveControllerPopoverRequestAndAvailableBluetooth]' started.
+Test Case '-[StatusTrioCoreTests.BluetoothNearbyBatteryLifecycleTests testScannerRequiresActiveControllerPopoverRequestAndAvailableBluetooth]' passed (0.000 seconds).
+Test Case '-[StatusTrioCoreTests.BluetoothNearbyBatteryLifecycleTests testSettingsDiscoveryDoesNotScanAndViewClaimDoesNotPermitReads]' started.
+Test Case '-[StatusTrioCoreTests.BluetoothNearbyBatteryLifecycleTests testSettingsDiscoveryDoesNotScanAndViewClaimDoesNotPermitReads]' passed (0.000 seconds).
+Test Case '-[StatusTrioCoreTests.BluetoothNearbyBatteryLifecycleTests testUnavailableBluetoothStopsScannerAndClearsNearbyResults]' started.
+Test Case '-[StatusTrioCoreTests.BluetoothNearbyBatteryLifecycleTests testUnavailableBluetoothStopsScannerAndClearsNearbyResults]' passed (0.000 seconds).
+Test Suite 'BluetoothNearbyBatteryLifecycleTests' passed at 2026-10-31 00:19:20.742.
+	 Executed 14 tests, with 0 failures (0 unexpected) in 0.039 (0.039) seconds
+Test Suite 'BluetoothPanelMapperTests' started at 2026-10-31 00:19:20.742.
+Test Case '-[StatusTrioCoreTests.BluetoothPanelMapperTests testMapperFoldsNearbyMobileReadingsIntoReadOnlyRowsAndKeepsReportedBattery]' started.
+Test Case '-[StatusTrioCoreTests.BluetoothPanelMapperTests testMapperFoldsNearbyMobileReadingsIntoReadOnlyRowsAndKeepsReportedBattery]' passed (0.002 seconds).
+Test Case '-[StatusTrioCoreTests.BluetoothPanelMapperTests testMapperHidesBatteryRowsAndNearbyRowsWhenTheirSettingsAreOff]' started.
+Test Case '-[StatusTrioCoreTests.BluetoothPanelMapperTests testMapperHidesBatteryRowsAndNearbyRowsWhenTheirSettingsAreOff]' passed (0.001 seconds).
+Test Case '-[StatusTrioCoreTests.BluetoothPanelMapperTests testMapperPresentsBatteryReadFailureOnlyWhenPairedRowsAreVisible]' started.
+Test Case '-[StatusTrioCoreTests.BluetoothPanelMapperTests testMapperPresentsBatteryReadFailureOnlyWhenPairedRowsAreVisible]' passed (0.001 seconds).
+Test Case '-[StatusTrioCoreTests.BluetoothPanelMapperTests testMapperPreservesConnectedGroupsSavedOrderFiltersBatteryOptionsAndConfirmation]' started.
+Test Case '-[StatusTrioCoreTests.BluetoothPanelMapperTests testMapperPreservesConnectedGroupsSavedOrderFiltersBatteryOptionsAndConfirmation]' passed (0.002 seconds).
+Test Case '-[StatusTrioCoreTests.BluetoothPanelMapperTests testPairedRowsKeepConnectedBatteryLayoutSegmentsFailureTintAndTapPolicy]' started.
+Test Case '-[StatusTrioCoreTests.BluetoothPanelMapperTests testPairedRowsKeepConnectedBatteryLayoutSegmentsFailureTintAndTapPolicy]' passed (0.001 seconds).
+Test Suite 'BluetoothPanelMapperTests' passed at 2026-10-31 00:19:20.749.
+	 Executed 5 tests, with 0 failures (0 unexpected) in 0.007 (0.007) seconds
+Test Suite 'BluetoothSummaryLayoutTests' started at 2026-10-31 00:19:20.749.
+Test Case '-[StatusTrioCoreTests.BluetoothSummaryLayoutTests testRefreshStillRunsTheDeviceAndMobileBatteryActions]' started.
+Test Case '-[StatusTrioCoreTests.BluetoothSummaryLayoutTests testRefreshStillRunsTheDeviceAndMobileBatteryActions]' passed (0.000 seconds).
+Test Suite 'BluetoothSummaryLayoutTests' passed at 2026-10-31 00:19:20.750.
+	 Executed 1 test, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'BluetoothSummaryTests' started at 2026-10-31 00:19:20.750.
+Test Case '-[StatusTrioCoreTests.BluetoothSummaryTests testBatteryLookupNormalizesTheDeviceAddress]' started.
+Test Case '-[StatusTrioCoreTests.BluetoothSummaryTests testBatteryLookupNormalizesTheDeviceAddress]' passed (0.000 seconds).
+Test Case '-[StatusTrioCoreTests.BluetoothSummaryTests testConnectedAirPodsShowTheirBatteryLevel]' started.
+Test Case '-[StatusTrioCoreTests.BluetoothSummaryTests testConnectedAirPodsShowTheirBatteryLevel]' passed (0.000 seconds).
+Test Case '-[StatusTrioCoreTests.BluetoothSummaryTests testRenamedAirPodsShowTheirBatteryLevel]' started.
+Test Case '-[StatusTrioCoreTests.BluetoothSummaryTests testRenamedAirPodsShowTheirBatteryLevel]' passed (0.000 seconds).
+Test Suite 'BluetoothSummaryTests' passed at 2026-10-31 00:19:20.750.
+	 Executed 3 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'ChargeToFullNowControllerTests' started at 2026-10-31 00:19:20.750.
+Test Case '-[StatusTrioCoreTests.ChargeToFullNowControllerTests testSettingsVisibilityFollowsCapabilityNotBatteryState]' started.
+Test Case '-[StatusTrioCoreTests.ChargeToFullNowControllerTests testSettingsVisibilityFollowsCapabilityNotBatteryState]' passed (0.000 seconds).
+Test Suite 'ChargeToFullNowControllerTests' passed at 2026-10-31 00:19:20.750.
+	 Executed 1 test, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'ChargeToFullNowLayoutTests' started at 2026-10-31 00:19:20.750.
+Test Case '-[StatusTrioCoreTests.ChargeToFullNowLayoutTests testAvailableButtonAddsASeparateRowBelowTheBatterySummary]' started.
+Test Case '-[StatusTrioCoreTests.ChargeToFullNowLayoutTests testAvailableButtonAddsASeparateRowBelowTheBatterySummary]' passed (0.009 seconds).
+Test Suite 'ChargeToFullNowLayoutTests' passed at 2026-10-31 00:19:20.759.
+	 Executed 1 test, with 0 failures (0 unexpected) in 0.009 (0.009) seconds
+Test Suite 'ChargeToFullNowPanelIntegrationTests' started at 2026-10-31 00:19:20.759.
+Test Case '-[StatusTrioCoreTests.ChargeToFullNowPanelIntegrationTests testPanelDemandFollowsSettingVisibilityAndBatterySnapshot]' started.
+Test Case '-[StatusTrioCoreTests.ChargeToFullNowPanelIntegrationTests testPanelDemandFollowsSettingVisibilityAndBatterySnapshot]' passed (0.015 seconds).
+Test Suite 'ChargeToFullNowPanelIntegrationTests' passed at 2026-10-31 00:19:20.774.
+	 Executed 1 test, with 0 failures (0 unexpected) in 0.015 (0.015) seconds
+Test Suite 'DockIconRendererTests' started at 2026-10-31 00:19:20.774.
+Test Case '-[StatusTrioCoreTests.DockIconRendererTests testRingStrokeStyleChangesDockBatteryInk]' started.
+Test Case '-[StatusTrioCoreTests.DockIconRendererTests testRingStrokeStyleChangesDockBatteryInk]' passed (0.019 seconds).
+Test Suite 'DockIconRendererTests' passed at 2026-10-31 00:19:20.793.
+	 Executed 1 test, with 0 failures (0 unexpected) in 0.019 (0.019) seconds
+Test Suite 'IconPresentationMapperTests' started at 2026-10-31 00:19:20.793.
+Test Case '-[StatusTrioCoreTests.IconPresentationMapperTests testBatteryCenterPercentageWinsOverBluetoothAndNetworkError]' started.
+Test Case '-[StatusTrioCoreTests.IconPresentationMapperTests testBatteryCenterPercentageWinsOverBluetoothAndNetworkError]' passed (0.000 seconds).
+Test Case '-[StatusTrioCoreTests.IconPresentationMapperTests testBatteryColorPriorityAndThresholdBoundary]' started.
+Test Case '-[StatusTrioCoreTests.IconPresentationMapperTests testBatteryColorPriorityAndThresholdBoundary]' passed (0.000 seconds).
+Test Case '-[StatusTrioCoreTests.IconPresentationMapperTests testBatteryEffectRequiresPresentActiveUnchargedBatteryAndEnabledOption]' started.
+Test Case '-[StatusTrioCoreTests.IconPresentationMapperTests testBatteryEffectRequiresPresentActiveUnchargedBatteryAndEnabledOption]' passed (0.000 seconds).
+Test Case '-[StatusTrioCoreTests.IconPresentationMapperTests testBatteryGapHonorsPresencePercentageAndPowerOptions]' started.
+Test Case '-[StatusTrioCoreTests.IconPresentationMapperTests testBatteryGapHonorsPresencePercentageAndPowerOptions]' passed (0.000 seconds).
+Test Case '-[StatusTrioCoreTests.IconPresentationMapperTests testBatteryRingClosesAtTheConfiguredFullThreshold]' started.
+Test Case '-[StatusTrioCoreTests.IconPresentationMapperTests testBatteryRingClosesAtTheConfiguredFullThreshold]' passed (0.000 seconds).
+Test Case '-[StatusTrioCoreTests.IconPresentationMapperTests testBatteryRingMapsProgressColorGapAndChargingEffect]' started.
+Test Case '-[StatusTrioCoreTests.IconPresentationMapperTests testBatteryRingMapsProgressColorGapAndChargingEffect]' passed (0.000 seconds).
+Test Case '-[StatusTrioCoreTests.IconPresentationMapperTests testBatteryUsesPlugWhenConnectedPercentageIsDisabledAndCanHidePercentage]' started.
+Test Case '-[StatusTrioCoreTests.IconPresentationMapperTests testBatteryUsesPlugWhenConnectedPercentageIsDisabledAndCanHidePercentage]' passed (0.000 seconds).
+Test Case '-[StatusTrioCoreTests.IconPresentationMapperTests testConnectionSlotToggleShowsPresentBatteryPercentage]' started.
+Test Case '-[StatusTrioCoreTests.IconPresentationMapperTests testConnectionSlotToggleShowsPresentBatteryPercentage]' passed (0.000 seconds).
+Test Suite 'IconPresentationMapperTests' passed at 2026-10-31 00:19:20.795.
+	 Executed 8 tests, with 0 failures (0 unexpected) in 0.001 (0.001) seconds
+Test Suite 'InputSourceIconPresentationTests' started at 2026-10-31 00:19:20.795.
+Test Case '-[StatusTrioCoreTests.InputSourceIconPresentationTests testBatteryPercentageInTheConnectionSlotStillWins]' started.
+Test Case '-[StatusTrioCoreTests.InputSourceIconPresentationTests testBatteryPercentageInTheConnectionSlotStillWins]' passed (0.000 seconds).
+Test Suite 'InputSourceIconPresentationTests' passed at 2026-10-31 00:19:20.795.
+	 Executed 1 test, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'LocalizationTests' started at 2026-10-31 00:19:20.795.
+Test Case '-[StatusTrioCoreTests.LocalizationTests testAppleDeviceBatteryCopyDescribesNearbyNamedRowsWithoutConsentInEveryLanguage]' started.
+Test Case '-[StatusTrioCoreTests.LocalizationTests testAppleDeviceBatteryCopyDescribesNearbyNamedRowsWithoutConsentInEveryLanguage]' passed (0.000 seconds).
+Test Suite 'LocalizationTests' passed at 2026-10-31 00:19:20.795.
+	 Executed 1 test, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'MobileBatteryControllerTests' started at 2026-10-31 00:19:20.795.
+Test Case '-[StatusTrioCoreTests.MobileBatteryControllerTests testBackgroundRefreshCanReadWithClosedSurfaceAndStopsWhenDisabled]' started.
+Test Case '-[StatusTrioCoreTests.MobileBatteryControllerTests testBackgroundRefreshCanReadWithClosedSurfaceAndStopsWhenDisabled]' passed (0.000 seconds).
+Test Case '-[StatusTrioCoreTests.MobileBatteryControllerTests testBackgroundRefreshUsesConfiguredIntervalWithoutOverlappingRead]' started.
+Test Case '-[StatusTrioCoreTests.MobileBatteryControllerTests testBackgroundRefreshUsesConfiguredIntervalWithoutOverlappingRead]' passed (0.002 seconds).
+Test Case '-[StatusTrioCoreTests.MobileBatteryControllerTests testCacheExpiresAfterFinalClaimReleasesWhileKeepingResults]' started.
+Test Case '-[StatusTrioCoreTests.MobileBatteryControllerTests testCacheExpiresAfterFinalClaimReleasesWhileKeepingResults]' passed (0.003 seconds).
+Test Case '-[StatusTrioCoreTests.MobileBatteryControllerTests testChangingBackgroundIntervalDuringWatchRetryReanchorsFullRefreshDeadline]' started.
+Test Case '-[StatusTrioCoreTests.MobileBatteryControllerTests testChangingBackgroundIntervalDuringWatchRetryReanchorsFullRefreshDeadline]' passed (0.006 seconds).
+Test Case '-[StatusTrioCoreTests.MobileBatteryControllerTests testClaimsAndSurfaceMustBothBeActiveToRead]' started.
+Test Case '-[StatusTrioCoreTests.MobileBatteryControllerTests testClaimsAndSurfaceMustBothBeActiveToRead]' passed (0.001 seconds).
+Test Case '-[StatusTrioCoreTests.MobileBatteryControllerTests testClaimsShareWorkAndLastReleaseClearsSnapshots]' started.
+Test Case '-[StatusTrioCoreTests.MobileBatteryControllerTests testClaimsShareWorkAndLastReleaseClearsSnapshots]' passed (0.001 seconds).
+Test Case '-[StatusTrioCoreTests.MobileBatteryControllerTests testClosingPopoverCancelsReadAndReopenRejectsLateGeneration]' started.
+Test Case '-[StatusTrioCoreTests.MobileBatteryControllerTests testClosingPopoverCancelsReadAndReopenRejectsLateGeneration]' passed (0.001 seconds).
+Test Case '-[StatusTrioCoreTests.MobileBatteryControllerTests testDeallocationCancelsAReaderThatNeverReturns]' started.
+Test Case '-[StatusTrioCoreTests.MobileBatteryControllerTests testDeallocationCancelsAReaderThatNeverReturns]' passed (0.000 seconds).
+Test Case '-[StatusTrioCoreTests.MobileBatteryControllerTests testDisablingBackgroundDuringWatchRetryUsesVisibleForegroundDeadline]' started.
+Test Case '-[StatusTrioCoreTests.MobileBatteryControllerTests testDisablingBackgroundDuringWatchRetryUsesVisibleForegroundDeadline]' passed (0.004 seconds).
+Test Case '-[StatusTrioCoreTests.MobileBatteryControllerTests testDisablingBatteryReadsClearsLevelsButRetainsAuthorizedRows]' started.
+Test Case '-[StatusTrioCoreTests.MobileBatteryControllerTests testDisablingBatteryReadsClearsLevelsButRetainsAuthorizedRows]' passed (0.000 seconds).
+Test Case '-[StatusTrioCoreTests.MobileBatteryControllerTests testEmptySuccessPreservesCachedReadingAndTimestamp]' started.
+Test Case '-[StatusTrioCoreTests.MobileBatteryControllerTests testEmptySuccessPreservesCachedReadingAndTimestamp]' passed (0.000 seconds).
+Test Case '-[StatusTrioCoreTests.MobileBatteryControllerTests testExpiredCacheIsPrunedWhilePopoverIsClosed]' started.
+Test Case '-[StatusTrioCoreTests.MobileBatteryControllerTests testExpiredCacheIsPrunedWhilePopoverIsClosed]' passed (0.002 seconds).
+Test Case '-[StatusTrioCoreTests.MobileBatteryControllerTests testExplicitHidePurgesOnlyHiddenCachedSnapshot]' started.
+Test Case '-[StatusTrioCoreTests.MobileBatteryControllerTests testExplicitHidePurgesOnlyHiddenCachedSnapshot]' passed (0.000 seconds).
+Test Case '-[StatusTrioCoreTests.MobileBatteryControllerTests testFailureRetainsTimestampAndPartialSuccessMergesByIdentity]' started.
+Test Case '-[StatusTrioCoreTests.MobileBatteryControllerTests testFailureRetainsTimestampAndPartialSuccessMergesByIdentity]' passed (0.000 seconds).
+Test Case '-[StatusTrioCoreTests.MobileBatteryControllerTests testManualRefreshSupersedesReadAndStartsImmediately]' started.
+Test Case '-[StatusTrioCoreTests.MobileBatteryControllerTests testManualRefreshSupersedesReadAndStartsImmediately]' passed (0.000 seconds).
+Test Case '-[StatusTrioCoreTests.MobileBatteryControllerTests testMasterOffRevokesPendingTrustedReadsAndClearsCachedAppleRows]' started.
+Test Case '-[StatusTrioCoreTests.MobileBatteryControllerTests testMasterOffRevokesPendingTrustedReadsAndClearsCachedAppleRows]' passed (0.000 seconds).
+Test Case '-[StatusTrioCoreTests.MobileBatteryControllerTests testMissingWatchRetryBudgetPreservesElapsedFullRefreshDeadline]' started.
+Test Case '-[StatusTrioCoreTests.MobileBatteryControllerTests testMissingWatchRetryBudgetPreservesElapsedFullRefreshDeadline]' passed (0.018 seconds).
+Test Case '-[StatusTrioCoreTests.MobileBatteryControllerTests testMissingWatchRetryBudgetSurvivesRepublishedDemandAndBackgroundToggle]' started.
+Test Case '-[StatusTrioCoreTests.MobileBatteryControllerTests testMissingWatchRetryBudgetSurvivesRepublishedDemandAndBackgroundToggle]' passed (0.016 seconds).
+Test Case '-[StatusTrioCoreTests.MobileBatteryControllerTests testMissingWatchSchedulesOneMinuteRetryInsteadOfConfiguredBackgroundInterval]' started.
+Test Case '-[StatusTrioCoreTests.MobileBatteryControllerTests testMissingWatchSchedulesOneMinuteRetryInsteadOfConfiguredBackgroundInterval]' passed (0.002 seconds).
+Test Case '-[StatusTrioCoreTests.MobileBatteryControllerTests testMissingWatchWithValidCachedSnapshotKeepsConfiguredInterval]' started.
+Test Case '-[StatusTrioCoreTests.MobileBatteryControllerTests testMissingWatchWithValidCachedSnapshotKeepsConfiguredInterval]' passed (0.003 seconds).
+Test Case '-[StatusTrioCoreTests.MobileBatteryControllerTests testRapidDisableAndReenableClearsCacheAndStartsANewReadForTheExistingClaim]' started.
+Test Case '-[StatusTrioCoreTests.MobileBatteryControllerTests testRapidDisableAndReenableClearsCacheAndStartsANewReadForTheExistingClaim]' passed (0.001 seconds).
+Test Case '-[StatusTrioCoreTests.MobileBatteryControllerTests testReenablingWithNoClaimAndClosedSurfaceDoesNotRead]' started.
+Test Case '-[StatusTrioCoreTests.MobileBatteryControllerTests testReenablingWithNoClaimAndClosedSurfaceDoesNotRead]' passed (0.000 seconds).
+Test Case '-[StatusTrioCoreTests.MobileBatteryControllerTests testRefreshesEverySixtySecondsWithoutOverlappingCycles]' started.
+Test Case '-[StatusTrioCoreTests.MobileBatteryControllerTests testRefreshesEverySixtySecondsWithoutOverlappingCycles]' passed (0.003 seconds).
+Test Case '-[StatusTrioCoreTests.MobileBatteryControllerTests testReleasingTemporaryViewportRetainsFreshCachedSnapshot]' started.
+Test Case '-[StatusTrioCoreTests.MobileBatteryControllerTests testReleasingTemporaryViewportRetainsFreshCachedSnapshot]' passed (0.000 seconds).
+Test Case '-[StatusTrioCoreTests.MobileBatteryControllerTests testSameIdentitySnapshotIsReplacedByLatestReading]' started.
+Test Case '-[StatusTrioCoreTests.MobileBatteryControllerTests testSameIdentitySnapshotIsReplacedByLatestReading]' passed (0.000 seconds).
+Test Case '-[StatusTrioCoreTests.MobileBatteryControllerTests testSleeperWaitsThrowWhenTheRequestedStateNeverArrives]' started.
+Test Case '-[StatusTrioCoreTests.MobileBatteryControllerTests testSleeperWaitsThrowWhenTheRequestedStateNeverArrives]' passed (0.000 seconds).
+Test Case '-[StatusTrioCoreTests.MobileBatteryControllerTests testSuccessfulWatchKeepsConfiguredBackgroundInterval]' started.
+Test Case '-[StatusTrioCoreTests.MobileBatteryControllerTests testSuccessfulWatchKeepsConfiguredBackgroundInterval]' passed (0.002 seconds).
+Test Case '-[StatusTrioCoreTests.MobileBatteryControllerTests testVerifiedSnapshotExpiresAtTwentyMinutes]' started.
+Test Case '-[StatusTrioCoreTests.MobileBatteryControllerTests testVerifiedSnapshotExpiresAtTwentyMinutes]' passed (0.002 seconds).
+Test Case '-[StatusTrioCoreTests.MobileBatteryControllerTests testViewportPermitLossRetainsCacheAndRejectsLateSnapshot]' started.
+Test Case '-[StatusTrioCoreTests.MobileBatteryControllerTests testViewportPermitLossRetainsCacheAndRejectsLateSnapshot]' passed (0.000 seconds).
+Test Case '-[StatusTrioCoreTests.MobileBatteryControllerTests testWatchOnlyRetriesDoNotPostponeConfiguredFullRefreshDeadline]' started.
+Test Case '-[StatusTrioCoreTests.MobileBatteryControllerTests testWatchOnlyRetriesDoNotPostponeConfiguredFullRefreshDeadline]' passed (0.009 seconds).
+Test Case '-[StatusTrioCoreTests.MobileBatteryControllerTests testWatchOnlyRetryIgnoresSnapshotsAndFailuresOutsideRequestedIDs]' started.
+Test Case '-[StatusTrioCoreTests.MobileBatteryControllerTests testWatchOnlyRetryIgnoresSnapshotsAndFailuresOutsideRequestedIDs]' passed (0.005 seconds).
+Test Suite 'MobileBatteryControllerTests' passed at 2026-10-31 00:19:20.882.
+	 Executed 31 tests, with 0 failures (0 unexpected) in 0.085 (0.087) seconds
+Test Suite 'NearbyBLEControllerDemandTests' started at 2026-10-31 00:19:20.882.
+Test Case '-[StatusTrioCoreTests.NearbyBLEControllerDemandTests testAnyVisibleBLEUUIDAuthorizesAndAcceptsBatteryReads]' started.
+Test Case '-[StatusTrioCoreTests.NearbyBLEControllerDemandTests testAnyVisibleBLEUUIDAuthorizesAndAcceptsBatteryReads]' passed (0.000 seconds).
+Test Case '-[StatusTrioCoreTests.NearbyBLEControllerDemandTests testGeneralBatteryToggleOffStopsBLEScannerWithoutBackgroundOwner]' started.
+Test Case '-[StatusTrioCoreTests.NearbyBLEControllerDemandTests testGeneralBatteryToggleOffStopsBLEScannerWithoutBackgroundOwner]' passed (0.000 seconds).
+Test Case '-[StatusTrioCoreTests.NearbyBLEControllerDemandTests testGlobalBatteryOffRevokesPermitWithoutRemovingConsentOrSettingsDiscovery]' started.
+Test Case '-[StatusTrioCoreTests.NearbyBLEControllerDemandTests testGlobalBatteryOffRevokesPermitWithoutRemovingConsentOrSettingsDiscovery]' passed (0.000 seconds).
+Test Case '-[StatusTrioCoreTests.NearbyBLEControllerDemandTests testSettingsDiscoveryInitialReadsOnlyNewNonHiddenCandidatesAndRevokesOnBatteryOff]' started.
+Test Case '-[StatusTrioCoreTests.NearbyBLEControllerDemandTests testSettingsDiscoveryInitialReadsOnlyNewNonHiddenCandidatesAndRevokesOnBatteryOff]' passed (0.000 seconds).
+Test Suite 'NearbyBLEControllerDemandTests' passed at 2026-10-31 00:19:20.883.
+	 Executed 4 tests, with 0 failures (0 unexpected) in 0.001 (0.001) seconds
+Test Suite 'PanelDetailMapperTests' started at 2026-10-31 00:19:20.883.
+Test Case '-[StatusTrioCoreTests.PanelDetailMapperTests testBatteryMapperKeepsPowerTintTimestampAndExplanation]' started.
+Test Case '-[StatusTrioCoreTests.PanelDetailMapperTests testBatteryMapperKeepsPowerTintTimestampAndExplanation]' passed (0.002 seconds).
+Test Case '-[StatusTrioCoreTests.PanelDetailMapperTests testBatteryMapperRepresentsMissingDetailsAsLoadingAndWiredUnavailableKeepsFiveRows]' started.
+Test Case '-[StatusTrioCoreTests.PanelDetailMapperTests testBatteryMapperRepresentsMissingDetailsAsLoadingAndWiredUnavailableKeepsFiveRows]' passed (0.001 seconds).
+Test Case '-[StatusTrioCoreTests.PanelDetailMapperTests testPowerFlowUsesLiveBatterySampleWhenChargingFlagLags]' started.
+Test Case '-[StatusTrioCoreTests.PanelDetailMapperTests testPowerFlowUsesLiveBatterySampleWhenChargingFlagLags]' passed (0.001 seconds).
+Test Suite 'PanelDetailMapperTests' passed at 2026-10-31 00:19:20.888.
+	 Executed 3 tests, with 0 failures (0 unexpected) in 0.005 (0.005) seconds
+Test Suite 'PanelPresentationMapperTests' started at 2026-10-31 00:19:20.888.
+Test Case '-[StatusTrioCoreTests.PanelPresentationMapperTests testAbsentBatteryHasNoDetailAction]' started.
+Test Case '-[StatusTrioCoreTests.PanelPresentationMapperTests testAbsentBatteryHasNoDetailAction]' passed (0.003 seconds).
+Test Case '-[StatusTrioCoreTests.PanelPresentationMapperTests testBatterySummaryUsesTwentyPercentCriticalBoundary]' started.
+Test Case '-[StatusTrioCoreTests.PanelPresentationMapperTests testBatterySummaryUsesTwentyPercentCriticalBoundary]' passed (0.004 seconds).
+Test Case '-[StatusTrioCoreTests.PanelPresentationMapperTests testBatteryTintPreservesChargingAndLowPowerPriority]' started.
+Test Case '-[StatusTrioCoreTests.PanelPresentationMapperTests testBatteryTintPreservesChargingAndLowPowerPriority]' passed (0.003 seconds).
+Test Case '-[StatusTrioCoreTests.PanelPresentationMapperTests testPanelSummaryUsesSelectedLanguageForTheSameBatteryInput]' started.
+Test Case '-[StatusTrioCoreTests.PanelPresentationMapperTests testPanelSummaryUsesSelectedLanguageForTheSameBatteryInput]' passed (0.009 seconds).
+Test Suite 'PanelPresentationMapperTests' passed at 2026-10-31 00:19:20.909.
+	 Executed 4 tests, with 0 failures (0 unexpected) in 0.020 (0.020) seconds
+Test Suite 'PanelPresentationWiringTests' started at 2026-10-31 00:19:20.909.
+Test Case '-[StatusTrioCoreTests.PanelPresentationWiringTests testBatteryDetailsAppearanceAndBackCallbackPairTheCollectorLifecycle]' started.
+Test Case '-[StatusTrioCoreTests.PanelPresentationWiringTests testBatteryDetailsAppearanceAndBackCallbackPairTheCollectorLifecycle]' passed (0.006 seconds).
+Test Suite 'PanelPresentationWiringTests' passed at 2026-10-31 00:19:20.914.
+	 Executed 1 test, with 0 failures (0 unexpected) in 0.006 (0.006) seconds
+Test Suite 'PresentationBaselineTests' started at 2026-10-31 00:19:20.914.
+Test Case '-[StatusTrioCoreTests.PresentationBaselineTests testAbsentBatteryFallsThroughToEnabledBluetoothReplacement]' started.
+Test Case '-[StatusTrioCoreTests.PresentationBaselineTests testAbsentBatteryFallsThroughToEnabledBluetoothReplacement]' passed (0.036 seconds).
+Test Case '-[StatusTrioCoreTests.PresentationBaselineTests testPresentBatteryPercentageWinsOverPrioritizedNetworkErrorAndBluetoothOutput]' started.
+Test Case '-[StatusTrioCoreTests.PresentationBaselineTests testPresentBatteryPercentageWinsOverPrioritizedNetworkErrorAndBluetoothOutput]' passed (0.014 seconds).
+Test Suite 'PresentationBaselineTests' passed at 2026-10-31 00:19:20.965.
+	 Executed 2 tests, with 0 failures (0 unexpected) in 0.050 (0.050) seconds
+Test Suite 'PresentationTextMapperTests' started at 2026-10-31 00:19:20.965.
+Test Case '-[StatusTrioCoreTests.PresentationTextMapperTests testBatteryTimeToFullFormatting]' started.
+Test Case '-[StatusTrioCoreTests.PresentationTextMapperTests testBatteryTimeToFullFormatting]' passed (0.005 seconds).
+Test Case '-[StatusTrioCoreTests.PresentationTextMapperTests testBatteryTitleAndSubtitlePriority]' started.
+Test Case '-[StatusTrioCoreTests.PresentationTextMapperTests testBatteryTitleAndSubtitlePriority]' passed (0.002 seconds).
+Test Suite 'PresentationTextMapperTests' passed at 2026-10-31 00:19:20.972.
+	 Executed 2 tests, with 0 failures (0 unexpected) in 0.007 (0.007) seconds
+Test Suite 'SettingsStoreTests' started at 2026-10-31 00:19:20.972.
+Test Case '-[StatusTrioCoreTests.SettingsStoreTests testBatteryCriticalThresholdIsClamped]' started.
+Test Case '-[StatusTrioCoreTests.SettingsStoreTests testBatteryCriticalThresholdIsClamped]' passed (0.004 seconds).
+Test Case '-[StatusTrioCoreTests.SettingsStoreTests testBatteryDisplayDefaults]' started.
+Test Case '-[StatusTrioCoreTests.SettingsStoreTests testBatteryDisplayDefaults]' passed (0.003 seconds).
+Test Case '-[StatusTrioCoreTests.SettingsStoreTests testBatteryDisplaySettingsPersistAcrossStoreInstances]' started.
+Test Case '-[StatusTrioCoreTests.SettingsStoreTests testBatteryDisplaySettingsPersistAcrossStoreInstances]' passed (0.004 seconds).
+Test Case '-[StatusTrioCoreTests.SettingsStoreTests testBatteryFullThresholdDefaultsToRawPercentage]' started.
+Test Case '-[StatusTrioCoreTests.SettingsStoreTests testBatteryFullThresholdDefaultsToRawPercentage]' passed (0.003 seconds).
+Test Case '-[StatusTrioCoreTests.SettingsStoreTests testBatteryFullThresholdIsClamped]' started.
+Test Case '-[StatusTrioCoreTests.SettingsStoreTests testBatteryFullThresholdIsClamped]' passed (0.003 seconds).
+Test Case '-[StatusTrioCoreTests.SettingsStoreTests testBatteryFullThresholdReachesTheIconOptions]' started.
+Test Case '-[StatusTrioCoreTests.SettingsStoreTests testBatteryFullThresholdReachesTheIconOptions]' passed (0.003 seconds).
+Test Case '-[StatusTrioCoreTests.SettingsStoreTests testBatterySymbolScaleIsClamped]' started.
+Test Case '-[StatusTrioCoreTests.SettingsStoreTests testBatterySymbolScaleIsClamped]' passed (0.003 seconds).
+Test Case '-[StatusTrioCoreTests.SettingsStoreTests testBatterySymbolSizeIsEnabledWhenEitherSymbolIsVisible]' started.
+Test Case '-[StatusTrioCoreTests.SettingsStoreTests testBatterySymbolSizeIsEnabledWhenEitherSymbolIsVisible]' passed (0.003 seconds).
+Test Case '-[StatusTrioCoreTests.SettingsStoreTests testMobileBatteryDeviceChoiceDefaultsOffAndIsIndependentOfNearbyOptIn]' started.
+Test Case '-[StatusTrioCoreTests.SettingsStoreTests testMobileBatteryDeviceChoiceDefaultsOffAndIsIndependentOfNearbyOptIn]' passed (0.003 seconds).
+Test Case '-[StatusTrioCoreTests.SettingsStoreTests testMobileBatteryDeviceChoicePersistsAcrossStoreInstances]' started.
+Test Case '-[StatusTrioCoreTests.SettingsStoreTests testMobileBatteryDeviceChoicePersistsAcrossStoreInstances]' passed (0.003 seconds).
+Test Case '-[StatusTrioCoreTests.SettingsStoreTests testNearbyBluetoothBatteryChoicePersists]' started.
+Test Case '-[StatusTrioCoreTests.SettingsStoreTests testNearbyBluetoothBatteryChoicePersists]' passed (0.004 seconds).
+Test Case '-[StatusTrioCoreTests.SettingsStoreTests testNearbyBluetoothBatteryDefaultsOff]' started.
+Test Case '-[StatusTrioCoreTests.SettingsStoreTests testNearbyBluetoothBatteryDefaultsOff]' passed (0.003 seconds).
+Test Case '-[StatusTrioCoreTests.SettingsStoreTests testStoredBatteryCriticalThresholdIsClampedOnLoad]' started.
+Test Case '-[StatusTrioCoreTests.SettingsStoreTests testStoredBatteryCriticalThresholdIsClampedOnLoad]' passed (0.004 seconds).
+Test Case '-[StatusTrioCoreTests.SettingsStoreTests testStoredBatteryFullThresholdIsClampedOnLoadAndPersisted]' started.
+Test Case '-[StatusTrioCoreTests.SettingsStoreTests testStoredBatteryFullThresholdIsClampedOnLoadAndPersisted]' passed (0.004 seconds).
+Test Case '-[StatusTrioCoreTests.SettingsStoreTests testStoredBatterySymbolScaleIsClampedOnLoad]' started.
+Test Case '-[StatusTrioCoreTests.SettingsStoreTests testStoredBatterySymbolScaleIsClampedOnLoad]' passed (0.003 seconds).
+Test Suite 'SettingsStoreTests' passed at 2026-10-31 00:19:21.023.
+	 Executed 15 tests, with 0 failures (0 unexpected) in 0.051 (0.051) seconds
+Test Suite 'SettingsWindowControllerTests' started at 2026-10-31 00:19:21.023.
+Test Case '-[StatusTrioCoreTests.SettingsWindowControllerTests testShowWithBatterySectionAnnouncesTabRequest]' started.
+Test Case '-[StatusTrioCoreTests.SettingsWindowControllerTests testShowWithBatterySectionAnnouncesTabRequest]' passed (0.152 seconds).
+Test Suite 'SettingsWindowControllerTests' passed at 2026-10-31 00:19:21.176.
+	 Executed 1 test, with 0 failures (0 unexpected) in 0.152 (0.152) seconds
+Test Suite 'StatusBarContentLifecycleTests' started at 2026-10-31 00:19:21.176.
+Test Case '-[StatusTrioCoreTests.StatusBarContentLifecycleTests testBatteryRouteReopensAfterDetailCloseReleasesContent]' started.
+Test Case '-[StatusTrioCoreTests.StatusBarContentLifecycleTests testBatteryRouteReopensAfterDetailCloseReleasesContent]' passed (0.310 seconds).
+Test Suite 'StatusBarContentLifecycleTests' passed at 2026-10-31 00:19:21.486.
+	 Executed 1 test, with 0 failures (0 unexpected) in 0.310 (0.311) seconds
+Test Suite 'StatusIconGeometryTests' started at 2026-10-31 00:19:21.486.
+Test Case '-[StatusTrioCoreTests.StatusIconGeometryTests testBatteryChargingBoltBounds]' started.
+Test Case '-[StatusTrioCoreTests.StatusIconGeometryTests testBatteryChargingBoltBounds]' passed (0.000 seconds).
+Test Case '-[StatusTrioCoreTests.StatusIconGeometryTests testBatteryChargingBoltScalesProportionally]' started.
+Test Case '-[StatusTrioCoreTests.StatusIconGeometryTests testBatteryChargingBoltScalesProportionally]' passed (0.000 seconds).
+Test Case '-[StatusTrioCoreTests.StatusIconGeometryTests testBatteryFullAndHalfProgressBounds]' started.
+Test Case '-[StatusTrioCoreTests.StatusIconGeometryTests testBatteryFullAndHalfProgressBounds]' passed (0.000 seconds).
+Test Case '-[StatusTrioCoreTests.StatusIconGeometryTests testBatteryPathsStayInsideCanvas]' started.
+Test Case '-[StatusTrioCoreTests.StatusIconGeometryTests testBatteryPathsStayInsideCanvas]' passed (0.000 seconds).
+Test Case '-[StatusTrioCoreTests.StatusIconGeometryTests testZeroBatteryHasNoFillPath]' started.
+Test Case '-[StatusTrioCoreTests.StatusIconGeometryTests testZeroBatteryHasNoFillPath]' passed (0.000 seconds).
+Test Suite 'StatusIconGeometryTests' passed at 2026-10-31 00:19:21.487.
+	 Executed 5 tests, with 0 failures (0 unexpected) in 0.001 (0.001) seconds
+Test Suite 'StatusIconRendererTests' started at 2026-10-31 00:19:21.487.
+Test Case '-[StatusTrioCoreTests.StatusIconRendererTests testBatteryPercentageCanBeHidden]' started.
+Test Case '-[StatusTrioCoreTests.StatusIconRendererTests testBatteryPercentageCanBeHidden]' passed (0.003 seconds).
+Test Case '-[StatusTrioCoreTests.StatusIconRendererTests testBatteryPercentageFollowsForegroundColor]' started.
+Test Case '-[StatusTrioCoreTests.StatusIconRendererTests testBatteryPercentageFollowsForegroundColor]' passed (0.011 seconds).
+Test Case '-[StatusTrioCoreTests.StatusIconRendererTests testBatteryPercentageInConnectionSlotFallsBackWhenBatteryIsAbsent]' started.
+Test Case '-[StatusTrioCoreTests.StatusIconRendererTests testBatteryPercentageInConnectionSlotFallsBackWhenBatteryIsAbsent]' passed (0.010 seconds).
+Test Case '-[StatusTrioCoreTests.StatusIconRendererTests testBatteryPercentageInConnectionSlotReplacesTheNetworkGlyph]' started.
+Test Case '-[StatusTrioCoreTests.StatusIconRendererTests testBatteryPercentageInConnectionSlotReplacesTheNetworkGlyph]' passed (0.003 seconds).
+Test Case '-[StatusTrioCoreTests.StatusIconRendererTests testBatteryPercentageInConnectionSlotWinsOverPickedNetworkSymbol]' started.
+Test Case '-[StatusTrioCoreTests.StatusIconRendererTests testBatteryPercentageInConnectionSlotWinsOverPickedNetworkSymbol]' passed (0.022 seconds).
+Test Case '-[StatusTrioCoreTests.StatusIconRendererTests testBatteryPercentageScaleChangesRenderedSize]' started.
+Test Case '-[StatusTrioCoreTests.StatusIconRendererTests testBatteryPercentageScaleChangesRenderedSize]' passed (0.005 seconds).
+Test Case '-[StatusTrioCoreTests.StatusIconRendererTests testBatteryStatusColorsCanBeDisabled]' started.
+Test Case '-[StatusTrioCoreTests.StatusIconRendererTests testBatteryStatusColorsCanBeDisabled]' passed (0.004 seconds).
+Test Case '-[StatusTrioCoreTests.StatusIconRendererTests testBoltScaleTracksBatterySymbolScale]' started.
+Test Case '-[StatusTrioCoreTests.StatusIconRendererTests testBoltScaleTracksBatterySymbolScale]' passed (0.003 seconds).
+Test Case '-[StatusTrioCoreTests.StatusIconRendererTests testRingStrokeStyleChangesMenuBarBatteryRingPixels]' started.
+Test Case '-[StatusTrioCoreTests.StatusIconRendererTests testRingStrokeStyleChangesMenuBarBatteryRingPixels]' passed (0.002 seconds).
+Test Suite 'StatusIconRendererTests' passed at 2026-10-31 00:19:21.550.
+	 Executed 9 tests, with 0 failures (0 unexpected) in 0.063 (0.063) seconds
+Test Suite 'StatusMappingsTests' started at 2026-10-31 00:19:21.550.
+Test Case '-[StatusTrioCoreTests.StatusMappingsTests testBatteryColorPriority]' started.
+Test Case '-[StatusTrioCoreTests.StatusMappingsTests testBatteryColorPriority]' passed (0.000 seconds).
+Test Case '-[StatusTrioCoreTests.StatusMappingsTests testBatteryCriticalThreshold]' started.
+Test Case '-[StatusTrioCoreTests.StatusMappingsTests testBatteryCriticalThreshold]' passed (0.000 seconds).
+Test Case '-[StatusTrioCoreTests.StatusMappingsTests testBatteryGapContentDecisionTable]' started.
+Test Case '-[StatusTrioCoreTests.StatusMappingsTests testBatteryGapContentDecisionTable]' passed (0.000 seconds).
+Test Case '-[StatusTrioCoreTests.StatusMappingsTests testBatteryGapContentFallsBackWhenNothingCanBeDrawn]' started.
+Test Case '-[StatusTrioCoreTests.StatusMappingsTests testBatteryGapContentFallsBackWhenNothingCanBeDrawn]' passed (0.000 seconds).
+Test Case '-[StatusTrioCoreTests.StatusMappingsTests testBatteryGapContentKeepsTheBoltWhileCharging]' started.
+Test Case '-[StatusTrioCoreTests.StatusMappingsTests testBatteryGapContentKeepsTheBoltWhileCharging]' passed (0.000 seconds).
+Test Case '-[StatusTrioCoreTests.StatusMappingsTests testBatteryGapContentUsesThePercentageForConnectedPowerWhenEnabled]' started.
+Test Case '-[StatusTrioCoreTests.StatusMappingsTests testBatteryGapContentUsesThePercentageForConnectedPowerWhenEnabled]' passed (0.000 seconds).
+Test Case '-[StatusTrioCoreTests.StatusMappingsTests testBatteryProgress]' started.
+Test Case '-[StatusTrioCoreTests.StatusMappingsTests testBatteryProgress]' passed (0.000 seconds).
+Test Case '-[StatusTrioCoreTests.StatusMappingsTests testBatteryProgressRescalesAgainstTheFullThreshold]' started.
+Test Case '-[StatusTrioCoreTests.StatusMappingsTests testBatteryProgressRescalesAgainstTheFullThreshold]' passed (0.000 seconds).
+Test Suite 'StatusMappingsTests' passed at 2026-10-31 00:19:21.551.
+	 Executed 8 tests, with 0 failures (0 unexpected) in 0.001 (0.001) seconds
+Test Suite 'StatusPanelRouteTests' started at 2026-10-31 00:19:21.551.
+Test Case '-[StatusTrioCoreTests.StatusPanelRouteTests testBatteryRouteSurvivesReleasedContentWithoutKeepingCollectionActive]' started.
+Test Case '-[StatusTrioCoreTests.StatusPanelRouteTests testBatteryRouteSurvivesReleasedContentWithoutKeepingCollectionActive]' passed (0.008 seconds).
+Test Suite 'StatusPanelRouteTests' passed at 2026-10-31 00:19:21.559.
+	 Executed 1 test, with 0 failures (0 unexpected) in 0.008 (0.008) seconds
+Test Suite 'StatusPanelViewModelTests' started at 2026-10-31 00:19:21.559.
+Test Case '-[StatusTrioCoreTests.StatusPanelViewModelTests testPopupBatteryAndNetworkUpdateThroughTheirDebouncedSource]' started.
+Test Case '-[StatusTrioCoreTests.StatusPanelViewModelTests testPopupBatteryAndNetworkUpdateThroughTheirDebouncedSource]' passed (0.007 seconds).
+Test Suite 'StatusPanelViewModelTests' passed at 2026-10-31 00:19:21.566.
+	 Executed 1 test, with 0 failures (0 unexpected) in 0.007 (0.007) seconds
+Test Suite 'StatusSnapshotTests' started at 2026-10-31 00:19:21.566.
+Test Case '-[StatusTrioCoreTests.StatusSnapshotTests testMissingBatteryBehavesAsFull]' started.
+Test Case '-[StatusTrioCoreTests.StatusSnapshotTests testMissingBatteryBehavesAsFull]' passed (0.000 seconds).
+Test Case '-[StatusTrioCoreTests.StatusSnapshotTests testPresentBatteryAboveMaximumClampsTo100]' started.
+Test Case '-[StatusTrioCoreTests.StatusSnapshotTests testPresentBatteryAboveMaximumClampsTo100]' passed (0.000 seconds).
+Test Case '-[StatusTrioCoreTests.StatusSnapshotTests testPresentBatteryWithNegativeRawPercentageClampsToZero]' started.
+Test Case '-[StatusTrioCoreTests.StatusSnapshotTests testPresentBatteryWithNegativeRawPercentageClampsToZero]' passed (0.000 seconds).
+Test Case '-[StatusTrioCoreTests.StatusSnapshotTests testPresentBatteryWithNilRawPercentageDefaultsTo100]' started.
+Test Case '-[StatusTrioCoreTests.StatusSnapshotTests testPresentBatteryWithNilRawPercentageDefaultsTo100]' passed (0.000 seconds).
+Test Suite 'StatusSnapshotTests' passed at 2026-10-31 00:19:21.567.
+	 Executed 4 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'SymbolFallbackTests' started at 2026-10-31 00:19:21.567.
+Test Case '-[StatusTrioCoreTests.SymbolFallbackTests testUnavailableBatterySymbolFallsBackToVenturaName]' started.
+Test Case '-[StatusTrioCoreTests.SymbolFallbackTests testUnavailableBatterySymbolFallsBackToVenturaName]' passed (0.000 seconds).
+Test Suite 'SymbolFallbackTests' passed at 2026-10-31 00:19:21.567.
+	 Executed 1 test, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'SystemPowerReaderTests' started at 2026-10-31 00:19:21.567.
+Test Case '-[StatusTrioCoreTests.SystemPowerReaderTests testAdapterAndBatterySensorsUseTheirOwnKeysAndUnits]' started.
+Test Case '-[StatusTrioCoreTests.SystemPowerReaderTests testAdapterAndBatterySensorsUseTheirOwnKeysAndUnits]' passed (0.000 seconds).
+Test Case '-[StatusTrioCoreTests.SystemPowerReaderTests testBacklightRailUsesItsOwnKeyAndRange]' started.
+Test Case '-[StatusTrioCoreTests.SystemPowerReaderTests testBacklightRailUsesItsOwnKeyAndRange]' passed (0.000 seconds).
+Test Case '-[StatusTrioCoreTests.SystemPowerReaderTests testDecodesFixedPointPowerWithoutLosingFractionalWatts]' started.
+Test Case '-[StatusTrioCoreTests.SystemPowerReaderTests testDecodesFixedPointPowerWithoutLosingFractionalWatts]' passed (0.000 seconds).
+Test Case '-[StatusTrioCoreTests.SystemPowerReaderTests testReadsSystemTotalInWattsUsingOnlyReadCommands]' started.
+Test Case '-[StatusTrioCoreTests.SystemPowerReaderTests testReadsSystemTotalInWattsUsingOnlyReadCommands]' passed (0.000 seconds).
+Test Case '-[StatusTrioCoreTests.SystemPowerReaderTests testUnavailableAndMalformedRepliesNeverBecomeZeroWatts]' started.
+Test Case '-[StatusTrioCoreTests.SystemPowerReaderTests testUnavailableAndMalformedRepliesNeverBecomeZeroWatts]' passed (0.000 seconds).
+Test Suite 'SystemPowerReaderTests' passed at 2026-10-31 00:19:21.567.
+	 Executed 5 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'SystemStatusStoreTests' started at 2026-10-31 00:19:21.567.
+Test Case '-[StatusTrioCoreTests.SystemStatusStoreTests testDisablingMobileBatteryWhileBluetoothViewIsAbsentClearsCacheAndReenableReadsFreshData]' started.
+Test Case '-[StatusTrioCoreTests.SystemStatusStoreTests testDisablingMobileBatteryWhileBluetoothViewIsAbsentClearsCacheAndReenableReadsFreshData]' passed (0.133 seconds).
+Test Case '-[StatusTrioCoreTests.SystemStatusStoreTests testFallbackTickRefreshesBatteryEveryTickAndWiFiAndVolumeOnTheHiddenStride]' started.
+Test Case '-[StatusTrioCoreTests.SystemStatusStoreTests testFallbackTickRefreshesBatteryEveryTickAndWiFiAndVolumeOnTheHiddenStride]' passed (0.034 seconds).
+Test Case '-[StatusTrioCoreTests.SystemStatusStoreTests testPopoverCloseCancelsMobileBatteryReadWhileViewIsRetained]' started.
+Test Case '-[StatusTrioCoreTests.SystemStatusStoreTests testPopoverCloseCancelsMobileBatteryReadWhileViewIsRetained]' passed (0.082 seconds).
+Test Case '-[StatusTrioCoreTests.SystemStatusStoreTests testPopoverClosingExplicitlyDeactivatesBatteryDetails]' started.
+Test Case '-[StatusTrioCoreTests.SystemStatusStoreTests testPopoverClosingExplicitlyDeactivatesBatteryDetails]' passed (0.099 seconds).
+Test Case '-[StatusTrioCoreTests.SystemStatusStoreTests testSettingsMasterToggleDoesNotStartAppleDiscoveryOrBatteryReads]' started.
+Test Case '-[StatusTrioCoreTests.SystemStatusStoreTests testSettingsMasterToggleDoesNotStartAppleDiscoveryOrBatteryReads]' passed (0.021 seconds).
+Test Suite 'SystemStatusStoreTests' passed at 2026-10-31 00:19:21.938.
+	 Executed 5 tests, with 0 failures (0 unexpected) in 0.370 (0.371) seconds
+Test Suite 'VolumeDetailsDemandTests' started at 2026-10-31 00:19:21.938.
+Test Case '-[StatusTrioCoreTests.VolumeDetailsDemandTests testBatteryAndNetworkSectionsKeepVolumeDetailsOffWhilePopoverIsOpen]' started.
+Test Case '-[StatusTrioCoreTests.VolumeDetailsDemandTests testBatteryAndNetworkSectionsKeepVolumeDetailsOffWhilePopoverIsOpen]' passed (0.004 seconds).
+Test Suite 'VolumeDetailsDemandTests' passed at 2026-10-31 00:19:21.942.
+	 Executed 1 test, with 0 failures (0 unexpected) in 0.004 (0.004) seconds
+Test Suite 'StatusTrioCoreTests.xctest' passed at 2026-10-31 00:19:21.942.
+	 Executed 245 tests, with 0 failures (0 unexpected) in 4.509 (4.523) seconds
+Test Suite 'Selected tests' passed at 2026-10-31 00:19:21.942.
+	 Executed 245 tests, with 0 failures (0 unexpected) in 4.509 (4.524) seconds
+􀟈  Test run started.
+􀄵  Testing Library Version: 2084
+􀄵  Target Platform: arm64e-apple-macos14.0
+􀟈  Suite AppleDeviceSettingsTests started.
+􀟈  Suite ChargingEffectRenderingTests started.
+􀟈  Suite BluetoothBatteryLevelClaimTests started.
+􀟈  Suite AppleDeviceCatalogTests started.
+􀟈  Suite BluetoothLEBatteryParsingTests started.
+􀟈  Suite MobileBatteryHelperReaderTests started.
+􀟈  Suite NearbyBLEDeviceCatalogTests started.
+􀟈  Suite BluetoothBatteryControllerTests started.
+􀟈  Suite BluetoothPairedDeviceListTests started.
+􀟈  Suite MobileBatteryDeviceMergeTests started.
+􀟈  Suite ChargingEffectPolicyTests started.
+􀟈  Suite MobileBatterySnapshotTests started.
+􀟈  Suite StatusBarControllerVisibilityTests started.
+􀟈  Suite ChargingEffectClockTests started.
+􀟈  Suite BluetoothBatteryLevelFallbackTests started.
+􀟈  Suite BluetoothLEBatteryScannerStateTests started.
+􀟈  Suite BatteryDischargePresentationTests started.
+􀟈  Suite BluetoothNearbyBatteryPresentationTests started.
+􀟈  Suite BluetoothAccessoryBatteryTests started.
+􀟈  Suite MobileBatteryFailurePresentationTests started.
+􀟈  Suite ChargingEffectPaletteTests started.
+􀟈  Suite MobileBatteryPresentationTests started.
+􀟈  Suite BluetoothDeviceRowBatteryTextTests started.
+􀟈  Suite BluetoothLEBatteryAdvertisementTests started.
+􀟈  Suite ChargingEffectControllerTests started.
+􀟈  Suite BluetoothDeviceBatteryLayoutTests started.
+􀟈  Suite BluetoothBatteryReaderTests started.
+􀟈  Test detailClaimSurvivesTheSummaryReleasingFirst() started.
+􀟈  Test parsesOnlySingleByteBatteryLevelsFromZeroThroughOneHundred() started.
+􀟈  Test parsesTrimmedUTF8DeviceInformationAndRejectsEmptyOrInvalidValues() started.
+􀟈  Test activePhaseChangesPixelsOnlyInsideTheBatteryRegion() started.
+􀟈  Suite ChargingEffectTestModeTests started.
+􀟈  Test appleRefreshIntervalTitleNamesBackgroundBatteryRefreshInChinese() started.
+􀟈  Test completedPhoneSurvivesOverallCycleDeadline() started.
+􀟈  Test selectedWatchStartsBeforeUnrelatedPhoneReadsFinish() started.
+􀟈  Test cancellationTerminatesTheProcessAndCompletesOnce() started.
+􀟈  Test repeatedClaimsReleaseOnTheSingleOwner() started.
+􀟈  Test boundsPhoneReadsAndDeduplicatesRoutes() started.
+􀟈  Test selectedWatchReadsOnlyItsParentRouteAndNeverReadsParentBattery() started.
+􀟈  Test iPadBatteryWireModelIsAcceptedAndMappedToTabletGlyph() started.
+􀟈  Test processExecutorReturnsStdoutAndRejectsLargeStreamsAndExitStatus() started.
+􀟈  Test discoveryUsesMetadataCommandsAndNeverReadsBattery() started.
+􀟈  Test rejectsUnsolicitedSnapshotsWhileKeepingRequestedResults() started.
+􀟈  Test retriesOnlyDiscoveredNetworkRouteAfterUSBFailure() started.
+􀟈  Test watchFallbackUsesTheRemainingSharedBudget() started.
+􀟈  Test emptySelectedIDsPerformNoHelperCalls() started.
+􀟈  Test nonChargingBatteryIgnoresSuppliedChargingPhase() started.
+􀟈  Test nearbyDeviceUsesProvidedLocalizedFallbackForAnEmptyName() started.
+􀟈  Test hangingWatchDoesNotErasePhoneOrAnotherWatchesResult() started.
+􀟈  Test disablingBatteryReadsKeepsPreviouslyValidatedRowVisibleUntilExpiry() started.
+􀟈  Test onePhoneTimeoutDoesNotDiscardAnotherPhonesSnapshot() started.
+􀟈  Test defaultExecutorResolvesThePackagedHelperName() started.
+􀟈  Test processExecutorFinishesWhenADescendantHoldsThePipes() started.
+􀟈  Test pairedBatteryWinnerDoesNotShowMobileObservationMetadata() started.
+􀟈  Test processExecutorKillsAChildThatIgnoresTermination() started.
+􀟈  Test detailClaimSurvivesTheSummaryReleasingAfterwards() started.
+􀟈  Test normalizesTheAddressToMatchTheBatteryReader() started.
+􀟈  Test addsUnnamedWatchWithFallbackAndReadOnlyExternalIdentity() started.
+􀟈  Test deactivatingReleasesEveryClaim() started.
+􀟈  Test sameNameAcrossPhoneAndWatchFamiliesDoesNotMerge() started.
+􀟈  Test trustedMobileIdentityNeverMergesWithPairedBluetoothDeviceByName() started.
+􀟈  Test namedAppleWatchKeepsModelGlyphAfterCustomName() started.
+􀟈  Test unknownBluetoothFamilyDoesNotAbsorbMobileReadingByName() started.
+􀟈  Test preservesAmbiguousSameNameWatchesAndBluetoothRowsSeparately() started.
+􀟈  Test namedWatchKeepsItsObservedName() started.
+􀟈  Test sameNamedTrustedPhoneDoesNotTakePairedBluetoothBatteryOwnership() started.
+􀟈  Test tailUsesThirtyTwoPercentOfTheVisibleArcWhenBatteryFillIsLongEnough() started.
+􀟈  Test sameNamedTrustedWatchDoesNotMergeWithPairedBluetoothWatch() started.
+􀟈  Test trustedMobileIdentityNeverMergesWithNearbyBluetoothDeviceByName() started.
+􀟈  Test aChargedBatteryStaysStaticEvenIfChargingFlagIsInconsistent() started.
+􀟈  Test bluetoothListOptionsStillFilterAndLimitExternalRows() started.
+􀟈  Test discoveryCapsTotalCandidatesAfterAppleFiltering() started.
+􀟈  Test zeroBatteryIsDifferentFromMissingAndExpiredReading() started.
+􀟈  Test invalidDeviceDoesNotDiscardValidSibling() started.
+􀟈  Test decodesMetadataOnlyDiscoveryIntoSourceQualifiedCandidates() started.
+􀟈  Test sameNamedBluetoothPhoneDoesNotAbsorbTrustedMobileIdentity() started.
+􀟈  Test rejectsUnknownSchemaVersion() started.
+􀟈  Test discoveryRejectsForeignParentAndDoesNotInferAppleFromName() started.
+􀟈  Test candidatesStayInvisibleUntilAValidBatteryReadingExistsAndRowsExpireAfterTwentyMinutes() started.
+􀟈  Test acceptsFullBatteryAndUnicodeName() started.
+􀟈  Test exactStableIdentityWinsWhenTheNameIsAmbiguous() started.
+􀟈  Test deduplicatesTransportCopiesByIdentityUsingLatestObservation() started.
+􀟈  Test idleBatteryDoesNotStartATickLoop() started.
+􀟈  Test discoveryRejectsUnsupportedSchemaAndDeduplicatesCandidates() started.
+􀟈  Test discoveryRejectsBatteryFieldsInMetadataEnvelope() started.
+􀟈  Test stableIdentityReservesItsRowBeforeNameMatchingInEitherInputOrder() started.
+􀟈  Test disabledBatteryPresentationRetainsCachedIdentityButHidesBatteryAndFailure() started.
+􀟈  Test untrustedParentRouteWithoutModelSurvivesAsHintOnly() started.
+􀟈  Test realZeroSurvivesValidation() started.
+􀟈  Test externalIdentifiersRemainDistinctAfterHexNormalization() started.
+􀟈  Test rejectsBlankIdentifiersAndMissingWatchParentButAcceptsIPad() started.
+􀟈  Test rejectsInvalidBatteryPercentages(_:) started.
+􀟈  Test rejectsWrongWatchParentAndIncompatibleFamily() started.
+􀟈  Test "A level the report carries is never changed by the second source" started.
+􀟈  Test untrustedUnknownRouteCanExplainTrustWithoutBecomingSelectable() started.
+􀟈  Test batteryReadsStayOffWithoutAClaim() started.
+􀟈  Test disablingBatteryLevelsDiscardsAnInFlightResult() started.
+􀟈  Test batteryReadsFollowConnectedAirPods() started.
+􀟈  Test "An unnamed accessory never matches by name" started.
+􀟈  Test "A connected device with no level is worth asking about" started.
+􀟈  Test "A reading with no part supplies the device-wide level" started.
+􀟈  Test aFailedReportIsReportedAndPublishesNoLevels() started.
+􀟈  Test aLaterEmptyReportClearsTheFailure() started.
+􀟈  Test "A part writes its own channel and never the device-wide level" started.
+􀟈  Test "A device the report has no level for takes the accessory's" started.
+􀟈  Test releasingTheClaimClearsTheFailure() started.
+􀟈  Test testSwitchAnimatesTheMenuBarWhileTheRealBatteryIsUnplugged() started.
+􀟈  Test "An accessory that matches no device adds nothing" started.
+􀟈  Test "A matching vendor and product pair identifies the device" started.
+􀟈  Test "A disagreeing identifier pair is not rescued by a matching name" started.
+􀟈  Test "A name that merely contains another does not match" started.
+􀟈  Test rejectsMissingBatteryPercentage() started.
+􀟈  Test "A disconnected device without a level does not trigger the read" started.
+􀟈  Test consecutiveFailuresBackOffAndThenStopAutomaticRetries() started.
+􀟈  Test "Separate readings for one device fill their own channels" started.
+􀟈  Test "A failed primary read is worth asking the second source about" started.
+􀟈  Test currentFormalNameReplacesTemporaryAdvertisedName() started.
+􀟈  Test automaticDiscoveryRefreshContinuesWithNoReadPermits() started.
+􀟈  Test batteryReadsOnlyWhileEnabledAndControllerIsActive() started.
+􀟈  Test passiveDiscoveryKeepsScanCadenceWithoutAnyConnectionQueue() started.
+􀟈  Test "A report that covers every connected device needs nothing more" started.
+􀟈  Test staleCancellationCannotRemoveNewSession() started.
+􀟈  Test connectedSystemReadingFollowsItsSelection(showsSystem:) started.
+􀟈  Test explicitRefreshResumesASuspendedDevice() started.
+􀟈  Test "The name matches when either side carries no identifier pair" started.
+􀟈  Test dischargeRemainsVisibleWhenSystemFlowIsHidden(showsInput:showsCharging:) started.
+􀟈  Test cancellingInFlightAttemptThrottlesReauthorization(stopping:) started.
+􀟈  Test retryCooldownSurvivesDemandStopAndConnectionsAreBounded() started.
+􀟈  Test initialValidationRequiresEnabledSurfaceAndExcludesOnlyHiddenCandidates() started.
+􀟈  Test stopInvalidatesCallbacksFromThePreviousPassiveScan() started.
+􀟈  Test initialAttemptSuppressionExpiresAfterCooldownOrVerifiedRowLifetime() started.
+􀟈  Test mobileFailureReportsRealUSBWiFiFailureAndTrustTakesPriority() started.
+􀟈  Test visibleDevicesKeepValidZeroAndDuplicateNamesSeparate() started.
+􀟈  Test initialAndOngoingReadsHaveDifferentVisibilityRequirements() started.
+􀟈  Test disabledNearbyPresentationShowsNoRows() started.
+􀟈  Test "Every accessory document is read and the Mac's own battery is not" started.
+􀟈  Test mobileFailureRequiresAnActualFailureAndNoSnapshot() started.
+􀟈  Test "An undecodable document does not take the readable ones with it" started.
+􀟈  Test externalRowsStayVisibleWhenBluetoothIsOffOrDenied() started.
+􀟈  Test oneSuccessfulSessionClearsTheFailureStreak() started.
+􀟈  Test watchPresentationUsesLocalizedFallbackWithoutSourceOrTimeDetail() started.
+􀟈  Test "A part identifier maps to its channel and unknown wording maps to none" started.
+􀟈  Test "The charging case is a glyph in the row and a word in its text form" started.
+􀟈  Test "A level without a case channel carries no symbol" started.
+􀟈  Test "A capacity that cannot be a percentage is dropped" started.
+􀟈  Test "The worker parses the output it fetched" started.
+􀟈  Test automaticHighlightMaintainsContrastAcrossBatteryColorRoles() started.
+􀟈  Test batteryServiceMatchIgnoresCaseAndOtherServices() started.
+􀟈  Test externalBatteryRowsRemainReadOnly() started.
+􀟈  Test "An empty or unreported answer reads as no accessory" started.
+􀟈  Test "A charging-case channel takes the component layout" started.
+􀟈  Test "The lookup normalizes the address the way the reader keys it" started.
+􀟈  Test advertisesTheBatteryServiceItselfIsEnoughToBeACandidate() started.
+􀟈  Test "A device with no level at all stays inline" started.
+􀟈  Test "A device the report has no level for falls back to inline" started.
+􀟈  Test "A right channel takes the component layout" started.
+􀟈  Test "A whole-device level alongside a component is still the component layout" started.
+􀟈  Test menuBarTestModeDoesNotChangeDockArtworkOrRealBattery() started.
+􀟈  Test "A left channel takes the component layout" started.
+􀟈  Test "Capacity is normalized against the source's own maximum" started.
+􀟈  Test pairedRowIdentifiedByMobileReadRemainsVisibleWhenBluetoothIsOff() started.
+􀟈  Test "The layout lookup normalizes the address the way the reader keys it" started.
+􀟈  Test "Left, right and case together take the component layout" started.
+􀟈  Test "The row keeps every channel the report carries" started.
+􀟈  Test "An ordinary whole-device level stays inline" started.
+􀟈  Test "Left and right together take the component layout" started.
+􀟈  Test "A reported level becomes the row text" started.
+􀟈  Test anotherVendorsPayloadIsNotACandidate() started.
+􀟈  Test "A failed spawn answers with nothing" started.
+􀟈  Test "The first read, still unfinished, renders no placeholder" started.
+􀟈  Test externalWatchMixedWithUnmatchedNearbyUsesNeutralListHeading() started.
+􀟈  Test systemListMatchFoldsCaseAndSurroundingWhitespace() started.
+􀟈  Test mobileClaimRequiresBothBatteryOptInsAndVisibleDeviceList() started.
+􀟈  Test "A device the report has no level for renders no text" started.
+􀟈  Test appleContinuityRequiresTheCompleteCompanyIdentifier() started.
+􀟈  Test deviceInformationAloneIsNotACandidate() started.
+􀟈  Test readsASlicedPayloadFromItsOwnStartIndex() started.
+􀟈  Test appleMobileRouteRequiresTheAppleDeviceFeature() started.
+􀟈  Test knownAppleMobileDeviceIsACandidateWithoutTheBatteryService() started.
+􀟈  Test unnamedBatteryServiceDeviceStaysACandidate() started.
+􀟈  Test missingServiceListIsNotABatteryAdvertisement() started.
+􀟈  Test unnamedAppleBroadcastsAreNotCandidates() started.
+􀟈  Test applePayloadWithAnotherMessageTypeIsNotACandidate() started.
+􀟈  Test phoneNotInTheSystemListIsNotACandidate() started.
+􀟈  Test shortManufacturerDataIsNotReadPastItsEnd() started.
+􀟈  Test emptySystemListReadsNoPhonesButKeepsTheServiceRoute() started.
+􀟈  Test anEntryWithoutALevelDoesNotShadowOneThatHasIt() started.
+􀟈  Test parsesComponentAndAggregateBatteryLevels() started.
+􀟈  Test ignoresInvalidAndOutOfRangeLevels() started.
+􀟈  Test malformedOutputFailsClosed() started.
+􀟈  Test batteryReadSpawnsWhenTheSharedReportIsStale() started.
+􀟈  Test batteryReadReusesTheDeviceReportWithoutSpawningAgain() started.
+􀟈  Test aDeviceListedTwiceKeepsTheConnectedLevel() started.
+􀟈  Test cacheServedReadDoesNotExtendTheReportLifetime() started.
+􀟈  Test failedSpawnAnswersWithNothing() started.
+􀟈  Test sharedReportKeepsTheSeparateReadsMapping() started.
+􀟈  Test cacheServedReadDoesNotRollBackANewerStoredReport() started.
+􀟈  Test testModeUsesAChargingBatteryForIconAndClockButLeavesTheSnapshotUntouched() started.
+􀟈  Test testBatteryStartsAndStopsTheProductionClockWhenUnplugged() started.
+􁁛  Test parsesOnlySingleByteBatteryLevelsFromZeroThroughOneHundred() passed after 0.002 seconds.
+􀟈  Test absentBatteryGetsAVisibleTestArcOnlyInTheDevBundle() started.
+􀟈  Test case passing 1 argument value → "-1" to rejectsInvalidBatteryPercentages(_:) started.
+􀟈  Test case passing 1 argument value → "101" to rejectsInvalidBatteryPercentages(_:) started.
+􀟈  Test case passing 1 argument value → ""72"" to rejectsInvalidBatteryPercentages(_:) started.
+􀟈  Test case passing 1 argument value → "true" to rejectsInvalidBatteryPercentages(_:) started.
+􀟈  Test case passing 1 argument value → "72.5" to rejectsInvalidBatteryPercentages(_:) started.
+􀟈  Test case passing 1 argument value → "72.0" to rejectsInvalidBatteryPercentages(_:) started.
+􁁛  Test parsesTrimmedUTF8DeviceInformationAndRejectsEmptyOrInvalidValues() passed after 0.002 seconds.
+􀟈  Test case passing 1 argument showsSystem → false to connectedSystemReadingFollowsItsSelection(showsSystem:) started.
+􀟈  Test case passing 1 argument showsSystem → true to connectedSystemReadingFollowsItsSelection(showsSystem:) started.
+􀟈  Test case passing 1 argument stopping → false to cancellingInFlightAttemptThrottlesReauthorization(stopping:) started.
+􀟈  Test case passing 1 argument stopping → true to cancellingInFlightAttemptThrottlesReauthorization(stopping:) started.
+􀟈  Test case passing 2 arguments showsInput → false, showsCharging → false to dischargeRemainsVisibleWhenSystemFlowIsHidden(showsInput:showsCharging:) started.
+􀟈  Test case passing 2 arguments showsInput → false, showsCharging → true to dischargeRemainsVisibleWhenSystemFlowIsHidden(showsInput:showsCharging:) started.
+􁁛  Test nearbyDeviceUsesProvidedLocalizedFallbackForAnEmptyName() passed after 0.002 seconds.
+􀟈  Test case passing 2 arguments showsInput → true, showsCharging → true to dischargeRemainsVisibleWhenSystemFlowIsHidden(showsInput:showsCharging:) started.
+􀟈  Test case passing 2 arguments showsInput → true, showsCharging → false to dischargeRemainsVisibleWhenSystemFlowIsHidden(showsInput:showsCharging:) started.
+􁁛  Test emptySelectedIDsPerformNoHelperCalls() passed after 0.002 seconds.
+􁁛  Test pairedBatteryWinnerDoesNotShowMobileObservationMetadata() passed after 0.002 seconds.
+􁁛  Test iPadBatteryWireModelIsAcceptedAndMappedToTabletGlyph() passed after 0.003 seconds.
+􁁛  Test normalizesTheAddressToMatchTheBatteryReader() passed after 0.003 seconds.
+􁁛  Test disablingBatteryReadsKeepsPreviouslyValidatedRowVisibleUntilExpiry() passed after 0.002 seconds.
+􁁛  Test tailUsesThirtyTwoPercentOfTheVisibleArcWhenBatteryFillIsLongEnough() passed after 0.002 seconds.
+􁁛  Test aChargedBatteryStaysStaticEvenIfChargingFlagIsInconsistent() passed after 0.002 seconds.
+􁁛  Test namedWatchKeepsItsObservedName() passed after 0.003 seconds.
+􁁛  Test unknownBluetoothFamilyDoesNotAbsorbMobileReadingByName() passed after 0.003 seconds.
+􁁛  Test sameNameAcrossPhoneAndWatchFamiliesDoesNotMerge() passed after 0.003 seconds.
+􁁛  Test preservesAmbiguousSameNameWatchesAndBluetoothRowsSeparately() passed after 0.003 seconds.
+􁁛  Test zeroBatteryIsDifferentFromMissingAndExpiredReading() passed after 0.003 seconds.
+􁁛  Test trustedMobileIdentityNeverMergesWithNearbyBluetoothDeviceByName() passed after 0.003 seconds.
+􁁛  Test discoveryRejectsForeignParentAndDoesNotInferAppleFromName() passed after 0.003 seconds.
+􁁛  Test sameNamedTrustedPhoneDoesNotTakePairedBluetoothBatteryOwnership() passed after 0.003 seconds.
+􁁛  Test sameNamedBluetoothPhoneDoesNotAbsorbTrustedMobileIdentity() passed after 0.003 seconds.
+􁁛  Test candidatesStayInvisibleUntilAValidBatteryReadingExistsAndRowsExpireAfterTwentyMinutes() passed after 0.003 seconds.
+􁁛  Test trustedMobileIdentityNeverMergesWithPairedBluetoothDeviceByName() passed after 0.003 seconds.
+􁁛  Test invalidDeviceDoesNotDiscardValidSibling() passed after 0.003 seconds.
+􁁛  Test acceptsFullBatteryAndUnicodeName() passed after 0.003 seconds.
+􁁛  Test decodesMetadataOnlyDiscoveryIntoSourceQualifiedCandidates() passed after 0.003 seconds.
+􁁛  Test exactStableIdentityWinsWhenTheNameIsAmbiguous() passed after 0.003 seconds.
+􁁛  Test discoveryRejectsBatteryFieldsInMetadataEnvelope() passed after 0.003 seconds.
+􁁛  Test deduplicatesTransportCopiesByIdentityUsingLatestObservation() passed after 0.003 seconds.
+􁁛  Test untrustedParentRouteWithoutModelSurvivesAsHintOnly() passed after 0.003 seconds.
+􁁛  Test realZeroSurvivesValidation() passed after 0.003 seconds.
+􁁛  Test disabledBatteryPresentationRetainsCachedIdentityButHidesBatteryAndFailure() passed after 0.003 seconds.
+􁁛  Test rejectsBlankIdentifiersAndMissingWatchParentButAcceptsIPad() passed after 0.003 seconds.
+􁁛  Test rejectsInvalidBatteryPercentages(_:) with 6 test cases passed after 0.003 seconds.
+􁁛  Test rejectsWrongWatchParentAndIncompatibleFamily() passed after 0.003 seconds.
+􁁛  Test untrustedUnknownRouteCanExplainTrustWithoutBecomingSelectable() passed after 0.003 seconds.
+􁁛  Test rejectsUnknownSchemaVersion() passed after 0.003 seconds.
+􁁛  Test externalIdentifiersRemainDistinctAfterHexNormalization() passed after 0.003 seconds.
+􁁛  Test "A part writes its own channel and never the device-wide level" passed after 0.003 seconds.
+􁁛  Test "A connected device with no level is worth asking about" passed after 0.003 seconds.
+􁁛  Test "An unnamed accessory never matches by name" passed after 0.003 seconds.
+􁁛  Test "A level the report carries is never changed by the second source" passed after 0.003 seconds.
+􁁛  Test "An accessory that matches no device adds nothing" passed after 0.003 seconds.
+􁁛  Test "A reading with no part supplies the device-wide level" passed after 0.003 seconds.
+􁁛  Test discoveryRejectsUnsupportedSchemaAndDeduplicatesCandidates() passed after 0.003 seconds.
+􁁛  Test "A name that merely contains another does not match" passed after 0.003 seconds.
+􁁛  Test "A matching vendor and product pair identifies the device" passed after 0.003 seconds.
+􁁛  Test "A disconnected device without a level does not trigger the read" passed after 0.003 seconds.
+􁁛  Test rejectsMissingBatteryPercentage() passed after 0.003 seconds.
+􁁛  Test automaticDiscoveryRefreshContinuesWithNoReadPermits() passed after 0.003 seconds.
+􁁛  Test "Separate readings for one device fill their own channels" passed after 0.003 seconds.
+􁁛  Test "A failed primary read is worth asking the second source about" passed after 0.003 seconds.
+􁁛  Test currentFormalNameReplacesTemporaryAdvertisedName() passed after 0.003 seconds.
+􁁛  Test "A disagreeing identifier pair is not rescued by a matching name" passed after 0.003 seconds.
+􁁛  Test "The name matches when either side carries no identifier pair" passed after 0.003 seconds.
+􁁛  Test consecutiveFailuresBackOffAndThenStopAutomaticRetries() passed after 0.003 seconds.
+􁁛  Test staleCancellationCannotRemoveNewSession() passed after 0.003 seconds.
+􁁛  Test explicitRefreshResumesASuspendedDevice() passed after 0.003 seconds.
+􁁛  Test "A report that covers every connected device needs nothing more" passed after 0.003 seconds.
+􁁛  Test stopInvalidatesCallbacksFromThePreviousPassiveScan() passed after 0.003 seconds.
+􁁛  Test initialValidationRequiresEnabledSurfaceAndExcludesOnlyHiddenCandidates() passed after 0.003 seconds.
+􁁛  Test cancellingInFlightAttemptThrottlesReauthorization(stopping:) with 2 test cases passed after 0.003 seconds.
+􁁛  Test initialAttemptSuppressionExpiresAfterCooldownOrVerifiedRowLifetime() passed after 0.003 seconds.
+􁁛  Test stableIdentityReservesItsRowBeforeNameMatchingInEitherInputOrder() passed after 0.003 seconds.
+􁁛  Test visibleDevicesKeepValidZeroAndDuplicateNamesSeparate() passed after 0.003 seconds.
+􁁛  Test oneSuccessfulSessionClearsTheFailureStreak() passed after 0.003 seconds.
+􁁛  Test initialAndOngoingReadsHaveDifferentVisibilityRequirements() passed after 0.003 seconds.
+􁁛  Test "The charging case is a glyph in the row and a word in its text form" passed after 0.002 seconds.
+􁁛  Test mobileFailureRequiresAnActualFailureAndNoSnapshot() passed after 0.003 seconds.
+􁁛  Test externalRowsStayVisibleWhenBluetoothIsOffOrDenied() passed after 0.002 seconds.
+􁁛  Test passiveDiscoveryKeepsScanCadenceWithoutAnyConnectionQueue() passed after 0.003 seconds.
+􁁛  Test retryCooldownSurvivesDemandStopAndConnectionsAreBounded() passed after 0.003 seconds.
+􁁛  Test watchPresentationUsesLocalizedFallbackWithoutSourceOrTimeDetail() passed after 0.002 seconds.
+􁁛  Test externalBatteryRowsRemainReadOnly() passed after 0.002 seconds.
+􁁛  Test "A charging-case channel takes the component layout" passed after 0.002 seconds.
+􁁛  Test disabledNearbyPresentationShowsNoRows() passed after 0.003 seconds.
+􁁛  Test "A part identifier maps to its channel and unknown wording maps to none" passed after 0.002 seconds.
+􁁛  Test "A device with no level at all stays inline" passed after 0.002 seconds.
+􁁛  Test "A level without a case channel carries no symbol" passed after 0.002 seconds.
+􁁛  Test "An empty or unreported answer reads as no accessory" passed after 0.002 seconds.
+􁁛  Test "A device the report has no level for takes the accessory's" passed after 0.003 seconds.
+􁁛  Test "A right channel takes the component layout" passed after 0.002 seconds.
+􁁛  Test "A device the report has no level for falls back to inline" passed after 0.002 seconds.
+􁁛  Test "A left channel takes the component layout" passed after 0.002 seconds.
+􁁛  Test pairedRowIdentifiedByMobileReadRemainsVisibleWhenBluetoothIsOff() passed after 0.002 seconds.
+􁁛  Test "Left, right and case together take the component layout" passed after 0.002 seconds.
+􁁛  Test "The layout lookup normalizes the address the way the reader keys it" passed after 0.002 seconds.
+􁁛  Test advertisesTheBatteryServiceItselfIsEnoughToBeACandidate() passed after 0.002 seconds.
+􁁛  Test batteryServiceMatchIgnoresCaseAndOtherServices() passed after 0.002 seconds.
+􁁛  Test mobileFailureReportsRealUSBWiFiFailureAndTrustTakesPriority() passed after 0.003 seconds.
+􁁛  Test "A reported level becomes the row text" passed after 0.002 seconds.
+􁁛  Test "A capacity that cannot be a percentage is dropped" passed after 0.003 seconds.
+􁁛  Test "An undecodable document does not take the readable ones with it" passed after 0.003 seconds.
+􁁛  Test "An ordinary whole-device level stays inline" passed after 0.002 seconds.
+􁁛  Test anotherVendorsPayloadIsNotACandidate() passed after 0.002 seconds.
+􁁛  Test "Every accessory document is read and the Mac's own battery is not" passed after 0.003 seconds.
+􁁛  Test "Left and right together take the component layout" passed after 0.002 seconds.
+􁁛  Test "The first read, still unfinished, renders no placeholder" passed after 0.002 seconds.
+􁁛  Test "A whole-device level alongside a component is still the component layout" passed after 0.002 seconds.
+􁁛  Test "Capacity is normalized against the source's own maximum" passed after 0.002 seconds.
+􁁛  Test "The row keeps every channel the report carries" passed after 0.002 seconds.
+􁁛  Test deviceInformationAloneIsNotACandidate() passed after 0.002 seconds.
+􁁛  Test readsASlicedPayloadFromItsOwnStartIndex() passed after 0.002 seconds.
+􁁛  Test "A failed spawn answers with nothing" passed after 0.002 seconds.
+􁁛  Test mobileClaimRequiresBothBatteryOptInsAndVisibleDeviceList() passed after 0.002 seconds.
+􁁛  Test appleContinuityRequiresTheCompleteCompanyIdentifier() passed after 0.002 seconds.
+􁁛  Test unnamedBatteryServiceDeviceStaysACandidate() passed after 0.002 seconds.
+􁁛  Test appleMobileRouteRequiresTheAppleDeviceFeature() passed after 0.002 seconds.
+􁁛  Test "The lookup normalizes the address the way the reader keys it" passed after 0.002 seconds.
+􁁛  Test "A device the report has no level for renders no text" passed after 0.002 seconds.
+􁁛  Test externalWatchMixedWithUnmatchedNearbyUsesNeutralListHeading() passed after 0.002 seconds.
+􁁛  Test phoneNotInTheSystemListIsNotACandidate() passed after 0.002 seconds.
+􁁛  Test unnamedAppleBroadcastsAreNotCandidates() passed after 0.002 seconds.
+􁁛  Test emptySystemListReadsNoPhonesButKeepsTheServiceRoute() passed after 0.002 seconds.
+􁁛  Test systemListMatchFoldsCaseAndSurroundingWhitespace() passed after 0.002 seconds.
+􁁛  Test shortManufacturerDataIsNotReadPastItsEnd() passed after 0.002 seconds.
+􁁛  Test applePayloadWithAnotherMessageTypeIsNotACandidate() passed after 0.002 seconds.
+􁁛  Test anEntryWithoutALevelDoesNotShadowOneThatHasIt() passed after 0.002 seconds.
+􁁛  Test parsesComponentAndAggregateBatteryLevels() passed after 0.002 seconds.
+􁁛  Suite BluetoothLEBatteryParsingTests passed after 0.004 seconds.
+􁁛  Test aDeviceListedTwiceKeepsTheConnectedLevel() passed after 0.002 seconds.
+􁁛  Test malformedOutputFailsClosed() passed after 0.002 seconds.
+􁁛  Test ignoresInvalidAndOutOfRangeLevels() passed after 0.002 seconds.
+􁁛  Suite AppleDeviceCatalogTests passed after 0.004 seconds.
+􁁛  Suite BluetoothPairedDeviceListTests passed after 0.004 seconds.
+􁁛  Suite ChargingEffectPolicyTests passed after 0.004 seconds.
+􁁛  Suite NearbyBLEDeviceCatalogTests passed after 0.004 seconds.
+􁁛  Test discoveryUsesMetadataCommandsAndNeverReadsBattery() passed after 0.004 seconds.
+􁁛  Suite MobileBatterySnapshotTests passed after 0.004 seconds.
+􁁛  Suite BluetoothNearbyBatteryPresentationTests passed after 0.004 seconds.
+􁁛  Suite BluetoothLEBatteryScannerStateTests passed after 0.004 seconds.
+􁁛  Test missingServiceListIsNotABatteryAdvertisement() passed after 0.002 seconds.
+􁁛  Suite BluetoothBatteryLevelFallbackTests passed after 0.004 seconds.
+􁁛  Suite BluetoothDeviceRowBatteryTextTests passed after 0.004 seconds.
+􁁛  Suite MobileBatteryFailurePresentationTests passed after 0.004 seconds.
+􁁛  Suite MobileBatteryPresentationTests passed after 0.004 seconds.
+􁁛  Suite BluetoothDeviceBatteryLayoutTests passed after 0.004 seconds.
+􁁛  Test automaticHighlightMaintainsContrastAcrossBatteryColorRoles() passed after 0.003 seconds.
+􁁛  Test retriesOnlyDiscoveredNetworkRouteAfterUSBFailure() passed after 0.004 seconds.
+􁁛  Test rejectsUnsolicitedSnapshotsWhileKeepingRequestedResults() passed after 0.004 seconds.
+􁁛  Test knownAppleMobileDeviceIsACandidateWithoutTheBatteryService() passed after 0.002 seconds.
+􁁛  Suite ChargingEffectPaletteTests passed after 0.004 seconds.
+􁁛  Suite BluetoothLEBatteryAdvertisementTests passed after 0.004 seconds.
+􁁛  Test selectedWatchStartsBeforeUnrelatedPhoneReadsFinish() passed after 0.004 seconds.
+􁁛  Test selectedWatchReadsOnlyItsParentRouteAndNeverReadsParentBattery() passed after 0.004 seconds.
+􁁛  Test hangingWatchDoesNotErasePhoneOrAnotherWatchesResult() passed after 0.004 seconds.
+􁁛  Test boundsPhoneReadsAndDeduplicatesRoutes() passed after 0.004 seconds.
+􁁛  Test cancellationTerminatesTheProcessAndCompletesOnce() passed after 0.004 seconds.
+􁁛  Test discoveryCapsTotalCandidatesAfterAppleFiltering() passed after 0.005 seconds.
+􁁛  Test bluetoothListOptionsStillFilterAndLimitExternalRows() passed after 0.005 seconds.
+􁁛  Test batteryReadSpawnsWhenTheSharedReportIsStale() passed after 0.003 seconds.
+􁁛  Test "The worker parses the output it fetched" passed after 0.004 seconds.
+􁁛  Test failedSpawnAnswersWithNothing() passed after 0.003 seconds.
+􁁛  Test cacheServedReadDoesNotExtendTheReportLifetime() passed after 0.003 seconds.
+􁁛  Suite BluetoothAccessoryBatteryTests passed after 0.006 seconds.
+􁁛  Test batteryReadReusesTheDeviceReportWithoutSpawningAgain() passed after 0.006 seconds.
+􁁛  Test sharedReportKeepsTheSeparateReadsMapping() passed after 0.006 seconds.
+􁁛  Test cacheServedReadDoesNotRollBackANewerStoredReport() passed after 0.006 seconds.
+􁁛  Suite BluetoothBatteryReaderTests passed after 0.009 seconds.
+􁁛  Test defaultExecutorResolvesThePackagedHelperName() passed after 0.030 seconds.
+􁁛  Test sameNamedTrustedWatchDoesNotMergeWithPairedBluetoothWatch() passed after 0.049 seconds.
+􁁛  Test addsUnnamedWatchWithFallbackAndReadOnlyExternalIdentity() passed after 0.049 seconds.
+􁁛  Test namedAppleWatchKeepsModelGlyphAfterCustomName() passed after 0.049 seconds.
+􁁛  Suite MobileBatteryDeviceMergeTests passed after 0.050 seconds.
+􁁛  Test batteryReadsStayOffWithoutAClaim() passed after 0.073 seconds.
+􁁛  Test onePhoneTimeoutDoesNotDiscardAnotherPhonesSnapshot() passed after 0.108 seconds.
+􁁛  Test watchFallbackUsesTheRemainingSharedBudget() passed after 0.108 seconds.
+􁁛  Test appleRefreshIntervalTitleNamesBackgroundBatteryRefreshInChinese() passed after 0.173 seconds.
+􁁛  Test activePhaseChangesPixelsOnlyInsideTheBatteryRegion() passed after 0.173 seconds.
+􁁛  Test detailClaimSurvivesTheSummaryReleasingFirst() passed after 0.173 seconds.
+􁁛  Suite AppleDeviceSettingsTests passed after 0.173 seconds.
+􁁛  Test testSwitchAnimatesTheMenuBarWhileTheRealBatteryIsUnplugged() passed after 0.203 seconds.
+􁁛  Suite StatusBarControllerVisibilityTests passed after 0.204 seconds.
+􁁛  Test repeatedClaimsReleaseOnTheSingleOwner() passed after 0.204 seconds.
+􁁛  Test nonChargingBatteryIgnoresSuppliedChargingPhase() passed after 0.207 seconds.
+􁁛  Suite ChargingEffectRenderingTests passed after 0.208 seconds.
+􁁛  Test detailClaimSurvivesTheSummaryReleasingAfterwards() passed after 0.210 seconds.
+􁁛  Test deactivatingReleasesEveryClaim() passed after 0.210 seconds.
+􁁛  Suite BluetoothBatteryLevelClaimTests passed after 0.210 seconds.
+􁁛  Test idleBatteryDoesNotStartATickLoop() passed after 0.249 seconds.
+􁁛  Test disablingBatteryLevelsDiscardsAnInFlightResult() passed after 0.248 seconds.
+􁁛  Suite ChargingEffectClockTests passed after 0.249 seconds.
+􁁛  Test batteryReadsFollowConnectedAirPods() passed after 0.248 seconds.
+􁁛  Test aFailedReportIsReportedAndPublishesNoLevels() passed after 0.248 seconds.
+􁁛  Test releasingTheClaimClearsTheFailure() passed after 0.248 seconds.
+􁁛  Test connectedSystemReadingFollowsItsSelection(showsSystem:) with 2 test cases passed after 0.248 seconds.
+􁁛  Test dischargeRemainsVisibleWhenSystemFlowIsHidden(showsInput:showsCharging:) with 4 test cases passed after 0.248 seconds.
+􁁛  Suite BatteryDischargePresentationTests passed after 0.249 seconds.
+􁁛  Test absentBatteryGetsAVisibleTestArcOnlyInTheDevBundle() passed after 0.247 seconds.
+􁁛  Test testBatteryStartsAndStopsTheProductionClockWhenUnplugged() passed after 0.247 seconds.
+􁁛  Test testModeUsesAChargingBatteryForIconAndClockButLeavesTheSnapshotUntouched() passed after 0.247 seconds.
+􁁛  Test menuBarTestModeDoesNotChangeDockArtworkOrRealBattery() passed after 0.248 seconds.
+􁁛  Suite ChargingEffectControllerTests passed after 0.250 seconds.
+􁁛  Suite ChargingEffectTestModeTests passed after 0.249 seconds.
+􁁛  Test batteryReadsOnlyWhileEnabledAndControllerIsActive() passed after 0.249 seconds.
+􁁛  Test aLaterEmptyReportClearsTheFailure() passed after 0.251 seconds.
+􁁛  Suite BluetoothBatteryControllerTests passed after 0.253 seconds.
+􁁛  Test completedPhoneSurvivesOverallCycleDeadline() passed after 0.308 seconds.
+􁁛  Test processExecutorReturnsStdoutAndRejectsLargeStreamsAndExitStatus() passed after 0.379 seconds.
+􁁛  Test processExecutorFinishesWhenADescendantHoldsThePipes() passed after 0.513 seconds.
+􁁛  Test processExecutorKillsAChildThatIgnoresTermination() passed after 1.347 seconds.
+􁁛  Suite MobileBatteryHelperReaderTests passed after 1.347 seconds.
+􁁛  Test run with 172 tests in 28 suites passed after 1.347 seconds.
+
+Local verification passed: mode=quick head=364b3c3381a5b44c40b1640e182e687d1e1c3043
+This is focused local evidence, not a full suite, runtime check, or release approval.

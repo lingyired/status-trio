@@ -52,23 +52,27 @@ final class IconSceneRendererParityTests: XCTestCase {
                 let body = pixels.rgba(x: 12, y: 48)
                 switch style {
                 case .dark:
+                    // The tolerance allows for the antialiased peak of a
+                    // glyph-only artwork: a thin symbol reaches ~91% ink at this
+                    // size, while a text accessory reached full white. The
+                    // palette assertion is about which ink the tile carries.
                     XCTAssertGreaterThan(body.alpha, 250, "Dock dark body: \(fixture.name)")
                     XCTAssertEqual(body.red, 21, accuracy: 3)
                     XCTAssertEqual(body.green, 21, accuracy: 3)
                     XCTAssertEqual(body.blue, 23, accuracy: 3)
-                    XCTAssertTrue(pixels.containsColor(red: 1, green: 1, blue: 1, tolerance: 0.08, minimumAlpha: 0.9), fixture.name)
+                    XCTAssertTrue(pixels.containsColor(red: 1, green: 1, blue: 1, tolerance: 0.1, minimumAlpha: 0.9), fixture.name)
                 case .light:
                     XCTAssertGreaterThan(body.alpha, 250, "Dock light body: \(fixture.name)")
                     XCTAssertGreaterThanOrEqual(body.red, 250)
                     XCTAssertGreaterThanOrEqual(body.green, 250)
                     XCTAssertGreaterThanOrEqual(body.blue, 250)
                     XCTAssertTrue(pixels.containsColor(red: 29.0 / 255.0, green: 29.0 / 255.0, blue: 31.0 / 255.0,
-                                                       tolerance: 0.08, minimumAlpha: 0.9), fixture.name)
+                                                       tolerance: 0.1, minimumAlpha: 0.9), fixture.name)
                 case .clear:
                     XCTAssertGreaterThan(body.alpha, 80, "Dock clear body: \(fixture.name)")
                     XCTAssertLessThan(body.alpha, 240, "Dock clear body: \(fixture.name)")
                     XCTAssertTrue(pixels.containsColor(red: 29.0 / 255.0, green: 29.0 / 255.0, blue: 31.0 / 255.0,
-                                                       tolerance: 0.08, minimumAlpha: 0.9), fixture.name)
+                                                       tolerance: 0.1, minimumAlpha: 0.9), fixture.name)
                 }
             }
         }
@@ -278,16 +282,12 @@ final class IconSceneRendererParityTests: XCTestCase {
         let snapshot = PresentationFixtures.snapshot()
         let symbol = "headphones"
         XCTAssertNotNil(NSImage(systemSymbolName: symbol, accessibilityDescription: nil))
-        let picked = configuration(bluetooth: BluetoothAudioIconOptions(
-            replacesNetworkIcon: true,
-            networkIconSymbolOverride: symbol
-        ))
+        let picked = configuration(centerSource: .bluetoothDevice, bluetooth: BluetoothAudioIconOptions(networkIconSymbolOverride: symbol))
         let scene = mappedScene(for: snapshot, configuration: picked)
         XCTAssertEqual(scene.center, .symbol(IconSymbolState(
             source: .symbol(name: symbol, variableValue: nil, fallback: "dot.radiowaves.left.and.right"),
-            color: .bluetooth,
-            scale: BluetoothAudioIconOptions(replacesNetworkIcon: true,
-                                             networkIconSymbolOverride: symbol).symbolScale
+            color: .bluetoothIcon,
+            scale: BluetoothAudioIconOptions(networkIconSymbolOverride: symbol).symbolScale
         )))
         let pixels = try menuBarPixels(scene: scene, foreground: CGColor(gray: 1, alpha: 1), size: 28, scale: 2)
         XCTAssertGreaterThan(pixels.alphaSum(inSVGRect: CGRect(x: 42, y: 55, width: 35, height: 35), size: 28, scale: 2),
@@ -315,8 +315,11 @@ final class IconSceneRendererParityTests: XCTestCase {
             wifi: WiFiStatus(state: .connected, rssi: -62),
             volume: VolumeStatus(scalar: 0.6, isMuted: false, deviceName: device.name, currentDevice: device)
         )
-        let bluetooth = BluetoothAudioIconOptions(replacesNetworkIcon: true)
-        let scene = mappedScene(for: snapshot, configuration: configuration(bluetooth: bluetooth))
+        let bluetooth = BluetoothAudioIconOptions()
+        let scene = mappedScene(
+            for: snapshot,
+            configuration: configuration(centerSource: .bluetoothDevice, bluetooth: bluetooth)
+        )
         XCTAssertEqual(IconPresentationResourceResolver.inputs(snapshot: snapshot).audioIcon,
                        .image(url: url, fallbackSymbol: "headphones"))
         guard case .symbol(let center)? = scene.center else {
@@ -456,11 +459,14 @@ final class IconSceneRendererParityTests: XCTestCase {
     private func visualCases() -> [VisualCase] {
         let ordinary = PresentationFixtures.snapshot(rssi: -60)
         let mediumWiFi = symbol("wifi", value: 0.66)
-        let ordinaryRing = ring(progress: 0.68, color: .primary, gap: .value,
+        let ordinaryRing = ring(progress: 0.68, color: .discharging, gap: .value,
                                 accessory: .text(IconTextState(text: "68", color: .primary, scale: 1.8)))
         let slash = CenterState.symbol(IconSymbolState(source: .symbol(name: "wifi.slash", variableValue: 1, fallback: nil), color: .primary, scale: 1))
-        let placeholderRing = ring(progress: 1, color: .primary, gap: .value,
+        let placeholderRing = ring(progress: 1, color: .discharging, gap: .value,
                                    accessory: .text(IconTextState(text: "100", color: .primary, scale: 1.8)))
+        let absentBatteryRing = ring(progress: 1, color: .primary, gap: .indicator,
+                                     accessory: .symbol(IconSymbolState(
+                                        source: .primitive(.plug), color: .primary, scale: 1.8)))
         let ordinaryFooter = FooterState.dots(DotsState(count: 4, activeCount: 3, color: .primary, strokeScale: 1.25))
         let inactiveFooter = FooterState.dots(DotsState(count: 4, activeCount: 0, color: .primary, strokeScale: 1.25))
 
@@ -513,13 +519,13 @@ final class IconSceneRendererParityTests: XCTestCase {
             ), ring(progress: 0.68, color: .primary, gap: .closed, accessory: nil)),
             ("scaled battery text and bold ring", battery(percentage: 54), BatteryIconOptions(
                 textScale: 1.35, ringStrokeScale: 1.5
-            ), ring(progress: 0.54, color: .primary, gap: .value, accessory: .text(IconTextState(text: "54", color: .primary, scale: 1.35)), strokeScale: 1.5)),
+            ), ring(progress: 0.54, color: .discharging, gap: .value, accessory: .text(IconTextState(text: "54", color: .primary, scale: 1.35)), strokeScale: 1.5)),
             ("custom critical threshold", battery(percentage: 28), BatteryIconOptions(
                 criticalThreshold: 30, ringStrokeScale: 1
             ), ring(progress: 0.28, color: .critical, gap: .value, accessory: .text(IconTextState(text: "28", color: .primary, scale: 1.8)), strokeScale: 1)),
             ("absent battery", BatteryStatus(rawPercentage: nil, isPresent: false, isCharging: false,
                                               isLowPowerMode: false, isConnectedToPower: false), .standard,
-             placeholderRing)
+             absentBatteryRing)
         ]
         for (name, status, options, expectedRing) in batteryCases {
             cases.append(visualCase(
@@ -534,7 +540,7 @@ final class IconSceneRendererParityTests: XCTestCase {
         let noInternet = CenterState.symbol(IconSymbolState(source: .symbol(name: "wifi.exclamationmark", variableValue: 1, fallback: nil), color: .primary, scale: 1))
         let wifiCases: [(String, WiFiStatus, NetworkConnection, ConnectionIconOptions, CenterState)] = [
             ("connected full signal", WiFiStatus(state: .connected, rssi: -60), .wifi, .standard, symbol("wifi", value: 1)),
-            ("connected medium signal", WiFiStatus(state: .connected, rssi: -70), .wifi, .standard, mediumWiFi),
+            ("connected medium signal", WiFiStatus(state: .connected, rssi: -75), .wifi, .standard, mediumWiFi),
             ("connected weak signal", WiFiStatus(state: .connected, rssi: -85), .wifi, .standard, symbol("wifi", value: 0.33)),
             ("connected no signal", WiFiStatus(state: .connected, rssi: nil), .wifi, .standard, symbol("wifi", value: 0)),
             ("not associated", WiFiStatus(state: .notAssociated, rssi: nil), .wifi, .standard, symbol("wifi", value: 0)),
@@ -543,15 +549,15 @@ final class IconSceneRendererParityTests: XCTestCase {
             ("no internet", WiFiStatus(state: .noInternet, rssi: -45), .wifi, .standard, noInternet),
             ("hotspot mark", WiFiStatus(state: .hotspot, rssi: -65), .wifi, .standard,
              symbol("personalhotspot", value: 1)),
-            ("hotspot signal", WiFiStatus(state: .hotspot, rssi: -65), .wifi,
+            ("hotspot signal", WiFiStatus(state: .hotspot, rssi: -75), .wifi,
              ConnectionIconOptions(showsWiFiIconForHotspot: true), mediumWiFi),
             ("temporary mark", WiFiStatus(state: .temporary, rssi: -65), .wifi, .standard,
              .symbol(IconSymbolState(source: .primitive(.screenWedge), color: .primary, scale: 1))),
-            ("temporary signal", WiFiStatus(state: .temporary, rssi: -65), .wifi,
+            ("temporary signal", WiFiStatus(state: .temporary, rssi: -75), .wifi,
              ConnectionIconOptions(showsWiFiIconForTemporaryConnection: true, wifiScale: 1.4), symbol("wifi", value: 0.66, scale: 1.4)),
             ("shared mark", WiFiStatus(state: .shared, rssi: -65), .wifi, .standard,
              .symbol(IconSymbolState(source: .primitive(.arrowWedge), color: .primary, scale: 1))),
-            ("shared signal", WiFiStatus(state: .shared, rssi: -65), .wifi,
+            ("shared signal", WiFiStatus(state: .shared, rssi: -75), .wifi,
              ConnectionIconOptions(showsWiFiIconForInternetSharing: true, wifiScale: 0.8), symbol("wifi", value: 0.66, scale: 0.8)),
             ("ethernet", WiFiStatus(state: .off, rssi: nil), .ethernet, .standard,
              .symbol(IconSymbolState(source: .primitive(.wiredPort), color: .primary, scale: 1))),
@@ -570,7 +576,7 @@ final class IconSceneRendererParityTests: XCTestCase {
         cases.append(visualCase(
             "battery percentage in center slot",
             snapshot: ordinary,
-            configuration: configuration(connection: ConnectionIconOptions(showsBatteryPercentageInConnectionSlot: true)),
+            configuration: configuration(connection: ConnectionIconOptions(centerSource: .batteryPercentage)),
             expected: scene(ring: ordinaryRing, center: .text(IconTextState(text: "68", color: .primary, scale: 1))),
             distinctRegion: centerRegion
         ))
@@ -602,10 +608,10 @@ final class IconSceneRendererParityTests: XCTestCase {
              .dots(DotsState(count: 4, activeCount: 3, color: .bluetooth, strokeScale: 1.25)), volumeCenter),
             ("Bluetooth replaced center", VolumeStatus(scalar: 0.75, isMuted: false, deviceName: "Output",
                                                          currentDevice: PresentationFixtures.bluetoothDevice),
-             .standard, BluetoothAudioIconOptions(replacesNetworkIcon: true, usesVolumeColor: true),
+             .standard, BluetoothAudioIconOptions(usesVolumeColor: true),
              .dots(DotsState(count: 4, activeCount: 3, color: .bluetooth, strokeScale: 1.25)),
              .symbol(IconSymbolState(source: .symbol(name: "airpods.pro", variableValue: nil, fallback: "headphones"),
-                                     color: .bluetooth, scale: 1.6)))
+                                     color: .bluetoothIcon, scale: 1.6)))
         ]
         for (name, volume, options, bluetooth, expectedFooter, expectedCenter) in volumeCases {
             let wifi = name == "Bluetooth replaced center"
@@ -614,7 +620,11 @@ final class IconSceneRendererParityTests: XCTestCase {
             cases.append(visualCase(
                 name,
                 snapshot: makeSnapshot(wifi: wifi, volume: volume),
-                configuration: configuration(volume: options, bluetooth: bluetooth),
+                configuration: configuration(
+                    volume: options,
+                    centerSource: name == "Bluetooth replaced center" ? .bluetoothDevice : .network,
+                    bluetooth: bluetooth
+                ),
                 expected: scene(ring: placeholderRing, center: expectedCenter, footer: expectedFooter),
                 distinctRegion: name == "Bluetooth replaced center" ? centerRegion : footerRegion
             ))
@@ -757,9 +767,17 @@ final class IconSceneRendererParityTests: XCTestCase {
         battery: BatteryIconOptions = .standard,
         connection: ConnectionIconOptions = .standard,
         volume: VolumeIconOptions = .standard,
+        centerSource: ConnectionCenterSource = .network,
         bluetooth: BluetoothAudioIconOptions = .standard
     ) -> IconPresentationConfiguration {
-        IconPresentationConfiguration(battery: battery, connection: connection, volume: volume, bluetooth: bluetooth)
+        IconPresentationConfiguration(
+            battery: battery,
+            connection: centerSource == .network
+                ? connection
+                : ConnectionIconOptions(centerSource: centerSource),
+            volume: volume,
+            bluetooth: bluetooth
+        )
     }
 
     private func makeSnapshot(

@@ -27,9 +27,9 @@ final class IconStateSheetTests: XCTestCase {
         let status = MenuBarStatus(snapshot: snapshot)
         let configuration = IconPresentationConfiguration(
             battery: .standard,
-            connection: .standard,
+            connection: ConnectionIconOptions(centerSource: .bluetoothDevice),
             volume: .standard,
-            bluetooth: BluetoothAudioIconOptions(replacesNetworkIcon: true)
+            bluetooth: BluetoothAudioIconOptions()
         )
         let resolvedInputs = IconPresentationResourceResolver.inputs(snapshot: snapshot)
         let canonicalScene = IconPresentationMapper.scene(inputs: resolvedInputs, configuration: configuration)
@@ -46,6 +46,7 @@ final class IconStateSheetTests: XCTestCase {
             size: 28,
             scale: 2,
             foreground: CGColor(gray: 1, alpha: 1),
+            connectionOptions: configuration.connection,
             bluetoothAudioOptions: configuration.bluetooth
         ))
         let expected = try XCTUnwrap(StatusIconRenderer.render(

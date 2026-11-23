@@ -28,35 +28,35 @@ final class FakeListeningModeBackend: BluetoothListeningModePropertyReading, @un
 
     private let lock = NSLock()
 
-    func hasProperty(_ deviceID: AudioDeviceID, _ property: BluetoothListeningModePropertyKind) -> Bool {
-        slot(for: property).exists
+    func hasProperty(_ deviceID: AudioDeviceID, _ selector: AudioObjectPropertySelector) -> Bool {
+        slot(for: selector).exists
     }
 
-    func dataSize(_ deviceID: AudioDeviceID, _ property: BluetoothListeningModePropertyKind) -> UInt32? {
-        let slot = slot(for: property)
+    func dataSize(_ deviceID: AudioDeviceID, _ selector: AudioObjectPropertySelector) -> UInt32? {
+        let slot = slot(for: selector)
         return slot.exists ? slot.size : nil
     }
 
-    func readUInt32(_ deviceID: AudioDeviceID, _ property: BluetoothListeningModePropertyKind) -> UInt32? {
-        if property == .listeningMode {
+    func readUInt32(_ deviceID: AudioDeviceID, _ selector: AudioObjectPropertySelector) -> UInt32? {
+        if selector == BluetoothListeningModeProperty.listeningMode {
             return readListeningMode()
         }
-        let slot = slot(for: property)
+        let slot = slot(for: selector)
         return slot.exists ? slot.value : nil
     }
 
-    func isSettable(_ deviceID: AudioDeviceID, _ property: BluetoothListeningModePropertyKind) -> Bool {
-        slot(for: property).settable
+    func isSettable(_ deviceID: AudioDeviceID, _ selector: AudioObjectPropertySelector) -> Bool {
+        slot(for: selector).settable
     }
 
     func writeUInt32(
         _ deviceID: AudioDeviceID,
-        _ property: BluetoothListeningModePropertyKind,
+        _ selector: AudioObjectPropertySelector,
         _ value: UInt32
     ) -> OSStatus {
         lock.lock()
         defer { lock.unlock() }
-        guard property == .listeningMode, lstm.exists, lstm.settable else {
+        guard selector == BluetoothListeningModeProperty.listeningMode, lstm.exists, lstm.settable else {
             return kAudioHardwareUnspecifiedError
         }
         writeCount += 1
@@ -86,8 +86,8 @@ final class FakeListeningModeBackend: BluetoothListeningModePropertyReading, @un
 
     private var readCursor = 0
 
-    private func slot(for property: BluetoothListeningModePropertyKind) -> Slot {
-        property == .listeningMode ? lstm : lsms
+    private func slot(for selector: AudioObjectPropertySelector) -> Slot {
+        selector == BluetoothListeningModeProperty.listeningMode ? lstm : lsms
     }
 }
 
@@ -146,12 +146,12 @@ final class BluetoothListeningModeHALTests: XCTestCase {
 
     // MARK: - Support-mask parsing (§18.1)
 
-    func testSupportMaskSingleModeIsNotControllable() {
+    func testSupportMaskDoesNotImplyOffPermission() {
         let backend = FakeListeningModeBackend()
         backend.lsms.value = 0b001
         let capability = makeHAL(backend).capability(for: device)
         XCTAssertEqual(capability?.availableModes, [.noiseCancellation])
-        XCTAssertEqual(capability?.isControllable, false, "one mode has nothing to switch between")
+        XCTAssertEqual(capability?.isControllable, false)
     }
 
     func testSupportMaskTwoModes() {
@@ -191,12 +191,12 @@ final class BluetoothListeningModeHALTests: XCTestCase {
         XCTAssertNil(makeHAL(backend).capability(for: device)?.currentMode)
     }
 
-    func testCurrentOffIsObservedButNotSelectable() {
+    func testCurrentOffIsSelectableAndHighlighted() {
         let backend = FakeListeningModeBackend()
         backend.lstm.value = 1
         let capability = makeHAL(backend).capability(for: device)
         XCTAssertEqual(capability?.currentMode, .off)
-        XCTAssertFalse(BluetoothListeningMode.off.isUserSelectable)
+        XCTAssertEqual(BluetoothListeningModePresentation(capability: capability!).selectedMode, .off)
     }
 
     func testCurrentModesMapToTheirRawValues() {
@@ -223,7 +223,7 @@ final class BluetoothListeningModeHALTests: XCTestCase {
         backend.lstm.value = 3 // already Transparency
         let result = await makeHAL(backend).setMode(.transparency, for: device)
         XCTAssertEqual(result, .confirmed(.transparency))
-        XCTAssertEqual(backend.writeCount, 0, "a re-tap of the selected mode writes nothing")
+        XCTAssertEqual(backend.writeCount, 0, "a write to the mode already active writes nothing")
     }
 
     func testSetterFailureIsReported() async {
@@ -272,10 +272,20 @@ final class BluetoothListeningModeHALTests: XCTestCase {
         XCTAssertEqual(backend.writeCount, 0)
     }
 
-    func testWriteToOffIsRejected() async {
+    func testWriteToOffSucceeds() async {
         let backend = FakeListeningModeBackend()
-        backend.lstm.value = 2
+        backend.lstm.value = 2 // on Noise Cancellation
         let result = await makeHAL(backend).setMode(.off, for: device)
-        XCTAssertEqual(result, .failed(.modeUnsupported), "V1 never switches to Off")
+        XCTAssertEqual(result, .confirmed(.off), "re-tapping the active mode turns it off")
+        XCTAssertEqual(backend.writeCount, 1)
+        XCTAssertEqual(backend.lstm.value, BluetoothListeningMode.off.rawValue)
+    }
+
+    func testOffIsIdempotentWhenAlreadyOff() async {
+        let backend = FakeListeningModeBackend()
+        backend.lstm.value = BluetoothListeningMode.off.rawValue
+        let result = await makeHAL(backend).setMode(.off, for: device)
+        XCTAssertEqual(result, .confirmed(.off))
+        XCTAssertEqual(backend.writeCount, 0, "an already-off device needs no write")
     }
 }

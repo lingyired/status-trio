@@ -4,17 +4,16 @@ import Sparkle
 import SwiftUI
 
 @MainActor
-final class UpdaterManager: NSObject, UpdateServicing, SPUUpdaterDelegate {
+final class UpdaterManager: NSObject, ObservableObject, SPUUpdaterDelegate {
     static let shared = UpdaterManager()
 
     @Published private(set) var canCheckForUpdates = false
     @Published private(set) var automaticallyChecksForUpdates = false
-    private var activationPolicy: AppActivationPolicy?
 
     private lazy var userDriver: UpdateFallbackUserDriver = {
         let driver = UpdateFallbackUserDriver(hostBundle: .main, delegate: nil)
         driver.shouldSuppressUpdaterError = { [weak self] error in
-            self?.updateSourceFallback.canAdvanceAfterError(error) == true
+            self?.updateCycle.canSuppressErrorForRetry(error) == true
         }
         return driver
     }()
@@ -24,35 +23,14 @@ final class UpdaterManager: NSObject, UpdateServicing, SPUUpdaterDelegate {
         userDriver: userDriver,
         delegate: self
     )
-    private var updateSourceFallback = UpdateSourceFallback()
-    private(set) var manualUpdatePresentation: ManualUpdatePresentation?
+    private var updateCycle = UpdateCycleState()
+    private var manualUpdatePresentation: ManualUpdatePresentation?
 
     var automaticallyChecksForUpdatesBinding: Binding<Bool> {
         Binding(
             get: { self.automaticallyChecksForUpdates },
-            set: { self.setAutomaticallyChecksForUpdates($0) }
+            set: { self.updater.automaticallyChecksForUpdates = $0 }
         )
-    }
-
-    var state: UpdateControlState {
-        UpdateControlState(
-            delivery: .direct,
-            canCheckForUpdates: canCheckForUpdates,
-            automaticallyChecksForUpdates: automaticallyChecksForUpdates
-        )
-    }
-
-    var statePublisher: AnyPublisher<UpdateControlState, Never> {
-        Publishers.CombineLatest($canCheckForUpdates, $automaticallyChecksForUpdates)
-            .map { canCheckForUpdates, automaticallyChecksForUpdates in
-                UpdateControlState(
-                    delivery: .direct,
-                    canCheckForUpdates: canCheckForUpdates,
-                    automaticallyChecksForUpdates: automaticallyChecksForUpdates
-                )
-            }
-            .removeDuplicates()
-            .eraseToAnyPublisher()
     }
 
     private override init() {
@@ -64,11 +42,7 @@ final class UpdaterManager: NSObject, UpdateServicing, SPUUpdaterDelegate {
             .assign(to: &$automaticallyChecksForUpdates)
     }
 
-    func start() {
-        guard let activationPolicy else {
-            assertionFailure("UpdaterManager must be configured with the app's shared AppActivationPolicy before start().")
-            return
-        }
+    func start(activationPolicy: AppActivationPolicy) {
         manualUpdatePresentation = ManualUpdatePresentation(
             activationPolicy: activationPolicy
         )
@@ -84,43 +58,44 @@ final class UpdaterManager: NSObject, UpdateServicing, SPUUpdaterDelegate {
         #endif
     }
 
-    func checkForUpdates() {
+    func checkForUpdates(preference: UpdatePreference = .githubFirst) {
         guard AppMetadata.developmentCodename == nil else { return }
         #if DEBUG
         return
         #else
-        guard canCheckForUpdates else { return }
+        guard canCheckForUpdates, updateCycle.beginManual(preference: preference) else { return }
 
         manualUpdatePresentation?.begin()
         updater.checkForUpdates()
         #endif
     }
 
-    func setAutomaticallyChecksForUpdates(_ enabled: Bool) {
-        guard automaticallyChecksForUpdates != enabled else { return }
-        updater.automaticallyChecksForUpdates = enabled
-        automaticallyChecksForUpdates = enabled
-    }
-
-    func start(activationPolicy: AppActivationPolicy) {
-        configure(activationPolicy: activationPolicy)
-        start()
-    }
-
-    func configure(activationPolicy: AppActivationPolicy) {
-        self.activationPolicy = activationPolicy
+    /// Raw appcast URL from Info.plist, before mirroring. Injectable for tests.
+    var directFeedURLString: () -> String? = {
+        Bundle.main.object(forInfoDictionaryKey: "SUFeedURL") as? String
     }
 
     func feedURLString(for updater: SPUUpdater) -> String? {
-        guard
-            let directURLString = Bundle.main.object(
-                forInfoDictionaryKey: "SUFeedURL"
-            ) as? String
-        else {
-            return nil
+        if !updateCycle.isActive {
+            _ = updateCycle.beginAutomaticIfIdle()
         }
+        return currentProxiedFeedURLString()
+    }
 
-        return updateSourceFallback.appcastURLString(from: directURLString)
+    func currentProxiedFeedURLString() -> String? {
+        guard let directURLString = directFeedURLString() else { return nil }
+        return updateCycle.appcastURLString(from: directURLString)
+    }
+
+    @discardableResult
+    func advanceUpdateSource(after error: Error?) -> Bool {
+        let advanced = updateCycle.advanceForTest(error)
+        if !advanced { updateCycle.resetForTest() }
+        return advanced
+    }
+
+    func restoreInitialUpdateSource() {
+        updateCycle.resetForTest()
     }
 
     func updater(
@@ -129,7 +104,8 @@ final class UpdaterManager: NSObject, UpdateServicing, SPUUpdaterDelegate {
         with request: NSMutableURLRequest
     ) {
         guard let fileURL = item.fileURL else { return }
-        request.url = updateSourceFallback.downloadURL(for: fileURL)
+        updateCycle.markDownloading()
+        request.url = updateCycle.downloadURL(for: fileURL)
     }
 
     func updater(
@@ -137,12 +113,42 @@ final class UpdaterManager: NSObject, UpdateServicing, SPUUpdaterDelegate {
         didFinishUpdateCycleFor updateCheck: SPUUpdateCheck,
         error: Error?
     ) {
-        if updateSourceFallback.advanceAfterError(error) {
+        updateCycle.prepareForRetryAfterFinishedCycle()
+        if updateCycle.advanceAfterError(error) {
             retryUpdateCheck(updateCheck)
             return
         }
 
+        let giteeMayLag = updateCycle.isGiteeFirstCycle && Self.isNoUpdateError(error)
+        updateCycle.finish()
         manualUpdatePresentation?.end()
+        if giteeMayLag {
+            presentGiteeMirrorMayLagAlert()
+        }
+    }
+
+    private static func isNoUpdateError(_ error: Error?) -> Bool {
+        guard let nsError = error as NSError? else { return false }
+        if nsError.domain == SUSparkleErrorDomain,
+           nsError.code == Int(SUError.noUpdateError.rawValue) {
+            return true
+        }
+        guard let underlying = nsError.userInfo[NSUnderlyingErrorKey] as? Error else { return false }
+        return isNoUpdateError(underlying)
+    }
+
+    private func presentGiteeMirrorMayLagAlert() {
+        let localization = Localization()
+        let alert = NSAlert()
+        alert.messageText = localization.string(.settingsUpdatesGiteeLaggingTitle)
+        alert.informativeText = localization.string(.settingsUpdatesGiteeLaggingMessage)
+        alert.alertStyle = .informational
+        alert.addButton(withTitle: "OK")
+        alert.runModal()
+    }
+
+    func updater(_ updater: SPUUpdater, willInstallUpdate item: SUAppcastItem) {
+        updateCycle.markInstalling()
     }
 
     private func retryUpdateCheck(_ updateCheck: SPUUpdateCheck) {

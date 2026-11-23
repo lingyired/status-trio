@@ -1,0 +1,2 @@
+[cpuload] label=02-cpu-light threads=2 seconds=45 start_mono=200040.522 pid=58935
+[cpuload] stopped mono=200085.532 elapsed=45.010 iters=39978016768 sink=64253301299.857

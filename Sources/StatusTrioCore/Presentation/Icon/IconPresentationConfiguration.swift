@@ -12,20 +12,130 @@ struct IconPresentationConfiguration: Equatable, Sendable {
     )
 }
 
+/// Main-branch icon settings that have no field in the persisted V1 designer
+/// schema. These are passed with each render and only supplement the legacy
+/// projection; V1 source and appearance choices remain authoritative.
+struct IconPresentationRuntimeOptions: Equatable, Sendable {
+    let connectionCenterSource: ConnectionCenterSource
+    let prioritizesNetworkErrorsOverInputSource: Bool
+    let batteryFullThreshold: Int
+    let bluetoothAudioIconChoice: BluetoothAudioIconChoice
+    /// Which quantity fills the bottom indicator. Runtime-only (no V1 schema
+    /// field), carried alongside the other opaque settings so the live scene
+    /// and the settings previews read the same value.
+    var bottomIndicatorSource: BottomIndicatorSource = .volume
+    /// The hardware-monitor metric drawn when the bottom source is `.metric`.
+    /// Runtime-only like the source above; changing it never rewrites the
+    /// persisted slot binding.
+    var bottomIndicatorMetric: HardwareMonitorMetric = .cpuUsage
+    /// The dot/arc style the bottom indicator draws with right now (the metric
+    /// source has its own arc-by-default style). Runtime-only.
+    var bottomIndicatorStyle: VolumeDisplayStyle = .dots
+    /// The colour role the volume footer uses for Bluetooth audio output, carried
+    /// so the resolver's legacy projection also sees the custom colour.
+    var bluetoothVolumeColorRole: IconColorRole? = nil
+
+    func applying(to configuration: IconPresentationConfiguration) -> IconPresentationConfiguration {
+        let battery = configuration.battery
+        let connection = configuration.connection
+        let bluetooth = configuration.bluetooth
+        return IconPresentationConfiguration(
+            battery: BatteryIconOptions(
+                showsPercentage: battery.showsPercentage,
+                showsChargingIndicator: battery.showsChargingIndicator,
+                showsChargingEffect: battery.showsChargingEffect,
+                showsChargingBoltHeartbeat: battery.showsChargingBoltHeartbeat,
+                splitGapProgress: battery.splitGapProgress,
+                usesStatusColors: battery.usesStatusColors,
+                criticalThreshold: battery.criticalThreshold,
+                connectedIndicator: battery.connectedIndicator,
+                fullThreshold: batteryFullThreshold,
+                textScale: battery.textScale,
+                ringStrokeScale: battery.ringStrokeScale,
+                batteryStatusColors: battery.batteryStatusColors,
+                onBatteryMarker: battery.onBatteryMarker,
+                chargingMarker: battery.chargingMarker,
+                connectedMarker: battery.connectedMarker,
+                noBatteryMarker: battery.noBatteryMarker,
+                monochromeCharging: battery.monochromeCharging
+            ),
+            connection: ConnectionIconOptions(
+                showsWiFiIconForEthernet: connection.showsWiFiIconForEthernet,
+                showsWiFiIconForHotspot: connection.showsWiFiIconForHotspot,
+                showsWiFiIconForTemporaryConnection: connection.showsWiFiIconForTemporaryConnection,
+                showsWiFiIconForInternetSharing: connection.showsWiFiIconForInternetSharing,
+                centerSource: connectionCenterSource,
+                prioritizesNetworkErrors: prioritizesNetworkErrorsOverInputSource,
+                wifiScale: connection.wifiScale
+            ),
+            volume: VolumeIconOptions(
+                displayStyle: bottomIndicatorStyle,
+                ringStrokeScale: configuration.volume.ringStrokeScale
+            ),
+            bluetooth: BluetoothAudioIconOptions(
+                iconColor: bluetooth.iconColor,
+                usesVolumeColor: bluetooth.usesVolumeColor,
+                symbolScale: bluetooth.symbolScale,
+                networkIconSymbolOverride: bluetooth.networkIconSymbolOverride,
+                iconChoice: bluetoothAudioIconChoice,
+                volumeColorRole: bluetoothVolumeColorRole ?? bluetooth.volumeColorRole
+            )
+        )
+    }
+}
+
 struct IconPresentationInputs: Equatable, Sendable {
     let snapshot: StatusSnapshot
     let audioIcon: IconSymbolSource?
     /// The selected input source, already filtered to an enabled, select-capable
-    /// source. `nil` whenever the centre slot must fall back to `.automatic`.
+    /// source. `nil` whenever the centre slot must fall back to `.network`.
     let inputSource: InputSourceDescriptor?
+    /// Runtime-only main settings missing from the V1 schema, carried through
+    /// the same input value used by live and preview resolution.
+    let runtimeOptions: IconPresentationRuntimeOptions?
+    /// The shared whole-machine power sample when the centre slot is set to
+    /// `.power`. `nil` until the sampler has a fresh reading.
+    let systemPower: SystemPowerSample?
+    /// Whether the system Power Mode switch is in High Power Mode (#235).
+    ///
+    /// It comes from the privileged helper rather than the IOKit snapshot, so
+    /// it is carried alongside the snapshot and drives the battery ring colour
+    /// on both the menu bar and the Dock, which share this scene.
+    let isHighPowerMode: Bool
+    /// Source availability and Bluetooth/AirPods battery snapshot used by the
+    /// V1 resolver/plugin layer. `.empty` keeps the legacy projection inputs
+    /// usable without BT data.
+    var sources: IconSourceSnapshot = .empty
+    /// Which quantity fills the bottom indicator. Part of the input value (not
+    /// the V1 schema) so the mapper reads the same source for the live scene,
+    /// the settings previews and the empty-battery simulation.
+    var bottomIndicatorSource: BottomIndicatorSource = .volume
+    /// The hardware-monitor metric used when `bottomIndicatorSource == .metric`.
+    var bottomIndicatorMetric: HardwareMonitorMetric = .cpuUsage
+    /// The dot/arc style the bottom indicator draws with right now.
+    var bottomIndicatorStyle: VolumeDisplayStyle = .dots
 
     init(
         snapshot: StatusSnapshot,
         audioIcon: IconSymbolSource?,
-        inputSource: InputSourceDescriptor? = nil
+        inputSource: InputSourceDescriptor? = nil,
+        runtimeOptions: IconPresentationRuntimeOptions? = nil,
+        systemPower: SystemPowerSample? = nil,
+        isHighPowerMode: Bool = false,
+        sources: IconSourceSnapshot = .empty,
+        bottomIndicatorSource: BottomIndicatorSource = .volume,
+        bottomIndicatorMetric: HardwareMonitorMetric = .cpuUsage,
+        bottomIndicatorStyle: VolumeDisplayStyle = .dots
     ) {
         self.snapshot = snapshot
         self.audioIcon = audioIcon
         self.inputSource = inputSource
+        self.runtimeOptions = runtimeOptions
+        self.systemPower = systemPower
+        self.isHighPowerMode = isHighPowerMode
+        self.sources = sources
+        self.bottomIndicatorSource = bottomIndicatorSource
+        self.bottomIndicatorMetric = bottomIndicatorMetric
+        self.bottomIndicatorStyle = bottomIndicatorStyle
     }
 }

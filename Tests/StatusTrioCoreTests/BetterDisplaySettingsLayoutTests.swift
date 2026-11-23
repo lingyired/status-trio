@@ -4,7 +4,7 @@ import XCTest
 @testable import StatusTrioCore
 
 @MainActor
-final class BetterDisplaySettingsLayoutTests: XCTestCase {
+final class BetterDisplaySettingsLayoutTests: VisibleUITestCase {
     func testRefreshingDisplayCatalogDoesNotExpandRowsToFitFullUUIDLabels() async throws {
         let suiteName = "BetterDisplaySettingsLayoutTests.\(UUID().uuidString)"
         let defaults = try XCTUnwrap(UserDefaults(suiteName: suiteName))

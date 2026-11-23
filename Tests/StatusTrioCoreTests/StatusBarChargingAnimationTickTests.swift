@@ -12,6 +12,7 @@ import Testing
 /// rasterize the template base, reassign `NSStatusBarButton.image`, or rebuild
 /// the pre-rendered frame set. The fixture counts every call into the two
 /// renderer seams, so these are call-count assertions rather than timings.
+@Suite(.enabled(if: VisibleUITests.isEnabled, Comment(rawValue: VisibleUITests.reason)))
 @MainActor
 struct StatusBarChargingAnimationTickTests {
     @Test func failedShowRetainsReadableTemplateUntilTheNextSuccessfulPresentation() async throws {

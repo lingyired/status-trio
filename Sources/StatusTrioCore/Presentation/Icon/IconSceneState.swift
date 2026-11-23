@@ -2,15 +2,33 @@ struct IconSceneState: Equatable, Hashable, Sendable {
     let outerRing: OuterRingState?
     let center: CenterState?
     let footer: FooterState?
+    /// The per-role colour overrides carried with the scene so every copy — the
+    /// render caches, the Dock key, the menu-bar overlay — resolves the same
+    /// answer and a colour change invalidates the cached raster. `.standard`
+    /// keeps the system semantic colours.
+    let statusColors: BatteryStatusColors
+    /// The middle Bluetooth glyph colour (#275). It rides the scene so both
+    /// surfaces and every render cache agree on the same colour.
+    let bluetoothIconColor: BluetoothIconColorSelection
+    /// Which quantity the footer reports. It rides the scene so
+    /// `isVolumeValueChange` can tell a genuine volume change from a Wi-Fi or
+    /// battery update, and so a source change invalidates the Dock cache.
+    let bottomIndicatorSource: BottomIndicatorSource
 
     init(
         outerRing: OuterRingState? = nil,
         center: CenterState? = nil,
-        footer: FooterState? = nil
+        footer: FooterState? = nil,
+        statusColors: BatteryStatusColors = .standard,
+        bluetoothIconColor: BluetoothIconColorSelection = .default,
+        bottomIndicatorSource: BottomIndicatorSource = .volume
     ) {
         self.outerRing = outerRing
         self.center = center
         self.footer = footer
+        self.statusColors = statusColors
+        self.bluetoothIconColor = bluetoothIconColor
+        self.bottomIndicatorSource = bottomIndicatorSource
     }
 }
 
@@ -25,10 +43,14 @@ extension IconSceneState {
                 gap: ring.gap,
                 accessory: ring.accessory,
                 effect: nil,
-                strokeScale: ring.strokeScale
+                strokeScale: ring.strokeScale,
+                gapProgressMode: ring.gapProgressMode
             ),
             center: center,
-            footer: footer
+            footer: footer,
+            statusColors: statusColors,
+            bluetoothIconColor: bluetoothIconColor,
+            bottomIndicatorSource: bottomIndicatorSource
         )
     }
 
@@ -88,22 +110,27 @@ extension IconSceneState {
             // role alone would be the label colour. The percentage indicator is
             // not animated, so it stays with the template and keeps re-tinting.
             let hasEffect = ring.effect != nil
-            if hasEffect || Self.isChromatic(ring.segments.first?.color) {
+            if hasEffect || isChromatic(ring.segments.first?.color) {
                 regions.insert(.ringFill)
             }
             if hasEffect { regions.insert(.ringEffect) }
-            if ring.effect?.pulsesAccessory == true || Self.isChromatic(ring.accessory?.colorRole) {
+            if ring.effect?.pulsesAccessory == true || isChromatic(ring.accessory?.colorRole) {
                 regions.insert(.ringAccessory)
             }
         }
-        if Self.isChromatic(center?.colorRole) { regions.insert(.center) }
-        if Self.isChromatic(footer?.colorRole) { regions.insert(.footerFill) }
+        if isChromatic(center?.colorRole) { regions.insert(.center) }
+        if isChromatic(footer?.colorRole) { regions.insert(.footerFill) }
         return regions.intersection(IconSceneRegion.all)
     }
 
-    private static func isChromatic(_ role: IconColorRole?) -> Bool {
+    private func isChromatic(_ role: IconColorRole?) -> Bool {
         guard let role else { return false }
-        return role != .primary && role != .inactive
+        if role == .primary || role == .inactive { return false }
+        // A discharging ring whose colour is still the system label colour
+        // stays monochrome, so the menu bar can keep handing it to the system
+        // as a template image. Only a real override makes it chromatic.
+        if role == .discharging { return !statusColors.discharging.isSystem }
+        return true
     }
 }
 
@@ -130,6 +157,40 @@ extension FooterState {
         switch self {
         case let .dots(dots): dots.color
         case let .arc(arc): arc.color
+        }
+    }
+}
+
+extension IconSceneState {
+    /// Tells a continuous volume *value* change apart from every other scene
+    /// change. The Dock uses this to coalesce continuous volume adjustment
+    /// without delaying settings or non-volume scene updates.
+    ///
+    /// It is a value change only when the source is volume on both scenes, the
+    /// ring, centre and per-role colours are untouched, and the footer kept its
+    /// kind, colour and stroke: a dots↔arc switch, a stroke change, a colour
+    /// change, a source switch, or any ring/centre change is a settings or
+    /// device change and stays on the immediate path. A Wi-Fi or battery footer
+    /// update is never a volume change, so it must not be rate-limited as one.
+    func isVolumeValueChange(from previous: IconSceneState) -> Bool {
+        guard bottomIndicatorSource == .volume,
+              previous.bottomIndicatorSource == .volume,
+              outerRing == previous.outerRing,
+              center == previous.center,
+              statusColors == previous.statusColors,
+              footer != previous.footer else {
+            return false
+        }
+        switch (previous.footer, footer) {
+        case let (.some(.dots(old)), .some(.dots(new))):
+            return old.count == new.count
+                && old.color == new.color
+                && old.strokeScale == new.strokeScale
+        case let (.some(.arc(old)), .some(.arc(new))):
+            return old.color == new.color
+                && old.strokeScale == new.strokeScale
+        default:
+            return false
         }
     }
 }

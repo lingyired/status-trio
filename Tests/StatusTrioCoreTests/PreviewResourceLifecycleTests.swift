@@ -3,7 +3,7 @@ import XCTest
 @testable import StatusTrioCore
 
 @MainActor
-final class PreviewResourceLifecycleTests: XCTestCase {
+final class PreviewResourceLifecycleTests: VisibleUITestCase {
     func testClosingOnePreviewOwnerKeepsCacheUntilTheLastOwnerCloses() throws {
         let cache = DockIconPreviewCache(limit: 4)
         try seedPreviewCache(cache)
@@ -117,8 +117,7 @@ final class PreviewResourceLifecycleTests: XCTestCase {
             activationPolicy: AppActivationPolicy(
                 application: PreviewActivationApplication()
             ),
-            showIconGuide: {},
-            launchAtLogin: LaunchAtLoginManager()
+            showIconGuide: {}
         )
         var visibility: [Bool] = []
 
@@ -202,8 +201,7 @@ final class PreviewResourceLifecycleTests: XCTestCase {
             localization: localization,
             activationPolicy: activationPolicy,
             showIconGuide: {},
-            chargingEffectClock: clock,
-            launchAtLogin: LaunchAtLoginManager()
+            chargingEffectClock: clock
         )
         let statusBar = StatusBarController(
             store: store,

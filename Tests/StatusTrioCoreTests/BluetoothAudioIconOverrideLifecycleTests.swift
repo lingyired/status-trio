@@ -11,7 +11,7 @@ final class BluetoothAudioIconOverrideLifecycleTests: XCTestCase {
         defer { TestUserDefaults.removeSuite(named: suiteName) }
 
         let settings = SettingsStore(defaults: defaults)
-        settings.replacesNetworkIconWithBluetoothAudio = true
+        settings.connectionCenterSource = .bluetoothDevice
         settings.setBluetoothNetworkIconDevice(
             address: "AA:BB:CC:DD:EE:FF",
             symbolName: "headphones"

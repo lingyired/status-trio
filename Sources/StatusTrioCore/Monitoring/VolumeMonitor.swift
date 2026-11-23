@@ -507,7 +507,8 @@ final class CoreAudioVolumeReader: VolumeReadingProviding {
 protocol VolumeEventMonitoring: AnyObject {
     func start(
         onDefaultDeviceChange: @escaping @MainActor @Sendable () -> Void,
-        onVolumeChange: @escaping @MainActor @Sendable () -> Void
+        onVolumeChange: @escaping @MainActor @Sendable () -> Void,
+        onDeviceListChange: @escaping @MainActor @Sendable () -> Void
     )
     func reconcile()
     func recover()
@@ -532,11 +533,14 @@ final class CoreAudioVolumeEventMonitor: VolumeEventMonitoring {
     nonisolated(unsafe) private let client: any CoreAudioClient
     private let callbackQueue: DispatchQueue?
     nonisolated(unsafe) private var defaultDeviceRegistration: ListenerRegistration?
+    nonisolated(unsafe) private var deviceListRegistration: ListenerRegistration?
     nonisolated(unsafe) private var deviceRegistrations: [ListenerRegistration] = []
+    private var deviceListRegistrationFailed = false
     private var registeredDeviceID: AudioDeviceID?
     private var deviceNeedsReconciliation = true
     private var onDefaultDeviceChange: (@MainActor @Sendable () -> Void)?
     private var onVolumeChange: (@MainActor @Sendable () -> Void)?
+    private var onDeviceListChange: (@MainActor @Sendable () -> Void)?
     private var isStarted = false
     private var isStopped = false
 
@@ -552,6 +556,9 @@ final class CoreAudioVolumeEventMonitor: VolumeEventMonitoring {
         if let defaultDeviceRegistration {
             Self.unregister(defaultDeviceRegistration, client: client)
         }
+        if let deviceListRegistration {
+            Self.unregister(deviceListRegistration, client: client)
+        }
         for registration in deviceRegistrations {
             Self.unregister(registration, client: client)
         }
@@ -559,12 +566,14 @@ final class CoreAudioVolumeEventMonitor: VolumeEventMonitoring {
 
     func start(
         onDefaultDeviceChange: @escaping @MainActor @Sendable () -> Void,
-        onVolumeChange: @escaping @MainActor @Sendable () -> Void
+        onVolumeChange: @escaping @MainActor @Sendable () -> Void,
+        onDeviceListChange: @escaping @MainActor @Sendable () -> Void = {}
     ) {
         guard !isStarted, !isStopped else { return }
         isStarted = true
         self.onDefaultDeviceChange = onDefaultDeviceChange
         self.onVolumeChange = onVolumeChange
+        self.onDeviceListChange = onDeviceListChange
         deviceNeedsReconciliation = true
         reconcile()
     }
@@ -573,6 +582,7 @@ final class CoreAudioVolumeEventMonitor: VolumeEventMonitoring {
         guard isStarted, !isStopped else { return }
 
         reconcileDefaultDeviceListener()
+        reconcileDeviceListListener()
 
         let currentDeviceID = client.validDefaultOutputDevice()
         if deviceNeedsReconciliation || currentDeviceID != registeredDeviceID {
@@ -602,6 +612,7 @@ final class CoreAudioVolumeEventMonitor: VolumeEventMonitoring {
         deviceNeedsReconciliation = true
         onDefaultDeviceChange = nil
         onVolumeChange = nil
+        onDeviceListChange = nil
     }
 
     private func reconcileDefaultDeviceListener() {
@@ -617,10 +628,33 @@ final class CoreAudioVolumeEventMonitor: VolumeEventMonitoring {
             mScope: kAudioObjectPropertyScopeGlobal,
             mElement: kAudioObjectPropertyElementMain
         )
-        defaultDeviceRegistration = addDefaultDeviceListener(
+        defaultDeviceRegistration = addSystemListener(
             address: address,
             block: block
         )
+    }
+
+    private func reconcileDeviceListListener() {
+        guard deviceListRegistration == nil else { return }
+        let block: AudioObjectPropertyListenerBlock = { [weak self] _, _ in
+            Task { @MainActor [weak self] in self?.deviceListDidChange() }
+        }
+        let address = AudioObjectPropertyAddress(
+            mSelector: kAudioHardwarePropertyDevices,
+            mScope: kAudioObjectPropertyScopeGlobal,
+            mElement: kAudioObjectPropertyElementMain
+        )
+        deviceListRegistration = addSystemListener(address: address, block: block)
+        guard deviceListRegistration != nil else {
+            deviceListRegistrationFailed = true
+            return
+        }
+        if deviceListRegistrationFailed {
+            // Changes during the registration gap had no notification. Catch up
+            // after reconcile returns, using the normal coalesced refresh path.
+            deviceListRegistrationFailed = false
+            Task { @MainActor [weak self] in self?.deviceListDidChange() }
+        }
     }
 
     private func reconcileDeviceListeners(for deviceID: AudioDeviceID) {
@@ -719,7 +753,12 @@ final class CoreAudioVolumeEventMonitor: VolumeEventMonitoring {
         onVolumeChange?()
     }
 
-    private func addDefaultDeviceListener(
+    private func deviceListDidChange() {
+        guard isStarted, !isStopped else { return }
+        onDeviceListChange?()
+    }
+
+    private func addSystemListener(
         address: AudioObjectPropertyAddress,
         block: @escaping AudioObjectPropertyListenerBlock
     ) -> ListenerRegistration? {
@@ -732,7 +771,7 @@ final class CoreAudioVolumeEventMonitor: VolumeEventMonitoring {
         )
         if status != noErr {
             volumeMonitorLogger.error(
-                "Failed to add CoreAudio default-device listener for selector \(address.mSelector, privacy: .public), element \(address.mElement, privacy: .public): OSStatus \(status, privacy: .public)"
+                "Failed to add CoreAudio system listener for selector \(address.mSelector, privacy: .public), element \(address.mElement, privacy: .public): OSStatus \(status, privacy: .public)"
             )
             return nil
         }
@@ -778,6 +817,10 @@ final class CoreAudioVolumeEventMonitor: VolumeEventMonitoring {
         if let defaultDeviceRegistration {
             removeListener(defaultDeviceRegistration)
             self.defaultDeviceRegistration = nil
+        }
+        if let deviceListRegistration {
+            removeListener(deviceListRegistration)
+            self.deviceListRegistration = nil
         }
         removeDeviceListeners()
     }
@@ -859,16 +902,25 @@ final class VolumeMonitor: VolumeMonitoring, VolumeControlling {
     /// to the main queue; every other access is on the main actor.
     nonisolated(unsafe) private let eventMonitor: any VolumeEventMonitoring
     private let outputController: (any AudioOutputControlling)?
-    private let ddcCoordinatorFactory: DDCVolumeCoordinatorFactory
+    private let ddcTransport: any DDCVolumeTransport
+    private let suppliedDDCCoordinator: DDCVolumeCoordinator?
+    private let ddcReadWatchdog: Duration
+    private let ddcWatchdogSleep: DDCVolumeCoordinator.WatchdogSleep
+    private let onDDCWatchdogTimeout: DDCVolumeCoordinator.WatchdogTimeoutHandler
     private let suppliedBetterDisplayClient: (any BetterDisplayRequesting)?
     private let betterDisplaySleep: @Sendable (Duration) async throws -> Void
     private let betterDisplayReadFramebuffers: @Sendable () async -> [BetterDisplayFramebufferIdentity]
-    private lazy var ddcCoordinator: any DDCVolumeCoordinating = ddcCoordinatorFactory(
-        { [weak self] update in self?.receiveDDCUpdate(update) },
-        DDCVolumeCoordinatorConfiguration()
-    )
+    private lazy var ddcCoordinator = suppliedDDCCoordinator
+        ?? DDCVolumeCoordinator(
+            transport: ddcTransport,
+            readWatchdog: ddcReadWatchdog,
+            watchdogSleep: ddcWatchdogSleep,
+            onWatchdogTimeout: onDDCWatchdogTimeout
+        ) { [weak self] update in
+            self?.receiveDDCUpdate(update)
+        }
     private lazy var betterDisplayCoordinator = BetterDisplayVolumeCoordinator(
-        client: suppliedBetterDisplayClient ?? UnavailableBetterDisplayClient(),
+        client: suppliedBetterDisplayClient ?? BetterDisplayIntegrationClient(),
         sleep: betterDisplaySleep,
         readFramebuffers: betterDisplayReadFramebuffers
     ) { [weak self] update in
@@ -917,13 +969,19 @@ final class VolumeMonitor: VolumeMonitoring, VolumeControlling {
         appleBluetoothAudioDiagnosticReporter: AppleBluetoothAudioDiagnosticReporter = AppleBluetoothAudioDiagnosticReporter(),
         eventMonitor: any VolumeEventMonitoring = CoreAudioVolumeEventMonitor(),
         outputController: (any AudioOutputControlling)? = nil,
-        ddcCoordinatorFactory: @escaping DDCVolumeCoordinatorFactory,
+        ddcTransport: any DDCVolumeTransport = DDCDisplayTransport(),
+        ddcCoordinator: DDCVolumeCoordinator? = nil,
+        ddcReadWatchdog: Duration = VolumeMonitor.defaultDDCReadWatchdog,
+        ddcWatchdogSleep: @escaping DDCVolumeCoordinator.WatchdogSleep = {
+            try await Task.sleep(for: $0)
+        },
+        onDDCWatchdogTimeout: @escaping DDCVolumeCoordinator.WatchdogTimeoutHandler = { _, _ in },
         betterDisplayClient: (any BetterDisplayRequesting)? = nil,
         betterDisplaySleep: @escaping @Sendable (Duration) async throws -> Void = {
             try await Task.sleep(for: $0)
         },
         betterDisplayReadFramebuffers: @escaping @Sendable () async -> [BetterDisplayFramebufferIdentity] = {
-            []
+            await BetterDisplayFramebufferReader.readInBackground()
         },
         refreshDebounceInterval: Duration = .milliseconds(150),
         refreshDebounceSleep: @escaping @Sendable (Duration) async throws -> Void = {
@@ -938,7 +996,11 @@ final class VolumeMonitor: VolumeMonitoring, VolumeControlling {
         self.appleBluetoothAudioDiagnosticReporter = appleBluetoothAudioDiagnosticReporter
         self.eventMonitor = eventMonitor
         self.outputController = outputController
-        self.ddcCoordinatorFactory = ddcCoordinatorFactory
+        self.ddcTransport = ddcTransport
+        suppliedDDCCoordinator = ddcCoordinator
+        self.ddcReadWatchdog = ddcReadWatchdog
+        self.ddcWatchdogSleep = ddcWatchdogSleep
+        self.onDDCWatchdogTimeout = onDDCWatchdogTimeout
         suppliedBetterDisplayClient = betterDisplayClient
         self.betterDisplaySleep = betterDisplaySleep
         self.betterDisplayReadFramebuffers = betterDisplayReadFramebuffers
@@ -1002,6 +1064,9 @@ final class VolumeMonitor: VolumeMonitoring, VolumeControlling {
             },
             onVolumeChange: { [weak self] in
                 self?.scheduleRefresh()
+            },
+            onDeviceListChange: { [weak self] in
+                self?.scheduleRefresh(includeOutputDevices: true)
             }
         )
         refresh()
@@ -1064,6 +1129,7 @@ final class VolumeMonitor: VolumeMonitoring, VolumeControlling {
     }
     func topologyChanged() {
         advanceExternalVolumeTransition()
+        outputController?.invalidateAutoMuteState()
         clearDDCStatus()
         clearBetterDisplayStatus()
         ddcCoordinator.topologyChanged()
@@ -1071,7 +1137,11 @@ final class VolumeMonitor: VolumeMonitoring, VolumeControlling {
     }
 
     func refresh() {
-        performRefresh(includeOutputDevices: detailsVisible)
+        // The periodic refresh only needs the scalar. Device-list invalidation
+        // comes from `setDetailsVisible` and the default-device/device-list
+        // listeners, which pass `includeOutputDevices: true`; forcing it here
+        // made the cache unreachable while the details row was visible.
+        performRefresh(includeOutputDevices: false)
     }
 
     func setVolume(_ scalar: Double) {
@@ -1258,10 +1328,47 @@ final class VolumeMonitor: VolumeMonitoring, VolumeControlling {
 
     private func receive(_ result: AudioStatusReading) {
         guard let reading = result.volume else {
+            // A failed volume read (typically a transiently invalid default
+            // output while the system switches to a Bluetooth/AirPlay/aggregate
+            // device) must not wipe the whole status. Always keep the last known
+            // device list so the panel does not collapse into an empty skeleton
+            // (#296).
+            let previousBackend = externalBackend
             invalidateDDCSelection()
             invalidateBetterDisplaySelection()
             externalBackend = .none
-            latestStatus = .placeholder
+            let devices: [AudioOutputDevice]
+            if !detailsVisible {
+                cachedOutputDevices = []
+                outputDevicesCacheValid = true
+                devices = []
+            } else if let outputDevices = result.outputDevices {
+                cachedOutputDevices = outputDevices
+                outputDevicesCacheValid = true
+                devices = cachedOutputDevices
+            } else {
+                devices = cachedOutputDevices
+            }
+            // Carry over the last known level only for a native CoreAudio output,
+            // where a nil read means the default device is transiently invalid
+            // (a switch), not that it vanished. DDC/BetterDisplay levels are
+            // optimistic drafts owned by their coordinators; a CoreAudio read
+            // failure must still clear them so a real device disappearance drops
+            // the slider instead of showing a stale value.
+            let carriesLevel = previousBackend == .native
+            latestStatus = VolumeStatus(
+                scalar: carriesLevel ? latestStatus.scalar : nil,
+                isMuted: carriesLevel ? latestStatus.isMuted : false,
+                deviceName: carriesLevel ? latestStatus.deviceName : nil,
+                currentDevice: carriesLevel ? latestStatus.currentDevice : nil,
+                outputDevices: devices,
+                canSetVolume: false,
+                canMute: false,
+                isAutoMuted: carriesLevel ? latestStatus.isAutoMuted : false,
+                muteState: .unknown,
+                externalVolumeTransitionGeneration:
+                    latestStatus.externalVolumeTransitionGeneration
+            )
             publish(latestStatus)
             return
         }
@@ -1301,6 +1408,9 @@ final class VolumeMonitor: VolumeMonitoring, VolumeControlling {
                 outputDevices: devices,
                 canSetVolume: reading.canSetVolume,
                 canMute: reading.canMute,
+                isAutoMuted: reading.currentDevice.map {
+                    outputController?.isAutoMuted(for: $0.id) ?? false
+                } ?? false,
                 muteState: reading.isMuted ? .muted : .unmuted
             )
             publish(latestStatus)
@@ -1628,6 +1738,7 @@ final class VolumeMonitor: VolumeMonitoring, VolumeControlling {
     private func clearVolumeForDeviceTransition() {
         guard latestStatus.scalar != nil || latestStatus.currentDevice != nil else { return }
         advanceExternalVolumeTransition()
+        outputController?.invalidateAutoMuteState()
         invalidateDDCSelection()
         invalidateBetterDisplaySelection()
         externalBackend = .none

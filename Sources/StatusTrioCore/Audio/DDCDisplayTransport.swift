@@ -44,23 +44,35 @@ protocol DDCVolumeTransport: AnyObject {
     func write(_ target: DDCDisplayTarget, value: UInt16) -> Bool
 }
 
+/// Transport that can address an arbitrary VCP feature. The volume path keeps
+/// using the two-argument `DDCVolumeTransport` methods (VCP `0x62`); the
+/// brightness coordinator uses these overloads with `DDCPacket.brightnessVCP`.
+protocol DDCFeatureTransport: DDCVolumeTransport {
+    func read(_ target: DDCDisplayTarget, feature: UInt8) -> DDCVolumeReadResult
+    func write(_ target: DDCDisplayTarget, value: UInt16, feature: UInt8) -> Bool
+}
+
 /// Direct DDC access for external Apple Silicon displays.
 /// Construct and call this transport on its owning serial worker queue.
-final class DDCDisplayTransport: DDCVolumeTransport {
+final class DDCDisplayTransport: DDCFeatureTransport {
     private static let chipAddress = DDCPacket.chipAddress
     private static let dataAddress = DDCPacket.dataAddress
     private static let volumeVCP = DDCPacket.volumeVCP
 
+    /// Whether a registry entry is a connected external framebuffer. Delegates
+    /// to `FramebufferEnumeration` so enumeration and resolution share a single
+    /// definition, and the node's class name is deliberately not consulted: a
+    /// future framebuffer class still resolves.
     static func isConnectedExternalFramebuffer(
         ioNameMatched: String?,
         displayWidth: Int?,
         displayHeight: Int?
     ) -> Bool {
-        guard let ioNameMatched,
-              ioNameMatched.hasPrefix("dispext"),
-              let displayWidth,
-              let displayHeight else { return false }
-        return displayWidth > 0 && displayHeight > 0
+        FramebufferEnumeration.isExternalFramebuffer(
+            ioNameMatched: ioNameMatched,
+            displayWidth: displayWidth,
+            displayHeight: displayHeight
+        )
     }
 
     /// Maps `IONameMatched` ("dispext0,t603x") to the branch token shared with
@@ -121,39 +133,40 @@ final class DDCDisplayTransport: DDCVolumeTransport {
         while true {
             let entry = IOIteratorNext(iterator)
             guard entry != IO_OBJECT_NULL else { break }
-            switch Self.registryName(entry) {
-            case "IOMobileFramebufferShim":
-                let ioNameMatched = Self.stringProperty("IONameMatched", entry: entry)
-                let displayWidth = Self.integerProperty("DisplayWidth", entry: entry)
-                let displayHeight = Self.integerProperty("DisplayHeight", entry: entry)
-                if Self.isConnectedExternalFramebuffer(
-                    ioNameMatched: ioNameMatched,
-                    displayWidth: displayWidth,
-                    displayHeight: displayHeight
-                ), let branchToken = Self.branchToken(fromIONameMatched: ioNameMatched),
-                   let entryID = Self.registryEntryID(entry) {
-                    framebuffers.append(DDCFramebufferSnapshot(
-                        entryID: entryID,
-                        branchName: branchToken,
-                        edidUUID: Self.stringProperty("EDID UUID", entry: entry, recursive: true)
-                    ))
-                }
+            // Detect the framebuffer by what it publishes, not by class name,
+            // so a renamed framebuffer class still resolves. Empty external
+            // slots (`dispextN` without a size) do not qualify.
+            let ioNameMatched = Self.stringProperty("IONameMatched", entry: entry)
+            if Self.isConnectedExternalFramebuffer(
+                ioNameMatched: ioNameMatched,
+                displayWidth: Self.integerProperty("DisplayWidth", entry: entry),
+                displayHeight: Self.integerProperty("DisplayHeight", entry: entry)
+            ), let branchToken = Self.branchToken(fromIONameMatched: ioNameMatched),
+               let entryID = Self.registryEntryID(entry) {
+                framebuffers.append(DDCFramebufferSnapshot(
+                    entryID: entryID,
+                    branchName: branchToken,
+                    edidUUID: Self.stringProperty("EDID UUID", entry: entry, recursive: true)
+                ))
                 IOObjectRelease(entry)
-            case "DCPAVServiceProxy" where Self.stringProperty("Location", entry: entry) == "External":
-                if let entryID = Self.registryEntryID(entry) {
-                    services.append((
+                continue
+            }
+            guard Self.registryName(entry) == "DCPAVServiceProxy",
+                  Self.stringProperty("Location", entry: entry) == "External" else {
+                IOObjectRelease(entry)
+                continue
+            }
+            if let entryID = Self.registryEntryID(entry) {
+                services.append((
+                    entryID: entryID,
+                    snapshot: DDCServiceSnapshot(
                         entryID: entryID,
-                        snapshot: DDCServiceSnapshot(
-                            entryID: entryID,
-                            branchName: Self.branchToken(fromServiceAncestorNames: Self.ancestorNames(of: entry)),
-                            location: "External"
-                        ),
-                        entry: entry
-                    ))
-                } else {
-                    IOObjectRelease(entry)
-                }
-            default:
+                        branchName: Self.branchToken(fromServiceAncestorNames: Self.ancestorNames(of: entry)),
+                        location: "External"
+                    ),
+                    entry: entry
+                ))
+            } else {
                 IOObjectRelease(entry)
             }
         }
@@ -191,13 +204,19 @@ final class DDCDisplayTransport: DDCVolumeTransport {
         #endif
     }
 
+    /// Volume read (VCP `0x62`). Kept as the `DDCVolumeTransport` witness so the
+    /// volume coordinator is untouched.
     func read(_ target: DDCDisplayTarget) -> DDCVolumeReadResult {
+        read(target, feature: Self.volumeVCP)
+    }
+
+    func read(_ target: DDCDisplayTarget, feature: UInt8) -> DDCVolumeReadResult {
         #if arch(arm64)
         guard let service = target.service else { return .failure(.serviceUnavailable) }
 
         // A proven profile is reused for every later poll of this same service.
         if let profile = target.readProfile {
-            let result = verifiedRead(service: service, profile: profile, target: target)
+            let result = verifiedRead(service: service, profile: profile, target: target, feature: feature)
             if let failure = result.failureReason {
                 logReadFailureIfChanged(failure: failure, profile: profile, target: target)
             }
@@ -217,7 +236,7 @@ final class DDCDisplayTransport: DDCVolumeTransport {
             // 50-100 ms of bus idle time between independent candidates.
             if !isFirstCandidate { usleep(75_000) }
             isFirstCandidate = false
-            return probeOutcome(service: service, profile: profile)
+            return probeOutcome(service: service, profile: profile, feature: feature)
         }
         let elapsedMs = Int((DispatchTime.now().uptimeNanoseconds &- started.uptimeNanoseconds) / 1_000_000)
         for attempt in selection.attempts {
@@ -246,11 +265,16 @@ final class DDCDisplayTransport: DDCVolumeTransport {
         #endif
     }
 
+    /// Volume write (VCP `0x62`). Kept as the `DDCVolumeTransport` witness.
     func write(_ target: DDCDisplayTarget, value: UInt16) -> Bool {
+        write(target, value: value, feature: Self.volumeVCP)
+    }
+
+    func write(_ target: DDCDisplayTarget, value: UInt16, feature: UInt8) -> Bool {
         #if arch(arm64)
         // Writing is only allowed on a service whose read path was proven.
         guard let service = target.service, target.readProfile != nil else { return false }
-        let packet = DDCPacket.setVCPRequest(value: value)
+        let packet = DDCPacket.setVCPRequest(vcp: feature, value: value)
         var succeeded = false
         for attempt in 0..<5 {
             for _ in 0..<2 {
@@ -281,9 +305,9 @@ final class DDCDisplayTransport: DDCVolumeTransport {
     }
 
     /// One Get VCP exchange for a specific profile, without classification.
-    private func exchangeOnce(service: IOAVService, profile: DDCReadProfile, delayMicroseconds: UInt32) -> ExchangeResult {
+    private func exchangeOnce(service: IOAVService, profile: DDCReadProfile, feature: UInt8, delayMicroseconds: UInt32) -> ExchangeResult {
         usleep(delayMicroseconds)
-        var packet = DDCPacket.getVCPRequest(checksumMode: profile.checksumMode)
+        var packet = DDCPacket.getVCPRequest(vcp: feature, checksumMode: profile.checksumMode)
         let writeResult = packet.withUnsafeMutableBytes {
             IOAVServiceWriteI2C(service, Self.chipAddress, Self.dataAddress, $0.baseAddress, UInt32($0.count))
         }
@@ -300,12 +324,12 @@ final class DDCDisplayTransport: DDCVolumeTransport {
     }
 
     /// Bounded per-candidate probe: at most two attempts, then move on.
-    private func probeOutcome(service: IOAVService, profile: DDCReadProfile) -> DDCProbeOutcome {
+    private func probeOutcome(service: IOAVService, profile: DDCReadProfile, feature: UInt8) -> DDCProbeOutcome {
         var lastOutcome: DDCProbeOutcome?
         for attempt in 0..<2 {
-            switch exchangeOnce(service: service, profile: profile, delayMicroseconds: attempt == 0 ? 10_000 : 20_000) {
+            switch exchangeOnce(service: service, profile: profile, feature: feature, delayMicroseconds: attempt == 0 ? 10_000 : 20_000) {
             case .bytes(let bytes):
-                let kind = DDCVolumeReply.classify(bytes)
+                let kind = DDCVolumeReply.classify(bytes, expectedVCP: feature)
                 if case .valid = kind { return .reply(kind) }
                 lastOutcome = .reply(kind)
             case .requestWriteFailed:
@@ -319,12 +343,12 @@ final class DDCDisplayTransport: DDCVolumeTransport {
 
     /// Steady-state read on an already-proven profile, keeping the previous
     /// five-attempt retry budget.
-    private func verifiedRead(service: IOAVService, profile: DDCReadProfile, target: DDCDisplayTarget) -> DDCVolumeReadResult {
+    private func verifiedRead(service: IOAVService, profile: DDCReadProfile, target: DDCDisplayTarget, feature: UInt8) -> DDCVolumeReadResult {
         var lastFailure: DDCReadFailure = .replyReadFailed
         for attempt in 0..<5 {
-            switch exchangeOnce(service: service, profile: profile, delayMicroseconds: attempt == 0 ? 10_000 : 20_000) {
+            switch exchangeOnce(service: service, profile: profile, feature: feature, delayMicroseconds: attempt == 0 ? 10_000 : 20_000) {
             case .bytes(let bytes):
-                let kind = DDCVolumeReply.classify(bytes)
+                let kind = DDCVolumeReply.classify(bytes, expectedVCP: feature)
                 switch kind {
                 case .valid(let reply):
                     target.lastLoggedKind = nil

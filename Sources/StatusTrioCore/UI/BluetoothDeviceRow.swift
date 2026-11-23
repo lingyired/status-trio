@@ -37,6 +37,7 @@ enum BluetoothDeviceRowExternalStatusPresentation {
 /// the row does not also spell it out or repeat it with a checkmark, which leaves
 /// its trailing space to the battery level and to whatever an action is doing.
 struct BluetoothDeviceRow: View {
+    @Environment(\.statusPanelBoldTextEnabled) private var panelBoldText
     @EnvironmentObject private var localization: Localization
     let device: BluetoothDevice
     let batteryLevels: [String: BluetoothBatteryLevel]
@@ -46,17 +47,20 @@ struct BluetoothDeviceRow: View {
     var canonicalStatusByDeviceID: [String: NearbyBLEPanelRowStatus] = [:]
     var listeningMode: BluetoothListeningModePresentation? = nil
     var onSelectListeningMode: (BluetoothListeningMode) -> Void = { _ in }
+    /// Drawn for a cached, connected AirPods row whose battery is still being
+    /// read: keeps the two-line height so the row does not grow when the level
+    /// lands.
+    var showsBatteryPlaceholder = false
     let actionState: BluetoothDeviceActionState?
     let isConfirmingDisconnect: Bool
-    var allowsDeviceActions = true
-    var hidesUnavailableBatteryStatus = false
     let onPerformAction: () -> Void
     let onRequestDisconnect: () -> Void
     let onCancelDisconnect: () -> Void
     var body: some View {
         VStack(alignment: .leading, spacing: 2) {
             deviceRow
-            if device.isHuaweiAudio, let listeningMode, listeningMode.isControllable {
+            if device.isHuaweiAudio || device.isRedmiAudio || device.isOppoAudio,
+               let listeningMode, listeningMode.isControllable {
                 BluetoothListeningModeControl(
                     presentation: listeningMode,
                     onSelect: onSelectListeningMode
@@ -80,7 +84,7 @@ struct BluetoothDeviceRow: View {
                     .lineLimit(1)
                 Button(localization.string(.bluetoothActionDisconnect), action: onPerformAction)
                     .buttonStyle(.plain)
-                    .font(.caption.weight(.semibold))
+                    .font(.caption.weight(panelBoldText ? .semibold : .regular))
                     .foregroundStyle(.red)
                     .lineLimit(1)
                 Button(localization.string(.bluetoothActionCancel), action: onCancelDisconnect)
@@ -90,10 +94,7 @@ struct BluetoothDeviceRow: View {
                     .lineLimit(1)
             }
             .accessibilityElement(children: .contain)
-        } else if BluetoothDeviceActionPolicy.offersAction(
-            for: device,
-            allowsDeviceActions: allowsDeviceActions
-        ) {
+        } else if BluetoothDeviceActionPolicy.isActionable(device) {
             Button(action: { handleTap() }) {
                 rowContent(status)
             }
@@ -119,7 +120,11 @@ struct BluetoothDeviceRow: View {
             batteryLevels: batteryLevels
         ) {
         case .inline:
-            inlineContent(status)
+            if showsBatteryPlaceholder {
+                componentContent(status)
+            } else {
+                inlineContent(status)
+            }
         case .components:
             componentContent(status)
         }
@@ -216,7 +221,7 @@ struct BluetoothDeviceRow: View {
 
     private var name: some View {
         Text(device.name)
-            .font(.body.weight(device.isConnected ? .semibold : .regular))
+            .font(.body.weight(device.isConnected && panelBoldText ? .semibold : .regular))
             .lineLimit(1)
             .truncationMode(.tail)
     }
@@ -238,11 +243,7 @@ struct BluetoothDeviceRow: View {
     }
 
     private func externalStatusText(for status: NearbyBLEPanelRowStatus) -> String? {
-        guard !hidesUnavailableBatteryStatus else {
-            guard case let .battery(level) = status else { return nil }
-            return "\(level)%"
-        }
-        return BluetoothDeviceRowExternalStatusPresentation.text(
+        BluetoothDeviceRowExternalStatusPresentation.text(
             status,
             unavailable: localization.string(.bluetoothNearbyBLEUnavailable),
             notNearby: localization.string(.bluetoothNearbyBLENotNearby)
@@ -265,6 +266,18 @@ struct BluetoothDeviceRow: View {
                 // The glyph is drawn inside the text run and carries no label of
                 // its own, so the run is taken out of the combined element and
                 // read back from its text form, in `rowAccessibilityValue`.
+                .accessibilityHidden(true)
+        } else if showsBatteryPlaceholder {
+            // Same line height as the real level text so the row does not resize
+            // when the fresh battery reading replaces this bar.
+            Text(verbatim: "100%")
+                .font(.caption.monospacedDigit())
+                .hidden()
+                .overlay(alignment: .leading) {
+                    RoundedRectangle(cornerRadius: 3, style: .continuous)
+                        .fill(Color.secondary.opacity(0.18))
+                        .frame(width: 54, height: 9)
+                }
                 .accessibilityHidden(true)
         }
     }
@@ -296,10 +309,11 @@ struct BluetoothDeviceRow: View {
     /// announce the case's percentage with nothing saying what it belongs to.
     private var rowAccessibilityValue: String {
         if let externalBatteryStatus {
-            let externalValue = externalStatusText(for: externalBatteryStatus) ?? ""
-            return externalValue.isEmpty
-                ? stateAccessibilityValue
-                : externalValue
+            return BluetoothDeviceRowExternalStatusPresentation.accessibilityValue(
+                externalBatteryStatus,
+                unavailable: localization.string(.bluetoothNearbyBLEUnavailable),
+                notNearby: localization.string(.bluetoothNearbyBLENotNearby)
+            )
         }
         let state = stateAccessibilityValue
         guard let level = BluetoothDevicePresentation.batteryLevelSegments(
@@ -365,11 +379,7 @@ struct BluetoothDeviceRow: View {
     }
 
     private func handleTap() {
-        guard !isActionInFlight,
-              BluetoothDeviceActionPolicy.offersAction(
-                  for: device,
-                  allowsDeviceActions: allowsDeviceActions
-              ) else { return }
+        guard !isActionInFlight else { return }
         if BluetoothDeviceActionPolicy.requiresConfirmation(for: device) {
             onRequestDisconnect()
         } else {

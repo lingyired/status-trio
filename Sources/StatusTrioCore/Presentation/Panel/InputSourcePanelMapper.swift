@@ -6,14 +6,15 @@ enum InputSourcePanelMapper {
     static func map(
         state: InputSourceState,
         failure: InputSourceController.SelectionFailure?,
-        localization: Localization
+        localization: Localization,
+        markerStyle: InputSourceMarkerStyle
     ) -> InputSourcePanelState {
         let rows = state.sources.map { source in
             InputSourcePanelState.Row(
                 id: source.id,
                 name: source.localizedName,
-                iconURL: source.iconURL,
-                marker: source.shortLabel,
+                iconURL: source.drawingIconURL(style: markerStyle),
+                marker: source.drawingShortLabel(style: markerStyle),
                 isCurrent: source.id == state.selectedID
             )
         }

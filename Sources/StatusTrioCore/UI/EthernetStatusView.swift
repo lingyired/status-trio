@@ -4,6 +4,7 @@ import SwiftUI
 /// while the address belongs in the details panel. A restricted path adds one
 /// clause to the subtitle.
 struct EthernetStatusView: View {
+    @Environment(\.statusPanelBoldTextEnabled) private var panelBoldText
     @EnvironmentObject private var localization: Localization
     @ObservedObject var primaryLink: PrimaryLinkController
     /// A property of the path rather than of the port, so it is passed in from
@@ -13,7 +14,7 @@ struct EthernetStatusView: View {
     let onOpenNetworkSettings: () -> Void
 
     var body: some View {
-        HStack(alignment: .center, spacing: 10) {
+        HStack(alignment: .center, spacing: PanelSummaryActionMetrics.actionSpacing) {
             Button {
                 onOpenDetails()
             } label: {
@@ -21,7 +22,7 @@ struct EthernetStatusView: View {
                     EthernetStatusIcon()
                     VStack(alignment: .leading, spacing: 2) {
                         Text(title)
-                            .font(.headline)
+                            .font(.headline.weight(panelBoldText ? .semibold : .regular))
                             .lineLimit(1)
                             .truncationMode(.tail)
                         Text(subtitle)
@@ -33,7 +34,8 @@ struct EthernetStatusView: View {
                     Spacer()
                     PanelActionGlyph(
                         systemName: "chevron.right",
-                        font: .caption.weight(.semibold)
+                        font: .caption.weight(.semibold),
+                        size: PanelSummaryActionMetrics.actionSlot
                     )
                         .foregroundStyle(.tertiary)
                 }
@@ -44,7 +46,7 @@ struct EthernetStatusView: View {
             .accessibilityValue(subtitle)
 
             Button(action: onOpenNetworkSettings) {
-                PanelActionGlyph(systemName: "gearshape")
+                PanelActionGlyph(systemName: "gearshape", size: PanelSummaryActionMetrics.actionSlot)
             }
             .labelStyle(.iconOnly)
             .buttonStyle(.plain)

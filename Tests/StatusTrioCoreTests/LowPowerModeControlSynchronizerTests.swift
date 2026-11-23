@@ -1,128 +1,104 @@
 import XCTest
 @testable import StatusTrioCore
 
+/// The helper is shared by two independent consumer intents (battery power
+/// controls + lid-sleep), enabled while EITHER is on and only disabled when both
+/// are off. These tests pin that OR model and the removal of the old one-way
+/// mirror (helper state no longer drives the battery toggle).
 @MainActor
 final class LowPowerModeControlSynchronizerTests: XCTestCase {
-    func testRelaunchPreservesOptOutWhileHelperRemainsRegistered() {
-        let suite = makeSuite()
-        defer { clear(suite) }
-        let settings = SettingsStore(defaults: suite.defaults)
-        let service = FakePrivilegedHelperService(status: .enabled)
-        let helper = PrivilegedHelperManager(service: service)
-        let facade = PrivilegedHelperFacade(service: helper)
-        let synchronizer = LowPowerModeControlSynchronizer()
-        synchronizer.start(settings: settings, helper: facade)
-        helper.setEnabled(false)
-        synchronizer.stop()
-
-        let relaunchedSettings = SettingsStore(defaults: suite.defaults)
-        let relaunchedHelper = PrivilegedHelperManager(service: service)
-        let relaunchedFacade = PrivilegedHelperFacade(service: relaunchedHelper)
-        synchronizer.start(settings: relaunchedSettings, helper: relaunchedFacade)
-
-        XCTAssertFalse(relaunchedHelper.isEnabled)
-        XCTAssertFalse(relaunchedSettings.controlsLowPowerMode)
-        XCTAssertEqual(service.status, .enabled)
-        XCTAssertEqual(service.unregisterCallCount, 0)
-        synchronizer.stop()
-    }
-
-    func testRelaunchPreservesOptInAfterFailedRegistration() {
-        let suite = makeSuite()
-        defer { clear(suite) }
-        let settings = SettingsStore(defaults: suite.defaults)
+    func testHelperEnabledWhenLidConsumerOnByDefault() {
+        let suite = makeSuite(); defer { clear(suite) }
+        let settings = SettingsStore(defaults: suite.defaults) // lid button defaults on
         let service = FakePrivilegedHelperService(status: .notRegistered)
         let helper = PrivilegedHelperManager(service: service)
-        let facade = PrivilegedHelperFacade(service: helper)
         let synchronizer = LowPowerModeControlSynchronizer()
-        synchronizer.start(settings: settings, helper: facade)
-        service.registerError = NSError(domain: "test", code: 1)
-        helper.setEnabled(true)
-        synchronizer.stop()
-
-        let relaunchedSettings = SettingsStore(defaults: suite.defaults)
-        let relaunchedHelper = PrivilegedHelperManager(service: service)
-        let relaunchedFacade = PrivilegedHelperFacade(service: relaunchedHelper)
-        synchronizer.start(settings: relaunchedSettings, helper: relaunchedFacade)
-
-        XCTAssertTrue(relaunchedHelper.isEnabled)
-        XCTAssertTrue(relaunchedSettings.controlsLowPowerMode)
-        XCTAssertEqual(service.registerCallCount, 1)
+        synchronizer.start(settings: settings, helper: helper)
+        XCTAssertTrue(helper.isEnabled, "lid consumer is on by default, so the helper is enabled")
         synchronizer.stop()
     }
 
-    func testRegistrationMirrorsIntoThePersistedFlag() {
-        let suite = makeSuite()
-        defer { clear(suite) }
-        let settings = SettingsStore(defaults: suite.defaults)
-        let helper = PrivilegedHelperManager(service: FakePrivilegedHelperService(status: .notRegistered))
-        let facade = PrivilegedHelperFacade(service: helper)
-        let synchronizer = LowPowerModeControlSynchronizer()
-
-        synchronizer.start(settings: settings, helper: facade)
-        XCTAssertFalse(settings.controlsLowPowerMode)
-
-        helper.setEnabled(true)
-
-        XCTAssertTrue(settings.controlsLowPowerMode)
-    }
-
-    func testOptOutClearsThePersistedFlagWithoutUnregistering() {
-        let suite = makeSuite()
-        defer { clear(suite) }
-        let settings = SettingsStore(defaults: suite.defaults)
+    func testBothConsumersOffDisablesHelperWithoutUnregistering() {
+        let suite = makeSuite(); defer { clear(suite) }
+        let defaults = suite.defaults
+        defaults.set(false, forKey: SettingsStore.controlsLowPowerModeDefaultsKey)
+        defaults.set(false, forKey: SettingsStore.showsLidSleepButtonDefaultsKey)
+        let settings = SettingsStore(defaults: defaults)
         let service = FakePrivilegedHelperService(status: .enabled)
         let helper = PrivilegedHelperManager(service: service)
-        let facade = PrivilegedHelperFacade(service: helper)
         let synchronizer = LowPowerModeControlSynchronizer()
-        synchronizer.start(settings: settings, helper: facade)
-        XCTAssertTrue(settings.controlsLowPowerMode)
-        XCTAssertTrue(helper.isAvailable)
-
-        helper.setEnabled(false)
+        synchronizer.start(settings: settings, helper: helper)
 
         XCTAssertFalse(helper.isEnabled)
-        XCTAssertFalse(facade.isEnabled)
-        XCTAssertFalse(settings.controlsLowPowerMode)
-        XCTAssertEqual(service.status, .enabled)
+        XCTAssertEqual(service.status, .enabled, "disabling contact must not unregister")
         XCTAssertEqual(service.unregisterCallCount, 0)
+        synchronizer.stop()
     }
 
-    func testPendingApprovalStillCountsAsOn() {
-        // The user asked for the feature; a registration awaiting approval must
-        // not flip the persisted flag back off while they go approve it.
-        let suite = makeSuite()
-        defer { clear(suite) }
-        let settings = SettingsStore(defaults: suite.defaults)
-        let service = FakePrivilegedHelperService(status: .notRegistered)
-        service.statusAfterRegister = .requiresApproval
-        let helper = PrivilegedHelperManager(service: service)
-        let facade = PrivilegedHelperFacade(service: helper)
+    func testTurningOffBatteryKeepsHelperWhileLidStillOn() {
+        let suite = makeSuite(); defer { clear(suite) }
+        let defaults = suite.defaults
+        defaults.set(true, forKey: SettingsStore.controlsLowPowerModeDefaultsKey)
+        defaults.set(true, forKey: SettingsStore.showsLidSleepButtonDefaultsKey)
+        let settings = SettingsStore(defaults: defaults)
+        let helper = PrivilegedHelperManager(service: FakePrivilegedHelperService(status: .enabled))
         let synchronizer = LowPowerModeControlSynchronizer()
-        synchronizer.start(settings: settings, helper: facade)
+        synchronizer.start(settings: settings, helper: helper)
+        XCTAssertTrue(helper.isEnabled)
 
-        helper.setEnabled(true)
+        settings.controlsLowPowerMode = false
+        XCTAssertTrue(helper.isEnabled, "lid consumer keeps the helper enabled")
 
-        XCTAssertTrue(settings.controlsLowPowerMode)
+        settings.showsLidSleepButton = false
+        XCTAssertFalse(helper.isEnabled, "only when both are off does the helper disable")
+        synchronizer.stop()
     }
 
-    func testSavedOptInIsPreservedWhenTheHelperIsGone() {
-        // Preserve user intent even if the system has lost the registration.
-        let suite = makeSuite()
-        defer { clear(suite) }
+    func testTurningOffLidKeepsHelperWhileBatteryStillOn() {
+        let suite = makeSuite(); defer { clear(suite) }
         let defaults = suite.defaults
         defaults.set(true, forKey: SettingsStore.controlsLowPowerModeDefaultsKey)
         let settings = SettingsStore(defaults: defaults)
-        XCTAssertTrue(settings.controlsLowPowerMode)
-        let helper = PrivilegedHelperManager(service: FakePrivilegedHelperService(status: .notRegistered))
-        let facade = PrivilegedHelperFacade(service: helper)
-
+        let helper = PrivilegedHelperManager(service: FakePrivilegedHelperService(status: .enabled))
         let synchronizer = LowPowerModeControlSynchronizer()
-        synchronizer.start(settings: settings, helper: facade)
+        synchronizer.start(settings: settings, helper: helper)
 
-        XCTAssertTrue(settings.controlsLowPowerMode)
-        XCTAssertTrue(helper.isEnabled)
+        settings.showsLidSleepButton = false
+        XCTAssertTrue(helper.isEnabled, "battery consumer keeps the helper enabled")
         synchronizer.stop()
+    }
+
+    func testHelperStateNoLongerMirrorsIntoBatteryToggle() {
+        let suite = makeSuite(); defer { clear(suite) }
+        let defaults = suite.defaults
+        defaults.set(false, forKey: SettingsStore.controlsLowPowerModeDefaultsKey)
+        defaults.set(false, forKey: SettingsStore.showsLidSleepButtonDefaultsKey)
+        let settings = SettingsStore(defaults: defaults)
+        let helper = PrivilegedHelperManager(service: FakePrivilegedHelperService(status: .notRegistered))
+        let synchronizer = LowPowerModeControlSynchronizer()
+        synchronizer.start(settings: settings, helper: helper)
+
+        helper.setEnabled(true)
+        XCTAssertFalse(settings.controlsLowPowerMode, "helper state must not drive the battery intent")
+        synchronizer.stop()
+    }
+
+    func testRelaunchPreservesIntent() {
+        let suite = makeSuite(); defer { clear(suite) }
+        let defaults = suite.defaults
+        defaults.set(true, forKey: SettingsStore.controlsLowPowerModeDefaultsKey)
+        defaults.set(false, forKey: SettingsStore.showsLidSleepButtonDefaultsKey)
+        let settings = SettingsStore(defaults: defaults)
+        let helper = PrivilegedHelperManager(service: FakePrivilegedHelperService(status: .notRegistered))
+        LowPowerModeControlSynchronizer().start(settings: settings, helper: helper)
+        XCTAssertTrue(helper.isEnabled)
+
+        let relaunchSettings = SettingsStore(defaults: defaults)
+        let relaunchHelper = PrivilegedHelperManager(service: FakePrivilegedHelperService(status: .notRegistered))
+        let sync2 = LowPowerModeControlSynchronizer()
+        sync2.start(settings: relaunchSettings, helper: relaunchHelper)
+        XCTAssertTrue(relaunchHelper.isEnabled)
+        sync2.stop()
     }
 
     private func makeSuite() -> (defaults: UserDefaults, name: String) {

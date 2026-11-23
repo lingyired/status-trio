@@ -1,0 +1,3 @@
+# 1 Hz raw sample streams stay local (about 11 MB); the evidence archive under
+# evidence/ carries the detector captures needed to reproduce the analysis.
+*.jsonl

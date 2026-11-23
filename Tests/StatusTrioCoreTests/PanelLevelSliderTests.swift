@@ -1,0 +1,493 @@
+import AppKit
+import XCTest
+@testable import StatusTrioCore
+
+@MainActor
+final class PanelLevelSliderTests: XCTestCase {
+    private let controlWidth: CGFloat = 224
+
+    // MARK: Geometry
+
+    func testThumbTravelsAcrossTheWholeCapsule() {
+        XCTAssertEqual(
+            PanelLevelSliderMetrics.thumbCenterX(for: 0, width: controlWidth),
+            PanelLevelSliderMetrics.horizontalInset,
+            accuracy: 0.001
+        )
+        XCTAssertEqual(
+            PanelLevelSliderMetrics.thumbCenterX(for: 1, width: controlWidth),
+            controlWidth - PanelLevelSliderMetrics.horizontalInset,
+            accuracy: 0.001
+        )
+        XCTAssertEqual(
+            PanelLevelSliderMetrics.thumbCenterX(for: 0.5, width: controlWidth),
+            controlWidth / 2,
+            accuracy: 0.001
+        )
+    }
+
+    func testThumbCenterIsStableForZeroWidth() {
+        XCTAssertEqual(
+            PanelLevelSliderMetrics.thumbCenterX(for: 0.5, width: 0),
+            PanelLevelSliderMetrics.horizontalInset,
+            accuracy: 0.001
+        )
+    }
+
+    // MARK: Fill reaches the capsule's right edge at rest (#359)
+
+    func testRestingFillReachesCapsuleEdgeAtFullValue() {
+        XCTAssertEqual(
+            PanelLevelSliderMetrics.restingFillWidth(for: 1, width: controlWidth),
+            controlWidth,
+            accuracy: 0.001
+        )
+    }
+
+    func testRestingFillTracksValueAcrossTheCapsule() {
+        for value in [0.0, 0.25, 0.5, 0.75, 0.99] {
+            XCTAssertEqual(
+                PanelLevelSliderMetrics.restingFillWidth(for: value, width: controlWidth),
+                CGFloat(value) * controlWidth,
+                accuracy: 0.001,
+                "resting fill must match the value at \(value)"
+            )
+        }
+    }
+
+    func testCoveredFillStopsAtTheThumbCentre() {
+        // While the thumb is visible the fill must not run past its centre, or it
+        // pokes out above/below the circle on the shorter capsule (#359).
+        for value in stride(from: 0.0, through: 1.0, by: 0.05) {
+            let fill = PanelLevelSliderMetrics.coveredFillWidth(for: value, width: controlWidth)
+            XCTAssertEqual(
+                fill,
+                PanelLevelSliderMetrics.thumbCenterX(for: value, width: controlWidth),
+                accuracy: 0.001,
+                "covered fill must end at the thumb centre at \(value)"
+            )
+        }
+    }
+
+    func testFillNeverExceedsCapsuleWidth() {
+        for value in stride(from: 0.0, through: 1.0, by: 0.05) {
+            for width in [
+                PanelLevelSliderMetrics.restingFillWidth(for: value, width: controlWidth),
+                PanelLevelSliderMetrics.coveredFillWidth(for: value, width: controlWidth)
+            ] {
+                XCTAssertGreaterThanOrEqual(width, 0)
+                XCTAssertLessThanOrEqual(width, controlWidth + 0.001)
+            }
+        }
+    }
+
+    func testFillIsStableForZeroWidth() {
+        XCTAssertEqual(
+            PanelLevelSliderMetrics.restingFillWidth(for: 1, width: 0),
+            0,
+            accuracy: 0.001
+        )
+        XCTAssertEqual(
+            PanelLevelSliderMetrics.coveredFillWidth(for: 1, width: 0),
+            0,
+            accuracy: 0.001
+        )
+    }
+
+    // MARK: Inline label avoidance at 0/10/50/90/100 %
+
+    private func center(_ value: Double) -> CGFloat {
+        PanelLevelSliderMetrics.thumbCenterX(for: value, width: controlWidth)
+    }
+
+    private func side(
+        _ value: Double,
+        text: String
+    ) -> PanelLevelSliderLabelLayout.Side {
+        PanelLevelSliderLabelLayout.side(
+            thumbCenterX: center(value),
+            controlWidth: controlWidth,
+            textWidth: PanelLevelSliderLabelLayout.textWidth(text)
+        )
+    }
+
+    func testShortNameStaysFullyVisibleOnTheThumbFreeSide() {
+        let name = "XV272U"
+        // Low values: thumb on the left, so the label parks on the right.
+        XCTAssertEqual(side(0, text: name), .trailing)
+        XCTAssertEqual(side(0.1, text: name), .trailing)
+        // Mid/high values: thumb moved right, label returns to the left.
+        XCTAssertEqual(side(0.5, text: name), .leading)
+        XCTAssertEqual(side(0.9, text: name), .leading)
+        XCTAssertEqual(side(1.0, text: name), .leading)
+
+        for value in [0.0, 0.1, 0.5, 0.9, 1.0] {
+            let frame = PanelLevelSliderLabelLayout.frame(
+                side: side(value, text: name),
+                thumbCenterX: center(value),
+                controlWidth: controlWidth,
+                textWidth: PanelLevelSliderLabelLayout.textWidth(name)
+            )
+            XCTAssertTrue(frame.isVisible)
+            XCTAssertEqual(
+                frame.width,
+                PanelLevelSliderLabelLayout.textWidth(name),
+                accuracy: 0.001,
+                "short names must never be truncated at \(value)"
+            )
+        }
+    }
+
+    func testVeryShortNameIsNeverTruncated() {
+        let name = "A"
+        for value in [0.0, 0.1, 0.5, 0.9, 1.0] {
+            let frame = PanelLevelSliderLabelLayout.frame(
+                side: side(value, text: name),
+                thumbCenterX: center(value),
+                controlWidth: controlWidth,
+                textWidth: PanelLevelSliderLabelLayout.textWidth(name)
+            )
+            XCTAssertTrue(frame.isVisible)
+            XCTAssertEqual(
+                frame.width,
+                PanelLevelSliderLabelLayout.textWidth(name),
+                accuracy: 0.001
+            )
+        }
+    }
+
+    func testLabelFrameNeverRunsUnderTheThumb() {
+        for name in ["A", "XV272U", "Built-in Retina Display", "A Very Long Display Name Here"] {
+            for value in [0.0, 0.1, 0.5, 0.9, 1.0] {
+                let thumbCenter = center(value)
+                let frame = PanelLevelSliderLabelLayout.frame(
+                    side: side(value, text: name),
+                    thumbCenterX: thumbCenter,
+                    controlWidth: controlWidth,
+                    textWidth: PanelLevelSliderLabelLayout.textWidth(name)
+                )
+                let thumbMinX = thumbCenter - PanelLevelSliderMetrics.thumbRadius
+                let thumbMaxX = thumbCenter + PanelLevelSliderMetrics.thumbRadius
+                switch frame.side {
+                case .leading:
+                    XCTAssertLessThanOrEqual(
+                        frame.originX + frame.width,
+                        thumbMinX - PanelLevelSliderMetrics.labelGap + 0.001,
+                        "\(name) at \(value) must stay left of the thumb"
+                    )
+                case .trailing:
+                    XCTAssertGreaterThanOrEqual(
+                        frame.originX,
+                        thumbMaxX + PanelLevelSliderMetrics.labelGap - 0.001,
+                        "\(name) at \(value) must start right of the thumb"
+                    )
+                }
+            }
+        }
+    }
+
+    func testLongNameTruncatesOnlyWhenNeitherSideFits() {
+        let name = "LG UltraFine 5K Display With A Very Long Name"
+        let textWidth = PanelLevelSliderLabelLayout.textWidth(name)
+
+        // Mid value: neither side holds the full name, so it truncates.
+        let midFrame = PanelLevelSliderLabelLayout.frame(
+            side: side(0.5, text: name),
+            thumbCenterX: center(0.5),
+            controlWidth: controlWidth,
+            textWidth: textWidth
+        )
+        XCTAssertLessThan(midFrame.width, textWidth)
+        XCTAssertTrue(midFrame.isVisible)
+
+        // Value 0: the whole trailing side is free, so the label gets far more
+        // room there even for an unusually long name.
+        let zeroFrame = PanelLevelSliderLabelLayout.frame(
+            side: side(0, text: name),
+            thumbCenterX: center(0),
+            controlWidth: controlWidth,
+            textWidth: textWidth
+        )
+        XCTAssertGreaterThan(zeroFrame.width, midFrame.width)
+        XCTAssertLessThanOrEqual(zeroFrame.width, textWidth)
+    }
+
+    func testLeadingSideWinsWheneverTheTextFitsThere() {
+        let name = "Studio Display"
+        let textWidth = PanelLevelSliderLabelLayout.textWidth(name)
+        // Mid value: both sides fit, so the leading (blue) side wins.
+        let mid = center(0.5)
+        XCTAssertEqual(
+            PanelLevelSliderLabelLayout.side(
+                thumbCenterX: mid,
+                controlWidth: controlWidth,
+                textWidth: textWidth
+            ),
+            .leading
+        )
+        // Very low value: the leading side no longer fits, so it yields.
+        let low = center(0.0)
+        XCTAssertEqual(
+            PanelLevelSliderLabelLayout.side(
+                thumbCenterX: low,
+                controlWidth: controlWidth,
+                textWidth: textWidth
+            ),
+            .trailing
+        )
+    }
+
+    func testLabelTextUsesTheSmallerPanelFont() {
+        let width = PanelLevelSliderLabelLayout.textWidth("XV272U")
+        XCTAssertGreaterThan(width, 0)
+        XCTAssertLessThan(width, 60)
+    }
+
+    func testFixedFramePinsLabelToTheLeadingEdge() {
+        let frame = PanelLevelSliderLabelLayout.fixedFrame(controlWidth: controlWidth)
+        XCTAssertEqual(frame.side, .leading)
+        XCTAssertEqual(
+            frame.originX,
+            PanelLevelSliderMetrics.labelLeadingInset,
+            accuracy: 0.001
+        )
+        XCTAssertEqual(
+            frame.width,
+            controlWidth - PanelLevelSliderMetrics.labelLeadingInset
+                - PanelLevelSliderMetrics.horizontalInset,
+            accuracy: 0.001
+        )
+    }
+
+    // MARK: Label contrast on custom fills (#368)
+
+    func testRelativeLuminanceMatchesKnownValues() {
+        XCTAssertEqual(
+            PanelLevelSliderColorContrast.relativeLuminance(of: .black) ?? -1,
+            0,
+            accuracy: 0.001
+        )
+        XCTAssertEqual(
+            PanelLevelSliderColorContrast.relativeLuminance(of: .white) ?? -1,
+            1,
+            accuracy: 0.001
+        )
+    }
+
+    func testLightFillUsesDarkInk() {
+        let ink = PanelLevelSliderColorContrast.textColor(forFill: .white, isDarkAppearance: true)
+        XCTAssertLessThan(
+            ink.usingColorSpace(.sRGB)?.redComponent ?? 1,
+            0.2,
+            "a white fill needs dark ink even on a dark panel"
+        )
+    }
+
+    func testDarkFillUsesLightInk() {
+        let ink = PanelLevelSliderColorContrast.textColor(forFill: .black, isDarkAppearance: false)
+        XCTAssertGreaterThan(
+            ink.usingColorSpace(.sRGB)?.redComponent ?? 0,
+            0.8,
+            "a black fill needs light ink even on a light panel"
+        )
+    }
+
+    func testCustomWhiteFillOnLightPanelStillUsesDarkInk() {
+        // The old appearance-only rule painted white ink here, which vanished
+        // on a custom white fill (#368).
+        let ink = PanelLevelSliderColorContrast.textColor(forFill: .white, isDarkAppearance: false)
+        XCTAssertLessThan(ink.usingColorSpace(.sRGB)?.redComponent ?? 1, 0.2)
+    }
+
+    // MARK: AppKit control
+
+    func testControlUsesNativeLinearContinuousSliderConfiguration() {
+        let slider = PanelLevelSliderView()
+        XCTAssertEqual(slider.minValue, 0)
+        XCTAssertEqual(slider.maxValue, 1)
+        XCTAssertTrue(slider.isContinuous)
+        XCTAssertFalse(slider.isVertical)
+        XCTAssertEqual(slider.sliderType, .linear)
+        XCTAssertTrue(slider.isEnabled)
+    }
+
+    func testControlReportsThePanelDesignHeight() {
+        let slider = PanelLevelSliderView()
+        XCTAssertEqual(
+            slider.intrinsicContentSize.height,
+            PanelLevelSliderMetrics.controlHeight
+        )
+    }
+
+    func testKnobRectMatchesTheDrawnThumbGeometry() {
+        let slider = PanelLevelSliderView()
+        slider.frame = NSRect(x: 0, y: 0, width: controlWidth, height: 30)
+        slider.doubleValue = 0.5
+        let knobCenter = slider.knobCenter(in: slider.bounds)
+        let cellRect = (slider.cell as? PanelLevelSliderCell)?.knobRect(flipped: true)
+        XCTAssertNotNil(cellRect)
+        XCTAssertEqual(cellRect?.midX ?? 0, knobCenter.x, accuracy: 0.001)
+        XCTAssertEqual(cellRect?.midY ?? 0, knobCenter.y, accuracy: 0.001)
+        XCTAssertEqual(
+            cellRect?.width ?? 0,
+            PanelLevelSliderMetrics.thumbSize.width,
+            accuracy: 0.001
+        )
+        XCTAssertEqual(
+            cellRect?.height ?? 0,
+            PanelLevelSliderMetrics.thumbSize.height,
+            accuracy: 0.001
+        )
+    }
+
+    func testValueChangeBridgeClampsAndEmits() {
+        let slider = PanelLevelSliderView()
+        slider.frame = NSRect(x: 0, y: 0, width: controlWidth, height: 30)
+        var values: [Double] = []
+        slider.onValueChanged = { values.append($0) }
+
+        slider.doubleValue = 0.2
+        slider.valueDidChange(nil)
+        slider.doubleValue = 0.8
+        slider.valueDidChange(nil)
+        slider.doubleValue = 1.4
+        slider.valueDidChange(nil)
+
+        XCTAssertEqual(values, [0.2, 0.8, 1.0])
+    }
+
+    // MARK: Track-click glide
+
+    func testTrackClickMapsPointerToTheThumbTravel() {
+        let slider = PanelLevelSliderView()
+        slider.frame = NSRect(x: 0, y: 0, width: controlWidth, height: 30)
+        let inset = PanelLevelSliderMetrics.horizontalInset
+        XCTAssertEqual(slider.value(forPointX: inset), 0, accuracy: 0.001)
+        XCTAssertEqual(
+            slider.value(forPointX: controlWidth - inset), 1, accuracy: 0.001
+        )
+        XCTAssertEqual(
+            slider.value(forPointX: controlWidth / 2), 0.5, accuracy: 0.001
+        )
+        XCTAssertEqual(slider.value(forPointX: -50), 0, accuracy: 0.001)
+        XCTAssertEqual(
+            slider.value(forPointX: controlWidth + 50), 1, accuracy: 0.001
+        )
+    }
+
+    func testDetachedSliderSnapsAndSettlingWindowSnapsThenAnimates() {
+        let slider = PanelLevelSliderView()
+        XCTAssertFalse(
+            slider.shouldAnimateProgrammaticChange(
+                at: ProcessInfo.processInfo.systemUptime
+            ),
+            "a detached slider must never animate"
+        )
+        let window = NSWindow(
+            contentRect: NSRect(x: 0, y: 0, width: controlWidth, height: 30),
+            styleMask: [], backing: .buffered, defer: false
+        )
+        window.contentView?.addSubview(slider)
+        let now = ProcessInfo.processInfo.systemUptime
+        slider.animateProgrammaticChangesAfter = now + 0.35
+        XCTAssertFalse(slider.shouldAnimateProgrammaticChange(at: now))
+        XCTAssertTrue(slider.shouldAnimateProgrammaticChange(at: now + 0.5))
+        slider.setProgrammaticValue(0.7, animated: false)
+        XCTAssertEqual(slider.doubleValue, 0.7, accuracy: 0.001)
+    }
+
+    func testClickGlideStartsFromThePreviousValue() {
+        let slider = PanelLevelSliderView()
+        slider.frame = NSRect(x: 0, y: 0, width: controlWidth, height: 30)
+        slider.doubleValue = 0.88
+        slider.animateValue(from: 0.44, to: 0.88)
+        XCTAssertEqual(
+            slider.doubleValue, 0.44, accuracy: 0.001,
+            "the glide must begin at the old position, not the jumped target"
+        )
+        slider.cancelValueAnimation()
+    }
+
+    func testThumbHiddenUntilHover() {
+        let slider = PanelLevelSliderView()
+        slider.frame = NSRect(x: 0, y: 0, width: controlWidth, height: 30)
+        XCTAssertFalse(slider.isThumbVisible, "the thumb starts hidden")
+        slider.setHovering(true)
+        XCTAssertTrue(slider.isThumbVisible, "hover reveals the thumb")
+        slider.setHovering(false)
+        XCTAssertFalse(slider.isThumbVisible, "leaving hides the thumb again")
+    }
+
+    func testDisabledControlDoesNotAcceptUserInput() {
+        let slider = PanelLevelSliderView()
+        slider.isEnabled = false
+        slider.frame = NSRect(x: 0, y: 0, width: controlWidth, height: 30)
+        XCTAssertFalse(slider.isEnabled)
+        XCTAssertFalse(slider.acceptsFirstResponder)
+    }
+
+    // MARK: Issue #331 – frozen gesture geometry (regression guard)
+
+    func testTrackingGeometryFreezesTheTrackRectForTheWholeGesture() {
+        var geometry = PanelLevelSliderTrackingGeometry(
+            liveRect: NSRect(x: 0, y: 0, width: controlWidth, height: 30)
+        )
+        geometry.begin()
+        XCTAssertEqual(geometry.trackRect.width, controlWidth, accuracy: 0.001)
+
+        // A relayout collapses the live width mid-gesture.
+        geometry.updateLiveRect(NSRect(x: 0, y: 0, width: 0, height: 30))
+        XCTAssertEqual(
+            geometry.trackRect.width,
+            controlWidth,
+            accuracy: 0.001,
+            "the tracked width must stay frozen while the pointer owns the gesture"
+        )
+
+        geometry.end()
+        XCTAssertEqual(
+            geometry.trackRect.width,
+            0,
+            accuracy: 0.001,
+            "outside a gesture the live bounds drive hit-testing again"
+        )
+    }
+
+    func testTrackingGeometryDoesNotFreezeADegenerateStart() {
+        var geometry = PanelLevelSliderTrackingGeometry(
+            liveRect: NSRect(x: 0, y: 0, width: 0, height: 30)
+        )
+        geometry.begin()
+        XCTAssertEqual(geometry.trackRect.width, 0, accuracy: 0.001)
+        geometry.updateLiveRect(NSRect(x: 0, y: 0, width: controlWidth, height: 30))
+        XCTAssertEqual(geometry.trackRect.width, controlWidth, accuracy: 0.001)
+    }
+
+    func testCellTrackRectFreezesWhenGestureStartsAndCollapsesMidDrag() {
+        let slider = PanelLevelSliderView()
+        slider.frame = NSRect(x: 0, y: 0, width: controlWidth, height: 30)
+        let cell = slider.cell as? PanelLevelSliderCell
+
+        XCTAssertEqual(cell?.trackRect.width ?? 0, controlWidth, accuracy: 0.001)
+
+        slider.startGestureTracking()
+        XCTAssertEqual(cell?.trackRect.width ?? 0, controlWidth, accuracy: 0.001)
+
+        // A SwiftUI relayout collapses the control while the mouse is still down.
+        slider.setFrameSize(NSSize(width: 0, height: 30))
+        XCTAssertEqual(
+            cell?.trackRect.width ?? 0,
+            controlWidth,
+            accuracy: 0.001,
+            "a mid-gesture width collapse must not change the mapping rect (#331)"
+        )
+    }
+
+    func testThumbCenterStaysFiniteForNonFiniteValue() {
+        let x = PanelLevelSliderMetrics.thumbCenterX(for: .nan, width: controlWidth)
+        XCTAssertTrue(x.isFinite)
+        XCTAssertEqual(x, PanelLevelSliderMetrics.horizontalInset, accuracy: 0.001)
+        let infinite = PanelLevelSliderMetrics.thumbCenterX(for: .infinity, width: controlWidth)
+        XCTAssertTrue(infinite.isFinite)
+    }
+}

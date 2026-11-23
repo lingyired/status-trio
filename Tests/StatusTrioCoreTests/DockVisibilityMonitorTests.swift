@@ -57,6 +57,30 @@ struct DockVisibilityMonitorTests {
         ))
     }
 
+    @Test func pollsItsOwnCadenceAndStopsAfterStop() async throws {
+        let probe = VisibilityProbe()
+        var changes: [Bool] = []
+        let monitor = DockVisibilityMonitor(
+            probe: {
+                probe.probes += 1
+                return probe.isVisible
+            },
+            pollingInterval: 0.01
+        )
+        monitor.onChange = { changes.append($0) }
+        monitor.start()
+        probe.isVisible = true
+
+        try await Task.sleep(for: .milliseconds(80))
+        #expect(monitor.isDockVisible)
+        #expect(changes == [false, true])
+
+        monitor.stop()
+        let probesAfterStop = probe.probes
+        try await Task.sleep(for: .milliseconds(50))
+        #expect(probe.probes == probesAfterStop)
+    }
+
     @Test func monitorPublishesOnlyVisibilityChanges() {
         let probe = VisibilityProbe()
         var changes: [Bool] = []
@@ -83,4 +107,5 @@ struct DockVisibilityMonitorTests {
 @MainActor
 private final class VisibilityProbe {
     var isVisible = false
+    var probes = 0
 }

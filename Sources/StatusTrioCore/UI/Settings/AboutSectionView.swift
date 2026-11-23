@@ -2,17 +2,8 @@ import AppKit
 import SwiftUI
 
 struct AboutSectionView: View {
-    @ObservedObject var updaterManager: UpdateStateFacade
-    let capabilityPolicy: DistributionCapabilityPolicy
+    @ObservedObject private var updaterManager: UpdaterManager = .shared
     @EnvironmentObject private var localization: Localization
-
-    init(
-        updaterManager: UpdateStateFacade = UpdateStateFacade(service: SystemManagedUpdateService()),
-        capabilityPolicy: DistributionCapabilityPolicy = .runtimeDefault
-    ) {
-        self.updaterManager = updaterManager
-        self.capabilityPolicy = capabilityPolicy
-    }
 
     var body: some View {
         SettingsPage {
@@ -74,52 +65,38 @@ struct AboutSectionView: View {
 
                     AboutActionsView(
                         canCheckForUpdates: updaterManager.canCheckForUpdates,
-                        showsProjectHomepage: capabilityPolicy.channel == .direct,
-                        onCheckForUpdates: { updaterManager.checkForUpdates() }
+                        onCheckForUpdates: { updaterManager.checkForUpdates(preference: .githubFirst) },
+                        onCheckViaGitee: { updaterManager.checkForUpdates(preference: .giteeFirst) }
                     )
-
-                    SettingsDivider(inset: 0)
-
-                    distributionFooter
                 }
                 .padding(.horizontal, SettingsMetrics.rowPaddingH)
                 .padding(.vertical, 14)
             }
-        }
-    }
 
-    private var distributionFooter: some View {
-        VStack(alignment: .leading, spacing: 5) {
-            HStack(alignment: .firstTextBaseline, spacing: 6) {
-                Text(localization.string(.settingsDistributionTitle))
-                    .fontWeight(.semibold)
-
-                Text(capabilityPolicy.channel.displayIdentity)
-                    .foregroundStyle(.secondary)
+            SettingsGroup(localization.string(.settingsAboutSocialTitle)) {
+                AboutSocialLinksView()
+                    .padding(.horizontal, SettingsMetrics.rowPaddingH)
+                    .padding(.vertical, 12)
             }
-            .font(.system(size: 10.5))
-            .foregroundStyle(.tertiary)
 
-            Text(localization.string(.settingsDistributionDescription))
-                .fixedSize(horizontal: false, vertical: true)
-                .foregroundStyle(.tertiary)
-
-            Text(localization.string(.settingsDistributionIndependentSettings))
-                .fixedSize(horizontal: false, vertical: true)
-                .foregroundStyle(.tertiary)
-
-            Link(destination: AppMetadata.repositoryURL) {
-                Label(
-                    localization.string(.settingsDistributionProject),
-                    systemImage: "arrow.up.right.square"
-                )
+            if localization.resolvedLanguage.isChinese {
+                SettingsGroup(localization.string(.settingsAboutDonateTitle)) {
+                    AboutDonateView()
+                        .padding(.horizontal, SettingsMetrics.rowPaddingH)
+                        .padding(.vertical, 12)
+                }
             }
-            .buttonStyle(.plain)
-            .foregroundStyle(.secondary)
-            .padding(.top, 1)
+
+            if localization.resolvedLanguage.isChinese {
+                SettingsGroup(localization.string(.settingsAboutCommunityTitle)) {
+                    AboutCommunityView()
+                }
+            }
+
+            SettingsGroup(localization.string(.settingsAboutMoreAppsTitle)) {
+                AboutMoreAppsView()
+            }
         }
-        .font(.system(size: 10.5))
-        .frame(maxWidth: .infinity, alignment: .leading)
     }
 }
 
@@ -127,8 +104,8 @@ struct AboutActionsView: View {
     @EnvironmentObject private var localization: Localization
 
     let canCheckForUpdates: Bool
-    var showsProjectHomepage = true
     let onCheckForUpdates: () -> Void
+    var onCheckViaGitee: () -> Void = {}
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -143,13 +120,17 @@ struct AboutActionsView: View {
                 .buttonStyle(.bordered)
                 .controlSize(.small)
 
-                if showsProjectHomepage {
-                    Link(destination: AppMetadata.projectHomepageURL) {
-                        Label(localization.string(.settingsAboutProject), systemImage: "globe")
-                    }
-                    .buttonStyle(.bordered)
-                    .controlSize(.small)
+                Link(destination: AppMetadata.projectHomepageURL) {
+                    Label(localization.string(.settingsAboutProject), systemImage: "globe")
                 }
+                .buttonStyle(.bordered)
+                .controlSize(.small)
+
+                Link(destination: AppMetadata.repositoryURL) {
+                    Label(localization.string(.settingsAboutRepository), systemImage: "link")
+                }
+                .buttonStyle(.bordered)
+                .controlSize(.small)
 
                 Link(destination: AppMetadata.authorURL) {
                     Label(AppMetadata.authorName, systemImage: "person.crop.circle")
@@ -160,11 +141,20 @@ struct AboutActionsView: View {
             .frame(maxWidth: .infinity, alignment: .leading)
 
             if canCheckForUpdates {
-                Button(localization.string(.settingsUpdatesCheck)) {
-                    onCheckForUpdates()
+                HStack(spacing: 8) {
+                    Button(localization.string(.settingsUpdatesCheck)) {
+                        onCheckForUpdates()
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .controlSize(.small)
+
+                    Button(localization.string(.settingsUpdatesCheckViaGitee)) {
+                        onCheckViaGitee()
+                    }
+                    .buttonStyle(.bordered)
+                    .controlSize(.small)
                 }
-                .buttonStyle(.borderedProminent)
-                .controlSize(.small)
+                .frame(height: 22)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)

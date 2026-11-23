@@ -109,6 +109,54 @@ final class BluetoothListeningModePreviewTests: XCTestCase {
         XCTAssertEqual(provider.callCount, 0, "preview must skip endpoint discovery")
     }
 
+    func testPreviewSnapshotHonorsVisibleGroups() {
+        let suiteName = "AirPodsLayoutShowcase.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suiteName)!
+        addTeardownBlock { TestUserDefaults.removeSuite(named: suiteName) }
+        let localization = Localization(defaults: defaults, preferredLanguages: ["en"])
+        let snapshot = ListeningModePreview.systemControlSnapshot(
+            localization, spatialSupported: false, conversationSupported: true
+        )
+        XCTAssertFalse(AirPodsSpatialConversationView.showsSpatial(snapshot))
+        XCTAssertTrue(AirPodsSpatialConversationView.showsConversation(snapshot))
+    }
+
+    func testDevelopmentLayoutVariantsKeepLiveRowsUntouched() {
+        let presentation = BluetoothListeningModePresentation(
+            availableModes: [.noiseCancellation, .transparency, .adaptive], selectedMode: .noiseCancellation
+        )
+        var live = PanelAudioDeviceRow(
+            key: .init(id: 42, uid: "AA-BB-CC-DD-EE-FF:output"), name: "Real AirPods",
+            symbol: .symbol(name: "airpodspro", variableValue: nil, fallback: nil),
+            selected: true, enabled: true, accessibilityLabel: "Real AirPods"
+        )
+        live.listeningMode = presentation
+        live.supportsAirPodsSystemControls = true
+        live.airPodsSpatialSupported = true
+        live.airPodsConversationSupported = true
+        let previews = (0..<3).map { index in
+            var row = live
+            row = PanelAudioDeviceRow(
+                key: .init(id: UInt32(100 + index), uid: "preview-\(index)"), name: "AirPods \(index)",
+                symbol: row.symbol, selected: true, enabled: false,
+                accessibilityLabel: "AirPods \(index)", listeningMode: presentation,
+                isPreview: true, supportsAirPodsSystemControls: true,
+                airPodsSpatialSupported: true, airPodsConversationSupported: true
+            )
+            return row
+        }
+        let rows = ListeningModePreview.applyingLayoutVariants(to: [live] + previews)
+        XCTAssertEqual(rows[0], live)
+        XCTAssertNotNil(rows[1].listeningMode)
+        XCTAssertTrue(rows[1].airPodsSpatialSupported && rows[1].airPodsConversationSupported)
+        XCTAssertNil(rows[2].listeningMode)
+        XCTAssertTrue(rows[2].airPodsSpatialSupported && rows[2].airPodsConversationSupported)
+        XCTAssertNil(rows[3].listeningMode)
+        XCTAssertFalse(rows[3].airPodsSpatialSupported)
+        XCTAssertTrue(rows[3].airPodsConversationSupported)
+        XCTAssertEqual(Set(rows.map(\.key)).count, rows.count)
+    }
+
     // MARK: - Write path
 
     /// A tap publishes the in-flight state immediately, and settles onto the tapped
@@ -133,16 +181,25 @@ final class BluetoothListeningModePreviewTests: XCTestCase {
         XCTAssertEqual(backend.writeCount, 0, "and it still has not written after settling")
     }
 
-    /// Re-tapping the capsule that is already selected writes nothing, exactly like
-    /// the real path — the row is a preview of the interaction, not a stress
-    /// button.
-    func testPreviewRetapOfSelectedModeDoesNothing() {
+    /// Re-tapping the capsule that is already selected turns the preview off, the
+    /// same interaction the real row offers.
+    func testPreviewRetapOfSelectedModeTurnsItOff() async {
         let controller = makePreviewController()
         controller.refresh(devices: [connectedAirPods()])
-        // The default selection is noise cancellation, so re-tapping it must be
-        // refused on the guard.
+        // The default selection is noise cancellation, so re-tapping it starts an
+        // Off write that settles with no highlight.
         controller.setMode(.noiseCancellation, for: connectedAirPods())
-        XCTAssertEqual(controller.presentations[key]?.isChanging, false)
+        XCTAssertEqual(controller.presentations[key]?.isChanging(to: .off), true)
+
+        await waitUntil { controller.presentations[self.key]?.isChanging == false }
+        XCTAssertNil(controller.presentations[key]?.selectedMode, "turning off clears the highlight")
+
+        // A stale refresh must not snap the picker back to the default mode.
+        controller.refresh(devices: [connectedAirPods()])
+        XCTAssertNil(
+            controller.presentations[key]?.selectedMode,
+            "a turned-off preview stays unhighlighted across refreshes"
+        )
     }
 
     /// Two taps in quick succession: the second is refused because the first is

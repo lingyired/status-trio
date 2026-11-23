@@ -13,22 +13,3 @@ protocol BetterDisplayRequesting: AnyObject {
     ) async throws -> String?
     func stop()
 }
-
-/// Inert requester used by the App Store target, where the concrete
-/// BetterDisplay bridge is excluded from the build. It never launches a
-/// request and never observes another app, so the coordinator stays dormant.
-@MainActor
-final class UnavailableBetterDisplayClient: BetterDisplayRequesting {
-    func start(onEvent _: @escaping @MainActor (BetterDisplayEvent) -> Void) {}
-    func request(commands _: [String], parameters _: [String: String?]) async throws -> String? { nil }
-    func stop() {}
-}
-
-enum BetterDisplayIntegrationError: Error, Equatable, Sendable {
-    case notStarted
-    case tooManyPendingRequests
-    case timedOut
-    case requestFailed
-    case invalidResponse
-    case stopped
-}

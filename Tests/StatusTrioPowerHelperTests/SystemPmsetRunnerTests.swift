@@ -27,6 +27,28 @@ final class SystemPmsetRunnerTests: XCTestCase {
         }
     }
 
+    func testOutputIsReadWithABoundWhenADescendantHoldsTheWriteEnd() async throws {
+        // A descendant that inherits stdout keeps the pipe open after `pmset`
+        // exits. `readDataToEndOfFile` has no deadline, so the daemon's shared
+        // executor would park until that descendant ends.
+        let script = try makeScript(
+            "printf ' lowpowermode         1\\n'\nsleep 6 &\nexit 0"
+        )
+        defer { try? FileManager.default.removeItem(at: script) }
+        let runner = SystemPmsetRunner(timeout: .seconds(15), executableURL: script)
+        let clock = ContinuousClock()
+        let started = clock.now
+
+        let enabled = await runner.currentLowPowerMode()
+
+        XCTAssertEqual(enabled, true)
+        XCTAssertLessThan(
+            clock.now - started,
+            .seconds(4),
+            "reading the child's output must not wait for an inherited pipe"
+        )
+    }
+
     func testCurrentLowPowerModeReadsStdoutAfterTheChildExits() async throws {
         let script = try makeScript("printf ' lowpowermode         1\\n'")
         defer { try? FileManager.default.removeItem(at: script) }
@@ -49,10 +71,11 @@ final class SystemPmsetRunnerTests: XCTestCase {
             try await runner.setLowPowerMode(enabled: false)
             XCTFail("a non-zero exit must fail")
         } catch {
-            guard case .nonZeroExit(let code) = error as? PmsetError else {
+            guard case let .nonZeroExit(code, message) = error as? PmsetError else {
                 return XCTFail("expected a non-zero exit, got \(error)")
             }
             XCTAssertEqual(code, 17)
+            XCTAssertEqual(message?.trimmingCharacters(in: .whitespacesAndNewlines), "nope")
         }
     }
 

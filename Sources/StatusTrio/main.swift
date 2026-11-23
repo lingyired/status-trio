@@ -1,7 +1,3 @@
-import AppKit
 import StatusTrioCore
 
-let application = NSApplication.shared
-let delegate = AppDelegate()
-application.delegate = delegate
-application.run()
+runStatusTrioApplication()

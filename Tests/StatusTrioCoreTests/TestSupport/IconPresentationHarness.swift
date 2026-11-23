@@ -4,18 +4,15 @@
 func makeTestIconPresentation(
     store: SystemStatusStore,
     settings: SettingsStore,
-    snapshotScheduler: any IconPresentationScheduling = TestTaskIconPresentationScheduler()
+    snapshotScheduler: any IconPresentationScheduling = TestTaskIconPresentationScheduler(),
+    resolveSourceSnapshot: @escaping @MainActor @Sendable (StatusSnapshot) -> IconSourceSnapshot = { _ in .empty }
 ) -> IconPresentationViewModel {
+    _ = resolveSourceSnapshot
     let appearance = StatusIconAppearance(settings: settings)
     return IconPresentationViewModel(
         snapshot: store.snapshot,
         settings: IconPresentationSettings(
-            configuration: IconPresentationConfiguration(
-                battery: appearance.batteryOptions,
-                connection: appearance.connectionOptions,
-                volume: appearance.volumeOptions,
-                bluetooth: appearance.bluetoothAudioOptions
-            ),
+            configuration: settings.legacyPresentationConfiguration,
             menuBarSize: appearance.iconSize,
             testsChargingEffect: settings.testsChargingEffect
         ),

@@ -46,6 +46,49 @@ enum AppleDeviceCatalog {
         return values.values.sorted { $0.id.rowID < $1.id.rowID }
     }
 
+    /// The identities that may take part in the current display projection.
+    ///
+    /// Stored metadata is a user-facing history and is never deleted here. But a
+    /// history entry with no current discovery result and no fresh snapshot may
+    /// not fabricate a live row: a trusted ID that is no longer discovered does
+    /// not keep a device on screen forever. `lastSuccessfulIDs == nil` means no
+    /// discovery cycle has completed (initial load, failure, permissions), so an
+    /// empty result is not treated as proof the device is gone.
+    static func currentCandidates(
+        history: [AppleDeviceCandidate],
+        discovered: [AppleDeviceCandidate],
+        lastSuccessfulIDs: Set<AppleDeviceID>?,
+        trustedSnapshots: [MobileBatterySnapshot],
+        now: Date
+    ) -> [AppleDeviceCandidate] {
+        let verifiedHistory = history.filter(\.isVerifiedTrustedAppleDevice)
+        guard let lastSuccessfulIDs else { return history }
+        let freshSnapshotIDs = Set(
+            MobileBatteryDeviceMerge.deduplicatedSnapshots(trustedSnapshots)
+                .filter { now.timeIntervalSince($0.observedAt) < mobileSnapshotLifetime }
+                .map(id(for:))
+        )
+        let discoveredIDs = Set(discovered.map(\.id))
+        var seen = Set<AppleDeviceID>()
+        var result: [AppleDeviceCandidate] = []
+        for candidate in discovered + verifiedHistory {
+            guard candidate.isVerifiedTrustedAppleDevice else { continue }
+            guard seen.insert(candidate.id).inserted else { continue }
+            if discoveredIDs.contains(candidate.id)
+                || lastSuccessfulIDs.contains(candidate.id)
+                || freshSnapshotIDs.contains(candidate.id) {
+                result.append(candidate)
+            }
+        }
+        // Non-trusted history is preserved verbatim for later migration or a
+        // future successful cycle; it never produced a live row in the first place.
+        return result + history.filter { !$0.isVerifiedTrustedAppleDevice }
+    }
+
+    /// Matches `MobileBatteryController.cacheLifetime`; the projection must not
+    /// outlive the snapshot source it reads.
+    static let mobileSnapshotLifetime: TimeInterval = 1_200
+
     static func projection(
         candidates: [AppleDeviceCandidate],
         trustedSnapshots: [MobileBatterySnapshot],

@@ -1,3 +1,4 @@
+import AppKit
 import Foundation
 import Testing
 @testable import StatusTrioCore
@@ -36,5 +37,560 @@ struct PopoverToggleGateTests {
 struct PopoverContentRetentionTests {
     @Test func usesOneDeterministicFiveSecondReleaseContract() {
         #expect(StatusBarController.popoverContentReleaseDelay == 5)
+    }
+}
+
+/// Issue #224: a single click on the status item must toggle the panel exactly
+/// once. The outside-click monitor must leave a click inside the item's
+/// rectangle to the item's own `togglePopover`; otherwise the mouse-down
+/// closes the panel and the mouse-up reopens it.
+struct PopoverDismissalPolicyTests {
+    private let statusItemFrame = NSRect(x: 100, y: 900, width: 30, height: 24)
+
+    @Test func ignoresMouseDownInsideTheStatusItem() {
+        let policy = PopoverDismissalPolicy(statusItemFrame: statusItemFrame)
+        let center = NSPoint(x: statusItemFrame.midX, y: statusItemFrame.midY)
+
+        #expect(policy.shouldDismiss(at: center) == false)
+    }
+
+    @Test func ignoresMouseDownJustInsideTheStatusItemEdge() {
+        let policy = PopoverDismissalPolicy(statusItemFrame: statusItemFrame)
+        // `NSRect.contains` is half-open, so probe just inside the top-left
+        // corner rather than exactly on the excluded maximum edge.
+        let topLeftInside = NSPoint(
+            x: statusItemFrame.minX + 0.5,
+            y: statusItemFrame.maxY - 0.5
+        )
+
+        #expect(policy.shouldDismiss(at: topLeftInside) == false)
+    }
+
+    @Test func dismissesMouseDownOutsideTheStatusItem() {
+        let policy = PopoverDismissalPolicy(statusItemFrame: statusItemFrame)
+        let elsewhere = NSPoint(x: statusItemFrame.maxX + 1, y: statusItemFrame.midY)
+
+        #expect(policy.shouldDismiss(at: elsewhere))
+    }
+
+    @Test func panelClicksAndGapHaveDifferentDismissal() {
+        let policy = PopoverDismissalPolicy(
+            statusItemFrame: nil,
+            panelFrames: [
+                NSRect(x: 0, y: 0, width: 100, height: 300),
+                NSRect(x: 108, y: 0, width: 100, height: 300)
+            ]
+        )
+
+        #expect(!policy.shouldDismiss(at: NSPoint(x: 120, y: 20)))
+        #expect(policy.shouldDismiss(at: NSPoint(x: 104, y: 20)))
+        #expect(!policy.shouldDismiss(at: NSPoint(x: 100, y: 20)))
+    }
+
+    @Test func dismissesWhenTheStatusItemIsNotVisible() {
+        let policy = PopoverDismissalPolicy(statusItemFrame: nil)
+
+        #expect(policy.shouldDismiss(at: NSPoint(x: 0, y: 0)))
+    }
+
+    /// Composes the two halves of one gesture: the global monitor's mouse-down
+    /// decision followed by the status item's mouse-up toggle. A click on the
+    /// item must leave the panel visible for the toggle, so the gesture closes
+    /// it once instead of closing and reopening (the old #224 behaviour).
+    @Test func singleStatusItemClickTogglesExactlyOnce() {
+        let policy = PopoverDismissalPolicy(statusItemFrame: statusItemFrame)
+        var panelVisible = true
+
+        // Mouse-down: the outside-click monitor runs first.
+        let click = NSPoint(x: statusItemFrame.midX, y: statusItemFrame.midY)
+        if policy.shouldDismiss(at: click) {
+            panelVisible = false
+        }
+
+        // Mouse-up: the status item's own toggle flips the panel.
+        panelVisible.toggle()
+
+        #expect(panelVisible == false)
+    }
+}
+
+
+/// Issue #224 follow-up: while the app itself is active (regular mode), a status
+/// item click makes the app resign active. The focus-loss close paths must leave
+/// that click to the item's own mouse-up toggle instead of closing on mouse-down
+/// and reopening on mouse-up.
+struct PopoverFocusLossDismissalPolicyTests {
+    private let statusItemFrame = NSRect(x: 100, y: 900, width: 30, height: 24)
+    private var itemCenter: NSPoint {
+        NSPoint(x: statusItemFrame.midX, y: statusItemFrame.midY)
+    }
+
+    @Test func defersFocusLossWhilePressingTheStatusItem() {
+        let policy = PopoverDismissalPolicy(statusItemFrame: statusItemFrame)
+
+        #expect(
+            policy.shouldDismissOnFocusLoss(
+                at: itemCenter,
+                isMouseButtonDown: true
+            ) == false
+        )
+    }
+
+    @Test func dismissesFocusLossWhenPressingOutsideTheItem() {
+        let policy = PopoverDismissalPolicy(statusItemFrame: statusItemFrame)
+        let elsewhere = NSPoint(x: 10, y: 10)
+
+        #expect(
+            policy.shouldDismissOnFocusLoss(
+                at: elsewhere,
+                isMouseButtonDown: true
+            )
+        )
+    }
+
+    /// Cmd-Tab away with the pointer parked over the menu bar item must still
+    /// dismiss (issue #183 keeps working): no button is pressed.
+    @Test func dismissesFocusLossWithNoButtonPressedEvenOverTheItem() {
+        let policy = PopoverDismissalPolicy(statusItemFrame: statusItemFrame)
+
+        #expect(
+            policy.shouldDismissOnFocusLoss(
+                at: itemCenter,
+                isMouseButtonDown: false
+            )
+        )
+    }
+
+    @Test func dismissesFocusLossWhenTheItemFrameIsUnknown() {
+        let policy = PopoverDismissalPolicy(statusItemFrame: nil)
+
+        #expect(
+            policy.shouldDismissOnFocusLoss(
+                at: NSPoint(x: 0, y: 0),
+                isMouseButtonDown: true
+            )
+        )
+    }
+
+    /// Composes the active-app gesture: the focus-loss notification arrives on
+    /// mouse-down and must defer, then the item's mouse-up toggle closes the
+    /// panel exactly once instead of the panel closing then reopening.
+    @Test func activeAppStatusItemClickClosesExactlyOnce() {
+        let policy = PopoverDismissalPolicy(statusItemFrame: statusItemFrame)
+        var panelVisible = true
+
+        // Mouse-down: the focus-loss observer runs and defers.
+        if policy.shouldDismissOnFocusLoss(at: itemCenter, isMouseButtonDown: true) {
+            panelVisible = false
+        }
+        // Mouse-up: the status item's own toggle flips the panel.
+        panelVisible.toggle()
+
+        #expect(panelVisible == false)
+    }
+}
+
+/// Issue #224 follow-up 2: when the mouse-down already closed the panel, the
+/// same click's mouse-up must not reopen it — the coordinate-free safety net for
+/// setups where the status-item hit test misjudges the item.
+struct PopoverReopenSuppressionTests {
+    @Test func dockToggleChecksCloseSuppressionBeforeConsumingTheToggleGate() throws {
+        let root = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
+        let source = try String(contentsOf: root.appendingPathComponent(
+            "Sources/StatusTrioCore/UI/StatusBarController.swift"), encoding: .utf8)
+        let start = try #require(source.range(of: "func togglePopover(anchoredAtScreenPoint point: NSPoint) {"))
+        let end = try #require(source.range(of: "private func presentPopover(", range: start.upperBound..<source.endIndex))
+        let dockToggle = String(source[start.upperBound..<end.lowerBound])
+        let suppression = try #require(dockToggle.range(of: "if !popover.isShown, reopenSuppression.shouldSuppressReopen(at: Date())"))
+        let gate = try #require(dockToggle.range(of: "popoverToggleGate.shouldAccept"))
+        #expect(suppression.lowerBound < gate.lowerBound)
+    }
+
+    @Test func dockCloseThenReopenDoesNotConsumeTheNextClick() {
+        var suppression = PopoverReopenSuppression(window: 0.35)
+        var gate = PopoverToggleGate(lockout: 0.25)
+        let start = Date(timeIntervalSince1970: 100)
+        let firstAccepted = gate.shouldAccept(at: start)
+        #expect(firstAccepted)
+        // The second Dock press closes on mouse-down, then delivers reopen.
+        suppression.recordClose(at: start.addingTimeInterval(1), mouseButtonDown: true)
+        let suppressed = suppression.shouldSuppressReopen(at: start.addingTimeInterval(1.05))
+        #expect(suppressed)
+        // A third press is independent: the record was consumed by the second.
+        let thirdSuppressed = suppression.shouldSuppressReopen(at: start.addingTimeInterval(1.1))
+        let thirdAccepted = gate.shouldAccept(at: start.addingTimeInterval(1.1))
+        #expect(!thirdSuppressed)
+        #expect(thirdAccepted)
+    }
+
+    private let window: TimeInterval = 0.35
+
+    @Test func suppressesReopenAfterAMouseDownClose() {
+        var suppression = PopoverReopenSuppression(window: window)
+        let close = Date()
+        suppression.recordClose(at: close, mouseButtonDown: true)
+
+        let suppressed = suppression.shouldSuppressReopen(
+            at: close.addingTimeInterval(0.05)
+        )
+        #expect(suppressed)
+    }
+
+    @Test func doesNotSuppressWhenTheCloseWasNotAMouseDown() {
+        var suppression = PopoverReopenSuppression(window: window)
+        let close = Date()
+        // The item's own toggle closes on mouse-up: a legitimate close.
+        suppression.recordClose(at: close, mouseButtonDown: false)
+
+        let suppressed = suppression.shouldSuppressReopen(
+            at: close.addingTimeInterval(0.05)
+        )
+        #expect(suppressed == false)
+    }
+
+    @Test func doesNotSuppressALaterOpeningClick() {
+        var suppression = PopoverReopenSuppression(window: window)
+        let close = Date()
+        suppression.recordClose(at: close, mouseButtonDown: true)
+
+        let suppressed = suppression.shouldSuppressReopen(
+            at: close.addingTimeInterval(window + 0.01)
+        )
+        #expect(suppressed == false)
+    }
+
+    @Test func consumesTheRecordSoOnlyOneToggleIsSuppressed() {
+        var suppression = PopoverReopenSuppression(window: window)
+        let close = Date()
+        suppression.recordClose(at: close, mouseButtonDown: true)
+
+        let first = suppression.shouldSuppressReopen(at: close.addingTimeInterval(0.05))
+        let second = suppression.shouldSuppressReopen(at: close.addingTimeInterval(0.06))
+        #expect(first)
+        #expect(second == false)
+    }
+
+    @Test func resetClearsAPendingRecord() {
+        var suppression = PopoverReopenSuppression(window: window)
+        let close = Date()
+        suppression.recordClose(at: close, mouseButtonDown: true)
+
+        suppression.reset()
+
+        let suppressed = suppression.shouldSuppressReopen(
+            at: close.addingTimeInterval(0.05)
+        )
+        #expect(suppressed == false)
+    }
+
+    /// The whole failing gesture: mouse-down closes the panel (outside-click
+    /// monitor), then the status item's mouse-up toggle must keep it closed
+    /// instead of reopening it.
+    @Test func mouseDownCloseThenMouseUpToggleKeepsThePanelClosed() {
+        var suppression = PopoverReopenSuppression(window: window)
+        let mouseDown = Date()
+        var panelVisible = true
+
+        // Mouse-down: the outside-click monitor closes the panel.
+        panelVisible = false
+        suppression.recordClose(at: mouseDown, mouseButtonDown: true)
+
+        // Mouse-up: the status item's toggle runs but is suppressed.
+        let mouseUp = mouseDown.addingTimeInterval(0.08)
+        if !panelVisible, suppression.shouldSuppressReopen(at: mouseUp) {
+            // stay closed
+        } else {
+            panelVisible.toggle()
+        }
+
+        #expect(panelVisible == false)
+    }
+}
+
+/// Issue #224 (reported again on v1.9.4 / macOS 27.0.1, pure menu-bar mode):
+/// clicking the status item's **very edge** reopened the panel instead of
+/// closing it. `NSRect.contains` is half-open, so a click exactly on `maxX` or
+/// `maxY` counted as an outside click: the monitor closed on mouse-down and the
+/// item's mouse-up toggle reopened it.
+struct PopoverDismissalPolicyEdgeTests {
+    private let frame = NSRect(x: 100, y: 900, width: 30, height: 22)
+
+    @Test func ignoresMouseDownOnTheRightEdge() {
+        let policy = PopoverDismissalPolicy(statusItemFrame: frame)
+        let rightEdge = NSPoint(x: frame.maxX, y: frame.midY)
+
+        #expect(policy.shouldDismiss(at: rightEdge) == false)
+    }
+
+    @Test func ignoresMouseDownOnTheTopEdge() {
+        let policy = PopoverDismissalPolicy(statusItemFrame: frame)
+        let topEdge = NSPoint(x: frame.midX, y: frame.maxY)
+
+        #expect(policy.shouldDismiss(at: topEdge) == false)
+    }
+
+    @Test func ignoresMouseDownOnEveryCorner() {
+        let policy = PopoverDismissalPolicy(statusItemFrame: frame)
+        let corners = [
+            NSPoint(x: frame.minX, y: frame.minY),
+            NSPoint(x: frame.maxX, y: frame.minY),
+            NSPoint(x: frame.minX, y: frame.maxY),
+            NSPoint(x: frame.maxX, y: frame.maxY)
+        ]
+
+        for corner in corners {
+            #expect(policy.shouldDismiss(at: corner) == false)
+        }
+    }
+
+    /// The inclusive edge must not swallow a genuine outside click just past it.
+    @Test func stillDismissesImmediatelyOutsideTheEdges() {
+        let policy = PopoverDismissalPolicy(statusItemFrame: frame)
+        let pastRight = NSPoint(x: frame.maxX + 0.5, y: frame.midY)
+        let aboveTop = NSPoint(x: frame.midX, y: frame.maxY + 0.5)
+        let pastLeft = NSPoint(x: frame.minX - 0.5, y: frame.midY)
+        let belowBottom = NSPoint(x: frame.midX, y: frame.minY - 0.5)
+
+        #expect(policy.shouldDismiss(at: pastRight))
+        #expect(policy.shouldDismiss(at: aboveTop))
+        #expect(policy.shouldDismiss(at: pastLeft))
+        #expect(policy.shouldDismiss(at: belowBottom))
+    }
+
+    /// The focus-loss path had the same half-open bug.
+    @Test func ignoresFocusLossPressingTheRightEdge() {
+        let policy = PopoverDismissalPolicy(statusItemFrame: frame)
+        let rightEdge = NSPoint(x: frame.maxX, y: frame.midY)
+
+        let shouldDismiss = policy.shouldDismissOnFocusLoss(
+            at: rightEdge,
+            isMouseButtonDown: true
+        )
+        #expect(shouldDismiss == false)
+    }
+
+    @Test func ignoresFocusLossPressingTheTopEdge() {
+        let policy = PopoverDismissalPolicy(statusItemFrame: frame)
+        let topEdge = NSPoint(x: frame.midX, y: frame.maxY)
+
+        let shouldDismiss = policy.shouldDismissOnFocusLoss(
+            at: topEdge,
+            isMouseButtonDown: true
+        )
+        #expect(shouldDismiss == false)
+    }
+
+    /// `NSRect.contains` really is half-open — the assumption this fix rests on.
+    /// If a future SDK changed it, the explicit inclusive test stays correct but
+    /// this documents why the helper exists.
+    @Test func nsRectContainsIsHalfOpenOnMaxEdges() {
+        let point = NSPoint(x: frame.maxX, y: frame.midY)
+
+        #expect(frame.contains(point) == false)
+        #expect(PopoverDismissalPolicy.containsInclusive(frame, point))
+    }
+
+    /// The reported gesture at the edge: monitor decision then item toggle.
+    @Test func edgeClickClosesExactlyOnce() {
+        let policy = PopoverDismissalPolicy(statusItemFrame: frame)
+        var panelVisible = true
+
+        let click = NSPoint(x: frame.maxX, y: frame.midY)
+        if policy.shouldDismiss(at: click) {
+            panelVisible = false
+        }
+        panelVisible.toggle()
+
+        #expect(panelVisible == false)
+    }
+}
+
+/// Issue #355: the hover-to-show decisions are pure so the dwell bounds, the
+/// icon+panel hover area, and the delayed-transition cancellation can be tested
+/// without a live status item or a real mouse.
+struct PopoverHoverPresentationTests {
+    private let statusFrame = NSRect(x: 100, y: 900, width: 30, height: 24)
+    private let panelFrame = NSRect(x: 90, y: 700, width: 320, height: 190)
+
+    @Test func dwellDelaysStayInsideTheIssueRange() {
+        #expect(PopoverHoverPresentation.showDelay >= 0.3)
+        #expect(PopoverHoverPresentation.showDelay <= 0.5)
+        #expect(PopoverHoverPresentation.hideDelay >= 0.3)
+        #expect(PopoverHoverPresentation.hideDelay <= 0.5)
+    }
+
+    @Test func iconAndPanelAreInsideTheHoverArea() {
+        let presentation = PopoverHoverPresentation(
+            statusItemFrame: statusFrame,
+            panelFrames: [panelFrame]
+        )
+
+        #expect(presentation.containsStatusItem(NSPoint(x: statusFrame.midX, y: statusFrame.midY)))
+        #expect(presentation.containsPanel(NSPoint(x: panelFrame.midX, y: panelFrame.midY)))
+        #expect(presentation.isWithinHoverArea(NSPoint(x: statusFrame.midX, y: statusFrame.midY)))
+        #expect(presentation.isWithinHoverArea(NSPoint(x: panelFrame.midX, y: panelFrame.midY)))
+    }
+
+    @Test func theGapBetweenIconAndPanelCountsAsInside() {
+        let presentation = PopoverHoverPresentation(
+            statusItemFrame: statusFrame,
+            panelFrames: [panelFrame]
+        )
+        let gap = NSPoint(x: statusFrame.midX, y: (statusFrame.minY + panelFrame.maxY) / 2)
+
+        #expect(presentation.containsStatusItem(gap) == false)
+        #expect(presentation.containsPanel(gap) == false)
+        #expect(presentation.isWithinHoverArea(gap))
+    }
+
+    @Test func anyMirroredStatusItemCountsAsInside() {
+        let mirrored = NSRect(x: 1500, y: 900, width: 30, height: 24)
+        let presentation = PopoverHoverPresentation(
+            statusItemFrames: [statusFrame, mirrored],
+            panelFrames: [panelFrame]
+        )
+        let point = NSPoint(x: mirrored.midX, y: mirrored.midY)
+
+        #expect(presentation.containsStatusItem(point))
+        #expect(presentation.isWithinHoverArea(point))
+    }
+
+    @Test func aFarAwayPointerIsOutsideTheHoverArea() {
+        let presentation = PopoverHoverPresentation(
+            statusItemFrame: statusFrame,
+            panelFrames: [panelFrame]
+        )
+
+        #expect(presentation.isWithinHoverArea(NSPoint(x: 500, y: 300)) == false)
+    }
+
+    @Test func leavingTheBridgeAfterAStaleHideStillSchedulesAnotherHide() {
+        var tracker = PopoverHoverGroupTracker()
+
+        #expect(tracker.update(inside: true) == .cancelPending)
+        // Staying in the 8 pt bridge after the earlier hide delay fired.
+        #expect(tracker.update(inside: true) == .none)
+        // Moving beyond the bridge must ask for another hide, or the panel sticks.
+        #expect(tracker.update(inside: false) == .scheduleHide)
+    }
+
+    @Test func reEnteringCancelsAPendingHideAndRepeatedPositionsAreInert() {
+        var tracker = PopoverHoverGroupTracker()
+
+        _ = tracker.update(inside: true)
+        #expect(tracker.update(inside: false) == .scheduleHide)
+        #expect(tracker.update(inside: false) == .none)
+        #expect(tracker.update(inside: true) == .cancelPending)
+        #expect(tracker.update(inside: true) == .none)
+
+        tracker.reset()
+        #expect(tracker.isInsideGroup == false)
+        #expect(tracker.update(inside: false) == .none)
+    }
+}
+
+/// Issue #355: AppKit sends an NSResponder message to the tracking area owner.
+/// A plain NSObject raised an unrecognized-selector exception on hover, so the
+/// receiver must be an NSResponder.
+@MainActor
+struct PopoverHoverTrackingTests {
+    @Test func trackingOwnerRespondsToResponderMessages() {
+        #expect(PopoverHoverTracking.self.isSubclass(of: NSResponder.self))
+    }
+}
+
+/// Issue #355: the first click on a hover-shown panel pins it into the normal
+/// click presentation; only a later click closes it.
+@MainActor
+struct StatusItemClickActionTests {
+    @Test func aClosedPanelIsPresented() {
+        #expect(StatusBarController.statusItemClickAction(
+            isShown: false,
+            presentedByHover: false
+        ) == .present)
+    }
+
+    @Test func aHoverShownPanelIsPinnedNotClosed() {
+        #expect(StatusBarController.statusItemClickAction(
+            isShown: true,
+            presentedByHover: true
+        ) == .pin)
+    }
+
+    @Test func aPinnedPanelIsClosedByTheNextClick() {
+        #expect(StatusBarController.statusItemClickAction(
+            isShown: true,
+            presentedByHover: false
+        ) == .close)
+    }
+}
+
+/// Issue #355: with the side detail visible the summary and detail must share
+/// one fade; otherwise the detail chases the summary frame and jitters.
+@MainActor
+struct PopoverRevealStyleTests {
+    @Test func hoverDropStaysWithoutSideDetail() {
+        #expect(StatusBarController.resolvedRevealStyle(
+            .hoverDrop,
+            sideDetailsEnabled: false
+        ) == .hoverDrop)
+    }
+
+    @Test func hoverDropBecomesSharedFadeWithSideDetail() {
+        #expect(StatusBarController.resolvedRevealStyle(
+            .hoverDrop,
+            sideDetailsEnabled: true
+        ) == .hoverFade)
+    }
+
+    @Test func clickFadeIsUnchanged() {
+        #expect(StatusBarController.resolvedRevealStyle(
+            .fade,
+            sideDetailsEnabled: true
+        ) == .fade)
+    }
+}
+
+/// Issue #355: a new hover transition supersedes the pending one, so a pointer
+/// that leaves and re-enters during the dwell cannot leave a stale close.
+struct PopoverHoverIntentTests {
+    @Test func onlyTheLatestTransitionCanAct() {
+        var intent = PopoverHoverIntent()
+        let showToken = intent.begin(.show)
+        let hideToken = intent.begin(.hide)
+
+        let staleActed = intent.consume(showToken)
+        let latestActed = intent.consume(hideToken)
+        #expect(staleActed == false)
+        #expect(latestActed)
+    }
+
+    @Test func cancelInvalidatesAPendingTransition() {
+        var intent = PopoverHoverIntent()
+        let token = intent.begin(.show)
+
+        let cancelled = intent.cancel()
+        let actedAfterCancel = intent.consume(token)
+        #expect(cancelled)
+        #expect(actedAfterCancel == false)
+        #expect(intent.pending == nil)
+    }
+
+    @Test func cancellingWhenIdleIsANoop() {
+        var intent = PopoverHoverIntent()
+
+        let cancelled = intent.cancel()
+        #expect(cancelled == false)
+    }
+
+    @Test func consumingClearsThePendingTransition() {
+        var intent = PopoverHoverIntent()
+        let token = intent.begin(.show)
+
+        let first = intent.consume(token)
+        let second = intent.consume(token)
+        #expect(first)
+        #expect(second == false)
     }
 }

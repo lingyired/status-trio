@@ -41,22 +41,4 @@ final class TelemetryEligibilityTests: XCTestCase {
             isDebugBuild: true
         )))
     }
-
-    func testAppStoreChannelCannotBorrowDirectProductionIdentity() {
-        XCTAssertFalse(TelemetryEligibility.isEligible(.init(
-            bundleIdentifier: "com.lingsmbp.StatusTrio",
-            productionMarker: true,
-            isDebugBuild: false,
-            channel: .appStore
-        )))
-    }
-
-    func testAppStoreChannelIsIneligibleWithStoreIdentity() {
-        XCTAssertFalse(TelemetryEligibility.isEligible(.init(
-            bundleIdentifier: "com.lingai.StatusTrio",
-            productionMarker: true,
-            isDebugBuild: false,
-            channel: .appStore
-        )))
-    }
 }

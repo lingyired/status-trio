@@ -32,6 +32,31 @@ final class AppMetadataTests: XCTestCase {
         XCTAssertNil(AppMetadata.developmentCodename(from: [:]))
     }
 
+    // Developer-only Settings rows (the listening-mode preview) key off the
+    // `STDevelopmentCodename` marker: a development bundle carries it, a
+    // packaged release must not, so the test-only preview switch cannot leak
+    // into a release build's Settings.
+    func testDevelopmentCodenameMarksADevelopmentBuild() {
+        let info: [String: Any] = ["STDevelopmentCodename": "Fix Issue 271"]
+        XCTAssertTrue(AppMetadata.isDevelopmentBuild(from: info))
+        XCTAssertEqual(AppMetadata.developmentCodename(from: info), "Fix Issue 271")
+    }
+
+    func testReleaseInfoDictionaryIsNotADevelopmentBuild() {
+        let info: [String: Any] = [
+            "CFBundleIdentifier": "com.lingsmbp.StatusTrio",
+            "CFBundleShortVersionString": "1.9.2"
+        ]
+        XCTAssertFalse(AppMetadata.isDevelopmentBuild(from: info))
+    }
+
+    func testBlankCodenameDoesNotCountAsADevelopmentBuild() {
+        XCTAssertFalse(
+            AppMetadata.isDevelopmentBuild(from: ["STDevelopmentCodename": "   "])
+        )
+        XCTAssertFalse(AppMetadata.isDevelopmentBuild(from: [:]))
+    }
+
     func testIncludesPrivilegedHelperReadsTheInfoFlag() {
         XCTAssertTrue(
             AppMetadata.includesPrivilegedHelper(from: ["STIncludesPrivilegedHelper": true])
@@ -56,6 +81,20 @@ final class AppMetadataTests: XCTestCase {
 
     func testVersionDisplayStringFallsBackWhenKeysAreMissing() {
         XCTAssertEqual(AppMetadata.versionDisplayString(from: [:]), "1.0.0 (1)")
+    }
+
+    func testVersionShortStringDropsTheBuildNumber() {
+        XCTAssertEqual(
+            AppMetadata.versionShortString(from: [
+                "CFBundleShortVersionString": "1.3.0",
+                "CFBundleVersion": "11"
+            ]),
+            "1.3.0"
+        )
+    }
+
+    func testVersionShortStringFallsBackWhenTheVersionKeyIsMissing() {
+        XCTAssertEqual(AppMetadata.versionShortString(from: [:]), "1.0.0")
     }
 
     func testProjectHomepageURL() {

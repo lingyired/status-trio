@@ -71,6 +71,7 @@ enum BluetoothListeningModeEndpointMapper {
     ) -> AudioDeviceID? {
         guard connectedEligibleAirPodsCount == 1,
               controllable.count == 1,
+              controllable[0].bluetoothAddress == nil,
               controllable[0].isDefaultOutput else {
             return nil
         }
@@ -86,19 +87,104 @@ protocol CoreAudioBluetoothEndpointProviding: Sendable {
     func discoverEndpoints(using hal: BluetoothListeningModeHAL) -> [BluetoothListeningModeEndpoint]
 }
 
-struct UnavailableBluetoothListeningModeEndpointProvider: CoreAudioBluetoothEndpointProviding {
-    func discoverEndpoints(using hal: BluetoothListeningModeHAL) -> [BluetoothListeningModeEndpoint] {
-        []
-    }
-}
-
 /// The production endpoint provider.
 ///
-/// It enumerates the CoreAudio output devices, builds each device's capability
-/// through the runtime-gated HAL, and marks the current default output. It resolves
-/// no Bluetooth address: no public CoreAudio property carries the peer MAC, and the
-/// plan forbids inventing one from the device name. With the address left `nil`,
-/// resolution uses §6's conservative single-device fallback — which means the
-/// control surfaces only for the AirPods that are the current default output,
-/// exactly the limitation §3.3 Case A accepts. A follow-up may add a trusted
-/// IOBluetooth address resolver here without changing the mapper's rules.
+/// Enumerates output capabilities and reads exact Bluetooth address UIDs from
+/// HAL. Unrecognized UID formats carry no identity evidence and retain the
+/// conservative single-device fallback. Device names are never matched.
+struct CoreAudioBluetoothListeningModeEndpointProvider: CoreAudioBluetoothEndpointProviding {
+    init() {}
+
+    func discoverEndpoints(using hal: BluetoothListeningModeHAL) -> [BluetoothListeningModeEndpoint] {
+        let deviceIDs = Self.outputDeviceIDs()
+        let defaultID = Self.defaultOutputDeviceID()
+
+        return deviceIDs.compactMap { deviceID -> BluetoothListeningModeEndpoint? in
+            guard let capability = hal.capability(for: deviceID) else { return nil }
+            return BluetoothListeningModeEndpoint(
+                audioDeviceID: deviceID,
+                capability: capability,
+                isDefaultOutput: deviceID == defaultID,
+                bluetoothAddress: bluetoothAddress(for: deviceID)
+            )
+        }
+    }
+
+    private func bluetoothAddress(for deviceID: AudioDeviceID) -> String? {
+        var property = AudioObjectPropertyAddress(
+            mSelector: kAudioDevicePropertyDeviceUID,
+            mScope: kAudioObjectPropertyScopeGlobal,
+            mElement: kAudioObjectPropertyElementMain
+        )
+        var uid: CFString?
+        var size = UInt32(MemoryLayout<CFString?>.size)
+        guard AudioObjectGetPropertyData(deviceID, &property, 0, nil, &size, &uid) == noErr,
+              let uid else { return nil }
+        return HuaweiAudioEndpointMatcher.bluetoothAddress(in: uid as String)
+    }
+
+    private static func outputDeviceIDs() -> [AudioDeviceID] {
+        guard let ids = uint32ArrayProperty(
+            objectID: AudioObjectID(kAudioObjectSystemObject),
+            selector: kAudioHardwarePropertyDevices,
+            scope: AudioObjectPropertyScope(kAudioObjectPropertyScopeGlobal)
+        ) else {
+            return []
+        }
+        return ids.filter(hasOutputStream)
+    }
+
+    private static func hasOutputStream(_ deviceID: AudioDeviceID) -> Bool {
+        var addr = AudioObjectPropertyAddress(
+            mSelector: kAudioDevicePropertyStreams,
+            mScope: AudioObjectPropertyScope(kAudioObjectPropertyScopeOutput),
+            mElement: AudioObjectPropertyElement(kAudioObjectPropertyElementMain)
+        )
+        var size: UInt32 = 0
+        guard AudioObjectGetPropertyDataSize(deviceID, &addr, 0, nil, &size) == noErr else { return false }
+        return size >= UInt32(MemoryLayout<AudioStreamID>.size)
+    }
+
+    private static func defaultOutputDeviceID() -> AudioDeviceID? {
+        var addr = AudioObjectPropertyAddress(
+            mSelector: kAudioHardwarePropertyDefaultOutputDevice,
+            mScope: AudioObjectPropertyScope(kAudioObjectPropertyScopeGlobal),
+            mElement: AudioObjectPropertyElement(kAudioObjectPropertyElementMain)
+        )
+        var deviceID = AudioDeviceID(kAudioObjectUnknown)
+        var size = UInt32(MemoryLayout<AudioDeviceID>.size)
+        let status = AudioObjectGetPropertyData(
+            AudioObjectID(kAudioObjectSystemObject),
+            &addr,
+            0,
+            nil,
+            &size,
+            &deviceID
+        )
+        guard status == noErr, deviceID != kAudioObjectUnknown else { return nil }
+        return deviceID
+    }
+
+    private static func uint32ArrayProperty(
+        objectID: AudioObjectID,
+        selector: AudioObjectPropertySelector,
+        scope: AudioObjectPropertyScope
+    ) -> [AudioDeviceID]? {
+        var addr = AudioObjectPropertyAddress(
+            mSelector: selector,
+            mScope: scope,
+            mElement: AudioObjectPropertyElement(kAudioObjectPropertyElementMain)
+        )
+        var size: UInt32 = 0
+        guard AudioObjectGetPropertyDataSize(objectID, &addr, 0, nil, &size) == noErr else { return nil }
+        let count = Int(size) / MemoryLayout<AudioDeviceID>.size
+        guard count > 0 else { return [] }
+        var ids = Array(repeating: AudioDeviceID(kAudioObjectUnknown), count: count)
+        var mutable = size
+        let status = ids.withUnsafeMutableBytes { buffer in
+            AudioObjectGetPropertyData(objectID, &addr, 0, nil, &mutable, buffer.baseAddress!)
+        }
+        guard status == noErr else { return nil }
+        return ids.filter { $0 != AudioDeviceID(kAudioObjectUnknown) }
+    }
+}

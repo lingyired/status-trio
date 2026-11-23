@@ -1,0 +1,30 @@
+# ps snapshot: buffer-after-recovery-idle  wall=2026-10-30T23:08:32+0800 mono=200300.121206
+# --- top 25 by cpu ---
+  PID  PPID  %CPU %MEM COMM
+81860     1 105.2  6.9 /Applications/BlueStacks.app/Contents/MacOS/BlueStacks
+  619     1  53.4  0.8 /System/Library/PrivateFrameworks/SkyLight.framework/Resources/WindowServer
+59342 59341  43.1  0.1 /Applications/DeepSeek Harness.app/Contents/Frameworks/DeepSeek Harness Helper.app/Contents/MacOS/DeepSeek Harness Helper
+59354 59341  39.0  0.4 /Applications/DeepSeek Harness.app/Contents/Frameworks/DeepSeek Harness Helper (Renderer).app/Contents/MacOS/DeepSeek Harness Helper (Renderer)
+11363  9342  35.4  0.0 /usr/sbin/lsof
+75058  1300  13.0  0.4 /Applications/Microsoft Edge.app/Contents/Frameworks/Microsoft Edge Framework.framework/Versions/155.0.4283.45/Helpers/Microsoft Edge Helper (Renderer).app/Contents/MacOS/Microsoft Edge Helper (Renderer)
+ 1345  1300  10.9  0.4 /Applications/Microsoft Edge.app/Contents/Frameworks/Microsoft Edge Framework.framework/Versions/155.0.4283.45/Helpers/Microsoft Edge Helper.app/Contents/MacOS/Microsoft Edge Helper
+63065     1   8.9  0.7 /Applications/magpie.app/Contents/MacOS/magpie
+18255 17803   8.4  0.0 /Users/lingsmbp/Downloads/macpow
+  808     1   7.2  0.1 /usr/sbin/coreaudiod
+ 5090     1   7.1  0.0 /usr/libexec/diagnosticd
+17763     1   6.4  0.1 /System/Applications/Utilities/Terminal.app/Contents/MacOS/Terminal
+84549 84507   5.8  0.0 /usr/bin/log
+ 3846     1   5.5  0.0 /System/Library/PrivateFrameworks/Ecosystem.framework/Support/ecosystemd
+ 1300     1   4.3  1.2 /Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge
+46070     1   2.2  0.1 /System/Library/Frameworks/VideoToolbox.framework/Versions/A/XPCServices/VTDecoderXPCService.xpc/Contents/MacOS/VTDecoderXPCService
+59797 59341   2.1  0.7 /Applications/DeepSeek Harness.app/Contents/MacOS/DeepSeek Harness
+40411 38968   1.9  0.2 /Applications/OpenBot.app/Contents/Frameworks/OpenBot Helper (Renderer).app/Contents/MacOS/OpenBot Helper (Renderer)
+ 1318     1   1.9  0.4 /Applications/UURemote.app/Contents/MacOS/UURemote
+ 1321     1   1.6  0.3 /System/Library/CoreServices/Finder.app/Contents/MacOS/Finder
+  613     1   1.6  0.0 /usr/sbin/notifyd
+82473     1   1.6  0.3 /Applications/WorkBuddy.app/Contents/MacOS/Electron
+  762     1   1.6  0.0 /System/Library/DriverExtensions/com.apple.DriverKit-AppleBCMWLAN.dext/com.apple.DriverKit-AppleBCMWLAN
+  623     1   1.6  0.1 /System/Library/CoreServices/loginwindow.app/Contents/MacOS/loginwindow
+38968     1   1.3  0.4 /Applications/OpenBot.app/Contents/MacOS/OpenBot
+# --- our loaders / sampler ---
+(none)

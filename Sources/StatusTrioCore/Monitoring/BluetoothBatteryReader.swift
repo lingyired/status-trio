@@ -18,6 +18,7 @@ enum BluetoothBatterySegment: Equatable, Sendable {
     /// forms of one level cannot drift apart.
     case symbol(name: String, label: String)
 }
+
 extension Array where Element == BluetoothBatterySegment {
     /// The pieces as one string, each glyph spelled out by its label.
     var plainText: String {
@@ -111,44 +112,37 @@ enum BluetoothBatteryReader {
         }
 
         var levels: [String: BluetoothBatteryLevel] = [:]
-        // The addresses already carried, so one device reports one level.
-        //
-        // The collections are read connected-first, which makes a report that
-        // lists one address in both — the shape a connect or a disconnect caught
-        // mid-flight produces — keep the connected reading. Without this the
-        // stale `device_not_connected` entry, read second, overwrote the live
-        // one, so a row showing the current level silently fell back to the last
-        // value macOS wrote down.
+        // Disconnected profiler entries retain historical percentages without a
+        // measurement timestamp. Only connected entries can supply live levels;
+        // deduplicate their normalized addresses across all controller sections.
         var carriedAddresses: Set<String> = []
         for section in sections {
-            for collectionKey in ["device_connected", "device_not_connected"] {
-                guard let devices = section[collectionKey] as? [[String: Any]] else { continue }
-                for entry in devices {
-                    for value in entry.values {
-                        guard let properties = value as? [String: Any],
-                              let address = properties["device_address"] as? String,
-                              !address.isEmpty else {
-                            continue
-                        }
-                        let main = percentage(properties["device_batteryLevelMain"])
-                            ?? percentage(properties["device_batteryLevel"])
-                        let level = BluetoothBatteryLevel(
-                            deviceAddress: address,
-                            main: main,
-                            left: percentage(properties["device_batteryLevelLeft"]),
-                            right: percentage(properties["device_batteryLevelRight"]),
-                            caseLevel: percentage(properties["device_batteryLevelCase"])
-                        )
-                        guard level.summary != nil else { continue }
-                        let key = normalizedAddress(address)
-                        // An address the normalizer cannot reduce names no
-                        // device, so two of them are not necessarily the same
-                        // one and both stay.
-                        if !key.isEmpty {
-                            guard carriedAddresses.insert(key).inserted else { continue }
-                        }
-                        levels[key] = level
+            guard let devices = section["device_connected"] as? [[String: Any]] else { continue }
+            for entry in devices {
+                for value in entry.values {
+                    guard let properties = value as? [String: Any],
+                          let address = properties["device_address"] as? String,
+                          !address.isEmpty else {
+                        continue
                     }
+                    let main = percentage(properties["device_batteryLevelMain"])
+                        ?? percentage(properties["device_batteryLevel"])
+                    let level = BluetoothBatteryLevel(
+                        deviceAddress: address,
+                        main: main,
+                        left: percentage(properties["device_batteryLevelLeft"]),
+                        right: percentage(properties["device_batteryLevelRight"]),
+                        caseLevel: percentage(properties["device_batteryLevelCase"])
+                    )
+                    guard level.summary != nil else { continue }
+                    let key = normalizedAddress(address)
+                    // An address the normalizer cannot reduce names no
+                    // device, so two of them are not necessarily the same
+                    // one and both stay.
+                    if !key.isEmpty {
+                        guard carriedAddresses.insert(key).inserted else { continue }
+                    }
+                    levels[key] = level
                 }
             }
         }
@@ -177,5 +171,53 @@ enum BluetoothBatteryReader {
             return nil
         }
         return Int(number)
+    }
+}
+
+final class SystemProfilerBluetoothBatteryWorker: @unchecked Sendable, BluetoothBatteryReading {
+    typealias OutputProvider = @Sendable () -> Data?
+    private let queue = DispatchQueue(label: "StatusTrio.SystemProfilerBluetoothBatteryWorker")
+    private let outputProvider: OutputProvider
+    private let reportCache: BluetoothProfilerReportCache
+
+    init(
+        outputProvider: @escaping OutputProvider = SystemProfilerBluetoothBatteryWorker.readSystemProfilerOutput,
+        reportCache: BluetoothProfilerReportCache = .shared
+    ) {
+        self.outputProvider = outputProvider
+        self.reportCache = reportCache
+    }
+
+    func read(completion: @escaping @Sendable ([String: BluetoothBatteryLevel]?) -> Void) {
+        queue.async {
+            let data: Data?
+            if let cached = self.reportCache.freshData() {
+                // Bytes that were only read are never stored back: the freshness
+                // window runs from the last `store`, so re-stamping them would
+                // both extend their life and let them overwrite a newer report
+                // the device worker stored in the meantime.
+                data = cached
+            } else {
+                let cacheEpoch = self.reportCache.currentEpoch
+                data = self.outputProvider()
+                if let fetched = data {
+                    // This read genuinely fetched, so it may seed the cache for
+                    // a read that happens moments later.
+                    self.reportCache.store(fetched, ifCurrent: cacheEpoch)
+                }
+            }
+            guard let data else {
+                // A report that could not be read is not an empty report.
+                completion(nil)
+                return
+            }
+            completion(BluetoothBatteryReader.parse(json: data))
+        }
+    }
+
+    /// The battery and device readers want the same report; share the bounded
+    /// read so there is one deadline and one place that reaps the child.
+    static func readSystemProfilerOutput() -> Data? {
+        SystemProfilerBluetoothPairedDeviceWorker.readSystemProfilerOutput()
     }
 }

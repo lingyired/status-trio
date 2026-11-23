@@ -134,7 +134,9 @@ final class BluetoothRadioPowerController: ObservableObject {
     }
 
     init(
-        backendFactory: @escaping @MainActor () -> any BluetoothRadioPowerBacking,
+        backendFactory: @escaping @MainActor () -> any BluetoothRadioPowerBacking = {
+            IOBluetoothRadioPowerBackend()
+        },
         readBackAttempts: Int = defaultReadBackAttempts,
         readBackInterval: Duration = defaultReadBackInterval,
         sleep: @escaping @Sendable (Duration) async throws -> Void = {
@@ -147,10 +149,6 @@ final class BluetoothRadioPowerController: ObservableObject {
         self.readBackInterval = readBackInterval
         self.sleep = sleep
         power = .unknown
-    }
-
-    convenience init() {
-        self.init(backendFactory: { UnavailableBluetoothRadioPowerBackend() })
     }
 
     var canSetPower: Bool {
@@ -205,11 +203,4 @@ final class BluetoothRadioPowerController: ObservableObject {
         self.backend = backend
         return backend
     }
-}
-
-@MainActor
-final class UnavailableBluetoothRadioPowerBackend: BluetoothRadioPowerBacking {
-    let isAvailable = false
-    func readPower() -> BluetoothRadioPower { .unavailable }
-    func setPower(_ enabled: Bool) async -> Bool { false }
 }

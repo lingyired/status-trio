@@ -33,7 +33,7 @@ final class WiFiSummaryTests: XCTestCase {
         XCTAssertEqual(summary(WiFiStatus(state: .connected, rssi: nil, ssid: "Example Network", band: .twoPointFourGHz)), "2,4 GHz")
     }
 
-    func testVisibleAndAccessibleMeasurementsRequireNamedActiveWiFi() {
+    func testVisibleAndAccessibleMeasurementsRequireActiveWiFiNotIdentity() {
         let name = "WiFiSummaryTests.\(UUID().uuidString)"
         let defaults = UserDefaults(suiteName: name)!
         defer { defaults.removeTestSuite(named: name) }
@@ -47,7 +47,7 @@ final class WiFiSummaryTests: XCTestCase {
             for ssid in [nil, ""] as [String?] {
                 let unnamed = WiFiStatus(state: .connected, rssi: -58, ssid: ssid, nameAccess: access, band: .fiveGHz)
                 XCTAssertNil(WiFiSummaryPresentation.summarySSID(unnamed, connection: .wifi))
-                XCTAssertNil(WiFiSummaryPresentation.measurements(unnamed, connection: .wifi, localization: localization))
+                XCTAssertEqual(WiFiSummaryPresentation.measurements(unnamed, connection: .wifi, localization: localization), "5 GHz · -58 dBm")
             }
         }
         let hotspot = WiFiStatus(state: .hotspot, rssi: -58, ssid: "Example Hotspot", band: .fiveGHz)
@@ -55,7 +55,7 @@ final class WiFiSummaryTests: XCTestCase {
         XCTAssertEqual(WiFiSummaryPresentation.measurements(hotspot, connection: .wifi, localization: localization), "5 GHz · -58 dBm")
     }
 
-    func testSummaryWaitsForFreshAuthorizedNameBeforePublishingMeasurements() {
+    func testMeasurementsRemainAvailableWhileAuthorizedNameResolves() {
         let name = "WiFiSummaryTests.\(UUID().uuidString)"
         let defaults = UserDefaults(suiteName: name)!
         defer { defaults.removeTestSuite(named: name) }
@@ -70,11 +70,11 @@ final class WiFiSummaryTests: XCTestCase {
 
         XCTAssertTrue(awaitingName.isAwaitingName)
         XCTAssertNil(WiFiSummaryPresentation.summarySSID(awaitingName, connection: .wifi))
-        XCTAssertNil(WiFiSummaryPresentation.measurements(
+        XCTAssertEqual(WiFiSummaryPresentation.measurements(
             awaitingName,
             connection: .wifi,
             localization: localization
-        ))
+        ), "5 GHz · -58 dBm")
 
         let freshReading = WiFiStatus(
             state: .connected,
@@ -90,6 +90,42 @@ final class WiFiSummaryTests: XCTestCase {
             connection: .wifi,
             localization: localization
         ), "5 GHz · -58 dBm")
+    }
+
+    func testMeasurementsSurviveMissingLocationPermissionOnTheWiFiPath() {
+        let name = "WiFiSummaryTests.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: name)!
+        defer { defaults.removeTestSuite(named: name) }
+        let localization = Localization(defaults: defaults, preferredLanguages: ["en"])
+
+        // Real evidence from issue #184: with Location off, CoreWLAN still
+        // reports RSSI and the channel band. Only the name is unavailable.
+        for access in [WiFiNameAccess.denied, .restricted, .notDetermined] {
+            let unnamed = WiFiStatus(
+                state: .connected,
+                rssi: -50,
+                nameAccess: access,
+                band: .fiveGHz
+            )
+            XCTAssertEqual(
+                WiFiSummaryPresentation.measurements(unnamed, connection: .wifi, localization: localization),
+                "5 GHz · -50 dBm"
+            )
+        }
+
+        // Values the API cannot vouch for stay unknown: no zero, no band only.
+        let unknown = WiFiStatus(state: .connected, rssi: 0, nameAccess: .denied)
+        XCTAssertNil(WiFiSummaryPresentation.measurements(unknown, connection: .wifi, localization: localization))
+
+        // No active association, no link measurements.
+        for state in [WiFiState.notAssociated, .off, .noInternet, .unavailable] {
+            let inactive = WiFiStatus(state: state, rssi: -50, nameAccess: .denied, band: .fiveGHz)
+            XCTAssertNil(WiFiSummaryPresentation.measurements(inactive, connection: .wifi, localization: localization))
+        }
+
+        // A non-Wi-Fi primary path keeps its own presentation.
+        let ethernet = WiFiStatus(state: .connected, rssi: -50, nameAccess: .denied, band: .fiveGHz)
+        XCTAssertNil(WiFiSummaryPresentation.measurements(ethernet, connection: .ethernet, localization: localization))
     }
 
     func testBandChangesDoNotInvalidateEitherIconOrItsSubscription() {

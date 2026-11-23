@@ -25,6 +25,16 @@ struct DockChargingEffectKeyTests {
         #expect(key(normal, length: 256) != base)
     }
 
+    @Test func colorChangeInvalidatesTheRingEffect() {
+        let ring = OuterRingState(segments: [.init(progress: 0.5, color: .powered)], gap: .closed,
+                                  effect: RingEffectState(pulsesAccessory: true, tintsAccessory: true))
+        let changed = DockIconRenderKey(
+            scene: IconSceneState(outerRing: ring, statusColors: BatteryStatusColors(charging: .preset(.rose))),
+            backgroundStyle: .dark, pixelLength: 128
+        )
+        #expect(DockChargingEffectKey(changed) != key(ring))
+    }
+
     @Test func centreChangesDoNotInvalidateTheRingEffect() {
         let ring = OuterRingState(segments: [], gap: .closed)
         let scene = IconSceneState(outerRing: ring,

@@ -1,3 +1,4 @@
+import Darwin
 import Foundation
 import IOKit
 import IOKit.ps
@@ -24,23 +25,39 @@ struct BatteryDetails: Equatable, Sendable {
     }
 
     var adapterWatts: Int?
-    var remainingMinutes: Int?
     var cycleCount: Int?
     var power: BatteryPowerSample?
     var systemPower: SystemPowerSample?
     var inputPower: SystemPowerSample?
+    var breakdown: BatteryPowerBreakdown?
     var powerAvailability: PowerAvailability
+    /// Read-only capacity telemetry for the health row. Independent of the
+    /// power sample lifecycle so an invalid power read cannot discard it.
+    var health: BatteryHealthSnapshot?
+    /// High Power Mode support and current state from `pmset`; the helper is
+    /// only used for writes, so this row does not require helper opt-in.
+    var highPowerMode: HighPowerModeSystemStatus?
+    /// Seconds since the last boot, read from `kern.boottime`. Diagnostic only;
+    /// it is independent of battery presence and never affects battery state.
+    var uptimeSeconds: TimeInterval?
 
-    init(adapterWatts: Int? = nil, remainingMinutes: Int? = nil, cycleCount: Int? = nil,
+    init(adapterWatts: Int? = nil, cycleCount: Int? = nil,
          power: BatteryPowerSample? = nil, powerAvailability: PowerAvailability = .unavailable,
-         systemPower: SystemPowerSample? = nil, inputPower: SystemPowerSample? = nil) {
+         systemPower: SystemPowerSample? = nil, inputPower: SystemPowerSample? = nil,
+         breakdown: BatteryPowerBreakdown? = nil,
+         health: BatteryHealthSnapshot? = nil,
+         highPowerMode: HighPowerModeSystemStatus? = nil,
+         uptimeSeconds: TimeInterval? = nil) {
         self.adapterWatts = adapterWatts
-        self.remainingMinutes = remainingMinutes
         self.cycleCount = cycleCount
         self.power = power
         self.systemPower = systemPower
         self.inputPower = inputPower
+        self.breakdown = breakdown
         self.powerAvailability = powerAvailability
+        self.health = health
+        self.highPowerMode = highPowerMode
+        self.uptimeSeconds = uptimeSeconds
     }
 }
 
@@ -58,13 +75,10 @@ struct BatteryPowerState: Hashable, Sendable {
 }
 
 struct BatteryDetailsReader: Sendable {
-    private let systemPowerReader: any SystemPowerReading
-
-    init(systemPowerReader: any SystemPowerReading = UnavailableSystemPowerReader()) {
-        self.systemPowerReader = systemPowerReader
-    }
-
-    func read(state: BatteryPowerState, notBefore: Date?, options: BatteryPowerDisplayOptions = .default) -> BatteryDetails {
+    func read(state: BatteryPowerState, notBefore: Date?, options: BatteryPowerDisplayOptions = .default,
+              previousBreakdown: BatteryPowerBreakdown? = nil,
+              systemPower sharedSystemPower: SystemPowerSample? = nil,
+              usesSharedSystemPower: Bool = false) -> BatteryDetails {
         let adapter = IOPSCopyExternalPowerAdapterDetails()?.takeRetainedValue() as? [String: Any]
         let service = IOServiceGetMatchingService(kIOMainPortDefault, IOServiceMatching("AppleSmartBattery"))
         var registry: [String: Any] = [:]
@@ -75,51 +89,155 @@ struct BatteryDetailsReader: Sendable {
                 registry = properties?.takeRetainedValue() as? [String: Any] ?? [:]
             }
         }
-        let sensors = systemPowerReader.readSensors(
-            system: Self.readsSystemPower(for: state) && options.showsSystem,
-            input: state.isPresent && state.isConnected && options.showsInput,
+        // A caller that already owns a shared sample must not open a second
+        // system-power connection here. Only readers without one (previews,
+        // standalone tests) fall back to their own read.
+        let readsOwnSystemPower = !usesSharedSystemPower
+            && Self.readsSystemPower(for: state)
+            && options.showsSystem
+        let sensors = SystemPowerReader().readSensors(
+            system: readsOwnSystemPower,
+            input: state.isPresent && state.isConnected && (options.showsInput || options.showsBreakdown),
             // Read the live battery sensor whenever the page can show charging
             // power. macOS can keep the IOPS/registry charging flags false for
             // tens of seconds during a short charge pulse, and a stale flag
             // must not hide real current that the hardware is already moving.
-            battery: state.isPresent && state.isConnected && options.showsCharging
+            // The breakdown residual also needs it even when the branch is hidden.
+            battery: state.isPresent && (state.isConnected || options.showsBreakdown)
+                && (options.showsCharging || options.showsBreakdown),
+            breakdown: Self.readsBreakdown(for: state) && options.showsBreakdown,
+            temperature: state.isPresent
         )
+        let now = Date()
+        var breakdown: BatteryPowerBreakdown?
+        if options.showsBreakdown, state.isPresent {
+            // Port names come from IORegistry on the same open-page refresh as
+            // the rails, with no observer or cache of their own. Skipped when
+            // there is neither an adapter port to name nor an output to label.
+            let topology = state.isConnected || USBOutputReader.hasOutput(sensors.portRails, registry: registry)
+                ? USBPortTopologyReader.read() : nil
+            let resolved = BatteryPowerBreakdown.resolve(
+                adapterInput: sensors.input,
+                charging: sensors.battery.map { max(0, $0.watts) },
+                discharge: sensors.battery.map { max(0, -$0.watts) },
+                display: sensors.display,
+                usb: USBOutputReader.resolve(portRails: sensors.portRails, registry: registry,
+                                             topology: topology, now: now),
+                inputPortType: topology?.inputPortType,
+                now: now
+            )
+            // One overall refresh can catch the rails mid-update and show a
+            // transient negative residual. Hold the last coherent split for a
+            // single refresh instead of flickering back to the legacy diagram;
+            // never extend it beyond that, and never publish a stale residual
+            // as a fresh reading.
+            if let resolved {
+                breakdown = resolved
+            } else if let previous = previousBreakdown,
+                      now.timeIntervalSince(previous.readAt) <= Self.breakdownHoldSeconds {
+                breakdown = previous
+            }
+        }
         var result = Self.parse(
             registry: registry,
             adapterWatts: adapter?[kIOPSPowerAdapterWattsKey] as? Int,
-            remainingSeconds: IOPSGetTimeRemainingEstimate(),
             state: state,
-            now: Date(),
+            now: now,
             notBefore: notBefore,
-            systemPower: sensors.system, inputPower: sensors.input, batteryPower: sensors.battery
+            systemPower: sharedSystemPower ?? sensors.system,
+            inputPower: sensors.input, batteryPower: sensors.battery,
+            breakdown: breakdown,
+            temperatureCelsius: sensors.batteryTemperatureCelsius
         )
+        result.uptimeSeconds = SystemUptimeReader.seconds(now: now)
+        if state.isPresent {
+            result.highPowerMode = HighPowerModeSystemReader.read()
+            // Both the condition and macOS's Maximum Capacity live only in
+            // `system_profiler` on recent Macs, so one cached read fills both.
+            // The registry `MaxCapacity` counter is never used as a stand-in.
+            let systemHealth = BatteryHealthSystemReader.read(now: now)
+            if result.health?.condition == nil {
+                result.health?.condition = systemHealth?.condition
+            }
+            if let maximum = systemHealth?.maximumCapacityPercent {
+                result.health?.maximumCapacityPercent = maximum
+            }
+        }
         if !options.showsInput { result.inputPower = nil }
         if state.isConnected && !options.showsCharging { result.power = nil }
         return result
     }
 
-    /// Sampling AppleSMC costs an IPC round trip, so only do it when the page can
-    /// show the result: a Mac without a battery has no discharge row to compare
-    /// the system total against, and SMC is only queried on external power.
+    /// Whether this page has a meaningful whole-machine power row. A Mac with
+    /// no battery has no discharge or charging row to show, so its only power
+    /// reading is the system total; a battery Mac uses it on external power.
     static func readsSystemPower(for state: BatteryPowerState) -> Bool {
-        state.isPresent && state.isConnected
+        !state.isPresent || state.isConnected
+    }
+
+    /// The split covers both directions: an adapter feeding the Mac, or the
+    /// pack discharging into it when the charger is idle or absent.
+    static func readsBreakdown(for state: BatteryPowerState) -> Bool {
+        state.isPresent
+    }
+
+    /// How long a coherent split may stand in while a rail update crosses a
+    /// refresh boundary. One periodic tick, not a general cache.
+    static let breakdownHoldSeconds: TimeInterval = 6
+
+    /// A split belongs to the rail it was measured from. On external power the
+    /// adapter split stands in; on battery only a split whose source is the
+    /// discharging pack is valid, so an adapter split from the previous refresh
+    /// can never leak across an unplug. Either way the split must still be the
+    /// one this refresh or its single hold produced.
+    private static func acceptableBreakdown(
+        _ breakdown: BatteryPowerBreakdown?,
+        state: BatteryPowerState,
+        now: Date
+    ) -> BatteryPowerBreakdown? {
+        guard let breakdown else { return nil }
+        guard breakdown.readAt <= now.addingTimeInterval(5),
+              now.timeIntervalSince(breakdown.readAt) <= breakdownHoldSeconds
+        else { return nil }
+        if state.isConnected { return breakdown }
+        return breakdown.source == .battery ? breakdown : nil
     }
 
     /// IORegistry is public, but these AppleSmartBattery properties are best-effort,
     /// not a stable cross-model API. Never combine values from nested telemetry sources.
     static func parse(
-        registry: [String: Any], adapterWatts: Int?, remainingSeconds: Double,
+        registry: [String: Any], adapterWatts: Int?,
         state: BatteryPowerState, now: Date, notBefore: Date? = nil,
         systemPower: SystemPowerSample? = nil, inputPower: SystemPowerSample? = nil,
-        batteryPower: BatteryPowerSample? = nil
+        batteryPower: BatteryPowerSample? = nil, breakdown: BatteryPowerBreakdown? = nil,
+        temperatureCelsius: Double? = nil,
+        chargeTime: BatteryHealthSnapshot.ChargeTimeState = .unavailable
     ) -> BatteryDetails {
-        guard state.isPresent else { return BatteryDetails(powerAvailability: .unavailable) }
+        guard state.isPresent else {
+            // No battery: the system total is the whole page. A missing or stale
+            // sample is reported as collecting, never as 0 W.
+            guard let systemPower else {
+                return BatteryDetails(powerAvailability: .collecting)
+            }
+            guard systemPower.isFresh(at: now, notBefore: notBefore) else {
+                return BatteryDetails(powerAvailability: .collecting)
+            }
+            return BatteryDetails(powerAvailability: .available, systemPower: systemPower)
+        }
+        let capacity = BatteryHealthParser.parseCapacity(registry: registry)
         var result = BatteryDetails(
             adapterWatts: state.isConnected ? adapterWatts.flatMap { $0 > 0 ? $0 : nil } : nil,
-            remainingMinutes: !state.isConnected && remainingSeconds.isFinite && remainingSeconds >= 60
-                && remainingSeconds < Double(Int.max) ? Int(remainingSeconds / 60) : nil,
             cycleCount: (registry["CycleCount"] as? Int).flatMap { $0 >= 0 ? $0 : nil },
-            systemPower: state.isConnected ? systemPower : nil
+            systemPower: state.isConnected ? systemPower : nil,
+            breakdown: acceptableBreakdown(breakdown, state: state, now: now),
+            health: BatteryHealthSnapshot(
+                designCapacityMAh: capacity.designMAh,
+                maximumCapacityMAh: capacity.maximumMAh,
+                healthPercent: capacity.healthPercent,
+                temperatureCelsius: temperatureCelsius,
+                chargeTime: chargeTime,
+                condition: BatteryHealthParser.condition(registry: registry)
+            )
         )
         let registryMatches = (registry["ExternalConnected"] as? Bool) == state.isConnected
             && (registry["IsCharging"] as? Bool) == state.isCharging
@@ -219,5 +337,23 @@ struct BatteryDetailsReader: Sendable {
     private static func collecting(_ details: inout BatteryDetails) -> BatteryDetails {
         details.powerAvailability = .collecting
         return details
+    }
+}
+
+/// Reads the machine's uptime from the kernel boot timestamp. Not a battery
+/// property; the battery details page exposes it as a read-only diagnostic.
+enum SystemUptimeReader {
+    static func seconds(now: Date = Date()) -> TimeInterval? {
+        var bootTime = timeval()
+        var size = MemoryLayout<timeval>.size
+        guard sysctlbyname("kern.boottime", &bootTime, &size, nil, 0) == 0 else {
+            return nil
+        }
+        let boot = Date(
+            timeIntervalSince1970: TimeInterval(bootTime.tv_sec)
+                + TimeInterval(bootTime.tv_usec) / 1_000_000
+        )
+        let seconds = now.timeIntervalSince(boot)
+        return seconds >= 0 ? seconds : nil
     }
 }

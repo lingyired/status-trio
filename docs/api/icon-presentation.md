@@ -1,6 +1,6 @@
 # 三图形展示与更新 API
 
-适用：Status Trio 2.0 presentation refactor 分支；2026-10-01 按代码 `8a79d5d` 核对。本文描述现有实现，供仓库内功能开发、预览和未来插件宿主接入使用。类型名与示例对应当前 Swift 源码；它们目前都是模块内部类型，没有 `public` SDK、插件注册 API、JSON 协议或跨进程调用能力。
+适用：Status Trio 2.0 presentation refactor 分支；2026-10-01 按代码 `8a79d5d` 核对。本文描述现有实现，供仓库内功能开发、预览和未来插件宿主接入使用。类型名与示例对应当前 Swift 源码；它们目前都是模块内部类型，没有 `public` SDK 或跨进程调用能力。内置插件通过模块内部 registry 注册；此版本暂未开放本地 JSON 包，相关读取接口保留供未来启用。
 
 ## 1. 从哪里接入
 
@@ -10,7 +10,7 @@
 | 调整图形设置 | `SettingsStore.iconPresentationPublisher` → `IconPresentationConfiguration` | 设置由 SettingsStore 持有，不直接改 renderer |
 | 把已知状态映射成三个图形 | `IconPresentationMapper.scene(inputs:configuration:)` | 纯值转换，可用于测试与预览 |
 | 绘制自定义场景或预览 | 构造 `IconSceneState` → `StatusIconRenderer` / `DockIconRenderer` | 此入口生成图像，不会自动更新运行中的图标 |
-| 将来接入插件 | 宿主适配器 → 明确的状态/映射契约 → 同一个共享 owner | 当前只支持构造时注入映射闭包，没有注册或写入方法 |
+| 插件接入 | 宿主适配器 → 明确的状态/映射契约 → 同一个共享 owner | 内置插件走 `IconContentPluginRegistry`；本地 JSON 包只读取固定文件，不动态加载代码 |
 
 ```mermaid
 flowchart LR
@@ -34,11 +34,15 @@ struct IconSceneState: Equatable, Hashable, Sendable {
     let outerRing: OuterRingState?
     let center: CenterState?
     let footer: FooterState?
+    /// Per-role battery colour overrides; `.standard` follows the semantic
+    /// colours. Part of the scene so every surface and cache key sees it.
+    let statusColors: BatteryStatusColors
 
     init(
         outerRing: OuterRingState? = nil,
         center: CenterState? = nil,
-        footer: FooterState? = nil
+        footer: FooterState? = nil,
+        statusColors: BatteryStatusColors = .standard
     )
 }
 ```
@@ -73,6 +77,24 @@ struct IconSceneState: Equatable, Hashable, Sendable {
 `IconTextState(text:color:scale:)` 提供短文本。symbol/text 的有限正数 scale 原样保留，非有限或非正数恢复为 1；这不是任意文本的排版容器，生产者需要控制文案长度和可读性。
 
 `IconColorRole` 可取 `.primary`、`.inactive`、`.critical`、`.lowPower`、`.powered`、`.bluetooth`。由绘制表面解析实际颜色，不传入固定深色或浅色 RGB。
+
+### 电池状态色配置
+
+`BatteryStatusColors` 为 charging、lowPower、critical 三个角色保存 `.system`、
+`.preset` 或 `.custom(HSB)`。它从 `SettingsStore.batteryStatusColors` 经
+`BatteryIconOptions` 进入共享场景；菜单栏、Dock、弹出面板和设置预览使用同一个解析器。
+颜色选择必须参与场景 equality/hash，并在关闭表面动画或生成静态缓存场景时保留。
+设置发布链使用 Combine 已交付的值，避免 `@Published` 提前发布造成旧色重绘。
+
+系统默认以当前外观的系统语义绿、黄、红为基线；菜单栏读取实际 effective appearance，
+Dock 按图标背景外观解析。用户自定义 HSB 原值由两个外观共用。渲染值的参考可见性
+下限为 1.2:1，参照黑/白底及其轨道合成色，设置页显示参考对比度与是否调整；
+这不等于实测透明菜单栏背景。充电高光继续从最终填充色派生。
+
+颜色设置不改变 `templateRegions` / `chromaticRegions` 的分类或 #165 的承载关系：
+彩色场景保留透明非模板 button 占位图、独立 template NSImageView 与上层彩色 CALayer。
+关闭状态色后忽略覆盖配置，仍保留既有动画区域判定。模板区域继续由系统在 Space
+拖动途中着色，彩色区域仍等提交后重绘，不新增焦点检测或手动变暗补偿。
 
 ### 底部
 
@@ -137,7 +159,7 @@ struct IconPresentationOutput: Equatable, Sendable {
 
 Owner 构造参数：初始 `snapshot`、初始 `settings`、两个 publisher、`@MainActor (StatusSnapshot) -> IconPresentationInputs` 资源解析闭包、`IconSceneMapper` 场景映射闭包，以及可注入的 `IconPresentationScheduling` 调度器。`IconPresentationViewModel` 拥有发布、生命周期和防抖；`IconSceneMapper` 把解析后的 inputs 与 configuration 映射为 `IconSceneState`。默认 mapper 是 `IconPresentationMapper.scene`，由显式闭包调用。注入闭包在 MainActor 同步运行，应保持确定且轻量；它不会自动订阅闭包捕获的状态，调用方应通过既有输入 publisher 触发重新映射。
 
-替代映射闭包可用于组合、测试和未来宿主集成，但 production application 继续使用默认 mapper。此入口不是插件 API：没有动态注册、公开 SDK、外部 scene 注入或发布方法，`output` 仍为只读。
+替代映射闭包可用于组合、测试和未来宿主集成，但 production application 继续使用默认 mapper。此入口不是公开插件 API：内置 registry 在编译期构造，本地 JSON 包只能提供文本/数值读数；没有动态代码加载、公开 SDK、外部 scene 注入或写入方法，`output` 仍为只读。
 
 | 事件 | 更新语义 |
 | --- | --- |
@@ -273,7 +295,7 @@ size 为逻辑点数，scale 为 backing scale，固定位图边长是 `ceil(siz
 
 1. 让宿主适配器接收新 producer 的值，定义数据有效性、失效/断连行为和资源回退；跨进程数据需先转换为宿主认可的值。
 2. 若现有 `StatusSnapshot` 无法表达新数据，明确扩展 inputs 和映射策略，避免篡改现有系统状态或自行竞争绘制表面。
-3. 在同一个 Mapper/宿主组合边界生成完整场景，明确外环、中心、底部归属和优先级，交给同一个共享 owner。Owner 现在支持构造时注入映射闭包，但尚无动态注册、外部 scene 发布或插件 API。
+3. 在同一个 Mapper/宿主组合边界生成完整场景，明确外环、中心、底部归属和优先级，交给同一个共享 owner。槽位选择保存在 `IconSlotBindingsV1`；内置插件与本地 JSON 包都经 registry 解析，但对外仍不是稳定 SDK。
 4. 复用菜单栏/Dock 渲染和缓存路径；新资源或动画需定义各表面的失效策略和生命周期，不能私设轮询来强迫更新。
 5. 补齐 Mapper 值测试、owner delivered-value/防抖/停止测试，以及双表面渲染/缓存/辅助功能测试。动态注册、公共访问级别、协议版本、权限和远端传输都仍需单独设计与实现。
 

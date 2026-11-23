@@ -18,6 +18,26 @@ final class BatteryDetailsLayoutTests: XCTestCase {
         }
     }
 
+    func testRuntimeSubtitleExpandsRatherThanTruncatesInEveryLanguage() async throws {
+        for language in AppLanguage.allCases {
+            for observesHighPower in [false, true] {
+                let unknown = try await renderSummary(
+                    language: language, isPresent: true,
+                    lowPower: true, observesHighPower: observesHighPower
+                )
+                let estimated = try await renderSummary(
+                    language: language, isPresent: true,
+                    minutes: 685, lowPower: true, observesHighPower: observesHighPower
+                )
+                XCTAssertEqual(estimated.width, 330, accuracy: 0.5)
+                // 剩余时间的副标题是否换行取决于字体度量（CI 字体下中文/日文可单行放下），
+                // 因此只要求加上估算时间后行高不缩水、且仍在预算内，而不强制「必须变高」。
+                XCTAssertGreaterThanOrEqual(estimated.height, unknown.height, language.rawValue)
+                XCTAssertLessThan(estimated.height, 150, language.rawValue)
+            }
+        }
+    }
+
     func testConnectedPageFitsEveryLanguageWithAndWithoutSystemTelemetry() async throws {
         // The page now carries a second settings action below the system-power
         // one. Keep the budget tight enough that another whole row still fails.
@@ -28,10 +48,10 @@ final class BatteryDetailsLayoutTests: XCTestCase {
             let charging = try await render(language: language, available: true, connected: true, charging: true)
             XCTAssertLessThan(charging.height, heightBudget, language.rawValue)
             let missing = try await render(language: language, available: true, connected: true, systemAvailable: false)
-            // An unavailable system reading drops the timestamp row, not just
-            // shortens a value, so the page must lose at least one row of height.
-            XCTAssertGreaterThanOrEqual(connected.height - missing.height, 10,
-                                        "\(language.rawValue) kept the system timestamp row")
+            // The diagnostic system read-time row is gone, so a missing SMC
+            // sample no longer changes the row count.
+            XCTAssertLessThanOrEqual(abs(connected.height - missing.height), 1,
+                                     "\(language.rawValue) must not add a read-time row")
         }
     }
 
@@ -44,6 +64,20 @@ final class BatteryDetailsLayoutTests: XCTestCase {
             inputWatts: 110.23
         )
         XCTAssertEqual(size.width, 330, accuracy: 0.5)
+    }
+
+    func testBreakdownPageFitsPopoverWithFiveBranches() async throws {
+        // Five branches are the tallest possible diagram; the page still has to
+        // fit the popover without clipping the actions below it.
+        let heightBudget: CGFloat = 620
+        for language in AppLanguage.allCases {
+            let split = try await render(language: language, available: true, connected: true,
+                                         allPower: true, breakdown: true)
+            XCTAssertLessThan(split.height, heightBudget, language.rawValue)
+            let legacy = try await render(language: language, available: true, connected: true,
+                                          allPower: true)
+            XCTAssertGreaterThan(split.height, legacy.height, language.rawValue)
+        }
     }
 
     func testBatteryDetailsShowChargeToFullAboveTheSettingsActions() async throws {
@@ -113,27 +147,35 @@ final class BatteryDetailsLayoutTests: XCTestCase {
         }
     }
 
-    private func renderSummary(language: AppLanguage, isPresent: Bool) async throws -> NSSize {
+    private func renderSummary(
+        language: AppLanguage, isPresent: Bool,
+        minutes: Int? = nil, lowPower: Bool = false,
+        observesHighPower: Bool = false
+    ) async throws -> NSSize {
         let suite = "StatusTrioCoreTests.BatterySummary.\(UUID().uuidString)"
         let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
         defer { defaults.removeTestSuite(named: suite) }
         let localization = Localization(defaults: defaults, preferredLanguages: ["en"])
         localization.setPreference(.language(language))
         let battery = BatteryStatus(rawPercentage: isPresent ? 80 : nil, isPresent: isPresent,
-                                    isCharging: false, isLowPowerMode: false,
-                                    isConnectedToPower: false)
+                                    isCharging: false, timeToEmptyMinutes: minutes,
+                                    isLowPowerMode: lowPower, isConnectedToPower: false)
         let view = BatteryStatusView(
             state: PanelPresentationMapper.battery(battery, localization: localization),
             cautionColor: .yellow,
             onOpenBatteryDetails: {},
-            onOpenBatterySettings: {}
+            onOpenBatterySettings: {},
+            lowPowerMode: LowPowerModeController(initialIsLowPowerMode: lowPower),
+            showsLowPowerToggle: lowPower,
+            highPowerMode: observesHighPower ? HighPowerModeController() : nil,
+            isConnectedToPower: false
         )
             .padding(14)
             .frame(width: 330)
             .background(Color(white: 0.96))
             .environmentObject(localization)
             .environment(\.colorScheme, .light)
-        return try await capture(view, named: "battery-\(language.rawValue)-row-\(isPresent ? "present" : "absent")")
+        return try await capture(view, named: "battery-\(language.rawValue)-row-\(isPresent ? "present" : "absent")-\(minutes ?? 0)-\(observesHighPower)")
     }
 
     private func renderSummaryActionProbe() async throws -> SummaryActionAlignmentProbe {
@@ -202,7 +244,7 @@ final class BatteryDetailsLayoutTests: XCTestCase {
                         systemAvailable: Bool = true, charging: Bool = false,
                         allPower: Bool = false, dark: Bool = false, energyApps: Bool = false,
                         chargeToFullNow: ChargeToFullNowPresentation = .hidden,
-                        inputWatts: Double? = nil) async throws -> NSSize {
+                        inputWatts: Double? = nil, breakdown: Bool = false) async throws -> NSSize {
         let suite = "StatusTrioCoreTests.BatteryDetails.\(UUID().uuidString)"
         let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
         defer { defaults.removeTestSuite(named: suite) }
@@ -211,21 +253,35 @@ final class BatteryDetailsLayoutTests: XCTestCase {
         let observedAt = Date(timeIntervalSince1970: 1_700_000_000)
         let fixture = BatteryDetails(
             adapterWatts: connected ? 90 : nil,
-            remainingMinutes: available ? 121 : nil,
             cycleCount: 43,
             power: available ? BatteryPowerSample(volts: allPower ? 12.5 : 12.279,
                 amps: allPower ? 3.2968 : (connected ? (charging ? 1.528 : 0) : -1.528), updatedAt: observedAt) : nil,
             powerAvailability: collecting ? .collecting : .unavailable,
             systemPower: connected && systemAvailable ? SystemPowerSample(watts: 25.59, readAt: observedAt) : nil,
             inputPower: connected
-                ? SystemPowerSample(watts: inputWatts ?? 67, readAt: observedAt) : nil)
+                ? SystemPowerSample(watts: inputWatts ?? 67, readAt: observedAt) : nil,
+            breakdown: breakdown && connected ? BatteryPowerBreakdown(
+                source: .adapter,
+                sourceWatts: 67,
+                display: .init(watts: 8.07, readAt: observedAt),
+                usb: .init(watts: 4.5, readAt: observedAt),
+                system: .init(watts: 13.22, readAt: observedAt),
+                readAt: observedAt) : nil,
+            health: BatteryHealthSnapshot(
+                designCapacityMAh: 5_000,
+                maximumCapacityMAh: 4_500,
+                maximumCapacityPercent: 100,
+                healthPercent: 90
+            ),
+            highPowerMode: HighPowerModeSystemStatus(supported: true, enabled: false))
         let battery = BatteryStatus(rawPercentage: 80, isPresent: true, isCharging: charging,
+                                    timeToEmptyMinutes: (!connected && available) ? 121 : nil,
                                     isLowPowerMode: false, isConnectedToPower: connected)
         let panelState = PanelDetailMapper.battery(
             status: battery,
             details: fixture,
             localization: localization,
-            powerOptions: BatteryPowerDisplayOptions(showsInput: allPower),
+            powerOptions: BatteryPowerDisplayOptions(showsInput: allPower, showsBreakdown: breakdown),
             energyApps: energyApps ? ApplicationEnergyRanking(apps: [
                 EnergyApplication(id: "browser", name: "Browser"),
                 EnergyApplication(id: "editor", name: "Code Editor"),
@@ -249,7 +305,7 @@ final class BatteryDetailsLayoutTests: XCTestCase {
         let state = connected
             ? (systemAvailable ? (charging ? "system-charging" : "system") : "system-unavailable")
             : (available ? "power" : (collecting ? "collecting" : "unavailable"))
-        let size = try await capture(view, named: "battery-\(language.rawValue)-page-\(state)-\(allPower ? "flow" : "default")-\(dark ? "dark" : "light")")
+        let size = try await capture(view, named: "battery-\(language.rawValue)-page-\(state)-\(allPower ? "flow" : "default")-\(breakdown ? "breakdown" : "single")-\(dark ? "dark" : "light")")
         XCTAssertEqual(size.width, 330, accuracy: 0.5)
         return size
     }

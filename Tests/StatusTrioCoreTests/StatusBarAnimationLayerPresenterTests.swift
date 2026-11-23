@@ -5,6 +5,25 @@ import Testing
 
 @MainActor
 struct StatusBarAnimationLayerPresenterTests {
+    /// AppKit can resize a status button after the image assignment has returned.
+    /// Both surfaces must follow that resize without waiting for an animation tick.
+    @Test func hostResizeKeepsOverlayOnTemplateWithoutAnotherDisplayCall() throws {
+        let host = NSView(frame: NSRect(x: 0, y: 0, width: 40, height: 24))
+        let template = StatusBarTemplateImagePresenter()
+        let overlay = StatusBarAnimationLayerPresenter()
+        let image = NSImage(size: NSSize(width: 24, height: 24))
+        image.isTemplate = true
+        template.display(image, in: host, contentSize: image.size)
+        _ = overlay.display(try solidCGImage(color: CGColor(gray: 1, alpha: 1)),
+                            in: host, contentSize: image.size, backingScale: 2)
+        let templateView = try #require(host.subviews.first as? NSImageView)
+        let layer = try #require(host.layer?.sublayers?.first(where: { $0.zPosition == 1 }))
+        host.setFrameSize(NSSize(width: 48, height: 30))
+        host.layoutSubtreeIfNeeded()
+        #expect(templateView.frame == NSRect(x: 12, y: 3, width: 24, height: 24))
+        #expect(layer.frame == templateView.frame)
+    }
+
     @Test func installsOneLayerThenUpdatesItsCachedImageContents() throws {
         let view = NSView(frame: NSRect(x: 0, y: 0, width: 22, height: 22))
         let presenter = StatusBarAnimationLayerPresenter()

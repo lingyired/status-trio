@@ -14,6 +14,14 @@ BUILD="${BUILD:?BUILD is required}"
 TAG="${TAG:?TAG is required}"
 PUBLISH_MODE="${PUBLISH_MODE:-false}"
 NOTARIZE="${NOTARIZE:-false}"
+# CANDIDATE_TYPE separates a publishable release candidate from a
+# non-promotable diagnostic package. Empty keeps the historical schema v1 path.
+CANDIDATE_TYPE="${CANDIDATE_TYPE:-}"
+RELEASE_MODE="${RELEASE_MODE:-strict}"
+BUILD_RUN_ID="${BUILD_RUN_ID:-${GITHUB_RUN_ID:-}}"
+VERIFICATION_STATUS="${VERIFICATION_STATUS:-}"
+VERIFICATION_EVIDENCE="${VERIFICATION_EVIDENCE:-}"
+STRICT_EVIDENCE_RUN_ID="${STRICT_EVIDENCE_RUN_ID:-}"
 RELEASE_REPO="${RELEASE_REPO:-}"
 RELEASE_BRANCH="${RELEASE_BRANCH:-}"
 RELEASE_NOTES_DIR="${RELEASE_NOTES_DIR:-release-notes/$VERSION}"
@@ -53,6 +61,35 @@ fi
 if [[ -n "${NOTARY_PROFILE:-}" && "$SIGNING_KIND" != "developer_id" ]]; then
     die "NOTARY_PROFILE requires a Developer ID signature."
 fi
+case "$CANDIDATE_TYPE" in
+    ""|release_candidate|diagnostic) ;;
+    *) die "CANDIDATE_TYPE must be empty, release_candidate, or diagnostic." ;;
+esac
+case "$RELEASE_MODE" in
+    fast|strict) ;;
+    *) die "RELEASE_MODE must be fast or strict." ;;
+esac
+if [[ "$CANDIDATE_TYPE" == "release_candidate" ]]; then
+    [[ "$SIGNING_KIND" == "developer_id" ]] ||
+        die "a release_candidate requires a Developer ID Application identity; ad-hoc fallback is not allowed."
+    [[ "$NOTARIZE" == "true" ]] ||
+        die "a release_candidate requires notarize=true."
+    [[ -n "${SPARKLE_PRIVATE_KEY:-}" ]] ||
+        die "a release_candidate requires SPARKLE_PRIVATE_KEY; a candidate without Sparkle signing is not publishable."
+    [[ -n "$BUILD_RUN_ID" ]] ||
+        die "a release_candidate requires BUILD_RUN_ID (CI run id) to bind provenance."
+fi
+if [[ -z "$VERIFICATION_STATUS" ]]; then
+    if [[ "$CANDIDATE_TYPE" == "release_candidate" && "$RELEASE_MODE" == "fast" ]]; then
+        VERIFICATION_STATUS="declared"
+    else
+        VERIFICATION_STATUS="passed"
+    fi
+fi
+case "$VERIFICATION_STATUS" in
+    passed|declared) ;;
+    *) die "VERIFICATION_STATUS must be passed or declared." ;;
+esac
 if [[ "$PUBLISH_MODE" == "true" && "$SIGNING_KIND" == "developer_id" && -z "${NOTARY_PROFILE:-}" ]]; then
     die "A Developer ID package must be notarized before publication."
 fi
@@ -90,6 +127,7 @@ WORKTREE_STATUS="$(
 for command in git ruby shasum swift xcrun hdiutil plutil /usr/libexec/PlistBuddy; do
     command -v "$command" >/dev/null 2>&1 || die "required command '$command' is not available."
 done
+bash "$ROOT/scripts/create-installer-dmg.sh" --check
 
 SDK_VERSION="$(xcrun --sdk macosx --show-sdk-version)"
 XCODE_VERSION="$(xcodebuild -version | tr '\n' ' ' | sed 's/ $//')"
@@ -102,10 +140,16 @@ esac
 [[ "${SDK_VERSION%%.*}" -ge 26 ]] || die "macOS SDK 26+ is required; found $SDK_VERSION."
 
 cd "$ROOT"
-case "$PUBLISH_MODE" in
-    true) NOTES_MODE="publish" ;;
-    false) NOTES_MODE="package" ;;
-esac
+if [[ "$CANDIDATE_TYPE" == "release_candidate" ]]; then
+    # A release candidate always carries complete, formal release notes even
+    # when the build itself does not publish.
+    NOTES_MODE="publish"
+else
+    case "$PUBLISH_MODE" in
+        true) NOTES_MODE="publish" ;;
+        false) NOTES_MODE="package" ;;
+    esac
+fi
 case "$RELEASE_NOTES_DIR" in
     /*) NOTES_DIR_ABSOLUTE="$RELEASE_NOTES_DIR" ;;
     *) NOTES_DIR_ABSOLUTE="$ROOT/$RELEASE_NOTES_DIR" ;;
@@ -117,7 +161,7 @@ if [[ -d "$NOTES_DIR_ABSOLUTE" ]]; then
         RELEASE_NOTES_DIR="$NOTES_DIR_ABSOLUTE" \
         APPCAST_FILE="appcast.xml" \
         bash "$ROOT/scripts/validate-appcast-notes.sh"
-elif [[ "$PUBLISH_MODE" == "true" ]]; then
+elif [[ "$PUBLISH_MODE" == "true" || "$CANDIDATE_TYPE" == "release_candidate" ]]; then
     die "release notes directory is missing: $NOTES_DIR_ABSOLUTE"
 else
     echo "Package-only run has no release-notes directory; release notes validation and appcast generation are skipped."
@@ -175,10 +219,6 @@ bash "$ROOT/scripts/test-macos13-sparkle-metadata.sh" "$APP_DIR"
 TEMP_ROOT="$(mktemp -d "${TMPDIR:-/tmp}/StatusTrioPackage.XXXXXX")"
 trap 'build_timing_finish "$?"; rm -rf "$TEMP_ROOT"' EXIT
 build_phase dmg-staging
-STAGING_DIR="$TEMP_ROOT/dmg"
-mkdir -p "$STAGING_DIR"
-ditto "$APP_DIR" "$STAGING_DIR/$APP_NAME.app"
-ln -s /Applications "$STAGING_DIR/Applications"
 
 if [[ -n "${NOTARY_PROFILE:-}" ]]; then
     build_phase app-notarization
@@ -186,7 +226,7 @@ if [[ -n "${NOTARY_PROFILE:-}" ]]; then
         die "NOTARY_PROFILE requires a Developer ID signature."
     fi
     APP_ARCHIVE="$TEMP_ROOT/app.zip"
-    ditto -c -k --keepParent "$STAGING_DIR/$APP_NAME.app" "$APP_ARCHIVE"
+    ditto -c -k --keepParent "$APP_DIR" "$APP_ARCHIVE"
     APP_NOTARY_ARGS=(--keychain-profile "$NOTARY_PROFILE")
     if [[ -n "${KEYCHAIN_PATH:-}" ]]; then
         APP_NOTARY_ARGS+=(--keychain "$KEYCHAIN_PATH")
@@ -198,15 +238,37 @@ if [[ -n "${NOTARY_PROFILE:-}" ]]; then
         result = JSON.parse(File.read(ARGV[0]))
         abort("App notarization status was #{result["status"]}.") unless result["status"] == "Accepted"
     ' "$TEMP_ROOT/app-notary.json"
-    xcrun stapler staple "$STAGING_DIR/$APP_NAME.app"
-    xcrun stapler validate "$STAGING_DIR/$APP_NAME.app"
+    xcrun stapler staple "$APP_DIR"
+    xcrun stapler validate "$APP_DIR"
 fi
 
 DMG_PATH="$OUTPUT_DIR/$DMG_BASENAME-$VERSION.dmg"
 build_phase dmg-creation
-rm -f "$DMG_PATH" "$DMG_PATH.sha256"
-hdiutil create -quiet -volname "$APP_NAME" -srcfolder "$STAGING_DIR" \
-    -ov -format UDZO "$DMG_PATH"
+# Preserve the package command's existing rerun behavior for its explicit output.
+RESOLVED_OUTPUT_DIR="$(cd "$OUTPUT_DIR" && pwd -P)"
+[[ "$(cd "$(dirname "$DMG_PATH")" && pwd -P)" == "$RESOLVED_OUTPUT_DIR" ]] ||
+    die 'DMG output escaped OUTPUT_DIR.'
+[[ "$(basename "$DMG_PATH")" == "$DMG_BASENAME-$VERSION.dmg" ]] || die 'Unexpected DMG output name.'
+rm -f -- "$DMG_PATH" "$DMG_PATH.sha256"
+# DMG_INSTALL_PAGE=styled (default) draws the bilingual install page through
+# create-dmg. DMG_INSTALL_PAGE=plain is an explicit opt-out that ships the
+# pre-install-page layout: the app and an Applications symlink only. The plain
+# layout is never chosen silently, and either layout keeps the DMG
+# signing/notarization order unchanged.
+DMG_INSTALL_PAGE="${DMG_INSTALL_PAGE:-styled}"
+case "$DMG_INSTALL_PAGE" in
+    styled)
+        DMG_APP_NAME="$APP_NAME" bash "$ROOT/scripts/create-installer-dmg.sh" "$APP_DIR" "$DMG_PATH" ;;
+    plain)
+        STAGING_DIR="$TEMP_ROOT/dmg"
+        mkdir -p "$STAGING_DIR"
+        ditto "$APP_DIR" "$STAGING_DIR/$APP_NAME.app"
+        ln -s /Applications "$STAGING_DIR/Applications"
+        hdiutil create -quiet -volname "$APP_NAME" -srcfolder "$STAGING_DIR" \
+            -ov -format UDZO "$DMG_PATH" ;;
+    *)
+        die 'DMG_INSTALL_PAGE must be styled or plain.' ;;
+esac
 
 if [[ -n "${NOTARY_PROFILE:-}" ]]; then
     build_phase dmg-codesign
@@ -230,10 +292,17 @@ if [[ -n "${NOTARY_PROFILE:-}" ]]; then
     xcrun stapler staple "$DMG_PATH"
     xcrun stapler validate "$DMG_PATH"
     spctl --assess --type open --context context:primary-signature --verbose=2 "$DMG_PATH"
-    spctl --assess --type execute --verbose=2 "$STAGING_DIR/$APP_NAME.app"
+    spctl --assess --type execute --verbose=2 "$APP_DIR"
 fi
 
 DMG_FILENAME="$(basename "$DMG_PATH")"
+# Reuse the exact signed/stapled app from this build. This ZIP is an app
+# archive for Sparkle, not a ZIP wrapper around the DMG.
+build_phase app-zip-archive
+ZIP_FILENAME="StatusTrio-$VERSION.zip"
+ZIP_PATH="$OUTPUT_DIR/$ZIP_FILENAME"
+ditto -c -k --sequesterRsrc --keepParent "$APP_DIR" "$ZIP_PATH"
+ACTUAL_ZIP_LENGTH="$(stat -f '%z' "$ZIP_PATH")"
 build_phase sparkle-signature-and-manifest
 ACTUAL_DMG_LENGTH="$(stat -f '%z' "$DMG_PATH")"
 if [[ -n "${SPARKLE_PRIVATE_KEY:-}" ]]; then
@@ -249,23 +318,44 @@ if [[ -n "${SPARKLE_PRIVATE_KEY:-}" ]]; then
         die "Could not parse Sparkle signature output."
     [[ "$DMG_LENGTH" == "$ACTUAL_DMG_LENGTH" ]] ||
         die "Sparkle signature length $DMG_LENGTH differs from the actual DMG length $ACTUAL_DMG_LENGTH."
+    ZIP_SIGN_OUTPUT="$(
+        printf '%s' "$SPARKLE_PRIVATE_KEY" |
+            env -u SPARKLE_PRIVATE_KEY "$SIGN_UPDATE" --ed-key-file - "$ZIP_PATH"
+    )"
+    ZIP_ED_SIGNATURE="$(printf '%s\n' "$ZIP_SIGN_OUTPUT" | sed -n 's/.*sparkle:edSignature="\([^"]*\)".*/\1/p')"
+    ZIP_LENGTH="$(printf '%s\n' "$ZIP_SIGN_OUTPUT" | sed -n 's/.*length="\([0-9][0-9]*\)".*/\1/p')"
+    [[ -n "$ZIP_ED_SIGNATURE" && "$ZIP_LENGTH" == "$ACTUAL_ZIP_LENGTH" ]] ||
+        die "ZIP Sparkle signature or length is invalid."
 else
     [[ "$PUBLISH_MODE" == "false" ]] ||
         die "SPARKLE_PRIVATE_KEY is required for a publishable package."
     ED_SIGNATURE="diagnostic-not-for-publication"
     DMG_LENGTH="$ACTUAL_DMG_LENGTH"
+    ZIP_ED_SIGNATURE="diagnostic-not-for-publication"
+    ZIP_LENGTH="$ACTUAL_ZIP_LENGTH"
     echo "Diagnostic package has no Sparkle signature; manifest is marked non-publishable." >&2
 fi
 (
     cd "$OUTPUT_DIR"
     shasum -a 256 "$DMG_FILENAME" > "$DMG_FILENAME.sha256"
+    shasum -a 256 "$ZIP_FILENAME" > "$ZIP_FILENAME.sha256"
 )
 DMG_SHA256="$(awk '{print $1}' "$OUTPUT_DIR/$DMG_FILENAME.sha256")"
+ZIP_SHA256="$(awk '{print $1}' "$OUTPUT_DIR/$ZIP_FILENAME.sha256")"
 if [[ -n "${NOTARY_PROFILE:-}" ]]; then
     if [[ "${CODE_SIGN_IDENTITY:--}" == "-" ]]; then
         die "NOTARY_PROFILE requires a Developer ID signature."
     fi
     NOTARIZATION_STATUS="accepted_and_stapled"
+fi
+
+PUBLISHABLE=false
+if [[ "$CANDIDATE_TYPE" == "release_candidate" ]]; then
+    [[ "$SIGNING_KIND" == "developer_id" ]] ||
+        die "release_candidate must be Developer ID signed."
+    [[ "$NOTARIZATION_STATUS" == "accepted_and_stapled" ]] ||
+        die "release_candidate must be notarized and stapled."
+    PUBLISHABLE=true
 fi
 
 if [[ "$HAS_RELEASE_NOTES" == "true" ]]; then
@@ -283,42 +373,56 @@ ruby -rjson -e '
     require "time"
     output, source_sha, version, build, tag, dmg, sha, length, signature,
       repo, branch, appcast, body, notes, signing, notarization, app_name, bundle_id,
-      minimum_system_version, xcode, swift, sdk = ARGV
+      minimum_system_version, xcode, swift, sdk, zip, zip_sha, zip_length, zip_signature,
+      candidate_type, release_mode, build_run_id, verification_status,
+      verification_evidence, strict_evidence_run_id, publishable = ARGV
+    base = {
+      source_sha: source_sha,
+      version: version,
+      build: build,
+      tag: tag,
+      app_name: app_name,
+      bundle_id: bundle_id,
+      minimum_system_version: minimum_system_version,
+      toolchain: { xcode: xcode, swift: swift, sdk: sdk, runner: "xcode-27" },
+      dmg: { filename: dmg, sha256: sha, length: length, ed_signature: signature },
+      zip: { filename: zip, sha256: zip_sha, length: zip_length, ed_signature: zip_signature },
+      signing: { kind: signing },
+      notarization: { status: notarization },
+      release: { repo: repo, branch: branch, appcast_file: appcast, body_file: body, notes_dir: notes }
+    }
+    payload =
+      if candidate_type.to_s.empty?
+        { schema_version: 1, generated_at: Time.now.utc.iso8601 }.merge(base)
+      else
+        evidence = verification_evidence.to_s.split(",").map(&:strip).reject(&:empty?)
+        evidence << "strict_evidence_run:#{strict_evidence_run_id}" unless strict_evidence_run_id.to_s.empty?
+        {
+          schema_version: 2,
+          generated_at: Time.now.utc.iso8601,
+          candidate: {
+            id: "#{repo}##{build_run_id}",
+            source_sha: source_sha,
+            build_run_id: build_run_id,
+            build_workflow: "build-candidate.yml",
+            release_mode: release_mode,
+            publishable: (publishable == "true"),
+            created_at: Time.now.utc.iso8601
+          },
+          verification: { level: release_mode, status: verification_status, evidence: evidence }
+        }.merge(base)
+      end
     File.write(
       File.join(output, "release-manifest.json"),
-      JSON.pretty_generate(
-        schema_version: 1,
-        generated_at: Time.now.utc.iso8601,
-        source_sha: source_sha,
-        version: version,
-        build: build,
-        tag: tag,
-        app_name: app_name,
-        bundle_id: bundle_id,
-        minimum_system_version: minimum_system_version,
-        toolchain: { xcode: xcode, swift: swift, sdk: sdk, runner: "xcode-27" },
-        dmg: {
-          filename: dmg,
-          sha256: sha,
-          length: length,
-          ed_signature: signature
-        },
-        signing: { kind: signing },
-        notarization: { status: notarization },
-        release: {
-          repo: repo,
-          branch: branch,
-          appcast_file: appcast,
-          body_file: body,
-          notes_dir: notes
-        }
-      ) + "\n"
+      JSON.pretty_generate(payload) + "\n"
     )
 ' "$OUTPUT_DIR" "$SOURCE_SHA" "$VERSION" "$BUILD" "$TAG" "$DMG_FILENAME" \
     "$DMG_SHA256" "$DMG_LENGTH" "$ED_SIGNATURE" "$RELEASE_REPO" \
     "$RELEASE_BRANCH" "appcast.xml" "release-body.md" "release-notes/$VERSION" \
     "$SIGNING_KIND" "$NOTARIZATION_STATUS" "$APP_NAME" "$BUNDLE_ID" \
     "$MINIMUM_SYSTEM_VERSION" "$XCODE_VERSION" "$SWIFT_VERSION" \
-    "$SDK_VERSION"
+    "$SDK_VERSION" "$ZIP_FILENAME" "$ZIP_SHA256" "$ZIP_LENGTH" "$ZIP_ED_SIGNATURE" \
+    "$CANDIDATE_TYPE" "$RELEASE_MODE" "$BUILD_RUN_ID" "$VERIFICATION_STATUS" \
+    "$VERIFICATION_EVIDENCE" "$STRICT_EVIDENCE_RUN_ID" "$PUBLISHABLE"
 
 echo "Package ready: $DMG_FILENAME ($DMG_SHA256), signing=$SIGNING_KIND, notarization=$NOTARIZATION_STATUS"

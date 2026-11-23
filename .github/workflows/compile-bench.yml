@@ -1,0 +1,71 @@
+name: Compile Bench (diagnostic, non-publishing)
+
+# Diagnostic only: measures a clean universal release compile and a
+# SwiftPM .build cache-restored compile on the same SHA/toolchain. It never
+# signs, notarizes, packages, tags, or publishes anything.
+on:
+  workflow_dispatch:
+    inputs:
+      note:
+        description: "Free-form label for this benchmark run."
+        required: false
+        default: ""
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  bench:
+    runs-on: xcode-27
+    timeout-minutes: 45
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_27.app/Contents/Developer
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Show toolchain
+        run: |
+          swift --version
+          xcodebuild -version
+          printf 'macOS SDK: %s\n' "$(xcrun --sdk macosx --show-sdk-version)"
+
+      - name: Restore SwiftPM build cache
+        id: swift-cache
+        uses: actions/cache/restore@v4
+        with:
+          path: .build
+          key: swiftpm-bench-${{ runner.os }}-xcode27-${{ hashFiles('Package.resolved') }}
+
+      - name: Cold-clean on cache miss
+        if: steps.swift-cache.outputs.cache-hit != 'true'
+        run: rm -rf .build
+
+      - name: Timed universal release compile
+        env:
+          BENCH_NOTE: ${{ inputs.note }}
+        run: |
+          set -euo pipefail
+          start=$(date +%s)
+          swift build -c release --arch arm64 --arch x86_64
+          end=$(date +%s)
+          secs=$((end-start))
+          echo "COMPILE_SECONDS=${secs}" >> "$GITHUB_ENV"
+          echo "CACHE_HIT=${{ steps.swift-cache.outputs.cache-hit }}" >> "$GITHUB_ENV"
+          {
+            echo "### Compile bench"
+            echo ""
+            echo "- cache-hit: ${{ steps.swift-cache.outputs.cache-hit }}"
+            echo "- universal release compile: ${secs}s"
+            printf '%s\n' "- note: ${BENCH_NOTE}"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Save SwiftPM build cache
+        if: steps.swift-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: .build
+          key: swiftpm-bench-${{ runner.os }}-xcode27-${{ hashFiles('Package.resolved') }}

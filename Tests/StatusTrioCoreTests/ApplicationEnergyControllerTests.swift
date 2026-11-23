@@ -149,9 +149,10 @@ final class ApplicationEnergyControllerTests: XCTestCase {
             backgroundInterval: .milliseconds(20))
         controller.setBackgroundMonitoringEnabled(true)
         await waitUntil { controller.ranking.phase == .ready }
-        // refresh() rejects intervals shorter than 0.5 seconds, so cross that
-        // guard before asserting that the test cadence keeps producing samples.
-        try? await Task.sleep(for: .milliseconds(650))
+        // Poll for the short cadence to keep producing samples instead of
+        // assuming a fixed 650 ms is enough; the fixed sleep flaked under a
+        // loaded full-suite runner.
+        await waitUntil { reader.count > 2 }
         XCTAssertGreaterThan(reader.count, 2, "The short test cadence should keep sampling")
 
         controller.setBackgroundInterval(.seconds(60))
@@ -183,7 +184,7 @@ final class ApplicationEnergyControllerTests: XCTestCase {
     }
 
     private func waitUntil(_ predicate: () -> Bool) async {
-        for _ in 0..<1_000 {
+        for _ in 0..<5_000 {
             if predicate() { return }
             try? await Task.sleep(for: .milliseconds(2))
         }

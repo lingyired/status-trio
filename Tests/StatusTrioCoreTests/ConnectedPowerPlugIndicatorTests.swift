@@ -85,7 +85,7 @@ final class ConnectedPowerPlugIndicatorTests: XCTestCase {
                 showsChargingIndicator: true,
                 usesStatusColors: true,
                 criticalThreshold: 20,
-                showsPercentageWhenConnected: true
+                connectedIndicator: .percentage
             )
         )
         let onBattery = try menuBarPixels(for: onBatteryBattery())

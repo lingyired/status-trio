@@ -70,6 +70,8 @@ final class SystemLaunchAtLoginService: LaunchAtLoginServicing {
 /// republishes the system state so the settings UI can react to it.
 @MainActor
 final class LaunchAtLoginManager: ObservableObject {
+    static let shared = LaunchAtLoginManager()
+
     @Published private(set) var status: LaunchAtLoginStatus
     @Published private(set) var didFailLastOperation = false
 

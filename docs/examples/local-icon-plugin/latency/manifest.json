@@ -1,0 +1,8 @@
+{
+  "schemaVersion": 1,
+  "pluginID": "com.example.latency",
+  "title": "Latency",
+  "presentations": [
+    { "id": "value", "slot": "center", "kind": "text" }
+  ]
+}

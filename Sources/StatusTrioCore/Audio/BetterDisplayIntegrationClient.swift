@@ -1,5 +1,14 @@
 import Foundation
 
+enum BetterDisplayIntegrationError: Error, Equatable, Sendable {
+    case notStarted
+    case tooManyPendingRequests
+    case timedOut
+    case requestFailed
+    case invalidResponse
+    case stopped
+}
+
 struct BetterDisplayRequestEnvelope: Encodable {
     let uuid: String
     let commands: [String]
@@ -21,6 +30,15 @@ private struct BetterDisplayOSDEnvelope: Decodable, Sendable {
             || systemIconID == 4
             || controlTarget == "volume"
             || controlTarget == "mute"
+    }
+
+    /// Accept brightness-specific control names without treating unrelated
+    /// system icon notifications as brightness changes.
+    var isBrightnessEvent: Bool {
+        controlTarget == "brightness"
+            || controlTarget == "combinedBrightness"
+            || controlTarget == "hardwareBrightness"
+            || controlTarget == "softwareBrightness"
     }
 }
 
@@ -109,7 +127,8 @@ private final class SystemBetterDisplayNotificationObservation:
 }
 
 @MainActor
-final class BetterDisplayIntegrationClient: BetterDisplayRequesting {
+final class BetterDisplayIntegrationClient: BetterDisplayRequesting,
+    BetterDisplayBrightnessHintSource {
     private struct PendingRequest {
         let continuation: CheckedContinuation<String?, any Error>
         let timeoutTask: Task<Void, Never>
@@ -126,6 +145,7 @@ final class BetterDisplayIntegrationClient: BetterDisplayRequesting {
     private var observations: [any BetterDisplayNotificationObservation] = []
     private var pendingRequests: [String: PendingRequest] = [:]
     private var onEvent: (@MainActor (BetterDisplayEvent) -> Void)?
+    private var onBrightnessOSD: (@MainActor () -> Void)?
     private var lifecycleGeneration: UInt64 = 0
     private var isStarted = false
 
@@ -145,12 +165,23 @@ final class BetterDisplayIntegrationClient: BetterDisplayRequesting {
     }
 
     deinit {
-        for observation in observations {
-            observation.cancel()
-        }
-        for pendingRequest in pendingRequests.values {
-            pendingRequest.timeoutTask.cancel()
-            pendingRequest.continuation.resume(throwing: BetterDisplayIntegrationError.stopped)
+        // `deinit` is nonisolated and can run on whatever thread drops the last
+        // reference. The observations and pending requests belong to the main
+        // actor, so the cleanup is handed there instead of mutating or resuming
+        // them from the releasing thread. Once the last owner is gone, the
+        // copies are immutable.
+        let observations = observations
+        let pendingRequests = pendingRequests
+        Task { @MainActor in
+            for observation in observations {
+                observation.cancel()
+            }
+            for pendingRequest in pendingRequests.values {
+                pendingRequest.timeoutTask.cancel()
+                pendingRequest.continuation.resume(
+                    throwing: BetterDisplayIntegrationError.stopped
+                )
+            }
         }
     }
 
@@ -223,10 +254,15 @@ final class BetterDisplayIntegrationClient: BetterDisplayRequesting {
         }
     }
 
+    func setBrightnessOSDHandler(_ handler: (@MainActor () -> Void)?) {
+        onBrightnessOSD = handler
+    }
+
     func stop() {
         isStarted = false
         lifecycleGeneration &+= 1
         onEvent = nil
+        onBrightnessOSD = nil
 
         let observations = observations
         self.observations.removeAll()
@@ -302,11 +338,12 @@ final class BetterDisplayIntegrationClient: BetterDisplayRequesting {
                     BetterDisplayOSDEnvelope.self,
                     from: data
                 ),
-                osd.isAudioEvent
+                osd.isAudioEvent || osd.isBrightnessEvent
             else {
                 return
             }
 
+            let isAudioEvent = osd.isAudioEvent
             Task { @MainActor [weak self] in
                 guard
                     let self,
@@ -314,7 +351,11 @@ final class BetterDisplayIntegrationClient: BetterDisplayRequesting {
                 else {
                     return
                 }
-                self.onEvent?(.audioChanged)
+                if isAudioEvent {
+                    self.onEvent?(.audioChanged)
+                } else {
+                    self.onBrightnessOSD?()
+                }
             }
         }
     }

@@ -54,10 +54,19 @@ An address the normalizer cannot reduce names no device, so entries like it are
 never merged — two of them are not necessarily the same device, and the merge
 would cost a real one its row.
 
-The level map reads in the same order and keeps the same precedence, and it
-needed it more: its keys are addresses, so the disconnected copy of an address —
-read second — overwrote the connected reading, and a row showing the current
-charge fell back to the last value macOS had written down.
+The level map accepts only `device_connected` entries and deduplicates normalized
+addresses across controller sections. `device_not_connected` percentages are
+historical values with no trustworthy measurement timestamp, so even a freshly
+fetched report cannot make them current.
+
+The controller also filters primary readings against its current connected-device
+snapshot before publishing or deciding whether accessory fallback is needed. A
+successful device snapshot immediately removes primary and accessory levels for
+addresses that disappeared or disconnected, even without an active battery claim.
+Late battery completions and repeated warm claims cannot restore those values;
+a reconnect and a new valid connected reading can. Independently verified nearby
+BLE readings keep their existing merge and lifetime policy, including on a
+disconnected classic row. No additional timer or polling is used.
 
 ## Device classes and their glyphs
 
@@ -219,12 +228,27 @@ described by the other source.
 The XML form is asked for rather than the plain-text one, because the text form
 prints an accessory it cannot resolve with an empty name — the Mac this was
 written on shows its AirPods as `- (id=…) 97%` — and the name is one of the two
-things a reading is joined to a device by. `Vendor ID`/`Product ID` are the
-identity when both sides carry the pair, so a rename cannot re-join a reading to
-whichever device now happens to share its wording. The name is the fallback for a
-report entry that carries no pair, and that comparison is exact rather than a
-substring match, which would join an accessory to any device whose name happens
-to contain it.
+things a reading is joined to a device by. `Vendor ID`/`Product ID` identify a
+model when both sides carry the pair, so a rename does not change that model
+match. They do not prove a physical device's identity. The name is the fallback
+when either side lacks the pair, and that comparison is exact rather than a
+substring match.
+
+Accessory readings are grouped by a nonempty `Accessory Identifier`. Ownership
+checks include all paired devices, including disconnected devices: first collect
+every device any record could match, require exactly one possible owner, then
+require every record in the group to match that owner. A matching part cannot
+vouch for another part with conflicting metadata. Only connected devices receive
+fallback levels. Missing identifiers are ignored. Ambiguity is scoped to the
+device it concerns: a group that names no single device adds nothing, and a
+device that two identifiers both name is dropped, but every other device whose
+reading resolves uniquely keeps its level. An unresolvable accessory therefore
+cannot suppress the levels of unrelated devices — the case that hid a mouse and
+keyboard merely because a set of AirPods reported its case and combined level
+under two identifiers (#328). This conservative rule is not a
+UUID-to-Bluetooth-address mapping. Real AirPods L/R/Case samples are still
+needed to establish whether their parts share this identifier; do not substitute
+`Group Identifier` without that evidence.
 
 A reading is written to the channel its part names, and a part never writes the
 device-wide level: `Part Identifier = Left` fills `left`, and only a reading with
@@ -242,6 +266,16 @@ unless the second source actually supplied a level, so a report that failed
 outright is never quietly replaced by a partial answer.
 
 ## Levels refresh on the system's own notifications
+
+Every monitored connection event immediately clears battery levels and advances
+the connection generation, before checking the debounce latch. A device read
+captures this generation when it starts; battery reads, including repeated warm
+claims, resume only after a device snapshot from the current generation arrives.
+An older profiler completion can settle the existing read latch but cannot
+restore battery reads. Bursts still share the existing debounced device refresh;
+no additional polling or concurrent profiler process is introduced. Because a
+connection notification carries no address, other devices can briefly lose their
+battery display while the fresh snapshot is pending.
 
 The safety-net poll stays, and is still deliberately slow, but a level that changes
 is now re-read within a few seconds. While a surface is showing levels the
@@ -272,8 +306,8 @@ wait for one) does observe them, so only a real accessory event exercises this p
 ## Device levels in the list
 
 The panel's list renders one level per device the same way the row does, and
-covers every paired device, connected or not. A row shows a level only when the
-report carries one for that device
+covers every paired device, connected or not. A row shows a level only when a
+current battery source supplies one for that device
 (`BluetoothDevicePresentation.batteryLevelSegments(for:batteryLevels:)`); a
 device macOS cannot read stays silent instead of repeating a placeholder on
 every line.
@@ -457,8 +491,10 @@ connected input device while it is open.
 ## Switching an AirPods listening mode from its row
 
 A connected AirPods row whose listening mode the system exposes carries a small
-capsule switch under the battery line: one capsule per mode the device reports it
-supports — noise cancellation, transparency, adaptive, and the silent `off` state.
+capsule switch under the battery line: one capsule per selectable mode the device
+reports it supports — noise cancellation, transparency, adaptive. `off` has no
+support bit and is never drawn as its own capsule: the user turns the active mode
+off by tapping the highlighted capsule again.
 The modes and the current selection come from undocumented CoreAudio HAL
 properties read off the device's own audio endpoint: `lsms` lists the modes the
 device supports, `lstm` reports (and sets) the active one. Both are Global scope on
@@ -510,9 +546,11 @@ never nested inside it — SwiftUI swallows an inner button's tap when it lives 
 another `Button`, so nesting would make the capsules dead. The row is one
 `.accessibilityElement(children: .contain)` (not `.combine`), so each capsule keeps
 its own focus target and VoiceOver or the keyboard can land on a single mode;
-selection rides on the `.isSelected` trait and an accent ring, not colour alone, and
-a capsule already selected or already settling into a change is disabled rather than
-firing a redundant write. The in-flight marker honours the system's Reduce Motion:
+selection rides on the `.isSelected` trait and an accent ring, not colour alone. The
+highlighted capsule stays enabled: tapping it again asks the device to turn off
+(`off` is not a drawn capsule on an AirPods row), and the spinner for that request
+appears on the highlighted capsule itself. Only a change already in flight disables
+the group, so a second tap cannot stack a write. The in-flight marker honours the system's Reduce Motion:
 an animated progress dot normally, a static dot when Reduce Motion is on. All of the
 mode names, the group label, and the failure message ship in every language
 (`bluetooth.listeningMode.*`), guarded by the localization parity and

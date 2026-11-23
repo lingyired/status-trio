@@ -116,3 +116,44 @@ bash scripts/validate-release-recovery.sh
 
 This validates metadata only. It does not prove GitHub publication, signing,
 notarization, public download, or appcast behavior.
+
+## Build Candidate → Publish Existing Candidate
+
+`build-candidate.yml` builds one notarized `release_candidate` artifact
+(`status-trio-release-package`, schema v2 manifest) and never publishes it.
+`publish-candidate.yml` takes only `candidate_run_id`, downloads that exact
+artifact, validates it with `scripts/validate-candidate-provenance.sh`, and runs
+`scripts/publish-release.sh` without rebuilding, re-signing, re-notarizing, or
+re-packing.
+
+### Provenance validation (schema v2)
+
+`validate-candidate-provenance.sh` binds the artifact to a trusted source without
+relying on `run.head_sha` (which is the reused `main` head for a frozen commit):
+
+- run repository == head repository == expected repo; run event is
+  `workflow_dispatch`; run completed successfully; run workflow path is
+  `.github/workflows/build-candidate.yml`.
+- manifest `schema_version == 2`, `candidate.publishable == true`,
+  `candidate.source_sha == manifest.source_sha == CANDIDATE_SHA`,
+  `candidate.build_run_id == SOURCE_RUN_ID`.
+- version/build/tag match the manifest; `tag == v<version>`.
+- `prepare` and `package` jobs succeeded; a `strict` candidate also requires
+  `verify` and `native` to succeed (they may be skipped only for `fast`).
+- exactly one non-expired `status-trio-release-package` artifact; optional
+  `EXPECTED_ARTIFACT_ID` / `EXPECTED_ARTIFACT_DIGEST` must match.
+- optional `STRICT_EVIDENCE_PATH` from `status-trio-strict-evidence` must name the
+  same candidate run, source SHA, level `strict`, status `passed`; when present it
+  upgrades a fast candidate's effective level to `strict`.
+
+Self-recovery (`SOURCE_RUN_ID == current run`) is rejected. This validates
+metadata and provenance only; it does not prove GitHub publication, signing,
+notarization, public download, or appcast behavior.
+
+### Compatible legacy entry
+
+The original `release.yml` + `package_run_id` recovery path is unchanged and
+still validates against schema v1 manifests through
+`scripts/validate-release-recovery.sh`. New builds use schema v2 and
+`publish-candidate.yml`; both share the same `publish-release.sh` publish core.
+

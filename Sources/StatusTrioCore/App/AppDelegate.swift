@@ -6,43 +6,55 @@ private let singleInstanceLogger = Logger(
     category: "SingleInstance"
 )
 
+// The packaged launcher and swift run share the same AppKit entry point.
+@MainActor
+@_cdecl("StatusTrioRunApplication")
+public func runStatusTrioApplication() {
+    let application = NSApplication.shared
+    let delegate = AppDelegate()
+    application.delegate = delegate
+    application.run()
+}
+
 @MainActor
 public final class AppDelegate: NSObject, NSApplicationDelegate {
     private var environment: AppEnvironment?
     private var singleInstanceGuard: SingleInstanceGuard?
-    private let environmentFactory: @MainActor () -> AppEnvironment
-    private let shouldAcquireSingleInstanceGuard: Bool
+    private let updaterManager = UpdaterManager.shared
 
     public override init() {
-        environmentFactory = { AppEnvironment.live() }
-        shouldAcquireSingleInstanceGuard = true
-        super.init()
-    }
-
-    init(
-        environmentFactory: @escaping @MainActor () -> AppEnvironment,
-        acquireSingleInstanceGuard: Bool = true
-    ) {
-        self.environmentFactory = environmentFactory
-        self.shouldAcquireSingleInstanceGuard = acquireSingleInstanceGuard
         super.init()
     }
 
     public func applicationDidFinishLaunching(_ notification: Notification) {
-        if shouldAcquireSingleInstanceGuard {
-            switch SingleInstanceGuard.acquire() {
-            case .acquired(let guardInstance):
-                self.singleInstanceGuard = guardInstance
-            case .rejected(let rejection):
-                reportSingleInstanceRejection(rejection)
-                NSApplication.shared.terminate(nil)
-                return
+        // macOS 26+ defaults to the native glass surfaces; the key can opt out.
+        // Registered here (not in the view) so ImageRenderer/unit-test hosts that
+        // never launch the app keep the deterministic translucent wash.
+        UserDefaults.standard.register(defaults: [PanelCardSurfaceExperiment.defaultsKey: true])
+        let backgroundUITesting = BackgroundUITestingConfiguration(
+            arguments: ProcessInfo.processInfo.arguments
+        )
+        guard !backgroundUITesting.rejectsLaunch else {
+            for diagnostic in backgroundUITesting.diagnostics {
+                dockActivationLogger.error("\(diagnostic, privacy: .public)")
             }
+            NSApplication.shared.terminate(nil)
+            return
         }
 
-        let environment = environmentFactory()
+        switch SingleInstanceGuard.acquire() {
+        case .acquired(let guardInstance):
+            self.singleInstanceGuard = guardInstance
+        case .rejected(let rejection):
+            reportSingleInstanceRejection(rejection)
+            NSApplication.shared.terminate(nil)
+            return
+        }
+
+        let environment = AppEnvironment.live(backgroundUITesting: backgroundUITesting)
         self.environment = environment
         environment.start()
+        updaterManager.start(activationPolicy: environment.activationPolicy)
     }
 
     /// Keeps "another copy is running" and "the lock is unusable" apart in the
@@ -65,6 +77,34 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
         environment?.stop()
     }
 
+    /// #295: `pmset -a disablesleep 1` is a persisted system setting, so quitting
+    /// while the lid toggle is on must write it back to 0. `.terminateLater`
+    /// lets the helper call finish first; the delayed reply is a stop path so an
+    /// unreachable helper can never hang quit.
+    public func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
+        guard let environment, environment.store.sleepControl.needsTerminationCleanup else {
+            return .terminateNow
+        }
+        let sleepControl = environment.store.sleepControl
+        Task { @MainActor in
+            await sleepControl.shutdown()
+            self.replyToTermination()
+        }
+        Task { @MainActor in
+            try? await Task.sleep(for: .seconds(3))
+            self.replyToTermination()
+        }
+        return .terminateLater
+    }
+
+    private var didReplyToTermination = false
+
+    private func replyToTermination() {
+        guard !didReplyToTermination else { return }
+        didReplyToTermination = true
+        NSApplication.shared.reply(toApplicationShouldTerminate: true)
+    }
+
     public func applicationShouldHandleReopen(
         _ sender: NSApplication,
         hasVisibleWindows flag: Bool
@@ -74,9 +114,10 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
         let event = AppleEventSenderResolver.currentActivation()
         let placement = environment.settings.appIconPlacement
         let action = DockActivationAction.resolve(
-            isReopenEvent: event.kind == .reopen,
-            sender: event.sender,
-            showsPersistentDockIcon: placement.showsDockIcon
+            event: event,
+            showsPersistentDockIcon: placement.showsDockIcon,
+            backgroundUITesting: environment.backgroundUITesting,
+            hasVisibleOnboarding: environment.onboardingWindowController.window?.isVisible == true
         )
         let settingsWindow = environment.settingsWindowController.window
         dockActivationLogger.notice(

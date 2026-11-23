@@ -40,6 +40,9 @@ The existing battery icon monitoring is unchanged.
 - **Battery voltage**, **battery current**, **sample time**, and **cycle count** are best-effort
   registry diagnostics. No battery health percentage is inferred from capacity
   ratios, and no `system_profiler`/`ioreg` subprocess is launched.
+- **System uptime** is read from `kern.boottime` with `sysctlbyname` and
+  formatted as days/hours/minutes. It is a whole-machine value, not a battery
+  reading, and remains available on a Mac without a battery.
 
 System power is read only for a Mac with a present battery on external power and
 while the page is open, on the existing serial utility queue. Each read opens and
@@ -82,6 +85,22 @@ The hardware's sampling interval can be about a minute; the interface shows the
 sample time rather than promising live per-second watts. Hardware validation so
 far covers one Apple silicon Mac on battery. Charging transitions and other Mac
 models still need field validation before making broad accuracy claims.
+
+## No battery (desktop Macs)
+
+A Mac with no battery still opens this page when the runtime exposes a fresh
+whole-machine power reading. The title becomes `Power · xx W`
+(`Power · Unavailable` while none is available), and only these rows remain:
+
+- **Power** and its read time, from the shared `PowerSamplingService` sample;
+- **Low Power Mode**, which is system-wide, not battery-specific;
+- **System uptime**, which is whole-machine and does not depend on a battery;
+- the sensor explanation behind the info button.
+
+Voltage, current, adapter rating, time remaining, cycle count and charging power
+are battery-only and are hidden. The reading comes from the same shared sampler
+as the icon and the panel summary; the page never opens a second system-power
+connection of its own. See [Power in the centre slot](power-center-slot.md).
 
 ## Transition wording
 

@@ -15,12 +15,13 @@ struct StatusIconPreviewCard: View {
     @Binding var isDarkBackground: Bool
     @EnvironmentObject private var localization: Localization
     @EnvironmentObject private var chargingEffectClock: ChargingEffectClock
-    @Environment(\.systemIconAppearance) private var systemIconAppearance
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var previewPlayback = ChargingEffectPreviewPlayback()
     /// Identifies this card's claim on the shared clock, so a Dock-only menu bar
     /// still animates the preview while it is visible.
     @State private var clockConsumerToken = UUID()
+    /// Mirrors the live High Power Mode state so the preview shows its ring colour.
+    @State private var isHighPowerMode = false
 
     var body: some View {
         InputSourceLivePreview(controller: inputSourceController) {
@@ -37,8 +38,10 @@ struct StatusIconPreviewCard: View {
                 .foregroundStyle(.tertiary)
         }
         .onAppear {
+            isHighPowerMode = statusStore.highPowerMode.isHighPowerMode
             setClockClaim(enabled: store.showsMenuBarChargingEffect)
         }
+        .onReceive(statusStore.highPowerMode.$isHighPowerMode) { isHighPowerMode = $0 }
         .onChange(of: store.showsMenuBarChargingEffect) { isEnabled in
             setClockClaim(enabled: isEnabled)
             if isEnabled {
@@ -75,7 +78,7 @@ struct StatusIconPreviewCard: View {
     private var menuBarPreview: some View {
         if let phase = liveChargingPhase {
             previewBar(status: currentStatus, phase: phase)
-        } else if previewPlayback.isPlaying {
+        } else if previewPlayback.isPlaying && !store.isNoBatterySimulationActive {
             TimelineView(.animation(
                 minimumInterval: 1 / Double(ChargingEffectTimeline.framesPerSecond),
                 paused: false
@@ -91,9 +94,19 @@ struct StatusIconPreviewCard: View {
         }
     }
 
+    /// The snapshot the preview draws. A development build's no-battery
+    /// simulation swaps the battery out so the menu-bar preview shows the
+    /// battery-less layout (a full closed ring plus the decorative marker).
+    private var displaySnapshot: StatusSnapshot {
+        store.isNoBatterySimulationActive
+            ? statusStore.snapshot.replacingBattery(
+                .absent(lowPowerMode: statusStore.snapshot.battery.isLowPowerMode))
+            : statusStore.snapshot
+    }
+
     private var currentStatus: MenuBarStatus {
         ChargingEffectTestMode.status(
-            MenuBarStatus(snapshot: statusStore.snapshot),
+            MenuBarStatus(snapshot: displaySnapshot),
             enabled: store.testsChargingEffect
         )
     }
@@ -101,7 +114,7 @@ struct StatusIconPreviewCard: View {
     private var liveChargingPhase: ChargingEffectPhase? {
         Self.livePhase(
             battery: ChargingEffectTestMode.battery(
-                statusStore.snapshot.battery,
+                displaySnapshot.battery,
                 enabled: store.testsChargingEffect
             ),
             enabled: store.showsMenuBarChargingEffect,
@@ -155,7 +168,14 @@ struct StatusIconPreviewCard: View {
             isDarkBackground: isDarkBackground,
             phase: phase,
             showsChargingEffect: store.showsMenuBarChargingEffect,
-            inputSource: inputSourceController?.selectedDescriptor
+            inputSource: inputSourceController?.state.iconDescriptor(
+                markerStyle: store.inputSourceMarkerStyle
+            ),
+            isHighPowerMode: isHighPowerMode,
+            bottomIndicatorSource: store.bottomIndicatorSource,
+            bottomIndicatorMetric: store.bottomIndicatorMetric,
+            bottomIndicatorMetricColor: store.hardwareColor(for: store.bottomIndicatorMetric),
+            bottomIndicatorStyle: store.effectiveBottomIndicatorStyle
         ) {
             appearanceToggle
         }
@@ -210,7 +230,6 @@ struct StatusIconPreviewCard: View {
 /// Small Dock tile preview that mirrors the live Dock icon.
 struct DockIconPreviewTile: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @Environment(\.systemIconAppearance) private var systemIconAppearance
     @ObservedObject var store: SettingsStore
     @ObservedObject var statusStore: SystemStatusStore
     var inputSourceController: InputSourceController? = nil
@@ -245,7 +264,9 @@ struct DockIconPreviewTile: View {
             bluetoothAudioOptions: store.bluetoothAudioIconOptions,
             backgroundStyle: resolvedBackgroundStyle,
             size: size,
-            inputSource: inputSourceController?.selectedDescriptor,
+            inputSource: inputSourceController?.state.iconDescriptor(
+                markerStyle: store.inputSourceMarkerStyle
+            ),
             previewCache: previewCache
         )
     }
@@ -256,7 +277,7 @@ struct DockIconPreviewTile: View {
         }
         return DockIconBackgroundResolver.style(
             for: store.dockIconBackgroundPreference,
-            theme: systemIconAppearance(),
+            theme: SystemIconAppearanceReader.current(),
             isDarkAppearance: NSApplication.shared.effectiveAppearance
                 .bestMatch(from: [.aqua, .darkAqua]) == .darkAqua
         )

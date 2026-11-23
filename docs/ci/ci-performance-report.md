@@ -458,8 +458,10 @@ three active jobs, and skipped Publish.
 | Native cache restore interval | 1s | 5s | 4s |
 
 Verify and Native started at the same second in both parallel runs. Package
-started after both succeeded. The 19 unconditional native/offline contracts
-remain in Native; the two additional trusted recovery regressions remain
+started after both succeeded. (Historical measurement: 19 contracts at the time;
+issue #244 subsequently added the DMG installer regression as the 20th contract.)
+The 19 unconditional native/offline contracts
+remained in Native; the two additional trusted recovery regressions remained
 conditional in Verify. Neither normal diagnostic exercised online recovery.
 Each full Swift run reported 1,928 Core XCTest and 15 Helper XCTest, with
 eight existing skips and zero failures, plus 763 passing Swift Testing tests.
@@ -520,10 +522,11 @@ valid shapes, package-only and failed-publication sources, missing/failed/
 skipped Native, extra jobs, metadata/workflow shape mismatches, and missing
 Native dependency.
 
-Policy regressions additionally pin all 19 unconditional native commands and
-both conditional trusted recovery regressions, require the normal success
-gates, reject conditional Swift/preflight tests, replacement shells, write
-permissions or Environment access in verification jobs, and preserve the
+At that revision, policy regressions additionally pinned all 19 unconditional
+native commands (20 since issue #244 added the DMG installer regression) and
+both conditional trusted recovery regressions, required the normal success
+gates, rejected conditional Swift/preflight tests, replacement shells, write
+permissions or Environment access in verification jobs, and preserved the
 release runner and diagnostic ordering. Native summaries now identify Native,
 its actual job status, and the `native-diagnostics` artifact. The new missing-
 contract, conditional-preflight, and Native-label regressions were observed
@@ -1051,3 +1054,116 @@ This report records the remote baseline, local native measurements, and
 authorized `publish=false` diagnostics; it is not release authorization. The
 diagnostics did not create a release or tag, update the appcast, or mutate
 protected-environment settings.
+
+## Package performance audit — 2026-11-21 (real notarized runs)
+
+Scope: three real notarized Package builds from 2026-11-20 (Asia/Shanghai) on
+the xcode-27 runner, all with warm native caches. Evidence: the GitHub Actions
+jobs API for each run plus the downloaded package-build-timings artifact. No
+release, tag, or appcast was created while auditing.
+
+Runs: 44759859652, 44747505416, 44734281168.
+
+### Measured package time (seconds)
+
+| Run | Package job wall | Build/sign/notarize/package step | Package script total | Swift Universal compile | MobileBattery (warm) | App notarize | DMG create | DMG notarize | ZIP + Sparkle |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| 44759859652 | 790 | 723 | 723 | 524 (72%) | 36 | 49 | 40 | 41 | 3 |
+| 44747505416 | 677 | 603 | 603 | 451 (75%) | 25 | 36 | 35 | 32 | 3 |
+| 44734281168 | 743 | 681 | 681 | 500 (73%) | 38 | 44 | 36 | 31 | 3 |
+
+Setup and artifact/cache steps outside the build step are about 62-74 s per job:
+checkout, reassert, DMG tool prep, Developer ID and notarization configuration,
+Install mobile helper build tools (8-13 s), cache key/restore, artifact upload,
+and post steps.
+
+The package script total equals the build-step wall because it is the sum of the
+sequential top-level phases in scripts/package-release.sh. Nested phases
+(app-build-sign-and-verify, mobile-battery-total) enclose children and are not
+added to the total.
+
+### Finding: Swift Universal compile dominates
+
+- Swift Universal Release compile is 72-75% of package time (451-524 s).
+- App plus DMG notarization together are only about 12% (68-90 s).
+- DMG creation is about 5-6% (35-40 s); ZIP and Sparkle signing are about 2 s.
+- MobileBattery with a warm cache is about 4-6% (25-38 s); its cold path is the
+  known long pole historically but is a cache problem, not per-run compile cost.
+
+This is materially higher than the Swift Release phases recorded earlier in this
+report (roughly 96-223 s). The roughly 2-5x growth makes Swift compile, not
+notarization and not DMG, the single highest-leverage optimization target.
+
+### Revised priority from measured data
+
+| Plan phase | Measured share | Revised priority |
+| --- | ---: | --- |
+| Swift Universal compile (Phase 5) | ~72-75% | P0 target |
+| Apple notarization (Phase 4) | ~12% | low ROI; keep dual notarization |
+| DMG creation (Phase 3) | ~5-6% | bounded (~35-40 s); only if single-pass proven |
+| App ZIP / DMG parallel (Phase 2) | ZIP ~2 s vs DMG ~40 s | low ROI; DMG dominates the pair |
+| MobileBattery cache (Phase 1) | warm ~5%; cold historically large | keep; verify cold path |
+| Environment prep (Phase 6) | ~62-74 s job setup | modest |
+
+### Caveats and next steps
+
+- Three runs on one day, same toolchain, warm caches. They are representative of
+  current notarized packages, but a same-SHA cold/warm A/B is still required
+  before claiming any optimization.
+- The roughly 2-5x Swift compile growth versus the historical baseline is mostly
+  real code growth, not a toolchain regression: since the ~120 s baseline
+  (v1.7.5 / 4d03476) the tree went from 307 to 577 Swift files and about +76k
+  source lines (Sources diffstat +76459/-3820), and Package.swift changed
+  (unified system-monitor pages, AirPods controls, input source, charge). The
+  compile cost tracks how much code must be rebuilt, not a broken runner. The
+  highest-leverage lever is reuse of unchanged modules, i.e. a correct SwiftPM
+  .build incremental build cache, not "fixing a regression". It must be proven
+  with an authorized non-publishing diagnostic (same SHA, cold vs restored
+  cache, measured compile and artifact identity). It was previously deferred
+  when compile was ~100-190 s and now warrants re-evaluation. Re-evaluated on
+  2026-11-21: measured and rejected - see the .build cache experiment below.
+- Notarization durations include Apple/network wait, not local CPU.
+
+### Instrumentation delivered in this increment
+
+- scripts/ci-diagnostics.py perf-summary emits the package total, per-phase
+  cost and share, and the slowest phases to the Actions Summary. It is wired
+  into both the release.yml and build-candidate.yml package jobs.
+- scripts/build-timing.sh already preserves completed phases on abnormal exit
+  (covered by scripts/test-build-timing.sh); parent and child phases are
+  documented as overlapping and are never summed together.
+- No build, signing, notarization, or packaging behavior was changed; only
+  measurement and summary output were added.
+
+## SwiftPM .build cache experiment — 2026-11-21 (measured, rejected)
+
+Diagnostic workflow: .github/workflows/compile-bench.yml. It is workflow_dispatch
+only, takes no secrets, and never signs, notarizes, packages, tags, or publishes.
+It runs the same runner (xcode-27), the same SHA (main), and the same command:
+swift build -c release --arch arm64 --arch x86_64.
+
+| Run | .build cache | Restore | Compile | Cache save |
+| --- | --- | ---: | ---: | ---: |
+| cold-1 (44860223908) | miss | 1 s | 258 s | 7 s |
+| cold-2 (44861369020) | miss (cache deleted first) | 1 s | 238 s | 7 s |
+| warm (44860680405) | hit | 10 s | 428 s | skipped |
+
+Result: restoring the 343 MB .build cache made the compile SLOWER (428 s) than
+two clean cold builds (258 s and 238 s). SwiftPM did not reuse the restored build
+database (likely absolute-path or build-database invalidation) and rebuilt
+essentially everything, then paid the restore cost. The whole-directory .build
+Actions cache is therefore rejected: it does not reduce compile time and can
+increase it.
+
+Caveats: three sequential runs on a self-hosted runner at a single SHA. The pure
+swift build cold time (238-258 s) is lower than the package swift-release-build
+phase measured on 2026-11-20 (451-524 s), so runner-to-runner variance is large;
+cross-run medians, not single numbers, must decide any future claim. This is
+compile-time evidence only and changes no artifact.
+
+Decision: do not add a SwiftPM build cache and do not narrow the built products
+(Package.swift ships the main app plus AirPods and power helpers and a dynamic
+library, so a -product narrowing risks omitting a shipped binary). No build,
+signing, notarization, or packaging change is adopted from this experiment. The
+remaining measured shares (notarization about 12%, DMG creation about 6%, ZIP and
+Sparkle about 2 s) are too small for their risk.

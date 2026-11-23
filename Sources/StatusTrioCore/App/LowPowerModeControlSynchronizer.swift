@@ -11,34 +11,28 @@ final class LowPowerModeControlSynchronizer {
     private var cancellables = Set<AnyCancellable>()
     private var activationObserver: NSObjectProtocol?
 
-    func start(settings: SettingsStore, helper: PrivilegedHelperFacade) {
+    func start(settings: SettingsStore, helper: PrivilegedHelperManager) {
         guard cancellables.isEmpty, activationObserver == nil else { return }
 
-        if let savedPreference = settings.savedLowPowerModeControlPreference {
-            helper.restoreUserIntent(savedPreference)
+        // The helper is shared by two independent consumer intents: the battery
+        // power controls and the lid-sleep toggle. It stays enabled while EITHER
+        // is on and is only disabled when the user turns both off — never because
+        // a panel section is hidden. This replaces the old one-way mirror where
+        // the helper switch and the low-power-mode control were the same state.
+        Publishers.CombineLatest(
+            settings.$controlsLowPowerMode,
+            settings.$showsLidSleepButton
+        )
+        .map { $0 || $1 }
+        .removeDuplicates()
+        .sink { [weak helper] desired in
+            guard let helper, helper.isEnabled != desired else { return }
+            helper.setEnabled(desired)
         }
+        .store(in: &cancellables)
 
-        // Mirror the user's opt-in into the persisted flag. It follows the
-        // switch, not the raw system status: a registration macOS has not
-        // approved yet is still what the user asked for, and the switch must not
-        // flicker with the status while the app waits for that approval.
-        // Publish the current value immediately instead of waiting for the next
-        // helper state transition: the facade's publisher is a current-value
-        // stream, and an up-to-date opt-out must be mirrored before the first
-        // click.
-        helper.$presentation
-            .map(\.isEnabled)
-            .removeDuplicates()
-            .sink { [weak settings] isEnabled in
-                guard let settings, settings.controlsLowPowerMode != isEnabled else { return }
-                settings.controlsLowPowerMode = isEnabled
-            }
-            .store(in: &cancellables)
-
-        // Approval happens in System Settings, so re-read the status when the app
-        // comes back to the foreground. Without this, a registration approved
-        // while the app was in the background keeps showing "waiting for
-        // approval" until the Settings window is closed and reopened.
+        // Forward activation so the manager can complete the one-shot return
+        // from Login Items. Ordinary foreground changes don't query the system.
         activationObserver = NotificationCenter.default.addObserver(
             forName: NSApplication.didBecomeActiveNotification,
             object: nil,

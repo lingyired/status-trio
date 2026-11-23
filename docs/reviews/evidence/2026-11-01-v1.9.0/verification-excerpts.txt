@@ -1,0 +1,44 @@
+Review candidate: 296338508d055f50906cb3afaf8ec82d615d13de
+Baseline: 171349f8ac0d72627ac3f6152cfe844a0f53f15e
+Environment: macOS 27.2 (26B123), arm64, Xcode 27.0 (27A266a), Swift 6.4, SDK 27.0
+
+/tmp/status-trio-review-190-full.log
+332: 	 Executed 15 tests, with 0 failures (0 unexpected) in 1.049 (1.050) seconds
+334: 	 Executed 15 tests, with 0 failures (0 unexpected) in 1.049 (1.051) seconds
+1852: 	 Executed 15 tests, with 0 failures (0 unexpected) in 1.892 (1.894) seconds
+2175: 	 Executed 15 tests, with 0 failures (0 unexpected) in 0.002 (0.003) seconds
+2317: 	 Executed 15 tests, with 0 failures (0 unexpected) in 0.497 (0.499) seconds
+4313: 	 Executed 15 tests, with 0 failures (0 unexpected) in 1.183 (1.185) seconds
+5622: 	 Executed 2314 tests, with 8 tests skipped and 0 failures (0 unexpected) in 84.469 (84.639) seconds
+5624: 	 Executed 2314 tests, with 8 tests skipped and 0 failures (0 unexpected) in 84.469 (84.640) seconds
+5628: 􁁛  Test run with 0 tests in 0 suites passed after 0.001 seconds.
+7119: STATIC_ICON_DIAGNOSTIC os=Version 27.2 (Build 26B123) screenScales=[2.0] pixels=40x40 sha256=55ad404dff65400f453f2f981c9c63b779dd528fd08525eea9aaa986c8c36a46
+7122: 􀢄  Test nilPhaseKeepsThePreEffectStaticPixelFingerprint() recorded an issue at ChargingEffectRenderingTests.swift:44:9: Expectation failed: expected.contains(fingerprint)
+7124: 􀄵    expected → ["3e0ba302848d3b450504b31fa4dca8afbacb6bc52d0d8f9ba0a91e0a54586918", "e08ab4aebc69b650e667fb2aa5a2647f9efade4a7941dbd19061134192280cbc"]
+7125: 􀄵    fingerprint → "55ad404dff65400f453f2f981c9c63b779dd528fd08525eea9aaa986c8c36a46"
+7625: 􀢄  Test run with 816 tests in 119 suites failed after 6.953 seconds with 1 issue.
+7628: Local verification failed: mode=full step=Swift tests + forbidden patterns exit=1
+
+/tmp/status-trio-review-190-probes.log
+23: 􀢄  Test disablingInfoBarReleasesAuxiliaryDemand() recorded an issue at Review190RegressionProbes.swift:65:9: Expectation failed: !fixture.store.powerSampling.demands.contains(.powerInfoBar)
+27: 􀢄  Test enablingInfoBarUsesDeliveredNewPreference() recorded an issue at Review190RegressionProbes.swift:54:9: Expectation failed: fixture.store.powerSampling.demands.contains(.powerInfoBar)
+30: 􀢄  Test initialRestoreLimitSurvivesMissingSystemPolicy() recorded an issue at Review190RegressionProbes.swift:30:9: Expectation failed: second.chargeToFullRestoreLimit == 80
+37: 􀢄  Test closingPanelReleasesInfoBarDemand() recorded an issue at Review190RegressionProbes.swift:42:9: Expectation failed: fixture.store.powerSampling.demands.isEmpty
+41: 􀢄  Test closingPanelReleasesInfoBarDemand() recorded an issue at Review190RegressionProbes.swift:43:9: Expectation failed: !fixture.store.powerSampling.isRunning
+87: 􀢄  Test legacyCentreChoiceSurvivesSecondLaunch() recorded an issue at Review190RegressionProbes.swift:21:9: Expectation failed: second.connectionCenterSource == .batteryPercentage
+90: 􀢄  Test unpluggedParsePreservesValidatedBatterySplit() recorded an issue at Review190RegressionProbes.swift:83:9: Expectation failed: parsed.breakdown == split
+112: 􀢄  Test run with 6 tests in 1 suite failed after 0.062 seconds with 7 issues.
+
+/tmp/status-trio-review-190-device-probes.log
+19: 􀢄  Test hidingOtherOutputsKeepsAirPodsListeningControls() recorded an issue at Review190DeviceProbes.swift:87:9: Expectation failed: panel.showsDeviceList
+73: 􀢄  Test topologyInvalidatesRetainedDDCTarget() recorded an issue at Review190DeviceProbes.swift:24:9: Expectation failed: coordinator.generation > before || coordinators.count > 1
+78: 􀢄  Test mismatchPreservesVisibleError() recorded an issue at Review190DeviceProbes.swift:42:9: Expectation failed: !mismatch.canAdjust
+91: 􀢄  Test mismatchPreservesVisibleError() recorded an issue at Review190DeviceProbes.swift:49:9: Expectation failed: panel.rows.first?.unavailableText != nil
+96: 􀢄  Test run with 3 tests in 1 suite failed after 0.109 seconds with 4 issues.
+
+/tmp/status-trio-review-180-fingerprint.log
+252: 􁁛  Test run with 1 test in 1 suite passed after 0.114 seconds.
+
+/tmp/status-trio-review-190-fingerprint.log
+12: 􁁛  Test run with 1 test in 1 suite passed after 0.102 seconds.
+

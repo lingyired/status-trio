@@ -9,6 +9,42 @@ final class InputSourceIconPresentationTests: XCTestCase {
     private let wifiScale = 1.6
     private let iconURL = URL(fileURLWithPath: "/fixture/menu_icon.pdf")
 
+    func testApplePinyinMarkersFollowTheChosenMarkerStyle() {
+        for (id, label) in [("com.apple.inputmethod.SCIM.ITABC", "简"),
+                            ("com.apple.inputmethod.TCIM.Pinyin", "繁")] {
+            let source = InputSourceDescriptor(
+                id: id, localizedName: "Pinyin", primaryLanguage: "zh",
+                iconURL: iconURL, shortLabel: label
+            )
+
+            let script = scene(
+                snapshot: snapshot(), inputSource: source.applying(markerStyle: .script),
+                configuration: configuration(centerSource: .inputSource)
+            )
+            XCTAssertEqual(script.center, .text(IconTextState(
+                text: label, color: .primary, scale: wifiScale
+            )), "The 简/繁 marker replaces a system-provided icon")
+
+            let zhong = scene(
+                snapshot: snapshot(), inputSource: source.applying(markerStyle: .zhong),
+                configuration: configuration(centerSource: .inputSource)
+            )
+            XCTAssertEqual(zhong.center, .text(IconTextState(
+                text: "中", color: .primary, scale: wifiScale
+            )), "The 中 marker replaces a system-provided icon")
+
+            let system = scene(
+                snapshot: snapshot(), inputSource: source.applying(markerStyle: .systemIcon),
+                configuration: configuration(centerSource: .inputSource)
+            )
+            XCTAssertEqual(system.center, .symbol(IconSymbolState(
+                source: .image(url: iconURL, fallbackSymbol: "keyboard"),
+                color: .primary,
+                scale: wifiScale
+            )), "System icon keeps the source's own image")
+        }
+    }
+
     func testInputSourceIconWinsWhenItCanBeRead() {
         let scene = scene(
             snapshot: snapshot(),
@@ -81,10 +117,11 @@ final class InputSourceIconPresentationTests: XCTestCase {
         let scene = scene(
             snapshot: snapshot(batteryPercentage: 68),
             inputSource: descriptor(iconURL: iconURL),
-            configuration: configuration(centerSource: .inputSource, showsPercentageInConnectionSlot: true)
+            configuration: configuration(centerSource: .batteryPercentage)
         )
 
-        XCTAssertEqual(scene.center, .text(IconTextState(text: "68", color: .primary, scale: 1)))
+        XCTAssertEqual(scene.center, .text(IconTextState(text: "68", color: .primary, scale: 1.6)),
+                       "A numeric centre mode follows the Wi-Fi Icon Size scale")
     }
 
     func testNetworkOutageOverridesTheInputSourceWhenAskedTo() {
@@ -141,38 +178,19 @@ final class InputSourceIconPresentationTests: XCTestCase {
         )))
     }
 
-    func testMissingSourceFallsBackToTheBluetoothReplacement() {
-        let scene = scene(
+    func testMissingInputSourceFallsBackToTheNetworkSource() {
+        let inputFallback = scene(
             snapshot: snapshot(device: PresentationFixtures.bluetoothDevice),
             inputSource: nil,
-            configuration: configuration(
-                centerSource: .inputSource,
-                bluetoothReplacesNetworkIcon: true
-            )
+            configuration: configuration(centerSource: .inputSource)
         )
-
-        XCTAssertEqual(
-            scene.center?.colorRole,
-            .bluetooth,
-            "a missing input source must fall back to the shipped bluetooth replacement"
-        )
-    }
-
-    func testInputSourceWinsOverTheBluetoothReplacement() {
-        let scene = scene(
+        let networkScene = scene(
             snapshot: snapshot(device: PresentationFixtures.bluetoothDevice),
-            inputSource: descriptor(iconURL: iconURL),
-            configuration: configuration(
-                centerSource: .inputSource,
-                bluetoothReplacesNetworkIcon: true
-            )
+            inputSource: nil,
+            configuration: configuration(centerSource: .network)
         )
 
-        XCTAssertEqual(scene.center, .symbol(IconSymbolState(
-            source: .image(url: iconURL, fallbackSymbol: "keyboard"),
-            color: .primary,
-            scale: wifiScale
-        )))
+        XCTAssertEqual(inputFallback.center, networkScene.center)
     }
 
     func testAutomaticModeIgnoresTheInputSourceEntirely() {
@@ -180,12 +198,12 @@ final class InputSourceIconPresentationTests: XCTestCase {
         let without = scene(
             snapshot: snapshot,
             inputSource: nil,
-            configuration: configuration(centerSource: .automatic)
+            configuration: configuration(centerSource: .network)
         )
         let with = scene(
             snapshot: snapshot,
             inputSource: descriptor(iconURL: iconURL),
-            configuration: configuration(centerSource: .automatic)
+            configuration: configuration(centerSource: .network)
         )
 
         XCTAssertEqual(with, without)
@@ -201,7 +219,7 @@ final class InputSourceIconPresentationTests: XCTestCase {
         let automatic = scene(
             snapshot: snapshot,
             inputSource: nil,
-            configuration: configuration(centerSource: .automatic)
+            configuration: configuration(centerSource: .network)
         )
 
         XCTAssertEqual(fallback, automatic)
@@ -250,23 +268,17 @@ final class InputSourceIconPresentationTests: XCTestCase {
     private func configuration(
         centerSource: ConnectionCenterSource,
         prioritizesNetworkErrors: Bool = true,
-        bluetoothReplacesNetworkIcon: Bool = false,
-        showsPercentageInConnectionSlot: Bool = false,
         wifiScale: Double = 1.6
     ) -> IconPresentationConfiguration {
         IconPresentationConfiguration(
             battery: .standard,
             connection: ConnectionIconOptions(
-                showsBatteryPercentageInConnectionSlot: showsPercentageInConnectionSlot,
                 centerSource: centerSource,
-                prioritizesNetworkErrorsOverInputSource: prioritizesNetworkErrors,
+                prioritizesNetworkErrors: prioritizesNetworkErrors,
                 wifiScale: wifiScale
             ),
             volume: .standard,
-            bluetooth: BluetoothAudioIconOptions(
-                replacesNetworkIcon: bluetoothReplacesNetworkIcon,
-                prioritizesNetworkErrors: true
-            )
+            bluetooth: BluetoothAudioIconOptions()
         )
     }
 

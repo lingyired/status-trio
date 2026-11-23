@@ -21,10 +21,48 @@ struct BluetoothAccessoryBatteryTests {
         #expect(keyboard?.vendorID == 1133)
         #expect(keyboard?.productID == 45915)
         #expect(keyboard?.part == nil)
+        #expect(keyboard?.identifier == "63F146B5-8E90-CDEB-598D-C2E98CBB8779")
 
         let earbuds = levels.first { $0.name == "机灵的耳机" }
         #expect(earbuds?.percentage == 93)
         #expect(earbuds?.part == .left)
+        #expect(earbuds?.identifier == "E0CA918B-FC5E-C942-B6C3-23F27810A34F")
+    }
+
+    /// The identifier is what keeps two sets of one model apart, so a source
+    /// that omits it must read as unidentifiable rather than borrowing an empty
+    /// string that would group unrelated accessories together.
+    @Test("An accessory without an Accessory Identifier reads as unidentified")
+    func keepsAMissingIdentifierAsNil() {
+        let levels = BluetoothAccessoryBatteryReader.parse(xml: document(
+            type: "Accessory Source",
+            current: 80,
+            maximum: 100
+        ))
+
+        #expect(levels.count == 1)
+        #expect(levels.first?.identifier == nil)
+        #expect(BluetoothAccessoryBatteryReader.parse(xml: document(
+            type: "Accessory Source",
+            current: 80,
+            maximum: 100,
+            identifier: "   "
+        )).first?.identifier == nil)
+    }
+
+    /// Two sets of one model share every other field, so the identifier is the
+    /// only value that tells their readings apart after parsing.
+    @Test("Two same-model accessories keep distinct identifiers")
+    func keepsDistinctIdentifiersForSameModelAccessories() {
+        let levels = BluetoothAccessoryBatteryReader.parse(xml:
+            document(type: "Accessory Source", current: 93, maximum: 100,
+                     name: "AirPods Pro", identifier: "AAAAAAAA-0000-0000-0000-000000000001")
+            + document(type: "Accessory Source", current: 12, maximum: 100,
+                       name: "AirPods Pro", identifier: "BBBBBBBB-0000-0000-0000-000000000002")
+        )
+
+        #expect(levels.count == 2)
+        #expect(Set(levels.compactMap(\.identifier)).count == 2)
     }
 
     /// A part is what decides the channel, and wording the app does not know has
@@ -120,6 +158,47 @@ struct BluetoothAccessoryBatteryTests {
         #expect(result.value?.count == 2)
     }
 
+    // MARK: - Bounded subprocess
+
+    /// The reader must not inherit the raw `readDataToEndOfFile()` +
+    /// `waitUntilExit()` hang: a child that never exits has to be killed near the
+    /// deadline and read as "no accessory", not block the serial queue for good.
+    @Test("The pmset read is bounded: a hung child times out and answers nil")
+    func hungChildTimesOut() {
+        let started = Date()
+        let output = PmsetAccessoryBatteryWorker.readAccessoryPowerSources(
+            executableURL: URL(fileURLWithPath: "/bin/sleep"),
+            arguments: ["30"],
+            timeout: .milliseconds(300)
+        )
+        let elapsed = Date().timeIntervalSince(started)
+
+        #expect(output == nil)
+        #expect(elapsed < 10, "a hung child must be killed near the deadline, not block for good")
+    }
+
+    @Test("A non-zero exit answers nil, not an empty report")
+    func nonZeroExitAnswersNil() {
+        let output = PmsetAccessoryBatteryWorker.readAccessoryPowerSources(
+            executableURL: URL(fileURLWithPath: "/bin/sh"),
+            arguments: ["-c", "exit 3"],
+            timeout: .seconds(4)
+        )
+
+        #expect(output == nil)
+    }
+
+    @Test("The bounded read returns what the child wrote on success")
+    func boundedReadReturnsStdout() {
+        let output = PmsetAccessoryBatteryWorker.readAccessoryPowerSources(
+            executableURL: URL(fileURLWithPath: "/bin/sh"),
+            arguments: ["-c", "printf 'hello'"],
+            timeout: .seconds(4)
+        )
+
+        #expect(output == "hello")
+    }
+
     // MARK: - Fixtures
 
     /// Three documents in the shape the system prints them: the Mac's own
@@ -133,6 +212,7 @@ struct BluetoothAccessoryBatteryTests {
                 name: "MX Keys",
                 vendorID: 1133,
                 productID: 45915,
+                identifier: "63F146B5-8E90-CDEB-598D-C2E98CBB8779",
                 extra: ["Accessory Category": "Mouse", "Transport Type": "Bluetooth LE"]
             )
             + document(
@@ -142,6 +222,7 @@ struct BluetoothAccessoryBatteryTests {
                 name: "机灵的耳机",
                 vendorID: 76,
                 productID: 8207,
+                identifier: "E0CA918B-FC5E-C942-B6C3-23F27810A34F",
                 extra: [
                     "Accessory Category": "Headset",
                     "Part Identifier": "Left",
@@ -157,6 +238,7 @@ struct BluetoothAccessoryBatteryTests {
         name: String = "Accessory",
         vendorID: Int? = nil,
         productID: Int? = nil,
+        identifier: String? = nil,
         extra: [String: String] = [:]
     ) -> String {
         var entries: [(String, String)] = [
@@ -170,6 +252,9 @@ struct BluetoothAccessoryBatteryTests {
         }
         if let productID {
             entries.append(("Product ID", "<integer>\(productID)</integer>"))
+        }
+        if let identifier {
+            entries.append(("Accessory Identifier", "<string>\(identifier)</string>"))
         }
         for (key, value) in extra.sorted(by: { $0.key < $1.key }) {
             entries.append((key, "<string>\(value)</string>"))

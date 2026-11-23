@@ -3,13 +3,16 @@ import Foundation
 
 @MainActor
 final class StatusPanelActions {
-    private let capabilityPolicy: DistributionCapabilityPolicy
     private let outputDevices: () -> [AudioOutputDevice]
     private let selectOutputDevice: (AudioOutputDevice) -> Void
     private let inputDevices: () -> [AudioInputDevice]
     private let selectInputDevice: (AudioInputDevice) -> Void
     private let setVolumeCommand: (Double) -> Void
+    private let beginVolumeCommand: () -> Void
     private let finishVolumeCommand: () -> Void
+    private let setBrightnessCommand: (String, Double) -> Void
+    private let finishBrightnessCommand: (String) -> Void
+    private let beginBrightnessCommand: (String) -> Void
     private let toggleMuteCommand: () -> Void
     private let setInputScalarCommand: (Double, UUID) -> Void
     private let toggleInputMuteCommand: () -> Void
@@ -47,13 +50,10 @@ final class StatusPanelActions {
     private let refreshVolumeListeningModes: () -> Void
     private let stopVolumeListeningModes: () -> Void
     private let selectInputSourceCommand: (String) -> Void
+    private let setVPNPowerCommand: (Bool) -> Void
 
     private static let summaryBatteryLevelsToken = "bluetooth.summary"
     private static let nearbyBatteryDevicesToken = "bluetooth.summary.nearbyBatteryDevices"
-
-    var distributionCapabilityPolicyForTesting: DistributionCapabilityPolicy {
-        capabilityPolicy
-    }
 
     var outputDeviceListPreferences: AudioOutputListPreferences {
         outputPreferences()
@@ -62,13 +62,16 @@ final class StatusPanelActions {
     /// Narrow injection keeps command routing testable without introducing a
     /// second monitor abstraction around the existing store.
     init(
-        capabilityPolicy: DistributionCapabilityPolicy = .runtimeDefault,
         outputDevices: @escaping () -> [AudioOutputDevice] = { [] },
         selectOutput: @escaping (AudioOutputDevice) -> Void = { _ in },
         inputDevices: @escaping () -> [AudioInputDevice] = { [] },
         selectInput: @escaping (AudioInputDevice) -> Void = { _ in },
         setVolume: @escaping (Double) -> Void = { _ in },
+        beginVolumeAdjustment: @escaping () -> Void = {},
         finishVolumeAdjustment: @escaping () -> Void = {},
+        setBrightness: @escaping (String, Double) -> Void = { _, _ in },
+        finishBrightnessAdjustment: @escaping (String) -> Void = { _ in },
+        beginBrightnessAdjustment: @escaping (String) -> Void = { _ in },
         toggleMute: @escaping () -> Void = {},
         setInputScalar: @escaping (Double, UUID) -> Void = { _, _ in },
         toggleInputMute: @escaping () -> Void = {},
@@ -98,6 +101,7 @@ final class StatusPanelActions {
         activateWiFiDetails: @escaping (WiFiNameAccess) -> Void = { _ in },
         closeWiFiDetails: @escaping () -> Void = {},
         setWiFiPower: @escaping (Bool) -> Void = { _ in },
+        setVPNPower: @escaping (Bool) -> Void = { _ in },
         refreshWiFi: @escaping (WiFiNameAccess) -> Void = { _ in },
         openWiredDetails: @escaping () -> Void = {},
         closeWiredDetails: @escaping () -> Void = {},
@@ -107,13 +111,16 @@ final class StatusPanelActions {
         stopVolumeListeningModes: @escaping () -> Void = {},
         selectInputSource: @escaping (String) -> Void = { _ in }
     ) {
-        self.capabilityPolicy = capabilityPolicy
         self.outputDevices = outputDevices
         self.selectOutputDevice = selectOutput
         self.inputDevices = inputDevices
         self.selectInputDevice = selectInput
         self.setVolumeCommand = setVolume
+        self.beginVolumeCommand = beginVolumeAdjustment
         self.finishVolumeCommand = finishVolumeAdjustment
+        self.setBrightnessCommand = setBrightness
+        self.finishBrightnessCommand = finishBrightnessAdjustment
+        self.beginBrightnessCommand = beginBrightnessAdjustment
         self.toggleMuteCommand = toggleMute
         self.setInputScalarCommand = setInputScalar
         self.toggleInputMuteCommand = toggleInputMute
@@ -151,35 +158,30 @@ final class StatusPanelActions {
         self.refreshVolumeListeningModes = refreshVolumeListeningModes
         self.stopVolumeListeningModes = stopVolumeListeningModes
         self.selectInputSourceCommand = selectInputSource
+        self.setVPNPowerCommand = setVPNPower
     }
 
     convenience init(
         store: SystemStatusStore,
         settings: SettingsStore,
         inputSourceController: InputSourceController? = nil,
-        capabilityPolicy: DistributionCapabilityPolicy = .runtimeDefault,
         chargeToFullNow: ChargeToFullNowController? = nil
     ) {
-        let allowsAppleListeningModePreview = !capabilityPolicy.blocksControl(
-            .appleListeningMode
-        )
         self.init(
-            capabilityPolicy: capabilityPolicy,
             outputDevices: { store.liveVolume.outputDevices },
             selectOutput: { device in store.selectOutputDevice(device) },
             inputDevices: { store.liveInput.devices },
             selectInput: { device in store.selectInputDevice(device.id) },
             setVolume: { scalar in store.setVolume(scalar) },
+            beginVolumeAdjustment: { store.beginVolumeAdjustment() },
             finishVolumeAdjustment: { store.finishVolumeAdjustment() },
+            setBrightness: { id, scalar in store.setBrightness(scalar, forDisplayID: id) },
+            finishBrightnessAdjustment: { id in store.finishBrightnessAdjustment(displayID: id) },
+            beginBrightnessAdjustment: { id in store.beginBrightnessAdjustment(displayID: id) },
             toggleMute: { store.toggleMute() },
             setInputScalar: { scalar, requestID in store.setInputScalar(scalar, requestID: requestID) },
             toggleInputMute: { store.toggleInputMute() },
-            outputPreferences: {
-                AudioOutputListPreferences(
-                    order: settings.outputDeviceOrder,
-                    visibleLimit: settings.visibleOutputDeviceLimit
-                )
-            },
+            outputPreferences: { settings.outputDeviceListPreferences },
             bluetoothDevices: { store.bluetoothDevices.devices },
             bluetoothAvailability: { store.bluetoothDevices.availability },
             refreshBluetooth: { store.bluetoothDevices.refreshFromUser() },
@@ -196,12 +198,19 @@ final class StatusPanelActions {
             releaseBatteryLevels: { store.bluetoothDevices.releaseBatteryLevels($0) },
             requestNearbyBatteryDevices: { store.bluetoothDevices.requestNearbyBatteryDevices($0) },
             releaseNearbyBatteryDevices: { store.bluetoothDevices.releaseNearbyBatteryDevices($0, keepingResults: $1) },
-            setListeningMode: { store.bluetoothListeningModes.setMode($0, forAddress: $1) },
-            listeningModePresentations: { store.bluetoothListeningModes.presentations },
+            setListeningMode: { mode, address in
+                guard settings.showsBluetoothListeningMode else { return }
+                store.bluetoothListeningModes.setMode(mode, forAddress: address)
+            },
+            listeningModePresentations: {
+                store.bluetoothListeningModes.presentations
+            },
             listeningModeDevices: {
+                guard settings.showsBluetoothListeningMode else {
+                    return store.bluetoothDevices.devices
+                }
                 let config = ListeningModePreview.Configuration(
-                    isEnabled: allowsAppleListeningModePreview
-                        && settings.previewsBluetoothListeningMode,
+                    isEnabled: settings.isListeningModePreviewActive,
                     deviceName: settings.bluetoothListeningModePreviewDeviceName,
                     deviceCount: settings.bluetoothListeningModePreviewDeviceCount,
                     languageCode: settings.bluetoothListeningModePreviewLanguage
@@ -221,7 +230,8 @@ final class StatusPanelActions {
             wifiNameAccess: { store.popupSnapshot.wifi.nameAccess },
             activateWiFiDetails: { store.wifiNetworks.activate(nameAccess: $0) },
             closeWiFiDetails: { store.wifiNetworks.deactivate() },
-            setWiFiPower: { store.wifiNetworks.setPower($0) },
+            setWiFiPower: { store.setWiFiPower($0) },
+            setVPNPower: { store.setVPNPower($0) },
             refreshWiFi: { store.wifiNetworks.refreshNow(nameAccess: $0) },
             openWiredDetails: { store.activatePrimaryLinkPanel() },
             closeWiredDetails: { store.closePrimaryLinkPanel() },
@@ -229,9 +239,18 @@ final class StatusPanelActions {
             releaseBluetoothSummary: { store.bluetoothDevices.releaseVisibleSurface(BluetoothDeviceController.bluetoothSummarySurfaceToken) },
             refreshVolumeListeningModes: {
                 guard store.isPopoverVisible else { return }
+                // The real listening-mode master switch is off: stop discovery,
+                // drop every presentation and clear parked HUAWEI/SPP device
+                // state so no controls are presented anywhere. Re-enabling it
+                // reruns this same refresh path to rediscover live devices.
+                guard settings.showsBluetoothListeningMode else {
+                    // Master switch off: release the kept-alive Redmi control
+                    // sessions too, not just the panel-scoped state.
+                    store.bluetoothListeningModes.shutdown()
+                    return
+                }
                 let config = ListeningModePreview.Configuration(
-                    isEnabled: allowsAppleListeningModePreview
-                        && settings.previewsBluetoothListeningMode,
+                    isEnabled: settings.isListeningModePreviewActive,
                     deviceName: settings.bluetoothListeningModePreviewDeviceName,
                     deviceCount: settings.bluetoothListeningModePreviewDeviceCount,
                     languageCode: settings.bluetoothListeningModePreviewLanguage
@@ -253,8 +272,27 @@ final class StatusPanelActions {
         setVolumeCommand(min(1, max(0, scalar)))
     }
 
+    func beginVolumeAdjustment() {
+        beginVolumeCommand()
+    }
+
     func finishVolumeAdjustment() {
         finishVolumeCommand()
+    }
+
+    func setBrightness(_ scalar: Double, forDisplayID displayID: String) {
+        guard scalar.isFinite, !displayID.isEmpty else { return }
+        setBrightnessCommand(displayID, min(1, max(0, scalar)))
+    }
+
+    func beginBrightnessAdjustment(displayID: String) {
+        guard !displayID.isEmpty else { return }
+        beginBrightnessCommand(displayID)
+    }
+
+    func finishBrightnessAdjustment(displayID: String) {
+        guard !displayID.isEmpty else { return }
+        finishBrightnessCommand(displayID)
     }
 
     func toggleMute() {
@@ -287,29 +325,22 @@ final class StatusPanelActions {
     func refreshBluetooth() { refreshBluetoothCommand() }
     func requestBluetoothAuthorization() { requestBluetoothAuthorizationCommand() }
     func openBluetoothPermissionSettings() { openBluetoothPermissionSettingsCommand() }
-    func setBluetoothPower(_ enabled: Bool) {
-        guard !capabilityPolicy.blocksControl(.bluetoothRadioPower) else { return }
-        setBluetoothPowerCommand(enabled)
-    }
+    func setBluetoothPower(_ enabled: Bool) { setBluetoothPowerCommand(enabled) }
 
     func bluetoothPowerNeedsConfirmation(_ enabled: Bool) -> Bool {
-        !capabilityPolicy.blocksControl(.bluetoothRadioPower)
-            && !enabled
-            && BluetoothRadioPowerPolicy.requiresConfirmation(beforeTurningOff: bluetoothDevices())
+        !enabled && BluetoothRadioPowerPolicy.requiresConfirmation(beforeTurningOff: bluetoothDevices())
     }
     func selectInputSource(_ id: String) { selectInputSourceCommand(id) }
 
     func performBluetoothAction(address: String) {
-        guard allowsBluetoothDeviceActions,
-              let device = bluetoothDevice(address: address),
+        guard let device = bluetoothDevice(address: address),
               BluetoothDeviceActionPolicy.isActionable(device),
               !BluetoothDeviceActionPolicy.requiresConfirmation(for: device) else { return }
         performBluetoothActionCommand(device)
     }
 
     func rowTapped(address: String) {
-        guard allowsBluetoothDeviceActions,
-              let device = bluetoothDevice(address: address),
+        guard let device = bluetoothDevice(address: address),
               BluetoothDeviceActionPolicy.isActionable(device) else { return }
         if BluetoothDeviceActionPolicy.requiresConfirmation(for: device) {
             requestDisconnectCommand(device)
@@ -320,8 +351,7 @@ final class StatusPanelActions {
 
     func confirmBluetoothDisconnect(address: String) {
         let key = BluetoothBatteryReader.normalizedAddress(address)
-        guard allowsBluetoothDeviceActions,
-              !key.isEmpty,
+        guard !key.isEmpty,
               BluetoothBatteryReader.normalizedAddress(disconnectConfirmationAddress() ?? "") == key,
               let device = bluetoothDevice(address: key),
               BluetoothDeviceActionPolicy.isActionable(device),
@@ -330,8 +360,7 @@ final class StatusPanelActions {
     }
 
     func requestDisconnect(address: String) {
-        guard allowsBluetoothDeviceActions,
-              let device = bluetoothDevice(address: address),
+        guard let device = bluetoothDevice(address: address),
               BluetoothDeviceActionPolicy.isActionable(device),
               BluetoothDeviceActionPolicy.requiresConfirmation(for: device) else { return }
         requestDisconnectCommand(device)
@@ -341,7 +370,6 @@ final class StatusPanelActions {
 
     func updateBluetoothBatteryLevelsClaim(enabled: Bool) {
         guard enabled,
-              !capabilityPolicy.blocksControl(.bluetoothBatteryLevels),
               BluetoothSummary.presentation(
                 availability: bluetoothAvailability(),
                 devices: bluetoothDevices(),
@@ -354,8 +382,7 @@ final class StatusPanelActions {
     }
 
     func updateBluetoothNearbyBatteryClaim(enabled: Bool) {
-        if enabled,
-           !capabilityPolicy.blocksControl(.mobileBatteryHelper) {
+        if enabled {
             requestNearbyBatteryDevicesCommand(Self.nearbyBatteryDevicesToken)
         } else {
             releaseNearbyBatteryDevicesCommand(Self.nearbyBatteryDevicesToken, false)
@@ -365,15 +392,10 @@ final class StatusPanelActions {
     func setListeningMode(address: String, mode: BluetoothListeningMode) {
         let key = BluetoothBatteryReader.normalizedAddress(address)
         guard !key.isEmpty,
-              let device = listeningModeDevices().first(where: {
+              listeningModeDevices().contains(where: {
                   BluetoothBatteryReader.normalizedAddress($0.id) == key
                       && BluetoothDeviceActionPolicy.isActionable($0)
               }),
-              !capabilityPolicy.blocksControl(
-                  device.isHuaweiAudio
-                      ? .huaweiListeningMode
-                      : .appleListeningMode
-              ),
               let presentation = listeningModePresentations()[key],
               presentation.availableModes.contains(mode) else { return }
         setListeningModeCommand(mode, key)
@@ -401,14 +423,13 @@ final class StatusPanelActions {
     func volumeListChanged() { refreshVolumeListeningModes() }
     func volumeListDisappeared() { stopVolumeListeningModes() }
     func setWiFiPower(_ enabled: Bool) { setWiFiPowerCommand(enabled) }
+
+    func setVPNPower(_ enabled: Bool) { setVPNPowerCommand(enabled) }
+
     func refreshWiFi() { refreshWiFiCommand(wifiNameAccess()) }
     private func bluetoothDevice(address: String) -> BluetoothDevice? {
         let key = BluetoothBatteryReader.normalizedAddress(address)
         guard !key.isEmpty else { return nil }
         return bluetoothDevices().first { BluetoothBatteryReader.normalizedAddress($0.id) == key }
-    }
-
-    private var allowsBluetoothDeviceActions: Bool {
-        !capabilityPolicy.blocksControl(.publicBluetoothReaders)
     }
 }

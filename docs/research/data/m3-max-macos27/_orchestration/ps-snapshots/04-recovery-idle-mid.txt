@@ -1,0 +1,30 @@
+# ps snapshot: 04-recovery-idle-mid  wall=2026-10-30T23:07:52+0800 mono=200259.448800
+# --- top 25 by cpu ---
+  PID  PPID  %CPU %MEM COMM
+81860     1 156.9  6.9 /Applications/BlueStacks.app/Contents/MacOS/BlueStacks
+  619     1  69.9  0.8 /System/Library/PrivateFrameworks/SkyLight.framework/Resources/WindowServer
+59342 59341  43.8  0.1 /Applications/DeepSeek Harness.app/Contents/Frameworks/DeepSeek Harness Helper.app/Contents/MacOS/DeepSeek Harness Helper
+59354 59341  38.5  0.5 /Applications/DeepSeek Harness.app/Contents/Frameworks/DeepSeek Harness Helper (Renderer).app/Contents/MacOS/DeepSeek Harness Helper (Renderer)
+18255 17803  14.7  0.0 /Users/lingsmbp/Downloads/macpow
+75058  1300  14.0  0.4 /Applications/Microsoft Edge.app/Contents/Frameworks/Microsoft Edge Framework.framework/Versions/155.0.4283.45/Helpers/Microsoft Edge Helper (Renderer).app/Contents/MacOS/Microsoft Edge Helper (Renderer)
+ 1045     1  11.6  0.3 /System/Library/Frameworks/CoreServices.framework/Versions/A/Frameworks/Metadata.framework/Versions/A/Support/corespotlightd
+ 1345  1300  10.7  0.4 /Applications/Microsoft Edge.app/Contents/Frameworks/Microsoft Edge Framework.framework/Versions/155.0.4283.45/Helpers/Microsoft Edge Helper.app/Contents/MacOS/Microsoft Edge Helper
+ 5090     1   9.7  0.0 /usr/libexec/diagnosticd
+  808     1   7.6  0.1 /usr/sbin/coreaudiod
+84549 84507   7.1  0.0 /usr/bin/log
+17763     1   6.6  0.1 /System/Applications/Utilities/Terminal.app/Contents/MacOS/Terminal
+ 1309     1   6.2  0.1 /System/Applications/Utilities/Activity Monitor.app/Contents/MacOS/Activity Monitor
+ 1300     1   6.1  1.2 /Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge
+ 3846     1   5.6  0.0 /System/Library/PrivateFrameworks/Ecosystem.framework/Support/ecosystemd
+ 1318     1   5.3  0.4 /Applications/UURemote.app/Contents/MacOS/UURemote
+  805     1   5.2  0.0 /usr/libexec/sysmond
+  623     1   4.4  0.1 /System/Library/CoreServices/loginwindow.app/Contents/MacOS/loginwindow
+ 1409  1313   2.4  0.4 /Applications/Doubao.app/Contents/Helpers/Doubao Browser.app/Contents/MacOS/Doubao Browser
+  789     1   2.4  0.0 /usr/sbin/BTLEServer
+  550     1   2.4  0.0 /System/Library/Frameworks/CoreServices.framework/Versions/A/Frameworks/FSEvents.framework/Versions/A/Support/fseventsd
+40411 38968   1.8  0.2 /Applications/OpenBot.app/Contents/Frameworks/OpenBot Helper (Renderer).app/Contents/MacOS/OpenBot Helper (Renderer)
+  612     1   1.8  0.0 /usr/sbin/bluetoothd
+82473     1   1.6  0.3 /Applications/WorkBuddy.app/Contents/MacOS/Electron
+  595     1   1.5  0.0 /usr/libexec/locationd
+# --- our loaders / sampler ---
+97354 49315   0.7 /tmp/soc-power-research/harness/power-sampler

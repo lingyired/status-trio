@@ -443,7 +443,7 @@ final class BluetoothPermissionTimingTests: XCTestCase {
         let settings = SettingsStore(defaults: defaults)
         settings.setPopupSection(.bluetooth, enabled: true)
         settings.setPopupSection(.volume, enabled: false)
-        settings.replacesNetworkIconWithBluetoothAudio = false
+        settings.connectionCenterSource = .network
         settings.setBluetoothNetworkIconDevice(address: nil, symbolName: nil)
         settings.showsAppleDevicesAndBattery = false
         settings.refreshesAppleBatteriesInBackground = false
