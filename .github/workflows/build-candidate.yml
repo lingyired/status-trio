@@ -41,6 +41,7 @@ jobs:
       version: ${{ steps.resolve.outputs.version }}
       build: ${{ steps.resolve.outputs.build }}
       tag: ${{ steps.resolve.outputs.tag }}
+      on_main: ${{ steps.resolve.outputs.on_main }}
     env:
       DEVELOPER_DIR: /Applications/Xcode_27.app/Contents/Developer
       CANDIDATE_SHA: ${{ inputs.candidate_sha }}
@@ -73,10 +74,13 @@ jobs:
             exit 1
           fi
           git fetch --quiet origin main
-          if ! git merge-base --is-ancestor "${CANDIDATE_SHA}" origin/main; then
-            echo "::error::Candidate ${CANDIDATE_SHA} is not part of origin/main."
-            exit 1
+          if git merge-base --is-ancestor "${CANDIDATE_SHA}" origin/main; then
+            ON_MAIN=true
+          else
+            ON_MAIN=false
+            echo "::warning::Candidate ${CANDIDATE_SHA} is not part of origin/main; building a NON-PUBLISHABLE test candidate for this branch."
           fi
+          echo "on_main=${ON_MAIN}" >> "${GITHUB_OUTPUT}"
           PLIST_VERSION="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' Support/Info.plist)"
           BUNDLE_ID="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' Support/Info.plist)"
           MINIMUM_SYSTEM_VERSION="$(/usr/libexec/PlistBuddy -c 'Print :LSMinimumSystemVersion' Support/Info.plist)"
@@ -320,7 +324,7 @@ jobs:
           RELEASE_NOTES_DIR: release-notes/${{ needs.prepare.outputs.version }}
           PUBLISH_MODE: "false"
           NOTARIZE: "true"
-          CANDIDATE_TYPE: release_candidate
+          CANDIDATE_TYPE: ${{ needs.prepare.outputs.on_main == 'true' && 'release_candidate' || 'test_candidate' }}
           RELEASE_MODE: ${{ inputs.release_mode }}
           BUILD_RUN_ID: ${{ github.run_id }}
           VERIFICATION_STATUS: ${{ inputs.release_mode == 'strict' && 'passed' || 'declared' }}
@@ -363,5 +367,10 @@ jobs:
             echo ""
             echo "- Candidate run: `${{ github.run_id }}`"
             echo "- Verification level: **${{ inputs.release_mode }}**"
-            echo "- Publish with: `candidate_run_id=${{ github.run_id }}`"
+            if [[ "${{ needs.prepare.outputs.on_main }}" == "true" ]]; then
+              echo "- Publishable: **yes** (built from main)"
+              echo "- Publish with: \`candidate_run_id=${{ github.run_id }}\`"
+            else
+              echo "- Publishable: **no** (test-only build from a non-main branch)"
+            fi
           } >> "${GITHUB_STEP_SUMMARY}"
