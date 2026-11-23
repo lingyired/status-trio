@@ -293,7 +293,7 @@ extension SystemPowerReaderTests {
                 return request[42] == 9 ? self.info() : self.value(self.floatPayload(0))
             },
             identity: MachineIdentity(chipName: "Apple M3"),
-            estimator: estimator, at: now)
+            estimator: estimator, at: now, panelIsOn: { true })
         XCTAssertEqual(sample?.provenance, .estimated)
         XCTAssertEqual(sample?.watts ?? 0, 3.2, accuracy: 0.0001)
         XCTAssertEqual(estimator.calls, 1)
@@ -309,7 +309,7 @@ extension SystemPowerReaderTests {
                 return request[42] == 9 ? self.info() : self.value(self.floatPayload(7.5))
             },
             identity: MachineIdentity(chipName: "Apple M5"),
-            estimator: estimator, at: Date())
+            estimator: estimator, at: Date(), panelIsOn: { true })
         XCTAssertEqual(sample?.provenance, .measured)
         XCTAssertEqual(sample?.source, "PBwo")
         XCTAssertEqual(sample?.watts ?? 0, 7.5, accuracy: 0.0001)
@@ -326,7 +326,7 @@ extension SystemPowerReaderTests {
                 return request[42] == 9 ? self.info() : self.value(self.floatPayload(0))
             },
             identity: MachineIdentity(chipName: "Apple M3"),
-            estimator: nil, at: Date())
+            estimator: nil, at: Date(), panelIsOn: { true })
         XCTAssertNil(sample)
     }
 
@@ -360,7 +360,7 @@ extension SystemPowerReaderTests {
                 return nil
             },
             identity: MachineIdentity(chipName: "Apple M5"),
-            estimator: estimator, at: now, forceEstimate: true)
+            estimator: estimator, at: now, forceEstimate: true, panelIsOn: { true })
         XCTAssertEqual(sample?.provenance, .estimated)
         XCTAssertEqual(sample?.watts ?? 0, 1.26, accuracy: 0.0001)
         XCTAssertEqual(estimator.calls, 1)
@@ -375,7 +375,7 @@ extension SystemPowerReaderTests {
                 return request[42] == 9 ? self.info() : self.value(self.floatPayload(7.5))
             },
             identity: MachineIdentity(chipName: "Apple M5"),
-            estimator: estimator, at: Date(), forceEstimate: true)
+            estimator: estimator, at: Date(), forceEstimate: true, panelIsOn: { true })
         XCTAssertEqual(sample?.provenance, .measured)
         XCTAssertEqual(sample?.watts ?? 0, 7.5, accuracy: 0.0001)
         XCTAssertEqual(estimator.calls, 1)
@@ -383,6 +383,21 @@ extension SystemPowerReaderTests {
 }
 
 extension SystemPowerReaderTests {
+    func testDisplaySampleHidesEveryRailWhenNoBuiltInPanelIsOn() {
+        let estimator = FakeBacklightEstimator()
+        estimator.sample = DisplayPowerSample(watts: 1.26, readAt: Date(), provenance: .estimated,
+                                              source: "AppleARMBacklight", assumedVoltage: 6)
+        let sample = SystemPowerReader.readDisplaySample(
+            exchange: { _ in
+                XCTFail("No display rail should be read while the built-in panel is off")
+                return nil
+            },
+            identity: MachineIdentity(chipName: "Apple M5"),
+            estimator: estimator, at: Date(), panelIsOn: { false })
+        XCTAssertNil(sample)
+        XCTAssertEqual(estimator.calls, 0)
+    }
+
     func testBacklightEstimateOnlyWhenABuiltInPanelIsOnlineAndAwake() {
         // Lid closed with only an external display: no built-in panel online.
         XCTAssertFalse(AppleARMBacklightPowerEstimator.panelIsOn(

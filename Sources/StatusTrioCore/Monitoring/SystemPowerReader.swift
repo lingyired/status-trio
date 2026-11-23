@@ -137,7 +137,13 @@ struct SystemPowerReader: Sendable {
                                   identity: MachineIdentity,
                                   estimator: (any BacklightPowerEstimating)?,
                                   at date: Date,
-                                  forceEstimate: Bool = false) -> DisplayPowerSample? {
+                                  forceEstimate: Bool = false,
+                                  panelIsOn: () -> Bool = { AppleARMBacklightPowerEstimator.builtInPanelIsOn() }) -> DisplayPowerSample? {
+        // The display branch is the built-in backlight only. When the built-in
+        // panel is offline (lid closed with an external display) or asleep, the
+        // SMC rails can keep a stale small reading (for example 0.06 W) just as
+        // AppleARMBacklight keeps a stale current. Publish neither.
+        guard panelIsOn() else { return nil }
         // A testing override may ask for the estimate even when a measured
         // rail is available. If the estimate is unavailable, fall through to
         // the measured rails so the branch does not disappear.
