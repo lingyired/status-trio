@@ -14,7 +14,8 @@ BUILD="${BUILD:?BUILD is required}"
 TAG="${TAG:?TAG is required}"
 PUBLISH_MODE="${PUBLISH_MODE:-false}"
 NOTARIZE="${NOTARIZE:-false}"
-# CANDIDATE_TYPE separates a publishable release candidate from a
+# CANDIDATE_TYPE separates a publishable release candidate, a signed/notarized
+# but non-publishable test candidate (built from a non-main branch), and a
 # non-promotable diagnostic package. Empty keeps the historical schema v1 path.
 CANDIDATE_TYPE="${CANDIDATE_TYPE:-}"
 RELEASE_MODE="${RELEASE_MODE:-strict}"
@@ -62,8 +63,8 @@ if [[ -n "${NOTARY_PROFILE:-}" && "$SIGNING_KIND" != "developer_id" ]]; then
     die "NOTARY_PROFILE requires a Developer ID signature."
 fi
 case "$CANDIDATE_TYPE" in
-    ""|release_candidate|diagnostic) ;;
-    *) die "CANDIDATE_TYPE must be empty, release_candidate, or diagnostic." ;;
+    ""|release_candidate|test_candidate|diagnostic) ;;
+    *) die "CANDIDATE_TYPE must be empty, release_candidate, test_candidate, or diagnostic." ;;
 esac
 case "$RELEASE_MODE" in
     fast|strict) ;;
@@ -350,13 +351,24 @@ if [[ -n "${NOTARY_PROFILE:-}" ]]; then
 fi
 
 PUBLISHABLE=false
-if [[ "$CANDIDATE_TYPE" == "release_candidate" ]]; then
-    [[ "$SIGNING_KIND" == "developer_id" ]] ||
-        die "release_candidate must be Developer ID signed."
-    [[ "$NOTARIZATION_STATUS" == "accepted_and_stapled" ]] ||
-        die "release_candidate must be notarized and stapled."
-    PUBLISHABLE=true
-fi
+case "$CANDIDATE_TYPE" in
+    release_candidate)
+        [[ "$SIGNING_KIND" == "developer_id" ]] ||
+            die "release_candidate must be Developer ID signed."
+        [[ "$NOTARIZATION_STATUS" == "accepted_and_stapled" ]] ||
+            die "release_candidate must be notarized and stapled."
+        PUBLISHABLE=true
+        ;;
+    test_candidate)
+        # Built from a non-main branch: signed and notarized so it can be
+        # installed for testing, but never publishable.
+        [[ "$SIGNING_KIND" == "developer_id" ]] ||
+            die "test_candidate must be Developer ID signed."
+        [[ "$NOTARIZATION_STATUS" == "accepted_and_stapled" ]] ||
+            die "test_candidate must be notarized and stapled."
+        PUBLISHABLE=false
+        ;;
+esac
 
 if [[ "$HAS_RELEASE_NOTES" == "true" ]]; then
     mkdir -p "$OUTPUT_DIR/release-notes/$VERSION"

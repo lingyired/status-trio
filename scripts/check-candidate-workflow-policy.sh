@@ -24,13 +24,15 @@ for workflow in "$BUILD_WF" "$PUBLISH_WF" "$VERIFY_WF"; do
     require_text "$workflow" "runs-on: xcode-27"
 done
 
-# Build Candidate: one build, publishable candidate, fast/strict.
+# Build Candidate: one build; a publishable candidate from main, or a
+# non-publishable test candidate from any branch. Fast/strict.
 require_text "$BUILD_WF" "candidate_sha:"
 require_text "$BUILD_WF" "release_mode:"
 require_text "$BUILD_WF" "fast"
 require_text "$BUILD_WF" "strict"
 require_text "$BUILD_WF" 'ref: ${{ inputs.candidate_sha }}'
-require_text "$BUILD_WF" "CANDIDATE_TYPE: release_candidate"
+require_text "$BUILD_WF" "CANDIDATE_TYPE:"
+require_text "$BUILD_WF" "needs.prepare.outputs.on_main == 'true' && 'release_candidate' || 'test_candidate'"
 require_text "$BUILD_WF" 'NOTARIZE: "true"'
 require_text "$BUILD_WF" "bash scripts/package-release.sh"
 require_text "$BUILD_WF" "name: status-trio-release-package"
