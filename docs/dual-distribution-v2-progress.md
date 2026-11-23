@@ -50,6 +50,26 @@ merge commit：`875419ec`（双父：`8fbb673b` 旧分支 + `89aa9d1e` origin/ma
    `Platform/DirectAccessoryPowerNotifyEventMonitor`、`DirectAppEnvironment`、`DirectBluetoothListeningMode{Backend,EndpointProvider,ListenerBackend}`、`DirectDDCFactory`、`DirectInternetSharingDetector`、`DirectPrivilegedPowerClient`、`DirectSettingsStore`、`DirectSubprocessReaders`、`DirectSystemIconAppearanceReader`、`Battery/PowerUIChargeController`。
 3. 需按计划 §3.1 对 `origin/main` 全量新增源码重新审计并重建 `direct-only-sources.txt`（不得沿用旧清单）。
 
+## Phase 1 — 能力模型（已落地部分）
+
+依据 `docs/dual-distribution-v2-capability-model.md`，在 main 基线上实现纯分发能力层（无 UI/运行时探测耦合，可独立单测）：
+
+- **9 态枚举** `CapabilityAvailability`：`nativeAvailable / helperProvided / helperNotInstalled / helperUpdateRequired / helperMissingAuthorization / unsupported(reason:) / temporarilyUnavailable(reason:) / permissionDenied(reason:) / notVerified`；新增 `isActionable`、`isCompositionBlocked`；旧名 `.available` / `.permissionRequired` 以 `@available(deprecated, renamed:)` 过渡（设计 D1）。
+- **路由引擎** `Distribution/CapabilityRouting.swift`：
+  - `CapabilityProviderTier`（native / externalHelper / unavailable）
+  - `CapabilitySourceClass`（sharedPublic / directPrivate / unclassified，默认最严格，设计 D5）
+  - `HelperService`（power / charge / sensor / audioDisplay / device）
+  - `HelperRuntimeStatus`（安装/协议版本/上报能力/每服务授权状态）
+  - `CapabilityResolutionContext`、`CapabilityCatalog`（含 `provisional` 分类）、`CapabilityResolution`（`primaryAction` / `severity`）
+  - `CapabilityRouter.allowedTiers` + `resolve`：`Native → External Helper → Unavailable`，Helper 态严格按「未安装 → 版本低 → 未声明 → 缺授权 → 可用」短路。
+- **能力 ID**：`DistributionCapabilityID` 增补 6 个（`sensors.smc`、`sensors.cpu-frequency`、`power.sleep-control`、`power.high-power-mode`、`power.low-power-mode`、`display.external-brightness`，设计 D3/D4）。
+- **既有引用同步**：`PlatformCapabilities` 用 `.nativeAvailable`；`DistributionCapabilityPolicy` 的两个 switch 覆盖 9 态。
+- **测试**：`CapabilityRoutingTests`(15) + `CapabilityAvailabilityTests`(3) + `DistributionChannelTests`(2) 全部通过；全量 `scripts/test.sh` 通过（记录于提交）。
+
+**未完成（Phase 1 剩余 / 受规模阻塞）**：
+- Provider 注入到 `AppEnvironment` 的运行时接线（原计划 S2–S4）尚未做，属 Phase 2/4 与 Store 重接线的一部分。
+- 计划 Phase 1 验收「Store 可编译，源码闭包正确」**未达成**：Store 工程仍依赖被移出的旧 Provider（见上「Store 构建失败点」），需基于 main 重建 Store 组合与 `direct-only-sources.txt` 全量审计。
+
 ## 已记录的外部/环境限制（后续 NOT RUN/BLOCKED）
 
 - 多版本真机（macOS 15/26/27；最低 13）运行时验证：本机无法覆盖 → NOT RUN。

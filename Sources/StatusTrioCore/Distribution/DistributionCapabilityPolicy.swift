@@ -17,6 +17,13 @@ enum DistributionCapabilityID: String, CaseIterable, Sendable {
     case chargeToFullNow = "power.charge-to-full-now"
     case externalVolume = "audio.external-volume"
     case applicationEnergy = "power.application-energy"
+    // V2 additions (design §6.1, decisions D3/D4).
+    case sensorsSMC = "sensors.smc"
+    case sensorsCPUFrequency = "sensors.cpu-frequency"
+    case sleepControl = "power.sleep-control"
+    case highPowerMode = "power.high-power-mode"
+    case lowPowerMode = "power.low-power-mode"
+    case externalBrightness = "display.external-brightness"
 }
 
 /// The distribution policy exposed to shared UI and action code.
@@ -73,11 +80,10 @@ struct DistributionCapabilityPolicy: Equatable, Sendable {
             return channel == .appStore
         }
         switch availability {
-        case .unsupported:
+        case .unsupported, .notVerified,
+             .helperNotInstalled, .helperUpdateRequired, .helperMissingAuthorization:
             return true
-        case .notVerified:
-            return true
-        case .available, .permissionRequired, .temporarilyUnavailable:
+        case .nativeAvailable, .helperProvided, .permissionDenied, .temporarilyUnavailable:
             return false
         }
     }
@@ -91,9 +97,11 @@ struct DistributionCapabilityPolicy: Equatable, Sendable {
         switch availability {
         case .unsupported:
             return .capabilityUnavailableDistribution
+        case .helperNotInstalled, .helperUpdateRequired, .helperMissingAuthorization:
+            return .capabilityUnavailableDistribution
         case .notVerified:
             return .capabilityNotVerified
-        case .available, .permissionRequired, .temporarilyUnavailable:
+        case .nativeAvailable, .helperProvided, .permissionDenied, .temporarilyUnavailable:
             return nil
         }
     }

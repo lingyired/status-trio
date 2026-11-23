@@ -35,7 +35,7 @@ struct PrivilegedHelperPresentation: Equatable, Sendable {
     )
 
     var isAvailable: Bool {
-        availability == .available
+        availability == .nativeAvailable
     }
 }
 
@@ -57,7 +57,7 @@ enum PlatformCapabilities {
     static let appStore: [PlatformCapabilityRecord] = [
         PlatformCapabilityRecord(
             capability: "updates",
-            availability: .available,
+            availability: .nativeAvailable,
             reason: "distribution.system-managed-updates"
         ),
         .unsupported("ddc", reason: "distribution.private-ddc"),
