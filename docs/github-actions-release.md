@@ -66,7 +66,7 @@ gh workflow run release.yml \
 输入语义：
 
 - `candidate_sha`：必填；workflow checkout、manifest、验证和 Tag 都绑定到此 SHA。
-- `version`：例如 `1.2.0`；留空时读取 `Support/Info.plist`。
+- `version`：例如 `1.2.0`；留空时读取 `Support/Info.plist`（每次发版都要同步更新，见「发版必须同步 Support/Info.plist 的版本与构建号」）。
 - `build`：显式数字构建号，必须大于当前公开 appcast 的最大构建号。
 - `publish=true`：完整验证和打包后创建/恢复 Draft Release、写入 appcast，
   最后才转为公开 Release。
@@ -289,6 +289,16 @@ sqlite3 ~/Library/Caches/com.lingsmbp.StatusTrio/Cache.db \
 ```
 
 出现 `raw.githubusercontent.com` 之外、带 `gh-proxy.com/` 或 `ghfast.top/` 前缀的记录，说明镜像回退已经接管。
+
+## 发版必须同步 Support/Info.plist 的版本与构建号
+
+`Support/Info.plist` 的 `CFBundleShortVersionString` 与 `CFBundleVersion` 是**默认构建的版本来源**：当 `build-candidate.yml` / `release.yml` 不显式传 `version` / `build` 时，就从这里读取。因此**每次正式发版都必须把它同步更新到刚发布的版本与构建号**，否则默认构建出来的包会挂着过期的版本号——例如 1.10.4 已经发布，plist 却仍停在 1.9.5，不传版本号打的包就还是 1.9.5。
+
+- `CFBundleShortVersionString` 必须等于 `appcast.xml` 最新条目的 `sparkle:shortVersionString`。
+- `CFBundleVersion` 必须等于 `appcast.xml` 最新条目的 `sparkle:version`（即最大构建号）。
+- 操作：发布时更新 `release-notes/<version>/`、写入 `appcast.xml` 之后，**在同一批改动里**把 `Support/Info.plist` 这两个字段改成相同的版本与构建号并提交。
+
+`scripts/check-info-plist-version-sync.sh` 校验两者一致，`scripts/verify-local.sh full` 会调用它；不一致时本地验证直接失败，避免再出现「最新代码却打出旧版本号」的问题。
 
 ## 第一次配置
 
