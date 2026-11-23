@@ -239,6 +239,35 @@ final class HardwareReaderTests: XCTestCase {
         XCTAssertFalse(keys.contains("Tf14"), "the broken Tf* GPU keys must not be probed on M3 base")
     }
 
+    func testM3AirSecondTickReadsOnlyTheKeysThatAnswered() {
+        let cache = SensorCapabilityCache(backoff: [60])
+        let tg = ["Tg0O", "Tg0P", "Tg0C", "Tg0D", "Tg0W", "Tg0X",
+                  "Tg0a", "Tg0b", "Tg0i", "Tg0j", "Tg0u", "Tg0v"]
+        var first: [String] = []
+        _ = SensorSMCReader.read(
+            platform: .appleSilicon("Apple M3"), modelIdentifier: "Mac15,12",
+            includeTemperature: true, includeGPUTemperature: true, includeFans: false,
+            at: start, cache: cache) { key in
+            first.append(key)
+            if key == "Te05" { return 43.59 }
+            if tg.contains(key) { return 44.0 }
+            return nil // every Tf* CPU/GPU key fails on Mac15,12
+        }
+        var second: [String] = []
+        _ = SensorSMCReader.read(
+            platform: .appleSilicon("Apple M3"), modelIdentifier: "Mac15,12",
+            includeTemperature: true, includeGPUTemperature: true, includeFans: false,
+            at: start.addingTimeInterval(2), cache: cache) { key in
+            second.append(key)
+            if key == "Te05" { return 43.6 }
+            if tg.contains(key) { return 44.1 }
+            return nil
+        }
+        XCTAssertEqual(first.count, 28, "first tick probes 16 CPU + 12 GPU candidates")
+        XCTAssertEqual(second.count, 13, "later ticks read only Te05 + 12 readable Tg keys")
+        XCTAssertFalse(second.contains("Tf14"))
+    }
+
     func testCapabilityCacheStopsProbingMissingKeysOnLaterTicks() {
         let cache = SensorCapabilityCache(backoff: [60])
         var firstKeys: [String] = []
