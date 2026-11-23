@@ -36,6 +36,7 @@ final class HardwareSampler: @unchecked Sendable {
             queue.async {
                 self.cpuReader.reset()
                 self.cpuFrequencyReader.reset()
+                self.sensorReader.resetCapabilities()
                 self.networkReader.resetSession()
                 self.diskReader.reset()
                 self.hasAttemptedCPURead = false
