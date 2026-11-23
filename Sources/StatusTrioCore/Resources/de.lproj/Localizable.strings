@@ -412,7 +412,7 @@
 "audioInput.title" = "Mikrofon";
 "audioInput.inUse" = "In Benutzung";
 "audioInput.noDefault" = "Kein Standard-Eingabegerät";
-"audioInput.noDevices" = "Keine verfügbaren Eingabegeräte";
+"audioInput.noDevices" = "Keine Eingabegeräte verfügbar";
 "audioInput.unknownDevice" = "Unbekanntes Eingabegerät";
 "audioInput.devicePosition" = "Eingabegerät %d";
 "audioInput.current" = "Aktuell";

@@ -412,7 +412,7 @@
 "audioInput.title" = "麦克风";
 "audioInput.inUse" = "使用中";
 "audioInput.noDefault" = "未设置默认输入设备";
-"audioInput.noDevices" = "没有可用的输入设备";
+"audioInput.noDevices" = "无可用输入设备";
 "audioInput.unknownDevice" = "未知输入设备";
 "audioInput.devicePosition" = "第 %d 个输入设备";
 "audioInput.current" = "当前";

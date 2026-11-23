@@ -411,7 +411,7 @@
 "audioInput.title" = "Microphone";
 "audioInput.inUse" = "In Use";
 "audioInput.noDefault" = "No default input device";
-"audioInput.noDevices" = "No available input devices";
+"audioInput.noDevices" = "No input devices available";
 "audioInput.unknownDevice" = "Unknown input device";
 "audioInput.devicePosition" = "Input device %d";
 "audioInput.current" = "Current";

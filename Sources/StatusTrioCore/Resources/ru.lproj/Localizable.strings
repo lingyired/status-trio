@@ -412,7 +412,7 @@
 "audioInput.title" = "Микрофон";
 "audioInput.inUse" = "Используется";
 "audioInput.noDefault" = "Устройство ввода по умолчанию не выбрано";
-"audioInput.noDevices" = "Нет доступных устройств ввода";
+"audioInput.noDevices" = "Нет доступных входных устройств";
 "audioInput.unknownDevice" = "Неизвестное устройство ввода";
 "audioInput.devicePosition" = "Устройство ввода %d";
 "audioInput.current" = "Текущее";

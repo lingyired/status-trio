@@ -412,7 +412,7 @@
 "audioInput.title" = "麥克風";
 "audioInput.inUse" = "使用中";
 "audioInput.noDefault" = "未設定預設輸入裝置";
-"audioInput.noDevices" = "沒有可用的輸入裝置";
+"audioInput.noDevices" = "無可用的輸入裝置";
 "audioInput.unknownDevice" = "未知輸入裝置";
 "audioInput.devicePosition" = "第 %d 個輸入裝置";
 "audioInput.current" = "目前";
