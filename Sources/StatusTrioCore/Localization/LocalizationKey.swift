@@ -121,6 +121,8 @@ enum LocalizationKey: String, CaseIterable, Hashable, Sendable {
     case hardwareMonitorSettingsResetColors = "hardware.monitor.settings.resetColors"
     case hardwareMonitorSettingsShowRings = "hardware.monitor.settings.showRings"
     case hardwareMonitorSettingsShowRingsDescription = "hardware.monitor.settings.showRings.description"
+    case hardwareMonitorSettingsSplitGapProgress = "hardware.monitor.settings.splitGapProgress"
+    case hardwareMonitorSettingsSplitGapProgressDescription = "hardware.monitor.settings.splitGapProgress.description"
     case hardwareMonitorSettingsShowSummaryRow = "hardware.monitor.settings.showSummaryRow"
     case hardwareMonitorSettingsShowSummaryRowDescription = "hardware.monitor.settings.showSummaryRow.description"
     case hardwareMonitorDiskTotal = "hardware.monitor.disk.total"

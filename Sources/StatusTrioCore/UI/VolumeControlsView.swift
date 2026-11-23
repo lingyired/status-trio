@@ -68,60 +68,64 @@ struct VolumeControlsView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            HStack(alignment: .center, spacing: 10) {
-                Button(action: {
-                    VolumePanelActionGate.toggleMute(in: state) {
-                        actions.toggleMute()
-                    }
-                }) {
-                    PanelActionGlyph(
-                        systemName: state.muteSymbol,
-                        font: .system(size: 15, weight: .medium)
+            if hasNoOutputDevices {
+                HStack(alignment: .center, spacing: 10) {
+                    PanelAudioEmptyDevicesHint(
+                        text: localization.string(.volumeOutputEmpty),
+                        systemImage: "questionmark.circle"
                     )
-                        .frame(width: PanelSummaryActionMetrics.leadingGlyphSlot)
-                        .foregroundStyle(state.muted ? Color.red : Color.secondary)
-                        .contentShape(Rectangle())
+                    settingsButton
                 }
-                .buttonStyle(.plain)
-                .disabled(!state.canMute)
-                .help(state.muteHelp)
-                .accessibilityLabel(state.muteHelp)
+                .frame(height: PanelSummaryActionMetrics.actionSlot)
+            } else {
+                HStack(alignment: .center, spacing: 10) {
+                    Button(action: {
+                        VolumePanelActionGate.toggleMute(in: state) {
+                            actions.toggleMute()
+                        }
+                    }) {
+                        PanelActionGlyph(
+                            systemName: state.muteSymbol,
+                            font: .system(size: 15, weight: .medium)
+                        )
+                            .frame(width: PanelSummaryActionMetrics.leadingGlyphSlot)
+                            .foregroundStyle(state.muted ? Color.red : Color.secondary)
+                            .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                    .disabled(!state.canMute)
+                    .help(state.muteHelp)
+                    .accessibilityLabel(state.muteHelp)
 
-                PanelLevelSlider(
-                    value: volumeBinding,
-                    isEnabled: state.canAdjust,
-                    tint: state.muted ? Color.secondary : fillColor,
-                    accessibilityLabel: state.sliderLabel,
-                    accessibilityValue: percentageText,
-                    onEditingChanged: { isEditing in
-                        handleVolumeEditing(isEditing)
-                    },
-                    height: matchesBrightnessThickness
-                        ? PanelLevelSliderMetrics.controlHeight
-                        : PanelLevelSliderMetrics.compactSlotHeight,
-                    barHeight: matchesBrightnessThickness
-                        ? PanelLevelSliderMetrics.barHeight
-                        : PanelLevelSliderMetrics.compactBarHeight
-                )
-                    .background(VolumeControlScrollTarget(targets: scrollTargets))
+                    PanelLevelSlider(
+                        value: volumeBinding,
+                        isEnabled: state.canAdjust,
+                        tint: state.muted ? Color.secondary : fillColor,
+                        accessibilityLabel: state.sliderLabel,
+                        accessibilityValue: percentageText,
+                        onEditingChanged: { isEditing in
+                            handleVolumeEditing(isEditing)
+                        },
+                        height: matchesBrightnessThickness
+                            ? PanelLevelSliderMetrics.controlHeight
+                            : PanelLevelSliderMetrics.compactSlotHeight,
+                        barHeight: matchesBrightnessThickness
+                            ? PanelLevelSliderMetrics.barHeight
+                            : PanelLevelSliderMetrics.compactBarHeight
+                    )
+                        .background(VolumeControlScrollTarget(targets: scrollTargets))
 
-                Text(percentageText)
-                    .font(.caption.monospacedDigit())
-                    .foregroundStyle(.secondary)
-                    .frame(minWidth: 34, alignment: .trailing)
-                    .accessibilityHidden(true)
-
-                Button(action: onOpenSoundSettings) {
-                    PanelActionGlyph(systemName: "gearshape", size: PanelSummaryActionMetrics.actionSlot)
+                    Text(percentageText)
+                        .font(.caption.monospacedDigit())
                         .foregroundStyle(.secondary)
-                        .contentShape(Rectangle())
+                        .frame(minWidth: 34, alignment: .trailing)
+                        .accessibilityHidden(true)
+
+                    settingsButton
                 }
-                .buttonStyle(.plain)
-                .help(localization.string(.volumeActionOpenSettings))
-                .accessibilityLabel(localization.string(.volumeActionOpenSettings))
             }
 
-            if state.showsDeviceList {
+            if state.showsDeviceList && !hasNoOutputDevices {
                 OutputDeviceList(
                     rows: state.rows,
                     previewRows: state.previewRows,
@@ -139,6 +143,27 @@ struct VolumeControlsView: View {
         .onChange(of: synchronizationSnapshot) { snapshot in
             synchronizeVolume(snapshot)
         }
+    }
+
+    /// No output device means the slider has nothing to control. Show the
+    /// device-list empty copy in its place instead of a dead slider or a "—".
+    /// Skipping the transient skeleton state keeps a re-read from flashing the
+    /// empty copy over a cached row layout.
+    private var hasNoOutputDevices: Bool {
+        state.rows.isEmpty
+            && state.previewRows.isEmpty
+            && state.deviceListPlaceholder == nil
+    }
+
+    private var settingsButton: some View {
+        Button(action: onOpenSoundSettings) {
+            PanelActionGlyph(systemName: "gearshape", size: PanelSummaryActionMetrics.actionSlot)
+                .foregroundStyle(.secondary)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .help(localization.string(.volumeActionOpenSettings))
+        .accessibilityLabel(localization.string(.volumeActionOpenSettings))
     }
 
     private var percentageText: String {

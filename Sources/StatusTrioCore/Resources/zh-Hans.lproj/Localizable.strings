@@ -412,7 +412,7 @@
 "audioInput.title" = "麦克风";
 "audioInput.inUse" = "使用中";
 "audioInput.noDefault" = "未设置默认输入设备";
-"audioInput.noDevices" = "没有可用的输入设备";
+"audioInput.noDevices" = "无可用输入设备";
 "audioInput.unknownDevice" = "未知输入设备";
 "audioInput.devicePosition" = "第 %d 个输入设备";
 "audioInput.current" = "当前";
@@ -1279,6 +1279,8 @@
 "hardware.monitor.settings.colorTitle" = "颜色";
 "hardware.monitor.settings.resetColors" = "恢复默认颜色";
 "hardware.monitor.settings.showRings.description" = "显示 CPU、GPU、内存和磁盘容量圆环，可单独关闭某一项。";
+"hardware.monitor.settings.splitGapProgress" = "圆环进度左右平分";
+"hardware.monitor.settings.splitGapProgress.description" = "把圆环进度平分成左右两半显示：左半为 0–50%、右半为 50–100%，顶部的百分比不再挡住进度。";
 "hardware.monitor.settings.showSummaryRow" = "显示底部信息栏";
 
 /* Status-panel per-item visibility */

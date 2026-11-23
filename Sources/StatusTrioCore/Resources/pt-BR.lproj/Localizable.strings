@@ -1279,6 +1279,8 @@
 "hardware.monitor.settings.colorTitle" = "Cores";
 "hardware.monitor.settings.resetColors" = "Redefinir cores";
 "hardware.monitor.settings.showRings.description" = "Mostra os anéis de CPU / GPU / RAM / SSD.";
+"hardware.monitor.settings.splitGapProgress" = "Dividir o progresso do anel à esquerda e à direita";
+"hardware.monitor.settings.splitGapProgress.description" = "Mostra os quatro anéis de monitoramento em duas metades: a esquerda de 0–50% e a direita de 50–100%, para que a porcentagem na lacuna superior não cubra mais o progresso.";
 "hardware.monitor.settings.showSummaryRow" = "Mostrar barra inferior";
 
 /* Status-panel per-item visibility */

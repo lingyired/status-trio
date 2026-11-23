@@ -1279,6 +1279,8 @@
 "hardware.monitor.settings.colorTitle" = "الألوان";
 "hardware.monitor.settings.resetColors" = "إعادة تعيين الألوان";
 "hardware.monitor.settings.showRings.description" = "إظهار حلقات CPU / GPU / RAM / SSD.";
+"hardware.monitor.settings.splitGapProgress" = "تقسيم تقدّم الحلقة يمينًا ويسارًا";
+"hardware.monitor.settings.splitGapProgress.description" = "يعرض حلقات المراقبة الأربع على نصفين: النصف الأيسر من 0 إلى 50% والنصف الأيمن من 50 إلى 100%، بحيث لم تعد النسبة المئوية في الفجوة العلوية تحجب التقدّم.";
 "hardware.monitor.settings.showSummaryRow" = "إظهار الشريط السفلي";
 
 /* Status-panel per-item visibility */

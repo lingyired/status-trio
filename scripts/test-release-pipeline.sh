@@ -228,7 +228,11 @@ if [[ "$1" == "api" ]]; then
             ;;
         GET:repos/example/status-trio/contents/appcast.xml?ref=*)
             if [[ "$accept" == *"raw"* ]]; then
-                body="$(cat "$state/appcast")"
+                if [[ "${FAKE_API_APPCAST_MODE:-valid}" == "invalid" ]]; then
+                    body='<rss version="2.0"><channel/></rss>'
+                else
+                    body="$(cat "$state/appcast")"
+                fi
             elif [[ "$jq_filter" == ".sha" ]]; then
                 body="$(shasum -a 1 "$state/appcast" | awk '{print $1}')"
             else
@@ -729,9 +733,18 @@ reset_state
 make_manifest "$PACKAGE/release-manifest.json" "$PACKAGE/StatusTrio-1.0.0.dmg" \
     "$DMG_SHA" "$DMG_LENGTH" "fixture-signature"
 run_publish >/dev/null
+FAKE_API_APPCAST_MODE=invalid \
 FAKE_PUBLIC_APPCAST_MODE=invalid PUBLIC_VERIFY_ATTEMPTS=2 expect_failure \
     "public appcast mismatch" run_publish
 assert_contains "$WORK/output.log" "Public DMG or appcast did not match"
+
+# A stale raw CDN copy must not fail a publish the contents API already shows.
+reset_state
+make_manifest "$PACKAGE/release-manifest.json" "$PACKAGE/StatusTrio-1.0.0.dmg" \
+    "$DMG_SHA" "$DMG_LENGTH" "fixture-signature"
+run_publish >/dev/null
+FAKE_PUBLIC_APPCAST_MODE=invalid PUBLIC_VERIFY_ATTEMPTS=2 run_publish >/dev/null || \
+    fail "stale raw appcast cache rejected a publish the contents API confirmed"
 
 reset_state
 make_manifest "$PACKAGE/release-manifest.json" "$PACKAGE/StatusTrio-1.0.0.dmg" \

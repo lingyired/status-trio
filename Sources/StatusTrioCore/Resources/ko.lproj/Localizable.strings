@@ -1278,6 +1278,8 @@
 "hardware.monitor.settings.colorTitle" = "색상";
 "hardware.monitor.settings.resetColors" = "색상 초기화";
 "hardware.monitor.settings.showRings.description" = "CPU / GPU / RAM / SSD 링을 표시합니다.";
+"hardware.monitor.settings.splitGapProgress" = "링 진행률을 좀우로 나누기";
+"hardware.monitor.settings.splitGapProgress.description" = "네 개의 모니터링 링을 좀우 두 부분으로 표시합니다. 왼쪽 절반은 0–50%, 오른쪽 절반은 50–100%가 되어 위쪽 틈의 백분율이 진행률을 가리지 않습니다.";
 "hardware.monitor.settings.showSummaryRow" = "하단 표시줄 표시";
 
 /* Status-panel per-item visibility */
