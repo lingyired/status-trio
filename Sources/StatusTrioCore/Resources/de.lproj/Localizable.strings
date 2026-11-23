@@ -1345,6 +1345,11 @@
 "hardware.detail.title.disk" = "Festplatte";
 "hardware.detail.back" = "Hardware-Monitor";
 "hardware.detail.openActivityMonitor" = "Aktivitätsanzeige öffnen";
+"app.forceQuit.action" = "%@ sofort beenden";
+"app.forceQuit.confirmTitle" = "%@ sofort beenden?";
+"app.forceQuit.confirmMessage" = "Nicht gespeicherte Änderungen gehen möglicherweise verloren.";
+"app.forceQuit.confirmAction" = "Sofort beenden";
+"app.forceQuit.failed" = "%@ konnte nicht beendet werden (gehört möglicherweise einem anderen Benutzer oder einem Systemprozess).";
 "hardware.detail.totalUsage" = "Gesamtauslastung";
 "hardware.detail.temperature" = "Temperatur";
 "hardware.detail.logicalCores" = "Logische Kerne";
@@ -1385,6 +1390,7 @@
 "hardware.detail.topApps.empty" = "Keine aktiven Apps";
 "hardware.detail.topApps.unsupported" = "Nicht unterstützt";
 "hardware.detail.topApps.failed" = "Lesen fehlgeschlagen";
+"hardware.detail.topApps.refreshCountdown" = "Aktualisierung in %d s";
 "hardware.detail.sessionDownload" = "Download (Sitzung)";
 "hardware.detail.sessionUpload" = "Upload (Sitzung)";
 "hardware.detail.interfaces" = "Schnittstellen";

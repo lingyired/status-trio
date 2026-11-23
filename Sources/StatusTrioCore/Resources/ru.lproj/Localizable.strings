@@ -1345,6 +1345,11 @@
 "hardware.detail.title.disk" = "Диск";
 "hardware.detail.back" = "Монитор оборудования";
 "hardware.detail.openActivityMonitor" = "Открыть Мониторинг системы";
+"app.forceQuit.action" = "Принудительно завершить %@";
+"app.forceQuit.confirmTitle" = "Принудительно завершить %@?";
+"app.forceQuit.confirmMessage" = "Несохранённые изменения могут быть потеряны.";
+"app.forceQuit.confirmAction" = "Завершить принудительно";
+"app.forceQuit.failed" = "Не удалось завершить %@ (возможно, принадлежит другому пользователю или системному процессу).";
 "hardware.detail.totalUsage" = "Общая загрузка";
 "hardware.detail.temperature" = "Температура";
 "hardware.detail.logicalCores" = "Логические ядра";
@@ -1385,6 +1390,7 @@
 "hardware.detail.topApps.empty" = "Нет активных приложений";
 "hardware.detail.topApps.unsupported" = "Не поддерживается";
 "hardware.detail.topApps.failed" = "Ошибка чтения";
+"hardware.detail.topApps.refreshCountdown" = "Обновление через %d с";
 "hardware.detail.sessionDownload" = "Загрузка (сеанс)";
 "hardware.detail.sessionUpload" = "Отдача (сеанс)";
 "hardware.detail.interfaces" = "Интерфейсы";

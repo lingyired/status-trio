@@ -1345,6 +1345,11 @@
 "hardware.detail.title.disk" = "Disco";
 "hardware.detail.back" = "Monitor de hardware";
 "hardware.detail.openActivityMonitor" = "Abrir Monitor de Atividade";
+"app.forceQuit.action" = "Forçar encerramento de %@";
+"app.forceQuit.confirmTitle" = "Forçar o encerramento de %@?";
+"app.forceQuit.confirmMessage" = "Alterações não salvas podem ser perdidas.";
+"app.forceQuit.confirmAction" = "Forçar encerramento";
+"app.forceQuit.failed" = "Não foi possível encerrar %@ (pode pertencer a outro usuário ou a um processo do sistema).";
 "hardware.detail.totalUsage" = "Uso total";
 "hardware.detail.temperature" = "Temperatura";
 "hardware.detail.logicalCores" = "Núcleos lógicos";
@@ -1385,6 +1390,7 @@
 "hardware.detail.topApps.empty" = "Nenhum app ativo";
 "hardware.detail.topApps.unsupported" = "Não suportado";
 "hardware.detail.topApps.failed" = "Falha ao ler";
+"hardware.detail.topApps.refreshCountdown" = "Atualizar em %d s";
 "hardware.detail.sessionDownload" = "Download (sessão)";
 "hardware.detail.sessionUpload" = "Upload (sessão)";
 "hardware.detail.interfaces" = "Interfaces";

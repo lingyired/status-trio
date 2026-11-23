@@ -1345,6 +1345,11 @@
 "hardware.detail.title.disk" = "القرص";
 "hardware.detail.back" = "مراقب الأجهزة";
 "hardware.detail.openActivityMonitor" = "فتح مراقبة النشاط";
+"app.forceQuit.action" = "فرض إنهاء %@";
+"app.forceQuit.confirmTitle" = "هل تريد فرض إنهاء %@؟";
+"app.forceQuit.confirmMessage" = "قد تُفقد التغييرات غير المحفوظة.";
+"app.forceQuit.confirmAction" = "فرض الإنهاء";
+"app.forceQuit.failed" = "تعذّر إنهاء %@ (قد يكون مملوكًا لمستخدم آخر أو عملية نظام).";
 "hardware.detail.totalUsage" = "إجمالي الاستخدام";
 "hardware.detail.temperature" = "درجة الحرارة";
 "hardware.detail.logicalCores" = "الأنوية المنطقية";
@@ -1385,6 +1390,7 @@
 "hardware.detail.topApps.empty" = "لا توجد تطبيقات نشطة";
 "hardware.detail.topApps.unsupported" = "غير مدعوم";
 "hardware.detail.topApps.failed" = "تعذرت القراءة";
+"hardware.detail.topApps.refreshCountdown" = "التحديث خلال %d ثانية";
 "hardware.detail.sessionDownload" = "تنزيل الجلسة";
 "hardware.detail.sessionUpload" = "رفع الجلسة";
 "hardware.detail.interfaces" = "الواجهات";

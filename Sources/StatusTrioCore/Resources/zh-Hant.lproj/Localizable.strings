@@ -1345,6 +1345,11 @@
 "hardware.detail.title.disk" = "磁碟";
 "hardware.detail.back" = "硬體監控";
 "hardware.detail.openActivityMonitor" = "打開活動監視器";
+"app.forceQuit.action" = "強制退出 %@";
+"app.forceQuit.confirmTitle" = "強制退出 %@？";
+"app.forceQuit.confirmMessage" = "未儲存的變更可能會遺失。";
+"app.forceQuit.confirmAction" = "強制退出";
+"app.forceQuit.failed" = "無法退出 %@（可能屬於其他使用者或系統程序）。";
 "hardware.detail.totalUsage" = "總使用率";
 "hardware.detail.temperature" = "溫度";
 "hardware.detail.logicalCores" = "邏輯核心";
@@ -1385,6 +1390,7 @@
 "hardware.detail.topApps.empty" = "尚無活躍應用";
 "hardware.detail.topApps.unsupported" = "暫不支援";
 "hardware.detail.topApps.failed" = "讀取失敗";
+"hardware.detail.topApps.refreshCountdown" = "下次重新整理還有 %d 秒";
 "hardware.detail.sessionDownload" = "本次下載";
 "hardware.detail.sessionUpload" = "本次上傳";
 "hardware.detail.interfaces" = "網路介面";

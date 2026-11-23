@@ -1345,6 +1345,11 @@
 "hardware.detail.title.disk" = "磁盘";
 "hardware.detail.back" = "硬件监控";
 "hardware.detail.openActivityMonitor" = "打开活动监视器";
+"app.forceQuit.action" = "强制退出 %@";
+"app.forceQuit.confirmTitle" = "强制退出 %@？";
+"app.forceQuit.confirmMessage" = "未保存的更改可能会丢失。";
+"app.forceQuit.confirmAction" = "强制退出";
+"app.forceQuit.failed" = "未能退出 %@（可能属于其他用户或系统进程）。";
 "hardware.detail.totalUsage" = "总使用率";
 "hardware.detail.temperature" = "温度";
 "hardware.detail.logicalCores" = "逻辑核心";
@@ -1385,6 +1390,7 @@
 "hardware.detail.topApps.empty" = "暂无活跃应用";
 "hardware.detail.topApps.unsupported" = "暂不支持";
 "hardware.detail.topApps.failed" = "读取失败";
+"hardware.detail.topApps.refreshCountdown" = "下次刷新还有 %d 秒";
 "hardware.detail.sessionDownload" = "本次下载";
 "hardware.detail.sessionUpload" = "本次上传";
 "hardware.detail.interfaces" = "网络接口";
