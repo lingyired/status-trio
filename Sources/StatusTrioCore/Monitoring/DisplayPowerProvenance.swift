@@ -37,10 +37,10 @@ protocol BacklightPowerEstimating: Sendable {
 /// display's calibration constant, following macpow's method.
 ///
 /// `BrightnessMicroAmps` is the current fraction of the panel's maximum; the
-/// calibration value is the maximum current in milliamps. macpow multiplies the
-/// resulting current by an assumed 6 V LED-string voltage. That voltage is not
-/// exposed by macOS, so it stays a named assumption and the result is always
-/// marked `estimated`.
+/// calibration value is a 16.16 fixed-point maximum current. The resulting
+/// current is multiplied by an explicit effective rail voltage. macOS exposes
+/// neither the LED voltage nor a power reading, so the voltage stays a named
+/// assumption and the result is always marked `estimated`.
 ///
 /// There is deliberately no brightness-only fallback: when the current or the
 /// calibration constant is missing, this returns nil instead of inventing watts.
@@ -53,8 +53,12 @@ final class AppleARMBacklightPowerEstimator: BacklightPowerEstimating, @unchecke
         self.panelIsOn = panelIsOn
     }
 
-    /// macpow's documented assumption. Not a measurement.
-    static let assumedVoltage: Double = 6.0
+    /// Effective backlight rail voltage used for the estimate. macpow's generic
+    /// 6 V assumption underestimates Apple Silicon XDR panels by roughly 8×:
+    /// on Mac15,9 the calibration-derived 3.199 A and the measured 10.69 W PDBR
+    /// imply ≈3.34 V, so use that explicitly as an estimate parameter. It is
+    /// still an assumption, never presented as a measured voltage.
+    static let assumedVoltage: Double = 3.34
     /// A branch below this is not drawn; it is a UI visibility threshold, not a
     /// sensor validity threshold.
     static let minimumVisibleWatts: Double = 0.05
@@ -63,7 +67,7 @@ final class AppleARMBacklightPowerEstimator: BacklightPowerEstimating, @unchecke
 
     private let lock = NSLock()
     private var service: io_service_t = 0
-    private var calibrationMicroAmps: Double?
+    private var calibrationFixedPoint: Double?
     private var retryAfter: Date = .distantPast
 
     deinit {
@@ -76,7 +80,7 @@ final class AppleARMBacklightPowerEstimator: BacklightPowerEstimating, @unchecke
             IOObjectRelease(service)
             service = 0
         }
-        calibrationMicroAmps = nil
+        calibrationFixedPoint = nil
         retryAfter = .distantPast
         lock.unlock()
     }
@@ -102,7 +106,7 @@ final class AppleARMBacklightPowerEstimator: BacklightPowerEstimating, @unchecke
         }
         guard let watts = Self.estimatedWatts(currentMicroAmps: current.value,
                                               maximumMicroAmps: current.max,
-                                              calibrationMicroAmps: calibration) else {
+                                              calibrationFixedPoint: calibration) else {
             return nil
         }
         guard (Self.minimumVisibleWatts...Self.maximumPlausibleWatts).contains(watts) else {
@@ -131,15 +135,15 @@ final class AppleARMBacklightPowerEstimator: BacklightPowerEstimating, @unchecke
     }
 
     private func calibrationLocked(from properties: [String: Any]) -> Double? {
-        if let calibrationMicroAmps { return calibrationMicroAmps }
+        if let calibrationFixedPoint { return calibrationFixedPoint }
         guard let parameters = properties["backlight-calibration-parameters"] as? [String: Any],
               let value = Self.number(parameters["current-for-max-backlight"]),
               value.isFinite, (1_000...2_000_000).contains(value) else {
             return nil
         }
-        // The key is in microamps (904383 on Mac15,9 = 904.383 mA for the
-        // maximum backlight), matching BrightnessMicroAmps' scale.
-        calibrationMicroAmps = value
+        // 16.16 fixed point: 904383 / 65536 = 13.799 A maximum backlight
+        // current on Mac15,9, matching BrightnessMicroAmps max 13799 mA.
+        calibrationFixedPoint = value
         return value
     }
 
@@ -160,13 +164,15 @@ final class AppleARMBacklightPowerEstimator: BacklightPowerEstimating, @unchecke
     }
 
     static func estimatedWatts(currentMicroAmps value: Double, maximumMicroAmps maximum: Double,
-                               calibrationMicroAmps: Double,
+                               calibrationFixedPoint: Double,
                                assumedVoltage: Double = AppleARMBacklightPowerEstimator.assumedVoltage) -> Double? {
-        guard value.isFinite, maximum.isFinite, calibrationMicroAmps.isFinite,
-              value > 0, maximum > 0, calibrationMicroAmps > 0 else { return nil }
+        guard value.isFinite, maximum.isFinite, calibrationFixedPoint.isFinite,
+              value > 0, maximum > 0, calibrationFixedPoint > 0 else { return nil }
         let fraction = min(max(value / maximum, 0), 1)
-        // microamps -> amps; the 6 V string voltage is the named assumption.
-        let watts = fraction * calibrationMicroAmps / 1_000_000 * assumedVoltage
+        // Calibration is 16.16 fixed-point amps; BrightnessMicroAmps is the same
+        // fraction at millamp scale. Power uses the named effective rail voltage.
+        let maxAmps = calibrationFixedPoint / 65_536
+        let watts = fraction * maxAmps * assumedVoltage
         guard watts.isFinite else { return nil }
         return watts
     }
