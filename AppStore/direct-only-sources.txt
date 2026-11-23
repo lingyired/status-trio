@@ -21,3 +21,5 @@ Sources/StatusTrioCore/Battery/DirectPowerUIChargeController.swift
 Sources/StatusTrioCore/Monitoring/DirectSystemChargeLimitDefaults.swift
 
 Sources/StatusTrioCore/Audio/DirectVolumeFeedbackDefaults.swift
+
+Sources/StatusTrioCore/Store/DirectHelperReadiness.swift

@@ -38,7 +38,11 @@ extension AppEnvironment {
             ),
             lowPowerMode: LowPowerModeController(client: XPCPrivilegedHelperClient()),
             highPowerMode: HighPowerModeController(client: XPCPrivilegedHighPowerClient()),
-            sleepControl: SleepControlController(client: XPCPrivilegedHighPowerClient())
+            sleepControl: SleepControlController(
+                client: XPCPrivilegedHighPowerClient(),
+                helperReadiness: SharedHelperReadiness()
+            ),
+            helperReadiness: SharedHelperReadiness()
         )
     }
 

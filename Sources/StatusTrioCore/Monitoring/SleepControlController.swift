@@ -265,7 +265,7 @@ final class SleepControlController: ObservableObject {
     init(
         assertion: any DisplaySleepAsserting = IOPMDisplaySleepAssertion(),
         client: any DisableSleepClienting = UnavailableDisableSleepClient(),
-        helperReadiness: any HelperReadinessProviding = SharedHelperReadiness(),
+        helperReadiness: any HelperReadinessProviding = UnavailableHelperReadiness(),
         ownership: any SleepOwnershipStoring = UserDefaultsSleepOwnershipStore(),
         now: @escaping () -> Date = Date.init,
         lidDisableRetryDelays: [TimeInterval] = [1, 3, 9],
