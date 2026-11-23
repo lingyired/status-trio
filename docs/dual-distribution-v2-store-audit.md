@@ -123,3 +123,18 @@ Store ：协议的空实现（Unavailable*/Fallback*，返回 .unsupported / 安
 | `MobileBatteryHelperReader` / MobileBattery* | `Monitoring/MobileBatteryController`、`Models/MobileBatterySnapshot` |
 
 处理原则同 Power/Charge 组：消费方改为依赖**协议 + 注入**，Store 注入 `Unavailable*`；对 token-clean 且自包含的排除文件（如 `ApplicationEnergyReader`、`BetterDisplayIntegrationClient`、`BetterDisplayFramebufferReader`）评估放回 Store 闭包。仍需多轮。
+
+### 4.2 DDC 子系统 API 面（Store 抽象/stub 的精确目标）
+
+让 Store 编译时，DDC 无法进 Store 闭包（`DDCDisplayTransport` 绑 `IOAVService`），但共享监视器 `VolumeMonitor` / `BrightnessMonitor` 直接引用这些具体类型。要么给监视器做 DDC 抽象注入，要么在 Store 侧造同 API stub。需要覆盖的成员（实测自源码）：
+
+- `DDCVolumeCoordinator`（class）：`typealias Sleep/WatchdogSleep = @Sendable (Duration) async throws -> Void`、`typealias WatchdogTimeoutHandler = @MainActor (UInt64, UInt64?) -> Void`、`private(set) var generation: UInt64`、`init(transport:debounce:readWatchdog:watchdogSleep:onWatchdogTimeout:beforeReadValidation:onReadCompletion:onDebounceSettled:sleep:onUpdate:)`、`select(outputID:uid:)`、`topologyChanged()`、`setDetailsVisible(_:)`、`setDisplayAsleep(_:)`、`setVolume(_:) -> UInt64?`、`flushPendingVolume()`、`refresh()`、`stop()`。
+- `DDCVolumeUpdate`（struct）：`outputID: AudioDeviceID`、`uid: String`、`generation: UInt64`、`capability: DDCVolumeCapability`、`commandID: UInt64?`、`var scalar: Double?`。
+- `DDCVolumeCapability`（enum）：`.unknown/.unavailable(DDCReadFailure)/.readable(DDCVolumeReply)/.writeVerified/.writeUnverified`，`var scalar`、`var isWritable`、`var diagnosticName`。依赖 `DDCVolumeReply`（`current`/`scalar`）与 `DDCReadFailure`。
+- `DDCVolumeTransport`（protocol）与 `DDCFeatureTransport: DDCVolumeTransport`：`resolve(uid:) -> DDCDisplayTarget?`、`read(target) -> DDCVolumeReadResult`、`write(target, ...) -> Bool`、`read(target, feature:)`、`write(target, value:, feature:)`。
+- `DDCDisplayTarget`（class）：`uid`、`service: IOAVService?`（私有）——是 DDC 不能共享的根因。
+- `DDCPacket`（enum）：`brightnessVCP`、`volumeVCP`、`chipAddress`、`dataAddress` 等静态 + request/parse 函数（`DDCBrightnessCoordinator`/`DDCVolumeReply` 用）。
+- `DDCLogSession.id`、`ddcTargetLogger: Logger`。
+- `BetterDisplayFramebufferReader.readInBackground()` / `read()` → `[BetterDisplayFramebufferIdentity]`。
+
+结论：faithful 的 Store stub 等于重建整套 DDC 类型系统（含 reply/failure/packet 编解码），或改为对 `VolumeMonitor`/`BrightnessMonitor` 做 DDC 抽象注入。属**多日架构工程**，作为 Store 组合层重写的一部分单独排期。
