@@ -1344,6 +1344,7 @@
 "hardware.detail.title.network" = "Netzwerk";
 "hardware.detail.title.disk" = "Festplatte";
 "hardware.detail.back" = "Hardware-Monitor";
+"hardware.detail.openActivityMonitor" = "Aktivitätsanzeige öffnen";
 "hardware.detail.totalUsage" = "Gesamtauslastung";
 "hardware.detail.temperature" = "Temperatur";
 "hardware.detail.logicalCores" = "Logische Kerne";

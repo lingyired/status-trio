@@ -1344,6 +1344,7 @@
 "hardware.detail.title.network" = "Rede";
 "hardware.detail.title.disk" = "Disco";
 "hardware.detail.back" = "Monitor de hardware";
+"hardware.detail.openActivityMonitor" = "Abrir Monitor de Atividade";
 "hardware.detail.totalUsage" = "Uso total";
 "hardware.detail.temperature" = "Temperatura";
 "hardware.detail.logicalCores" = "Núcleos lógicos";

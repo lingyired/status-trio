@@ -1343,6 +1343,7 @@
 "hardware.detail.title.network" = "네트워크";
 "hardware.detail.title.disk" = "디스크";
 "hardware.detail.back" = "하드웨어 모니터";
+"hardware.detail.openActivityMonitor" = "활성 상태 보기 열기";
 "hardware.detail.totalUsage" = "총 사용률";
 "hardware.detail.temperature" = "온도";
 "hardware.detail.logicalCores" = "논리 코어";

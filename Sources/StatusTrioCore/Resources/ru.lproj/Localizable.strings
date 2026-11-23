@@ -1344,6 +1344,7 @@
 "hardware.detail.title.network" = "Сеть";
 "hardware.detail.title.disk" = "Диск";
 "hardware.detail.back" = "Монитор оборудования";
+"hardware.detail.openActivityMonitor" = "Открыть Мониторинг системы";
 "hardware.detail.totalUsage" = "Общая загрузка";
 "hardware.detail.temperature" = "Температура";
 "hardware.detail.logicalCores" = "Логические ядра";

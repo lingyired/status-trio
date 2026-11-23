@@ -1344,6 +1344,7 @@
 "hardware.detail.title.network" = "الشبكة";
 "hardware.detail.title.disk" = "القرص";
 "hardware.detail.back" = "مراقب الأجهزة";
+"hardware.detail.openActivityMonitor" = "فتح مراقبة النشاط";
 "hardware.detail.totalUsage" = "إجمالي الاستخدام";
 "hardware.detail.temperature" = "درجة الحرارة";
 "hardware.detail.logicalCores" = "الأنوية المنطقية";

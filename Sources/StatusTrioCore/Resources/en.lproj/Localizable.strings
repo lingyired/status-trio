@@ -1343,6 +1343,7 @@
 "hardware.detail.title.network" = "Network";
 "hardware.detail.title.disk" = "Disk";
 "hardware.detail.back" = "Hardware Monitor";
+"hardware.detail.openActivityMonitor" = "Open Activity Monitor";
 "hardware.detail.totalUsage" = "Total usage";
 "hardware.detail.temperature" = "Temperature";
 "hardware.detail.logicalCores" = "Logical cores";

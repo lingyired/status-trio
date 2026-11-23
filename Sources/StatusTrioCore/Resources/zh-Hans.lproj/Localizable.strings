@@ -1344,6 +1344,7 @@
 "hardware.detail.title.network" = "网络";
 "hardware.detail.title.disk" = "磁盘";
 "hardware.detail.back" = "硬件监控";
+"hardware.detail.openActivityMonitor" = "打开活动监视器";
 "hardware.detail.totalUsage" = "总使用率";
 "hardware.detail.temperature" = "温度";
 "hardware.detail.logicalCores" = "逻辑核心";

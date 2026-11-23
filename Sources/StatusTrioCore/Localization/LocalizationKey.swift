@@ -200,6 +200,7 @@ enum LocalizationKey: String, CaseIterable, Hashable, Sendable {
     case hardwareDetailTitleNetwork = "hardware.detail.title.network"
     case hardwareDetailTitleDisk = "hardware.detail.title.disk"
     case hardwareDetailBack = "hardware.detail.back"
+    case hardwareDetailOpenActivityMonitor = "hardware.detail.openActivityMonitor"
     case hardwareDetailTotalUsage = "hardware.detail.totalUsage"
     case hardwareDetailTemperature = "hardware.detail.temperature"
     case hardwareDetailLogicalCores = "hardware.detail.logicalCores"

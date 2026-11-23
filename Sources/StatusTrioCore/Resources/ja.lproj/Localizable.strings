@@ -1344,6 +1344,7 @@
 "hardware.detail.title.network" = "ネットワーク";
 "hardware.detail.title.disk" = "ディスク";
 "hardware.detail.back" = "ハードウェアモニタ";
+"hardware.detail.openActivityMonitor" = "アクティビティモニタを開く";
 "hardware.detail.totalUsage" = "合計使用率";
 "hardware.detail.temperature" = "温度";
 "hardware.detail.logicalCores" = "論理コア";
