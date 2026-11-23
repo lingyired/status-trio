@@ -232,7 +232,10 @@ struct SensorSMCReader: Sendable {
                 let value = validTemperature(valueProvider(definition.key))
                     .flatMap { definition.validRange.contains($0) ? $0 : nil }
                 cache?.record(definition.key, value: value, at: date)
-                if let value { values.append(value) }
+                if let value {
+                    values.append(value)
+                    if group.aggregation == .firstReadable { break }
+                }
             }
             return group.representative(from: values)
         }
@@ -248,7 +251,7 @@ struct SensorSMCReader: Sendable {
     }
 
     private static func validRPM(_ value: Double?, allowZero: Bool) -> Double? {
-        guard let value, value.isFinite, value >= 0,
+        guard let value, value.isFinite, value >= 0, value <= 30_000,
               allowZero || value > 0 else { return nil }
         return value
     }
