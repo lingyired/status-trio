@@ -181,9 +181,9 @@ final class PanelPresentationMapperTests: XCTestCase {
         )
 
         let inputItem = row.powerInfoBar?.items.first { $0.kind == .inputDisconnected }
-        XCTAssertEqual(inputItem?.value, localization.string(.powerInfoBarNoInput),
-                       "A fresh 0 W adapter sample on battery must not read as an idle charger")
-        XCTAssertEqual(inputItem?.title, .powerInfoBarInput)
+        XCTAssertEqual(inputItem?.value, "0.0 W",
+                       "A fresh 0 W adapter sample on battery keeps the number slot; the 'No adapter' note lives in the title")
+        XCTAssertEqual(inputItem?.title, .powerInfoBarNoInput)
         XCTAssertNil(row.powerInfoBar?.items.first { $0.kind == .input },
                      "The connected-input card must not also be present")
     }
@@ -408,7 +408,7 @@ final class PanelPresentationMapperTests: XCTestCase {
             localization: localization
         )
         XCTAssertEqual(needsPermission.title, "Connected")
-        XCTAssertEqual(needsPermission.subtitle, "Tap to allow location to show the Wi-Fi name")
+        XCTAssertEqual(needsPermission.subtitle, "Allow location to show Wi-Fi name")
         XCTAssertEqual(needsPermission.intent, .requestWiFiNameAccess)
 
         let denied = PanelPresentationMapper.network(
@@ -420,7 +420,7 @@ final class PanelPresentationMapperTests: XCTestCase {
             localization: localization
         )
         XCTAssertEqual(denied.title, "Connected")
-        XCTAssertEqual(denied.subtitle, "Tap to allow location to show the Wi-Fi name")
+        XCTAssertEqual(denied.subtitle, "Allow location to show Wi-Fi name")
         XCTAssertEqual(denied.intent, .locationSettings)
     }
 
@@ -442,7 +442,7 @@ final class PanelPresentationMapperTests: XCTestCase {
                 localization: localization
             )
             XCTAssertEqual(row.title, "Connected")
-            XCTAssertEqual(row.subtitle, "Tap to allow location to show the Wi-Fi name")
+            XCTAssertEqual(row.subtitle, "Allow location to show Wi-Fi name")
             XCTAssertNil(row.measurements)
             XCTAssertEqual(row.accessibilityValue, "")
             XCTAssertEqual(
@@ -550,7 +550,7 @@ final class PanelPresentationMapperTests: XCTestCase {
         )
 
         XCTAssertEqual(row.title, "Connected")
-        XCTAssertEqual(row.subtitle, "Tap to allow location to show the Wi-Fi name")
+        XCTAssertEqual(row.subtitle, "Allow location to show Wi-Fi name")
         XCTAssertEqual(row.intent, .requestWiFiNameAccess)
     }
 
@@ -572,7 +572,7 @@ final class PanelPresentationMapperTests: XCTestCase {
         )
 
         XCTAssertEqual(row.title, "Connected")
-        XCTAssertEqual(row.subtitle, "Tap to allow location to show the Wi-Fi name")
+        XCTAssertEqual(row.subtitle, "Allow location to show Wi-Fi name")
         XCTAssertEqual(row.intent, .locationSettings)
     }
 
