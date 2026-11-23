@@ -50,6 +50,20 @@ merge commit：`875419ec`（双父：`8fbb673b` 旧分支 + `89aa9d1e` origin/ma
    `Platform/DirectAccessoryPowerNotifyEventMonitor`、`DirectAppEnvironment`、`DirectBluetoothListeningMode{Backend,EndpointProvider,ListenerBackend}`、`DirectDDCFactory`、`DirectInternetSharingDetector`、`DirectPrivilegedPowerClient`、`DirectSettingsStore`、`DirectSubprocessReaders`、`DirectSystemIconAppearanceReader`、`Battery/PowerUIChargeController`。
 3. 需按计划 §3.1 对 `origin/main` 全量新增源码重新审计并重建 `direct-only-sources.txt`（不得沿用旧清单）。
 
+**实跑 `APP_STORE_UNSIGNED=1 bash scripts/build-app-store.sh release no-open` 的两轮真实失败点（顺序暴露）：**
+
+- 第 1 层（已修）：manifest 列出 12 个已不存在文件 → 已从 `AppStore/direct-only-sources.txt` 剪除（安全、正确）。
+- 第 2 层（未修，需人工审计）：manifest 漏标了 5 个 `import PowerHelperProtocol` 的共享文件，被源闭包检查判定不得进 Store：
+  - `Monitoring/HighPowerModeClient.swift`
+  - `Monitoring/HighPowerModeController.swift`
+  - `Monitoring/HighPowerModeSystemReader.swift`
+  - `Monitoring/LowPowerModeClient.swift`
+  - `Monitoring/SleepControlController.swift`
+  这 5 个是 main 新功能文件，需判断「改造成公开路径 / 归为 Direct-only / 走外部 Helper」，不能盲加排除（否则可能把私有实现放进 Store）。
+- 第 3 层（预期，未到）：`AppStore/Platform/StoreAppEnvironment.swift` 依赖 4 个已移入 `AppStore/reference/` 的公开读取器（`UnavailableMobileBatteryReader`、`CoreWLANKnownNetworkProvider`、`PublicBluetoothPairedDeviceReader`、`PublicAccessoryBatteryReader`），它们又依赖一并被移出的 Platform 协议层——需在 main 基础上重建 Store 读取器层。
+
+> 结论：Store 可编译不是「补几个文件」能解决，而是需要按 §3.1 对 main 全量新增源码逐文件分类 + 重建 Store 组合。属 Phase 1 剩余主要工程量，本轮未完成。
+
 ## Phase 1 — 能力模型（已落地部分）
 
 依据 `docs/dual-distribution-v2-capability-model.md`，在 main 基线上实现纯分发能力层（无 UI/运行时探测耦合，可独立单测）：
@@ -76,3 +90,18 @@ merge commit：`875419ec`（双父：`8fbb673b` 旧分支 + `89aa9d1e` origin/ma
 - App Store Connect `com.lingai.StatusTrio` 注册状态：需人工在 ASC 实查 → NOT RUN。
 - App Review 审核意见：外部流程 → NOT RUN。
 - Developer ID 签名/公证/DMG/发布：按用户规则不在本机执行 → NOT RUN。
+
+## 总体状态与交付（截至本次）
+
+- **分支：** `feat/dual-distribution-v2`（worktree `../status-trio-dual-distribution-v2`）。**未合并到 main、未推送、未发布。**
+- **提交序列：**
+  - `875419ec` merge: origin/main → feat/dual-distribution-v2（Phase 0，双父）
+  - `c1b72cb0` docs: Phase 0 验证结果与 Store 失败点
+  - `7b781f5c` feat(distribution): 9 态能力模型 + Provider 路由引擎（Phase 1）
+- **已完成并本地验证：**
+  - Phase 0：`verify-local.sh full` exit 0、`docs` 通过、`scripts/test.sh` 全绿；GitHub Direct 完整恢复，最新 main 功能保留。
+  - Phase 1（能力层）：9 态能力模型 + 路由引擎 + 单测，全量测试通过。
+- **未完成 / 阻塞：**
+  - Phase 1 剩余：Store 工程重建与 `direct-only-sources.txt` 全量审计（见上 3 层失败点）— 需较大工程量，本轮未完成。
+  - Phase 2–6：外部 Enhancer/IPC 需签名沙盒真机 + 第二 App 安装验证；多版本真机、ASC 注册、App Review、签名公证发布均超出本机可验证范围 → NOT RUN/BLOCKED。
+- **按计划停止条件：** Store 基础版当前不可编译，尚未达到「保持 Store 基础版可用」的兜底前提；在 Store 重接线完成前，不建议对外宣称双发行可用。
