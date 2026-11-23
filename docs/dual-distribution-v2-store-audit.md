@@ -11,9 +11,9 @@ Store 目标当前**不能编译**，且不是「补几个排除项」能解决�
 
 ## 1. 扫描结果
 
-- 含禁用标记的文件：**16** 个；含禁用 import 的文件：**10** 个。
-- 其中**未纳入** `AppStore/direct-only-sources.txt` 的有 **8** 个（main 新引入）。
-- `--check-membership-only` 当前精确阻塞：**5 个 `import PowerHelperProtocol` 的共享文件**。
+- 含禁用标记的文件：**15** 个（本轮前 16）；含禁用 import 的文件：**9** 个（本轮前 10）。
+- 其中**未纳入** `AppStore/direct-only-sources.txt` 的有 **7** 个（本轮前 8；main 新引入）。
+- `--check-membership-only` 当前精确阻塞：**4 个 `import PowerHelperProtocol` 的共享文件**（本轮前 5；`HighPowerModeSystemReader` 已去依赖）。
 
 ### 1.1 8 个「必须处理」的文件（按标记）
 
@@ -29,6 +29,19 @@ Store 目标当前**不能编译**，且不是「补几个排除项」能解决�
 | `Monitoring/WiFiMonitor.swift` | com.apple.nat（Internet Sharing 检测内联） | Wi-Fi 状态核心组件，Store 必需 → **必须把 NAT 读取抽成注入式 Direct-only 组件** |
 
 > 说明：`com.apple.nat` 在 `WiFiMonitor.swift:363/377`，是内联的 Internet Sharing 探测；旧分支原本有独立 `DirectInternetSharingDetector`（已移入 reference）。Wi-Fi 其余功能必须留在 Store，因此只能抽取，不能整体排除。
+
+**已在本次推进中修掉 1 项**：`Monitoring/HighPowerModeSystemReader.swift` 不再 `import PowerHelperProtocol`（把纯 `pmset` 解析内联；与原实现逐行等价，Direct build + 1278 tests 全绿）。
+
+### 1.2 深层依赖发现（决定 Store 编译成本的关键）
+
+逐文件追踪后发现，Store 编译不是「排除一批文件」能达成，存在两层结构性障碍：
+
+1. **共享监控读取器依赖 Direct-only 的运行器**：如 `HighPowerModeSystemReader` 用 `BoundedProcessInvocation.runSync`，而 `BoundedProcessRunner.swift` 本身在 `direct-only-sources.txt` 里（排除）。这类耦合意味着「读到私有/子进程」的共享文件其实无法进 Store，需拆出。
+2. **`AppEnvironment.swift` / `Store/SystemStatusStore.swift` 是单体且未在 manifest 中**（即被当作 Store 共享），但它们直接 new 了 `PrivilegedHelperManager`/`UpdaterManager`/私有控制器等被排除类型。main 把旧分支的 `DirectAppEnvironment` / `StoreAppEnvironment` 拆分合并回了单文件。
+
+   ⇒ 要让 Store 编译，必须把 `AppEnvironment` 重新拆成：**共享类型与注入容器 + Direct 组合（`live()`/私有工厂，Direct-only）+ Store 组合（`StoreAppEnvironment`，公开 API）**；`SystemStatusStore` 同样需要控制器全部注入、由组合层按渠道提供 Direct XPC / Store 空实现。
+
+这两点是 Phase 1「Store 可编译」的**主体工程量**，等价于把旧分支 24 提交的 Platform 分层在 main 上重做一遍。已列 §3 施工单。
 
 ## 2. 目标形态（按旧分支设计在 main 上重建）
 
@@ -66,8 +79,9 @@ Store ：协议的空实现（Unavailable*/Fallback*，返回 .unsupported / 安
 
 ## 4. 当前证据
 
-- `--check-membership-only` 失败（5 个 PowerHelperProtocol importer，见 §1）。
+- `--check-membership-only` 失败（现 4 个 PowerHelperProtocol importer：`HighPowerModeClient`、`HighPowerModeController`、`LowPowerModeClient`、`SleepControlController`）。
 - `APP_STORE_UNSIGNED=1 build-app-store.sh` 在 membership 阶段即失败（同上）。
-- 已安全修正：从 manifest 删除 12 个不存在的旧条目。
+- 已安全修正：① 从 manifest 删除 12 个不存在的旧条目；② `HighPowerModeSystemReader` 去掉 `import PowerHelperProtocol`（内联纯解析，Direct build + 1278 tests 全绿）。
+- 剩余 token 命中（未在 manifest）：`Models/SystemIconAppearanceReader`、`Monitoring/HighPowerModeClient|Controller`、`Monitoring/LowPowerModeClient`、`Monitoring/SleepControlController`、`Monitoring/SMCReadOnlyClient`、`Monitoring/WiFiMonitor`。
 
 > 本审计只做静态与闭包级证据，不代表沙盒运行时、签名或审核结论。
