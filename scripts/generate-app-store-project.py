@@ -96,6 +96,7 @@ SWIFT_MODULE_FRAMEWORKS = {
 FORBIDDEN_SWIFT_IMPORTS = {
     "CoreDisplay",
     "DDCPrivateAPI",
+    "PowerUIPrivateAPI",
     "PowerHelperProtocol",
     "Sparkle",
     "DirectPlatform",

@@ -21,3 +21,5 @@ Sources/StatusTrioCore/Monitoring/ApplicationEnergyReader.swift
 Sources/StatusTrioCore/App/DirectAppEnvironment.swift
 
 Sources/StatusTrioCore/Platform/DirectPowerHelperClients.swift
+
+Sources/StatusTrioCore/Battery/DirectPowerUIChargeController.swift

@@ -81,6 +81,7 @@ ALLOWED_FRAMEWORKS = {
 FORBIDDEN_FRAMEWORKS = {
     "Sparkle",
     "DDCPrivateAPI",
+    "PowerUIPrivateAPI",
     "PowerHelperProtocol",
     "CoreDisplay",
     "DirectPlatform",
