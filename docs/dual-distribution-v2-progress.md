@@ -105,3 +105,19 @@ merge commit：`875419ec`（双父：`8fbb673b` 旧分支 + `89aa9d1e` origin/ma
   - Phase 1 剩余：Store 工程重建与 `direct-only-sources.txt` 全量审计 — **已产出施工单** `docs/dual-distribution-v2-store-audit.md`（8 个需协议化的共享文件 + 5 个 PowerHelperProtocol importer + Provider 抽取重构计划）。工作量较大，本轮未完成。
   - Phase 2–6：外部 Enhancer/IPC 需签名沙盒真机 + 第二 App 安装验证；多版本真机、ASC 注册、App Review、签名公证发布均超出本机可验证范围 → NOT RUN/BLOCKED。
 - **按计划停止条件：** Store 基础版当前不可编译，尚未达到「保持 Store 基础版可用」的兜底前提；在 Store 重接线完成前，不建议对外宣称双发行可用。
+
+## Store 编译剩余工作量评估（Round 9 结论）
+
+Store 目标已成功进入 xcodebuild 编译阶段（membership + framework 分类全通过），剩余 ~612 errors / 27 个共享文件。深入 DDC / VolumeFeedback 族后确认：这些错误不是「再放回几个文件」能收敛，而是 **5 个枢纽共享文件被私有类型反向渗透**，需要协议化重构：
+
+- `Settings/SettingsStore.swift`（引用 `SystemVolumeFeedbackPreference`(beep 私有偏好)、`SystemChargeLimitReader`、DDC 等）
+- `Store/SystemStatusStore.swift`（引用 DDC、`SystemChargeLimitReader`、`PrivilegedHelperManager`、`VolumeFeedbackPlaying`、`MobileBattery*` 等）
+- `App/AppDelegate.swift`（引用 `PrivilegedHelperManager`、`UpdaterManager`）
+- `Monitoring/VolumeMonitor.swift`（引用 `DDCVolumeCoordinator`/`DDCVolumeTransport`/`DDCVolumeUpdate`/`BetterDisplayFramebufferReader`）
+- `Monitoring/BrightnessMonitor.swift`（DDC/BetterDisplay 亮度）
+
+加上 ~22 个 UI/消费方文件。同时私有子系统本身规模大：DDC 子系统 1217 行（`DDCDisplayTransport` 436 / `DDCVolumeCoordinator` 410 / `DDCReadProfile` 175 / `DDCTargetResolver` 154），类型（`DDCVolumeTransport`/`DDCFeatureTransport`/`DDCVolumeUpdate`/`DDCVolumeCapability`）分散在被排除文件里，需先抽协议再改消费方。
+
+**结论**：让 App Store 目标真正编译通过，等价于把旧分支 24 提交的 Platform 分层在 main 上重做一遍（Power/Charge 已完成，剩 DDC、Sensor、外观、Wi‑Fi、Settings、Store 组合、AppDelegate 引导）。这是**多日架构工程**，不适合在单会话里高风险硬推。当前分支 Phase 0 已达硬门槛并长期保持全绿；Store 编译作为独立排期更稳妥。
+
+外部项（多系统真机、ASC 注册、App Review、Developer ID 签名/公证/发布）按计划记为 NOT RUN。
