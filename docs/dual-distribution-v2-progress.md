@@ -102,6 +102,6 @@ merge commit：`875419ec`（双父：`8fbb673b` 旧分支 + `89aa9d1e` origin/ma
   - Phase 0：`verify-local.sh full` exit 0、`docs` 通过、`scripts/test.sh` 全绿；GitHub Direct 完整恢复，最新 main 功能保留。
   - Phase 1（能力层）：9 态能力模型 + 路由引擎 + 单测，全量测试通过。
 - **未完成 / 阻塞：**
-  - Phase 1 剩余：Store 工程重建与 `direct-only-sources.txt` 全量审计（见上 3 层失败点）— 需较大工程量，本轮未完成。
+  - Phase 1 剩余：Store 工程重建与 `direct-only-sources.txt` 全量审计 — **已产出施工单** `docs/dual-distribution-v2-store-audit.md`（8 个需协议化的共享文件 + 5 个 PowerHelperProtocol importer + Provider 抽取重构计划）。工作量较大，本轮未完成。
   - Phase 2–6：外部 Enhancer/IPC 需签名沙盒真机 + 第二 App 安装验证；多版本真机、ASC 注册、App Review、签名公证发布均超出本机可验证范围 → NOT RUN/BLOCKED。
 - **按计划停止条件：** Store 基础版当前不可编译，尚未达到「保持 Store 基础版可用」的兜底前提；在 Store 重接线完成前，不建议对外宣称双发行可用。
