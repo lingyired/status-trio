@@ -227,6 +227,7 @@ final class SettingsStore: ObservableObject {
     static let enabledHardwareSummaryMetricsDefaultsKey = "enabledHardwareSummaryMetricsV1"
     static let memoryRingDisplayModeDefaultsKey = "memoryRingDisplayModeV1"
     static let ssdRingDisplayModeDefaultsKey = "ssdRingDisplayModeV1"
+    static let hardwareRingSplitGapProgressDefaultsKey = "hardwareRingSplitGapProgress"
     static let hardwareTemperatureMonitoringEnabledDefaultsKey = "hardwareTemperatureMonitoringEnabledV1"
     static let cpuRingCenterContentDefaultsKey = "cpuRingCenterContentV1"
     static let gpuRingCenterContentDefaultsKey = "gpuRingCenterContentV1"
@@ -1456,6 +1457,19 @@ final class SettingsStore: ObservableObject {
     /// Whether the SSD ring reads as consumed or remaining (default consumed).
     @Published var ssdRingDisplayMode: RingValueDisplayMode {
         didSet { defaults.set(ssdRingDisplayMode.rawValue, forKey: Self.ssdRingDisplayModeDefaultsKey) }
+    }
+
+    /// Whether the four panel rings carry their progress across the top gap
+    /// instead of the gap absorbing it: the visible left half reads 0–50% and
+    /// the right half 50–100%, so the percentage in the gap never hides progress
+    /// (#375). Mirrors the menu-bar battery ring's split-gap option.
+    @Published var hardwareRingSplitGapProgress: Bool = false {
+        didSet {
+            defaults.set(
+                hardwareRingSplitGapProgress,
+                forKey: Self.hardwareRingSplitGapProgressDefaultsKey
+            )
+        }
     }
 
     /// Master switch for CPU/GPU temperature sampling. Off means no SMC or HID
@@ -3371,6 +3385,8 @@ final class SettingsStore: ObservableObject {
             rawValue: defaults.string(forKey: Self.memoryRingDisplayModeDefaultsKey) ?? "") ?? .used
         self.ssdRingDisplayMode = RingValueDisplayMode(
             rawValue: defaults.string(forKey: Self.ssdRingDisplayModeDefaultsKey) ?? "") ?? .used
+        self.hardwareRingSplitGapProgress =
+            defaults.object(forKey: Self.hardwareRingSplitGapProgressDefaultsKey) as? Bool ?? false
         self.hardwareTemperatureMonitoringEnabled =
             defaults.object(forKey: Self.hardwareTemperatureMonitoringEnabledDefaultsKey) as? Bool ?? true
         self.cpuRingCenterContent = HardwareRingCenterContent(

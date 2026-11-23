@@ -1278,6 +1278,8 @@
 "hardware.monitor.settings.colorTitle" = "Colors";
 "hardware.monitor.settings.resetColors" = "Reset colors";
 "hardware.monitor.settings.showRings.description" = "Show the CPU, GPU, memory and disk-capacity rings; each can be turned off independently.";
+"hardware.monitor.settings.splitGapProgress" = "Split ring progress left and right";
+"hardware.monitor.settings.splitGapProgress.description" = "Draw the ring progress in two halves: the left half is 0–50% and the right half 50–100%, so the percentage at the top no longer hides progress.";
 "hardware.monitor.settings.showSummaryRow" = "Show bottom bar";
 
 /* Status-panel per-item visibility */

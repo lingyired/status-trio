@@ -1279,6 +1279,8 @@
 "hardware.monitor.settings.colorTitle" = "Couleurs";
 "hardware.monitor.settings.resetColors" = "Réinitialiser les couleurs";
 "hardware.monitor.settings.showRings.description" = "Affiche les anneaux CPU / GPU / RAM / SSD.";
+"hardware.monitor.settings.splitGapProgress" = "Répartir la progression de l'anneau à gauche et à droite";
+"hardware.monitor.settings.splitGapProgress.description" = "Affiche les quatre anneaux de surveillance en deux moitiés : la moitié gauche de 0 à 50 % et la moitié droite de 50 à 100 %, afin que le pourcentage dans l'encoche supérieure ne masque plus la progression.";
 "hardware.monitor.settings.showSummaryRow" = "Afficher la barre inférieure";
 
 /* Status-panel per-item visibility */

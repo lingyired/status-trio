@@ -1279,6 +1279,8 @@
 "hardware.monitor.settings.colorTitle" = "Farben";
 "hardware.monitor.settings.resetColors" = "Farben zurücksetzen";
 "hardware.monitor.settings.showRings.description" = "Zeigt die Ringe für CPU / GPU / RAM / SSD.";
+"hardware.monitor.settings.splitGapProgress" = "Ringfortschritt links und rechts teilen";
+"hardware.monitor.settings.splitGapProgress.description" = "Zeigt die vier Überwachungsringe in zwei Hälften: links 0–50 % und rechts 50–100 %, damit der Prozentwert in der oberen Lücke den Fortschritt nicht mehr verdeckt.";
 "hardware.monitor.settings.showSummaryRow" = "Untere Leiste anzeigen";
 
 /* Status-panel per-item visibility */

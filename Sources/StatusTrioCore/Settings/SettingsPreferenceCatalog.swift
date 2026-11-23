@@ -233,6 +233,7 @@ enum SettingsPreferenceCatalog {
                         default: .used, allowed: RingValueDisplayMode.allCases),
             enumeration("ssdRingDisplayMode", \.ssdRingDisplayMode,
                         default: .used, allowed: RingValueDisplayMode.allCases),
+            boolean("hardwareRingSplitGapProgress", \.hardwareRingSplitGapProgress, default: false),
             boolean("hardwareTemperatureMonitoringEnabled",
                     \.hardwareTemperatureMonitoringEnabled, default: true),
             // Apply the temperature switch before restoring the metric it makes available.

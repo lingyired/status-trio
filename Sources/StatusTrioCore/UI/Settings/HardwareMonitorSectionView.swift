@@ -278,6 +278,14 @@ struct HardwareMonitorSectionView: View {
                         )
                     }
                 }
+                SettingsDivider()
+                SettingsToggleRow(
+                    symbol: "circle.lefthalf.filled",
+                    tint: .blue,
+                    title: localization.string(.hardwareMonitorSettingsSplitGapProgress),
+                    subtitle: localization.string(.hardwareMonitorSettingsSplitGapProgressDescription),
+                    isOn: $store.hardwareRingSplitGapProgress
+                )
             }
         }
     }

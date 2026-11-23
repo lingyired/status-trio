@@ -1279,6 +1279,8 @@
 "hardware.monitor.settings.colorTitle" = "Цвета";
 "hardware.monitor.settings.resetColors" = "Сбросить цвета";
 "hardware.monitor.settings.showRings.description" = "Показывать кольца CPU / GPU / RAM / SSD.";
+"hardware.monitor.settings.splitGapProgress" = "Разделить прогресс кольца слева и справа";
+"hardware.monitor.settings.splitGapProgress.description" = "Показывает четыре кольца мониторинга двумя половинами: левая — 0–50 %, правая — 50–100 %, чтобы процент в верхнем разрыве больше не скрывал прогресс.";
 "hardware.monitor.settings.showSummaryRow" = "Показывать нижнюю панель";
 
 /* Status-panel per-item visibility */

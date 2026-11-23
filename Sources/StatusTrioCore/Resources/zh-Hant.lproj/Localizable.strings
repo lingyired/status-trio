@@ -1279,6 +1279,8 @@
 "hardware.monitor.settings.colorTitle" = "顏色";
 "hardware.monitor.settings.resetColors" = "恢復預設顏色";
 "hardware.monitor.settings.showRings.description" = "顯示 CPU / GPU / 記憶體 / 磁碟 四個圓環。";
+"hardware.monitor.settings.splitGapProgress" = "圓環進度左右平分";
+"hardware.monitor.settings.splitGapProgress.description" = "將圓環進度平分成左右兩半顯示：左半為 0–50%、右半為 50–100%，頂部的百分比不再遮住進度。";
 "hardware.monitor.settings.showSummaryRow" = "顯示底部資訊列";
 
 /* Status-panel per-item visibility */

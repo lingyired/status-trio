@@ -1279,6 +1279,8 @@
 "hardware.monitor.settings.colorTitle" = "色";
 "hardware.monitor.settings.resetColors" = "色をリセット";
 "hardware.monitor.settings.showRings.description" = "CPU / GPU / RAM / SSD のリングを表示します。";
+"hardware.monitor.settings.splitGapProgress" = "リングの進捗を左右に分割";
+"hardware.monitor.settings.splitGapProgress.description" = "4つのモニタリングリングを左右2つの半分で表示します。左半分が 0–50%、右半分が 50–100% となり、上部のすき間に表示される割合が進捗を隠さなくなります。";
 "hardware.monitor.settings.showSummaryRow" = "下部バーを表示";
 
 /* Status-panel per-item visibility */
