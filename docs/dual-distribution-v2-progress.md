@@ -139,3 +139,20 @@ Store 目标已从「manifest 阶段即失败」推进到「真实 xcodebuild �
 - `StoreResourceBundle`(2)、`AppDelegate`(2)。
 
 **判断**：剩余是「Store 组合层重写 + DDC/Brightness 抽象注入」——与本项目旧分支 24 提交同量级的架构工作，属多日工程。当前分支 Phase 0 已稳（`verify-local full` 通过、长期保持 Direct 全绿），Store 编译建议作为独立排期继续。
+
+## 里程碑：App Store 目标构建全绿（unsigned，2026-11-23，Round 22）
+
+`APP_STORE_UNSIGNED=1 bash scripts/build-app-store.sh release no-open` **exit 0**：
+- `BUILD SUCCEEDED`（577 shared / 19 excluded / 8 Store platform sources）
+- 源码成员闭包审计通过；禁用符号/字符串扫描干净（2 个 Mach-O 审计）
+- Bundle ID `com.lingai.StatusTrio`；Scope = unsigned compile/static only
+- `Sandbox runtime: NOT RUN`、签名/公证 NOT RUN（按用户规则本机不签名，外部条件）
+
+达成方式（逐步把私有实现清出 Store 闭包，Direct 零退化）：
+- 纯类型抽共享（SystemPowerSample / PowerSensorReadings / CPUFrequencyReading / UpdateSource / UpdatePreference 等）；
+- 协议化/注入（PrivilegedHelper、Power/Charge/Helper-readiness、SMC 服务名、charge-limit 路径、beep key 等）；
+- Store-only shim（PrivilegedHelperManager / UpdaterManager / SystemPowerReader / IOBluetoothRadioPowerBackend / DDC 内核 / CPUFrequencyReader / SystemIconAppearanceReader）；
+- `StoreAppEnvironment` 由 Direct `live()/makeStore` 模板重写，私有依赖全换 `Unavailable*`；
+- Direct 每步 `swift build` + 1278 tests 全绿。
+
+**仍未做**：Phase 1 剩余「把能力模型 9 态展示接到 Store UI」（§6，UI 层）；Phase 2–6（Enhancer/IPC、多系统真机、ASC、审核、签名公证发布）—NOT RUN/BLOCKED（外部条件）。
