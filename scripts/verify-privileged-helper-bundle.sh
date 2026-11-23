@@ -92,11 +92,11 @@ fi
 # The daemon must carry the client code-signing requirement that pins the app's
 # bundle identifier and signing team. The string is embedded in the binary, so a
 # regression that loosened it would show up here rather than at runtime.
-if ! strings -a "$HELPER" | grep -Fq 'com.lingsmbp.StatusTrio'; then
+if ! strings -a "$HELPER" | grep -F -- 'com.lingsmbp.StatusTrio' > /dev/null; then
     echo "Error: helper does not embed the app bundle identifier in its client requirement." >&2
     exit 1
 fi
-if ! strings -a "$HELPER" | grep -Fq 'anchor apple generic'; then
+if ! strings -a "$HELPER" | grep -F -- 'anchor apple generic' > /dev/null; then
     echo "Error: helper does not embed an Apple-anchored client requirement." >&2
     exit 1
 fi
