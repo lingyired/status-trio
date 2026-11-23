@@ -9,7 +9,6 @@ Sources/StatusTrioCore/Audio/DDCReadProfile.swift
 Sources/StatusTrioCore/Audio/DDCTargetResolver.swift
 Sources/StatusTrioCore/Audio/DDCVolumeCoordinator.swift
 Sources/StatusTrioCore/Audio/VolumeFeedback.swift
-Sources/StatusTrioCore/Monitoring/BoundedProcessRunner.swift
 Sources/StatusTrioCore/Monitoring/IOBluetoothRadioPowerBackend.swift
 Sources/StatusTrioCore/Monitoring/MobileBatteryHelperReader.swift
 Sources/StatusTrioCore/Monitoring/SystemChargeLimitReader.swift

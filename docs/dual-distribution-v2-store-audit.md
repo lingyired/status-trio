@@ -106,3 +106,20 @@ Store ：协议的空实现（Unavailable*/Fallback*，返回 .unsupported / 安
 - 剩余 token 命中（未在 manifest，需协议化/抽取）：`SystemIconAppearanceReader`、`SMCReadOnlyClient`、`WiFiMonitor`。
 
 > 本审计只做静态与闭包级证据，不代表沙盒运行时、签名或审核结论。
+
+### 4.1 真实 xcodebuild 错误地图（首轮）
+
+去掉误排除的 `BoundedProcessRunner`（token-clean 的通用进程运行器，已放回 Store 闭包）后，`build-app-store.sh` 首次进入 xcodebuild，仍有 ~674 errors / 33 个共享文件。共性是这些**共享文件直接引用了被排除的 Direct-only 具体类型**。按「被引用类型族 → 消费方共享文件」归组：
+
+| 被引用家族（Direct-only） | 消费方共享文件（需协议化） |
+|---|---|
+| `DDCVolumeCoordinator` / `DDCVolumeTransport` / `DDCVolumeUpdate` / `DDCVolumeReply` | `Monitoring/VolumeMonitor`、`Display/DDCBrightnessCoordinator`、`Audio/BetterDisplayVolumeCoordinator`、`Audio/DDCVolumeReply`、`Monitoring/BrightnessMonitor` |
+| `BetterDisplayIntegrationClient` / `…Error` / `BetterDisplayFramebufferReader` | 同上 BetterDisplay 消费方 |
+| `PrivilegedHelperManager` | `App/AppDelegate`、`Store/SystemStatusStore`、设置页 |
+| `UpdaterManager` / `UpdateSourceFallback` / `UpdateFallbackUserDriver`（Sparkle） | `App/AppDelegate`、`App/UpdateCycleState`、设置页 |
+| `SystemChargeLimitReader`（私有 powerd plist） | `Store/SystemStatusStore`、`Monitoring/PowerSamplingService`、`Monitoring/BatteryDetailsReader` |
+| `SystemPowerReader`（AppleSMC） | `Monitoring/BatteryDetailsReader`、`Monitoring/PowerSamplingService` |
+| `VolumeFeedback`（beep 偏好）/ `VolumeFeedbackPlaying` | `Monitoring/VolumeMonitor` |
+| `MobileBatteryHelperReader` / MobileBattery* | `Monitoring/MobileBatteryController`、`Models/MobileBatterySnapshot` |
+
+处理原则同 Power/Charge 组：消费方改为依赖**协议 + 注入**，Store 注入 `Unavailable*`；对 token-clean 且自包含的排除文件（如 `ApplicationEnergyReader`、`BetterDisplayIntegrationClient`、`BetterDisplayFramebufferReader`）评估放回 Store 闭包。仍需多轮。
