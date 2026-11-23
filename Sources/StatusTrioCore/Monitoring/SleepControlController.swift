@@ -2,7 +2,6 @@ import AppKit
 import Combine
 import Foundation
 import IOKit.pwr_mgt
-import PowerHelperProtocol
 
 /// The timer choices offered next to each keep-awake toggle (#295).
 enum SleepTimerDuration: String, CaseIterable, Identifiable, Sendable {
@@ -265,7 +264,7 @@ final class SleepControlController: ObservableObject {
 
     init(
         assertion: any DisplaySleepAsserting = IOPMDisplaySleepAssertion(),
-        client: any DisableSleepClienting = XPCPrivilegedHighPowerClient(),
+        client: any DisableSleepClienting = UnavailableDisableSleepClient(),
         helperReadiness: any HelperReadinessProviding = SharedHelperReadiness(),
         ownership: any SleepOwnershipStoring = UserDefaultsSleepOwnershipStore(),
         now: @escaping () -> Date = Date.init,
@@ -729,7 +728,7 @@ final class SleepControlController: ObservableObject {
                 let version = try await self.client.protocolVersion()
                 guard !self.isStopped else { return }
                 self.helperCapability =
-                    version < PowerHelperProtocolVersion.disableSleep ? .needsUpdate : .available
+                    version < PowerHelperFeatureVersion.disableSleep ? .needsUpdate : .available
             } catch {
                 guard !self.isStopped else { return }
                 // A helper that answers readiness but cannot name a version is a

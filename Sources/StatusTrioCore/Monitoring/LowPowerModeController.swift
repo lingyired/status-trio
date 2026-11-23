@@ -29,7 +29,7 @@ final class LowPowerModeController: ObservableObject {
     private var generation: UInt64 = 0
 
     init(
-        client: any LowPowerModeClienting = XPCPrivilegedHelperClient(),
+        client: any LowPowerModeClienting = UnavailableLowPowerModeClient(),
         initialIsLowPowerMode: Bool = ProcessInfo.processInfo.isLowPowerModeEnabled
     ) {
         self.client = client

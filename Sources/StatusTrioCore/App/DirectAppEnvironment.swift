@@ -34,7 +34,10 @@ extension AppEnvironment {
                 // created only when the user has enabled Nearby results and the
                 // authorized Bluetooth popover is visible.
                 nearbyBatteryScanner: CoreBluetoothLEBatteryScanner()
-            )
+            ),
+            lowPowerMode: LowPowerModeController(client: XPCPrivilegedHelperClient()),
+            highPowerMode: HighPowerModeController(client: XPCPrivilegedHighPowerClient()),
+            sleepControl: SleepControlController(client: XPCPrivilegedHighPowerClient())
         )
     }
 

@@ -1,6 +1,5 @@
 import Combine
 import Foundation
-import PowerHelperProtocol
 
 /// Owns the High Power Mode write path and the state the UI shows.
 ///
@@ -46,7 +45,7 @@ final class HighPowerModeController: ObservableObject {
     }
 
     init(
-        client: any HighPowerModeClienting = XPCPrivilegedHighPowerClient(),
+        client: any HighPowerModeClienting = UnavailableHighPowerModeClient(),
         platformSupported: Bool = HighPowerModeController.supportsCurrentPlatform
     ) {
         self.client = client
@@ -96,7 +95,7 @@ final class HighPowerModeController: ObservableObject {
             do {
                 guard !Task.isCancelled, self.generation == requestGeneration else { return }
                 self.needsHelperUpdate = false
-                guard version >= PowerHelperProtocolVersion.highPowerMode else {
+                guard version >= PowerHelperFeatureVersion.highPowerMode else {
                     self.needsHelperUpdate = true
                     self.isSupported = false
                     self.hasProbed = true
