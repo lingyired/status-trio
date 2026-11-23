@@ -1,5 +1,6 @@
 import Foundation
 import IOKit
+import CoreGraphics
 
 /// Whether a displayed power branch is a sensor reading or a derived estimate.
 /// The distinction is part of the data model, not a presentation-only hint, so a
@@ -46,6 +47,12 @@ protocol BacklightPowerEstimating: Sendable {
 final class AppleARMBacklightPowerEstimator: BacklightPowerEstimating, @unchecked Sendable {
     static let shared = AppleARMBacklightPowerEstimator()
 
+    private let panelIsOn: @Sendable () -> Bool
+
+    init(panelIsOn: @escaping @Sendable () -> Bool = { AppleARMBacklightPowerEstimator.builtInPanelIsOn() }) {
+        self.panelIsOn = panelIsOn
+    }
+
     /// macpow's documented assumption. Not a measurement.
     static let assumedVoltage: Double = 6.0
     /// A branch below this is not drawn; it is a UI visibility threshold, not a
@@ -75,6 +82,12 @@ final class AppleARMBacklightPowerEstimator: BacklightPowerEstimating, @unchecke
     }
 
     func estimate(at date: Date) -> DisplayPowerSample? {
+        // AppleARMBacklight keeps the last BrightnessMicroAmps value after the
+        // built-in panel goes offline (lid closed with an external display) or
+        // sleeps, so the IORegistry reading alone would keep reporting a stale
+        // backlight. The display branch is the built-in backlight only; when no
+        // built-in panel is online and awake there is nothing to estimate.
+        guard panelIsOn() else { return nil }
         lock.lock()
         defer { lock.unlock() }
         guard date >= retryAfter else { return nil }
@@ -156,6 +169,31 @@ final class AppleARMBacklightPowerEstimator: BacklightPowerEstimating, @unchecke
         let watts = fraction * calibrationMicroAmps / 1_000_000 * assumedVoltage
         guard watts.isFinite else { return nil }
         return watts
+    }
+
+    /// True when an online, awake built-in display exists. If CoreGraphics
+    /// cannot answer, do not suppress a potentially valid estimate.
+    static func builtInPanelIsOn() -> Bool {
+        var count: UInt32 = 0
+        guard CGGetOnlineDisplayList(0, nil, &count) == .success, count > 0 else {
+            return true
+        }
+        var displays = [CGDirectDisplayID](repeating: 0, count: Int(count))
+        guard CGGetOnlineDisplayList(count, &displays, &count) == .success else {
+            return true
+        }
+        return panelIsOn(displays: Array(displays.prefix(Int(count))),
+                         isBuiltIn: { CGDisplayIsBuiltin($0) != 0 },
+                         isAsleep: { CGDisplayIsAsleep($0) != 0 })
+    }
+
+    /// Pure display-topology decision, separated from CoreGraphics so the
+    /// lid-closed/external-only and display-asleep cases are unit-testable.
+    static func panelIsOn(displays: [CGDirectDisplayID],
+                          isBuiltIn: (CGDirectDisplayID) -> Bool,
+                          isAsleep: (CGDirectDisplayID) -> Bool) -> Bool {
+        guard let builtIn = displays.first(where: isBuiltIn) else { return false }
+        return !isAsleep(builtIn)
     }
 
     private static func number(_ value: Any?) -> Double? {

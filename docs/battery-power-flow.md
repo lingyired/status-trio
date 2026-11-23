@@ -33,7 +33,7 @@ M3 Air（Mac15,12）没有 `PDBR`，`PBLR` 恒为 0。旧逻辑把 0 当成有�
 1. 实测 SMC 背光轨道：新代际先 `PBwo`，再 `PDBR`，最后 `PBLR`；任一读数大于 0.05 W 即使用实测值。
 2. 若实测轨道全部缺失或为 0，读取 `AppleARMBacklight` 的 `BrightnessMicroAmps` 与 `backlight-calibration-parameters.current-for-max-backlight`，按 macpow 方法估算：`电流比例 × 校准最大电流(µA) ÷ 1,000,000 × 6.0 V`。
 3. 6.0 V 是估算假设，不是实测电压；估算值在流向图显示 `≈`，悬停提示标 “Estimated”，并让系统 residual 也标记为估算（因为 residual = source − charging − display − usb）。
-4. 没有有效电流/校准数据时不发布估算分支；估算超出预算或导致 residual 超出容差时，丢弃估算分支并保留其余拆分，不伪造负 residual。
+4. 没有有效电流/校准数据时不发布估算分支；估算超出预算或导致 residual 超出容差时，丢弃估算分支并保留其余拆分，不伪造负 residual。内建屏不在线或已休眠（例如合盖只用外接显示器）时也不发布内建背光估算，因为 `AppleARMBacklight` 会保留旧电流值，不能把陈旧值当成当前功耗。
 5. `DISP/DISPEXT` 只代表 SoC 显示控制器，不能冒充背光功率。
 
 SoC 不单独成支路：`PHPC` 是芯片散热估算，覆盖边界未经校准，单独展示会诱导用户把它与输入、分项相加。需要芯片明细时走独立诊断（见 `docs/research/m3-max-macos27-soc-power-research.md`），不与流向图混用。

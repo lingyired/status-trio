@@ -381,3 +381,17 @@ extension SystemPowerReaderTests {
         XCTAssertEqual(estimator.calls, 1)
     }
 }
+
+extension SystemPowerReaderTests {
+    func testBacklightEstimateOnlyWhenABuiltInPanelIsOnlineAndAwake() {
+        // Lid closed with only an external display: no built-in panel online.
+        XCTAssertFalse(AppleARMBacklightPowerEstimator.panelIsOn(
+            displays: [5], isBuiltIn: { _ in false }, isAsleep: { _ in false }))
+        // Built-in online and awake.
+        XCTAssertTrue(AppleARMBacklightPowerEstimator.panelIsOn(
+            displays: [1, 5], isBuiltIn: { $0 == 1 }, isAsleep: { _ in false }))
+        // Built-in online but asleep.
+        XCTAssertFalse(AppleARMBacklightPowerEstimator.panelIsOn(
+            displays: [1, 5], isBuiltIn: { $0 == 1 }, isAsleep: { $0 == 1 }))
+    }
+}
