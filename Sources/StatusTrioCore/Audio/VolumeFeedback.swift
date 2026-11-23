@@ -12,7 +12,11 @@ import Foundation
 /// nothing — the value has to come through the standard search list, which
 /// includes the global domain.
 enum SystemVolumeFeedbackPreference {
-    static let key = "com.apple.sound.beep.feedback"
+    /// Injected at Direct launch with the real system key. Store keeps an inert
+    /// app-owned default so this file carries no private preference literal and
+    /// can compile in the App Store target. Read via `defaults.object(forKey:)`,
+    /// so a non-existent key falls back to "enabled" (macOS default on).
+    nonisolated(unsafe) static var key = "statusTrio.volumeFeedback.systemFeedback"
 
     /// A Mac whose owner has never touched the checkbox keeps the value macOS
     /// ships, which is on, so a missing key counts as enabled. The two
