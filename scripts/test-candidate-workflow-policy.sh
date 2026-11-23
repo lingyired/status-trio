@@ -42,4 +42,24 @@ if run_policy "$mutated_sign"; then
     fail "publish workflow with signing step was accepted"
 fi
 
+# A build workflow that ignores the on_main branch check and always produces a
+# publishable candidate must be rejected: only main builds may be publishable.
+mutated_type="$WORK/mutated-type"
+make_fixture "$mutated_type"
+python3 - "$mutated_type/.github/workflows/build-candidate.yml" <<'PY'
+import sys
+path = sys.argv[1]
+with open(path) as fh:
+    text = fh.read()
+old = "CANDIDATE_TYPE: ${{ needs.prepare.outputs.on_main == 'true' && 'release_candidate' || 'test_candidate' }}"
+new = "CANDIDATE_TYPE: release_candidate"
+if old not in text:
+    raise SystemExit("expected CANDIDATE_TYPE expression not found in fixture")
+with open(path, "w") as fh:
+    fh.write(text.replace(old, new))
+PY
+if run_policy "$mutated_type"; then
+    fail "build workflow that ignores on_main was accepted"
+fi
+
 echo "test-candidate-workflow-policy: PASS"

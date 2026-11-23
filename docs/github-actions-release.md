@@ -48,7 +48,8 @@ package job 准备并检查 `create-dmg 1.3.0`；版本不符或 Finder 布局�
 
 从 GitHub Actions 页面选择 **Build and Release macOS**，或在已认证的
 本机显式派发。`candidate_sha` 必须是小写 40 位 commit SHA，并已包含在
-`origin/main` 中：
+`origin/main` 中（这是旧兼容入口 `release.yml` 的限制；`build-candidate.yml`
+允许任意分支，见下文「候选包流水线」）：
 
 ```bash
 CANDIDATE_SHA="$(git rev-parse origin/main)"
@@ -399,13 +400,22 @@ workflow dispatch，确保同一 SHA 的验证、Universal package、签名/公�
 1. `.github/workflows/build-candidate.yml`（**Build Candidate**）
    - 输入 `candidate_sha`（必填）、`release_mode`（`fast` / `strict`，
      默认 `fast`），版本/构建号可留空从 `Support/Info.plist` 和 run number 推导。
-   - `prepare` 校验 SHA、`origin/main` 归属、Bundle ID、最低 macOS 13、SDK 26+、
-     完整 12 语言 Release Notes、Sparkle 凭据是否存在，并锁定版本/构建号/Tag。
+   - `candidate_sha` 可以是**任意分支**的提交：`prepare` 判断它是否属于
+     `origin/main`，并据此决定产物是否可发布（见下）。其余仍校验 SHA、Bundle ID、
+     最低 macOS 13、SDK 26+、完整 12 语言 Release Notes、Sparkle 凭据是否存在，
+     并锁定版本/构建号/Tag。
    - `strict` 额外运行完整 Swift 测试和 Native 契约测试；`fast` 跳过远程完整
      测试，但安装包本身仍走 Developer ID 签名 + Apple 公证 + Sparkle 签名。
-   - `package` 以 `CANDIDATE_TYPE=release_candidate`、`NOTARIZE=true`、
-     `PUBLISH_MODE=false` 调用 `scripts/package-release.sh`，产出
-     `status-trio-release-package` Artifact。Fast/Strict 产出的安装包质量要求相同。
+   - `package` 以 `NOTARIZE=true`、`PUBLISH_MODE=false` 调用
+     `scripts/package-release.sh`，产出 `status-trio-release-package` Artifact：
+     - SHA 属于 `origin/main` → `CANDIDATE_TYPE=release_candidate`，manifest
+       `publishable=true`，可用于发布。
+     - SHA 不在 `origin/main`（任意分支测试）→ `CANDIDATE_TYPE=test_candidate`，
+       同样 Developer ID 签名 + Apple 公证，但 manifest `publishable=false`，
+       只能下载安装测试，**不能进入 Publish 或 Verify**。
+   - 从分支构建测试包：在上述页面的 *Use workflow from* 选目标分支，或用
+     `gh workflow run build-candidate.yml --ref <branch> -f candidate_sha="$(git rev-parse <branch>)"`；
+     构建完成后下载 `status-trio-release-package` Artifact 安装测试。
 
 2. `.github/workflows/publish-candidate.yml`（**Publish Existing Candidate**）
    - 唯一输入 `candidate_run_id`（可选 `strict_evidence_run_id`）。
