@@ -9,7 +9,7 @@
 ## Display-Leistung
 
 - Issue #374 behoben: Ein M3 Air ohne PDBR und mit konstant 0 bei PBLR zeigt keinen 0,00-W-Displayzweig mehr.
-- Ohne nutzbare gemessene Backlight-Schiene kann die Displayleistung auf eine AppleARMBacklight-Schätzung zurückfallen. Die 6-V-Annahme ist keine Messung; der Wert wird mit ≈ und der Systemrest als geschätzt markiert.
+- Ist keine gemessene Backlight-Schiene nutzbar, wird der Displayzweig ausgeblendet; es wird kein Schätzwert veröffentlicht.
 - Null-Watt-Zweige für Display und USB werden ausgeblendet.
 
 ## Überwachung und Leistung

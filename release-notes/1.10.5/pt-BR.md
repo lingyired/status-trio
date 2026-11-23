@@ -9,7 +9,7 @@
 ## Consumo do display
 
 - Corrigido o Issue #374: um M3 Air sem PDBR e com PBLR fixo em 0 não mostra mais uma ramificação de display de 0,00 W.
-- Sem uma via de retroiluminação medida utilizável, o consumo do display pode usar uma estimativa do AppleARMBacklight. Os 6 V são uma suposição, não uma medição; o valor é marcado com ≈ e o residual do sistema como estimado.
+- Sem uma via de retroiluminação medida utilizável, a ramificação de display fica oculta; nenhum valor estimado é publicado.
 - Ramificações de display e USB com 0 W ficam ocultas.
 
 ## Monitoramento e desempenho

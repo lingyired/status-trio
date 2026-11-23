@@ -9,7 +9,7 @@
 ## Display Power
 
 - Fixed Issue #374: an M3 Air with no PDBR and a PBLR stuck at 0 no longer shows a 0.00 W display branch.
-- When no measured backlight rail is usable, display power can fall back to an AppleARMBacklight estimate. The 6 V assumption is not a measurement, so the value is marked with ≈ and the system residual is marked as estimated too.
+- When no measured backlight rail is usable, the display branch is hidden; no estimated value is published.
 - Zero-watt display and USB branches are hidden instead of being drawn as real power.
 
 ## Monitoring & Performance

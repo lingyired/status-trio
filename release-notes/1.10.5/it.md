@@ -9,7 +9,7 @@
 ## Consumo del display
 
 - Risolto l'Issue #374: un M3 Air senza PDBR e con PBLR fisso a 0 non mostra più un ramo display da 0,00 W.
-- Se non è disponibile una via di retroilluminazione misurata, il consumo del display può ricorrere a una stima AppleARMBacklight. I 6 V sono un'ipotesi, non una misura; il valore è contrassegnato con ≈ e il residuo di sistema come stimato.
+- Se non è disponibile una via di retroilluminazione misurata, il ramo display viene nascosto; non viene pubblicato alcun valore stimato.
 - I rami display e USB a 0 W vengono nascosti.
 
 ## Monitoraggio e prestazioni

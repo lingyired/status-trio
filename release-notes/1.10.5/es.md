@@ -9,7 +9,7 @@
 ## Consumo de pantalla
 
 - Corregido el Issue #374: un M3 Air sin PDBR y con PBLR fijo en 0 ya no muestra una rama de pantalla de 0,00 W.
-- Si no hay una vía de retroiluminación medida utilizable, el consumo de pantalla puede recurrir a una estimación de AppleARMBacklight. Los 6 V son una suposición, no una medición; el valor se marca con ≈ y el residual del sistema como estimado.
+- Si no hay una vía de retroiluminación medida utilizable, se oculta la rama de pantalla; no se publica ningún valor estimado.
 - Las ramas de pantalla y USB de 0 W se ocultan.
 
 ## Monitorización y rendimiento

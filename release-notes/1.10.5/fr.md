@@ -9,7 +9,7 @@
 ## Consommation de l'écran
 
 - Issue #374 corrigée : un M3 Air sans PDBR et avec PBLR bloqué à 0 n'affiche plus une branche écran à 0,00 W.
-- Sans voie de rétroéclairage mesurée exploitable, la consommation de l'écran peut utiliser une estimation AppleARMBacklight. Les 6 V sont une hypothèse, pas une mesure ; la valeur est marquée ≈ et le résidu système comme estimé.
+- Sans voie de rétroéclairage mesurée exploitable, la branche écran est masquée ; aucune valeur estimée n'est publiée.
 - Les branches écran et USB à 0 W sont masquées.
 
 ## Surveillance et performances
