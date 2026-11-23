@@ -109,7 +109,7 @@ Store ：协议的空实现（Unavailable*/Fallback*，返回 .unsupported / 安
 
 ### 4.1 真实 xcodebuild 错误地图（首轮）
 
-去掉误排除的 `BoundedProcessRunner`（token-clean 的通用进程运行器，已放回 Store 闭包）后，`build-app-store.sh` 首次进入 xcodebuild，仍有 ~674 errors / 33 个共享文件。共性是这些**共享文件直接引用了被排除的 Direct-only 具体类型**。按「被引用类型族 → 消费方共享文件」归组：
+逐步把误排除的 token-clean 文件放回 Store 闭包（`BoundedProcessRunner`、`MobileBatteryHelperReader`、`BetterDisplayIntegrationClient`、`ApplicationEnergyReader`）后，`build-app-store.sh` 错误从 706 → 674 → **612 errors / 27 个共享文件**。共性是这些**共享文件直接引用了被排除的 Direct-only 具体类型**。按「被引用类型族 → 消费方共享文件」归组：
 
 | 被引用家族（Direct-only） | 消费方共享文件（需协议化） |
 |---|---|
