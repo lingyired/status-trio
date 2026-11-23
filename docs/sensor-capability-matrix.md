@@ -71,3 +71,17 @@
 - 缺少有效电流或校准数据时返回 `nil`，不伪造功耗；估算导致 residual 超出容差时丢弃估算分支，而不是发布异常负 residual。
 - `DISP/DISPEXT` 不作为背光功率；它们只代表 SoC 显示控制器。
 - 显示器、USB 汇总、逐端口低于 `BatteryPowerFlowState.minimumVisibleWatts`（0.05 W）的 0 分支不绘制。
+
+## 7. 其他相关 SMC Key 审计（本次未改变语义）
+
+| 类别 | Key / 路径 | 结论 |
+| --- | --- | --- |
+| 风扇 | `FNum`、`F<n>Ac/Mn/Mx/ID`（索引按十六进制字符） | 保持现有行为：`FNum` 必须是 0–9 的整数；RPM 限制 0–30,000；瞬时 0 会二次确认；`F0ID` 只取最长可打印片段。无风扇 `FNum=0` 仍是明确的 fanless。 |
+| 电池温度 | `TB0T/TB1T/TB2T` | 保持 `BatteryHealthParser` 的类型解码与独立电池详情路径；系统聚合只读存在的 Key，不重复查询。 |
+| 电池功率 | `B0AC`×`B0AV` | 保持 Apple Silicon 小端 mA/mV 专用 ABI 与放电符号处理；只在正向充电时显示“充入电池”。 |
+| 系统总功耗 | `PSTR` | 仅用于旧的整机功耗节点；流向图的“系统”仍是 residual，不改为 `PSTR`。 |
+| 充电输入 | `PDTR` | 保持 `PDTR` 作为适配器输入；`PSTR` 不替代预算源。 |
+| USB 输出 | `DnJV`×`DnJI`，无应答时回退 `PowerOutDetails` | 保持逐口读取与回退；0 W 分支在 UI 隐藏，但底层仍区分“可读 0”“无应答”“不可解码”。 |
+| SoC 估算 | `PHPC` | 仍只作诊断，不作为全部 SoC 实测功耗，也不与流向图相加。 |
+
+这些 Key 的读取频率仍由现有 `PowerSamplingService` / `BatteryDetailsController` 的 2 秒需求驱动；本次没有新增常驻定时器。
