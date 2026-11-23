@@ -45,6 +45,7 @@ extension AppEnvironment {
     static func live(
         backgroundUITesting: BackgroundUITestingConfiguration = .disabled
     ) -> AppEnvironment {
+        SystemChargeLimitReader.installDirectDefaults()
         let settings = SettingsStore(
             backgroundUITestingForcesHardwareMonitor:
                 backgroundUITesting.isEnabled && backgroundUITesting.opensHardwareDetailRaw != nil

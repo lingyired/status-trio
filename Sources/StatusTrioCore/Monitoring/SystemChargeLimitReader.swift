@@ -29,9 +29,12 @@ struct SystemChargeLimitReading: Equatable, Sendable {
 
 enum SystemChargeLimitReader {
     /// The plist `powerd` rewrites when the charge limit changes.
-    static let defaultURL = URL(
-        fileURLWithPath: "/Library/Preferences/com.apple.powerd.charging.plist"
-    )
+    /// The plist `powerd` rewrites when the charge limit changes. Injected at
+    /// launch by the Direct composition; Store leaves it nil so reads return nil
+    /// and the control stays hidden. The concrete private path lives in the
+    /// Direct-only `DirectSystemChargeLimitDefaults`, keeping this reader free of
+    /// private path literals so it compiles in the App Store target.
+    nonisolated(unsafe) static var defaultURL: URL?
 
     /// The reason that marks a limit the user picked, rather than one `powerd`
     /// derived on its own. `reason` is only advisory: a limit is honoured
@@ -42,8 +45,9 @@ enum SystemChargeLimitReader {
     ///   tested against recorded archives instead of the live file.
     /// - Returns: The charge limit, or `nil` when there is no limit or the
     ///   plist cannot be read or parsed.
-    static func chargeLimit(from url: URL = defaultURL) -> Int? {
-        guard let data = try? Data(contentsOf: url) else { return nil }
+    static func chargeLimit(from url: URL? = nil) -> Int? {
+        guard let target = url ?? defaultURL else { return nil }
+        guard let data = try? Data(contentsOf: target) else { return nil }
         return chargeLimit(in: data)
     }
 

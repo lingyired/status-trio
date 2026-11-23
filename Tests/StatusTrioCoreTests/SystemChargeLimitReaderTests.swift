@@ -67,6 +67,9 @@ struct SystemChargeLimitReaderTests {
     /// Reads the real file when the machine has one, so a regression in the
     /// live layout is caught here rather than by a user.
     @Test func readsTheLivePlistWithoutCrashing() {
+        SystemChargeLimitReader.defaultURL = URL(
+            fileURLWithPath: "/Library/Preferences/com.apple.powerd.charging.plist"
+        )
         let limit = SystemChargeLimitReader.chargeLimit()
 
         if let limit {
