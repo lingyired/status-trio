@@ -25,3 +25,7 @@ Sources/StatusTrioCore/Audio/DirectVolumeFeedbackDefaults.swift
 Sources/StatusTrioCore/Store/DirectHelperReadiness.swift
 
 Sources/StatusTrioCore/App/UpdateCycleState.swift
+
+Sources/StatusTrioCore/Monitoring/CPUFrequencyReader.swift
+
+Sources/StatusTrioCore/Models/SystemIconAppearanceReader.swift

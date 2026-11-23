@@ -40,15 +40,6 @@ private func IOReportStateGetResidency(_ channel: CFDictionary, _ index: Int32) 
 /// seen between two adjacent IOReport samples, so they are an *estimate* of the
 /// live clock, never the chip's nominal peak. Any unsupported or mismatched
 /// state list yields `nil` for that cluster and the UI shows "—".
-struct CPUFrequencyReading: Equatable, Sendable {
-    var efficiencyGHz: Double?
-    var performanceGHz: Double?
-    var superGHz: Double?
-    var sampledAt: Date
-
-    /// IOReport residency is always an estimate, recorded so the UI can label it.
-    var isEstimated: Bool { true }
-}
 
 /// Owns the IOReport subscription for CPU complex performance states. Lives on
 /// the sampler's utility queue; nothing here blocks (no fixed sleep) — each read

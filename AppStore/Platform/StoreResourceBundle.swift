@@ -7,3 +7,6 @@ extension Bundle {
         Bundle(for: StatusTrioResourceBundleAnchor.self)
     }
 }
+
+/// Bundle anchor for the Store framework's synthesized `Bundle.module`.
+final class StatusTrioResourceBundleAnchor {}
