@@ -26,11 +26,29 @@
 
 > 说明：旧分支的 Store 工程（`AppStore/`）、审计脚本、分发文档均保留在树中。Store 构建在 Phase 0 **预期失败**（依赖被移出的 Provider），其失败点记录于下，作为 Phase 1 修复输入。
 
-### 本轮结果
+### 本轮结果（Phase 0 验收）
 
-- `swift build`（库）通过。
-- `swift build --build-tests`：进行中（记录结果）。
-- 待办：`scripts/test.sh` 全量、`verify-local.sh full`、`verify-local.sh docs`。
+merge commit：`875419ec`（双父：`8fbb673b` 旧分支 + `89aa9d1e` origin/main）。
+
+- ✅ `swift build`（库）通过。
+- ✅ `swift build --build-tests` 通过。
+- ✅ `bash scripts/test.sh`：**1278 tests / 183 suites 全部通过**。
+- ✅ `bash scripts/verify-local.sh docs`：通过（含双分发 workflow 契约 114/114）。
+- ✅ `bash scripts/verify-local.sh full`：**exit 0，head=875419ec**。覆盖全量 Swift 套件、Release 构建、非 Universal app bundle、平台/SDK 契约、App Store 源码闭包 89/89、bundle 契约 80/80、archive dSYM 5/5、双分发 workflow 114/114、语义策略 85/85。
+- ✅ GitHub Direct 编译/测试完整恢复；最新 main 功能保留。
+
+### Store 构建失败点（Phase 0 预期失败，作为 Phase 1 输入）
+
+本机 `xcodegen 2.46.0` 可用（`/opt/homebrew/bin/xcodegen`），但 Store 构建会因旧 Provider 被移出而失败，具体失败点：
+
+1. `AppStore/Platform/StoreAppEnvironment.swift` 引用已移至 `AppStore/reference/` 的类型：
+   - `UnavailableMobileBatteryReader`
+   - `CoreWLANKnownNetworkProvider`
+   - `PublicBluetoothPairedDeviceReader`
+   - `PublicAccessoryBatteryReader`
+2. `AppStore/direct-only-sources.txt` 有 12 条路径在当前 `Sources/` 中已不存在（指向已移动/被 main 重命名的文件）：
+   `Platform/DirectAccessoryPowerNotifyEventMonitor`、`DirectAppEnvironment`、`DirectBluetoothListeningMode{Backend,EndpointProvider,ListenerBackend}`、`DirectDDCFactory`、`DirectInternetSharingDetector`、`DirectPrivilegedPowerClient`、`DirectSettingsStore`、`DirectSubprocessReaders`、`DirectSystemIconAppearanceReader`、`Battery/PowerUIChargeController`。
+3. 需按计划 §3.1 对 `origin/main` 全量新增源码重新审计并重建 `direct-only-sources.txt`（不得沿用旧清单）。
 
 ## 已记录的外部/环境限制（后续 NOT RUN/BLOCKED）
 
