@@ -106,7 +106,8 @@ struct BatteryDetailsReader: Sendable {
             battery: state.isPresent && (state.isConnected || options.showsBreakdown)
                 && (options.showsCharging || options.showsBreakdown),
             breakdown: Self.readsBreakdown(for: state) && options.showsBreakdown,
-            temperature: state.isPresent
+            temperature: state.isPresent,
+            forceBacklightEstimate: options.forceBacklightEstimate
         )
         let now = Date()
         var breakdown: BatteryPowerBreakdown?

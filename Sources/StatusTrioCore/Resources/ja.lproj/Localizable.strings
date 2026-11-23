@@ -1410,3 +1410,5 @@
 "settings.localPlugins.unauthorized" = "ローカル JSON パッケージには許可されたフォルダーが必要です。";
 "settings.localPlugins.loadFailed" = "パッケージフォルダーを読み取れませんでした。";
 "settings.localPlugins.reload" = "再読み込み";
+"settings.battery.forceBacklightEstimate" = "バックライト推定を強制";
+"settings.battery.forceBacklightEstimate.description" = "テスト用：推定が利用できる場合、測定された SMC 値の代わりに AppleARMBacklight の推定を使用します。";

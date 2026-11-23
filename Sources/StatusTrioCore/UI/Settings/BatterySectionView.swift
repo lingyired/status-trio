@@ -240,6 +240,13 @@ struct BatterySectionView: View {
                 title: localization.string(.settingsBatteryPowerFlowDiagram),
                 subtitle: localization.string(.settingsBatteryPowerFlowDiagramDescription),
                 isOn: $store.showsBatteryPowerFlow)
+            if store.showsBatteryPowerFlow {
+                SettingsDivider()
+                SettingsToggleRow(symbol: "testtube.2", tint: .orange,
+                    title: localization.string(.settingsBatteryForceBacklightEstimate),
+                    subtitle: localization.string(.settingsBatteryForceBacklightEstimateDescription),
+                    isOn: $store.forcesBacklightEstimate)
+            }
             SettingsDivider()
             SettingsToggleRow(symbol: "app", tint: .purple,
                 title: localization.string(.batteryHighEnergyApps),

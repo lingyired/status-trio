@@ -347,3 +347,37 @@ extension SystemPowerReaderTests {
             calibrationMicroAmps: 904_383) ?? 0, 1.258, accuracy: 0.01)
     }
 }
+
+extension SystemPowerReaderTests {
+    func testForceBacklightEstimatePrefersEstimateOverMeasuredRail() throws {
+        let estimator = FakeBacklightEstimator()
+        let now = Date()
+        estimator.sample = DisplayPowerSample(watts: 1.26, readAt: now, provenance: .estimated,
+                                              source: "AppleARMBacklight", assumedVoltage: 6)
+        let sample = SystemPowerReader.readDisplaySample(
+            exchange: { _ in
+                XCTFail("A forced estimate must not read the measured rail first")
+                return nil
+            },
+            identity: MachineIdentity(chipName: "Apple M5"),
+            estimator: estimator, at: now, forceEstimate: true)
+        XCTAssertEqual(sample?.provenance, .estimated)
+        XCTAssertEqual(sample?.watts ?? 0, 1.26, accuracy: 0.0001)
+        XCTAssertEqual(estimator.calls, 1)
+    }
+
+    func testForceBacklightEstimateFallsBackToMeasuredRailWhenNoEstimate() throws {
+        let estimator = FakeBacklightEstimator()
+        estimator.sample = nil
+        let sample = SystemPowerReader.readDisplaySample(
+            exchange: { request in
+                XCTAssertEqual(Array(request.prefix(4)), [0x6F, 0x77, 0x42, 0x50])
+                return request[42] == 9 ? self.info() : self.value(self.floatPayload(7.5))
+            },
+            identity: MachineIdentity(chipName: "Apple M5"),
+            estimator: estimator, at: Date(), forceEstimate: true)
+        XCTAssertEqual(sample?.provenance, .measured)
+        XCTAssertEqual(sample?.watts ?? 0, 7.5, accuracy: 0.0001)
+        XCTAssertEqual(estimator.calls, 1)
+    }
+}

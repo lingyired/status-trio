@@ -45,7 +45,7 @@ struct SystemPowerReader: Sendable {
 
     /// One short-lived connection per refresh; fixed read-only keys, no scanning.
     func readSensors(system: Bool, input: Bool, battery: Bool, breakdown: Bool = false,
-                     temperature: Bool = false) -> PowerSensorReadings {
+                     temperature: Bool = false, forceBacklightEstimate: Bool = false) -> PowerSensorReadings {
         var readings = PowerSensorReadings.empty
         guard system || input || battery || breakdown || temperature else { return readings }
         // Share the read-only SMC transport/decoder with the hardware readers.
@@ -73,7 +73,8 @@ struct SystemPowerReader: Sendable {
                 exchange: exchange,
                 identity: MachineIdentity.current(),
                 estimator: backlightEstimator,
-                at: readAt
+                at: readAt,
+                forceEstimate: forceBacklightEstimate
             )
             readings.portRails = Self.readPortOutput(exchange: exchange, readAt: readAt)
         }
@@ -135,7 +136,14 @@ struct SystemPowerReader: Sendable {
     static func readDisplaySample(exchange: ([UInt8]) -> [UInt8]?,
                                   identity: MachineIdentity,
                                   estimator: (any BacklightPowerEstimating)?,
-                                  at date: Date) -> DisplayPowerSample? {
+                                  at date: Date,
+                                  forceEstimate: Bool = false) -> DisplayPowerSample? {
+        // A testing override may ask for the estimate even when a measured
+        // rail is available. If the estimate is unavailable, fall through to
+        // the measured rails so the branch does not disappear.
+        if forceEstimate, let estimate = estimator?.estimate(at: date) {
+            return estimate
+        }
         for sensor in displaySensors(for: identity) {
             let scalar = readScalar(key: sensor.rawValue, exchange: exchange)
             guard scalar.acknowledged, let watts = scalar.value,

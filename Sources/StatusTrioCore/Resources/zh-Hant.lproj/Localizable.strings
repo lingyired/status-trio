@@ -1410,3 +1410,5 @@
 "settings.localPlugins.unauthorized" = "本機 JSON 套件需要已授權的目錄。";
 "settings.localPlugins.loadFailed" = "無法讀取套件目錄。";
 "settings.localPlugins.reload" = "重新載入";
+"settings.battery.forceBacklightEstimate" = "強制使用背光估算";
+"settings.battery.forceBacklightEstimate.description" = "測試用：有可用估算時，用 AppleARMBacklight 估算代替 SMC 實測的顯示器功耗。";

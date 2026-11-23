@@ -1410,3 +1410,5 @@
 "settings.localPlugins.unauthorized" = "Lokale JSON-Pakete benötigen einen autorisierten Ordner.";
 "settings.localPlugins.loadFailed" = "Der Paketordner konnte nicht gelesen werden.";
 "settings.localPlugins.reload" = "Neu laden";
+"settings.battery.forceBacklightEstimate" = "Backlight-Schätzung erzwingen";
+"settings.battery.forceBacklightEstimate.description" = "Test: Displayleistung aus der AppleARMBacklight-Schätzung statt aus der gemessenen SMC-Schiene verwenden, wenn eine Schätzung verfügbar ist.";

@@ -1410,3 +1410,5 @@
 "settings.localPlugins.unauthorized" = "Pacotes JSON locais exigem uma pasta autorizada.";
 "settings.localPlugins.loadFailed" = "Não foi possível ler a pasta do pacote.";
 "settings.localPlugins.reload" = "Recarregar";
+"settings.battery.forceBacklightEstimate" = "Forçar estimativa da retroiluminação";
+"settings.battery.forceBacklightEstimate.description" = "Teste: usar a estimativa do AppleARMBacklight em vez da via SMC medida quando houver uma estimativa disponível.";

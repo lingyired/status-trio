@@ -23,11 +23,15 @@ final class BatteryPowerFlowTests: XCTestCase {
         defer { defaults.removeTestSuite(named: suite) }
         let settings = SettingsStore(defaults: defaults)
         XCTAssertTrue(settings.showsBatteryPowerFlow)
+        XCTAssertFalse(settings.forcesBacklightEstimate)
         XCTAssertFalse(settings.showsHighEnergyApps)
         settings.showsBatteryPowerFlow = false
+        settings.forcesBacklightEstimate = true
         settings.showsHighEnergyApps = true
         let restored = SettingsStore(defaults: defaults)
         XCTAssertFalse(restored.showsBatteryPowerFlow)
+        XCTAssertTrue(restored.forcesBacklightEstimate)
+        XCTAssertTrue(restored.batteryPowerDisplayOptions.forceBacklightEstimate)
         XCTAssertTrue(restored.showsHighEnergyApps)
     }
 

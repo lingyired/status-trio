@@ -142,6 +142,7 @@ enum SettingsPreferenceCatalog {
     private static var batteryPreferences: [Preference] {
         [
             boolean("showsBatteryPowerFlow", \.showsBatteryPowerFlow, default: true),
+            boolean("forcesBacklightEstimate", \.forcesBacklightEstimate, default: false),
             boolean("showsBatteryPowerInfoBar", \.showsBatteryPowerInfoBar, default: false),
             boolean("showsHighEnergyApps", \.showsHighEnergyApps, default: false),
             number("highEnergyAppsRefreshIntervalSeconds", \.highEnergyAppsRefreshIntervalSeconds,
