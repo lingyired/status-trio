@@ -132,104 +132,127 @@ struct AudioInputControlsView: View {
         )
     }
 
+    @ViewBuilder
     private var controls: some View {
-        HStack(alignment: .center, spacing: 10) {
-            Button(action: { actions.toggleInputMute() }) {
-                HStack(alignment: .center, spacing: 6) {
-                    muteIcon
-                        .font(.system(size: 15, weight: .medium))
-                        .foregroundStyle(state.muteTint.color())
-                        .frame(
-                            width: PanelSummaryActionMetrics.leadingGlyphSlot,
-                            height: PanelSummaryActionMetrics.leadingGlyphSlot
-                        )
-                        .accessibilityHidden(true)
+        if hasNoInputDevices {
+            HStack(alignment: .center, spacing: 10) {
+                PanelAudioEmptyDevicesHint(
+                    text: localization.string(.audioInputNoDevices),
+                    systemImage: "mic.slash"
+                )
+                settingsButton
+            }
+            .frame(height: PanelSummaryActionMetrics.actionSlot)
+        } else {
+            HStack(alignment: .center, spacing: 10) {
+                Button(action: { actions.toggleInputMute() }) {
+                    HStack(alignment: .center, spacing: 6) {
+                        muteIcon
+                            .font(.system(size: 15, weight: .medium))
+                            .foregroundStyle(state.muteTint.color())
+                            .frame(
+                                width: PanelSummaryActionMetrics.leadingGlyphSlot,
+                                height: PanelSummaryActionMetrics.leadingGlyphSlot
+                            )
+                            .accessibilityHidden(true)
 
-                    if state.muteState == .partial {
-                        Text(localization.string(.audioInputPartial))
-                            .font(.caption)
+                        if state.muteState == .partial {
+                            Text(localization.string(.audioInputPartial))
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .disabled(!state.canMute)
+                .help(state.muteHelp)
+                .accessibilityLabel(state.muteHelp)
+                .accessibilityValue(
+                    state.muteState == .partial ? localization.string(.audioInputPartial) : ""
+                )
+                .accessibilityHint(
+                    state.canMute ? "" : localization.string(.audioInputMuteUnavailable)
+                )
+
+                ZStack {
+                    PanelLevelSlider(
+                        value: sliderValue,
+                        isEnabled: state.canAdjust,
+                        tint: state.muteState == .muted ? Color.secondary : fillColor,
+                        accessibilityLabel: state.sliderLabel,
+                        accessibilityValue: sliderAccessibilityValue,
+                        accessibilityHint: state.canAdjust
+                            ? ""
+                            : localization.string(.audioInputVolumeUnavailable),
+                        onEditingChanged: { editing in
+                            volumeDraft.setEditing(editing)
+                        },
+                        height: matchesBrightnessThickness
+                            ? PanelLevelSliderMetrics.controlHeight
+                            : PanelLevelSliderMetrics.compactSlotHeight,
+                        barHeight: matchesBrightnessThickness
+                            ? PanelLevelSliderMetrics.barHeight
+                            : PanelLevelSliderMetrics.compactBarHeight
+                    )
+                    .help(state.canAdjust
+                        ? localization.string(.audioInputVolume)
+                        : localization.string(.audioInputVolumeUnavailable))
+
+                    if state.scalar == nil {
+                        Text("—")
+                            .font(.caption.monospacedDigit())
                             .foregroundStyle(.secondary)
+                            .padding(.horizontal, 4)
+                            .background(.background, in: Capsule())
+                            .accessibilityHidden(true)
                     }
                 }
-                .contentShape(Rectangle())
-            }
-            .buttonStyle(.plain)
-            .disabled(!state.canMute)
-            .help(state.muteHelp)
-            .accessibilityLabel(state.muteHelp)
-            .accessibilityValue(
-                state.muteState == .partial ? localization.string(.audioInputPartial) : ""
-            )
-            .accessibilityHint(
-                state.canMute ? "" : localization.string(.audioInputMuteUnavailable)
-            )
-
-            ZStack {
-                PanelLevelSlider(
-                    value: sliderValue,
-                    isEnabled: state.canAdjust,
-                    tint: state.muteState == .muted ? Color.secondary : fillColor,
-                    accessibilityLabel: state.sliderLabel,
-                    accessibilityValue: sliderAccessibilityValue,
-                    accessibilityHint: state.canAdjust
-                        ? ""
-                        : localization.string(.audioInputVolumeUnavailable),
-                    onEditingChanged: { editing in
-                        volumeDraft.setEditing(editing)
-                    },
-                    height: matchesBrightnessThickness
-                        ? PanelLevelSliderMetrics.controlHeight
-                        : PanelLevelSliderMetrics.compactSlotHeight,
-                    barHeight: matchesBrightnessThickness
-                        ? PanelLevelSliderMetrics.barHeight
-                        : PanelLevelSliderMetrics.compactBarHeight
+                .frame(maxWidth: .infinity)
+                .background(
+                    LevelSliderScrollTarget(
+                        targets: scrollTargets,
+                        target: .audioInput
+                    )
                 )
-                .help(state.canAdjust
-                    ? localization.string(.audioInputVolume)
-                    : localization.string(.audioInputVolumeUnavailable))
 
-                if state.scalar == nil {
-                    Text("—")
-                        .font(.caption.monospacedDigit())
-                        .foregroundStyle(.secondary)
-                        .padding(.horizontal, 4)
-                        .background(.background)
-                        .accessibilityHidden(true)
-                }
-            }
-            .frame(maxWidth: .infinity)
-            .background(
-                LevelSliderScrollTarget(
-                    targets: scrollTargets,
-                    target: .audioInput
-                )
-            )
-
-            Text(sliderAccessibilityValue)
-                .font(.caption.monospacedDigit())
-                .foregroundStyle(.secondary)
-                .frame(minWidth: 34, alignment: .trailing)
-                .accessibilityHidden(true)
-
-            Button(action: onOpenSoundSettings) {
-                PanelActionGlyph(systemName: "gearshape", size: PanelSummaryActionMetrics.actionSlot)
+                Text(sliderAccessibilityValue)
+                    .font(.caption.monospacedDigit())
                     .foregroundStyle(.secondary)
-                    .contentShape(Rectangle())
-                    .opacity(state.isBusy ? 0 : 1)
+                    .frame(minWidth: 34, alignment: .trailing)
+                    .accessibilityHidden(true)
+
+                settingsButton
             }
-            .buttonStyle(.plain)
-            .overlay {
-                if state.isBusy {
-                    ProgressView()
-                        .controlSize(.small)
-                        .allowsHitTesting(false)
-                        .accessibilityHidden(true)
-                }
-            }
-            .help(localization.string(.audioInputOpenSettings))
-            .accessibilityLabel(localization.string(.audioInputOpenSettings))
-            .accessibilityValue(state.isBusy ? localization.string(.audioInputRefreshing) : "")
         }
+    }
+
+    /// No input device means the slider has nothing to control. Show the
+    /// device-list empty copy in its place instead of a dead slider or the
+    /// rectangular "—" placeholder that produced the square artifact (#378).
+    private var hasNoInputDevices: Bool {
+        state.rows.isEmpty
+    }
+
+    private var settingsButton: some View {
+        Button(action: onOpenSoundSettings) {
+            PanelActionGlyph(systemName: "gearshape", size: PanelSummaryActionMetrics.actionSlot)
+                .foregroundStyle(.secondary)
+                .contentShape(Rectangle())
+                .opacity(state.isBusy ? 0 : 1)
+        }
+        .buttonStyle(.plain)
+        .overlay {
+            if state.isBusy {
+                ProgressView()
+                    .controlSize(.small)
+                    .allowsHitTesting(false)
+                    .accessibilityHidden(true)
+            }
+        }
+        .help(localization.string(.audioInputOpenSettings))
+        .accessibilityLabel(localization.string(.audioInputOpenSettings))
+        .accessibilityValue(state.isBusy ? localization.string(.audioInputRefreshing) : "")
     }
 
     @ViewBuilder
@@ -299,13 +322,9 @@ struct AudioInputControlsView: View {
                     )
                 }
             }
-        } else {
-            Label(localization.string(.audioInputNoDevices), systemImage: "mic.slash")
-                .font(.body)
-                .foregroundStyle(.secondary)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.vertical, 4)
         }
+        // No devices: `controls` already shows the empty-device hint in the
+        // slider's place, so the list must not repeat the same sentence (#378).
     }
 
     private var sliderValue: Binding<Double> {
