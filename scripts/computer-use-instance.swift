@@ -20,11 +20,16 @@ func command(_ executable: String, _ arguments: [String]) -> String {
 }
 
 let arguments = Array(CommandLine.arguments.dropFirst())
+let validHardwareDetails: Set<String> = ["cpu", "gpu", "memory", "network", "disk", "fan"]
 guard (arguments.count == 3 && arguments[0] == "prepare")
-        || (arguments.count == 4 && ["launch", "reuse"].contains(arguments[0])
-            && ["automatic", "secondary"].contains(arguments[3])),
+        || ((["launch", "reuse"].contains(arguments[0]))
+            && (arguments.count == 4 || arguments.count == 5 || arguments.count == 6)
+            && ["automatic", "secondary"].contains(arguments[3])
+            && (arguments.count == 4 || ["settings", "panel"].contains(arguments[4]))
+            && (arguments.count < 6
+                || (arguments[4] == "panel" && validHardwareDetails.contains(arguments[5])))),
       arguments[1].hasPrefix("com.lingsmbp.StatusTrio.dev.") else {
-    fail("Usage: computer-use-instance.swift <prepare|launch|reuse> <dev-bundle-id> <app-path> [automatic|secondary]")
+    fail("Usage: computer-use-instance.swift <prepare|launch|reuse> <dev-bundle-id> <app-path> [automatic|secondary] [settings|panel] [cpu|gpu|memory|network|disk|fan]")
 }
 let mode = arguments[0]
 let bundleID = arguments[1]
@@ -47,12 +52,23 @@ func launchArguments(_ app: NSRunningApplication) -> [Substring] {
         .split(whereSeparator: \.isWhitespace)
 }
 
+func requestedPanelMode() -> String {
+    arguments.count >= 5 ? arguments[4] : "settings"
+}
+
+func requestedHardwareDetail() -> String? {
+    arguments.count == 6 ? arguments[5] : nil
+}
+
 func report(_ app: NSRunningApplication, launchToken: String, display: String, reused: Bool) {
+    let panelMode = requestedPanelMode()
     let plist = NSDictionary(contentsOf: appURL.appendingPathComponent("Contents/Info.plist")) ?? [:]
     let report: [String: Any] = [
         "bundleID": bundleID, "path": appURL.path, "pid": app.processIdentifier,
         "sha": plist["STBuildCommit"] ?? "", "sourceDirty": plist["STBuildSourceDirty"] ?? false,
         "backgroundUITesting": true, "requestedDisplay": display,
+        "requestedStatusPanel": panelMode == "panel",
+        "requestedHardwareDetail": requestedHardwareDetail() ?? NSNull(),
         "launchToken": launchToken, "reused": reused,
         "mainDisplayID": CGMainDisplayID(),
         "connectedDisplayIDs": NSScreen.screens.map {
@@ -92,12 +108,27 @@ if mode == "prepare" {
     guard arguments[3] != "secondary" || display == "secondary" else {
         fail("Existing instance did not request the secondary display; reuse will not move its windows.")
     }
+    let hasStatusPanel = actualArguments.contains("--test-open-status-panel")
+    guard (requestedPanelMode() == "panel") == hasStatusPanel else {
+        fail("Existing instance status-panel mode does not match the requested reuse mode.")
+    }
+    let detailPrefix = "--test-open-hardware-detail="
+    let actualDetails = actualArguments.filter { $0.hasPrefix(detailPrefix) }
+    let requestedDetail = requestedHardwareDetail()
+    guard (requestedDetail == nil && actualDetails.isEmpty)
+        || (requestedDetail != nil && actualDetails == [Substring(detailPrefix + requestedDetail!)]) else {
+        fail("Existing instance hardware detail does not match the requested reuse mode.")
+    }
     report(app, launchToken: String(token), display: display, reused: true)
 } else {
     // Recheck after the build: another launch may have occurred in the meantime.
     guard instances().isEmpty else { fail("An instance appeared during build; no reopen or duplicate launch sent.") }
     var flags = ["--background-ui-testing"]
     if arguments[3] == "secondary" { flags.append("--test-display=secondary") }
+    if requestedPanelMode() == "panel" { flags.append("--test-open-status-panel") }
+    if let detail = requestedHardwareDetail() {
+        flags.append("--test-open-hardware-detail=\(detail)")
+    }
     // A process racing a manual launch must not be reported as this launch.
     let launchToken = "--status-trio-ui-test-launch=\(UUID().uuidString)"
     flags.append(launchToken)

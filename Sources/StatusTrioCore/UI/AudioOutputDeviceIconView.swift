@@ -5,7 +5,7 @@ struct AudioOutputDeviceIconView: View {
     var glyphSize: CGFloat = 13
 
     var body: some View {
-        PanelSymbolView(source: source, size: glyphSize, weight: .semibold)
+        PanelSymbolView(source: source, size: glyphSize, weight: .regular)
             .frame(width: glyphSize, height: glyphSize)
     }
 }

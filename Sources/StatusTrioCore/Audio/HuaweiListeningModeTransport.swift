@@ -97,6 +97,7 @@ final class HuaweiRFCOMMTransport: HuaweiListeningModeTransporting, @unchecked S
         var sdpServiceWaitTimeout: TimeInterval = 1
         var channelOpenTimeout: TimeInterval = 2
         var didStartTransportThread: (@Sendable () -> Void)?
+        var didStopTransportThread: (@Sendable () -> Void)?
         var didAcquireRunLoop: (@Sendable () -> Void)?
         var didEnqueue: (@Sendable (OperationRequest) -> Void)?
         var pairedDevices: @Sendable () -> [any HuaweiBluetoothDevice]
@@ -111,6 +112,7 @@ final class HuaweiRFCOMMTransport: HuaweiListeningModeTransporting, @unchecked S
             sdpServiceWaitTimeout: TimeInterval = 1,
             channelOpenTimeout: TimeInterval = 2,
             didStartTransportThread: (@Sendable () -> Void)? = nil,
+            didStopTransportThread: (@Sendable () -> Void)? = nil,
             didAcquireRunLoop: (@Sendable () -> Void)? = nil,
             didEnqueue: (@Sendable (OperationRequest) -> Void)? = nil,
             pairedDevices: @escaping @Sendable () -> [any HuaweiBluetoothDevice] = {
@@ -127,6 +129,7 @@ final class HuaweiRFCOMMTransport: HuaweiListeningModeTransporting, @unchecked S
             self.sdpServiceWaitTimeout = sdpServiceWaitTimeout
             self.channelOpenTimeout = channelOpenTimeout
             self.didStartTransportThread = didStartTransportThread
+            self.didStopTransportThread = didStopTransportThread
             self.didAcquireRunLoop = didAcquireRunLoop
             self.didEnqueue = didEnqueue
             self.pairedDevices = pairedDevices
@@ -355,6 +358,21 @@ final class HuaweiRFCOMMTransport: HuaweiListeningModeTransporting, @unchecked S
             }
             continuation?.resume(throwing: error)
         }
+
+        /// Fails the operation without it ever running, e.g. when the transport
+        /// thread could not be started. `resume(throwing:)` only completes a
+        /// `.running` operation, so a still-`queued` caller would otherwise never
+        /// be resumed and would await forever.
+        func fail(_ error: any Error) {
+            let continuation: CheckedContinuation<HuaweiNoiseState, any Error>? = lock.withLock {
+                guard phase != .completed else { return nil }
+                phase = .completed
+                let continuation = self.continuation
+                self.continuation = nil
+                return continuation
+            }
+            continuation?.resume(throwing: error)
+        }
     }
 
     private struct PendingOperation: Sendable {
@@ -372,6 +390,10 @@ final class HuaweiRFCOMMTransport: HuaweiListeningModeTransporting, @unchecked S
     /// happens on the transport thread" invariant this class documents, and the
     /// losing thread would run forever.
     private let startupLock = NSLock()
+    /// Upper bound on first-use thread startup. The thread publishes its run
+    /// loop before it does anything else, so a timeout means the runtime could
+    /// not schedule it.
+    private static let startupTimeout: DispatchTimeInterval = .seconds(5)
     private var transportThread: Thread?
     private var transportRunLoop: CFRunLoop?
     private var pending: [PendingOperation] = []
@@ -387,8 +409,51 @@ final class HuaweiRFCOMMTransport: HuaweiListeningModeTransporting, @unchecked S
     private var deferredCloseGeneration: UInt64?
     private let hooks: Hooks
 
+    /// Tells the transport thread to leave after `CFRunLoopStop`.
+    ///
+    /// The thread reads this after the run loop returns. Keeping the flag in
+    /// its own object, rather than on the transport, lets the thread exit
+    /// without touching the transport again once `deinit` has begun.
+    private final class StopSignal: @unchecked Sendable {
+        private let lock = NSLock()
+        private var stopped = false
+
+        var isStopped: Bool { lock.withLock { stopped } }
+
+        func requestStop() {
+            lock.withLock { stopped = true }
+        }
+    }
+
+    private var transportStopSignal: StopSignal?
+
     init(hooks: Hooks = Hooks()) {
         self.hooks = hooks
+    }
+
+    deinit {
+        // `deinit` can land on any thread. The stop flag is set first, then the
+        // same stop is queued on the run loop: `CFRunLoopStop` does nothing when
+        // the thread has not entered its run loop yet, while a queued block is
+        // run either by the wake-up or by the first `run` after it starts.
+        // Queued continuations are resumed so no caller waits for a drain that
+        // can no longer run.
+        let (runLoop, stopSignal, cancellations) = lock.withLock {
+            let stopSignal = transportStopSignal
+            stopSignal?.requestStop()
+            let cancellations = Array(activeOperationCancellations.values)
+            activeOperationCancellations.removeAll()
+            return (transportRunLoop, stopSignal, cancellations)
+        }
+        for cancel in cancellations {
+            cancel()
+        }
+        guard let runLoop else { return }
+        CFRunLoopPerformBlock(runLoop, "kCFRunLoopCommonModes" as CFString) {
+            stopSignal?.requestStop()
+            CFRunLoopStop(CFRunLoopGetCurrent())
+        }
+        CFRunLoopWakeUp(runLoop)
     }
 
     /// How many transport threads this instance has started.
@@ -473,7 +538,14 @@ final class HuaweiRFCOMMTransport: HuaweiListeningModeTransporting, @unchecked S
             return
         }
 
-        let runLoop = ensureRunLoop()
+        let runLoop: CFRunLoop
+        do {
+            runLoop = try ensureRunLoop()
+        } catch {
+            removeActiveOperation(id)
+            operation.fail(error)
+            return
+        }
         hooks.didAcquireRunLoop?()
         let pendingOperation = PendingOperation { [weak self, weak operation] in
             guard let self else { return }
@@ -580,7 +652,12 @@ final class HuaweiRFCOMMTransport: HuaweiListeningModeTransporting, @unchecked S
     /// by the new thread, so without it two concurrent callers would each start
     /// a thread and the transport would own two. `closeAll()` never takes this
     /// lock, so invalidation remains nonblocking while startup is paused.
-    private func ensureRunLoop() -> CFRunLoop {
+    ///
+    /// The wait is bounded. A thread that cannot publish its run loop means the
+    /// process could not schedule it; failing the operation is better than
+    /// blocking a cooperative thread forever or moving the RFCOMM pump onto the
+    /// main run loop, where it would stall the UI.
+    private func ensureRunLoop() throws -> CFRunLoop {
         startupLock.lock()
         defer { startupLock.unlock() }
 
@@ -592,51 +669,134 @@ final class HuaweiRFCOMMTransport: HuaweiListeningModeTransporting, @unchecked S
         lock.unlock()
 
         let ready = DispatchSemaphore(value: 0)
+        let stopSignal = StopSignal()
         let thread = Thread { [weak self] in
-            guard let self else { return }
-            let runLoop = CFRunLoopGetCurrent()
-            let keepAlivePort = Port()
-            RunLoop.current.add(keepAlivePort, forMode: .default)
-            self.lock.withLock {
-                self.keepAlivePort = keepAlivePort
-            }
-            self.hooks.didStartTransportThread?()
-            var shouldScheduleDrain = false
-            self.lock.withLock {
-                self.transportRunLoop = runLoop
-                if let closeGeneration = self.deferredCloseGeneration {
-                    self.deferredCloseGeneration = nil
-                    self.pending.append(PendingOperation {
-                        self.closeAllOnTransportThread(through: closeGeneration)
-                    })
+            // The strong reference exists only while the thread sets itself up.
+            // Parking the run loop with `self` bound would keep the transport
+            // alive for the life of the thread and make `deinit` unreachable —
+            // the thread would never learn that its owner is gone.
+            let setup: (runLoop: CFRunLoop, port: Port, hooks: Hooks)? = {
+                guard let self else {
+                    ready.signal()
+                    return nil
                 }
-                if !self.pending.isEmpty, !self.isDrainScheduled {
-                    self.isDrainScheduled = true
-                    shouldScheduleDrain = true
+                let hooks = self.hooks
+                let runLoop: CFRunLoop = CFRunLoopGetCurrent()
+                let keepAlivePort = Port()
+                RunLoop.current.add(keepAlivePort, forMode: .default)
+                // A caller that timed out stopped this startup. Publishing the
+                // run loop now would let a later attempt adopt a thread that is
+                // about to leave.
+                if stopSignal.isStopped {
+                    RunLoop.current.remove(keepAlivePort, forMode: .default)
+                    ready.signal()
+                    hooks.didStopTransportThread?()
+                    return nil
                 }
+                self.lock.withLock {
+                    self.keepAlivePort = keepAlivePort
+                }
+                hooks.didStartTransportThread?()
+                var shouldScheduleDrain = false
+                var aborted = false
+                self.lock.withLock {
+                    // Re-check the stop flag under the same lock that publishes
+                    // `transportRunLoop`. A caller that timed out sets the flag
+                    // before a retry can begin, so either this publish wins and
+                    // the timeout path clears it, or this branch sees the stop
+                    // and never publishes a run loop whose thread is leaving for
+                    // a retry to adopt.
+                    if stopSignal.isStopped {
+                        aborted = true
+                    } else {
+                        self.transportRunLoop = runLoop
+                        if let closeGeneration = self.deferredCloseGeneration {
+                            self.deferredCloseGeneration = nil
+                            self.pending.append(PendingOperation {
+                                self.closeAllOnTransportThread(through: closeGeneration)
+                            })
+                        }
+                        if !self.pending.isEmpty, !self.isDrainScheduled {
+                            self.isDrainScheduled = true
+                            shouldScheduleDrain = true
+                        }
+                    }
+                }
+                if aborted {
+                    RunLoop.current.remove(keepAlivePort, forMode: .default)
+                    self.lock.withLock {
+                        if self.keepAlivePort === keepAlivePort {
+                            self.keepAlivePort = nil
+                        }
+                    }
+                    ready.signal()
+                    hooks.didStopTransportThread?()
+                    return nil
+                }
+                ready.signal()
+                if shouldScheduleDrain {
+                    self.scheduleDrain(on: runLoop)
+                }
+                return (runLoop, keepAlivePort, hooks)
+            }()
+            guard let setup else {
+                return
             }
-            ready.signal()
-            if shouldScheduleDrain {
-                self.scheduleDrain(on: CFRunLoopGetCurrent())
-            }
-            while true {
+            while !stopSignal.isStopped {
                 RunLoop.current.run(mode: .default, before: .distantFuture)
             }
+            RunLoop.current.remove(setup.port, forMode: .default)
+            setup.hooks.didStopTransportThread?()
         }
         thread.name = "StatusTrio.HuaweiRFCOMM"
         thread.qualityOfService = .userInitiated
 
         lock.lock()
         transportThread = thread
+        transportStopSignal = stopSignal
         startedThreadCount += 1
         lock.unlock()
 
         thread.start()
-        ready.wait()
+        guard ready.wait(timeout: .now() + Self.startupTimeout) == .success else {
+            abandonTimedOutStartup(stopSignal)
+            throw HuaweiListeningModeError.transportUnavailable
+        }
         lock.lock()
-        let runLoop = transportRunLoop ?? CFRunLoopGetMain()!
+        let runLoop = transportRunLoop
         lock.unlock()
+        guard let runLoop else {
+            throw HuaweiListeningModeError.transportUnavailable
+        }
         return runLoop
+    }
+
+    /// Releases the state a startup that exceeded `startupTimeout` may hold, so a
+    /// retry cannot adopt the run loop of a thread that is leaving.
+    ///
+    /// The caller still holds `startupLock`, and the thread re-checks the stop
+    /// flag under the publish lock, so between the two no stale run loop can
+    /// survive: either the thread has not published yet and will observe the stop,
+    /// or it published first and is cleared here. A thread that already parked in
+    /// its run loop is woken the same way `deinit` stops it, so it cannot stay
+    /// parked without an owner.
+    private func abandonTimedOutStartup(_ stopSignal: StopSignal) {
+        stopSignal.requestStop()
+        let runLoop: CFRunLoop? = lock.withLock {
+            guard transportStopSignal === stopSignal else { return nil }
+            let runLoop = transportRunLoop
+            transportRunLoop = nil
+            keepAlivePort = nil
+            transportStopSignal = nil
+            transportThread = nil
+            return runLoop
+        }
+        guard let runLoop else { return }
+        CFRunLoopPerformBlock(runLoop, "kCFRunLoopCommonModes" as CFString) {
+            stopSignal.requestStop()
+            CFRunLoopStop(CFRunLoopGetCurrent())
+        }
+        CFRunLoopWakeUp(runLoop)
     }
 
     // MARK: - Transport-thread operations

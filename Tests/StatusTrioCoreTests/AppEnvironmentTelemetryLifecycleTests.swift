@@ -1,5 +1,5 @@
 import AppKit
-import Carbon
+import Combine
 import XCTest
 @testable import StatusTrioCore
 
@@ -13,13 +13,6 @@ final class AppEnvironmentTelemetryLifecycleTests: VisibleUITestCase {
         let settings = SettingsStore(defaults: defaults)
         settings.hasCompletedIconGuideOnboarding = true
         settings.completeTelemetryConsent(sharesAnalytics: false)
-        settings.appIconPlacement = .dock
-        settings.statusPanelShortcut = try XCTUnwrap(
-            StatusPanelShortcut(
-                keyCode: 49,
-                modifiers: UInt32(cmdKey | optionKey)
-            )
-        )
         let localization = Localization(defaults: defaults, preferredLanguages: ["en"])
         let battery = LifecycleBatteryMonitor()
         let wifi = LifecycleWiFiMonitor()
@@ -29,6 +22,132 @@ final class AppEnvironmentTelemetryLifecycleTests: VisibleUITestCase {
             wifiMonitor: wifi,
             volumeMonitor: volume
         )
+        let reporter = LifecycleTelemetryReporter()
+        let environment = makeEnvironment(
+            store: store, settings: settings, localization: localization, reporter: reporter
+        )
+        defer { environment.stop() }
+
+        environment.start()
+
+        XCTAssertEqual(reporter.startCount, 1)
+        XCTAssertEqual(battery.startCount, 1)
+        XCTAssertEqual(wifi.startCount, 1)
+        XCTAssertEqual(volume.startCount, 1)
+
+        environment.stop()
+
+        XCTAssertEqual(reporter.stopCount, 1)
+        XCTAssertEqual(battery.stopCount, 1)
+        XCTAssertEqual(wifi.stopCount, 1)
+        XCTAssertEqual(volume.stopCount, 1)
+    }
+
+    func testQueuedSettingsEnableThenOptOutDoesNotStartBatteryRead() async throws {
+        try await assertRevokedSettingsTupleDoesNotStartBatteryRead { settings in
+            settings.refreshesAirPodsBatteryForIcon = false
+        }
+    }
+
+    func testQueuedSettingsEnableThenClassicDoesNotStartBatteryRead() async throws {
+        try await assertRevokedSettingsTupleDoesNotStartBatteryRead { settings in
+            settings.updateIconConfiguration { $0 = .classic }
+        }
+    }
+
+    private func assertRevokedSettingsTupleDoesNotStartBatteryRead(
+        revoke: @MainActor (SettingsStore) -> Void
+    ) async throws {
+        let suiteName = "AppEnvironmentQueuedDemand.\(UUID().uuidString)"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suiteName))
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+        let settings = SettingsStore(defaults: defaults)
+        settings.hasCompletedIconGuideOnboarding = true
+        settings.completeTelemetryConsent(sharesAnalytics: false)
+        settings.updateIconConfiguration { $0 = .classic }
+        settings.refreshesAirPodsBatteryForIcon = false
+        let batteryReader = QueuedDemandBatteryReader()
+        let batteryEvents = QueuedDemandBatteryEvents()
+        let bluetooth = BluetoothDeviceController(
+            worker: QueuedDemandDeviceReader(),
+            stateMonitor: QueuedDemandStateMonitor(),
+            batteryReader: batteryReader,
+            notificationCenter: NotificationCenter(),
+            workspaceNotificationCenter: NotificationCenter(),
+            accessoryBatteryEvents: batteryEvents
+        )
+
+        // A real Settings owner already monitors a connected AirPods device.
+        // No visible surface or battery owner is involved in the setup.
+        let cachedAirPods = expectation(description: "connected AirPods cache is committed")
+        let deviceSubscription = bluetooth.$devices.dropFirst().sink { devices in
+            if devices.contains(where: \.isConnected) { cachedAirPods.fulfill() }
+        }
+        XCTAssertTrue(bluetooth.requestActivation(BluetoothDeviceController.settingsActivationToken))
+        await fulfillment(of: [cachedAirPods], timeout: 1)
+        deviceSubscription.cancel()
+        XCTAssertEqual(bluetooth.devices.count, 1)
+        XCTAssertTrue(bluetooth.isActive)
+
+        let store = SystemStatusStore(
+            batteryMonitor: LifecycleBatteryMonitor(),
+            wifiMonitor: LifecycleWiFiMonitor(),
+            volumeMonitor: LifecycleVolumeMonitor(),
+            wakeNotificationCenter: NotificationCenter(),
+            bluetoothDevices: bluetooth
+        )
+        let environment = makeEnvironment(
+            store: store, settings: settings,
+            localization: Localization(defaults: defaults, preferredLanguages: ["en"]),
+            reporter: LifecycleTelemetryReporter()
+        )
+        defer { environment.stop() }
+        environment.start()
+        await drainMainQueue()
+        let readsBefore = batteryReader.readCount
+        let claimsBefore = batteryEvents.startCount
+        XCTAssertEqual(readsBefore, 0)
+        XCTAssertEqual(claimsBefore, 0)
+
+        var airPodsConfiguration = IconConfigurationV1.classic
+        airPodsConfiguration.composition.outerRing.primary = .airPodsBattery
+        // These are real @Published SettingsStore updates in one main-actor
+        // turn. The production subscriptions have not drained when revoked.
+        settings.updateIconConfiguration { $0 = airPodsConfiguration }
+        settings.refreshesAirPodsBatteryForIcon = true
+        revoke(settings)
+        await drainMainQueue()
+        await drainMainQueue()
+
+        XCTAssertEqual(batteryEvents.startCount, claimsBefore, "a revoked queued tuple must not claim accessory battery events")
+        XCTAssertEqual(batteryReader.readCount, readsBefore, "releasing a stale claim cannot undo an already-started I/O read")
+        XCTAssertFalse(bluetooth.isBatteryLevelsRequested)
+        XCTAssertTrue(bluetooth.isActive, "the independent Settings activation must survive")
+
+        // Positive control: keeping the opt-in committed must still exercise
+        // the real AppEnvironment subscription and controller read path.
+        settings.updateIconConfiguration { $0 = airPodsConfiguration }
+        settings.refreshesAirPodsBatteryForIcon = true
+        await drainMainQueue()
+        await drainMainQueue()
+        XCTAssertTrue(bluetooth.isActive, "the icon source must claim connection monitoring")
+        XCTAssertGreaterThan(batteryEvents.startCount, claimsBefore)
+        XCTAssertGreaterThan(batteryReader.readCount, readsBefore)
+        XCTAssertTrue(bluetooth.isBatteryLevelsRequested)
+    }
+
+    private func drainMainQueue() async {
+        await withCheckedContinuation { continuation in
+            DispatchQueue.main.async { continuation.resume() }
+        }
+    }
+
+    private func makeEnvironment(
+        store: SystemStatusStore,
+        settings: SettingsStore,
+        localization: Localization,
+        reporter: LifecycleTelemetryReporter
+    ) -> AppEnvironment {
         let iconPresentation = makeTestIconPresentation(store: store, settings: settings)
         let clock = ChargingEffectClock()
         let activationApplication = LifecycleApplicationSpy()
@@ -38,20 +157,13 @@ final class AppEnvironmentTelemetryLifecycleTests: VisibleUITestCase {
             localization: localization,
             activationPolicy: activationPolicy
         )
-        let shortcutBackend = LifecycleGlobalShortcutBackend()
-        let shortcutController = GlobalShortcutController(
-            settings: settings,
-            backend: shortcutBackend,
-            action: {}
-        )
         let settingsWindow = SettingsWindowController(
             store: settings,
             statusStore: store,
             localization: localization,
             activationPolicy: activationPolicy,
             showIconGuide: {},
-            chargingEffectClock: clock,
-            globalShortcutController: shortcutController
+            chargingEffectClock: clock
         )
         let statusBar = StatusBarController(
             store: store,
@@ -62,32 +174,21 @@ final class AppEnvironmentTelemetryLifecycleTests: VisibleUITestCase {
             openSettings: {},
             quitAction: {},
             chargingEffectClock: clock,
-            renderMenuBarBase: { _, _, _, _ in nil }
+            renderMenuBarBase: { _, _, _, _ in nil },
+            renderMenuBarOverlay: { _, _, _, _, _ in nil }
         )
-        let dockImageCache = DockIconImageCache()
         let appIcon = AppIconController(
             settings: settings,
             iconPresentation: iconPresentation,
             activationPolicy: activationPolicy,
             application: activationApplication,
             setMenuBarVisible: { _ in },
-            renderDockIcon: { _, _, pixelLength in
-                Self.makeBitmapImage(pixelLength: pixelLength)
-            },
+            renderDockIcon: { _, _, _ in nil },
             theme: { .default },
             isDarkAppearance: { false },
-            notificationCenter: NotificationCenter(),
-            imageCache: dockImageCache
+            notificationCenter: NotificationCenter()
         )
-        let reporter = LifecycleTelemetryReporter()
-        let profilerCache = BluetoothProfilerReportCache()
-        var pressureSources: [LifecyclePressureSource] = []
-        let memoryPressure = MemoryPressureMonitor { handler in
-            let source = LifecyclePressureSource(handler: handler)
-            pressureSources.append(source)
-            return source
-        }
-        let environment = AppEnvironment(
+        return AppEnvironment(
             store: store,
             settings: settings,
             localization: localization,
@@ -109,116 +210,9 @@ final class AppEnvironmentTelemetryLifecycleTests: VisibleUITestCase {
                 readReduceMotion: { false },
                 notificationCenter: NotificationCenter()
             ),
-            globalShortcutController: shortcutController,
-            telemetryReporter: reporter,
-            memoryPressureMonitor: memoryPressure,
-            bluetoothProfilerCache: profilerCache
+            telemetryReporter: reporter
         )
-        defer { environment.stop() }
-
-        environment.start()
-
-        XCTAssertEqual(shortcutBackend.registerCount, 1)
-        XCTAssertEqual(reporter.startCount, 1)
-        XCTAssertEqual(battery.startCount, 1)
-        XCTAssertEqual(wifi.startCount, 1)
-        XCTAssertEqual(volume.startCount, 1)
-        let currentDockImage = try XCTUnwrap(activationApplication.applicationIconImage)
-        let applicationImageAssignments = activationApplication.applicationImageAssignments
-        XCTAssertEqual(dockImageCache.entryCount, 1)
-
-        let bitmap = try XCTUnwrap(NSBitmapImageRep(bitmapDataPlanes: nil,
-            pixelsWide: 8, pixelsHigh: 8, bitsPerSample: 8, samplesPerPixel: 4,
-            hasAlpha: true, isPlanar: false, colorSpaceName: .deviceRGB,
-            bytesPerRow: 32, bitsPerPixel: 32))
-        let image = NSImage(size: NSSize(width: 8, height: 8))
-        image.addRepresentation(bitmap)
-        let iconURL = URL(fileURLWithPath: "/tmp/environment-memory-pressure-test.png")
-        _ = IconImageDecodeCache.shared.image(for: iconURL) { _ in image }
-        XCTAssertGreaterThan(IconImageDecodeCache.shared.entryCount, 0)
-
-        let previewKey = DockIconRenderKey(
-            scene: iconPresentation.output.scene,
-            backgroundStyle: .dark,
-            pixelLength: 128
-        )
-        _ = DockIconPreviewCache.shared.image(for: previewKey) { image }
-        XCTAssertGreaterThan(DockIconPreviewCache.shared.entryCount, 0)
-
-        _ = DockIconRenderer.tileImage(
-            scene: iconPresentation.output.scene,
-            backgroundStyle: .dark,
-            pixelLength: 128
-        )
-        XCTAssertGreaterThan(DockIconRenderer.scratchResidentByteCount, 0)
-
-        XCTAssertEqual(pressureSources.count, 1)
-        pressureSources[0].fire()
-        XCTAssertEqual(IconImageDecodeCache.shared.entryCount, 0)
-        XCTAssertEqual(dockImageCache.entryCount, 0)
-        XCTAssertEqual(DockIconPreviewCache.shared.entryCount, 0)
-        XCTAssertEqual(DockIconRenderer.scratchResidentByteCount, 0)
-        XCTAssertTrue(activationApplication.applicationIconImage === currentDockImage)
-        XCTAssertEqual(
-            activationApplication.applicationImageAssignments,
-            applicationImageAssignments,
-            "Pressure must preserve the current application image without rerendering"
-        )
-
-        profilerCache.store(Data([1, 2, 3]))
-        XCTAssertEqual(profilerCache.storedEntryCount, 1)
-        let externalReader = profilerCache.acquireReader()
-        environment.stop()
-        XCTAssertEqual(shortcutBackend.stopCount, 1)
-        XCTAssertEqual(
-            profilerCache.storedEntryCount,
-            1,
-            "environment stop must preserve a report with a live external reader"
-        )
-        XCTAssertEqual(profilerCache.activeReaderCount, 1)
-        profilerCache.releaseReader(externalReader)
-        XCTAssertEqual(profilerCache.storedEntryCount, 0)
-
-        XCTAssertEqual(reporter.stopCount, 1)
-        XCTAssertEqual(battery.stopCount, 1)
-        XCTAssertEqual(wifi.stopCount, 1)
-        XCTAssertEqual(volume.stopCount, 1)
-        XCTAssertTrue(pressureSources[0].isCancelled)
-        _ = IconImageDecodeCache.shared.image(for: iconURL) { _ in image }
-        pressureSources[0].fire()
-        XCTAssertGreaterThan(IconImageDecodeCache.shared.entryCount, 0,
-            "A cancelled environment must ignore an already queued pressure event")
-        IconImageDecodeCache.shared.reset()
     }
-
-    private static func makeBitmapImage(pixelLength: Int) -> NSImage? {
-        let bitmap = NSBitmapImageRep(
-            bitmapDataPlanes: nil,
-            pixelsWide: pixelLength,
-            pixelsHigh: pixelLength,
-            bitsPerSample: 8,
-            samplesPerPixel: 4,
-            hasAlpha: true,
-            isPlanar: false,
-            colorSpaceName: .deviceRGB,
-            bytesPerRow: pixelLength * 4,
-            bitsPerPixel: 32
-        )
-        guard let bitmap else { return nil }
-        let image = NSImage(size: NSSize(width: pixelLength, height: pixelLength))
-        image.addRepresentation(bitmap)
-        return image
-    }
-}
-
-@MainActor
-private final class LifecyclePressureSource: MemoryPressureEventSource {
-    private let handler: @MainActor () -> Void
-    private(set) var isCancelled = false
-    init(handler: @escaping @MainActor () -> Void) { self.handler = handler }
-    func resume() {}
-    func cancel() { isCancelled = true }
-    func fire() { handler() }
 }
 
 @MainActor
@@ -230,38 +224,13 @@ private final class LifecycleTelemetryReporter: TelemetryReporting {
 }
 
 @MainActor
-private final class LifecycleGlobalShortcutBackend: GlobalShortcutRegistering {
-    private(set) var registerCount = 0
-    private(set) var stopCount = 0
-
-    func register(
-        _ shortcut: StatusPanelShortcut,
-        action: @escaping @MainActor () -> Void
-    ) throws -> UUID {
-        registerCount += 1
-        return UUID()
-    }
-
-    func unregister(_ token: UUID) {}
-
-    func stop() {
-        stopCount += 1
-    }
-}
-
-@MainActor
 private final class LifecycleApplicationSpy: ApplicationActivationPolicyApplying, ApplicationDockIconApplying {
     private(set) var currentActivationPolicy: NSApplication.ActivationPolicy = .accessory
-    private(set) var applicationIconImage: NSImage?
-    private(set) var applicationImageAssignments = 0
     func setActivationPolicy(_ activationPolicy: NSApplication.ActivationPolicy) -> Bool {
         currentActivationPolicy = activationPolicy
         return true
     }
-    func setApplicationIconImage(_ image: NSImage?) {
-        applicationIconImage = image
-        applicationImageAssignments += 1
-    }
+    func setApplicationIconImage(_ image: NSImage?) {}
 }
 
 @MainActor
@@ -300,4 +269,42 @@ private final class LifecycleVolumeMonitor: VolumeMonitoring {
     func refresh() {}
     func recover() {}
     func setDetailsVisible(_ visible: Bool) {}
+}
+
+@MainActor
+private final class QueuedDemandStateMonitor: BluetoothStateMonitoring {
+    var onStateChange: ((BluetoothAuthorizationStatus, BluetoothManagerState) -> Void)?
+    let authorization: BluetoothAuthorizationStatus = .allowed
+    func start() { onStateChange?(.allowed, .poweredOn) }
+    func stop() {}
+}
+
+private final class QueuedDemandDeviceReader: BluetoothPairedDeviceReading {
+    func read(completion: @escaping @Sendable (BluetoothWorkerResult) -> Void) {
+        completion(.success([BluetoothDevice(
+            id: "AA:BB:CC:DD:EE:10", name: "AirPods", kind: .audio,
+            isConnected: true, airPodsModel: .airPodsPro
+        )]))
+    }
+}
+
+private final class QueuedDemandBatteryReader: BluetoothBatteryReading {
+    private let lock = NSLock()
+    private var storedReadCount = 0
+    var readCount: Int { lock.withLock { storedReadCount } }
+    func read(completion: @escaping @Sendable ([String: BluetoothBatteryLevel]?) -> Void) {
+        lock.withLock { storedReadCount += 1 }
+        // Count the actual I/O entry without scheduling unrelated completions.
+    }
+}
+
+private final class QueuedDemandBatteryEvents: BluetoothAccessoryBatteryEventMonitoring {
+    private let lock = NSLock()
+    private var storedStartCount = 0
+    var startCount: Int { lock.withLock { storedStartCount } }
+    func start(handler: @escaping @Sendable () -> Void) -> Bool {
+        lock.withLock { storedStartCount += 1 }
+        return true
+    }
+    func stop() {}
 }

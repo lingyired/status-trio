@@ -20,12 +20,26 @@ app. Reuse a suitable verified, still-owned background test instance; invoke
 the launcher only when a new launch or rebuild is needed. Other applications
 use their own supported targets and routes.
 
-This is opt-in **Debug Settings and first-run guide support**, originally
-investigated with Codex native Computer Use. Spaces, displays and applications
+This is opt-in **Debug Settings, first-run guide and status-panel support**,
+originally investigated with Codex native Computer Use. Spaces, displays and applications
 still share the user's session. A secondary display alone isolates no input.
 Assess each required operation before using it; a successful historical AX
 button action does not establish text input, menu, Dock, permission-dialog or
 other provider support. Unknown or activating routes stop while the user works.
+
+For status-panel work, launch with
+`bash scripts/launch-computer-use.sh --panel [--display secondary]`. The Debug
+route opens the panel instead of Settings, bypasses first-run onboarding,
+keeps it non-key, uses normal window ordering, skips focus-loss and
+global-click dismissal, and publishes a standard AX window identity for
+target-scoped providers. On a single display the active app can therefore
+cover the panel; use a secondary display for visible interaction, or capture
+the panel window through AX/window-only screenshot. Controls retain their existing accessibility labels
+and values, so AX press/toggle and slider reads work. Standard
+`agent-desktop set-value` currently rejects this custom slider because it sends
+a string while AppKit accepts its 0...1 numeric value; use an AX numeric write
+or a project test helper for slider mutation. This route is Debug-only and does
+not establish the same behavior for a normally opened panel.
 
 Use existing suitable bounded observations, or the project's read-only
 `scripts/measure-ui-focus.swift` where appropriate. Its foreground, target

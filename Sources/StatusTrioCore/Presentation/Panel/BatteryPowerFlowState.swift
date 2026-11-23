@@ -26,6 +26,9 @@ struct BatteryPowerFlowState: Equatable, Sendable {
         /// Longer, unambiguous wording for the tooltip and VoiceOver when the
         /// card label has to stay short.
         var help: String? = nil
+        /// A second caption under the label, used by the input card for the
+        /// port the adapter is on ("MagSafe 3").
+        var detail: String? = nil
     }
 
     let input: Metric?

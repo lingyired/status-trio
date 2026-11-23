@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct BatteryStatusView: View {
+    @Environment(\.statusPanelBoldTextEnabled) private var panelBoldText
     @EnvironmentObject private var localization: Localization
     let state: PanelSummaryState
     var cautionColor: Color = .yellow
@@ -45,7 +46,7 @@ struct BatteryStatusView: View {
     }
 
     private var summaryRow: some View {
-        HStack(alignment: .center, spacing: PanelSummaryActionMetrics.iconGap) {
+        HStack(alignment: .center, spacing: PanelSummaryActionMetrics.actionSpacing) {
             Button(action: onOpenBatteryDetails) {
                 HStack(spacing: 10) {
                     PanelSymbolView(source: state.symbol)
@@ -65,13 +66,12 @@ struct BatteryStatusView: View {
                     } else {
                         VStack(alignment: .leading, spacing: 2) {
                             Text(state.title)
-                                .font(.headline)
+                                .font(.headline.weight(panelBoldText ? .semibold : .regular))
                                 .monospacedDigit()
                             Text(state.subtitle)
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
-                                .lineLimit(1)
-                                .truncationMode(.middle)
+                                .fixedSize(horizontal: false, vertical: true)
                         }
                     }
 
@@ -101,11 +101,12 @@ struct BatteryStatusView: View {
             // otherwise push it one slot to the left.
             if hasDetails {
                 Button(action: onOpenBatteryDetails) {
-                    Image(systemName: "chevron.right")
-                        .font(.caption.weight(.semibold))
-                        .padding(.horizontal, PanelSummaryActionMetrics.iconInset)
-                        .frame(height: PanelSummaryActionMetrics.hitTarget)
-                        .contentShape(Rectangle())
+                    PanelActionGlyph(
+                        systemName: "chevron.right",
+                        font: .caption.weight(.semibold),
+                        size: PanelSummaryActionMetrics.actionSlot
+                    )
+                    .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
                 .foregroundStyle(.tertiary)
@@ -115,11 +116,11 @@ struct BatteryStatusView: View {
 
             if state.showsSettings {
                 Button(action: onOpenBatterySettings) {
-                    Image(systemName: "gearshape")
-                        .padding(.horizontal, PanelSummaryActionMetrics.iconInset)
-                        .offset(y: -0.25)
-                        .frame(height: PanelSummaryActionMetrics.hitTarget)
-                        .contentShape(Rectangle())
+                    PanelActionGlyph(
+                        systemName: "gearshape",
+                        size: PanelSummaryActionMetrics.actionSlot
+                    )
+                    .contentShape(Rectangle())
                 }
                 .labelStyle(.iconOnly)
                 .buttonStyle(.plain)
@@ -137,6 +138,7 @@ struct BatteryStatusView: View {
 /// into the subtitle. Observed through the controller so a state that arrives
 /// after the row was built (the helper answers asynchronously) still redraws it.
 private struct BatterySummaryLabel: View {
+    @Environment(\.statusPanelBoldTextEnabled) private var panelBoldText
     @EnvironmentObject private var localization: Localization
     @ObservedObject var controller: HighPowerModeController
     let title: String
@@ -145,7 +147,7 @@ private struct BatterySummaryLabel: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 2) {
             Text(title)
-                .font(.headline)
+                .font(.headline.weight(panelBoldText ? .semibold : .regular))
                 .monospacedDigit()
             Text(
                 controller.isHighPowerMode
@@ -154,8 +156,7 @@ private struct BatterySummaryLabel: View {
             )
             .font(.caption)
             .foregroundStyle(.secondary)
-            .lineLimit(1)
-            .truncationMode(.middle)
+            .fixedSize(horizontal: false, vertical: true)
         }
     }
 }
@@ -178,7 +179,7 @@ private struct PowerModeQuickButtons: View {
     @State private var suppressed: PowerModeSelection?
 
     var body: some View {
-        HStack(spacing: PanelSummaryActionMetrics.iconGap) {
+        HStack(spacing: PanelSummaryActionMetrics.actionSpacing) {
             if showsHighPower, let highController {
                 HighPowerQuickButton(
                     controller: highController,
@@ -248,7 +249,7 @@ private struct HighPowerQuickButton: View {
         Button(action: action) {
             Image(systemName: "bolt.batteryblock.fill")
                 .foregroundStyle(isSelected ? Color.blue : Color.secondary)
-                .padding(.horizontal, PanelSummaryActionMetrics.iconInset)
+                .frame(width: PanelSummaryActionMetrics.actionSlot, height: PanelSummaryActionMetrics.hitTarget)
         }
         .labelStyle(.iconOnly)
         .buttonStyle(.plain)
@@ -283,7 +284,7 @@ private struct LowPowerQuickButton: View {
         Button(action: action) {
             Image(systemName: isSelected ? "leaf.fill" : "leaf")
                 .foregroundStyle(isSelected ? Color.green : Color.secondary)
-                .padding(.horizontal, PanelSummaryActionMetrics.iconInset)
+                .frame(width: PanelSummaryActionMetrics.actionSlot, height: PanelSummaryActionMetrics.hitTarget)
         }
         .labelStyle(.iconOnly)
         .buttonStyle(.plain)

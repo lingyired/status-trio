@@ -91,6 +91,33 @@ struct BatteryStatusColorsTests {
         #expect(dockFirst.tiffRepresentation != dockSecond.tiffRepresentation)
     }
 
+    @Test func dischargingColourKeepsSystemMonochromeAndOverridesOnChoice() throws {
+        let system = makeDischargingScene(colors: .standard)
+        #expect(system.chromaticRegions.isEmpty)
+        #expect(system.templateRegions.contains(.ringFill))
+
+        let custom = makeDischargingScene(colors: BatteryStatusColors(discharging: .preset(.rose)))
+        #expect(custom.chromaticRegions.contains(.ringFill))
+
+        let environment = StatusIconRenderer.renderEnvironment(size: 64, scale: 2, appearance: NSAppearance(named: .darkAqua))
+        let systemImage = try #require(StatusIconRenderer.render(scene: system, environment: environment))
+        let customImage = try #require(StatusIconRenderer.render(scene: custom, environment: environment))
+        let systemBuffer = try PixelBuffer(image: systemImage)
+        let customBuffer = try PixelBuffer(image: customImage)
+        #expect(systemBuffer.bytes != customBuffer.bytes)
+    }
+
+    private func makeDischargingScene(colors: BatteryStatusColors) -> IconSceneState {
+        let snapshot = StatusSnapshot(
+            battery: BatteryStatus(rawPercentage: 50, isPresent: true, isCharging: false, isLowPowerMode: false, isConnectedToPower: false),
+            wifi: .placeholder, volume: .placeholder
+        )
+        return IconPresentationMapper.scene(
+            inputs: .init(snapshot: snapshot, audioIcon: nil),
+            configuration: .init(battery: BatteryIconOptions(showsChargingEffect: false, usesStatusColors: true, batteryStatusColors: colors), connection: .standard, volume: .standard, bluetooth: .standard)
+        )
+    }
+
     private func makeScene(colors: BatteryStatusColors, usesColors: Bool = true, effect: Bool = true) -> IconSceneState {
         let snapshot = StatusSnapshot(
             battery: BatteryStatus(rawPercentage: 50, isPresent: true, isCharging: true, isLowPowerMode: false, isConnectedToPower: true),

@@ -690,6 +690,64 @@ struct DockChargingAnimationPresenterTests {
         )
     }
 
+    @Test(arguments: [CGFloat(1), 2], [CGFloat(32), 64, 72, 300])
+    func contentViewUsesTilePointsRegardlessOfRasterScale(displayScale: CGFloat, tileLength: CGFloat) {
+        let fixture = DockChargingPresenterFixture(displayScale: { displayScale })
+        fixture.dockTile.size = CGSize(width: tileLength, height: tileLength)
+
+        #expect(fixture.presenter.present(
+            phase: steadyPhase(0),
+            scene: fixture.scene,
+            backgroundStyle: .dark,
+            pixelLength: 512
+        ))
+        #expect(fixture.contentView?.frame.size == fixture.dockTile.size)
+        #expect(fixture.contentView?.bounds.size == fixture.dockTile.size)
+    }
+
+    @Test func resizingWithinOneRasterBucketUpdatesTheViewEvenForTheSamePhase() {
+        let fixture = DockChargingPresenterFixture()
+        let phase = steadyPhase(0)
+        #expect(fixture.presenter.present(
+            phase: phase, scene: fixture.scene, backgroundStyle: .dark, pixelLength: 512
+        ))
+        let baseRenders = fixture.presenter.rasterRequestCount
+        let frameRebuilds = fixture.presenter.cachedFrameRebuildCount
+        let displays = fixture.dockTile.displayCount
+
+        fixture.dockTile.size = CGSize(width: 72, height: 72)
+        #expect(fixture.presenter.present(
+            phase: phase, scene: fixture.scene, backgroundStyle: .dark, pixelLength: 512
+        ))
+        #expect(fixture.contentView?.bounds.size == fixture.dockTile.size)
+        #expect(fixture.presenter.rasterRequestCount == baseRenders)
+        #expect(fixture.presenter.cachedFrameRebuildCount == frameRebuilds)
+        #expect(fixture.dockTile.displayCount == displays + 1)
+
+        #expect(fixture.presenter.present(
+            phase: phase, scene: fixture.scene, backgroundStyle: .dark, pixelLength: 512
+        ))
+        #expect(fixture.dockTile.displayCount == displays + 1, "An unchanged size and frame remain a no-op.")
+    }
+
+    @Test func switchingFromRetinaToOneXChangesRasterResolutionWithoutResizingTheView() {
+        var displayScale: CGFloat = 2
+        let fixture = DockChargingPresenterFixture(displayScale: { displayScale })
+        let phase = steadyPhase(0)
+        #expect(fixture.presenter.present(
+            phase: phase, scene: fixture.scene, backgroundStyle: .dark, pixelLength: 512
+        ))
+        #expect(fixture.presenter.presentedState?.baseKey.pixelLength == 128)
+        #expect(fixture.contentView?.bounds.size == fixture.dockTile.size)
+
+        displayScale = 1
+        #expect(fixture.presenter.present(
+            phase: phase, scene: fixture.scene, backgroundStyle: .dark, pixelLength: 512
+        ))
+        #expect(fixture.presenter.presentedState?.baseKey.pixelLength == 64)
+        #expect(fixture.contentView?.bounds.size == fixture.dockTile.size)
+    }
+
     private func steadyPhase(_ step: Int, multiplier: Double = 1) -> ChargingEffectPhase {
         ChargingEffectPhase(
             step: step,
@@ -707,7 +765,11 @@ private final class DockChargingPresenterFixture {
     let scene: IconSceneState
     let renderControl: DockChargingRenderControl
 
-    init(failEffects: Bool = false, renderControl: DockChargingRenderControl = DockChargingRenderControl()) {
+    init(
+        failEffects: Bool = false,
+        renderControl: DockChargingRenderControl = DockChargingRenderControl(),
+        displayScale: @escaping @MainActor () -> CGFloat = { 2 }
+    ) {
         scene = DockChargingTestScene.make(scalar: 0.5)
         self.renderControl = renderControl
         renderControl.failsAllEffects = failEffects
@@ -732,7 +794,8 @@ private final class DockChargingPresenterFixture {
                 }
                 return Self.image()
             },
-            effectRect: { _, _ in CGRect(x: 100, y: 100, width: 120, height: 120) }
+            effectRect: { _, _ in CGRect(x: 100, y: 100, width: 120, height: 120) },
+            displayScale: displayScale
         )
     }
 

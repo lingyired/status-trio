@@ -1437,11 +1437,11 @@ final class StatusIconRendererTests: XCTestCase {
         XCTAssertNotEqual(standard.bytes, slotPercentage.bytes)
     }
 
-    /// The slot draws the battery percentage even when the machine reports no
-    /// battery at all (it reads 100), replacing the connection glyph the same
-    /// way it does on a battery Mac, so a desktop Mac stays consistent with the
-    /// top battery indicator.
-    func testBatteryPercentageInConnectionSlotShowsOneHundredWhenBatteryIsAbsent() throws {
+    /// A machine with no battery draws the empty ring track and does not invent
+    /// a level, so the connection slot falls back exactly as an ordinary
+    /// network icon would. The panel already uses `battery.slash` for the same
+    /// state.
+    func testBatteryPercentageInConnectionSlotFallsBackWhenBatteryIsAbsent() throws {
         let snapshot = StatusSnapshot(
             battery: BatteryStatus(
                 rawPercentage: nil,
@@ -1463,7 +1463,7 @@ final class StatusIconRendererTests: XCTestCase {
             )
         )
 
-        XCTAssertNotEqual(standard.bytes, slotPercentage.bytes)
+        XCTAssertEqual(standard.bytes, slotPercentage.bytes)
     }
 
     /// The slot percentage wins over a picked Bluetooth symbol, which is the
@@ -1963,5 +1963,36 @@ final class StatusIconRendererTests: XCTestCase {
         NSGraphicsContext.restoreGraphicsState()
 
         return try PixelBuffer(image: try XCTUnwrap(bitmap.cgImage))
+    }
+
+    /// A three-digit battery percentage opens the ring's top gap more than a
+    /// two-digit one, while the bolt and closed gaps keep their fixed widths.
+    func testThreeDigitPercentageWidensRingTopGap() {
+        let twoDigit = StatusIconRenderer.ringTopGapWidth(
+            gap: .value,
+            accessory: .text(IconTextState(text: "99", color: .primary, scale: 1.8))
+        )
+        let threeDigit = StatusIconRenderer.ringTopGapWidth(
+            gap: .value,
+            accessory: .text(IconTextState(text: "100", color: .primary, scale: 1.8))
+        )
+        XCTAssertEqual(twoDigit, StatusIconGeometry.batteryValueTopGapWidth, accuracy: 1e-9)
+        XCTAssertGreaterThan(threeDigit, twoDigit)
+
+        XCTAssertEqual(
+            StatusIconRenderer.ringTopGapWidth(
+                gap: .indicator,
+                accessory: .symbol(
+                    IconSymbolState(source: .primitive(.bolt), color: .primary, scale: 1.8)
+                )
+            ),
+            StatusIconGeometry.batteryChargingBoltTopGapWidth,
+            accuracy: 1e-9
+        )
+        XCTAssertEqual(
+            StatusIconRenderer.ringTopGapWidth(gap: .closed, accessory: nil),
+            StatusIconGeometry.batteryValueTopGapWidth,
+            accuracy: 1e-9
+        )
     }
 }

@@ -76,7 +76,6 @@ protocol BatteryChargeControlling: AnyObject {
     var capability: ChargeToFullNowCapability { get }
     func readState() -> ChargeToFullNowDeviceState
     func chargeToFullNow() async -> ChargeToFullNowWriteResult
-    func setChargeLimit(to limit: Int, expectedState: ChargeToFullNowDeviceState) async -> ChargeToFullNowWriteResult
     /// `expectedLimit` is the sub-100 limit recorded for the running session,
     /// or `nil` when no session recorded one. A cancel can read an intermediate
     /// sub-100 limit that differs from the target (for example the original
@@ -95,9 +94,6 @@ extension BatteryChargeControlling {
     ) async -> ChargeToFullNowWriteResult {
         .failure
     }
-    func setChargeLimit(to limit: Int, expectedState: ChargeToFullNowDeviceState) async -> ChargeToFullNowWriteResult {
-        .failure
-    }
 }
 
 @MainActor
@@ -105,9 +101,9 @@ final class PowerUIChargeController: BatteryChargeControlling {
     private let bridge = STPowerUIChargeBridge()
     private var cachedCapability: ChargeToFullNowCapability?
 
-    /// The native charge-to-full option belongs to macOS 26.4+, the OS that
-    /// ships the system charge limit. Gate on the version explicitly so a
-    /// private-API answer can never surface it on an older system.
+    /// The native option belongs to macOS 26.4+, the OS that ships the system
+    /// charge limit. Gate on the version explicitly so a private-API answer can
+    /// never surface it on an older system.
     nonisolated static func gatedCapability(
         _ bridgeCapability: ChargeToFullNowCapability,
         version: OperatingSystemVersion = ProcessInfo.processInfo.operatingSystemVersion
@@ -156,7 +152,7 @@ final class PowerUIChargeController: BatteryChargeControlling {
                 failure: .unavailable
             )
         }
-        let result = bridge.temporarilyDisableMCL()
+        let result = bridge.chargeToFullNow()
         return ChargeToFullNowWriteResult(
             succeeded: result.didSucceed,
             errorMessage: result.didSucceed ? nil : result.errorMessage,
@@ -183,19 +179,6 @@ final class PowerUIChargeController: BatteryChargeControlling {
             succeeded: result.didSucceed,
             errorMessage: result.didSucceed ? nil : result.errorMessage,
             failure: Self.mapFailure(result.failure)
-        )
-    }
-
-    func setChargeLimit(to limit: Int, expectedState: ChargeToFullNowDeviceState) async -> ChargeToFullNowWriteResult {
-        guard capability.isAvailable, let current = expectedState.mclLimit else { return .failure }
-        let result = bridge.applyChargeLimit(
-            limit,
-            expectedCurrentLimit: current,
-            expectedEnabledState: expectedState.mclEnabledRawValue
-        )
-        return ChargeToFullNowWriteResult(
-            succeeded: result.didSucceed,
-            errorMessage: result.didSucceed ? nil : result.errorMessage
         )
     }
 

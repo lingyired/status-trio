@@ -101,10 +101,12 @@ distribution gate is distinct from app compatibility and hardware capability;
 both must pass before a control becomes enabled. `minOS=13` in the binary does
 **not** equal verified Ventura runtime behaviour.
 
-The native path (`ManagedChargeLimitController` + `ChargeToFullNowNowController`)
-touching PowerUI stays untouched for macOS 26.4+. Legacy limiting must use a
+The native path (`PowerUIChargeController` + `ChargeToFullNowController`)
+touching PowerUI stays untouched for macOS 26.4+. Legacy limiting uses a
 **separate session type and store** so the two never write the same keys or
-disrupt each other's cancellation semantics.
+disrupt each other's cancellation semantics. Note: after merging main on
+2026-11-23 the earlier PR #207 managed-native cap UI was removed, because main
+turned that restore-limit feature off and keeps the system's own limit.
 
 ### Recorded sleep / quit behaviour (decided in this spec, before writes)
 

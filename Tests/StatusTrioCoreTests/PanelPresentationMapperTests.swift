@@ -315,7 +315,7 @@ final class PanelPresentationMapperTests: XCTestCase {
             PanelPresentationMapper.battery(
                 connectedNotYetCharging,
                 localization: localization,
-                chargeToFullNow: .limitRestored(limit: 95)
+                chargeToFullNow: .available
             ).subtitle,
             localization.string(.batteryStateConnectedToPower)
         )
@@ -407,8 +407,9 @@ final class PanelPresentationMapperTests: XCTestCase {
             isResolvingName: false,
             localization: localization
         )
-        XCTAssertEqual(needsPermission.subtitle, "Connected · -58 dBm")
-        XCTAssertEqual(needsPermission.intent, .wifiDetails)
+        XCTAssertEqual(needsPermission.title, "Connected")
+        XCTAssertEqual(needsPermission.subtitle, "Tap to allow location to show the Wi-Fi name")
+        XCTAssertEqual(needsPermission.intent, .requestWiFiNameAccess)
 
         let denied = PanelPresentationMapper.network(
             wifi: WiFiStatus(state: .connected, rssi: -58, nameAccess: .denied),
@@ -418,7 +419,9 @@ final class PanelPresentationMapperTests: XCTestCase {
             isResolvingName: false,
             localization: localization
         )
-        XCTAssertEqual(denied.intent, .wifiDetails)
+        XCTAssertEqual(denied.title, "Connected")
+        XCTAssertEqual(denied.subtitle, "Tap to allow location to show the Wi-Fi name")
+        XCTAssertEqual(denied.intent, .locationSettings)
     }
 
     func testUnauthorizedNameDoesNotHideTheConnectionState() {
@@ -438,11 +441,14 @@ final class PanelPresentationMapperTests: XCTestCase {
                 localIPAddress: "192.168.1.20",
                 localization: localization
             )
-            XCTAssertEqual(row.title, "Wi-Fi")
-            XCTAssertEqual(row.subtitle, "192.168.1.20 · Connected · 5 GHz · -50 dBm")
-            XCTAssertEqual(row.measurements, "192.168.1.20 · 5 GHz · -50 dBm")
-            XCTAssertEqual(row.accessibilityValue, "192.168.1.20 · 5 GHz · -50 dBm")
-            XCTAssertEqual(row.intent, .wifiDetails)
+            XCTAssertEqual(row.title, "Connected")
+            XCTAssertEqual(row.subtitle, "Tap to allow location to show the Wi-Fi name")
+            XCTAssertNil(row.measurements)
+            XCTAssertEqual(row.accessibilityValue, "")
+            XCTAssertEqual(
+                row.intent,
+                access == .notDetermined ? .requestWiFiNameAccess : .locationSettings
+            )
         }
 
         let notAssociated = PanelPresentationMapper.network(
@@ -460,6 +466,47 @@ final class PanelPresentationMapperTests: XCTestCase {
     /// The address rides at the front of the second line, and the Wi-Fi band and
     /// signal keep the slot they already had, so the row reads as the address
     /// first and then the network's own details.
+    func testNetworkSummaryTintFollowsConnectionState() {
+        let localization = makeLocalization(.english)
+        func tint(_ state: WiFiState) -> PanelTint {
+            PanelPresentationMapper.network(
+                wifi: WiFiStatus(state: state, rssi: -58),
+                connection: .wifi,
+                wired: nil,
+                isConstrained: false,
+                isResolvingName: false,
+                localization: localization
+            ).tint
+        }
+
+        XCTAssertEqual(tint(.connected), .primary)
+        XCTAssertEqual(tint(.hotspot), .primary)
+        XCTAssertEqual(tint(.temporary), .primary)
+        XCTAssertEqual(tint(.shared), .primary)
+        XCTAssertEqual(tint(.noInternet), .caution)
+        XCTAssertEqual(tint(.notAssociated), .secondary)
+        XCTAssertEqual(tint(.off), .secondary)
+        XCTAssertEqual(tint(.unavailable), .secondary)
+
+        let details = PrimaryLinkDetails(
+            interfaceName: "en9",
+            interfaceDisplayName: "iPhone USB",
+            ipv4Addresses: ["172.20.10.8"],
+            ipv6Addresses: [],
+            router: nil,
+            dnsServers: []
+        )
+        let wired = PanelPresentationMapper.network(
+            wifi: .placeholder,
+            connection: .ethernet,
+            wired: details,
+            isConstrained: false,
+            isResolvingName: false,
+            localization: localization
+        )
+        XCTAssertEqual(wired.tint, .primary, "a wired link is a usable connection too")
+    }
+
     func testLocalIPLeadsTheWiFiSecondLine() {
         let localization = makeLocalization(.english)
         let wifi = WiFiStatus(
@@ -485,7 +532,7 @@ final class PanelPresentationMapperTests: XCTestCase {
         XCTAssertEqual(row.accessibilityValue, "192.168.1.20 · 5 GHz · -58 dBm")
     }
 
-    func testWiFiNamePermissionLeadsTheLocalIPAddress() {
+    func testWiFiNamePermissionSwapsTheLinesAndKeepsTheConnectionState() {
         let localization = makeLocalization(.english)
         let row = PanelPresentationMapper.network(
             wifi: WiFiStatus(
@@ -502,11 +549,12 @@ final class PanelPresentationMapperTests: XCTestCase {
             localization: localization
         )
 
-        XCTAssertEqual(row.subtitle, "192.168.1.20 · Connected · 5 GHz · -58 dBm")
-        XCTAssertEqual(row.intent, .wifiDetails)
+        XCTAssertEqual(row.title, "Connected")
+        XCTAssertEqual(row.subtitle, "Tap to allow location to show the Wi-Fi name")
+        XCTAssertEqual(row.intent, .requestWiFiNameAccess)
     }
 
-    func testWiFiLocationSettingsActionLeadsTheLocalIPAddress() {
+    func testWiFiLocationSettingsActionSwapsTheLinesAndKeepsTheConnectionState() {
         let localization = makeLocalization(.english)
         let row = PanelPresentationMapper.network(
             wifi: WiFiStatus(
@@ -523,11 +571,9 @@ final class PanelPresentationMapperTests: XCTestCase {
             localization: localization
         )
 
-        XCTAssertEqual(
-            row.subtitle,
-            "192.168.1.20 · Connected · 5 GHz · -58 dBm"
-        )
-        XCTAssertEqual(row.intent, .wifiDetails)
+        XCTAssertEqual(row.title, "Connected")
+        XCTAssertEqual(row.subtitle, "Tap to allow location to show the Wi-Fi name")
+        XCTAssertEqual(row.intent, .locationSettings)
     }
 
     func testLocalIPIsAbsentWhenTheRowIsNotGivenOne() {
@@ -674,6 +720,42 @@ final class PanelPresentationMapperTests: XCTestCase {
         XCTAssertEqual(proxyOnly.title, "System proxy")
         XCTAssertEqual(proxyOnly.subtitle, "Automatic configuration")
         XCTAssertEqual(proxyOnly.tint, .caution)
+        XCTAssertNil(proxyOnly.vpnPower)
+    }
+
+    func testVPNPowerControlUsesServiceStateAndShowsFailure() {
+        let localization = makeLocalization(.english)
+        let status = VPNStatus(
+            tunnelInterfaces: [],
+            serviceName: "Home",
+            services: [
+                VPNServiceReading(serviceID: "office", name: "Office", state: .disconnected, isEnabled: true),
+                VPNServiceReading(serviceID: "home", name: "Home", state: .connected, isEnabled: true)
+            ],
+            proxy: nil
+        )
+        var powerState = VPNPowerState()
+        powerState.failure = .timedOut
+        let row = PanelPresentationMapper.vpn(
+            status, powerState: powerState, localization: localization
+        )
+        let power = try! XCTUnwrap(row.vpnPower)
+        XCTAssertTrue(power.isOn)
+        XCTAssertTrue(power.canSetPower)
+        XCTAssertEqual(power.failureMessage, "VPN status was not confirmed. Check again.")
+        XCTAssertEqual(power.turnOnHelp, "Connect VPN")
+        XCTAssertEqual(power.turnOffHelp, "Disconnect VPN")
+
+        let disconnected = VPNStatus(
+            tunnelInterfaces: [], serviceName: nil,
+            services: [VPNServiceReading(
+                serviceID: "office", name: "Office", state: .disconnected, isEnabled: true
+            )],
+            proxy: nil
+        )
+        let offRow = PanelPresentationMapper.vpn(disconnected, localization: localization)
+        XCTAssertFalse(offRow.vpnPower?.isOn ?? true)
+        XCTAssertTrue(offRow.vpnPower?.canSetPower ?? false)
     }
 
     func testPanelSummaryUsesSelectedLanguageForTheSameBatteryInput() {

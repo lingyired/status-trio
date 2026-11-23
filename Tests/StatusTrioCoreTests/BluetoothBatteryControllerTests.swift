@@ -168,6 +168,41 @@ struct BluetoothBatteryControllerTests {
         #expect(controller.batteryLevelsReadFailed == false)
     }
 
+    /// A level is published exactly as read: an unchanged percentage and a
+    /// one-point drift are both fresh readings, not a signal to suppress or
+    /// "correct". Pins that the controller never invents staleness from a value
+    /// merely repeating, and never dedupes consecutive reads away.
+    @Test func everyReadPublishesEvenWhenTheLevelRepeatsOrBarelyChanges() async {
+        let batteryReader = BluetoothBatteryReaderStub(result: batteryLevel(30))
+        let controller = makeController(batteryReader: batteryReader)
+
+        controller.requestBatteryLevels("test")
+        controller.activate()
+        await waitUntil { controller.batteryLevels[batteryKey]?.main == 30 }
+
+        // Same value again: still a fresh read, still published.
+        batteryReader.result = batteryLevel(30)
+        controller.requestBatteryLevels("test")
+        await waitUntil { batteryReader.readCount >= 2 }
+        await waitUntil { controller.batteryLevels[batteryKey]?.main == 30 }
+
+        // A one-point change is published too (30, 30, 29 in a row).
+        batteryReader.result = batteryLevel(29)
+        controller.requestBatteryLevels("test")
+        await waitUntil { controller.batteryLevels[batteryKey]?.main == 29 }
+
+        controller.deactivate()
+    }
+
+    // MARK: - Helpers
+
+    private var batteryKey: String { "AC9085C29C1F" }
+
+    private func batteryLevel(_ main: Int) -> [String: BluetoothBatteryLevel] {
+        [batteryKey: BluetoothBatteryLevel(
+            deviceAddress: "AC:90:85:C2:9C:1F", main: main, left: nil, right: nil, caseLevel: nil)]
+    }
+
     /// Releasing the last claim drops the failure together with the levels it
     /// belonged to.
     @Test func releasingTheClaimClearsTheFailure() async {
@@ -181,6 +216,105 @@ struct BluetoothBatteryControllerTests {
         controller.releaseBatteryLevels("test")
 
         #expect(controller.batteryLevelsReadFailed == false)
+    }
+
+    @Test func primaryLevelsOnlyPublishForCurrentlyConnectedAddresses() async throws {
+        let deviceReader = BluetoothPairedDeviceReaderStub(result: .success([
+            BluetoothDevice(id: "ac-90-85-c2-9c-1f", name: "AirPods", kind: .audio, isConnected: true),
+            BluetoothDevice(id: "00:11:22:33:44:55", name: "Old AirPods", kind: .audio, isConnected: false)
+        ]))
+        let batteryReader = BluetoothBatteryReaderStub(result: [
+            "AC9085C29C1F": BluetoothBatteryLevel(
+                deviceAddress: "AC:90:85:C2:9C:1F", main: 90, left: nil, right: nil, caseLevel: nil),
+            "001122334455": BluetoothBatteryLevel(
+                deviceAddress: "00-11-22-33-44-55", main: 12, left: nil, right: nil, caseLevel: nil),
+            "AABBCCDDEEFF": BluetoothBatteryLevel(
+                deviceAddress: "AA:BB:CC:DD:EE:FF", main: 20, left: nil, right: nil, caseLevel: nil)
+        ])
+        let controller = BluetoothDeviceController(
+            worker: deviceReader, stateMonitor: BluetoothBatteryStateMonitorStub(),
+            batteryReader: batteryReader, notificationCenter: NotificationCenter(),
+            workspaceNotificationCenter: NotificationCenter()
+        )
+        defer { controller.deactivate() }
+        controller.requestBatteryLevels("test")
+        controller.activate()
+        await waitUntil { !controller.batteryLevels.isEmpty }
+        #expect(controller.batteryLevels.keys.sorted() == ["AC9085C29C1F"])
+        let localization = Localization(
+            defaults: UserDefaults(suiteName: "BluetoothBatteryControllerTests.\(UUID().uuidString)")!,
+            preferredLanguages: ["en"]
+        )
+        let panel = BluetoothPanelMapper.map(
+            availability: controller.availability, devices: controller.devices,
+            batteryLevels: controller.batteryLevels, actionStates: [:], nearbyDevices: [],
+            batteryLevelsReadFailed: controller.batteryLevelsReadFailed, isExpanded: false,
+            options: .standard, showsBatteryLevels: true, showsNearbyBatteryDevices: false,
+            confirmingAddress: nil, localization: localization
+        )
+        let row = try #require(panel.pairedRows.first { $0.address == "001122334455" })
+        #expect(row.batteryText == nil)
+        #expect(row.batterySegments == nil)
+        #expect(!row.accessibilityValue.contains("%"))
+        #expect(row.actionEnabled)
+        #expect(row.actionTitle == localization.string(.bluetoothActionConnect))
+    }
+
+    @Test(arguments: [false, true])
+    func snapshotsExpireLevelsAndLateReadsCannotRestoreThem(usesAccessory: Bool) async {
+        let connected = BluetoothDevice(id: "AC:90:85:C2:9C:1F", name: "AirPods", kind: .audio, isConnected: true)
+        let disconnected = BluetoothDevice(id: connected.id, name: connected.name, kind: .audio, isConnected: false)
+        let deviceReader = BluetoothPairedDeviceReaderStub(result: .success([connected]))
+        let batteryReader = BlockingBluetoothBatteryReader()
+        let controller = BluetoothDeviceController(
+            worker: deviceReader, stateMonitor: BluetoothBatteryStateMonitorStub(),
+            batteryReader: batteryReader,
+            accessoryBatteryReader: usesAccessory ? BluetoothAccessoryBatteryReaderStub() : nil,
+            notificationCenter: NotificationCenter(),
+            workspaceNotificationCenter: NotificationCenter()
+        )
+        defer { controller.deactivate() }
+        let levels = ["AC9085C29C1F": BluetoothBatteryLevel(
+            deviceAddress: connected.id, main: 90, left: nil, right: nil, caseLevel: nil)]
+        controller.requestBatteryLevels("test")
+        controller.activate()
+        await waitUntil { batteryReader.readCount == 1 }
+        batteryReader.finish(with: usesAccessory ? nil : levels)
+        await waitUntil { !controller.batteryLevels.isEmpty }
+
+        controller.requestBatteryLevels("test")
+        let lateCompletion = batteryReader.completion
+        deviceReader.result = .success([disconnected])
+        controller.refresh()
+        await waitUntil { batteryReader.readCount == 3 }
+        #expect(controller.batteryLevels.isEmpty)
+        lateCompletion?(levels)
+        batteryReader.finish(with: nil)
+        await waitUntil { controller.batteryLevelsReadFailed }
+        #expect(controller.batteryLevels.isEmpty)
+        // A warm claim supersedes the previous request and still filters the result.
+        controller.requestBatteryLevels("test")
+        batteryReader.finish(with: levels)
+        await waitUntil { !controller.batteryLevelsReadFailed }
+        #expect(controller.batteryLevels.isEmpty)
+        #expect(!controller.batteryLevelsReadFailed)
+
+        deviceReader.result = .success([connected])
+        controller.refresh()
+        await waitUntil { batteryReader.readCount == 5 }
+        batteryReader.finish(with: usesAccessory ? nil : levels)
+        await waitUntil { !controller.batteryLevels.isEmpty }
+        #expect(controller.batteryLevels["AC9085C29C1F"]?.main == 90)
+
+        controller.releaseBatteryLevels("test")
+        deviceReader.result = .success([])
+        controller.refresh()
+        await waitUntil { controller.devices.isEmpty }
+        #expect(controller.batteryLevels.isEmpty)
+        controller.requestBatteryLevels("test")
+        batteryReader.finish(with: levels)
+        await waitUntil { controller.hasCompletedBatteryRead }
+        #expect(controller.batteryLevels.isEmpty)
     }
 
     /// Only the reader's answer differs between these cases.
@@ -208,7 +342,7 @@ struct BluetoothBatteryControllerTests {
 }
 
 private final class BluetoothPairedDeviceReaderStub: BluetoothPairedDeviceReading {
-    private let result: BluetoothWorkerResult
+    var result: BluetoothWorkerResult
     private(set) var readCount = 0
 
     init(result: BluetoothWorkerResult) {
@@ -237,15 +371,24 @@ private final class BluetoothBatteryReaderStub: BluetoothBatteryReading {
 
 private final class BlockingBluetoothBatteryReader: BluetoothBatteryReading {
     private(set) var readCount = 0
-    private var completion: (@Sendable ([String: BluetoothBatteryLevel]?) -> Void)?
+    private(set) var completion: (@Sendable ([String: BluetoothBatteryLevel]?) -> Void)?
 
     func read(completion: @escaping @Sendable ([String: BluetoothBatteryLevel]?) -> Void) {
         readCount += 1
         self.completion = completion
     }
 
-    func finish(with levels: [String: BluetoothBatteryLevel]) {
+    func finish(with levels: [String: BluetoothBatteryLevel]?) {
         completion?(levels)
+    }
+}
+
+private final class BluetoothAccessoryBatteryReaderStub: BluetoothAccessoryBatteryReading {
+    func read(completion: @escaping @Sendable ([BluetoothAccessoryBatteryLevel]?) -> Void) {
+        completion([BluetoothAccessoryBatteryLevel(
+            identifier: "airpods", name: "AirPods", vendorID: nil, productID: nil,
+            part: nil, percentage: 90
+        )])
     }
 }
 

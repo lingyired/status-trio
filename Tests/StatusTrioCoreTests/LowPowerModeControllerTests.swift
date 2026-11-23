@@ -94,6 +94,37 @@ final class LowPowerModeControllerTests: XCTestCase {
         XCTAssertFalse(controller.isApplying)
     }
 
+    func testSuccessfulTurnOnNotifiesTheCoordinator() async {
+        let client = FakeLowPowerModeClient(reads: false)
+        client.setResult = true
+        let controller = LowPowerModeController(client: client, initialIsLowPowerMode: false)
+        controller.setEnabled(true)
+        var notifications = 0
+        controller.onSuccessfulWrite = { notifications += 1 }
+
+        controller.setLowPowerMode(true)
+        await waitUntil { !controller.isApplying }
+        XCTAssertEqual(notifications, 1)
+
+        client.setResult = false
+        controller.setLowPowerMode(false)
+        await waitUntil { !controller.isApplying }
+        XCTAssertEqual(notifications, 1, "turning the mode off cannot have cleared the other mode")
+    }
+
+    func testFailedWriteDoesNotNotifyTheCoordinator() async {
+        let client = FakeLowPowerModeClient(reads: false)
+        client.setError = FakeError.denied
+        let controller = LowPowerModeController(client: client, initialIsLowPowerMode: false)
+        controller.setEnabled(true)
+        var notifications = 0
+        controller.onSuccessfulWrite = { notifications += 1 }
+
+        controller.setLowPowerMode(true)
+        await waitUntil { controller.lastError != nil }
+        XCTAssertEqual(notifications, 0)
+    }
+
     func testSystemReadSeedsTheDisplayedValueWhenIdle() {
         let controller = LowPowerModeController(
             client: FakeLowPowerModeClient(reads: false),

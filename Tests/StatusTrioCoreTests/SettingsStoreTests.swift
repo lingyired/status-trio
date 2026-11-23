@@ -13,11 +13,25 @@ final class SettingsStoreTests: XCTestCase {
         XCTAssertEqual(store.iconSize, 24, accuracy: 0.001)
     }
 
+    func testBackgroundUITestingHardwareMonitorOverrideDoesNotPersist() {
+        let suite = makeSuite()
+        defer { clear(suite) }
+
+        let forced = SettingsStore(
+            defaults: suite.defaults,
+            backgroundUITestingForcesHardwareMonitor: true
+        )
+        XCTAssertTrue(forced.visiblePopupSections.contains(.hardwareMonitor))
+
+        let normal = SettingsStore(defaults: suite.defaults)
+        XCTAssertFalse(normal.enabledPopupSections.contains(.hardwareMonitor))
+    }
+
     func testConnectedPowerIndicatorDefaultsToPlugAndFeedsTheIconOptions() {
         let store = SettingsStore(defaults: makeSuite().defaults)
 
         XCTAssertEqual(store.batteryConnectedIndicator, .plug)
-        XCTAssertEqual(store.batteryIconOptions.connectedIndicator, .plug)
+        XCTAssertEqual(store.batteryIconOptions.connectedMarker, .plug)
     }
 
     func testConnectedPowerIndicatorChoicePersists() {
@@ -29,7 +43,7 @@ final class SettingsStoreTests: XCTestCase {
 
         let second = SettingsStore(defaults: suite.defaults)
         XCTAssertEqual(second.batteryConnectedIndicator, .bolt)
-        XCTAssertEqual(second.batteryIconOptions.connectedIndicator, .bolt)
+        XCTAssertEqual(second.batteryIconOptions.connectedMarker, .bolt)
     }
 
     func testSplitGapProgressDefaultsOffAndPersists() {
@@ -84,6 +98,23 @@ final class SettingsStoreTests: XCTestCase {
         let reopened = SettingsStore(defaults: suite.defaults)
         XCTAssertEqual(reopened.bluetoothAudioIconChoice, .airpods)
         XCTAssertEqual(reopened.bluetoothAudioIconOptions.iconChoice, .airpods)
+    }
+
+    func testInputSourceMarkerStyleDefaultsToSystemIconAndPersists() {
+        let suite = makeSuite()
+        defer { clear(suite) }
+
+        let first = SettingsStore(defaults: suite.defaults)
+        XCTAssertEqual(first.inputSourceMarkerStyle, .systemIcon)
+
+        first.inputSourceMarkerStyle = .zhong
+        let reopened = SettingsStore(defaults: suite.defaults)
+        XCTAssertEqual(reopened.inputSourceMarkerStyle, .zhong)
+
+        // An unknown stored raw value falls back to the system icon rather than
+        // silently turning the marker on.
+        suite.defaults.set("some-future-marker", forKey: SettingsStore.inputSourceMarkerStyleDefaultsKey)
+        XCTAssertEqual(SettingsStore(defaults: suite.defaults).inputSourceMarkerStyle, .systemIcon)
     }
 
     func testRefreshIntervalDefaultsAndRange() {
@@ -296,6 +327,74 @@ final class SettingsStoreTests: XCTestCase {
         XCTAssertFalse(second.showsBluetoothPowerControl)
     }
 
+    func testListeningModeMasterSwitchDefaultsOnAndPersists() {
+        let suite = makeSuite()
+        defer { clear(suite) }
+
+        // The real listening-mode master switch must default to on so real
+        // AirPods/HUAWEI devices keep working out of the box.
+        let first = SettingsStore(defaults: suite.defaults)
+        XCTAssertTrue(first.showsBluetoothListeningMode)
+
+        first.showsBluetoothListeningMode = false
+
+        let second = SettingsStore(defaults: suite.defaults)
+        XCTAssertFalse(second.showsBluetoothListeningMode)
+        // Previewing stays independent and is off by default.
+        XCTAssertFalse(second.previewsBluetoothListeningMode)
+    }
+
+    func testListeningModePreviewIsPurgedInReleaseBuild() {
+        let suite = makeSuite()
+        defer { clear(suite) }
+        // Simulate a user who turned the developer preview on while a dev build
+        // offered it, including the demo device name/count/language.
+        suite.defaults.set(true, forKey: SettingsStore.previewsBluetoothListeningModeDefaultsKey)
+        suite.defaults.set("Fake AirPods", forKey: SettingsStore.bluetoothListeningModePreviewDeviceNameDefaultsKey)
+        suite.defaults.set(3, forKey: SettingsStore.bluetoothListeningModePreviewDeviceCountDefaultsKey)
+        suite.defaults.set("ja", forKey: SettingsStore.bluetoothListeningModePreviewLanguageDefaultsKey)
+
+        let store = SettingsStore(defaults: suite.defaults, isDevelopmentBuild: false)
+
+        // A packaged release never previews...
+        XCTAssertFalse(store.previewsBluetoothListeningMode)
+        XCTAssertFalse(store.isListeningModePreviewActive)
+        // ...and the demo data is gone from memory and from storage.
+        XCTAssertEqual(store.bluetoothListeningModePreviewDeviceName, "")
+        XCTAssertEqual(store.bluetoothListeningModePreviewDeviceCount, SettingsStore.defaultBluetoothListeningModePreviewDeviceCount)
+        XCTAssertEqual(store.bluetoothListeningModePreviewLanguage, "")
+        XCTAssertNil(suite.defaults.object(forKey: SettingsStore.previewsBluetoothListeningModeDefaultsKey))
+        XCTAssertNil(suite.defaults.object(forKey: SettingsStore.bluetoothListeningModePreviewDeviceNameDefaultsKey))
+        XCTAssertNil(suite.defaults.object(forKey: SettingsStore.bluetoothListeningModePreviewDeviceCountDefaultsKey))
+        XCTAssertNil(suite.defaults.object(forKey: SettingsStore.bluetoothListeningModePreviewLanguageDefaultsKey))
+    }
+
+    func testListeningModePreviewRemainsAvailableInDevelopmentBuild() {
+        let suite = makeSuite()
+        defer { clear(suite) }
+        suite.defaults.set(true, forKey: SettingsStore.previewsBluetoothListeningModeDefaultsKey)
+        suite.defaults.set("Fake AirPods", forKey: SettingsStore.bluetoothListeningModePreviewDeviceNameDefaultsKey)
+
+        let store = SettingsStore(defaults: suite.defaults, isDevelopmentBuild: true)
+
+        XCTAssertTrue(store.previewsBluetoothListeningMode)
+        XCTAssertEqual(store.bluetoothListeningModePreviewDeviceName, "Fake AirPods")
+        // The master listening-mode switch defaults to on, so preview is active.
+        XCTAssertTrue(store.showsBluetoothListeningMode)
+        XCTAssertTrue(store.isListeningModePreviewActive)
+    }
+
+    func testListeningModePreviewActiveRequiresMasterSwitch() {
+        let suite = makeSuite()
+        defer { clear(suite) }
+        let store = SettingsStore(defaults: suite.defaults, isDevelopmentBuild: true)
+        store.previewsBluetoothListeningMode = true
+        store.showsBluetoothListeningMode = false
+        XCTAssertFalse(store.isListeningModePreviewActive)
+        store.showsBluetoothListeningMode = true
+        XCTAssertTrue(store.isListeningModePreviewActive)
+    }
+
     func testBluetoothNetworkIconDeviceDefaultsToTheAudioDevice() {
         let store = SettingsStore(defaults: makeSuite().defaults)
 
@@ -392,7 +491,7 @@ final class SettingsStoreTests: XCTestCase {
         let first = SettingsStore(defaults: suite.defaults)
         first.connectionCenterSource = .bluetoothDevice
         first.prioritizesNetworkErrors = false
-        first.usesBluetoothAudioVolumeColor = true
+        first.bluetoothVolumeColor = .custom(BluetoothVolumeColorSelection.legacyBlue)
         first.showsBluetoothBatteryLevels = true
         first.bluetoothSymbolScale = 1.45
 
@@ -403,10 +502,15 @@ final class SettingsStoreTests: XCTestCase {
         XCTAssertTrue(second.showsBluetoothBatteryLevels)
         XCTAssertEqual(second.bluetoothSymbolScale, 1.45, accuracy: 0.001)
         XCTAssertEqual(
+            second.bluetoothVolumeColor,
+            .custom(BluetoothVolumeColorSelection.legacyBlue)
+        )
+        XCTAssertEqual(
             second.bluetoothAudioIconOptions,
             BluetoothAudioIconOptions(
                 usesVolumeColor: true,
-                symbolScale: 1.45
+                symbolScale: 1.45,
+                volumeColorRole: .custom(BluetoothVolumeColorSelection.legacyBlue)
             )
         )
     }
@@ -528,16 +632,17 @@ final class SettingsStoreTests: XCTestCase {
     func testBatterySymbolSizeIsEnabledWhenEitherSymbolIsVisible() {
         let store = SettingsStore(defaults: makeSuite().defaults)
 
-        store.showsBatteryPercentage = true
-        store.showsChargingIndicator = false
+        store.batteryOnBatteryMarker = .percentage
+        store.batteryChargingMarker = .hidden
+        store.batteryConnectedMarker = .hidden
+        store.batteryNoBatteryMarker = .hidden
         XCTAssertTrue(store.isBatterySymbolSizeEnabled)
 
-        store.showsBatteryPercentage = false
-        store.showsChargingIndicator = true
+        store.batteryOnBatteryMarker = .hidden
+        store.batteryChargingMarker = .bolt
         XCTAssertTrue(store.isBatterySymbolSizeEnabled)
 
-        store.showsBatteryPercentage = false
-        store.showsChargingIndicator = false
+        store.batteryChargingMarker = .hidden
         XCTAssertFalse(store.isBatterySymbolSizeEnabled)
     }
 
@@ -545,7 +650,7 @@ final class SettingsStoreTests: XCTestCase {
         let store = SettingsStore(defaults: makeSuite().defaults)
 
         store.batterySymbolScale = 4
-        XCTAssertEqual(store.batterySymbolScale, 1.1, accuracy: 0.001)
+        XCTAssertEqual(store.batterySymbolScale, 1.2, accuracy: 0.001)
 
         store.batterySymbolScale = 0.5
         XCTAssertEqual(store.batterySymbolScale, 0.9, accuracy: 0.001)
@@ -558,7 +663,7 @@ final class SettingsStoreTests: XCTestCase {
 
         let store = SettingsStore(defaults: suite.defaults)
 
-        XCTAssertEqual(store.batterySymbolScale, 1.1, accuracy: 0.001)
+        XCTAssertEqual(store.batterySymbolScale, 1.2, accuracy: 0.001)
     }
 
     func testStoredBatteryCriticalThresholdIsClampedOnLoad() {
@@ -762,6 +867,7 @@ final class SettingsStoreTests: XCTestCase {
 
         XCTAssertEqual(store.batteryFullThreshold, 80, accuracy: 0.001)
         XCTAssertEqual(store.batteryIconOptions.fullThreshold, 80)
+        XCTAssertFalse(store.batteryFullThresholdReadFailed)
     }
 
     /// The value is a one-shot fill, not a mode: the slider keeps working
@@ -806,6 +912,14 @@ final class SettingsStoreTests: XCTestCase {
 
         XCTAssertEqual(store.batteryFullThreshold, 75, accuracy: 0.001)
         XCTAssertFalse(store.canReadSystemChargeLimit)
+        XCTAssertTrue(
+            store.batteryFullThresholdReadFailed,
+            "A failed press is what surfaces the note."
+        )
+
+        // Taking manual control clears the note.
+        store.batteryFullThreshold = 70
+        XCTAssertFalse(store.batteryFullThresholdReadFailed)
     }
 
     func testSystemValueIsReportedUnavailableWhenNoLimitIsStored() throws {
@@ -1399,34 +1513,88 @@ final class SettingsStoreTests: XCTestCase {
 
         XCTAssertEqual(
             store.popupSectionOrder,
-            [.battery, .network, .vpn, .bluetooth, .volume, .audioInput, .brightness, .inputSource]
+            [.hardwareMonitor, .battery, .quickActions, .network, .vpn, .bluetooth, .volume, .audioInput, .brightness, .inputSource]
         )
     }
 
-    func testPopupVolumeScrollDefaultsToEverywhereSystemDirectionAndNaturalScrollingOff() {
-        let store = SettingsStore(defaults: makeSuite().defaults)
+    func testPopupPanelScrollDefaultsOffWithSystemDirectionAndNaturalScrollingOff() {
+        let suite = makeSuite()
+        defer { clear(suite) }
+        let store = SettingsStore(defaults: suite.defaults)
 
-        XCTAssertTrue(store.popupScrollAdjustsVolume)
-        XCTAssertEqual(store.popupVolumeScrollScope, .panel)
+        XCTAssertFalse(store.popupPanelScrollAdjustsVolume)
         XCTAssertEqual(store.popupVolumeScrollDirection, .up)
         XCTAssertFalse(store.popupVolumeNaturalScrolling)
     }
 
-    func testPopupVolumeScrollChoicesPersistAcrossStoreInstances() {
+    func testPopupPanelScrollChoicePersistsAcrossStoreInstances() {
         let suite = makeSuite()
         defer { clear(suite) }
 
         let first = SettingsStore(defaults: suite.defaults)
-        first.popupScrollAdjustsVolume = false
-        first.popupVolumeScrollScope = .volumeControl
+        first.popupPanelScrollAdjustsVolume = true
         first.popupVolumeScrollDirection = .down
         first.popupVolumeNaturalScrolling = true
 
         let second = SettingsStore(defaults: suite.defaults)
-        XCTAssertFalse(second.popupScrollAdjustsVolume)
-        XCTAssertEqual(second.popupVolumeScrollScope, .volumeControl)
+        XCTAssertTrue(second.popupPanelScrollAdjustsVolume)
         XCTAssertEqual(second.popupVolumeScrollDirection, .down)
         XCTAssertTrue(second.popupVolumeNaturalScrolling)
+    }
+
+    func testLegacyPopupScrollMasterOffMigratesToOff() {
+        let suite = makeSuite()
+        defer { clear(suite) }
+        suite.defaults.set(false, forKey: SettingsStore.legacyPopupScrollAdjustsVolumeDefaultsKey)
+
+        XCTAssertFalse(SettingsStore(defaults: suite.defaults).popupPanelScrollAdjustsVolume)
+    }
+
+    func testLegacySliderOnlyScopeMigratesToOff() {
+        let suite = makeSuite()
+        defer { clear(suite) }
+        suite.defaults.set(true, forKey: SettingsStore.legacyPopupScrollAdjustsVolumeDefaultsKey)
+        suite.defaults.set("volumeControl", forKey: SettingsStore.legacyPopupVolumeScrollScopeDefaultsKey)
+
+        XCTAssertFalse(SettingsStore(defaults: suite.defaults).popupPanelScrollAdjustsVolume)
+    }
+
+    func testLegacyPanelScopeMigratesToOn() {
+        let suite = makeSuite()
+        defer { clear(suite) }
+        suite.defaults.set(true, forKey: SettingsStore.legacyPopupScrollAdjustsVolumeDefaultsKey)
+        suite.defaults.set("panel", forKey: SettingsStore.legacyPopupVolumeScrollScopeDefaultsKey)
+
+        XCTAssertTrue(SettingsStore(defaults: suite.defaults).popupPanelScrollAdjustsVolume)
+    }
+
+    func testStoredPanelScrollValueWinsOverLegacyKeys() {
+        let suite = makeSuite()
+        defer { clear(suite) }
+        suite.defaults.set(true, forKey: SettingsStore.legacyPopupScrollAdjustsVolumeDefaultsKey)
+        suite.defaults.set("panel", forKey: SettingsStore.legacyPopupVolumeScrollScopeDefaultsKey)
+        suite.defaults.set(false, forKey: SettingsStore.popupPanelScrollAdjustsVolumeDefaultsKey)
+
+        XCTAssertFalse(SettingsStore(defaults: suite.defaults).popupPanelScrollAdjustsVolume)
+    }
+
+    func testUntouchedExistingInstallResolvesPanelScrollOn() {
+        XCTAssertTrue(
+            SettingsStore.resolvedPanelScrollAdjustsVolume(
+                storedValue: nil,
+                legacyMaster: nil,
+                legacyScopeRaw: nil,
+                hasExistingInstallation: true
+            )
+        )
+        XCTAssertFalse(
+            SettingsStore.resolvedPanelScrollAdjustsVolume(
+                storedValue: nil,
+                legacyMaster: nil,
+                legacyScopeRaw: nil,
+                hasExistingInstallation: false
+            )
+        )
     }
 
     func testPopupVolumeScrollFeedbackFollowsTheSystemSwitchUntilToggled() {
@@ -1482,13 +1650,9 @@ final class SettingsStoreTests: XCTestCase {
         XCTAssertFalse(store.popupVolumeNaturalScrolling)
     }
 
-    func testUnknownStoredPopupVolumeScrollValuesFallBackToDefaults() {
+    func testUnknownStoredPopupVolumeScrollDirectionFallsBackToDefault() {
         let suite = makeSuite()
         defer { clear(suite) }
-        suite.defaults.set(
-            "nowhere",
-            forKey: SettingsStore.popupVolumeScrollScopeDefaultsKey
-        )
         suite.defaults.set(
             "sideways",
             forKey: SettingsStore.popupVolumeScrollDirectionDefaultsKey
@@ -1496,15 +1660,12 @@ final class SettingsStoreTests: XCTestCase {
 
         let store = SettingsStore(defaults: suite.defaults)
 
-        XCTAssertEqual(store.popupVolumeScrollScope, .panel)
         XCTAssertEqual(store.popupVolumeScrollDirection, .up)
         XCTAssertFalse(store.popupVolumeNaturalScrolling)
     }
 
-    func testPopupVolumeScrollOptionsExposeStableChoices() {
-        XCTAssertEqual(PopupVolumeScrollScope.allCases, [.panel, .volumeControl])
+    func testPopupVolumeScrollDirectionOptionsExposeStableChoices() {
         XCTAssertEqual(PopupVolumeScrollDirection.allCases, [.up, .down])
-        XCTAssertEqual(PopupVolumeScrollScope.panel.id, .panel)
         XCTAssertEqual(PopupVolumeScrollDirection.up.id, .up)
         XCTAssertTrue(PopupVolumeScrollDirection.up.increasesWithScrollUp)
         XCTAssertFalse(PopupVolumeScrollDirection.down.increasesWithScrollUp)
@@ -1530,7 +1691,7 @@ final class SettingsStoreTests: XCTestCase {
         let store = SettingsStore(defaults: suite.defaults)
         XCTAssertEqual(
             store.popupSectionOrder,
-            [.volume, .battery, .network, .vpn, .bluetooth, .audioInput, .brightness, .inputSource]
+            [.volume, .battery, .hardwareMonitor, .quickActions, .network, .vpn, .bluetooth, .audioInput, .brightness, .inputSource]
         )
         XCTAssertFalse(store.enabledPopupSections.contains(.audioInput))
         store.setPopupSection(.audioInput, enabled: true)
@@ -1539,16 +1700,60 @@ final class SettingsStoreTests: XCTestCase {
         )
     }
 
+    func testHardwareMonitorDefaultsOffAndMigrationPersistsWithoutChangingUserChoices() {
+        let suite = makeSuite()
+        defer { clear(suite) }
+        suite.defaults.set(
+            ["inputSource", "volume", "unknown", "volume", "battery"],
+            forKey: SettingsStore.popupSectionOrderDefaultsKey
+        )
+        suite.defaults.set(["volume"], forKey: SettingsStore.enabledPopupSectionsDefaultsKey)
+
+        let first = SettingsStore(defaults: suite.defaults)
+        let expectedOrder: [PopupSection] = [
+            .inputSource, .volume, .battery, .hardwareMonitor, .quickActions, .network, .vpn, .bluetooth, .audioInput,
+            .brightness
+        ]
+        XCTAssertEqual(first.popupSectionOrder, expectedOrder)
+        XCTAssertEqual(first.enabledPopupSections, [.volume])
+        // Main's policy: sanitize in memory but never rewrite an existing stored
+        // list, so the user's raw choices on disk stay untouched.
+        XCTAssertEqual(
+            suite.defaults.stringArray(forKey: SettingsStore.popupSectionOrderDefaultsKey),
+            ["inputSource", "volume", "unknown", "volume", "battery"]
+        )
+        let second = SettingsStore(defaults: suite.defaults)
+        XCTAssertEqual(second.popupSectionOrder, expectedOrder)
+        XCTAssertFalse(second.enabledPopupSections.contains(.hardwareMonitor))
+
+        second.setPopupSection(.hardwareMonitor, enabled: true)
+        let enabled = SettingsStore(defaults: suite.defaults)
+        XCTAssertTrue(enabled.enabledPopupSections.contains(.hardwareMonitor))
+        enabled.setPopupSection(.hardwareMonitor, enabled: false)
+        XCTAssertFalse(SettingsStore(defaults: suite.defaults).enabledPopupSections.contains(.hardwareMonitor))
+    }
+
+    func testHardwareMonitorIsFirstAndDisabledOnFreshInstall() {
+        let suite = makeSuite()
+        defer { clear(suite) }
+        let store = SettingsStore(defaults: suite.defaults)
+        XCTAssertEqual(store.popupSectionOrder.first, .hardwareMonitor)
+        XCTAssertFalse(store.enabledPopupSections.contains(.hardwareMonitor))
+        // A fresh install must not freeze today's default order on disk, or
+        // sections added in later releases could never reach this user.
+        XCTAssertNil(suite.defaults.stringArray(forKey: SettingsStore.popupSectionOrderDefaultsKey))
+    }
+
     func testPopupSectionVisibilityDefaultsToEverythingExceptBluetooth() {
         let store = SettingsStore(defaults: makeSuite().defaults)
 
         XCTAssertEqual(
             store.enabledPopupSections,
-            Set([.battery, .network, .vpn, .volume])
+            Set([.battery, .quickActions, .network, .volume])
         )
         XCTAssertEqual(
             store.visiblePopupSections,
-            [.battery, .network, .vpn, .volume]
+            [.battery, .quickActions, .network, .volume]
         )
     }
 
@@ -1562,17 +1767,17 @@ final class SettingsStoreTests: XCTestCase {
 
         XCTAssertEqual(
             first.popupSectionOrder,
-            [.battery, .network, .vpn, .bluetooth, .volume, .audioInput, .brightness, .inputSource]
+            [.hardwareMonitor, .battery, .quickActions, .network, .vpn, .bluetooth, .volume, .audioInput, .brightness, .inputSource]
         )
         XCTAssertEqual(
             first.visiblePopupSections,
-            [.battery, .vpn, .bluetooth, .volume]
+            [.battery, .quickActions, .bluetooth, .volume]
         )
 
         let second = SettingsStore(defaults: suite.defaults)
         XCTAssertEqual(
             second.enabledPopupSections,
-            Set([.battery, .vpn, .bluetooth, .volume])
+            Set([.battery, .quickActions, .bluetooth, .volume])
         )
     }
 
@@ -1588,11 +1793,11 @@ final class SettingsStoreTests: XCTestCase {
 
         XCTAssertEqual(
             store.popupSectionOrder,
-            [.volume, .battery, .network, .vpn, .bluetooth, .audioInput, .brightness, .inputSource]
+            [.vpn, .hardwareMonitor, .battery, .quickActions, .network, .bluetooth, .volume, .audioInput, .brightness, .inputSource]
         )
         XCTAssertEqual(
             SettingsStore(defaults: suite.defaults).popupSectionOrder,
-            [.volume, .battery, .network, .vpn, .bluetooth, .audioInput, .brightness, .inputSource]
+            [.vpn, .hardwareMonitor, .battery, .quickActions, .network, .bluetooth, .volume, .audioInput, .brightness, .inputSource]
         )
     }
 
@@ -1609,7 +1814,7 @@ final class SettingsStoreTests: XCTestCase {
 
         XCTAssertEqual(
             store.popupSectionOrder,
-            [.volume, .network, .battery, .vpn, .bluetooth, .audioInput, .brightness, .inputSource]
+            [.volume, .network, .hardwareMonitor, .battery, .quickActions, .vpn, .bluetooth, .audioInput, .brightness, .inputSource]
         )
     }
 
@@ -1621,14 +1826,6 @@ final class SettingsStoreTests: XCTestCase {
             ["network", "unknown", "network"],
             forKey: SettingsStore.enabledPopupSectionsDefaultsKey
         )
-        // The one-shot VPN migration is covered by `VPNRowSettingsTests`; this
-        // test is about unknown raw values, so the marker is set to keep the
-        // stored list the only input.
-        suite.defaults.set(
-            true,
-            forKey: SettingsStore.vpnPopupSectionIntroducedDefaultsKey
-        )
-
         let store = SettingsStore(defaults: suite.defaults)
 
         XCTAssertEqual(store.enabledPopupSections, Set([.network]))
@@ -2024,6 +2221,61 @@ final class SettingsStoreTests: XCTestCase {
 
         XCTAssertEqual(store.externalVolumeConfiguration(for: "audio-benq"), .default)
         XCTAssertTrue(store.externalVolumeConfigurations.isEmpty)
+    }
+
+    func testContinuousSliderWritesAreCoalesced() async throws {
+        let suite = makeSuite()
+        defer { clear(suite) }
+        let store = SettingsStore(
+            defaults: suite.defaults,
+            persistCoalescingInterval: .milliseconds(20)
+        )
+
+        for value in stride(from: 20.0, through: 35.0, by: 1) {
+            store.setIconSizeFromSlider(value)
+        }
+
+        XCTAssertNil(
+            suite.defaults.object(forKey: SettingsStore.iconSizeDefaultsKey),
+            "a drag must not store one preferences value per frame"
+        )
+
+        store.flushPendingPersists()
+
+        XCTAssertEqual(
+            (suite.defaults.object(forKey: SettingsStore.iconSizeDefaultsKey) as? NSNumber)?.doubleValue,
+            35
+        )
+    }
+
+    func testCoalescedWriteLandsAfterTheIntervalWithoutAnExplicitFlush() async throws {
+        let suite = makeSuite()
+        defer { clear(suite) }
+        let store = SettingsStore(
+            defaults: suite.defaults,
+            persistCoalescingInterval: .milliseconds(20)
+        )
+
+        store.setBatterySymbolScaleFromSlider(1.05)
+
+        // The write is coalesced, so it must not be in the defaults synchronously.
+        XCTAssertNil(
+            suite.defaults.object(forKey: SettingsStore.batterySymbolScaleDefaultsKey),
+            "a coalesced write must not land before the interval"
+        )
+
+        // Wait for the timer to drain instead of assuming a fixed wall-clock
+        // delay; a loaded CI runner can schedule the coalescing task later than
+        // the interval without the store misbehaving.
+        let deadline = ContinuousClock.now + .seconds(2)
+        var persisted: Double?
+        while ContinuousClock.now < deadline {
+            persisted = (suite.defaults.object(forKey: SettingsStore.batterySymbolScaleDefaultsKey) as? NSNumber)?.doubleValue
+            if persisted != nil { break }
+            try await Task.sleep(for: .milliseconds(20))
+        }
+
+        XCTAssertEqual(persisted, 1.05)
     }
 
     private func makeSuite() -> (defaults: UserDefaults, name: String) {

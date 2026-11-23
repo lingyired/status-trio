@@ -3,7 +3,7 @@ import Foundation
 
 @MainActor
 final class SystemIconAppearanceMonitor {
-    static let defaultPollingInterval: TimeInterval = 1
+    static let defaultPollingInterval: TimeInterval = 5
 
     /// Undocumented but exported by AppKit; registered by name so the app never
     /// links against a private symbol.
@@ -43,8 +43,10 @@ final class SystemIconAppearanceMonitor {
 
         // The system neither posts a usable change notification nor updates the
         // WindowServer configuration promptly, but it does write the preference
-        // right away, so poll it. A cached preferences read is very cheap.
-        pollTimer = Timer.scheduledTimer(
+        // right away, so poll it. A cached preferences read is very cheap, but
+        // the exact schedule is not: a tolerance lets the system coalesce the
+        // wakeup with other work instead of waking the CPU for us alone.
+        let timer = Timer.scheduledTimer(
             withTimeInterval: pollingInterval,
             repeats: true
         ) { [weak self] _ in
@@ -53,6 +55,8 @@ final class SystemIconAppearanceMonitor {
                 self?.refresh()
             }
         }
+        timer.tolerance = pollingInterval / 5
+        pollTimer = timer
     }
 
     func stop() {

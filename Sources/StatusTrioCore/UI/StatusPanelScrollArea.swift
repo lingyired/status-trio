@@ -1,3 +1,4 @@
+import Combine
 import SwiftUI
 
 /// Whether an enclosing status panel already provides the only scroll surface
@@ -35,6 +36,8 @@ struct StatusPanelScrollArea<Content: View, Footer: View>: View {
     /// The tallest the whole panel (page plus pinned footer) may become. `nil`
     /// while the panel has no placement yet, which leaves the page unconstrained.
     let maximumHeight: CGFloat?
+    var fillsWindow: Bool
+    var onNaturalHeight: ((CGFloat) -> Void)?
     let content: Content
     let footer: Footer
 
@@ -42,13 +45,30 @@ struct StatusPanelScrollArea<Content: View, Footer: View>: View {
     @State private var footerHeight: CGFloat = 0
     /// How far the page has scrolled, in points. Feeds the slim indicator.
     @State private var scrollOffset: CGFloat = 0
+    /// Live copy of the system "Show scroll bars" preference (#360).
+    @State private var systemScrollBarPreference = PanelScrollBarSystemPreference(
+        rawValueString: UserDefaults.standard.string(
+            forKey: PanelScrollBarSystemPreference.defaultsKey
+        )
+    )
+    /// Trackpad (overlay) vs mouse (legacy) — the second input to the mapping.
+    /// Refreshed on appear and on notification, because AppKit's accessor is
+    /// main-actor isolated and cannot seed a stored property's default.
+    @State private var preferredScrollerStyle: NSScroller.Style = .overlay
+    /// True from a scroll event until the transient fade-out timer fires.
+    @State private var isScrolling = false
+    @State private var fadeOutTask: Task<Void, Never>?
 
     init(
         maximumHeight: CGFloat?,
+        fillsWindow: Bool = false,
+        onNaturalHeight: ((CGFloat) -> Void)? = nil,
         @ViewBuilder content: () -> Content,
         @ViewBuilder footer: () -> Footer
     ) {
         self.maximumHeight = maximumHeight
+        self.fillsWindow = fillsWindow
+        self.onNaturalHeight = onNaturalHeight
         self.content = content()
         self.footer = footer()
     }
@@ -71,40 +91,132 @@ struct StatusPanelScrollArea<Content: View, Footer: View>: View {
         )
     }
 
+    private var scrollBarPolicy: PanelScrollBarVisibilityPolicy {
+        PanelScrollBarVisibilityPolicy.resolve(
+            systemPreference: systemScrollBarPreference,
+            scrollerStyle: preferredScrollerStyle
+        )
+    }
+
+    private var isIndicatorVisible: Bool {
+        PanelScrollIndicatorVisibility(
+            policy: scrollBarPolicy,
+            overflows: overflowsBudget,
+            isScrolling: isScrolling
+        ).isVisible
+    }
+
     var body: some View {
         // Keep the same content identity when expanding a list crosses the
         // budget. Switching between plain and scrolling branches would reset
         // the lists' local expansion state.
-        VStack(spacing: 0) {
-            ScrollView(.vertical) {
-                measuredContent
+        // The native hosting bounds are the presentation clock. Reading a
+        // published height into a fixed VStack can lag a frame and centre an
+        // old-sized stack inside the new window, moving the footer by half the
+        // last resize step. GeometryReader fills the actual current proposal.
+        GeometryReader { geometry in
+            VStack(spacing: 0) {
+                ScrollView(.vertical) {
+                    measuredContent
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                .frame(height: !fillsWindow ? viewportHeight : max(0, geometry.size.height - footerHeight))
+                .scrollDisabled(!overflowsBudget)
+                // The system overlay scroller is ~15pt wide on current macOS and
+                // cannot be made thinner; the panel draws its own 4pt bar instead
+                // (#237 follow-up). Scrolling itself stays fully native.
+                .scrollIndicators(.hidden)
+                .overlay(alignment: .topTrailing) {
+                    if let metrics = indicatorMetrics {
+                        Capsule(style: .continuous)
+                            .fill(Color.primary.opacity(0.28))
+                            .frame(
+                                width: PanelScrollIndicatorMetrics.width,
+                                height: metrics.thumbHeight
+                            )
+                            .offset(y: metrics.thumbOffset)
+                            .padding(.trailing, PanelScrollIndicatorMetrics.trailingInset)
+                            .opacity(isIndicatorVisible ? 1 : 0)
+                            .animation(
+                                .easeInOut(duration: 0.25),
+                                value: isIndicatorVisible
+                            )
+                            .allowsHitTesting(false)
+                            .accessibilityHidden(true)
+                    }
+                }
+                measuredFooter
                     .fixedSize(horizontal: false, vertical: true)
             }
-            .frame(height: viewportHeight)
-            .scrollDisabled(!overflowsBudget)
-            // The system overlay scroller is ~15pt wide on current macOS and
-            // cannot be made thinner; the panel draws its own 4pt bar instead
-            // (#237 follow-up). Scrolling itself stays fully native.
-            .scrollIndicators(.hidden)
-            .overlay(alignment: .topTrailing) {
-                if let metrics = indicatorMetrics {
-                    Capsule(style: .continuous)
-                        .fill(Color.primary.opacity(0.28))
-                        .frame(
-                            width: PanelScrollIndicatorMetrics.width,
-                            height: metrics.thumbHeight
-                        )
-                        .offset(y: metrics.thumbOffset)
-                        .padding(.trailing, PanelScrollIndicatorMetrics.trailingInset)
-                        .allowsHitTesting(false)
-                        .accessibilityHidden(true)
-                }
-            }
-            measuredFooter
-                .fixedSize(horizontal: false, vertical: true)
         }
-        .onPreferenceChange(StatusPanelContentHeightKey.self) { contentHeight = $0 }
-        .onPreferenceChange(StatusPanelFooterHeightKey.self) { footerHeight = $0 }
+        .frame(height: !fillsWindow ? viewportHeight + footerHeight : nil)
+        .onPreferenceChange(StatusPanelContentHeightKey.self) { height in
+            contentHeight = height
+            reportHeight(content: height, footer: footerHeight)
+        }
+        .onPreferenceChange(StatusPanelFooterHeightKey.self) { height in
+            footerHeight = height
+            reportHeight(content: contentHeight, footer: height)
+        }
+        .onChange(of: maximumHeight) { _ in
+            reportHeight(content: contentHeight, footer: footerHeight)
+        }
+        .onChange(of: scrollOffset) { _ in
+            noteScrollActivity()
+        }
+        .onAppear {
+            refreshScrollBarPreference()
+        }
+        .onReceive(NotificationCenter.default.publisher(
+            for: UserDefaults.didChangeNotification
+        )) { _ in
+            refreshScrollBarPreference()
+        }
+        .onReceive(NotificationCenter.default.publisher(
+            for: NSScroller.preferredScrollerStyleDidChangeNotification
+        )) { _ in
+            refreshScrollBarPreference()
+        }
+        .onDisappear {
+            fadeOutTask?.cancel()
+            fadeOutTask = nil
+            isScrolling = false
+        }
+    }
+
+    private func reportHeight(content: CGFloat, footer: CGFloat) {
+        guard content > 0 else { return }
+        // Report in the measurement callback itself. Waiting for another body
+        // update after storing this preference delays the window by a frame.
+        onNaturalHeight?(min(content + footer, maximumHeight ?? .infinity))
+    }
+
+    /// Only the transient policy fades; a persistent indicator ignores this
+    /// state entirely. Each scroll event restarts the countdown so a continuous
+    /// gesture keeps the bar up until it actually stops.
+    private func noteScrollActivity() {
+        guard scrollBarPolicy == .transient else { return }
+        isScrolling = true
+        fadeOutTask?.cancel()
+        fadeOutTask = Task { @MainActor in
+            try? await Task.sleep(
+                nanoseconds: UInt64(PanelScrollIndicatorVisibility.fadeOutDelay * 1_000_000_000)
+            )
+            guard !Task.isCancelled else { return }
+            isScrolling = false
+        }
+    }
+
+    /// Re-read the two signals when the system preference or input device
+    /// changes. No polling: AppKit posts the notification on the meaningful
+    /// transitions.
+    private func refreshScrollBarPreference() {
+        systemScrollBarPreference = PanelScrollBarSystemPreference(
+            rawValueString: UserDefaults.standard.string(
+                forKey: PanelScrollBarSystemPreference.defaultsKey
+            )
+        )
+        preferredScrollerStyle = NSScroller.preferredScrollerStyle
     }
 
     private var measuredContent: some View {
@@ -200,6 +312,70 @@ enum PanelScrollOffset {
     }
 }
 
+// MARK: - Scroll bar visibility preference (#360)
+
+/// macOS's global "Show scroll bars" option (`AppleShowScrollBars`).
+enum PanelScrollBarSystemPreference: String, CaseIterable {
+    case automatic = "Automatic"
+    case whenScrolling = "WhenScrolling"
+    case always = "Always"
+
+    static let defaultsKey = "AppleShowScrollBars"
+
+    /// Unknown or missing values fall back to `Automatic`, the system default.
+    init(rawValueString: String?) {
+        switch rawValueString {
+        case Self.always.rawValue: self = .always
+        case Self.whenScrolling.rawValue: self = .whenScrolling
+        default: self = .automatic
+        }
+    }
+}
+
+/// How the panel's slim 4pt indicator decides when to be visible (#360).
+enum PanelScrollBarVisibilityPolicy: Equatable {
+    /// Visible whenever the page overflows — system "Always", or "Automatic"
+    /// with a mouse (legacy scrollers).
+    case persistent
+    /// Visible only while the user scrolls, fading out shortly afterwards —
+    /// system "When scrolling", or "Automatic" with a trackpad (overlay).
+    case transient
+
+    static func resolve(
+        systemPreference: PanelScrollBarSystemPreference,
+        scrollerStyle: NSScroller.Style
+    ) -> PanelScrollBarVisibilityPolicy {
+        switch systemPreference {
+        case .always:
+            return .persistent
+        case .whenScrolling:
+            return .transient
+        case .automatic:
+            return scrollerStyle == .legacy ? .persistent : .transient
+        }
+    }
+}
+
+/// The indicator's visible/hidden decision for one frame, kept pure so the
+/// three system preferences and the scrolling states are testable without a
+/// run loop.
+struct PanelScrollIndicatorVisibility: Equatable {
+    /// How long the transient indicator lingers after the last scroll event.
+    static let fadeOutDelay: TimeInterval = 0.6
+
+    let policy: PanelScrollBarVisibilityPolicy
+    let overflows: Bool
+    let isScrolling: Bool
+
+    var isVisible: Bool {
+        guard overflows else { return false }
+        switch policy {
+        case .persistent: return true
+        case .transient: return isScrolling
+        }
+    }
+}
+
 /// Connects the panel's slim indicator to the hosting `NSScrollView`
 /// (#237 follow-up).
 ///
@@ -211,6 +387,24 @@ enum PanelScrollOffset {
 /// native, so the wheel, trackpad and keyboard are unchanged.
 struct PanelScrollBridge: NSViewRepresentable {
     @Binding var offset: CGFloat
+
+    /// The panel draws its own 4pt indicator. Force overlay chrome even when
+    /// macOS prefers legacy scrollers, because a legacy scroller removes a
+    /// 17pt gutter from the document and shifts the page's horizontal layout
+    /// whenever content starts or stops overflowing.
+    @MainActor
+    static func configureScrollerChrome(_ scrollView: NSScrollView) {
+        if scrollView.scrollerStyle != .overlay {
+            scrollView.scrollerStyle = .overlay
+        }
+        if scrollView.hasVerticalScroller {
+            scrollView.hasVerticalScroller = false
+        }
+        if scrollView.hasHorizontalScroller {
+            scrollView.hasHorizontalScroller = false
+        }
+        scrollView.autohidesScrollers = true
+    }
 
     func makeCoordinator() -> Coordinator {
         Coordinator(offset: $offset)
@@ -249,13 +443,7 @@ struct PanelScrollBridge: NSViewRepresentable {
 
         func attach() {
             guard let scrollView = enclosingScrollView else { return }
-            if scrollView.hasVerticalScroller {
-                scrollView.hasVerticalScroller = false
-            }
-            if scrollView.hasHorizontalScroller {
-                scrollView.hasHorizontalScroller = false
-            }
-            scrollView.autohidesScrollers = true
+            PanelScrollBridge.configureScrollerChrome(scrollView)
             coordinator?.bind(to: scrollView)
         }
     }
@@ -264,7 +452,7 @@ struct PanelScrollBridge: NSViewRepresentable {
     final class Coordinator {
         private var offset: Binding<CGFloat>
         private weak var scrollView: NSScrollView?
-        private var observer: NSObjectProtocol?
+        private var observers: [NSObjectProtocol] = []
         private let scheduler: StatusPanelLayoutUpdateScheduler
 
         init(
@@ -287,14 +475,17 @@ struct PanelScrollBridge: NSViewRepresentable {
         }
 
         func bind(to scrollView: NSScrollView) {
-            if self.scrollView === scrollView, observer != nil {
+            if self.scrollView === scrollView, !observers.isEmpty {
                 schedulePublish()
                 return
             }
             detach()
             self.scrollView = scrollView
+            scrollView.postsFrameChangedNotifications = true
             scrollView.contentView.postsBoundsChangedNotifications = true
-            observer = NotificationCenter.default.addObserver(
+            scrollView.contentView.postsFrameChangedNotifications = true
+            scrollView.documentView?.postsFrameChangedNotifications = true
+            observers.append(NotificationCenter.default.addObserver(
                 forName: NSView.boundsDidChangeNotification,
                 object: scrollView.contentView,
                 queue: .main
@@ -302,7 +493,8 @@ struct PanelScrollBridge: NSViewRepresentable {
                 Task { @MainActor in
                     self?.noteBoundsChanged()
                 }
-            }
+            })
+            observeLayoutChanges(of: scrollView)
             schedulePublish()
         }
 
@@ -313,12 +505,45 @@ struct PanelScrollBridge: NSViewRepresentable {
         }
 
         func detach() {
-            if let observer {
+            for observer in observers {
                 NotificationCenter.default.removeObserver(observer)
             }
             scheduler.invalidate()
-            observer = nil
+            observers.removeAll()
             scrollView = nil
+        }
+
+        /// SwiftUI can recreate scroller chrome after the bridge first attaches.
+        /// Reassert overlay style whenever the scroll view, clip view or document
+        /// changes shape, before the next scroll-offset publication.
+        private func observeLayoutChanges(of scrollView: NSScrollView) {
+            let frameObjects: [NSView] = [scrollView, scrollView.contentView]
+                + (scrollView.documentView.map { [$0] } ?? [])
+            for object in frameObjects {
+                observers.append(NotificationCenter.default.addObserver(
+                    forName: NSView.frameDidChangeNotification,
+                    object: object,
+                    queue: .main
+                ) { [weak self] _ in
+                    MainActor.assumeIsolated {
+                        self?.reconfigureChrome()
+                    }
+                })
+            }
+            observers.append(NotificationCenter.default.addObserver(
+                forName: NSScroller.preferredScrollerStyleDidChangeNotification,
+                object: nil,
+                queue: .main
+            ) { [weak self] _ in
+                MainActor.assumeIsolated {
+                    self?.reconfigureChrome()
+                }
+            })
+        }
+
+        private func reconfigureChrome() {
+            guard let scrollView else { return }
+            PanelScrollBridge.configureScrollerChrome(scrollView)
         }
 
         /// Leaving the layout pass before writing the binding keeps SwiftUI from

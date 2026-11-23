@@ -63,6 +63,9 @@ protocol VolumeMonitoring: AnyObject {
 @MainActor
 protocol BrightnessMonitoring: AnyObject {
     var updates: AsyncStream<BrightnessStatus> { get }
+    /// Latest actual backend observation for this display, independently of
+    /// publications caused by other displays.
+    func latestUpdateSequence(forDisplayID displayID: String) -> UInt64
     func start()
     func stop()
     func refresh()
@@ -75,12 +78,16 @@ protocol BrightnessMonitoring: AnyObject {
     func setExternalBrightnessConfigurations(
         _ configurations: [String: ExternalBrightnessConfiguration]
     )
+    /// Switches BetterDisplay-backed displays between the hardware scale and
+    /// BetterDisplay's combined-brightness scale (issue #344).
+    func setUseBetterDisplayCombinedBrightness(_ enabled: Bool)
     func setBrightness(_ scalar: Double, forDisplayID displayID: String)
     func finishBrightnessAdjustment(displayID: String)
 }
 
 @MainActor
 extension BrightnessMonitoring {
+    func latestUpdateSequence(forDisplayID displayID: String) -> UInt64 { 0 }
     func setDetailsVisible(_ visible: Bool) {}
     func setDisplayAsleep(_ asleep: Bool) {}
     func topologyChanged() {}
@@ -88,6 +95,7 @@ extension BrightnessMonitoring {
     func setExternalBrightnessConfigurations(
         _ configurations: [String: ExternalBrightnessConfiguration]
     ) {}
+    func setUseBetterDisplayCombinedBrightness(_ enabled: Bool) {}
     func setBrightness(_ scalar: Double, forDisplayID displayID: String) {}
     func finishBrightnessAdjustment(displayID: String) {}
 }

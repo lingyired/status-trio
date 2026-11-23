@@ -80,7 +80,7 @@ struct PresentationArchitectureTests {
         let renamedScene = IconPresentationMapper.scene(inputs: renamedInputs, configuration: configuration)
         #expect(originalScene.center == .symbol(IconSymbolState(
             source: .symbol(name: "airpods", variableValue: nil, fallback: "headphones"),
-            color: .bluetooth,
+            color: .bluetoothIcon,
             scale: BluetoothAudioIconOptions.defaultSymbolScale
         )))
         #expect(originalScene == renamedScene)
@@ -112,6 +112,28 @@ struct PresentationArchitectureTests {
             let found = SwiftSourceIdentifierScanner.identifiers(in: source).intersection(forbidden)
             #expect(found.isEmpty, "\(path) references forbidden identifiers: \(found.sorted())")
         }
+    }
+
+    @Test func productSourcesExcludeRetiredDesignerModels() throws {
+        let retired: Set<String> = [
+            "IconDesignerEditorModel",
+            "IconDesignerEditHistory",
+            "IconDesignerEditSnapshot",
+            "IconDesignerInspectorModel"
+        ]
+        let sourceRoot = packageRoot.appending(path: "Sources/StatusTrioCore")
+        let enumerator = try #require(FileManager.default.enumerator(
+            at: sourceRoot,
+            includingPropertiesForKeys: nil
+        ))
+        var found = Set<String>()
+        for case let url as URL in enumerator where url.pathExtension == "swift" {
+            let source = try String(contentsOf: url, encoding: .utf8)
+            found.formUnion(
+                SwiftSourceIdentifierScanner.identifiers(in: source).intersection(retired)
+            )
+        }
+        #expect(found.isEmpty, "product sources reference retired designer models: \(found.sorted())")
     }
 
     @Test func sourceIdentifierScannerIgnoresCommentsAndLiteralTextButScansInterpolation() {

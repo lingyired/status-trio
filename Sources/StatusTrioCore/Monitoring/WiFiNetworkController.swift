@@ -274,10 +274,10 @@ final class WiFiNetworkController: ObservableObject {
     init(
         scanWorker: any WiFiNetworkScanning = CoreWLANNetworkWorker(),
         now: @escaping () -> Date = Date.init,
-        minimumScanInterval: TimeInterval = 30,
-        periodicRefreshInterval: Duration = .seconds(30),
+        minimumScanInterval: TimeInterval = 120,
+        periodicRefreshInterval: Duration = .seconds(60),
         periodicRefreshSleep: @escaping @Sendable (Duration) async throws -> Void = {
-            try await Task.sleep(for: $0)
+            try await Task.sleep(for: $0, tolerance: $0 / 5)
         }
     ) {
         self.worker = scanWorker
@@ -388,17 +388,20 @@ final class WiFiNetworkController: ObservableObject {
     /// it does not require `isActive`; when the list happens to be active it
     /// still refreshes the cached scan as the normal path does. The snapshot is
     /// refreshed by the regular monitor cadence afterward.
-    func setPowerFromQuickAction(_ enabled: Bool) {
+    func setPowerFromQuickAction(_ enabled: Bool, completion: @escaping @MainActor (Bool) -> Void = { _ in }) {
         _ = scanGate.advance()
         worker.setPower(enabled) { [weak self] changed in
             Task { @MainActor [weak self] in
-                guard let self, self.isActive else { return }
-                if changed {
-                    self.state = .ready
-                    self.refreshNow()
-                } else {
-                    self.state = .failed
+                guard let self else { return }
+                if self.isActive {
+                    if changed {
+                        self.state = .ready
+                        self.refreshNow()
+                    } else {
+                        self.state = .failed
+                    }
                 }
+                completion(changed)
             }
         }
     }

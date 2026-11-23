@@ -151,7 +151,8 @@ final class AudioInputMonitor: AudioInputMonitoring {
 
   private var status = AudioInputStatus.empty
   private var isEnabled = false
-  /// Popover surface: owns default-input usage polling and its 1 Hz wakeups.
+  /// Popover surface: owns default-input usage polling on its five-second
+  /// rhythm.
   private var isVisible = false
   /// Settings surface: keeps the inventory live without usage polling.
   private var isDeviceListVisible = false
@@ -182,9 +183,12 @@ final class AudioInputMonitor: AudioInputMonitoring {
   init(
     hardware: any AudioInputHardware = CoreAudioInputHardware(),
     commandTimeout: Duration = .seconds(2),
-    usagePollInterval: Duration = .seconds(1),
+    usagePollInterval: Duration = .seconds(5),
     usageSleep: @escaping @Sendable (Duration) async throws -> Void = { duration in
-      try await Task.sleep(for: duration)
+      // Each tick walks every CoreAudio process object, so the timer may slip by
+      // a fifth of the interval without costing the indicator anything: the
+      // "input in use" dot is a coarse state, not a live meter.
+      try await Task.sleep(for: duration, tolerance: duration / 5)
     },
     sleep: @escaping @Sendable (Duration) async throws -> Void = { duration in
       try await Task.sleep(for: duration)
@@ -202,6 +206,18 @@ final class AudioInputMonitor: AudioInputMonitoring {
     self.usageSleep = usageSleep
     self.sleep = sleep
     continuation.yield(.empty)
+  }
+
+  deinit {
+    // `stop()` is main-actor isolated and deinit can land on any thread. The
+    // worker owns the CoreAudio observation and dispatches teardown on its own
+    // serial queue, so calling it here is safe and removes the listeners that
+    // would otherwise outlive a released monitor.
+    worker.stopObservation()
+    usagePollTask?.cancel()
+    scalarDebounceTask?.cancel()
+    commandTimeoutTask?.cancel()
+    errorExpiryTask?.cancel()
   }
 
   func setEnabled(_ enabled: Bool) {
@@ -776,21 +792,25 @@ final class AudioInputMonitor: AudioInputMonitoring {
     let pollGeneration = usagePollGeneration
     let expectedSession = sessionGeneration
     usagePollTask = Task { [weak self] in
-      guard let self else { return }
       while !Task.isCancelled {
+        // Bind only the sleep closure, not the monitor: a `guard let self`
+        // outside the loop kept the monitor alive across every one-second
+        // sleep, so releasing it without `stop()` could never run `deinit`.
+        guard let sleep = self?.usageSleep, let interval = self?.usagePollInterval else {
+          return
+        }
         do {
-          try await self.usageSleep(self.usagePollInterval)
+          try await sleep(interval)
         } catch {
           break
         }
-        guard !Task.isCancelled else { break }
+        guard !Task.isCancelled, let self else { return }
         self.refreshDefaultInputUsage(sessionGeneration: expectedSession)
       }
       // A cancelled loop can resume after a close/reopen already installed its replacement.
       // Only the loop that still owns the generation may clear the task reference.
-      if self.usagePollGeneration == pollGeneration {
-        self.usagePollTask = nil
-      }
+      guard let self, self.usagePollGeneration == pollGeneration else { return }
+      self.usagePollTask = nil
     }
   }
 

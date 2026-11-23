@@ -15,14 +15,40 @@ import Foundation
 /// only `Watts`; macpow's `Watts > 0 ? Watts : PDPowermW` fallback is the
 /// behaviour this avoids.
 struct USBOutputSample: Equatable, Sendable {
+    /// Total of `ports`, kept as its own field because the breakdown residual
+    /// subtracts one number.
     let watts: Double
     let readAt: Date
-    let portCount: Int
+    /// One entry per port that is powering something, in channel order.
+    let ports: [USBPortOutput]
+
+    var portCount: Int { ports.count }
+
+    init(watts: Double, readAt: Date, ports: [USBPortOutput]) {
+        self.watts = watts
+        self.readAt = readAt
+        self.ports = ports
+    }
 
     func isFresh(at now: Date, notBefore: Date? = nil) -> Bool {
         let age = now.timeIntervalSince(readAt)
         return (-5...30).contains(age) && (notBefore.map { readAt >= $0 } ?? true)
     }
+}
+
+/// One port's live output. `channel` is the SMC `Dn` index (or the
+/// `PowerOutDetails` `PortIndex` on the fallback path); `name` is the attached
+/// accessory as USB reports it, filled in from `USBPortTopology`.
+struct USBPortOutput: Equatable, Sendable {
+    let channel: Int
+    let watts: Double
+    var name: String? = nil
+}
+
+/// One answered SMC accessory channel: `DnJV` × `DnJI` for channel `n`.
+struct PortRail: Equatable, Sendable {
+    let channel: Int
+    let watts: Double
 }
 
 /// SMC D1–D4 accessory rails. `.unavailable` means none of the fixed keys
@@ -31,7 +57,7 @@ struct USBOutputSample: Equatable, Sendable {
 /// an old rail value look fresh.
 enum PortOutputRails: Equatable, Sendable {
     case unavailable
-    case measured(watts: [Double], readAt: Date)
+    case measured(rails: [PortRail], readAt: Date)
 }
 
 enum USBOutputReader {
@@ -42,19 +68,51 @@ enum USBOutputReader {
 
     /// Prefer a live SMC rail. An answered rail that is only idling stays
     /// hidden; it must not be replaced by a frozen `PowerOutDetails` value.
-    static func resolve(portRails: PortOutputRails, registry: [String: Any], now: Date = Date()) -> USBOutputSample? {
+    ///
+    /// With a topology, each port is named after its accessory, and the port
+    /// the Mac is charging from is dropped: a sink port's rail is not output
+    /// to an accessory, whatever it reads.
+    static func resolve(portRails: PortOutputRails, registry: [String: Any],
+                        topology: USBPortTopology? = nil, now: Date = Date()) -> USBOutputSample? {
+        let ports: [USBPortOutput]
+        let readAt: Date
         switch portRails {
         case .unavailable:
-            return parse(registry: registry, now: now)
-        case .measured(let rails, let readAt):
-            let active = rails.filter { $0 >= chargingFloorWatts }
-            guard !active.isEmpty else { return nil }
-            let total = active.reduce(0, +)
-            guard total <= 300 else { return nil }
+            guard let parsed = parsePorts(registry: registry) else { return nil }
+            ports = parsed
+            readAt = now
+        case .measured(let rails, let smcReadAt):
+            ports = rails.filter { $0.watts >= chargingFloorWatts }
+                .map { USBPortOutput(channel: $0.channel, watts: $0.watts) }
             // Keep the SMC read-start, not `now`, so a stalled refresh cannot
             // pass this reading off as fresh to the breakdown's staleness check.
-            return USBOutputSample(watts: total, readAt: readAt, portCount: active.count)
+            readAt = smcReadAt
         }
+        // Drop the charging (sink) port and name the rest *before* the 300 W
+        // sanity cap. A sink rail can read high enough to push the raw sum over
+        // the cap; excluding it first keeps the real accessory branches instead
+        // of discarding the whole sample.
+        let labelled = topology.map { topology in
+            ports.filter { $0.channel != topology.inputChannel }
+                .map { port -> USBPortOutput in
+                    var port = port
+                    port.name = topology.name(forChannel: port.channel)
+                    return port
+                }
+        } ?? ports
+        return make(labelled, readAt: readAt)
+    }
+
+    /// Whether a refresh has any output worth naming, before labels are read.
+    static func hasOutput(_ portRails: PortOutputRails, registry: [String: Any]) -> Bool {
+        resolve(portRails: portRails, registry: registry) != nil
+    }
+
+    private static func make(_ ports: [USBPortOutput], readAt: Date) -> USBOutputSample? {
+        guard !ports.isEmpty else { return nil }
+        let total = ports.reduce(0) { $0 + $1.watts }
+        guard total <= 300 else { return nil }
+        return USBOutputSample(watts: total, readAt: readAt, ports: ports)
     }
 
     /// Ports that are powering an accessory, summed into one output reading.
@@ -62,18 +120,29 @@ enum USBOutputReader {
     /// the PD contract. Values outside a plausible single-port envelope are
     /// treated as "this key is not a live output reading" rather than as power.
     static func parse(registry: [String: Any], now: Date = Date()) -> USBOutputSample? {
+        guard let outputs = parsePorts(registry: registry) else { return nil }
+        return make(outputs, readAt: now)
+    }
+
+    /// Raw per-port outputs from `PowerOutDetails`, floored and range-checked but
+    /// not yet summed, so a caller can drop the sink channel before applying the
+    /// 300 W cap. `nil` only when the registry carries no port list at all.
+    private static func parsePorts(registry: [String: Any]) -> [USBPortOutput]? {
         guard let ports = registry["PowerOutDetails"] as? [[String: Any]], !ports.isEmpty else { return nil }
-        var total = 0.0
-        var counted = 0
-        for port in ports {
+        var outputs: [USBPortOutput] = []
+        for (offset, port) in ports.enumerated() {
             guard let milliwatts = number(port["Watts"]) else { continue }
             let watts = milliwatts / 1_000
             guard watts.isFinite, (0...150).contains(watts) else { continue }
-            total += watts
-            counted += 1
+            // Same idle floor as the live rails: a quiescent port must not be
+            // drawn, or named, as an accessory drawing power.
+            guard watts >= chargingFloorWatts else { continue }
+            // `PortIndex` is 1-based and matched the SMC channel numbers on
+            // Mac16,1 (index 1 and D1 both carried the Watch charger).
+            let channel = number(port["PortIndex"]).map { Int($0) } ?? offset + 1
+            outputs.append(USBPortOutput(channel: channel, watts: watts))
         }
-        guard counted > 0, total <= 300 else { return nil }
-        return USBOutputSample(watts: total, readAt: now, portCount: counted)
+        return outputs
     }
 
     private static func number(_ value: Any?) -> Double? {

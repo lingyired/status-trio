@@ -683,7 +683,8 @@ private final class RouteReadingSequence: @unchecked Sendable {
 private final class PassiveVolumeEventMonitor: VolumeEventMonitoring {
     func start(
         onDefaultDeviceChange: @escaping @MainActor @Sendable () -> Void,
-        onVolumeChange: @escaping @MainActor @Sendable () -> Void
+        onVolumeChange: @escaping @MainActor @Sendable () -> Void,
+        onDeviceListChange: @escaping @MainActor @Sendable () -> Void
     ) {}
 
     func reconcile() {}

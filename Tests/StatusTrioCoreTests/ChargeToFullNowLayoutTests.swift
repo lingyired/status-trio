@@ -14,6 +14,12 @@ final class ChargeToFullNowLayoutTests: XCTestCase {
         XCTAssertGreaterThan(available.height, hidden.height + 20)
     }
 
+    func testUnavailableExplainsInsteadOfReservingEmptySpace() throws {
+        let hidden = try render(.hidden)
+        let unavailable = try render(.unavailable)
+        XCTAssertGreaterThan(unavailable.height, hidden.height + 10)
+    }
+
     func testApplyingAndFailureStatesRemainInsideThePopoverWidth() throws {
         for presentation in [
             ChargeToFullNowPresentation.applying,
@@ -23,8 +29,7 @@ final class ChargeToFullNowLayoutTests: XCTestCase {
             .cancelConfirmationRequired(limit: 80),
             .cancelPending,
             .cancelling,
-            .cancelFailed(reason: .rejected),
-            .limitRestored(limit: 80)
+            .cancelFailed(reason: .rejected)
         ] {
             let size = try render(presentation)
             XCTAssertEqual(size.width, 330, accuracy: 1)
@@ -54,8 +59,7 @@ final class ChargeToFullNowLayoutTests: XCTestCase {
                 .cancelPending,
                 .cancelling,
                 .cancelFailed(reason: .rejected),
-                .cancelLimitChangedConfirmation(current: 90, target: 80),
-                .limitRestored(limit: 80)
+                .cancelLimitChangedConfirmation(current: 90, target: 80)
             ] {
                 let size = try render(presentation, language: language)
                 XCTAssertEqual(

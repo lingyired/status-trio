@@ -30,7 +30,9 @@ final class TelemetryReporter {
         configuration: TelemetryConfiguration,
         wakeNotificationCenter: NotificationCenter = NSWorkspace.shared.notificationCenter,
         sleep: @escaping @Sendable (Duration) async throws -> Void = { duration in
-            try await Task.sleep(for: duration)
+            // A multi-hour check interval gains nothing from precision; a wide
+            // tolerance lets the system coalesce the wake.
+            try await Task.sleep(for: duration, tolerance: duration / 5)
         },
         snapshotContext: @escaping @MainActor (AppLanguage, AppIconPlacement) -> TelemetryContext?
     ) {

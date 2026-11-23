@@ -1,3 +1,4 @@
+import Darwin
 import Foundation
 import Testing
 @testable import StatusTrioCore
@@ -43,14 +44,50 @@ struct BoundedProcessInvocationTests {
     /// keeps the pipe open, so EOF never arrives. A `readDataToEndOfFile()` based
     /// reader hangs here forever.
     @Test func runSyncFinishesWhenADescendantKeepsThePipesOpen() {
+        let pidFile = FileManager.default.temporaryDirectory
+            .appendingPathComponent("held-pipe-\(UUID().uuidString).pid")
+        defer { try? FileManager.default.removeItem(at: pidFile) }
+
         let started = ContinuousClock.now
         let outcome = BoundedProcessInvocation.runSync(
             executableURL: URL(fileURLWithPath: "/bin/sh"),
-            arguments: ["-c", "sleep 30 & printf 'ready\\n'; exit 0"],
+            arguments: [
+                "-c",
+                "sleep 30 & echo $! > \"\(pidFile.path)\"; printf 'ready\\n'; exit 0",
+            ],
             timeout: .milliseconds(300)
         )
+
+        // The direct child is gone but its descendant inherited the write ends.
+        // Kill it rather than leaving a 30-second sleeper behind the suite.
+        if let text = try? String(contentsOf: pidFile, encoding: .utf8),
+           let pid = Int32(text.trimmingCharacters(in: .whitespacesAndNewlines)) {
+            _ = kill(pid, SIGKILL)
+            for _ in 0..<100 {
+                errno = 0
+                if kill(pid, 0) == -1, errno == ESRCH { break }
+                usleep(10_000)
+            }
+        }
+
         #expect(outcome == .timedOut)
         #expect(ContinuousClock.now - started < .seconds(10))
+    }
+
+    /// Signal escalation runs on the same owner queue as the deadline. A child
+    /// that ignores SIGTERM must still be gone at the kill grace, not at its own
+    /// convenience. `exec` keeps the ignoring process the direct child so the
+    /// SIGKILL lands on it rather than leaving a descendant behind.
+    @Test func runSyncKillsAChildThatIgnoresTermination() {
+        let started = ContinuousClock.now
+        let outcome = BoundedProcessInvocation.runSync(
+            executableURL: URL(fileURLWithPath: "/bin/sh"),
+            arguments: ["-c", "trap '' TERM; exec sleep 30"],
+            timeout: .milliseconds(300)
+        )
+
+        #expect(outcome == .timedOut)
+        #expect(ContinuousClock.now - started < .seconds(5))
     }
 
     @Test func runSyncRejectsAChildThatWritesMoreThanTheLimit() {
@@ -61,5 +98,39 @@ struct BoundedProcessInvocationTests {
             outputLimit: 4_096
         )
         #expect(outcome == .outputTooLarge)
+    }
+
+    /// Issue #268 regression: `finish` used to nil its `stdoutPipe`/`stderrPipe`
+    /// properties while `drainPipesAfterProcessExit` on the stream queues was
+    /// still reading them, releasing the NSPipe mid-drain - a use-after-free
+    /// (SIGSEGV/EXC_BAD_ACCESS in `objc_retain` on
+    /// `-[NSConcretePipe fileHandleForReading]`). The race is timing-dependent, so
+    /// beat on it from every direction at once: normal exit, timeout with a held
+    /// descendant pipe, timeout on a plain sleeper, and an over-limit writer.
+    /// Under TSan this fails on the old code; the fix leaves the pipes to ARC and
+    /// the version-stable here.
+    @Test func noUseAfterFreeUnderConcurrentFinishAndDrain() async {
+        let base = URL(fileURLWithPath: "/bin/sh")
+
+        // ~40 invocations: enough overlap for the stream-queue drains to land
+        // between the deadline handling and finish while staying quick on a busy
+        // runner.
+        for _ in 0..<10 {
+            await withTaskGroup(of: Void.self) { group in
+                group.addTask {
+                    _ = BoundedProcessInvocation.runSync(executableURL: base, arguments: ["-c", "printf 'ok'"], timeout: .seconds(2))
+                }
+                group.addTask {
+                    _ = BoundedProcessInvocation.runSync(executableURL: base, arguments: ["-c", "sleep 30 & printf 'ready'; exit 0"], timeout: .milliseconds(200))
+                }
+                group.addTask {
+                    _ = BoundedProcessInvocation.runSync(executableURL: base, arguments: ["-c", "sleep 30"], timeout: .milliseconds(200))
+                }
+                group.addTask {
+                    _ = BoundedProcessInvocation.runSync(executableURL: base, arguments: ["-c", "yes 0123456789"], timeout: .seconds(2), outputLimit: 4_096)
+                }
+                for await _ in group {}
+            }
+        }
     }
 }

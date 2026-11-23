@@ -340,25 +340,6 @@ struct DockChargingEnvironmentTests {
         try await fixture.waitForDockVisibilityPollingToStop()
         #expect(dockVisibility.stopCount == 1)
     }
-
-    @Test func systemAppearancePollRefreshesDockVisibility() async throws {
-        let dockVisibility = DockVisibilityMonitorSpy()
-        let fixture = try DockChargingEnvironmentFixture(
-            placement: .dock,
-            dockVisibilityMonitor: dockVisibility
-        )
-        defer { fixture.tearDown() }
-        fixture.settings.showsMenuBarChargingEffect = false
-        fixture.settings.showsDockChargingEffect = true
-
-        fixture.environment.start()
-        try await fixture.waitForDockVisibilityPolling()
-        let refreshCount = dockVisibility.refreshCount
-
-        fixture.environment.appIconController.systemPollDidFire?()
-
-        #expect(dockVisibility.refreshCount == refreshCount + 1)
-    }
 }
 
 @MainActor

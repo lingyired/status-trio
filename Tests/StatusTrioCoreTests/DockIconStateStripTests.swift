@@ -90,4 +90,33 @@ final class DockIconStateStripTests: XCTestCase {
         XCTAssertGreaterThan(data.count, 10_000)
         print("Wrote \(data.count) bytes to \(outputPath)")
     }
+
+    func testTwoRowDesignStripHasEightPerRowAndFourEachAppearance() throws {
+        let rows = DockIconStateStrip.twoRowTiles
+
+        XCTAssertEqual(rows.count, 2)
+        XCTAssertTrue(rows.allSatisfy { $0.count == 8 }, "Every row must hold eight tiles")
+        XCTAssertEqual(
+            rows.map { $0.filter { $0.backgroundStyle == .dark }.count },
+            [4, 4]
+        )
+        XCTAssertEqual(
+            rows.map { $0.filter { $0.backgroundStyle == .light }.count },
+            [4, 4]
+        )
+
+        let data = try DockIconStateStrip.twoRowPNGData(scale: 1)
+        XCTAssertGreaterThan(data.count, 10_000)
+    }
+
+    func testWritesTwoRowOutputWhenEnvironmentIsSet() throws {
+        guard let outputPath = ProcessInfo.processInfo.environment["STATUS_TRIO_DOCK_STATE_STRIP_TWOROW"] else {
+            throw XCTSkip("Set STATUS_TRIO_DOCK_STATE_STRIP_TWOROW to write the two-row Dock state strip.")
+        }
+
+        let data = try DockIconStateStrip.twoRowPNGData()
+        try data.write(to: URL(fileURLWithPath: outputPath))
+        XCTAssertGreaterThan(data.count, 10_000)
+        print("Wrote \(data.count) bytes to \(outputPath)")
+    }
 }

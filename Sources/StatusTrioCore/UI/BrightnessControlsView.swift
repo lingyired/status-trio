@@ -4,10 +4,12 @@ import SwiftUI
 /// Each row is a single inline capsule whose display name lives inside the bar
 /// (no separate title line).
 struct BrightnessControlsView: View {
+    @Environment(\.statusPanelMediumTextEnabled) private var panelMediumText
     let state: BrightnessPanelState
     let actions: StatusPanelActions
     let scrollTargets: PopoverScrollTargets
     let onOpenDisplaySettings: () -> Void
+    var fillColor: Color = .primary
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -16,7 +18,8 @@ struct BrightnessControlsView: View {
                     row: row,
                     actions: actions,
                     scrollTargets: scrollTargets,
-                    onOpenDisplaySettings: onOpenDisplaySettings
+                    onOpenDisplaySettings: onOpenDisplaySettings,
+                    fillColor: fillColor
                 )
             }
         }
@@ -24,10 +27,12 @@ struct BrightnessControlsView: View {
 }
 
 private struct BrightnessRowView: View {
+    @Environment(\.statusPanelMediumTextEnabled) private var panelMediumText
     let row: BrightnessRowState
     let actions: StatusPanelActions
     let scrollTargets: PopoverScrollTargets
     let onOpenDisplaySettings: () -> Void
+    var fillColor: Color = .primary
 
     @EnvironmentObject private var localization: Localization
 
@@ -46,6 +51,7 @@ private struct BrightnessRowView: View {
                 systemName: row.symbolName,
                 font: .system(size: 15, weight: .medium)
             )
+            .frame(width: PanelSummaryActionMetrics.leadingGlyphSlot)
             .foregroundStyle(.secondary)
             .accessibilityHidden(true)
 
@@ -55,11 +61,14 @@ private struct BrightnessRowView: View {
                         value: sliderBinding,
                         label: row.name,
                         isEnabled: true,
+                        tint: fillColor,
                         accessibilityLabel: row.accessibilityLabel,
                         accessibilityValue: row.percentageText,
                         onEditingChanged: { editing in
                             isEditing = editing
-                            if !editing {
+                            if editing {
+                                actions.beginBrightnessAdjustment(displayID: row.id)
+                            } else {
                                 actions.finishBrightnessAdjustment(displayID: row.id)
                             }
                         }
@@ -75,6 +84,7 @@ private struct BrightnessRowView: View {
                         value: sliderBinding,
                         label: row.name,
                         isEnabled: false,
+                        tint: fillColor,
                         accessibilityLabel: row.accessibilityLabel,
                         accessibilityValue: row.percentageText,
                         onEditingChanged: { _ in }
@@ -96,7 +106,7 @@ private struct BrightnessRowView: View {
                 .accessibilityHidden(true)
 
             Button(action: onOpenDisplaySettings) {
-                PanelActionGlyph(systemName: "gearshape")
+                PanelActionGlyph(systemName: "gearshape", size: PanelSummaryActionMetrics.actionSlot)
                     .foregroundStyle(.secondary)
                     .contentShape(Rectangle())
             }
@@ -108,6 +118,13 @@ private struct BrightnessRowView: View {
         .onChange(of: row.scalar) { newValue in
             if !isEditing, let newValue {
                 draft = newValue
+            }
+        }
+        .onDisappear {
+            // A row removed mid-gesture must not leave the pointer gesture open.
+            if isEditing {
+                isEditing = false
+                actions.finishBrightnessAdjustment(displayID: row.id)
             }
         }
         .accessibilityElement(children: .combine)
@@ -122,7 +139,7 @@ private struct BrightnessRowView: View {
                 .frame(height: PanelLevelSliderMetrics.barHeight)
             HStack(spacing: 8) {
                 Text(row.name)
-                    .font(.system(size: 10, weight: .medium))
+                    .font(.system(size: 10, weight: panelMediumText ? .medium : .regular))
                     .lineLimit(1)
                     .truncationMode(.middle)
                     .foregroundStyle(.primary.opacity(0.6))

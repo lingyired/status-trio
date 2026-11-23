@@ -39,7 +39,7 @@ for command in ruby gh shasum xmllint curl; do
 done
 
 SCHEMA_VERSION="$(manifest_value schema_version)"
-[[ "$SCHEMA_VERSION" == "1" ]] ||
+[[ "$SCHEMA_VERSION" == "1" || "$SCHEMA_VERSION" == "2" ]] ||
     die "unsupported manifest schema_version '$SCHEMA_VERSION'."
 
 SOURCE_SHA="$(manifest_value source_sha)"
@@ -57,6 +57,36 @@ RELEASE_BODY_FILE="$(manifest_value release.body_file)"
 RELEASE_NOTES_DIR="$(manifest_value release.notes_dir)"
 SIGNING_KIND="$(manifest_value signing.kind)"
 NOTARIZATION_STATUS="$(manifest_value notarization.status)"
+if [[ "$SCHEMA_VERSION" == "2" ]]; then
+    CANDIDATE_PUBLISHABLE="$(manifest_value candidate.publishable)"
+    CANDIDATE_SOURCE_SHA="$(manifest_value candidate.source_sha)"
+    CANDIDATE_BUILD_RUN_ID="$(manifest_value candidate.build_run_id)"
+    CANDIDATE_SIGNING_KIND="$(manifest_value signing.kind)"
+    VERIFICATION_LEVEL="$(manifest_value verification.level)"
+    VERIFICATION_STATUS="$(manifest_value verification.status)"
+    [[ "$CANDIDATE_PUBLISHABLE" == "true" ]] ||
+        die "candidate manifest is not publishable."
+    [[ "$CANDIDATE_SOURCE_SHA" == "$SOURCE_SHA" ]] ||
+        die "candidate.source_sha '$CANDIDATE_SOURCE_SHA' does not match source_sha '$SOURCE_SHA'."
+    [[ -n "$CANDIDATE_BUILD_RUN_ID" ]] ||
+        die "candidate.build_run_id is missing."
+    [[ "$CANDIDATE_SIGNING_KIND" == "developer_id" ]] ||
+        die "a release_candidate must be Developer ID signed."
+    [[ "$NOTARIZATION_STATUS" == "accepted_and_stapled" ]] ||
+        die "a release_candidate must be notarized and stapled."
+    case "$VERIFICATION_LEVEL" in
+        fast|strict) ;;
+        *) die "candidate verification.level '$VERIFICATION_LEVEL' is invalid." ;;
+    esac
+    case "$VERIFICATION_STATUS" in
+        passed|declared) ;;
+        *) die "candidate verification.status '$VERIFICATION_STATUS' is invalid." ;;
+    esac
+    if [[ "$VERIFICATION_LEVEL" == "strict" && "$VERIFICATION_STATUS" != "passed" ]]; then
+        die "a strict candidate must record verification.status=passed."
+    fi
+    echo "Publishing $VERIFICATION_LEVEL candidate built by run $CANDIDATE_BUILD_RUN_ID."
+fi
 TOOLCHAIN_RUNNER="$(manifest_value toolchain.runner)"
 TOOLCHAIN_XCODE="$(manifest_value toolchain.xcode)"
 TOOLCHAIN_SWIFT="$(manifest_value toolchain.swift)"
@@ -109,6 +139,9 @@ case "$SIGNING_KIND:$NOTARIZATION_STATUS" in
 esac
 [[ "$MINIMUM_SYSTEM_VERSION" == "13.0" ]] ||
     die "manifest minimum system version must remain 13.0."
+# Optional for recovery of historical DMG-only packages. New ZIPs must already
+# exist and match the frozen manifest; publish never constructs an archive.
+ZIP_FILENAME="$(ruby "$ROOT/scripts/verify-release-zip.rb" "$MANIFEST" "$PACKAGE_DIR")"
 
 [[ "$MANIFEST" == "$PACKAGE_DIR/release-manifest.json" ]] ||
     die "manifest must be the release-manifest.json inside PACKAGE_DIR."
@@ -397,7 +430,7 @@ verify_release_assets() {
     ruby -rjson -e '
         release_path, dmg_name, dmg_digest, dmg_length, checksum_name,
           checksum_digest, checksum_length, manifest_name, manifest_digest,
-          manifest_length = ARGV
+          manifest_length, package_manifest, package_dir = ARGV
         release = JSON.parse(File.read(release_path))
         assets = release.fetch("assets")
         expected = {
@@ -405,6 +438,14 @@ verify_release_assets() {
           checksum_name => ["sha256:#{checksum_digest}", Integer(checksum_length)],
           manifest_name => ["sha256:#{manifest_digest}", Integer(manifest_length)]
         }
+        archive = JSON.parse(File.read(package_manifest))["zip"]
+        if archive
+          require "digest"
+          name = archive.fetch("filename")
+          sidecar = File.join(package_dir, name + ".sha256")
+          expected[name] = ["sha256:#{archive.fetch("sha256")}", Integer(archive.fetch("length"))]
+          expected[name + ".sha256"] = ["sha256:#{Digest::SHA256.file(sidecar).hexdigest}", File.size(sidecar)]
+        end
         expected.each do |name, (digest, length)|
           matches = assets.select { |asset| asset["name"] == name }
           abort("Release has #{matches.length} assets named #{name}, expected one.") unless matches.length == 1
@@ -414,7 +455,7 @@ verify_release_assets() {
         end
     ' "$release_path" "$DMG_FILENAME" "$DMG_SHA256" "$DMG_LENGTH" \
         "$SHA_ASSET_FILENAME" "$SHA_ASSET_SHA256" "$SHA_ASSET_LENGTH" \
-        "$MANIFEST_ASSET_FILENAME" "$MANIFEST_ASSET_SHA256" "$MANIFEST_ASSET_LENGTH"
+        "$MANIFEST_ASSET_FILENAME" "$MANIFEST_ASSET_SHA256" "$MANIFEST_ASSET_LENGTH" "$MANIFEST" "$PACKAGE_DIR"
 }
 
 verify_existing_draft_assets_are_same_artifact() {
@@ -423,7 +464,7 @@ verify_existing_draft_assets_are_same_artifact() {
     ruby -rjson -e '
         release_path, dmg_name, dmg_digest, dmg_length, checksum_name,
           checksum_digest, checksum_length, manifest_name, manifest_digest,
-          manifest_length = ARGV
+          manifest_length, package_manifest, package_dir = ARGV
         release = JSON.parse(File.read(release_path))
         assets = release.fetch("assets")
         expected = {
@@ -431,6 +472,14 @@ verify_existing_draft_assets_are_same_artifact() {
           checksum_name => ["sha256:#{checksum_digest}", Integer(checksum_length)],
           manifest_name => ["sha256:#{manifest_digest}", Integer(manifest_length)]
         }
+        archive = JSON.parse(File.read(package_manifest))["zip"]
+        if archive
+          require "digest"
+          name = archive.fetch("filename")
+          sidecar = File.join(package_dir, name + ".sha256")
+          expected[name] = ["sha256:#{archive.fetch("sha256")}", Integer(archive.fetch("length"))]
+          expected[name + ".sha256"] = ["sha256:#{Digest::SHA256.file(sidecar).hexdigest}", File.size(sidecar)]
+        end
         expected.each do |name, (digest, length)|
           matches = assets.select { |asset| asset["name"] == name }
           abort("Draft Release has #{matches.length} assets named #{name}, expected at most one.") if matches.length > 1
@@ -445,7 +494,7 @@ verify_existing_draft_assets_are_same_artifact() {
         end
     ' "$release_path" "$DMG_FILENAME" "$DMG_SHA256" "$DMG_LENGTH" \
         "$SHA_ASSET_FILENAME" "$SHA_ASSET_SHA256" "$SHA_ASSET_LENGTH" \
-        "$MANIFEST_ASSET_FILENAME" "$MANIFEST_ASSET_SHA256" "$MANIFEST_ASSET_LENGTH"
+        "$MANIFEST_ASSET_FILENAME" "$MANIFEST_ASSET_SHA256" "$MANIFEST_ASSET_LENGTH" "$MANIFEST" "$PACKAGE_DIR"
 }
 
 ensure_tag() {
@@ -486,12 +535,11 @@ ensure_draft_release() {
         [[ "$RELEASE_DRAFT" == "true" ]] ||
             die "Release $TAG was not a draft after creation."
     fi
-    gh release upload "$TAG" \
-        "$PACKAGE_DIR/$DMG_FILENAME" \
-        "$PACKAGE_DIR/$SHA_ASSET_FILENAME" \
-        "$PACKAGE_DIR/$MANIFEST_ASSET_FILENAME" \
-        --repo "$RELEASE_REPO" \
-        --clobber
+    UPLOAD_FILES=("$PACKAGE_DIR/$DMG_FILENAME" "$PACKAGE_DIR/$SHA_ASSET_FILENAME" "$PACKAGE_DIR/$MANIFEST_ASSET_FILENAME")
+    if [[ -n "$ZIP_FILENAME" ]]; then
+        UPLOAD_FILES+=("$PACKAGE_DIR/$ZIP_FILENAME" "$PACKAGE_DIR/$ZIP_FILENAME.sha256")
+    fi
+    gh release upload "$TAG" "${UPLOAD_FILES[@]}" --repo "$RELEASE_REPO" --clobber
     refresh_release_json
     verify_release_assets
 }
@@ -609,7 +657,17 @@ RELEASE_DRAFT="$(
     die "Release $TAG is still a draft after publication."
 verify_release_assets
 
-PUBLIC_VERIFY_ATTEMPTS="${PUBLIC_VERIFY_ATTEMPTS:-6}"
+# ZIP publication never repackages the frozen artifact. Check its public bytes.
+if [[ -n "$ZIP_FILENAME" ]]; then
+    for zip_asset in "$ZIP_FILENAME" "$ZIP_FILENAME.sha256"; do
+        curl -fsSL --connect-timeout 15 --max-time 300 \
+            "https://github.com/$RELEASE_REPO/releases/download/$TAG/$zip_asset" > "$TEMP_ROOT/$zip_asset"
+        [[ "$(file_sha256 "$TEMP_ROOT/$zip_asset")" == "$(file_sha256 "$PACKAGE_DIR/$zip_asset")" ]] ||
+            die "Published ZIP asset mismatch: $zip_asset"
+    done
+fi
+
+PUBLIC_VERIFY_ATTEMPTS="${PUBLIC_VERIFY_ATTEMPTS:-10}"
 PUBLIC_VERIFY_DELAY_SECONDS="${PUBLIC_VERIFY_DELAY_SECONDS:-5}"
 [[ "$PUBLIC_VERIFY_ATTEMPTS" =~ ^[1-9][0-9]*$ ]] ||
     die "PUBLIC_VERIFY_ATTEMPTS must be a positive integer."
@@ -623,12 +681,24 @@ PUBLIC_DMG_SHA256=""
 PUBLIC_ERROR="$TEMP_ROOT/public-error.log"
 PUBLIC_VERIFIED=false
 
+# Prefer the GitHub contents API, which reflects the just-pushed appcast commit
+# immediately. raw.githubusercontent.com can still serve a stale copy from its
+# CDN cache, which once made a successful publish look like a mismatch.
+fetch_public_feed() {
+    local destination="$1"
+    if gh api "$APPCAST_API_PATH?ref=$RELEASE_BRANCH" -H "Accept: application/vnd.github.raw" \
+        > "$destination" 2>>"$PUBLIC_ERROR"; then
+        return 0
+    fi
+    curl -fsSL --connect-timeout 15 --max-time 300 "$PUBLIC_FEED_URL" > "$destination" 2>>"$PUBLIC_ERROR"
+}
+
 for ((attempt = 1; attempt <= PUBLIC_VERIFY_ATTEMPTS; attempt++)); do
     : > "$PUBLIC_ERROR"
     if curl -fsSL --connect-timeout 15 --max-time 300 "$DMG_URL" > "$PUBLIC_DMG_PATH" 2>"$PUBLIC_ERROR"; then
         PUBLIC_DMG_SHA256="$(file_sha256 "$PUBLIC_DMG_PATH")"
         if [[ "$PUBLIC_DMG_SHA256" == "$DMG_SHA256" ]] &&
-            curl -fsSL --connect-timeout 15 --max-time 300 "$PUBLIC_FEED_URL" > "$REMOTE_FEED" 2>>"$PUBLIC_ERROR" &&
+            fetch_public_feed "$REMOTE_FEED" &&
             verify_appcast_item "$REMOTE_FEED" 2>>"$PUBLIC_ERROR"; then
             PUBLIC_VERIFIED=true
             break

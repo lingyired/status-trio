@@ -204,4 +204,150 @@ final class StatusPanelRouteTests: XCTestCase {
         fixture.store.setPopoverVisible(false)
         fixture.store.stop()
     }
+
+    func testRouteObserverSeesOnlyCommittedNonSummaryTransitions() {
+        let fixture = PanelStoreFixture()
+        let panel = fixture.makePanel()
+        panel.start()
+        fixture.store.start()
+        fixture.store.setPopoverVisible(true)
+        defer {
+            panel.showSummaryPage()
+            panel.stop()
+            fixture.store.setPopoverVisible(false)
+            fixture.store.stop()
+        }
+
+        var observed: [StatusPanelRoute] = []
+        panel.routeDidChange = { observed.append($0) }
+
+        panel.showBatteryPage()
+        XCTAssertEqual(observed, [.battery])
+
+        panel.showWiFiPage(showsDetailsInitially: false)
+        XCTAssertEqual(observed, [.battery, .wifi])
+
+        panel.showSummaryPage()
+        XCTAssertEqual(observed, [.battery, .wifi, .summary])
+    }
+
+    func testAllDetailRoutesUseOneSummaryVisibilityRule() {
+        let fixture = PanelStoreFixture()
+        fixture.settings.setPopupSection(.inputSource, enabled: true)
+        fixture.settings.setPopupSection(.hardwareMonitor, enabled: true)
+        let panel = fixture.makePanel()
+        panel.start()
+        fixture.store.start()
+        fixture.store.setPopoverVisible(true)
+        defer {
+            panel.showSummaryPage()
+            panel.stop()
+            fixture.store.setPopoverVisible(false)
+            fixture.store.stop()
+        }
+
+        XCTAssertTrue(panel.isSummaryVisible)
+
+        let detailRoutes: [(String, () -> Void, StatusPanelRoute)] = [
+            ("battery", { panel.showBatteryPage() }, .battery),
+            ("wifi", { panel.showWiFiPage(showsDetailsInitially: false) }, .wifi),
+            ("inputSource", { panel.showInputSourcePage() }, .inputSource)
+        ]
+        for (name, open, expected) in detailRoutes {
+            open()
+            XCTAssertEqual(panel.route, expected, name)
+            XCTAssertFalse(panel.isSummaryVisible, name)
+            panel.setDetailPresentation(.alongside)
+            XCTAssertTrue(panel.isSummaryVisible, name)
+            panel.setDetailPresentation(.inline)
+            XCTAssertFalse(panel.isSummaryVisible, name)
+            panel.showSummaryPage()
+        }
+
+        for kind in HardwareDetailKind.allCases {
+            panel.showHardwareDetail(kind)
+            panel.setDetailPresentation(.alongside)
+            XCTAssertEqual(panel.route, .hardwareDetail(kind))
+            XCTAssertTrue(panel.isSummaryVisible)
+            panel.setDetailPresentation(.inline)
+            XCTAssertFalse(panel.isSummaryVisible)
+            panel.showSummaryPage()
+        }
+
+        panel.setDetailPresentation(.alongside)
+        XCTAssertTrue(panel.isSummaryVisible)
+        XCTAssertEqual(panel.route, .summary)
+    }
+
+    func testExplicitCloseClearsReopenRoute() {
+        let fixture = PanelStoreFixture()
+        let panel = fixture.makePanel()
+        panel.start()
+        fixture.store.start()
+        fixture.store.setPopoverVisible(true)
+        defer {
+            panel.stop()
+            fixture.store.setPopoverVisible(false)
+            fixture.store.stop()
+        }
+
+        panel.setDetailPresentation(.alongside)
+        panel.showBatteryPage()
+        XCTAssertEqual(panel.route, .battery)
+
+        panel.showSummaryPage()
+        XCTAssertEqual(panel.route, .summary)
+        XCTAssertTrue(panel.isSummaryVisible)
+    }
+
+    func testSwitchingHostKeepsWiFiDisclosure() {
+        let fixture = PanelStoreFixture()
+        let panel = fixture.makePanel()
+        panel.start()
+        fixture.store.start()
+        fixture.store.setPopoverVisible(true)
+        defer {
+            panel.showSummaryPage()
+            panel.stop()
+            fixture.store.setPopoverVisible(false)
+            fixture.store.stop()
+        }
+
+        panel.showWiFiPage(showsDetailsInitially: true)
+        panel.setWiFiShowsMore(true)
+        let disclosure = WiFiPanelDisclosureState(showsDetails: true, showsMore: true)
+        XCTAssertEqual(panel.wifiDisclosure, disclosure)
+
+        panel.setDetailPresentation(.alongside)
+        XCTAssertEqual(panel.route, .wifi)
+        XCTAssertEqual(panel.wifiDisclosure, disclosure)
+
+        panel.setDetailPresentation(.inline)
+        XCTAssertEqual(panel.route, .wifi)
+        XCTAssertEqual(panel.wifiDisclosure, disclosure)
+    }
+
+    /// Issue #369: repeating the entry for the page that is already open closes
+    /// that detail page (back to the summary) instead of re-entering it, while
+    /// keeping the stored disclosure state for the next open.
+    func testRepeatingCurrentWiFiRouteClosesDetailAndKeepsDisclosure() {
+        let fixture = PanelStoreFixture()
+        let panel = fixture.makePanel()
+        panel.start()
+        fixture.store.start()
+        fixture.store.setPopoverVisible(true)
+        defer {
+            panel.showSummaryPage()
+            panel.stop()
+            fixture.store.setPopoverVisible(false)
+            fixture.store.stop()
+        }
+
+        panel.showWiFiPage(showsDetailsInitially: true)
+        panel.setWiFiShowsDetails(false)
+        panel.showWiFiPage(showsDetailsInitially: true)
+
+        XCTAssertEqual(panel.route, .summary)
+        XCTAssertFalse(panel.wifiDisclosure.showsDetails)
+    }
 }

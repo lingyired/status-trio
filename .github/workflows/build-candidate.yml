@@ -1,0 +1,367 @@
+name: Build Release Candidate
+
+on:
+  workflow_dispatch:
+    inputs:
+      candidate_sha:
+        description: "Frozen 40-character commit SHA to build exactly once."
+        required: true
+        type: string
+      release_mode:
+        description: "fast (developer-declared local tests) or strict (full remote verify + native)."
+        required: true
+        default: fast
+        type: choice
+        options:
+          - fast
+          - strict
+      version:
+        description: "Marketing version. Defaults to Support/Info.plist."
+        required: false
+        type: string
+      build:
+        description: "Numeric CFBundleVersion. Defaults to the workflow run number."
+        required: false
+        type: string
+
+permissions:
+  actions: read
+  contents: read
+
+concurrency:
+  group: status-trio-build-candidate
+  cancel-in-progress: false
+
+jobs:
+  prepare:
+    runs-on: xcode-27
+    timeout-minutes: 20
+    outputs:
+      candidate_sha: ${{ steps.resolve.outputs.candidate_sha }}
+      version: ${{ steps.resolve.outputs.version }}
+      build: ${{ steps.resolve.outputs.build }}
+      tag: ${{ steps.resolve.outputs.tag }}
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_27.app/Contents/Developer
+      CANDIDATE_SHA: ${{ inputs.candidate_sha }}
+      VERSION_INPUT: ${{ inputs.version }}
+      BUILD_INPUT: ${{ inputs.build }}
+    steps:
+      - name: Check out the frozen candidate
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ inputs.candidate_sha }}
+
+      - name: Validate frozen candidate and lock build parameters
+        id: resolve
+        env:
+          RELEASE_MODE: ${{ inputs.release_mode }}
+        run: |
+          set -euo pipefail
+          case "${RELEASE_MODE}" in
+            fast|strict) ;;
+            *) echo "::error::release_mode must be fast or strict."; exit 1 ;;
+          esac
+          if [[ ! "${CANDIDATE_SHA}" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "::error::candidate_sha must be a lowercase 40-character commit SHA."
+            exit 1
+          fi
+          CHECKED_OUT_SHA="$(git rev-parse HEAD)"
+          if [[ "${CHECKED_OUT_SHA}" != "${CANDIDATE_SHA}" ]]; then
+            echo "::error::Checked-out ${CHECKED_OUT_SHA} does not equal frozen candidate ${CANDIDATE_SHA}."
+            exit 1
+          fi
+          git fetch --quiet origin main
+          if ! git merge-base --is-ancestor "${CANDIDATE_SHA}" origin/main; then
+            echo "::error::Candidate ${CANDIDATE_SHA} is not part of origin/main."
+            exit 1
+          fi
+          PLIST_VERSION="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' Support/Info.plist)"
+          BUNDLE_ID="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' Support/Info.plist)"
+          MINIMUM_SYSTEM_VERSION="$(/usr/libexec/PlistBuddy -c 'Print :LSMinimumSystemVersion' Support/Info.plist)"
+          VERSION="${VERSION_INPUT:-${PLIST_VERSION}}"
+          BUILD="${BUILD_INPUT:-${GITHUB_RUN_NUMBER}}"
+          TAG="v${VERSION}"
+          [[ "${VERSION}" =~ ^[0-9]+(\.[0-9]+)*$ ]] || { echo "::error::VERSION must contain dot-separated numbers."; exit 1; }
+          [[ "${BUILD}" =~ ^[0-9]+$ ]] || { echo "::error::BUILD must contain only digits."; exit 1; }
+          [[ "${BUNDLE_ID}" == "com.lingsmbp.StatusTrio" ]] || { echo "::error::unexpected bundle identifier ${BUNDLE_ID}."; exit 1; }
+          [[ "${MINIMUM_SYSTEM_VERSION}" == "13.0" ]] || { echo "::error::minimum macOS version must be 13.0, found ${MINIMUM_SYSTEM_VERSION}."; exit 1; }
+          SDK_VERSION="$(xcrun --sdk macosx --show-sdk-version)"
+          [[ "${SDK_VERSION%%.*}" -ge 26 ]] || { echo "::error::macOS SDK 26+ is required; found ${SDK_VERSION}."; exit 1; }
+          if [[ ! -d "release-notes/${VERSION}" ]]; then
+            echo "::error::release-notes/${VERSION} is missing; a release candidate requires full release notes."
+            exit 1
+          fi
+          VERSION="${VERSION}" BUILD="${BUILD}" PUBLISH=true NOTES_MODE=publish \
+            RELEASE_NOTES_DIR="${GITHUB_WORKSPACE}/release-notes/${VERSION}" \
+            APPCAST_FILE="appcast.xml" \
+            bash scripts/validate-appcast-notes.sh
+          {
+            echo "CANDIDATE_SHA=${CANDIDATE_SHA}"
+            echo "VERSION=${VERSION}"
+            echo "BUILD=${BUILD}"
+            echo "TAG=${TAG}"
+          } >> "${GITHUB_ENV}"
+          {
+            echo "candidate_sha=${CANDIDATE_SHA}"
+            echo "version=${VERSION}"
+            echo "build=${BUILD}"
+            echo "tag=${TAG}"
+          } >> "${GITHUB_OUTPUT}"
+          echo "Locked ${TAG}: ${VERSION} (${BUILD}) at ${CANDIDATE_SHA}."
+
+      - name: Verify Sparkle signing credentials are configured
+        env:
+          SPARKLE_PRIVATE_KEY: ${{ secrets.SPARKLE_PRIVATE_KEY }}
+        run: |
+          set -euo pipefail
+          if [[ -z "${SPARKLE_PRIVATE_KEY}" ]]; then
+            echo "::error::SPARKLE_PRIVATE_KEY is required to build a publishable release candidate."
+            exit 1
+          fi
+
+      - name: Check candidate workflow policy and offline candidate regressions
+        run: |
+          set -euo pipefail
+          for script in scripts/*.sh; do bash -n "$script"; done
+          bash scripts/check-candidate-workflow-policy.sh
+          bash scripts/test-candidate-workflow-policy.sh
+          bash scripts/test-release-candidate-provenance.sh
+          bash scripts/test-release-candidate-publish-gate.sh
+
+      - name: Summarize candidate parameters
+        run: |
+          {
+            echo "### Build Candidate"
+            echo ""
+            echo "- SHA: `${{ inputs.candidate_sha }}`"
+            echo "- Version: `${{ steps.resolve.outputs.version }}` (build ${{ steps.resolve.outputs.build }})"
+            echo "- Tag: `${{ steps.resolve.outputs.tag }}`"
+            echo "- Verification level: **${{ inputs.release_mode }}**"
+          } >> "${GITHUB_STEP_SUMMARY}"
+
+  verify:
+    needs: prepare
+    if: ${{ inputs.release_mode == 'strict' }}
+    runs-on: xcode-27
+    timeout-minutes: 45
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_27.app/Contents/Developer
+    steps:
+      - name: Check out the frozen candidate
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ needs.prepare.outputs.candidate_sha }}
+      - name: Reassert frozen candidate
+        run: |
+          set -euo pipefail
+          [[ "$(git rev-parse HEAD)" == "${{ needs.prepare.outputs.candidate_sha }}" ]] || {
+            echo "::error::verify checkout differs from the frozen candidate."; exit 1;
+          }
+      - name: Run static release preflight
+        run: |
+          set -euo pipefail
+          for script in scripts/*.sh; do bash -n "$script"; done
+          bash scripts/check-forbidden-patterns.sh
+      - name: Run full Swift test suite
+        run: bash scripts/test.sh
+
+  native:
+    needs: prepare
+    if: ${{ inputs.release_mode == 'strict' }}
+    runs-on: xcode-27
+    timeout-minutes: 30
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_27.app/Contents/Developer
+    steps:
+      - name: Check out the frozen candidate
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ needs.prepare.outputs.candidate_sha }}
+      - name: Reassert frozen candidate
+        run: |
+          set -euo pipefail
+          [[ "$(git rev-parse HEAD)" == "${{ needs.prepare.outputs.candidate_sha }}" ]] || {
+            echo "::error::native checkout differs from the frozen candidate."; exit 1;
+          }
+      - name: Run native contract tests
+        run: |
+          set -euo pipefail
+          bash scripts/test-release-pipeline.sh
+          bash scripts/test-release-recovery.sh
+          bash scripts/test-release-candidate-provenance.sh
+          bash scripts/test-release-candidate-publish-gate.sh
+
+  package:
+    needs: [prepare, verify, native]
+    if: ${{ always() && needs.prepare.result == 'success' && (needs.verify.result == 'success' || needs.verify.result == 'skipped') && (needs.native.result == 'success' || needs.native.result == 'skipped') }}
+    runs-on: xcode-27
+    timeout-minutes: 75
+    environment:
+      name: ${{ github.triggering_actor != 'lingyired' && 'distribution' || 'distribution-owner-signing' }}
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_27.app/Contents/Developer
+      CANDIDATE_SHA: ${{ needs.prepare.outputs.candidate_sha }}
+      VERSION: ${{ needs.prepare.outputs.version }}
+      BUILD: ${{ needs.prepare.outputs.build }}
+      TAG: ${{ needs.prepare.outputs.tag }}
+      RELEASE_MODE: ${{ inputs.release_mode }}
+      RESOLVED_RELEASE_REPO: ${{ vars.RELEASE_REPO || 'lingyired/status-trio' }}
+      RESOLVED_RELEASE_BRANCH: ${{ vars.RELEASE_BRANCH || 'main' }}
+      BUILD_TIMING_FILE: ${{ github.workspace }}/.build/ci-logs/package-build-timings.tsv
+    steps:
+      - name: Check out the frozen candidate
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ needs.prepare.outputs.candidate_sha }}
+
+      - name: Reassert frozen candidate
+        run: |
+          set -euo pipefail
+          [[ "$(git rev-parse HEAD)" == "${CANDIDATE_SHA}" ]] || {
+            echo "::error::package checkout differs from the frozen candidate."; exit 1;
+          }
+
+      - name: Configure Developer ID signing
+        env:
+          DEVELOPER_ID_CERTIFICATE_P12: ${{ secrets.DEVELOPER_ID_CERTIFICATE_P12 }}
+          CERTIFICATE_PASSWORD: ${{ secrets.DEVELOPER_ID_CERTIFICATE_PASSWORD }}
+        run: |
+          set -euo pipefail
+          if [[ -z "${DEVELOPER_ID_CERTIFICATE_P12}" ]]; then
+            echo "::error::DEVELOPER_ID_CERTIFICATE_P12 is required; a release candidate cannot fall back to Ad-hoc."
+            exit 1
+          fi
+          [[ -n "${CERTIFICATE_PASSWORD:-}" ]] || { echo "::error::DEVELOPER_ID_CERTIFICATE_PASSWORD is required with a certificate."; exit 1; }
+          CERT_PATH="${RUNNER_TEMP}/developer-id.p12"
+          KEYCHAIN_PATH="${RUNNER_TEMP}/app-signing.keychain-db"
+          KEYCHAIN_LIST_BACKUP="${RUNNER_TEMP}/app-signing-keychains.original"
+          KEYCHAIN_LIST_PARSED="${RUNNER_TEMP}/app-signing-keychains.parsed"
+          KEYCHAIN_PASSWORD="$(openssl rand -hex 24)"
+          SMOKE_PATH="${RUNNER_TEMP}/codesign-smoke"
+          trap 'rm -f "${CERT_PATH:-}" "${SMOKE_PATH:-}" "${KEYCHAIN_LIST_PARSED:-}"' EXIT
+          echo "KEYCHAIN_PATH=${KEYCHAIN_PATH}" >> "${GITHUB_ENV}"
+          security list-keychains -d user > "${KEYCHAIN_LIST_BACKUP}"
+          ruby -rjson -e 'File.foreach(ARGV[0]) { |line| STDOUT.write(JSON.parse(line), "\0") }' "${KEYCHAIN_LIST_BACKUP}" > "${KEYCHAIN_LIST_PARSED}"
+          ORIGINAL_KEYCHAINS=()
+          while IFS= read -r -d '' keychain; do ORIGINAL_KEYCHAINS+=("$keychain"); done < "${KEYCHAIN_LIST_PARSED}"
+          [[ "${#ORIGINAL_KEYCHAINS[@]}" -gt 0 ]] || { echo "::error::Could not read the existing user keychain search list."; exit 1; }
+          printf '%s' "${DEVELOPER_ID_CERTIFICATE_P12}" | base64 -D > "${CERT_PATH}"
+          security create-keychain -p "${KEYCHAIN_PASSWORD}" "${KEYCHAIN_PATH}"
+          security set-keychain-settings -lut 21600 "${KEYCHAIN_PATH}"
+          security unlock-keychain -p "${KEYCHAIN_PASSWORD}" "${KEYCHAIN_PATH}"
+          security import "${CERT_PATH}" -P "${CERTIFICATE_PASSWORD}" -A -t cert -f pkcs12 -k "${KEYCHAIN_PATH}"
+          rm -f "${CERT_PATH}"
+          security set-key-partition-list -S apple-tool:,apple: -s -k "${KEYCHAIN_PASSWORD}" "${KEYCHAIN_PATH}" >/dev/null
+          IDENTITY="$(security find-identity -v -p codesigning "${KEYCHAIN_PATH}" | sed -n 's/.*"\(Developer ID Application: .*\)"/\1/p' | head -n 1)"
+          [[ -n "${IDENTITY}" ]] || { echo "::error::No Developer ID Application identity was found."; exit 1; }
+          security list-keychains -d user -s "${KEYCHAIN_PATH}" "${ORIGINAL_KEYCHAINS[@]}"
+          cp /usr/bin/true "${SMOKE_PATH}"
+          /usr/bin/codesign --force --sign "${IDENTITY}" "${SMOKE_PATH}"
+          /usr/bin/codesign --verify --strict "${SMOKE_PATH}"
+          rm -f "${SMOKE_PATH}"
+          echo "CODE_SIGN_IDENTITY=${IDENTITY}" >> "${GITHUB_ENV}"
+
+      - name: Configure Apple notarization
+        env:
+          NOTARY_API_KEY_ID: ${{ secrets.APPSTORE_CONNECT_API_KEY_ID }}
+          NOTARY_API_ISSUER_ID: ${{ secrets.APPSTORE_CONNECT_API_ISSUER_ID }}
+          NOTARY_API_PRIVATE_KEY: ${{ secrets.APPSTORE_CONNECT_API_PRIVATE_KEY }}
+        run: |
+          set -euo pipefail
+          if [[ -z "${NOTARY_API_PRIVATE_KEY}" ]]; then
+            echo "::error::APPSTORE_CONNECT_API_PRIVATE_KEY is required; a release candidate must be notarized."
+            exit 1
+          fi
+          [[ -n "${NOTARY_API_KEY_ID}" && -n "${NOTARY_API_ISSUER_ID}" ]] || { echo "::error::App Store Connect API key ID and issuer ID are required."; exit 1; }
+          KEY_PATH="${RUNNER_TEMP}/AuthKey_${NOTARY_API_KEY_ID}.p8"
+          trap 'rm -f "${KEY_PATH:-}"' EXIT
+          printf '%s' "${NOTARY_API_PRIVATE_KEY}" > "${KEY_PATH}"
+          if [[ -n "${KEYCHAIN_PATH:-}" ]]; then
+            xcrun notarytool store-credentials status-trio-notary \
+              --key "${KEY_PATH}" --key-id "${NOTARY_API_KEY_ID}" \
+              --issuer "${NOTARY_API_ISSUER_ID}" --keychain "${KEYCHAIN_PATH}"
+          else
+            xcrun notarytool store-credentials status-trio-notary \
+              --key "${KEY_PATH}" --key-id "${NOTARY_API_KEY_ID}" \
+              --issuer "${NOTARY_API_ISSUER_ID}"
+          fi
+          rm -f "${KEY_PATH}"
+          echo "NOTARY_PROFILE=status-trio-notary" >> "${GITHUB_ENV}"
+
+      - name: Install mobile helper build tools
+        run: brew install autoconf automake libtool pkg-config
+
+      - name: Prepare DMG installer tool
+        run: |
+          if ! command -v create-dmg >/dev/null 2>&1; then
+            HOMEBREW_NO_AUTO_UPDATE=1 HOMEBREW_NO_INSTALL_CLEANUP=1 brew install create-dmg
+          fi
+          bash scripts/create-installer-dmg.sh --check
+
+      - name: Prepare package timing directory
+        run: mkdir -p "$(dirname "${BUILD_TIMING_FILE}")"
+
+      - name: Build, sign, notarize, and package one release candidate
+        env:
+          SPARKLE_PRIVATE_KEY: ${{ secrets.SPARKLE_PRIVATE_KEY }}
+          SOURCE_SHA: ${{ needs.prepare.outputs.candidate_sha }}
+          VERSION: ${{ needs.prepare.outputs.version }}
+          BUILD: ${{ needs.prepare.outputs.build }}
+          TAG: ${{ needs.prepare.outputs.tag }}
+          RELEASE_REPO: ${{ env.RESOLVED_RELEASE_REPO }}
+          RELEASE_BRANCH: ${{ env.RESOLVED_RELEASE_BRANCH }}
+          OUTPUT_DIR: ${{ github.workspace }}/dist/release-package
+          STATUS_TRIO_SYMBOLS_DIR: ${{ github.workspace }}/dist/release-symbols
+          RELEASE_NOTES_DIR: release-notes/${{ needs.prepare.outputs.version }}
+          PUBLISH_MODE: "false"
+          NOTARIZE: "true"
+          CANDIDATE_TYPE: release_candidate
+          RELEASE_MODE: ${{ inputs.release_mode }}
+          BUILD_RUN_ID: ${{ github.run_id }}
+          VERIFICATION_STATUS: ${{ inputs.release_mode == 'strict' && 'passed' || 'declared' }}
+          VERIFICATION_EVIDENCE: ${{ inputs.release_mode == 'strict' && 'github-actions:verify,native' || 'developer-local-test-declared' }}
+        run: bash scripts/package-release.sh
+
+      - name: Upload release candidate
+        uses: actions/upload-artifact@v4
+        with:
+          name: status-trio-release-package
+          path: dist/release-package/
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Upload release symbolication files
+        uses: actions/upload-artifact@v4
+        with:
+          name: status-trio-release-symbols
+          path: dist/release-symbols/
+          if-no-files-found: error
+          retention-days: 90
+
+      - name: Summarize package performance
+        if: always()
+        run: python3 scripts/ci-diagnostics.py perf-summary "${BUILD_TIMING_FILE}"
+
+      - name: Upload package build timings
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: package-build-timings
+          path: ${{ env.BUILD_TIMING_FILE }}
+          if-no-files-found: warn
+
+      - name: Summarize candidate artifact
+        if: always()
+        run: |
+          {
+            echo "### Candidate packaged"
+            echo ""
+            echo "- Candidate run: `${{ github.run_id }}`"
+            echo "- Verification level: **${{ inputs.release_mode }}**"
+            echo "- Publish with: `candidate_run_id=${{ github.run_id }}`"
+          } >> "${GITHUB_STEP_SUMMARY}"

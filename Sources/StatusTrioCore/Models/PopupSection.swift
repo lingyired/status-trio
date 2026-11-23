@@ -2,6 +2,7 @@ import Foundation
 
 enum PopupSection: String, CaseIterable, Identifiable, Sendable {
     case battery
+    case quickActions
     case network
     case vpn
     case bluetooth
@@ -9,12 +10,14 @@ enum PopupSection: String, CaseIterable, Identifiable, Sendable {
     case brightness
     case audioInput
     case inputSource
+    case hardwareMonitor
 
     var id: Self { self }
 
     var titleKey: LocalizationKey {
         switch self {
         case .battery: .settingsPopupOrderBattery
+        case .quickActions: .settingsPopupOrderQuickActions
         case .network: .settingsPopupOrderNetwork
         case .vpn: .vpnTitle
         case .bluetooth: .bluetoothTitle
@@ -22,12 +25,14 @@ enum PopupSection: String, CaseIterable, Identifiable, Sendable {
         case .brightness: .settingsPopupOrderBrightness
         case .audioInput: .settingsPopupOrderAudioInput
         case .inputSource: .settingsPopupOrderInputSource
+        case .hardwareMonitor: .hardwareMonitorTitle
         }
     }
 
     var systemImage: String {
         switch self {
         case .battery: SymbolFallback.name("battery.100percent", "battery.100")
+        case .quickActions: "moon.zzz"
         case .network: "wifi"
         case .vpn: "lock.shield"
         case .bluetooth: "antenna.radiowaves.left.and.right"
@@ -35,6 +40,7 @@ enum PopupSection: String, CaseIterable, Identifiable, Sendable {
         case .brightness: SymbolFallback.name("sun.max", "sun.max")
         case .audioInput: "mic"
         case .inputSource: "keyboard"
+        case .hardwareMonitor: "cpu"
         }
     }
 }

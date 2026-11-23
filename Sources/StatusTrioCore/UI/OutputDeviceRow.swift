@@ -1,3 +1,4 @@
+import Combine
 import SwiftUI
 
 struct OutputDeviceRow: View {
@@ -5,19 +6,308 @@ struct OutputDeviceRow: View {
     let state: PanelAudioDeviceRow
     let onSelect: () -> Void
     let onSelectListeningMode: (BluetoothListeningMode) -> Void
+    var controlsFactory: ((PanelAudioDeviceRow) -> AirPodsSystemControlsModel)? = nil
+
+    @Environment(\.airPodsConversationCache) private var conversationCache
+    @Environment(\.statusPanelVisibility) private var panelVisibility
+    @Environment(\.statusPanelAnimatesDisclosures) private var animatesDisclosures
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.displayScale) private var displayScale
+    @Environment(\.statusPanelBoldTextEnabled) private var panelBoldText
+    @StateObject private var disclosure = StatusPanelResizeCoordinator()
+    @State private var isPresented = true
+    @State private var controlsHeight: CGFloat = 0
+    /// The user's intent: whether the disclosure is logically open.
+    @State private var expanded = false
+    // Retain the model for this stable row identity. Only the clipped container's
+    // actual layout height animates; hardware demand follows user intent.
+    @State private var controls: AirPodsSystemControlsModel?
+
+    /// Spatial Audio and Conversation Awareness are the groups behind the
+    /// chevron. They only exist on AirPods rows that can render system controls.
+    private var hasExtraGroups: Bool {
+        state.supportsAirPodsSystemControls
+            && (state.airPodsSpatialSupported || state.airPodsConversationSupported)
+    }
+
+    /// Extra groups disclose below listening controls when both are present.
+    /// Without listening controls they occupy that space directly, so a row can
+    /// never consist solely of an empty disclosure arrow.
+    static func disclosesExtraGroups(hasListeningMode: Bool, spatial: Bool, conversation: Bool) -> Bool {
+        hasListeningMode && spatial && conversation
+    }
+
+    var showsExtraToggle: Bool {
+        state.supportsAirPodsSystemControls && Self.disclosesExtraGroups(
+            // A row still being discovered is laid out as if the control were
+            // already present, so the chevron and listening row do not pop in
+            // after the panel has already sized to the fallback (#354).
+            hasListeningMode: state.listeningMode?.isControllable == true
+                || state.listeningModeIsBeingDiscovered,
+            spatial: state.airPodsSpatialSupported,
+            conversation: state.airPodsConversationSupported
+        )
+    }
+
+    var showsInlineExtraGroup: Bool {
+        hasExtraGroups && !showsExtraToggle
+    }
+
+    /// AirPods controls align with the device icon's left edge (no text-column
+    /// inset). This is deliberate: it frees horizontal width so longer localized
+    /// labels (e.g. English) fit without truncation.
+    private var contentLeading: CGFloat { 0 }
+
+    /// A compact Adaptive Audio strength bar appears below the listening row
+    /// whenever the Adaptive mode is the selected one.
+    private var showsAdaptiveBar: Bool {
+        state.supportsAirPodsSystemControls
+            && state.listeningMode?.selectedMode == .adaptive
+    }
+
+    /// Rows that start their model as soon as the panel is visible: only the
+    /// inline groups. The Adaptive bar is deliberately excluded — showing
+    /// it eagerly used to open the AACP Bluetooth channel on every panel open,
+    /// which dropped the headset's audio route (#323). It now loads on expansion.
+    private var wantsInlineModel: Bool {
+        showsInlineExtraGroup
+    }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 2) {
+        VStack(alignment: .leading, spacing: 0) {
             selectionButton
 
-            if let listeningMode = state.listeningMode, listeningMode.isControllable {
+            if state.supportsAirPodsSystemControls {
+                airPodsControls
+            } else if let listeningMode = state.listeningMode, listeningMode.isControllable {
                 BluetoothListeningModeControl(
                     presentation: listeningMode,
                     onSelect: onSelectListeningMode
                 )
-                .padding(.leading, Self.modeLeadingInset)
+                .padding(.leading, contentLeading)
+                .padding(.top, 2)
             }
         }
+        .onPreferenceChange(AirPodsControlsHeightKey.self) { height in
+            controlsHeight = height
+            updateDisclosureTarget()
+        }
+        .onChange(of: displayScale) { scale in
+            disclosure.pixelScale = scale
+            updateDisclosureTarget()
+        }
+        .onChange(of: state.key) { _ in resetControls() }
+        .onChange(of: state.name) { _ in
+            // The backend verifies the current route's name as well as its ID.
+            // Refresh that meaningful dependency without discarding user intent.
+            guard controls != nil else { return }
+            controls?.stop()
+            controls = makeControls()
+            if (expanded || wantsInlineModel), isPresented { controls?.start() }
+        }
+        .onChange(of: state.supportsAirPodsSystemControls) { supported in
+            if !supported { resetControls() }
+        }
+        .onChange(of: showsExtraToggle) { shows in
+            if !shows {
+                expanded = false
+                disclosure.markSettled(at: 0)
+                if !wantsInlineModel { controls?.stop() }
+            }
+        }
+        .onChange(of: wantsInlineModel) { wantsInline in
+            if wantsInline, isPresented {
+                ensureControlsStarted()
+            } else if !expanded {
+                controls?.stop()
+            }
+            updateDisclosureTarget()
+        }
+        .onChange(of: state.listeningMode?.selectedMode) { mode in
+            // Switching to Adaptive only reveals the strength bar. The AACP
+            // channel that the bar needs is opened by the bar's own drag, never
+            // from here, so the panel never touches it passively (#323).
+            if expanded, isPresented, mode == .adaptive {
+                ensureControlsStarted()
+            } else if !expanded, !showsInlineExtraGroup {
+                controls?.stop()
+            }
+        }
+        .onAppear {
+            disclosure.pixelScale = displayScale
+            if wantsInlineModel, isPresented {
+                ensureControlsStarted()
+            } else if expanded, isPresented {
+                ensureControlsStarted()
+            }
+            updateDisclosureTarget()
+            // Development aid: lets a resize/jitter investigation drive the
+            // expansion without a pointer. Ignored outside `.dev.` bundles.
+            guard Self.expandsForResizeProbe,
+                  showsExtraToggle,
+                  !expanded else { return }
+            toggle()
+        }
+        .onDisappear {
+            controls?.stop()
+            disclosure.cancel()
+        }
+        .onReceive(panelVisibility) { visible in
+            isPresented = visible
+            if visible {
+                if expanded { ensureControlsStarted() }
+                else if wantsInlineModel { ensureControlsStarted() }
+                updateDisclosureTarget()
+            } else {
+                controls?.stop()
+                disclosure.markSettled(at: expanded ? controlsHeight : 0)
+            }
+        }
+    }
+
+    /// The listening-mode quick switch stays visible at all times. When two
+    /// extra groups are available a chevron sits at the right end of this row;
+    /// otherwise the row is the whole control.
+    @ViewBuilder private var airPodsControls: some View {
+        if let listeningMode = state.listeningMode, listeningMode.isControllable {
+            HStack(alignment: .center, spacing: 6) {
+                BluetoothListeningModeControl(
+                    presentation: listeningMode,
+                    onSelect: onSelectListeningMode
+                )
+                if showsExtraToggle {
+                    Spacer(minLength: 6)
+                    expandButton
+                }
+            }
+            .padding(.leading, contentLeading)
+            .padding(.top, 2)
+        } else if state.listeningModeIsBeingDiscovered, showsExtraToggle {
+            listeningModePlaceholder
+        }
+
+        if showsAdaptiveBar, let controls {
+            AirPodsAdaptiveBar(model: controls)
+                .padding(.leading, contentLeading)
+                .padding(.top, 2)
+        }
+
+        if showsExtraToggle, let controls {
+            AirPodsSpatialConversationView(model: controls)
+                .fixedSize(horizontal: false, vertical: true)
+                .padding(.leading, contentLeading)
+                .padding(.top, 4)
+                .padding(.bottom, 6)
+                .background(GeometryReader { geometry in
+                    Color.clear.preference(key: AirPodsControlsHeightKey.self, value: geometry.size.height)
+                })
+                .frame(height: disclosure.presentedHeight, alignment: .top)
+                .clipped()
+                .transaction { $0.animation = nil }
+                .allowsHitTesting(expanded)
+                .accessibilityHidden(!expanded)
+        } else if showsInlineExtraGroup, let controls {
+            AirPodsSpatialConversationView(model: controls)
+                .fixedSize(horizontal: false, vertical: true)
+                // Inline controls take the listening row's place when absent.
+                .padding(.leading, contentLeading)
+                .padding(.top, 6)
+                .padding(.bottom, 6)
+        }
+
+        if let message = state.listeningModeUnavailableText,
+           !showsExtraToggle,
+           !showsInlineExtraGroup {
+            Text(message)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+                .padding(.leading, contentLeading)
+                .padding(.top, 2)
+        }
+    }
+
+    /// Skeleton for the listening-mode capsule row while discovery is in
+    /// flight. It mirrors the real row's height — the same top inset, capsule
+    /// height, and chevron — so when the control arrives the row keeps its
+    /// size instead of growing and moving the whole panel (#354).
+    private var listeningModePlaceholder: some View {
+        HStack(alignment: .center, spacing: 6) {
+            ForEach(0..<3, id: \.self) { _ in
+                Capsule(style: .continuous)
+                    .fill(Color.primary.opacity(0.08))
+                    .frame(width: 46, height: AirPodsControlMetrics.capsuleHeight)
+            }
+            Spacer(minLength: 6)
+            expandButton
+        }
+        .padding(.leading, contentLeading)
+        .padding(.top, 2)
+        .accessibilityHidden(true)
+        .allowsHitTesting(false)
+    }
+
+    private var expandButton: some View {
+        Button(action: { toggle() }) {
+            Image(systemName: expanded ? "chevron.up" : "chevron.down")
+                .font(.caption.weight(.semibold))
+                .frame(width: 24, height: 28)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(localization.string(.airPodsControls))
+        .accessibilityValue(expanded ? localization.string(.commonExpanded) : localization.string(.commonCollapsed))
+    }
+
+    private func ensureControlsStarted(includeAdaptive: Bool = false) {
+        if controls == nil { controls = makeControls() }
+        controls?.start(includeAdaptive: includeAdaptive)
+    }
+
+    private func toggle() {
+        guard showsExtraToggle else { return }
+        if expanded {
+            expanded = false
+            controls?.stop()
+        } else {
+            expanded = true
+            ensureControlsStarted()
+        }
+        updateDisclosureTarget()
+    }
+
+    private func updateDisclosureTarget() {
+        let target = expanded ? controlsHeight : 0
+        if !isPresented || reduceMotion || !animatesDisclosures {
+            disclosure.markSettled(at: target)
+        } else if !disclosure.isAtTarget(target) {
+            disclosure.retarget(to: target, fromHeight: disclosure.presentedHeight)
+        }
+    }
+
+    static var expandsForResizeProbe: Bool {
+        Bundle.main.bundleIdentifier?.contains(".dev.") == true
+            && ProcessInfo.processInfo.environment["STATUS_TRIO_EXPAND_AIRPODS"] == "1"
+    }
+
+    private func makeControls() -> AirPodsSystemControlsModel {
+        if let controlsFactory { return controlsFactory(state) }
+        return AirPodsSystemControlsModel(
+            deviceID: state.key,
+            deviceName: state.name,
+            conversationCache: state.isPreview ? nil : conversationCache,
+            preview: state.isPreview ? ListeningModePreview.systemControlSnapshot(
+                localization, spatialSupported: state.airPodsSpatialSupported,
+                conversationSupported: state.airPodsConversationSupported
+            ) : nil
+        )
+    }
+
+    private func resetControls() {
+        controls?.stop()
+        controls = nil
+        expanded = false
+        disclosure.markSettled(at: 0)
     }
 
     private var selectionButton: some View {
@@ -31,7 +321,7 @@ struct OutputDeviceRow: View {
                 .frame(width: 24, height: 24)
 
                 Text(state.name)
-                    .font(.body.weight(state.selected ? .semibold : .regular))
+                    .font(.body.weight(state.selected && panelBoldText ? .semibold : .regular))
                     .lineLimit(2)
                     .fixedSize(horizontal: false, vertical: true)
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -42,7 +332,10 @@ struct OutputDeviceRow: View {
                         .foregroundStyle(.secondary)
                 }
             }
-            .padding(.vertical, 3)
+            // Same vertical insets as the Bluetooth device row (top 0 /
+            // bottom 5), so the first row sits 8pt under the controls and rows
+            // keep the Bluetooth list's rhythm.
+            .padding(.bottom, 5)
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
@@ -54,4 +347,11 @@ struct OutputDeviceRow: View {
 
     private static let modeLeadingInset: CGFloat =
         BluetoothPanelMetrics.iconColumnWidth + BluetoothPanelMetrics.iconTextSpacing
+}
+
+private struct AirPodsControlsHeightKey: PreferenceKey {
+    static let defaultValue: CGFloat = 0
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+        value = max(value, nextValue())
+    }
 }

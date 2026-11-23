@@ -1,28 +1,46 @@
 import Foundation
 
 enum IconPresentationMapper {
+    static func resolve(
+        inputs: IconResolutionInputs,
+        configuration: IconConfigurationV1,
+        bindings: IconSlotBindingsV1? = nil
+    ) -> IconResolutionOutput {
+        IconCompositionResolver.resolve(
+            inputs: inputs, configuration: configuration, bindings: bindings)
+    }
+
     static func scene(
         inputs: IconPresentationInputs,
         configuration: IconPresentationConfiguration,
         now: Date = Date()
     ) -> IconSceneState {
         // #253: the "charging status inside the ring" middle-icon mode draws the
-        // battery/charging status in the centre, so the top gap closes and the
-        // percentage/bolt/plug moves out of it (never drawn twice).
-        let closesRing = configuration.connection.centerSource == .chargingStatus
-            && inputs.snapshot.battery.isPresent
+        // battery/charging status in the centre. The level percentage lives there
+        // while on battery, so the top gap closes to keep that number from being
+        // drawn twice. While charging / on power the centre shows the bolt or
+        // plug instead, so the top gap stays available and keeps the level
+        // percentage visible (see `batteryState`).
+        let battery = inputs.snapshot.battery
+        let chargingStatusCenter = configuration.connection.centerSource == .chargingStatus
+            && battery.isPresent
+        let closesRing = chargingStatusCenter
+            && !battery.isCharging
+            && !battery.isConnectedToPower
         return IconSceneState(
             outerRing: batteryState(
-                inputs.snapshot.battery,
+                battery,
                 isHighPowerMode: inputs.isHighPowerMode,
                 options: configuration.battery,
-                closesRing: closesRing
+                closesRing: closesRing,
+                chargingStatusCenter: chargingStatusCenter
             ),
             center: centerState(inputs: inputs, configuration: configuration, now: now),
-            footer: footerState(inputs.snapshot.volume, options: configuration.volume,
-                                bluetoothOptions: configuration.bluetooth),
+            footer: footerState(inputs: inputs, configuration: configuration),
             statusColors: configuration.battery.usesStatusColors
-                ? configuration.battery.batteryStatusColors : .standard
+                ? configuration.battery.batteryStatusColors : .standard,
+            bluetoothIconColor: configuration.bluetooth.iconColor,
+            bottomIndicatorSource: inputs.bottomIndicatorSource
         )
     }
 
@@ -30,24 +48,48 @@ enum IconPresentationMapper {
         _ battery: BatteryStatus,
         isHighPowerMode: Bool,
         options: BatteryIconOptions,
-        closesRing: Bool
-    ) -> OuterRingState {
-        let role = options.usesStatusColors
-            ? StatusMappings.batteryColorRole(
-                battery,
-                criticalThreshold: options.criticalThreshold,
-                isHighPowerMode: isHighPowerMode
-            )
-            : .foreground
-        let color: IconColorRole = switch role {
-        case .foreground: .primary
-        case .critical: .critical
-        case .lowPower: .lowPower
-        case .highPower: .highPower
-        case .charging: .powered
-        }
+        closesRing: Bool,
+        chargingStatusCenter: Bool
+    ) -> OuterRingState? {
+        // A Mac with no battery has no real level, so its ring is a full
+        // decorative circle that never shows the placeholder 100%. Its colour
+        // still follows the status palette: a battery-less Mac is always on AC
+        // power, so the connected colour applies, and Low/High Power Mode keep
+        // their precedence. The top gap may carry the chosen decorative bolt or
+        // plug marker (see `batteryGapContent`).
+        let isPresent = battery.isPresent
+        let (role, color) = batteryColorRole(
+            battery,
+            isHighPowerMode: isHighPowerMode,
+            options: options
+        )
 
-        let gapContent = StatusMappings.batteryGapContent(battery, options: options)
+        // A Mac with no battery always reads as a full, complete ring; a real
+        // battery follows `fullThreshold`. Either way the placeholder 100% never
+        // becomes a number.
+        let progress = isPresent
+            ? StatusMappings.batteryProgress(battery, fullThreshold: options.fullThreshold)
+            : 1
+
+        let naturalGapContent = StatusMappings.batteryGapContent(battery, options: options)
+        // The "inside the ring" mode draws its status in the middle slot. When the
+        // centre carries the level percentage (on battery) the top gap closes so
+        // the same number is not drawn twice. When the centre carries the bolt or
+        // plug instead, the top gap shows the level percentage, so the battery
+        // percentage is never lost while charging or connected to power.
+        let gapContent: BatteryGapContent
+        if closesRing {
+            gapContent = naturalGapContent
+        } else if chargingStatusCenter {
+            // Keep the level percentage in the gap whenever the user wants
+            // numerals anywhere (on battery, or for this power state), so the
+            // centre can carry the bolt/plug without losing the level.
+            let wantsPercentage = options.onBatteryMarker == .percentage
+                || (battery.isCharging ? options.chargingMarker : options.connectedMarker) == .percentage
+            gapContent = wantsPercentage ? .percentage : .empty
+        } else {
+            gapContent = naturalGapContent
+        }
         let gapStyle: RingGapStyle = switch gapContent {
         case .empty: .closed
         case .percentage: .value
@@ -57,28 +99,9 @@ enum IconPresentationMapper {
         // top gap closes and its own accessory (percentage/bolt/plug) is not
         // drawn — otherwise the same value would appear twice.
         let gap: RingGapStyle = closesRing ? .closed : gapStyle
-        let accessory: RingAccessoryState?
-        if closesRing {
-            accessory = nil
-        } else {
-            accessory = switch gapContent {
-            case .empty: nil
-            case .percentage:
-                .text(IconTextState(text: "\(battery.percentage)", color: .primary, scale: options.textScale))
-            case .bolt:
-                .symbol(IconSymbolState(
-                    source: .primitive(.bolt),
-                    color: .primary,
-                    scale: options.textScale
-                ))
-            case .plug:
-                .symbol(IconSymbolState(
-                    source: .primitive(.plug),
-                    color: .primary,
-                    scale: options.textScale
-                ))
-            }
-        }
+        let accessory: RingAccessoryState? = closesRing
+            ? nil
+            : gapContent.ringAccessory(battery: battery, scale: options.textScale)
         let effect: RingEffectState? = options.showsChargingEffect
                 && battery.isPresent
                 && battery.isCharging
@@ -95,10 +118,7 @@ enum IconPresentationMapper {
         return OuterRingState(
             segments: [
                 RingSegmentState(
-                    progress: StatusMappings.batteryProgress(
-                        battery,
-                        fullThreshold: options.fullThreshold
-                    ),
+                    progress: progress,
                     color: color
                 )
             ],
@@ -181,12 +201,12 @@ enum IconPresentationMapper {
             }
         }
 
-        if connectionOptions.centerSource == .batteryPercentage {
+        if connectionOptions.centerSource == .batteryPercentage,
+           battery.isPresent {
             // Every numeric centre mode shares the same size rule: the Wi-Fi
             // Icon Size scale, so switching between percentage and watts does
-            // not change the number's size. A Mac with no battery reports 100
-            // through `BatteryStatus.percentage`, so this slot and the top
-            // battery indicator agree on the same value.
+            // not change the number's size. Without a battery the slot falls
+            // through to the network glyph instead of inventing a level.
             return .text(IconTextState(
                 text: "\(battery.percentage)",
                 color: .primary,
@@ -218,7 +238,11 @@ enum IconPresentationMapper {
             } else {
                 source = .symbol(name: "headphones", variableValue: nil, fallback: nil)
             }
-            return .symbol(IconSymbolState(source: source, color: .bluetooth, scale: bluetoothOptions.symbolScale))
+            // Primary draws the label colour directly (and stays template-safe);
+            // blue and custom go through the scene-carried Bluetooth icon colour.
+            let color: IconColorRole = bluetoothOptions.iconColor == .primary
+                ? .primary : .bluetoothIcon
+            return .symbol(IconSymbolState(source: source, color: color, scale: bluetoothOptions.symbolScale))
         }
 
         return networkState(snapshot: snapshot, options: connectionOptions)
@@ -243,7 +267,7 @@ enum IconPresentationMapper {
     /// the slot the Wi-Fi glyph sits in, so it follows the same control from
     /// the same base — the Wi-Fi symbol's point size and the image's 42-unit
     /// box are calibrated to each other, so both grow together.
-    private static func inputSourceCenterState(
+    static func inputSourceCenterState(
         _ source: InputSourceDescriptor,
         scale: Double
     ) -> CenterState {
@@ -319,24 +343,169 @@ enum IconPresentationMapper {
         ))
     }
 
+    /// Builds the bottom indicator for the selected data source.
+    ///
+    /// The appearance (four dots or arc) is shared by every source; only the
+    /// quantity and its progress differ. `hidden` returns no footer at all.
     private static func footerState(
+        inputs: IconPresentationInputs,
+        configuration: IconPresentationConfiguration
+    ) -> FooterState? {
+        let options = configuration.volume
+        switch inputs.bottomIndicatorSource {
+        case .hidden:
+            return nil
+        case .volume:
+            return volumeFooter(
+                inputs.snapshot.volume,
+                options: options,
+                bluetoothOptions: configuration.bluetooth
+            )
+        case .wifi:
+            guard let bars = wifiFooterBars(inputs.snapshot.wifi) else { return nil }
+            return progressFooter(
+                dotSteps: wifiDotSteps(bars: bars),
+                arcProgress: Double(bars) / 3.0,
+                color: .primary,
+                options: options
+            )
+        case .battery:
+            let battery = inputs.snapshot.battery
+            guard battery.isPresent else { return nil }
+            let progress = Double(battery.percentage) / 100.0
+            // The bottom battery reuses the top ring's status colour and the
+            // same settings field (`usesStatusColors` / `batteryStatusColors`),
+            // so both surfaces always agree on the battery's colour.
+            let (_, color) = batteryColorRole(
+                battery,
+                isHighPowerMode: inputs.isHighPowerMode,
+                options: configuration.battery
+            )
+            return progressFooter(
+                dotSteps: StatusMappings.volumeSteps(scalar: progress, isMuted: false) ?? 0,
+                arcProgress: progress,
+                color: color,
+                options: options
+            )
+        case .metric:
+            // The live path renders this through the hardware-monitor footer
+            // plugin; this branch keeps the legacy mapper (previews, guide art)
+            // consistent when it is handed real hardware samples.
+            return HardwareRingMapper.footerState(
+                metric: inputs.bottomIndicatorMetric,
+                snapshot: inputs.sources.hardwareMetrics,
+                configuration: .default,
+                levels: inputs.sources.hardwareRingLevels,
+                metricColors: inputs.sources.hardwareMetricColors,
+                speedCapsMbps: inputs.sources.hardwareSpeedCapsMbps,
+                now: .now,
+                style: options.displayStyle,
+                strokeScale: options.ringStrokeScale
+            )
+        }
+    }
+
+    /// Resolves the top ring's battery status role and its icon colour. The
+    /// bottom battery footer calls this too, so both always draw the same status
+    /// colour from the same settings.
+    static func batteryColorRole(
+        _ battery: BatteryStatus,
+        isHighPowerMode: Bool,
+        options: BatteryIconOptions
+    ) -> (role: BatteryColorRole, color: IconColorRole) {
+        // nil means automatic: a battery-less Mac defaults to black/white, a Mac
+        // with a battery defaults to the connected colour.
+        let monochromeCharging = options.monochromeCharging ?? !battery.isPresent
+        let role: BatteryColorRole = options.usesStatusColors
+            ? StatusMappings.batteryColorRole(
+                battery,
+                criticalThreshold: options.criticalThreshold,
+                isHighPowerMode: isHighPowerMode,
+                treatAsConnected: !battery.isPresent,
+                monochromeCharging: monochromeCharging
+            )
+            : .foreground
+        let color: IconColorRole = switch role {
+        case .discharging: .discharging
+        case .foreground: .primary
+        case .critical: .critical
+        case .lowPower: .lowPower
+        case .highPower: .highPower
+        case .charging: .powered
+        }
+        return (role, color)
+    }
+
+    private static func volumeFooter(
         _ volume: VolumeStatus,
         options: VolumeIconOptions,
         bluetoothOptions: BluetoothAudioIconOptions
     ) -> FooterState {
         let finiteScalar = volume.scalar.flatMap { $0.isFinite ? $0 : nil }
-        let mayUseBluetoothColor = bluetoothOptions.usesVolumeColor && volume.currentDevice?.isBluetoothAudio == true
+        // The custom Bluetooth audio colour applies only while a Bluetooth output
+        // is current. `nil` role keeps the normal primary colour.
+        let bluetoothColor: IconColorRole? = volume.currentDevice?.isBluetoothAudio == true
+            ? (bluetoothOptions.volumeColorRole
+                ?? (bluetoothOptions.usesVolumeColor ? .bluetooth : nil))
+            : nil
 
         switch options.displayStyle {
         case .dots:
             let steps = StatusMappings.volumeSteps(scalar: finiteScalar, isMuted: volume.isMuted) ?? 0
-            let color: IconColorRole = mayUseBluetoothColor && steps > 0 ? .bluetooth : .primary
+            let color: IconColorRole = (bluetoothColor != nil && steps > 0)
+                ? bluetoothColor! : .primary
             return .dots(DotsState(count: 4, activeCount: steps, color: color,
                                    strokeScale: options.ringStrokeScale))
         case .arc:
             let effectiveProgress = volume.isMuted ? 0 : (finiteScalar ?? 0)
-            let color: IconColorRole = mayUseBluetoothColor && effectiveProgress > 0 ? .bluetooth : .primary
+            let color: IconColorRole = (bluetoothColor != nil && effectiveProgress > 0)
+                ? bluetoothColor! : .primary
             return .arc(ArcState(progress: effectiveProgress, color: color,
+                                 strokeScale: options.ringStrokeScale))
+        }
+    }
+
+    /// Wi-Fi bar count (0...3) for the bottom indicator, reusing the icon's
+    /// existing signal-level mapping.
+    ///
+    /// Returns `nil` when there is no usable reading — off, not associated,
+    /// unavailable, or an associated interface whose RSSI is missing or
+    /// invalid. `nil` hides the footer instead of drawing a misleading empty
+    /// ("no signal") bar; a valid but very weak reading still returns 0 and is
+    /// drawn as no active dots.
+    private static func wifiFooterBars(_ wifi: WiFiStatus) -> Int? {
+        switch wifi.state {
+        case .connected, .noInternet, .hotspot, .temporary, .shared:
+            guard let rssi = wifi.rssi, rssi < 0 else { return nil }
+            return StatusMappings.wifiBars(rssi: rssi)
+        case .notAssociated, .off, .unavailable:
+            return nil
+        }
+    }
+
+    /// Maps the icon's 3-bar Wi-Fi scale onto the four-dot footer so a full
+    /// (3-bar) reading fills all four dots instead of leaving one permanently
+    /// empty. The arc keeps the natural 0–3 progress; only the discrete dots
+    /// need the 3→4 spread.
+    private static func wifiDotSteps(bars: Int) -> Int {
+        let clamped = min(3, max(0, bars))
+        return Int((Double(clamped) / 3.0 * 4.0).rounded())
+    }
+
+    /// Shared dot/arc construction for the Wi-Fi and battery sources, which
+    /// have no per-device colour of their own.
+    private static func progressFooter(
+        dotSteps: Int,
+        arcProgress: Double,
+        color: IconColorRole,
+        options: VolumeIconOptions
+    ) -> FooterState {
+        switch options.displayStyle {
+        case .dots:
+            return .dots(DotsState(count: 4, activeCount: dotSteps, color: color,
+                                   strokeScale: options.ringStrokeScale))
+        case .arc:
+            return .arc(ArcState(progress: arcProgress, color: color,
                                  strokeScale: options.ringStrokeScale))
         }
     }

@@ -150,7 +150,7 @@ struct BluetoothAudioIconChoiceTests {
         let wiredScene = scene(transport: .usb, options: options)
         let expected = CenterState.symbol(IconSymbolState(
             source: .symbol(name: "airpods.pro", variableValue: nil, fallback: "headphones"),
-            color: .bluetooth,
+            color: .bluetoothIcon,
             scale: BluetoothAudioIconOptions.defaultSymbolScale
         ))
 
@@ -166,7 +166,7 @@ struct BluetoothAudioIconChoiceTests {
         let automaticScene = scene(transport: .bluetooth, options: unsupported)
         #expect(automaticScene.center == CenterState.symbol(IconSymbolState(
             source: .symbol(name: "headphones", variableValue: nil, fallback: nil),
-            color: .bluetooth,
+            color: .bluetoothIcon,
             scale: BluetoothAudioIconOptions.defaultSymbolScale
         )))
 
@@ -174,7 +174,7 @@ struct BluetoothAudioIconChoiceTests {
         let pickedScene = scene(transport: .usb, options: pickedDevice)
         #expect(pickedScene.center == CenterState.symbol(IconSymbolState(
             source: .symbol(name: "picked.device", variableValue: nil, fallback: "dot.radiowaves.left.and.right"),
-            color: .bluetooth,
+            color: .bluetoothIcon,
             scale: BluetoothAudioIconOptions.defaultSymbolScale
         )))
     }
@@ -201,7 +201,7 @@ struct BluetoothAudioIconChoiceTests {
         let selectedScene = IconPreviewScene.make(snapshot: snapshot, configuration: selected)
         #expect(selectedScene.center == CenterState.symbol(IconSymbolState(
             source: .symbol(name: symbol, variableValue: nil, fallback: "headphones"),
-            color: .bluetooth,
+            color: .bluetoothIcon,
             scale: BluetoothAudioIconOptions.defaultSymbolScale
         )))
         #expect(DockIconRenderKey(scene: automaticScene, backgroundStyle: .dark, pixelLength: 512)

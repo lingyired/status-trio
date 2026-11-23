@@ -59,22 +59,48 @@ there is no new cache and the delayed work is bounded to one task per scheduler.
 
 ## Priority and fallback
 
-`ConnectionCenterSource.network` is the shipped default and its decision is
-byte-identical to the previous release. With any non-network source selected,
-the centre slot resolves in this order, and each step is pinned by
-`IconPresentationMapperTests` and `InputSourceIconPresentationTests`:
+The centre source is now the explicit V1 `CenterSource.inputSource`. The legacy
+runtime input-source swap (`usesInputSourceInCenter` / `connectionCenterSource`)
+no longer implicitly rewrites a V1 `.network` or `.automaticLegacy` centre; old
+preferences are migrated once at the storage read boundary instead (see the
+execution plan and the designer spec §9). First load only migrates the old
+`network` / `automaticLegacy` selection, never an explicit
+`bluetooth` / `batteryPercentage` / `none`, and a persisted V1 `centerOverride`
+bool (even `false`) wins over the old default-`true` priority flag.
+
+With `.inputSource` selected and the global network rule off, the centre slot
+resolves in this order, and each step is pinned by
+`InputSourceIconPresentationTests` and `IconSlotResolverTests`:
 
 | Priority | Condition | Drawn |
 | --- | --- | --- |
-| 1 | Genuine network outage, when the warning toggle is on (default) | Wi-Fi error glyph |
-| 2 | Chosen source: battery percentage, power, input source, or Bluetooth device | that source's content |
-| 3 | Chosen content cannot be drawn (no input source, no Bluetooth output) | network fallback below |
-| 4 | Network | Wi-Fi / wired as before |
+| 1 | Global "prioritize the network icon when the network is down" on and the network is offline | Wi-Fi error glyph (`overridden(networkProblem)`) |
+| 2 | Current input source | its icon, else its short label, else `keyboard` |
+| 3 | Configured fallback source | the fallback's own resolution |
 
 A live wired link is never an outage, so a wired user with Wi-Fi switched off
 keeps their chosen content (`StatusMappings.isNetworkOffline`).
 
+The global network rule is independent of the centre source: it is checked
+before the `.automaticLegacy` early return and before the primary/fallback
+nil-return, so it also covers `.none`, input source, battery percentage, and
+every Bluetooth source. The old Bluetooth-audio-only
+`prioritizesNetworkErrors` toggle is inert for the V1 scene; the single designer
+switch named "Prioritize the network icon when the network is down" (中文：
+「网络异常时优先显示网络图标」) is the only control.
+
 ## Icon rendering
+
+Apple's Simplified Pinyin (`com.apple.inputmethod.SCIM.ITABC`) uses `简`, and
+Traditional Pinyin (`com.apple.inputmethod.TCIM.Pinyin`) uses `繁`. These markers
+take precedence over their system icon files in the menu bar, Dock, previews,
+and input-source list so the two modes remain distinguishable.
+
+Other Pinyin sources derive a fallback marker from an explicit `zh-Hans` or
+`zh-Hant` language tag, then a Simplified/Traditional name. Ambiguous Pinyin
+remains `拼`; third-party icon files and other input methods keep their existing
+priority. This identifies the selected source; it does not convert text or
+change an input method's internal Simplified/Traditional mode.
 
 Input-source icons are files (usually PDF or PNG), and their visible ink is not
 centred in the box `NSImage.size` reports. `StatusIconRenderer` measures the ink
@@ -123,12 +149,12 @@ draws no per-source target.
 Every row in the opened list draws one flat mark in the row's own colour, so the
 list stays readable on a dark panel:
 
-- a source that ships an icon file goes through `InputSourceIconMask`, which
+- except for the Apple Pinyin script markers above, a source that ships an icon
+  file goes through `InputSourceIconMask`, which
   keeps the icon's *ink* rather than its palette — the WeChat input method's
-  black disc with a light glyph becomes a light disc with the glyph knocked out,
-  and the system's dark Pinyin art becomes a light glyph;
-- a source with no icon file gets the rounded chip macOS itself shows for ABC,
-  with the layout's letter inside it.
+  black disc with a light glyph becomes a light disc with the glyph knocked out;
+- a source with no icon file, or a known Apple Pinyin mode, gets a rounded chip
+  with its short label inside it.
 
 Both are cached per URL, so a panel redraw never re-reads or re-rasterises the
 file.
@@ -174,3 +200,29 @@ Not run, and not claimed:
   behaviour with a candidate window open, sleep/wake and display changes;
 - macOS 13, 15 and 26 devices. The package still targets macOS 13 and compiles
   against it; only the local macOS 27 machine was exercised.
+
+## English layout letter case (#279)
+
+`InputSourceDescriptor.applying(_:)` turns an explicit English keyboard layout
+(ABC, US, US Extended, British, Australian, Canadian, Irish, Dvorak, Colemak)
+into the drawing descriptor `a`/`A`; the source list keeps the original
+descriptor and selection identity. The case rule is `Caps Lock || Shift`:
+either one produces uppercase (`A`); only both off produce lowercase (`a`).
+Shift does not lowercase text while Caps Lock is on. The system icon URL is
+cleared for these layouts so a shipped icon cannot cover the letter.
+
+`SystemInputSourceModifierObserver` listens only to `.flagsChanged` (never
+keyDown/keyUp and never character data), snapshots `NSEvent.modifierFlags` when
+monitoring starts, application activation, and wake, drops duplicate values, and
+removes both the local and global monitors on stop. It never asks for
+Accessibility/Input Monitoring, creates an event tap, polls, or suppresses
+input. Menu Bar, Dock and the live settings preview receive the same
+`InputSourceState.iconDescriptor`.
+
+Limitation / NOT RUN: AppKit documents that a *global* monitor for key-related
+events can require Accessibility. `.flagsChanged` may receive such an exemption
+in practice, but that is not proven on a clean TCC database. If the global
+monitor is unavailable, changes are still picked up while Status Trio is active
+and at activation/wake; a background app's Caps Lock change may not refresh
+until then. Real Ventura/current-macOS, no-grant, other-app-foreground,
+left/right Shift and external-keyboard behavior remain **NOT RUN**.

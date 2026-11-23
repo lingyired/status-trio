@@ -17,7 +17,7 @@ struct PopoverSectionView: View {
 
     private var scrollDirectionGroup: some View {
         SettingsGroup(
-            localization.string(.settingsPopupVolumeScrollDirection),
+            localization.string(.settingsPopupVolumeScrollGroup),
             footnote: localization.string(.settingsPopupVolumeScrollDirectionDescription)
         ) {
             SettingsToggleRow(
@@ -27,17 +27,72 @@ struct PopoverSectionView: View {
                 subtitle: localization.string(.settingsPopupVolumeScrollNaturalDescription),
                 isOn: $store.popupVolumeNaturalScrolling
             )
+            SettingsRow(
+                "dial.low", tint: .indigo,
+                title: localization.string(.settingsPopupScrollWheelStep),
+                subtitle: localization.string(.settingsPopupScrollWheelStepDescription)
+            ) {
+                HStack(spacing: 8) {
+                    Slider(
+                        value: Binding(
+                            get: { store.popupScrollWheelStepPercent },
+                            set: { store.popupScrollWheelStepPercent = ($0 * 2).rounded() / 2 }
+                        ),
+                        in: SettingsStore.popupScrollWheelStepPercentRange
+                    )
+                        .frame(width: 130)
+                        .controlSize(.small)
+                        .accessibilityLabel(localization.string(.settingsPopupScrollWheelStep))
+                        .accessibilityValue(wheelStepLabel)
+                    Text(wheelStepLabel)
+                        .monospacedDigit()
+                        .frame(minWidth: 48, alignment: .trailing)
+                }
+            }
         }
+    }
+
+    private var wheelStepLabel: String {
+        (store.popupScrollWheelStepPercent / 100).formatted(
+            .percent.precision(.fractionLength(0...1)).locale(localization.resolvedLanguage.locale)
+        )
     }
 
     private var openBehaviorGroup: some View {
         SettingsGroup(localization.string(.settingsPanelOpenBehaviorTitle)) {
             SettingsToggleRow(
+                symbol: "cursorarrow.motionlines",
+                tint: .purple,
+                title: localization.string(.settingsPanelShowsPanelOnHover),
+                subtitle: localization.string(.settingsPanelShowsPanelOnHoverDescription),
+                isOn: $store.showsPanelOnHover
+            )
+            SettingsDivider()
+            SettingsToggleRow(
+                symbol: "rectangle.split.2x1",
+                tint: .purple,
+                title: localization.string(.settingsPanelShowsDetailsAlongside),
+                subtitle: localization.string(.settingsPanelShowsDetailsAlongsideDescription),
+                isOn: $store.showsPanelDetailsAlongside
+            )
+            SettingsDivider()
+            SettingsToggleRow(
                 symbol: "arrow.uturn.backward",
                 tint: .purple,
                 title: localization.string(.settingsPanelReturnsToSummaryOnOpen),
                 subtitle: localization.string(.settingsPanelReturnsToSummaryOnOpenDescription),
-                isOn: $store.returnsToSummaryOnOpen
+                isOn: Binding(
+                    get: { store.restoresPanelDetailsOnOpen },
+                    set: { store.restoresPanelDetailsOnOpen = $0 }
+                )
+            )
+            SettingsDivider()
+            SettingsToggleRow(
+                symbol: "macwindow.on.rectangle",
+                tint: .purple,
+                title: localization.string(.settingsPanelKeepOpenForComparison),
+                subtitle: localization.string(.settingsPanelKeepOpenForComparisonDescription),
+                isOn: $store.keepsPanelOpenWhenOpeningSettings
             )
         }
     }
@@ -70,6 +125,23 @@ struct PopoverSectionView: View {
                 preview: { style in
                     PanelBackgroundStylePreview(style: style)
                 }
+            )
+            SettingsDivider()
+            // A single switch drives both weight tiers: on restores the old,
+            // heavier look (semibold titles/values plus medium-weight
+            // captions); off keeps today's regular weight. That is why setting
+            // it also flips `statusPanelMediumTextEnabled` — do not split it
+            // into a second row or drop the medium flag, or the panel will no
+            // longer match the classic appearance.
+            SettingsToggleRow(
+                symbol: "bold",
+                tint: .purple,
+                title: localization.string(.settingsPanelBoldText),
+                subtitle: localization.string(.settingsPanelBoldTextDescription),
+                isOn: Binding(
+                    get: { store.statusPanelBoldTextEnabled },
+                    set: { store.applyPanelBoldTextToggle($0) }
+                )
             )
         }
     }
@@ -147,33 +219,64 @@ struct PopoverSectionView: View {
     }
 }
 
-/// A miniature status panel used as the background-style preview card. The card
-/// shows the actual material for Liquid Glass and the classic popover style,
-/// and the system window fill (which tracks light / dark) for Solid.
+/// A miniature status panel used as the background-style preview card. It shows
+/// the panel background *and* the card surface that goes with it, so the three
+/// choices cannot look interchangeable: a translucent wash on Liquid Glass, a
+/// material wash on the frosted style, and an opaque system-surface card on
+/// Solid. The real window uses `NSGlassEffectView`, which SwiftUI cannot host in
+/// a settings swatch, so the glass entry is an honest visual approximation.
 private struct PanelBackgroundStylePreview: View {
     let style: PanelBackgroundStyle
 
     var body: some View {
         ZStack(alignment: .topLeading) {
             background
-            VStack(alignment: .leading, spacing: 4) {
-                Capsule()
-                    .fill(Color.primary.opacity(0.55))
-                    .frame(width: 30, height: 4)
-                Capsule()
-                    .fill(Color.primary.opacity(0.28))
-                    .frame(width: 22, height: 3)
-                Capsule()
-                    .fill(Color.primary.opacity(0.28))
-                    .frame(width: 26, height: 3)
-            }
-            .padding(9)
+            cardSwatch.padding(7)
         }
         .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: 8, style: .continuous)
                 .strokeBorder(Color.primary.opacity(0.14), lineWidth: 1)
         )
+    }
+
+    /// The miniature power card. Its surface follows the panel style the same way
+    /// the live cards do, so the preview communicates the card treatment, not just
+    /// the window fill.
+    private var cardSwatch: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Capsule()
+                .fill(Color.primary.opacity(0.55))
+                .frame(width: 30, height: 4)
+            Capsule()
+                .fill(Color.primary.opacity(0.28))
+                .frame(width: 22, height: 3)
+            Capsule()
+                .fill(Color.primary.opacity(0.28))
+                .frame(width: 26, height: 3)
+        }
+        .padding(7)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .background { cardSurface }
+        .overlay(
+            RoundedRectangle(cornerRadius: 6, style: .continuous)
+                .strokeBorder(Color.primary.opacity(0.16), lineWidth: 1)
+        )
+    }
+
+    @ViewBuilder
+    private var cardSurface: some View {
+        switch style {
+        case .liquidGlass:
+            RoundedRectangle(cornerRadius: 6, style: .continuous)
+                .fill(Color.primary.opacity(0.10))
+        case .classicMaterial:
+            RoundedRectangle(cornerRadius: 6, style: .continuous)
+                .fill(.ultraThinMaterial)
+        case .solid:
+            RoundedRectangle(cornerRadius: 6, style: .continuous)
+                .fill(Color(nsColor: .controlBackgroundColor))
+        }
     }
 
     @ViewBuilder

@@ -1,0 +1,118 @@
+name: Publish Existing Candidate
+
+on:
+  workflow_dispatch:
+    inputs:
+      candidate_run_id:
+        description: "Run ID of the Build Release Candidate run whose tested artifact to publish."
+        required: true
+        type: string
+      strict_evidence_run_id:
+        description: "Optional verify-candidate run ID proving strict tests for a fast candidate."
+        required: false
+        default: ""
+        type: string
+
+permissions:
+  actions: read
+  contents: write
+
+concurrency:
+  group: status-trio-release-publish
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: xcode-27
+    timeout-minutes: 30
+    environment:
+      name: distribution
+    env:
+      GH_TOKEN: ${{ secrets.RELEASE_TOKEN || secrets.GITHUB_TOKEN }}
+      REPOSITORY: ${{ github.repository }}
+      CANDIDATE_RUN_ID: ${{ inputs.candidate_run_id }}
+      STRICT_EVIDENCE_RUN_ID: ${{ inputs.strict_evidence_run_id }}
+    steps:
+      - name: Check out trusted publishing tooling
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          ref: ${{ github.workflow_sha }}
+
+      - name: Verify candidate run ID
+        run: |
+          set -euo pipefail
+          [[ "${CANDIDATE_RUN_ID}" =~ ^[1-9][0-9]{0,18}$ ]] || {
+            echo "::error::candidate_run_id must be a positive integer run ID."; exit 1;
+          }
+          [[ "${CANDIDATE_RUN_ID}" != "${{ github.run_id }}" ]] || {
+            echo "::error::candidate_run_id must not be the current publish run."; exit 1;
+          }
+
+      - name: Download the original candidate artifact
+        run: |
+          set -euo pipefail
+          rm -rf dist/candidate
+          mkdir -p dist/candidate
+          gh run download "${CANDIDATE_RUN_ID}" -R "${REPOSITORY}" -n status-trio-release-package -D dist/candidate
+          [[ -f dist/candidate/release-manifest.json ]] || {
+            echo "::error::candidate artifact is missing release-manifest.json."; exit 1;
+          }
+
+      - name: Optionally download strict verification evidence
+        if: ${{ inputs.strict_evidence_run_id != '' }}
+        run: |
+          set -euo pipefail
+          rm -rf dist/evidence
+          mkdir -p dist/evidence
+          gh run download "${STRICT_EVIDENCE_RUN_ID}" -R "${REPOSITORY}" -n status-trio-strict-evidence -D dist/evidence
+          [[ -f dist/evidence/strict-evidence.json ]] || {
+            echo "::error::strict evidence artifact is missing strict-evidence.json."; exit 1;
+          }
+
+      - name: Resolve manifest parameters
+        id: candidate
+        run: |
+          set -euo pipefail
+          ruby -rjson -e '
+            m = JSON.parse(File.read(ARGV[0]))
+            sha = m.dig("candidate", "source_sha") || m["source_sha"]
+            File.open(ARGV[1], "a") do |out|
+              out.puts "candidate_sha=#{sha}"
+              out.puts "version=#{m.fetch("version")}"
+              out.puts "build=#{m.fetch("build")}"
+              out.puts "tag=#{m.fetch("tag")}"
+            end
+          ' dist/candidate/release-manifest.json "${GITHUB_OUTPUT}"
+
+      - name: Validate candidate provenance
+        env:
+          SOURCE_RUN_ID: ${{ inputs.candidate_run_id }}
+          CANDIDATE_SHA: ${{ steps.candidate.outputs.candidate_sha }}
+          EXPECTED_VERSION: ${{ steps.candidate.outputs.version }}
+          EXPECTED_BUILD: ${{ steps.candidate.outputs.build }}
+          EXPECTED_TAG: ${{ steps.candidate.outputs.tag }}
+          MANIFEST_PATH: dist/candidate/release-manifest.json
+          ALLOWED_LEVELS: fast,strict
+          STRICT_EVIDENCE_PATH: ${{ inputs.strict_evidence_run_id != '' && 'dist/evidence/strict-evidence.json' || '' }}
+        run: bash scripts/validate-candidate-provenance.sh
+
+      - name: Publish the existing candidate without rebuilding
+        env:
+          MANIFEST_PATH: dist/candidate/release-manifest.json
+          PACKAGE_DIR: dist/candidate
+          CANDIDATE_SHA: ${{ steps.candidate.outputs.candidate_sha }}
+        run: bash scripts/publish-release.sh
+
+      - name: Summarize publication
+        if: always()
+        run: |
+          {
+            echo "### Publish Existing Candidate"
+            echo ""
+            echo "- Candidate run: `${{ inputs.candidate_run_id }}`"
+            echo "- Source SHA: `${{ steps.candidate.outputs.candidate_sha }}`"
+            echo "- Version: `${{ steps.candidate.outputs.version }}` (build ${{ steps.candidate.outputs.build }})"
+            echo ""
+            echo "No build, sign, notarize, or package step ran."
+          } >> "${GITHUB_STEP_SUMMARY}"

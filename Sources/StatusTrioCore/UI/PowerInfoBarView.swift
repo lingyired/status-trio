@@ -5,6 +5,7 @@ import SwiftUI
 /// underneath. Each number is its own reading and the cards are never summed
 /// into a whole-machine total.
 struct PowerInfoBarView: View {
+    @Environment(\.statusPanelBoldTextEnabled) private var panelBoldText
     @EnvironmentObject private var localization: Localization
     @Environment(\.colorScheme) private var colorScheme
     let state: PowerInfoBarState
@@ -35,7 +36,7 @@ struct PowerInfoBarView: View {
                     .accessibilityHidden(true)
                 if let value {
                     Text(value)
-                        .font(.system(size: 13, weight: .semibold, design: .rounded))
+                        .font(.system(size: 13, weight: panelBoldText ? .semibold : .regular, design: .rounded))
                         .monospacedDigit()
                         .lineLimit(1)
                         .minimumScaleFactor(0.8)
@@ -57,17 +58,10 @@ struct PowerInfoBarView: View {
         .padding(.horizontal, 10)
         .padding(.vertical, 7)
         .frame(maxWidth: .infinity, alignment: .leading)
-        // The panel chrome is transparent Liquid Glass, so a very light tint
-        // disappears over a bright or colourful desktop. Keep the fill and a
-        // thin rim opaque enough that each card still reads as a surface. The
-        // battery details flow diagram shares `PowerCardSurface`, so both
-        // "charger input" cards resolve the same silver.
-        .background(surface.fill(tint: tint, scheme: colorScheme),
-                    in: RoundedRectangle(cornerRadius: 12, style: .continuous))
-        .overlay {
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .strokeBorder(surface.stroke(tint: tint, scheme: colorScheme), lineWidth: 1)
-        }
+        // The card surface is shared with the battery details flow diagram and
+        // follows the panel background (glass / material / solid) through the
+        // environment, so the two "charger input" cards never drift apart.
+        .panelCardSurface(surface, tint: tint)
         .accessibilityElement(children: .combine)
     }
 

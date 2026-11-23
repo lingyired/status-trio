@@ -26,16 +26,23 @@ final class CoreAudioStatusReader: AudioStatusReadingProviding {
     private let readSystem: @Sendable (Bool) -> AudioStatusReading
 
     /// The device-enumeration policy of the production read, split out so it can
-    /// be exercised without audio hardware: the device list is read only when it
-    /// was requested and only when a default output device exists, and `nil`
-    /// keeps meaning "not requested".
+    /// be exercised without audio hardware: the device list is read whenever it
+    /// was requested, independent of whether the volume read succeeded, and
+    /// `nil` keeps meaning "not requested".
+    ///
+    /// Enumeration is deliberately decoupled from the volume read (#296). A
+    /// transiently invalid default output device (for example while the system
+    /// is switching to a Bluetooth/AirPlay/aggregate device) makes the volume
+    /// read return `nil`, but the output-device topology is still enumerable.
+    /// Skipping enumeration in that case is what made the whole output list
+    /// vanish.
     nonisolated static func assemble(
         includeOutputDevices: Bool,
         readVolume: @Sendable () -> VolumeReading?,
         readDevices: @Sendable () -> [AudioOutputDevice]
     ) -> AudioStatusReading {
         let volume = readVolume()
-        let devices = includeOutputDevices && volume != nil ? readDevices() : nil
+        let devices = includeOutputDevices ? readDevices() : nil
         return AudioStatusReading(volume: volume, outputDevices: devices)
     }
 

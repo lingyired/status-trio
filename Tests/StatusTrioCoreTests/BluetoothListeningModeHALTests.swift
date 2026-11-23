@@ -146,12 +146,12 @@ final class BluetoothListeningModeHALTests: XCTestCase {
 
     // MARK: - Support-mask parsing (§18.1)
 
-    func testSupportMaskSingleModeIsNotControllable() {
+    func testSupportMaskDoesNotImplyOffPermission() {
         let backend = FakeListeningModeBackend()
         backend.lsms.value = 0b001
         let capability = makeHAL(backend).capability(for: device)
         XCTAssertEqual(capability?.availableModes, [.noiseCancellation])
-        XCTAssertEqual(capability?.isControllable, false, "one mode has nothing to switch between")
+        XCTAssertEqual(capability?.isControllable, false)
     }
 
     func testSupportMaskTwoModes() {
@@ -191,12 +191,12 @@ final class BluetoothListeningModeHALTests: XCTestCase {
         XCTAssertNil(makeHAL(backend).capability(for: device)?.currentMode)
     }
 
-    func testCurrentOffIsObservedButNotSelectable() {
+    func testCurrentOffIsSelectableAndHighlighted() {
         let backend = FakeListeningModeBackend()
         backend.lstm.value = 1
         let capability = makeHAL(backend).capability(for: device)
         XCTAssertEqual(capability?.currentMode, .off)
-        XCTAssertFalse(BluetoothListeningMode.off.isUserSelectable)
+        XCTAssertEqual(BluetoothListeningModePresentation(capability: capability!).selectedMode, .off)
     }
 
     func testCurrentModesMapToTheirRawValues() {

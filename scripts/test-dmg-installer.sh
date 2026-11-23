@@ -87,7 +87,8 @@ elif [[ "$1" == attach ]]; then
     # Emit a real, writable directory as the mount point so chflags can run.
     mnt="${DMG_MOCK_MNT:?}"
     mkdir -p "$mnt"
-    : > "$mnt/.VolumeIcon.icns" "$mnt/.background"
+    : > "$mnt/.VolumeIcon.icns"
+    : > "$mnt/.background"
     mkdir -p "$mnt/Status Trio.app"
     printf 'attach %s\n' "$*" >> "$DMG_TRACE"
     printf '/dev/disk992\tApple_HFS\t%s\n' "$mnt"
@@ -116,25 +117,25 @@ ruby -e '
     "--format" => ["UDZO"]
   }
   required.each { |flag, values| index = args.index(flag); abort "missing/wrong #{flag}" unless index && args[index + 1, values.size] == values }
-  ["--background", "--volicon", "--no-internet-enable"].each { |flag| abort "missing #{flag}" unless args.include?(flag) }
+  ["--background", "--no-internet-enable"].each { |flag| abort "missing #{flag}" unless args.include?(flag) }
+  abort "volume icon must not be written" if args.include?("--volicon")
+  abort "volume icon must not be positioned" if args.each_index.any? { |i| args[i] == "--icon" && args[i + 1] == ".VolumeIcon.icns" }
   ["--skip-jenkins", "--skip-finalize", "--sandbox-safe"].each { |flag| abort "layout bypass forbidden: #{flag}" if args.include?(flag) }
   background = args[args.index("--background") + 1]
   abort "missing Retina background" unless background.end_with?("background@2x.png") && File.file?(background)
   abort "duplicate Applications link" unless args.count("--app-drop-link") == 1
-  # Hidden helper dotfiles must be pinned outside the 660x420 window so a Finder
-  # that shows hidden files cannot draw them over the instructions.
-  {".VolumeIcon.icns" => 760, ".background" => 860}.each do |name, x|
-    index = args.each_index.find { |i| args[i] == "--icon" && args[i + 1] == name }
-    abort "helper #{name} is not positioned" unless index
-    abort "helper #{name} overlaps the window" unless args[index + 2].to_i > 660
-  end
+  # The hidden `.background` helper must be pinned outside the 660x420 window
+  # so a Finder that shows hidden files cannot draw it over the instructions.
+  index = args.each_index.find { |i| args[i] == "--icon" && args[i + 1] == ".background" }
+  abort "helper .background is not positioned" unless index
+  abort "helper .background overlaps the window" unless args[index + 2].to_i > 660
 ' "$DMG_TRACE"
 [[ "$(< "$WORK/output.dmg")" == 'fixture disk image' ]] || fail 'output missing'
 [[ ! -e "$(< "$DMG_TRACE.tmpdir")" ]] || fail 'successful package leaked tool temporary directory'
 # The helper dotfiles create-dmg adds must be hidden so they never sit on the
 # installer instructions, especially on a headless runner without Finder layout.
-/usr/bin/grep -q '^hide -a h .*\.VolumeIcon\.icns .*\.background$\|^hide .*\.VolumeIcon\.icns .*\.background$' "$DMG_TRACE" \
-    || fail 'helper dotfiles were not hidden'
+/usr/bin/grep -q '^hide .*\.background$' "$DMG_TRACE" \
+    || fail 'background helper was not hidden'
 /usr/bin/grep -q '^unmount ' "$DMG_TRACE" || fail 'helper re-mount was not detached'
 # The build bundle has no space; the user-facing name must still have one.
 mkdir -p "$WORK/StatusTrio.app/Contents/Resources"

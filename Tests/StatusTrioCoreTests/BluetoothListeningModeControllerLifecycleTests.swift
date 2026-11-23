@@ -204,31 +204,33 @@ final class BluetoothListeningModeControllerLifecycleTests: XCTestCase {
         XCTAssertEqual(backend.writeCount, 1)
     }
 
-    func testReTapOfSelectedModeTurnsItOff() async {
+    func testExplicitOffRowWritesAndRemainsSelected() async {
         let backend = FakeListeningModeBackend()
-        backend.lstm.value = 3 // already Transparency, and the capability highlights it
-        let cap = capability(current: .transparency)
-        let (controller, _, _) = makeController(
-            endpoints: [endpoint(capability: cap)],
-            backend: backend
-        )
+        let cap = capability(modes: [.off, .noiseCancellation, .transparency, .adaptive])
+        let (controller, _, _) = makeController(endpoints: [endpoint(capability: cap)], backend: backend)
         controller.refresh(devices: [device()])
-        XCTAssertEqual(controller.presentations[key]?.selectedMode, .transparency)
-
-        controller.setMode(.transparency, for: device())
-
-        XCTAssertEqual(
-            controller.presentations[key]?.actionState,
-            .changing(to: .off),
-            "re-tapping the active mode starts an Off write"
-        )
+        XCTAssertTrue(controller.presentations[key]!.availableModes.contains(.off))
+        controller.setMode(.off, for: device())
         await waitUntil { controller.presentations[key]?.actionState == .idle }
-        XCTAssertNil(
-            controller.presentations[key]?.selectedMode,
-            "turning off clears the highlight"
-        )
-        XCTAssertEqual(backend.writeCount, 1)
+        XCTAssertEqual(controller.presentations[key]?.selectedMode, .off)
         XCTAssertEqual(backend.lstm.value, BluetoothListeningMode.off.rawValue)
+        XCTAssertEqual(backend.writeCount, 1)
+        controller.setMode(.off, for: device())
+        XCTAssertEqual(backend.writeCount, 1, "Selecting Off again is a no-op")
+    }
+
+    func testReTapCannotBypassUnavailableOffMode() async {
+        let backend = FakeListeningModeBackend()
+        backend.lstm.value = 3
+        let cap = capability(current: .transparency)
+        let (controller, _, _) = makeController(endpoints: [endpoint(capability: cap)], backend: backend)
+        controller.refresh(devices: [device()])
+        controller.setMode(.transparency, for: device())
+        controller.setMode(.off, for: device())
+        for _ in 0..<10 { await Task.yield() }
+        XCTAssertEqual(controller.presentations[key]?.selectedMode, .transparency)
+        XCTAssertEqual(controller.presentations[key]?.actionState, .idle)
+        XCTAssertEqual(backend.writeCount, 0)
     }
 
     func testRepeatTapWhileChangingDoesNotStackAWrite() async {

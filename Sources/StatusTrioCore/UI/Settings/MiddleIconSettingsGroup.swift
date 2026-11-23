@@ -4,14 +4,21 @@ import SwiftUI
 struct MiddleIconSettingsGroup: View {
     @ObservedObject var store: SettingsStore
     @ObservedObject var statusStore: SystemStatusStore
+    /// Omitted on the dedicated "Middle Icon" page, where the page title already
+    /// names the section; kept when the group sits among the other icon groups.
+    var showsGroupTitle: Bool = true
     @EnvironmentObject private var localization: Localization
     @State private var showsNetworkIconOptions = false
 
     var body: some View {
-        SettingsGroup(localization.string(.settingsMiddleIconTitle)) {
+        SettingsGroup(showsGroupTitle ? localization.string(.settingsMiddleIconTitle) : nil) {
             sourcePicker
+            LocalIconPluginSlotPicker(slot: .center, store: store)
 
-            SettingsDivider()
+            // This divider follows the full-width picker (no leading icon
+            // column), so align it with the picker's content edge instead of the
+            // icon-row inset that would leave a gap on the left.
+            SettingsDivider(inset: SettingsMetrics.rowPaddingH)
             middleIconSizeRow
 
             if store.connectionCenterSource == .network {
@@ -23,6 +30,11 @@ struct MiddleIconSettingsGroup: View {
                 SettingsDivider()
                 MiddleBluetoothIconOptions(store: store, statusStore: statusStore,
                                            bluetoothDevices: statusStore.bluetoothDevices)
+            }
+
+            if store.connectionCenterSource == .inputSource {
+                SettingsDivider()
+                inputSourceMarkerRow
             }
 
             if store.connectionCenterSource != .network {
@@ -51,7 +63,7 @@ struct MiddleIconSettingsGroup: View {
                 Slider(
                     value: Binding(
                         get: { store.wifiSymbolScale },
-                        set: { store.wifiSymbolScale = (round($0 * 20) / 20) }
+                        set: { store.setWiFiSymbolScaleFromSlider(round($0 * 20) / 20) }
                     ),
                     in: SettingsStore.wifiSymbolScaleRange
                 )
@@ -113,59 +125,24 @@ struct MiddleIconSettingsGroup: View {
         }
     }
 
-    /// Five options are too many for a pop-up menu to read well, so the middle
-    /// content is a full-width row of picture tiles: each tile shows what the
-    /// slot would draw, and the selected one carries the standard ring.
+    /// The middle content has too many options for a pop-up menu to read well,
+    /// so it is a row of picture tiles: each tile shows what the slot would
+    /// draw, and the selected one carries the standard ring. The row uses the
+    /// shared `SettingsVisualChoicePicker` so it stays identical to the
+    /// ring-content chooser.
     private var sourcePicker: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text(localization.string(.settingsMiddleIconDescription))
-                .font(.system(size: 11.5))
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
-
-            if store.connectionCenterSource == .chargingStatus {
-                Text(localization.string(.settingsMiddleIconChargingStatusDescription))
-                    .font(.system(size: 11.5))
-                    .foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-
-            HStack(alignment: .top, spacing: 8) {
-                ForEach(ConnectionCenterSource.allCases) { source in
-                    let selected = store.connectionCenterSource == source
-                    Button {
-                        store.connectionCenterSource = source
-                    } label: {
-                        VStack(spacing: 5) {
-                            MiddleIconSourcePreview(source: source)
-                                .frame(maxWidth: .infinity)
-                                .frame(height: 42)
-                                .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 6, style: .continuous)
-                                        .strokeBorder(Color.primary.opacity(0.12), lineWidth: 1)
-                                )
-                                .selectionRing(selected, cornerRadius: 6)
-                            Text(sourceLabel(source))
-                                .font(.system(size: 11.5, weight: selected ? .semibold : .regular))
-                                .foregroundStyle(selected ? Color.primary : Color.secondary)
-                                .multilineTextAlignment(.center)
-                                .lineLimit(2)
-                                .frame(maxWidth: .infinity)
-                        }
-                    }
-                    .buttonStyle(.plain)
-                    .frame(maxWidth: .infinity)
-                    .accessibilityLabel(sourceLabel(source))
-                    .accessibilityAddTraits(selected ? [.isSelected, .isButton] : [.isButton])
-                }
-            }
-            .accessibilityElement(children: .contain)
-            .accessibilityLabel(localization.string(.settingsMiddleIconSource))
-        }
-        .padding(.horizontal, SettingsMetrics.rowPaddingH)
-        .padding(.vertical, SettingsMetrics.rowPaddingV)
-        .accessibilityIdentifier("appIcon.middleSource")
+        SettingsVisualChoicePicker(
+            descriptionText: localization.string(.settingsMiddleIconDescription),
+            choicesAccessibilityLabel: localization.string(.settingsMiddleIconSource),
+            accessibilityIdentifier: "appIcon.middleSource",
+            footnoteText: store.connectionCenterSource == .chargingStatus
+                ? localization.string(.settingsMiddleIconChargingStatusDescription)
+                : nil,
+            selection: $store.connectionCenterSource,
+            options: ConnectionCenterSource.allCases,
+            caption: { sourceLabel($0) },
+            preview: { MiddleIconSourcePreview(source: $0) }
+        )
     }
 
     private func sourceLabel(_ source: ConnectionCenterSource) -> String {
@@ -178,6 +155,34 @@ struct MiddleIconSettingsGroup: View {
         case .chargingStatus: .settingsMiddleIconChargingStatus
         }
         return localization.string(key)
+    }
+
+    /// How Apple's two Pinyin input sources draw their middle marker. Defaults
+    /// to the system image (pre-#297); 简/繁 and 中 are opt-in.
+    private var inputSourceMarkerRow: some View {
+        SettingsRow(
+            "keyboard",
+            tint: .blue,
+            title: localization.string(.settingsInputSourceMarker),
+            subtitle: localization.string(.settingsInputSourceMarkerDescription)
+        ) {
+            Picker(
+                localization.string(.settingsInputSourceMarker),
+                selection: Binding(
+                    get: { store.inputSourceMarkerStyle },
+                    set: { store.inputSourceMarkerStyle = $0 }
+                )
+            ) {
+                ForEach(InputSourceMarkerStyle.allCases) { style in
+                    Text(localization.string(style.titleKey)).tag(style)
+                }
+            }
+            .pickerStyle(.menu)
+            .labelsHidden()
+            .settingsMenuPickerWidth()
+            .accessibilityLabel(localization.string(.settingsInputSourceMarker))
+            .accessibilityIdentifier("appIcon.inputSourceMarker")
+        }
     }
 }
 
@@ -196,6 +201,8 @@ private struct MiddleBluetoothIconOptions: View {
                 SettingsDivider()
             }
             networkIconSourceRow
+            SettingsDivider()
+            BluetoothIconColorRow(store: store)
             if selectedOption.source == .audioDevices {
                 SettingsDivider()
                 bluetoothAudioIconChoiceRow

@@ -29,6 +29,9 @@ final class PowerHelperService: NSObject, PowerHelperCombinedXPCProtocol {
         lowPowerMode.readProtocolVersion(withReply: reply)
     }
 
+    // The merged conflict left a broken declaration here; restored to a method.
+    // (see readHighPowerModeSupport below)
+
     func readHighPowerModeSupport(withReply reply: @escaping (Bool, String?) -> Void) {
         lowPowerMode.readHighPowerModeSupport(withReply: reply)
     }
@@ -39,6 +42,14 @@ final class PowerHelperService: NSObject, PowerHelperCombinedXPCProtocol {
 
     func setHighPowerMode(_ enabled: Bool, withReply reply: @escaping (Bool, String?) -> Void) {
         lowPowerMode.setHighPowerMode(enabled, withReply: reply)
+    }
+
+    func readDisableSleep(withReply reply: @escaping (Bool, String?) -> Void) {
+        lowPowerMode.readDisableSleep(withReply: reply)
+    }
+
+    func setDisableSleep(_ enabled: Bool, withReply reply: @escaping (Bool, String?) -> Void) {
+        lowPowerMode.setDisableSleep(enabled, withReply: reply)
     }
 
     // MARK: Legacy charge limit

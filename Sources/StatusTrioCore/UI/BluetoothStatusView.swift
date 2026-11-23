@@ -1,3 +1,4 @@
+import AppKit
 import SwiftUI
 
 enum BluetoothSummaryAction: CaseIterable, Equatable {
@@ -49,6 +50,7 @@ enum BluetoothSummaryActionAvailability {
 /// here instead: the refresh button beside the gear, and the one-line report of
 /// a level read that failed.
 struct BluetoothStatusView: View {
+    @Environment(\.statusPanelBoldTextEnabled) private var panelBoldText
     @ObservedObject var controller: BluetoothDeviceController
     @ObservedObject var radioPower: BluetoothRadioPowerController
     @ObservedObject var mobileBatteryController: MobileBatteryController
@@ -58,6 +60,7 @@ struct BluetoothStatusView: View {
     var nearbyBLESelections: [NearbyBLEDeviceSelection] = []
     var trustedAppleDeviceMetadata: [AppleDeviceCandidate] = []
     var currentTrustedAppleCandidates: [AppleDeviceCandidate] = []
+    var appleDeviceLastSuccessfulIDs: Set<AppleDeviceID>? = nil
     var trustedDiscoveryGeneration: UInt64 = 0
     var listOptions: BluetoothDeviceListOptions = .standard
     var showsRadioPowerControl = true
@@ -111,13 +114,18 @@ struct BluetoothStatusView: View {
 
     /// Whether the previous read's devices are standing in for the incoming one.
     /// This shows real names at once while the OS read runs; the list keeps the
-    /// cached rows until the fresh result lands.
+    /// cached rows until the fresh result lands. The decision lives in
+    /// `BluetoothDeviceListPresentation` so it can be unit-tested, including the
+    /// rule that a failed read must not paint stale rows as live (#330).
     private var isShowingCachedDevices: Bool {
-        guard !isRadioOff else { return false }
-        return listOptions.showsList
-            && !controller.hasLoadedDevices
-            && controller.devices.isEmpty
-            && !controller.cachedDevices.isEmpty
+        BluetoothDeviceListPresentation.showsCachedDevices(
+            availability: controller.availability,
+            isRadioOff: isRadioOff,
+            showsList: listOptions.showsList,
+            hasLoadedDevices: controller.hasLoadedDevices,
+            devices: controller.devices,
+            cachedDevices: controller.cachedDevices
+        )
     }
 
     private var displayedDevices: [BluetoothDevice] {
@@ -212,7 +220,13 @@ struct BluetoothStatusView: View {
 
     private var appleProjection: AppleDeviceCatalog.Projection {
         let candidates = showsAppleDevicesAndBattery
-            ? AppleDeviceCatalog.candidates(trusted: trustedAppleDeviceMetadata)
+            ? AppleDeviceCatalog.currentCandidates(
+                history: trustedAppleDeviceMetadata,
+                discovered: currentTrustedAppleCandidates,
+                lastSuccessfulIDs: appleDeviceLastSuccessfulIDs,
+                trustedSnapshots: showsMobileBatteryFeature ? mobileBatteryController.snapshots : [],
+                now: Date()
+            )
             : []
         let knownIDs = Set(candidates.map(\.id))
         let failures = Set(mobileBatteryController.failures.compactMap { failure -> AppleDeviceID? in
@@ -249,7 +263,7 @@ struct BluetoothStatusView: View {
         let showsBluetoothSkeleton = !isShowingCachedDevices && (bluetoothPlaceholder?.rowCount ?? 0) > 0
 
         VStack(alignment: .leading, spacing: 8) {
-            HStack(alignment: .center, spacing: PanelSummaryActionMetrics.iconGap) {
+            HStack(alignment: .center, spacing: PanelSummaryActionMetrics.actionSpacing) {
                 titleBlock
 
                 let powerPresentation = BluetoothRadioPowerPresentation.make(
@@ -403,7 +417,7 @@ struct BluetoothStatusView: View {
             refreshDevices: { controller.refreshFromUser() },
             refreshMobileBatteries: { mobileBatteryController.refresh() }
         )) {
-            PanelActionGlyph(systemName: "arrow.clockwise")
+            PanelActionGlyph(systemName: "arrow.clockwise", size: PanelSummaryActionMetrics.actionSlot)
         }
         .buttonStyle(.plain)
         .foregroundStyle(.secondary)
@@ -417,7 +431,7 @@ struct BluetoothStatusView: View {
 
     private var settingsButton: some View {
         Button(action: onOpenBluetoothSettings) {
-            PanelActionGlyph(systemName: "gearshape")
+            PanelActionGlyph(systemName: "gearshape", size: PanelSummaryActionMetrics.actionSlot)
         }
         .labelStyle(.iconOnly)
         .buttonStyle(.plain)
@@ -439,7 +453,7 @@ struct BluetoothStatusView: View {
                 onSetRadioPower(enabled)
             }
         } label: {
-            PanelActionGlyph(systemName: presentation.symbolName)
+            PanelActionGlyph(systemName: presentation.symbolName, size: PanelSummaryActionMetrics.actionSlot)
         }
         .buttonStyle(.plain)
         .foregroundStyle(powerIconColor(for: presentation.iconState))
@@ -488,15 +502,21 @@ struct BluetoothStatusView: View {
     private var titleContent: some View {
         HStack(spacing: BluetoothPanelMetrics.iconTextSpacing) {
             BluetoothIcon(size: BluetoothPanelMetrics.iconColumnWidth)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(titleIconColor)
             VStack(alignment: .leading, spacing: 2) {
                 Text(localization.string(.bluetoothTitle))
-                    .font(.headline)
+                    .font(.headline.weight(panelBoldText ? .semibold : .regular))
                 subtitle
             }
             Spacer()
         }
         .contentShape(Rectangle())
+    }
+
+    /// The title glyph follows the Wi-Fi row's tint (#352): system ink while
+    /// the radio is on, secondary ink when it is off or its state is unknown.
+    private var titleIconColor: Color {
+        BluetoothTitleTintResolver.tint(for: radioPower.power).color()
     }
 
     private func perform(_ action: BluetoothSummaryRowAction) {

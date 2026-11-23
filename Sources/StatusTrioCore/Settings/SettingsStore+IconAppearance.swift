@@ -39,59 +39,103 @@ extension SettingsStore {
             (groups, style.scale)
         }
         .combineLatest($wifiSymbolScale) { pair, centerScale in
-            pair.0.appearance(ringStrokeScale: pair.1, centerScale: centerScale)
+            (pair.0, pair.1, centerScale)
+        }
+        .combineLatest(
+            Publishers.CombineLatest4(
+                $outerRingContent,
+                $airPodsRingUsesDualRing,
+                $showsAirPodsTopSymbolInRing,
+                $airPodsRingFallback
+            )
+            .combineLatest(
+                Publishers.CombineLatest($hardwareRingConfiguration, $hardwareTemperatureMonitoringEnabled)
+            ) { ring, hardware in
+                // Keep the stored selection intact so re-enabling temperature
+                // restores it. Only the effective rendering/demand projection
+                // falls back to usage while monitoring is off.
+                let effectiveRing = hardware.1
+                    ? hardware.0
+                    : hardware.0.replacingUnavailableTemperatures()
+                return (ring.0, ring.1, ring.2, ring.3, effectiveRing)
+            }
+            .combineLatest(
+                Publishers.CombineLatest3($hardwareMonitorMetricColors, $hardwareDownloadCapMbps, $hardwareUploadCapMbps)
+            ) { ring, extras in
+                (ring.0, ring.1, ring.2, ring.3, ring.4, extras.0, extras.1, extras.2)
+            }
+        ) { triple, ring in
+            var appearance = triple.0.appearance(ringStrokeScale: triple.1, centerScale: triple.2)
+            appearance.outerRingContent = ring.0
+            appearance.airPodsRingUsesDualRing = ring.1
+            appearance.showsAirPodsTopSymbolInRing = ring.2
+            appearance.airPodsRingFallback = ring.3
+            appearance.hardwareRingConfiguration = ring.4
+            appearance.hardwareMetricColors = ring.5
+            appearance.hardwareDownloadCapMbps = ring.6
+            appearance.hardwareUploadCapMbps = ring.7
+            return appearance
         }
         .removeDuplicates()
         .eraseToAnyPublisher()
     }
 
     private var batteryInputsPublisher: AnyPublisher<BatteryAppearanceInputs, Never> {
-        Publishers.CombineLatest4(
-            $showsBatteryPercentage,
-            $showsChargingIndicator,
+        let states = Publishers.CombineLatest4(
+            $batteryOnBatteryMarker,
+            $batteryChargingMarker,
+            $batteryConnectedMarker,
+            $batteryNoBatteryMarker
+        )
+        let appearance = Publishers.CombineLatest4(
             $usesBatteryStatusColors,
-            $batteryCriticalThreshold
+            $batteryCriticalThreshold,
+            $batterySymbolScale,
+            $showsChargingBoltHeartbeat
         )
-        .combineLatest(
-            Publishers.CombineLatest4(
-                $batteryConnectedIndicator,
-                $batterySymbolScale,
-                $showsChargingBoltHeartbeat,
-                $showsMenuBarChargingEffect
-            )
+        let effects = Publishers.CombineLatest3(
+            $showsMenuBarChargingEffect,
+            $showsDockChargingEffect,
+            $batterySplitGapProgress
         )
-        .combineLatest($showsDockChargingEffect)
-        .combineLatest($batterySplitGapProgress)
-        .map { values, splitGapProgress -> BatteryAppearanceInputs in
-            let primaryInputs = values.0.0
-            let additionalInputs = values.0.1
-            let showsDockChargingEffect = values.1
-            return BatteryAppearanceInputs(
-                showsPercentage: primaryInputs.0,
-                showsChargingIndicator: primaryInputs.1,
-                usesStatusColors: primaryInputs.2,
-                criticalThreshold: primaryInputs.3,
-                connectedIndicator: additionalInputs.0,
-                symbolScale: additionalInputs.1,
-                showsChargingEffect:
-                    additionalInputs.3 || showsDockChargingEffect,
-                showsChargingBoltHeartbeat: additionalInputs.2,
-                splitGapProgress: splitGapProgress,
-                fullThreshold: Self.defaultBatteryFullThreshold,
-                batteryStatusColors: .standard
-            )
-        }
-        .combineLatest($batteryFullThreshold) { inputs, fullThreshold in
-            var updated = inputs
-            updated.fullThreshold = fullThreshold
-            return updated
-        }
-        .combineLatest($batteryStatusColors) { inputs, colors in
-            var updated = inputs
-            updated.batteryStatusColors = colors
-            return updated
-        }
-        .eraseToAnyPublisher()
+        return states
+            .combineLatest(appearance)
+            .combineLatest(effects)
+            .map { pair, effects -> BatteryAppearanceInputs in
+                let state = pair.0
+                let appearanceInputs = pair.1
+                return BatteryAppearanceInputs(
+                    onBatteryMarker: state.0,
+                    chargingMarker: state.1,
+                    connectedMarker: state.2,
+                    noBatteryMarker: state.3,
+                    usesStatusColors: appearanceInputs.0,
+                    criticalThreshold: appearanceInputs.1,
+                    symbolScale: appearanceInputs.2,
+                    showsChargingEffect: effects.0 || effects.1,
+                    showsChargingBoltHeartbeat: appearanceInputs.3,
+                    splitGapProgress: effects.2,
+                    fullThreshold: Self.defaultBatteryFullThreshold,
+                    batteryStatusColors: .standard,
+                    monochromeChargingRing: nil
+                )
+            }
+            .combineLatest($batteryFullThreshold) { inputs, fullThreshold in
+                var updated = inputs
+                updated.fullThreshold = fullThreshold
+                return updated
+            }
+            .combineLatest($batteryStatusColors) { inputs, colors in
+                var updated = inputs
+                updated.batteryStatusColors = colors
+                return updated
+            }
+            .combineLatest($monochromeChargingRing) { inputs, monochromeCharging in
+                var updated = inputs
+                updated.monochromeChargingRing = monochromeCharging
+                return updated
+            }
+            .eraseToAnyPublisher()
     }
 
     private var connectionOptionsPublisher: AnyPublisher<ConnectionIconOptions, Never> {
@@ -120,17 +164,27 @@ extension SettingsStore {
     }
 
     private var bluetoothOptionsPublisher: AnyPublisher<BluetoothAudioIconOptions, Never> {
-        Publishers.CombineLatest(
+        Publishers.CombineLatest4(
+            $bluetoothIconColor,
             $usesBluetoothAudioVolumeColor,
-            $bluetoothNetworkIconSymbolName
+            $bluetoothNetworkIconSymbolName,
+            $bluetoothVolumeColor
         )
         .combineLatest($bluetoothAudioIconChoiceRawValue) { values, choiceRawValue in
-            BluetoothAudioIconOptions(
-                usesVolumeColor: values.0,
-                networkIconSymbolOverride: values.1,
+            let volumeColorRole: IconColorRole? = {
+                switch values.3 {
+                case .automatic: return nil
+                case let .custom(color): return .custom(color)
+                }
+            }()
+            return BluetoothAudioIconOptions(
+                iconColor: values.0,
+                usesVolumeColor: values.1,
+                networkIconSymbolOverride: values.2,
                 iconChoice: BluetoothAudioIconChoice.persisted(choiceRawValue) { symbol in
                     NSImage(systemSymbolName: symbol, accessibilityDescription: nil) != nil
-                }
+                },
+                volumeColorRole: volumeColorRole
             )
         }
         .removeDuplicates()
@@ -141,32 +195,36 @@ extension SettingsStore {
 /// The battery settings that are not shared with another option group, carried
 /// with names so the `CombineLatest` chain never destructures nested tuples.
 private struct BatteryAppearanceInputs {
-    var showsPercentage: Bool
-    var showsChargingIndicator: Bool
+    var onBatteryMarker: BatteryTopMarker
+    var chargingMarker: BatteryTopMarker
+    var connectedMarker: BatteryTopMarker
+    var noBatteryMarker: BatteryTopMarker
     var usesStatusColors: Bool
     var criticalThreshold: Double
-    var connectedIndicator: BatteryConnectedIndicator
     var symbolScale: Double
     var showsChargingEffect: Bool
     var showsChargingBoltHeartbeat: Bool
     var splitGapProgress: Bool
     var fullThreshold: Double
     var batteryStatusColors: BatteryStatusColors
+    var monochromeChargingRing: Bool?
 
     func options(ringStrokeScale: Double) -> BatteryIconOptions {
         BatteryIconOptions(
-            showsPercentage: showsPercentage,
-            showsChargingIndicator: showsChargingIndicator,
             showsChargingEffect: showsChargingEffect,
             showsChargingBoltHeartbeat: showsChargingBoltHeartbeat,
             splitGapProgress: splitGapProgress,
             usesStatusColors: usesStatusColors,
             criticalThreshold: Int(criticalThreshold.rounded()),
-            connectedIndicator: connectedIndicator,
             fullThreshold: Int(fullThreshold.rounded()),
             textScale: symbolScale * BatteryIconOptions.defaultTextScale,
             ringStrokeScale: ringStrokeScale,
-            batteryStatusColors: batteryStatusColors
+            batteryStatusColors: batteryStatusColors,
+            onBatteryMarker: onBatteryMarker,
+            chargingMarker: chargingMarker,
+            connectedMarker: connectedMarker,
+            noBatteryMarker: noBatteryMarker,
+            monochromeCharging: monochromeChargingRing
         )
     }
 }
@@ -190,6 +248,7 @@ private struct IconAppearanceGroups {
             wifiScale: centerScale
         )
         let scaledBluetooth = BluetoothAudioIconOptions(
+            iconColor: bluetooth.iconColor,
             usesVolumeColor: bluetooth.usesVolumeColor,
             symbolScale: centerScale,
             networkIconSymbolOverride: bluetooth.networkIconSymbolOverride,

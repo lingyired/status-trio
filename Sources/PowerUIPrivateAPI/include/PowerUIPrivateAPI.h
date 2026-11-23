@@ -51,7 +51,12 @@ typedef NS_ENUM(NSInteger, STPowerUIChargeWriteFailure) {
 - (STPowerUIChargeCapability *)capability;
 - (STPowerUIChargeState *)readState;
 /// Sends one request. The caller owns user intent, revalidation, and de-duplication.
-- (STPowerUIChargeWriteResult *)temporarilyDisableMCL;
+///
+/// Chooses the native path: `temporarilyDisableMCL:` when a sub-100% charge
+/// limit is active, otherwise `temporarilyEnableCharging:` when the system
+/// reports the current charge pause is overridable (for example Optimized
+/// Battery Charging paused at ~80% with the charge limit at 100%).
+- (STPowerUIChargeWriteResult *)chargeToFullNow;
 /// Restores the charge limit to `limit` (80...99), using
 /// `setMCLLimit:error:` only when required.
 ///
@@ -65,13 +70,6 @@ typedef NS_ENUM(NSInteger, STPowerUIChargeWriteFailure) {
 /// is treated as an external change and is rejected without writing.
 - (STPowerUIChargeWriteResult *)restoreChargeLimit:(NSInteger)limit
                                     expectedLimit:(NSInteger)expectedLimit;
-/// Applies explicit user intent only while a fresh state matches the expected
-/// limit and raw enabled value. Sub-100 targets must be advertised by PowerUI;
-/// 100 restores no cap. Sends at most one set and one enable request.
-- (STPowerUIChargeWriteResult *)setChargeLimit:(NSInteger)limit
-                         expectedCurrentLimit:(NSInteger)expectedCurrentLimit
-                         expectedEnabledState:(NSUInteger)expectedEnabledState
-    NS_SWIFT_NAME(applyChargeLimit(_:expectedCurrentLimit:expectedEnabledState:));
 @end
 
 NS_ASSUME_NONNULL_END

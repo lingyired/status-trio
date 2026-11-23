@@ -40,7 +40,7 @@ struct BatteryDischargePresentationTests {
             localization: localization, powerOptions: BatteryPowerDisplayOptions(showsSystem: showsSystem))
 
         #expect(state.rows.contains { $0.id == LocalizationKey.batteryDetailsSystemPower.rawValue } == showsSystem)
-        #expect(state.rows.contains { $0.id == LocalizationKey.batteryDetailsSystemReadAt.rawValue } == showsSystem)
+        #expect(state.rows.contains { $0.id == LocalizationKey.batteryDetailsSystemReadAt.rawValue } == false)
         #expect(state.rows.contains { $0.id == LocalizationKey.batteryDetailsDischarging.rawValue } == false)
     }
 }

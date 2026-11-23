@@ -8,6 +8,27 @@ struct GeneralSectionView: View {
     /// so previews/tests can render the pane without the full app graph.
     var statusStore: SystemStatusStore? = nil
     var chargeToFullNow: ChargeToFullNowController? = nil
+    /// The Settings root supplies its stable session. Standalone panes own a local fallback.
+    @StateObject private var transferSession: SettingsTransferSession
+
+    init(
+        store: SettingsStore,
+        localization: Localization,
+        globalShortcutController: GlobalShortcutController? = nil,
+        statusStore: SystemStatusStore? = nil,
+        chargeToFullNow: ChargeToFullNowController? = nil,
+        transferSession: SettingsTransferSession? = nil
+    ) {
+        self.store = store
+        self.localization = localization
+        self.globalShortcutController = globalShortcutController
+        self.statusStore = statusStore
+        self.chargeToFullNow = chargeToFullNow
+        _transferSession = StateObject(wrappedValue: transferSession ?? SettingsTransferSession(
+            store: store, localization: localization
+        ))
+    }
+
     @ObservedObject private var launchAtLogin: LaunchAtLoginManager = .shared
     @ObservedObject private var updaterManager: UpdaterManager = .shared
     @ObservedObject private var helper: PrivilegedHelperManager = .shared
@@ -15,6 +36,13 @@ struct GeneralSectionView: View {
     var body: some View {
         SettingsPage {
             systemGroup
+            appearanceGroup
+            quickActionsGroup
+            statusCheckGroup
+            SettingsTransferView(
+                session: transferSession,
+                localization: localization
+            )
             analyticsGroup
             if updaterManager.canCheckForUpdates {
                 updatesGroup
@@ -26,7 +54,9 @@ struct GeneralSectionView: View {
     }
 
     private var systemGroup: some View {
-        SettingsGroup(localization.string(.settingsPageGeneral)) {
+        // The pane is already "General", so the first card carries no repeated
+        // section title.
+        SettingsGroup {
             // Language
             SettingsRow(
                 title: localization.string(.settingsLanguage),
@@ -95,8 +125,11 @@ struct GeneralSectionView: View {
                 }
             }
 
-            SettingsDivider()
+        }
+    }
 
+    private var quickActionsGroup: some View {
+        SettingsGroup(localization.string(.settingsQuickActionsTitle)) {
             if let globalShortcutController {
                 ShortcutSettingsRow(
                     store: store,
@@ -108,44 +141,95 @@ struct GeneralSectionView: View {
             }
 
             rightClickActionRow
+        }
+    }
+
+    private var statusCheckGroup: some View {
+        SettingsGroup(localization.string(.settingsStatusCheckTitle)) {
+            // Status refresh interval (#255): one row per power source, using
+            // the original settings-row and slider component. The description
+            // stays once on the first row; neither row shows step ticks.
+            refreshIntervalRow(
+                title: localization.string(.settingsRefreshIntervalOnBattery),
+                subtitle: localization.string(.settingsRefreshIntervalDescription),
+                value: $store.refreshIntervalOnBatterySeconds
+            )
 
             SettingsDivider()
 
-            // Status refresh interval
-            SettingsRow(
-                "arrow.clockwise",
-                tint: .orange,
-                title: localization.string(.settingsRefreshInterval),
-                subtitle: localization.string(.settingsRefreshIntervalDescription)
-            ) {
-                HStack(spacing: 8) {
-                    Slider(
-                        value: Binding(
-                            get: { store.refreshIntervalSeconds },
-                            set: { store.refreshIntervalSeconds = ($0 / 5).rounded() * 5 }
-                        ),
-                        in: SettingsStore.refreshIntervalRange
-                    )
-                    .frame(width: 130)
-                    .controlSize(.small)
-                    .accessibilityLabel(localization.string(.settingsRefreshInterval))
-                    .accessibilityValue(
-                        localization.format(
-                            .settingsRefreshIntervalValue,
-                            Int(store.refreshIntervalSeconds)
-                        )
-                    )
+            refreshIntervalRow(
+                title: localization.string(.settingsRefreshIntervalOnPower),
+                value: $store.refreshIntervalOnPowerSeconds
+            )
+        }
+    }
 
-                    Text(
-                        localization.format(
-                            .settingsRefreshIntervalValue,
-                            Int(store.refreshIntervalSeconds)
-                        )
+    /// Panel appearance: the fill colour used by the volume, brightness and
+    /// microphone sliders in the status panel (#359).
+    private var appearanceGroup: some View {
+        SettingsGroup {
+            SettingsRow(
+                "slider.horizontal.3",
+                tint: .teal,
+                title: localization.string(.settingsPanelLevelSliderColor),
+                subtitle: localization.string(.settingsPanelLevelSliderColorDescription)
+            ) {
+                PanelLevelSliderColorRow(
+                    store: store,
+                    localization: localization
+                )
+            }
+
+            SettingsDivider()
+
+            SettingsToggleRow(
+                symbol: "rectangle.portrait.arrowtriangle.2.outward",
+                tint: .teal,
+                title: localization.string(.settingsPanelLevelSliderThickness),
+                subtitle: localization.string(.settingsPanelLevelSliderThicknessDescription),
+                isOn: $store.panelLevelSliderMatchesBrightnessThickness
+            )
+        }
+    }
+
+    private func refreshIntervalRow(
+        title: String,
+        subtitle: String? = nil,
+        value: Binding<Double>
+    ) -> some View {
+        SettingsRow(
+            "arrow.clockwise",
+            tint: .orange,
+            title: title,
+            subtitle: subtitle
+        ) {
+            HStack(spacing: 8) {
+                Slider(
+                    value: Binding(
+                        get: { value.wrappedValue },
+                        set: { value.wrappedValue = $0.rounded() }
+                    ),
+                    in: SettingsStore.refreshIntervalRange
+                )
+                .frame(width: 130)
+                .controlSize(.small)
+                .accessibilityLabel(title)
+                .accessibilityValue(
+                    localization.format(
+                        .settingsRefreshIntervalValue,
+                        Int(value.wrappedValue)
                     )
-                    .font(.system(size: 12, design: .monospaced))
-                    .foregroundStyle(.secondary)
-                    .frame(width: 50, alignment: .trailing)
-                }
+                )
+
+                Text(
+                    localization.format(
+                        .settingsRefreshIntervalValue,
+                        Int(value.wrappedValue)
+                    )
+                )
+                .font(.system(size: 12, design: .monospaced))
+                .foregroundStyle(.secondary)
+                .frame(width: 50, alignment: .trailing)
             }
         }
     }

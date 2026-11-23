@@ -1,46 +1,37 @@
 import XCTest
 @testable import StatusTrioCore
 
-/// The VPN row's settings surface: it is on by default, a list stored before
-/// the row existed picks it up exactly once, and switching it off sticks.
+/// The VPN row's settings surface: it is off by default (opt-in), a stored
+/// selection is honoured exactly as saved, and switching it on or off sticks
+/// across relaunches.
 @MainActor
 final class VPNRowSettingsTests: XCTestCase {
-    func testVPNIsInTheDefaultSelection() {
-        XCTAssertTrue(SettingsStore.defaultEnabledPopupSections.contains(.vpn))
+    func testVPNIsNotInTheDefaultSelection() {
+        XCTAssertFalse(SettingsStore.defaultEnabledPopupSections.contains(.vpn))
     }
 
-    func testAFreshInstallShowsTheVPNRow() {
+    func testAFreshInstallHidesTheVPNRow() {
         let suite = makeSuite()
         defer { clear(suite) }
 
         let store = SettingsStore(defaults: suite.defaults)
 
-        XCTAssertTrue(store.enabledPopupSections.contains(.vpn))
-        XCTAssertTrue(store.visiblePopupSections.contains(.vpn))
+        XCTAssertFalse(store.enabledPopupSections.contains(.vpn))
+        XCTAssertFalse(store.visiblePopupSections.contains(.vpn))
+        // The row still exists in the order; it is just switched off.
+        XCTAssertTrue(store.popupSectionOrder.contains(.vpn))
     }
 
-    /// The default set only reaches a user who has never saved a list, so an
-    /// upgrade has to add the row by hand — and write the result back. The
-    /// second `SettingsStore` is the assertion that matters: `didSet` does not
-    /// run for an assignment made inside `init`, so a migration left in memory
-    /// only would rebuild the old list on the next launch.
-    func testAStoredListFromBeforeTheRowGainsItAndKeepsIt() {
+    func testEnablingTheRowSurvivesARelaunch() {
         let suite = makeSuite()
         defer { clear(suite) }
 
-        suite.defaults.set(
-            [PopupSection.battery.rawValue, PopupSection.volume.rawValue],
-            forKey: SettingsStore.enabledPopupSectionsDefaultsKey
-        )
-
-        let upgraded = SettingsStore(defaults: suite.defaults)
-        XCTAssertTrue(upgraded.enabledPopupSections.contains(.vpn))
+        let store = SettingsStore(defaults: suite.defaults)
+        store.setPopupSection(.vpn, enabled: true)
 
         let reopened = SettingsStore(defaults: suite.defaults)
         XCTAssertTrue(reopened.enabledPopupSections.contains(.vpn))
-        XCTAssertTrue(reopened.enabledPopupSections.contains(.battery))
-        XCTAssertTrue(reopened.enabledPopupSections.contains(.volume))
-        XCTAssertFalse(reopened.enabledPopupSections.contains(.network))
+        XCTAssertTrue(reopened.visiblePopupSections.contains(.vpn))
     }
 
     func testTurningTheRowOffSurvivesARelaunch() {
@@ -56,40 +47,35 @@ final class VPNRowSettingsTests: XCTestCase {
         XCTAssertFalse(reopened.visiblePopupSections.contains(.vpn))
     }
 
-    func testTheMigrationRunsOnceEvenWithAnEmptyStoredList() {
+    /// A stored selection is the user's own choice, so the opt-in VPN row is
+    /// never added to it automatically.
+    func testAStoredSelectionIsHonouredWithoutAddingTheVPNRow() {
         let suite = makeSuite()
         defer { clear(suite) }
 
-        // An empty list is a user who switched every row off. The row is offered
-        // once, and the second launch has to respect the choice that follows.
-        suite.defaults.set([String](), forKey: SettingsStore.enabledPopupSectionsDefaultsKey)
+        suite.defaults.set(
+            [PopupSection.battery.rawValue, PopupSection.volume.rawValue],
+            forKey: SettingsStore.enabledPopupSectionsDefaultsKey
+        )
 
-        let upgraded = SettingsStore(defaults: suite.defaults)
-        XCTAssertTrue(upgraded.enabledPopupSections.contains(.vpn))
-
-        upgraded.setPopupSection(.vpn, enabled: false)
-        let reopened = SettingsStore(defaults: suite.defaults)
-        XCTAssertFalse(reopened.enabledPopupSections.contains(.vpn))
+        let store = SettingsStore(defaults: suite.defaults)
+        XCTAssertFalse(store.enabledPopupSections.contains(.vpn))
+        XCTAssertTrue(store.enabledPopupSections.contains(.battery))
+        XCTAssertTrue(store.enabledPopupSections.contains(.volume))
     }
 
-    func testSanitizerOnlyAddsTheRowBeforeTheMarkerIsSet() {
+    func testSanitizerKeepsAStoredSelectionWithoutTheRow() {
         let stored = [PopupSection.battery.rawValue, PopupSection.volume.rawValue]
 
-        XCTAssertTrue(
-            SettingsStore
-                .sanitizedEnabledPopupSections(stored, hasIntroducedVPN: false)
-                .contains(.vpn)
-        )
-        XCTAssertFalse(
-            SettingsStore
-                .sanitizedEnabledPopupSections(stored, hasIntroducedVPN: true)
-                .contains(.vpn)
+        XCTAssertEqual(
+            SettingsStore.sanitizedEnabledPopupSections(stored),
+            Set([.battery, .volume])
         )
     }
 
     func testSanitizerFallsBackToTheDefaultsWithoutAStoredList() {
         XCTAssertEqual(
-            SettingsStore.sanitizedEnabledPopupSections(nil, hasIntroducedVPN: true),
+            SettingsStore.sanitizedEnabledPopupSections(nil),
             SettingsStore.defaultEnabledPopupSections
         )
     }

@@ -6,6 +6,16 @@ private let singleInstanceLogger = Logger(
     category: "SingleInstance"
 )
 
+// The packaged launcher and swift run share the same AppKit entry point.
+@MainActor
+@_cdecl("StatusTrioRunApplication")
+public func runStatusTrioApplication() {
+    let application = NSApplication.shared
+    let delegate = AppDelegate()
+    application.delegate = delegate
+    application.run()
+}
+
 @MainActor
 public final class AppDelegate: NSObject, NSApplicationDelegate {
     private var environment: AppEnvironment?
@@ -17,6 +27,10 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     public func applicationDidFinishLaunching(_ notification: Notification) {
+        // macOS 26+ defaults to the native glass surfaces; the key can opt out.
+        // Registered here (not in the view) so ImageRenderer/unit-test hosts that
+        // never launch the app keep the deterministic translucent wash.
+        UserDefaults.standard.register(defaults: [PanelCardSurfaceExperiment.defaultsKey: true])
         let backgroundUITesting = BackgroundUITestingConfiguration(
             arguments: ProcessInfo.processInfo.arguments
         )
@@ -61,6 +75,34 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
 
     public func applicationWillTerminate(_ notification: Notification) {
         environment?.stop()
+    }
+
+    /// #295: `pmset -a disablesleep 1` is a persisted system setting, so quitting
+    /// while the lid toggle is on must write it back to 0. `.terminateLater`
+    /// lets the helper call finish first; the delayed reply is a stop path so an
+    /// unreachable helper can never hang quit.
+    public func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
+        guard let environment, environment.store.sleepControl.needsTerminationCleanup else {
+            return .terminateNow
+        }
+        let sleepControl = environment.store.sleepControl
+        Task { @MainActor in
+            await sleepControl.shutdown()
+            self.replyToTermination()
+        }
+        Task { @MainActor in
+            try? await Task.sleep(for: .seconds(3))
+            self.replyToTermination()
+        }
+        return .terminateLater
+    }
+
+    private var didReplyToTermination = false
+
+    private func replyToTermination() {
+        guard !didReplyToTermination else { return }
+        didReplyToTermination = true
+        NSApplication.shared.reply(toApplicationShouldTerminate: true)
     }
 
     public func applicationShouldHandleReopen(

@@ -22,9 +22,12 @@ never cuts a sample the details page or the icon still needs. `BatteryDetailsRea
 receives the shared sample instead of opening its own system-power connection,
 so the same refresh is never read twice.
 
-Cadence is a single **2-second** rhythm for every demand: the panel, the
-details page and an icon that keeps showing watts are equally live. The sampler
-still stops as soon as the last demand ends.
+Cadence depends on what is visible. The panel, the details page and the power
+info bar read every **2 seconds**: they need live watts. An icon that is the
+only live surface samples every **5 seconds** — it updates one menu-bar/Dock
+number, and registering `panel` reads immediately, so opening the panel never
+waits for the slower icon cadence. The sampler still stops as soon as the last
+demand ends.
 
 This is not a promise of no extra wakeups: an icon that keeps showing watts
 keeps a periodic read alive. A stopped sampler clears its last
@@ -81,9 +84,11 @@ below describe what is implemented, not a frozen specification.
   never interrupt an icon or details demand that is still live. Because it needs
   the input and battery rails, the sampler reads them only while this demand is
   registered; otherwise it reads the whole-machine total alone.
-- Current rhythm is the same 2-second cadence as every other surface.
-- Deliberately **not decided** here (left for discussion): 3–5 s panel refresh,
-  5 s icon refresh, first-frame cache, cache-expiry threshold, and placeholder
+- While the panel is open, the bar shares the panel's 2-second cadence; the
+  icon-only demand it leaves behind samples every five seconds.
+- Decided: the icon-only refresh is 5 s with an immediate read when a panel
+  demand begins. Still **not decided** here (left for discussion): a 3–5 s
+  panel refresh, first-frame cache, cache-expiry threshold, and placeholder
   strategy. No cache or placeholder is implemented yet; only fresh readings are
   drawn.
 

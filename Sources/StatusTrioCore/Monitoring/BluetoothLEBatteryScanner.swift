@@ -362,6 +362,7 @@ final class CoreBluetoothLEBatteryScanner: NSObject,
     private var candidateNames: [UUID: String] = [:]
     private var candidateCache = NearbyBLECandidateCache()
     private var cancellingPeripherals: [UUID: CancellingPeripheral] = [:]
+    private let cancellationTimeouts = BLECancellationTimeoutRegistry()
     private var readFailures: Set<UUID> = []
     private var nearbyDevices: [UUID: NearbyBluetoothBatteryDevice] = [:]
     private var currentScanGeneration: UInt64 = 0
@@ -423,14 +424,7 @@ final class CoreBluetoothLEBatteryScanner: NSObject,
             candidateNames.removeValue(forKey: id)
             if let session = sessions.removeValue(forKey: id),
                sessionCancellationGate.retire(id, session: session.sessionID) {
-                session.timeoutTask?.cancel()
-                cancellingPeripherals[id] = CancellingPeripheral(
-                    sessionID: session.sessionID,
-                    peripheral: session.peripheral,
-                    delegate: session.delegate,
-                    central: centralManager
-                )
-                centralManager?.cancelPeripheralConnection(session.peripheral)
+                retireSession(session)
             }
         }
         let oldFailures = readFailures
@@ -461,14 +455,7 @@ final class CoreBluetoothLEBatteryScanner: NSObject,
             candidateNames.removeValue(forKey: id)
             if let session = sessions.removeValue(forKey: id),
                sessionCancellationGate.retire(id, session: session.sessionID) {
-                session.timeoutTask?.cancel()
-                cancellingPeripherals[id] = CancellingPeripheral(
-                    sessionID: session.sessionID,
-                    peripheral: session.peripheral,
-                    delegate: session.delegate,
-                    central: centralManager
-                )
-                centralManager?.cancelPeripheralConnection(session.peripheral)
+                retireSession(session)
             }
         }
         onDevicesChanged?(nearbyDevices.values.sorted { $0.id.uuidString < $1.id.uuidString })
@@ -493,12 +480,7 @@ final class CoreBluetoothLEBatteryScanner: NSObject,
             candidateNames.removeValue(forKey: id)
             if let session = sessions.removeValue(forKey: id),
                sessionCancellationGate.retire(id, session: session.sessionID) {
-                session.timeoutTask?.cancel()
-                cancellingPeripherals[id] = CancellingPeripheral(
-                    sessionID: session.sessionID, peripheral: session.peripheral,
-                    delegate: session.delegate, central: centralManager
-                )
-                centralManager?.cancelPeripheralConnection(session.peripheral)
+                retireSession(session)
             }
         }
         for id in initialReadCandidateIDs.subtracting(old) where isScanning {
@@ -811,7 +793,7 @@ final class CoreBluetoothLEBatteryScanner: NSObject,
                 guard let self else { return }
                 let interval = self.backgroundRefreshInterval
                     ?? .seconds(Int(BluetoothLEBatteryScanPolicy.automaticScanInterval))
-                try await Task.sleep(for: interval)
+                try await Task.sleep(for: interval, tolerance: interval / 5)
             } catch {
                 return
             }
@@ -869,7 +851,10 @@ final class CoreBluetoothLEBatteryScanner: NSObject,
         scanWindowTask?.cancel()
         scanWindowTask = Task { @MainActor [weak self] in
             do {
-                try await Task.sleep(for: BluetoothLEBatteryScanPolicy.scanWindow)
+                // A slightly late scan-window close is harmless; precision
+                // here only buys extra radio wakeups.
+                try await Task.sleep(for: BluetoothLEBatteryScanPolicy.scanWindow,
+                                     tolerance: BluetoothLEBatteryScanPolicy.scanWindow / 5)
             } catch {
                 return
             }
@@ -997,13 +982,7 @@ final class CoreBluetoothLEBatteryScanner: NSObject,
             _ = sessionCancellationGate.finishActive(identifier, session: session.sessionID)
             session.peripheral.delegate = nil
         } else if sessionCancellationGate.retire(identifier, session: session.sessionID) {
-            cancellingPeripherals[identifier] = CancellingPeripheral(
-                sessionID: session.sessionID,
-                peripheral: session.peripheral,
-                delegate: session.delegate,
-                central: centralManager
-            )
-            centralManager?.cancelPeripheralConnection(session.peripheral)
+            retireSession(session)
         }
         candidatePeripherals.removeValue(forKey: identifier)
         candidateNames.removeValue(forKey: identifier)
@@ -1133,10 +1112,39 @@ final class CoreBluetoothLEBatteryScanner: NSObject,
               cancelling.central === central,
               sessionCancellationGate.finishCancellation(id, session: cancelling.sessionID) else { return false }
         cancellingPeripherals.removeValue(forKey: id)
+        cancellationTimeouts.finish(id: id)
         peripheral.delegate = nil
         releaseCentralIfIdle()
         if isRunning, isScanning { startQueuedConnections() }
         return true
+    }
+
+    /// Moves a retired session into the cancellation set and bounds the wait for
+    /// `didDisconnect`. A lost callback would otherwise keep the session, its
+    /// delegate and the central manager alive for the life of the process.
+    private func retireSession(_ session: PeripheralSession) {
+        let id = session.peripheral.identifier
+        session.timeoutTask?.cancel()
+        cancellingPeripherals[id] = CancellingPeripheral(
+            sessionID: session.sessionID,
+            peripheral: session.peripheral,
+            delegate: session.delegate,
+            central: centralManager
+        )
+        cancellationTimeouts.begin(id: id, sessionID: session.sessionID) { [weak self] in
+            self?.timeOutCancellation(id: id, sessionID: session.sessionID)
+        }
+        centralManager?.cancelPeripheralConnection(session.peripheral)
+    }
+
+    private func timeOutCancellation(id: UUID, sessionID: UUID) {
+        guard let cancelling = cancellingPeripherals[id],
+              cancelling.sessionID == sessionID else { return }
+        cancellingPeripherals.removeValue(forKey: id)
+        _ = sessionCancellationGate.finishCancellation(id, session: sessionID)
+        cancelling.peripheral.delegate = nil
+        releaseCentralIfIdle()
+        if isRunning, isScanning { startQueuedConnections() }
     }
 
     private func releaseCentralIfIdle() {
@@ -1177,13 +1185,7 @@ final class CoreBluetoothLEBatteryScanner: NSObject,
         for session in activeSessions {
             session.timeoutTask?.cancel()
             if sessionCancellationGate.retire(session.peripheral.identifier, session: session.sessionID) {
-                cancellingPeripherals[session.peripheral.identifier] = CancellingPeripheral(
-                    sessionID: session.sessionID,
-                    peripheral: session.peripheral,
-                    delegate: session.delegate,
-                    central: centralManager
-                )
-                centralManager?.cancelPeripheralConnection(session.peripheral)
+                retireSession(session)
             }
         }
         policy.stop()

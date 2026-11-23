@@ -16,7 +16,6 @@ APP_DIR="$(cd "$1" && pwd -P)"
 APP_NAME="${DMG_APP_NAME:-$(basename "$APP_DIR" .app)}"
 [[ "$APP_NAME" != */* && -n "$APP_NAME" ]] || die 'Invalid app display name.'
 APP_FILE="$APP_NAME.app"
-[[ -f "$APP_DIR/Contents/Resources/AppIcon.icns" ]] || die 'AppIcon.icns is missing.'
 [[ -d "$(dirname "$2")" ]] || die 'Output parent directory does not exist.'
 OUTPUT_DIR="$(cd "$(dirname "$2")" && pwd -P)"
 OUTPUT="$OUTPUT_DIR/$(basename "$2")"
@@ -74,24 +73,24 @@ mkdir "$TEMP_ROOT/staging" "$TEMP_ROOT/tool-tmp"
 ditto "$APP_DIR" "$TEMP_ROOT/staging/$APP_FILE"
 TMPDIR="$TEMP_ROOT/tool-tmp/" create-dmg \
     --volname "$APP_NAME" \
-    --volicon "$APP_DIR/Contents/Resources/AppIcon.icns" \
     --background "$BACKGROUND" \
     --window-size 660 420 \
     --icon-size 104 --text-size 13 \
     --icon "$APP_FILE" 180 230 \
     --app-drop-link 480 230 \
-    --icon ".VolumeIcon.icns" 760 470 \
-    --icon ".background" 860 470 \
+    --icon ".background" 760 470 \
     --hide-extension "$APP_FILE" \
     --no-internet-enable --format UDZO \
     "$TEMP_ROOT/installer.dmg" "$TEMP_ROOT/staging"
 [[ -s "$TEMP_ROOT/installer.dmg" ]] || die 'create-dmg did not produce a nonempty image.'
 
-# create-dmg adds two helper dotfiles (.VolumeIcon.icns and .background). Finder
-# excludes hidden items from the "every item" reposition pass, so their icons
-# fall back to the default first-free slots over the installer instructions.
-# They are already positioned outside the window above; also mark them hidden so
-# a Finder that shows hidden files still keeps them out of the way, and repack.
+# create-dmg adds the hidden `.background` helper that carries the guide image.
+# Finder excludes hidden items from the "every item" reposition pass, so its
+# icon would otherwise fall back to the default first-free slot over the
+# instructions. It is positioned outside the window above; also mark it hidden
+# so a Finder that shows hidden files keeps it out of the way, and repack.
+# No custom volume icon is written: users mistook that volume artwork for the
+# app itself, so the mounted image intentionally shows the generic disk icon.
 hide_dmg_helpers() {
     local rw mnt final
     rw="${TEMP_ROOT}/installer.helpers.dmg"
@@ -103,7 +102,12 @@ hide_dmg_helpers() {
     [[ -n "$mnt" && -d "$mnt" ]] || die "Failed to mount the DMG to hide helper files."
     # chflags hidden sets the UF_HIDDEN flag that Finder honours for these
     # dotfiles; SetFile's hidden bit is unreliable on HFS+ read-write remounts.
-    chflags hidden "$mnt/.VolumeIcon.icns" "$mnt/.background"
+    # Hide any helper that exists, so an image built by an older wrapper keeps
+    # working, but the current layout only carries `.background`.
+    local helper
+    for helper in "$mnt/.VolumeIcon.icns" "$mnt/.background"; do
+        [[ -e "$helper" ]] && chflags hidden "$helper"
+    done
     hdiutil detach "$mnt" >/dev/null
     hdiutil convert -quiet -format UDZO -o "$final" "$rw"
     rm -f -- "$rw" "$TEMP_ROOT/installer.dmg"

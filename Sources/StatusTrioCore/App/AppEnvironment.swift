@@ -7,6 +7,7 @@ final class AppEnvironment {
     let settings: SettingsStore
     let localization: Localization
     let iconPresentation: IconPresentationViewModel
+    let localIconPluginRuntime: LocalIconPluginRuntime
     let statusBarController: StatusBarController
     let settingsWindowController: SettingsWindowController
     let onboardingWindowController: OnboardingWindowController
@@ -20,7 +21,6 @@ final class AppEnvironment {
     let dockChargingAnimationPresenter: (any DockChargingAnimationPresenting)?
     let dockVisibilityMonitor: (any DockVisibilityMonitoring)?
     let telemetryReporter: any TelemetryReporting
-    let managedChargeLimit: ManagedChargeLimitController?
     let legacyChargeLimit: LegacyChargeLimitController?
     let bluetoothAudioIconOverrideSynchronizer = BluetoothAudioIconOverrideSynchronizer()
     private let bluetoothProfilerCache: BluetoothProfilerReportCache
@@ -32,6 +32,15 @@ final class AppEnvironment {
 
     private var chargingEffectCancellables = Set<AnyCancellable>()
     private var inputSourceLifecycleCancellables = Set<AnyCancellable>()
+    private var hardwareRingDemandWiring: IconHardwareDemandWiring?
+    private var hardwareSamplingSettingsCancellables = Set<AnyCancellable>()
+    private var localIconDemandWiring: IconLiveDemandWiring?
+    private var localIconPluginCancellables = Set<AnyCancellable>()
+    private let localIconRefreshCoalescer = IconLiveResolutionCoalescer(
+        minimumInterval: 0.25,
+        timing: .live()
+    )
+    private let hardwareBackgroundDemandController: HardwareBackgroundDemandController
     private var previewResourceLifecycleCancellables = Set<AnyCancellable>()
     private var hasSubscribedToChargingEffectInputs = false
     private var isPreviewResourceLifecycleStarted = false
@@ -62,7 +71,7 @@ final class AppEnvironment {
         bluetoothProfilerCache: BluetoothProfilerReportCache = .shared,
         previewResourceLifecycle: PreviewResourceLifecycle? = nil,
         backgroundUITesting: BackgroundUITestingConfiguration = .disabled,
-        managedChargeLimit: ManagedChargeLimitController? = nil,
+        localIconPluginRuntime: LocalIconPluginRuntime = LocalIconPluginRuntime(directories: { [] }),
         legacyChargeLimit: LegacyChargeLimitController? = nil
     ) {
         self.store = store
@@ -82,14 +91,15 @@ final class AppEnvironment {
         self.dockChargingAnimationPresenter = dockChargingAnimationPresenter
         self.dockVisibilityMonitor = dockVisibilityMonitor
         self.telemetryReporter = telemetryReporter
-        self.managedChargeLimit = managedChargeLimit
         self.legacyChargeLimit = legacyChargeLimit
         self.memoryPressureMonitor = memoryPressureMonitor ?? MemoryPressureMonitor()
         self.bluetoothProfilerCache = bluetoothProfilerCache
         self.previewResourceLifecycle = previewResourceLifecycle ?? PreviewResourceLifecycle()
         self.backgroundUITesting = backgroundUITesting
+        self.localIconPluginRuntime = localIconPluginRuntime
         self.menuBarChargingEffectEnabled = settings.showsMenuBarChargingEffect
         self.dockChargingEffectEnabled = settings.showsDockChargingEffect
+        self.hardwareBackgroundDemandController = HardwareBackgroundDemandController(store: store, settings: settings)
     }
 
     func start() {
@@ -99,10 +109,31 @@ final class AppEnvironment {
         }
         memoryPressureMonitor.start()
         iconPresentation.start()
+        startHardwareRingDemand()
+        startHardwareSamplingSettings()
+        startLocalIconPluginRuntime()
+        hardwareBackgroundDemandController.start()
         startInputSourceMonitoringIfNeeded()
-        let presentedOnboarding = onboardingWindowController.showIfNeeded()
+        // A panel test must not be blocked by first-run onboarding. The
+        // Settings background route keeps its existing onboarding policy.
+        let presentedOnboarding =
+            backgroundUITesting.isEnabled && backgroundUITesting.opensStatusPanel
+            ? false
+            : onboardingWindowController.showIfNeeded()
         if backgroundUITesting.isEnabled, !presentedOnboarding {
-            settingsWindowController.show()
+            if backgroundUITesting.opensStatusPanel {
+                statusBarController.presentStatusPanelForBackgroundTesting()
+                if let raw = backgroundUITesting.opensHardwareDetailRaw,
+                   let detail = HardwareDetailKind(rawValue: raw) {
+                    // Present first, then route on the next main turn so the
+                    // panel's own prepare/reset cannot overwrite the page.
+                    DispatchQueue.main.async { [weak self] in
+                        self?.statusBarController.panelForTesting.showHardwareDetail(detail)
+                    }
+                }
+            } else {
+                settingsWindowController.show()
+            }
         }
         statusBarController.visibilityDidChange = { [weak self] in
             self?.updateChargingEffectClock()
@@ -115,10 +146,6 @@ final class AppEnvironment {
         }
         dockVisibilityMonitor?.onChange = { [weak self] _ in
             self?.updateDockChargingAnimationOwnership()
-        }
-        appIconController.systemPollDidFire = { [weak self] in
-            guard let self, isDockVisibilityMonitoring else { return }
-            dockVisibilityMonitor?.refresh()
         }
         chargingEffectMotionMonitor.onChange = { [weak self] _ in
             self?.updateChargingEffectClock()
@@ -149,10 +176,6 @@ final class AppEnvironment {
         store.bindExternalVolumeSettings(settings)
         store.bindExternalBrightnessSettings(settings)
         store.start()
-        managedChargeLimit?.start(
-            batteries: store.$snapshot.dropFirst().map { $0.battery }
-                .removeDuplicates().eraseToAnyPublisher()
-        )
         legacyChargeLimit?.onHelperDemandChanged = { required in
             if required {
                 PrivilegedHelperManager.shared.ensureSharedHelperRegistered()
@@ -168,8 +191,8 @@ final class AppEnvironment {
     }
 
     func stop() {
-        managedChargeLimit?.stop()
         legacyChargeLimit?.stop()
+        settings.flushPendingPersists()
         memoryPressureMonitor.stop()
         memoryPressureMonitor.onPressure = nil
         telemetryReporter.stop()
@@ -179,7 +202,6 @@ final class AppEnvironment {
         stopPreviewResourceLifecycle()
         appIconController.dockChargingAnimationEligibilityDidChange = nil
         appIconController.dockContentDidChange = nil
-        appIconController.systemPollDidFire = nil
         dockVisibilityMonitor?.onChange = nil
         if isDockVisibilityMonitoring {
             dockVisibilityMonitor?.stop()
@@ -197,11 +219,125 @@ final class AppEnvironment {
         appIconController.stop()
         mainMenuController.stop()
         store.stop()
+        hardwareBackgroundDemandController.stop()
+        hardwareRingDemandWiring?.stop()
+        hardwareRingDemandWiring = nil
+        hardwareSamplingSettingsCancellables.removeAll()
+        localIconDemandWiring?.stop()
+        localIconDemandWiring = nil
+        localIconPluginRuntime.stop()
+        localIconPluginCancellables.removeAll()
+        localIconRefreshCoalescer.cancel()
+        store.hardwareMetrics.end(.menuBarArc)
+        store.hardwareMetrics.end(.dock)
         // Both profiler consumers belong to the stopped store. A pressure
         // warning alone must not invalidate a report another reader is using.
         bluetoothProfilerCache.resetIfUnused()
         iconPresentation.stop()
         releaseRebuildableResources()
+    }
+
+    /// Starts the local package runtime and keeps it in step with the resolved
+    /// icon demand and the enabled directory list. A package update only
+    /// re-resolves the scene; it never rewrites the saved slot bindings.
+    private func startLocalIconPluginRuntime() {
+        guard settings.isLocalIconPluginEntryAvailable else { return }
+        localIconPluginCancellables.removeAll()
+        localIconDemandWiring?.stop()
+        localIconDemandWiring = nil
+        localIconPluginRuntime.start()
+        localIconPluginRuntime.changes
+            .sink { [weak self] in
+                guard let self else { return }
+                // External readings can arrive in bursts; keep the first value
+                // immediate and coalesce the rest to at most four parses/second.
+                self.localIconRefreshCoalescer.request { [weak self] in
+                    self?.iconPresentation.refresh()
+                }
+            }
+            .store(in: &localIconPluginCancellables)
+        let demandWiring = IconLiveDemandWiring(
+            demand: iconPresentation.demand,
+            placement: settings.appIconPlacement,
+            apply: { [weak self] bindings in
+                self?.localIconPluginRuntime.updateDemand(bindings)
+            }
+        )
+        localIconDemandWiring = demandWiring
+        demandWiring.start(
+            demands: iconPresentation.$demand.eraseToAnyPublisher(),
+            placements: settings.$appIconPlacement.eraseToAnyPublisher()
+        )
+        settings.$localIconPluginDirectories
+            .dropFirst()
+            .removeDuplicates()
+            .sink { [weak self] _ in
+                guard let self else { return }
+                Task { await self.localIconPluginRuntime.reloadCatalog() }
+            }
+            .store(in: &localIconPluginCancellables)
+    }
+
+    /// Demand the hardware metrics only while the System Monitoring ring is the
+    /// selected outer-ring source. This keeps the low-power contract: battery /
+    /// AirPods users never start the metric sampling loop.
+    private func startHardwareRingDemand() {
+        let wiring = IconHardwareDemandWiring(
+            demand: iconPresentation.demand,
+            placement: settings.appIconPlacement,
+            apply: { [weak self] demands in
+                guard let self else { return }
+                if let menuBar = demands.menuBar {
+                    self.store.hardwareMetrics.begin(.menuBarArc, metrics: menuBar)
+                } else {
+                    self.store.hardwareMetrics.end(.menuBarArc)
+                }
+                if let dock = demands.dock {
+                    self.store.hardwareMetrics.begin(.dock, metrics: dock)
+                } else {
+                    self.store.hardwareMetrics.end(.dock)
+                }
+            }
+        )
+        hardwareRingDemandWiring = wiring
+        wiring.start(
+            demands: iconPresentation.$demand.eraseToAnyPublisher(),
+            placements: settings.$appIconPlacement.eraseToAnyPublisher()
+        )
+    }
+
+    /// Applies the temperature-monitoring switch to the shared sampler. Keeping
+    /// it here covers the background and menu-bar demands even while the panel is
+    /// closed; the panel view model only mirrors the setting for rendering.
+    private func startHardwareSamplingSettings() {
+        applyHardwareSamplingSettings(
+            temperatureEnabled: settings.hardwareTemperatureMonitoringEnabled,
+            cpuRingCenterContent: settings.cpuRingCenterContent)
+        // Published emits in willSet, so the sink must use the delivered values;
+        // reading the stored properties here would apply the previous toggle
+        // (off-to-on would leave sampling disabled).
+        Publishers.CombineLatest(
+            settings.$hardwareTemperatureMonitoringEnabled,
+            settings.$cpuRingCenterContent
+        )
+        .removeDuplicates { lhs, rhs in
+            lhs.0 == rhs.0 && lhs.1 == rhs.1
+        }
+        .sink { [weak self] enabled, content in
+            self?.applyHardwareSamplingSettings(
+                temperatureEnabled: enabled,
+                cpuRingCenterContent: content)
+        }
+        .store(in: &hardwareSamplingSettingsCancellables)
+    }
+
+    private func applyHardwareSamplingSettings(
+        temperatureEnabled: Bool,
+        cpuRingCenterContent: HardwareRingCenterContent
+    ) {
+        store.hardwareMetrics.temperatureMonitoringEnabled = temperatureEnabled
+        store.hardwareMetrics.wantsRingCPUFrequency =
+            !temperatureEnabled || cpuRingCenterContent == .frequency
     }
 
     private func startPreviewResourceLifecycleIfNeeded() {
@@ -403,7 +539,7 @@ final class AppEnvironment {
         connectionMonitor: (any NetworkConnectionMonitoring)? = nil,
         vpnMonitor: (any VPNMonitoring)? = nil,
         volumeMonitor: any VolumeMonitoring,
-        brightnessMonitor: any BrightnessMonitoring = BrightnessMonitor(),
+        brightnessMonitor: any BrightnessMonitoring = BrightnessMonitor(defaultExternalBackend: .automatic),
         inputMonitor: (any AudioInputMonitoring)? = nil,
         refreshInterval: Duration = .seconds(15)
     ) -> SystemStatusStore {
@@ -435,7 +571,10 @@ final class AppEnvironment {
     static func live(
         backgroundUITesting: BackgroundUITestingConfiguration = .disabled
     ) -> AppEnvironment {
-        let settings = SettingsStore()
+        let settings = SettingsStore(
+            backgroundUITestingForcesHardwareMonitor:
+                backgroundUITesting.isEnabled && backgroundUITesting.opensHardwareDetailRaw != nil
+        )
         // A measurement launch can force the synthetic charging input so the
         // animation can be compared on and off on a machine that is not charging.
         if ChargingEffectTestMode.shouldForceChargingInput() {
@@ -448,13 +587,33 @@ final class AppEnvironment {
             vpnMonitor: VPNMonitor(),
             volumeMonitor: VolumeMonitor(outputController: CoreAudioOutputController()),
             inputMonitor: AudioInputMonitor(hardware: CoreAudioInputHardware()),
-            refreshInterval: settings.refreshInterval
+            // #255 production propagation only uses the per-power-source
+            // values. The store starts on a battery-present, unplugged
+            // placeholder snapshot, so seed the initial wait with the battery
+            // cadence; StatusBarController's subscription corrects it as soon
+            // as the first real power snapshot arrives.
+            refreshInterval: settings.refreshInterval(forPluggedIn: false)
         )
         let localization = Localization()
         let inputSourceController = InputSourceController()
         let appearance = StatusIconAppearance(settings: settings)
+        // Dev-only no-battery preview (#309): feed the shared icon view model a
+        // battery-absent snapshot so the real menu-bar and Dock icons draw the
+        // battery-less look too. The real store snapshot and battery automation
+        // stay untouched; turning the toggle off restores the live battery.
+        let noBatteryPreview = settings.isNoBatterySimulationActive
+        let isDevelopmentBuild = settings.isDevelopmentBuild
+        let hardwareRingTracker = HardwareRingStatusTracker()
+        let localIconPluginRuntime = LocalIconPluginRuntime(
+            directories: { [weak settings] in
+                settings?.resolvedLocalIconPluginDirectories() ?? []
+            }
+        )
         let iconPresentation = IconPresentationViewModel(
-            snapshot: store.snapshot,
+            snapshot: noBatteryPreview
+                ? store.snapshot.replacingBattery(
+                    .absent(lowPowerMode: store.snapshot.battery.isLowPowerMode))
+                : store.snapshot,
             settings: IconPresentationSettings(
                 configuration: IconPresentationConfiguration(
                     battery: appearance.batteryOptions,
@@ -465,37 +624,78 @@ final class AppEnvironment {
                 menuBarSize: appearance.iconSize,
                 testsChargingEffect: settings.testsChargingEffect
             ),
-            snapshots: store.$snapshot.eraseToAnyPublisher(),
+            snapshots: store.$snapshot
+                .combineLatest(settings.$simulatesNoBattery)
+                .map { snapshot, simulatesNoBattery in
+                    isDevelopmentBuild && simulatesNoBattery
+                        ? snapshot.replacingBattery(
+                            .absent(lowPowerMode: snapshot.battery.isLowPowerMode))
+                        : snapshot
+                }
+                .eraseToAnyPublisher(),
             preferences: settings.iconPresentationPublisher,
             inputSources: inputSourceController.$state
-                .map(\.selectedDescriptor)
+                .combineLatest(settings.$inputSourceMarkerStyle)
+                .map { state, markerStyle in state.iconDescriptor(markerStyle: markerStyle) }
                 .removeDuplicates()
                 .eraseToAnyPublisher(),
             systemPowers: store.powerSampling.$systemPower
                 .removeDuplicates()
                 .eraseToAnyPublisher(),
-            resolveInputs: { snapshot in
-                IconPresentationResourceResolver.inputs(snapshot: snapshot)
+            highPowerModes: store.highPowerMode.$isHighPowerMode
+                .removeDuplicates()
+                .eraseToAnyPublisher(),
+            hardwareMetrics: store.hardwareMetrics.observable.snapshotPublisher,
+            resolveInputs: { [store, settings, hardwareRingTracker] snapshot in
+                var inputs = IconPresentationResourceResolver.inputs(
+                    snapshot: snapshot,
+                    runtimeOptions: settings.iconRuntimePresentationOptions
+                )
+                inputs.sources = IconPresentationResourceResolver.sourceSnapshot(
+                    snapshot: snapshot,
+                    bluetoothDevices: store.bluetoothDevices.devices,
+                    batteryLevels: store.bluetoothDevices.batteryLevels,
+                    batteryLevelsUpdatedAt: store.bluetoothDevices.batteryLevelsUpdatedAt,
+                    selectedAirPodsAddress: settings.airPodsIconDeviceAddress,
+                    selectedConnectedDeviceAddress: settings.bluetoothNetworkIconDeviceAddress
+                )
+                let hardwareSnapshot = store.hardwareMetrics.observable.snapshot
+                inputs.sources.hardwareMetrics = hardwareSnapshot
+                inputs.sources.hardwareMetricColors = settings.hardwareMonitorMetricColors
+                inputs.sources.hardwareSpeedCapsMbps = [
+                    .downloadSpeed: settings.hardwareDownloadCapMbps,
+                    .uploadSpeed: settings.hardwareUploadCapMbps
+                ]
+                inputs.sources.hardwareRingLevels = hardwareRingTracker.levels(
+                    snapshot: hardwareSnapshot,
+                    configuration: settings.hardwareRingConfiguration,
+                    now: .now
+                )
+                return inputs
+            },
+            mapScene: { inputs, _, iconConfiguration, slotBindings in
+                let resolution = IconCompositionResolver.resolve(
+                    inputs: IconResolutionInputs(system: inputs, sources: inputs.sources),
+                    configuration: iconConfiguration,
+                    bindings: slotBindings,
+                    registry: localIconPluginRuntime.registry
+                )
+                return IconSceneMapping(scene: resolution.scene, demand: resolution.demand)
             }
         )
         let chargingEffectClock = ChargingEffectClock()
         let chargingEffectMotionMonitor = ChargingEffectMotionMonitor()
-        let managedChargeLimit = ManagedChargeLimitController(
-            backend: PowerUIChargeController(),
-            sessionStore: UserDefaultsManagedChargeLimitSessionStore(defaults: .standard)
-        )
         // Legacy backend is independent of the native 26.4+ controller: it
         // only becomes visible on macOS 13–15 with an internal battery.
         let legacyChargeLimit = LegacyChargeLimitController()
         let chargeToFullNow = ChargeToFullNowController(
-            backend: managedChargeLimit,
+            backend: PowerUIChargeController(),
             sessionStore: UserDefaultsChargeToFullNowSessionStore(
                 defaults: .standard
             ),
             restoreLimit: {
                 Int(settings.chargeToFullRestoreLimit.rounded())
-            },
-            managedRestoreLimit: { managedChargeLimit.managedRestoreLimit }
+            }
         )
         let dockChargingAnimationPresenter: any DockChargingAnimationPresenting =
             DockChargingAnimationRendererMode.usesApplicationIconFrames()
@@ -522,6 +722,7 @@ final class AppEnvironment {
             },
             quitAction: { NSApplication.shared.terminate(nil) },
             chargingEffectClock: chargingEffectClock,
+            backgroundUITesting: backgroundUITesting,
             inputSourceController: inputSourceController,
             chargeToFullNow: chargeToFullNow,
             legacyChargeLimit: legacyChargeLimit
@@ -545,7 +746,6 @@ final class AppEnvironment {
             inputSourceController: inputSourceController,
             globalShortcutController: globalShortcutController,
             chargeToFullNow: chargeToFullNow,
-            managedChargeLimit: managedChargeLimit,
             legacyChargeLimit: legacyChargeLimit,
             backgroundUITesting: backgroundUITesting
         )
@@ -622,7 +822,7 @@ final class AppEnvironment {
             dockVisibilityMonitor: dockVisibilityMonitor,
             telemetryReporter: telemetryReporter,
             backgroundUITesting: backgroundUITesting,
-            managedChargeLimit: managedChargeLimit,
+            localIconPluginRuntime: localIconPluginRuntime,
             legacyChargeLimit: legacyChargeLimit
         )
     }

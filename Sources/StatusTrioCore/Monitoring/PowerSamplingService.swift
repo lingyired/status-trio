@@ -20,10 +20,13 @@ struct PowerSamplingReading: Equatable, Sendable {
 /// ending never cuts the sample another surface is still using, and the SMC is
 /// never read twice for the same refresh.
 ///
-/// Every demand shares one 2-second rhythm: an icon that keeps showing watts is
-/// as live as an open panel, and the sampler still stops once the last demand
-/// ends. This keeps periodic reads alive while power is drawn — it is not a
-/// promise of no extra wakeups.
+/// Every demand shares one rhythm: an open panel, the details page and the
+/// power info bar need live watts and read every two seconds. The icon alone
+/// updates only a menu-bar/Dock number, so it samples at five seconds — a
+/// panel opening registers `.panel` and reads immediately, which is what keeps
+/// the first open responsive while the idle icon stops waking the SMC as often.
+/// The sampler still stops once the last demand ends; this is not a promise of
+/// no extra wakeups.
 @MainActor
 final class PowerSamplingService: ObservableObject {
     enum Demand: Hashable, Sendable {
@@ -42,6 +45,9 @@ final class PowerSamplingService: ObservableObject {
     typealias Reader = @Sendable (_ includeAuxiliaryRails: Bool) -> PowerSamplingReading
 
     static let interval: Duration = .seconds(2)
+    /// Cadence when the icon's watts are the only live surface. Opening a panel
+    /// adds `.panel`, which restores `interval` and reads immediately on begin.
+    static let iconOnlyInterval: Duration = .seconds(5)
 
     @Published private(set) var systemPower: SystemPowerSample?
     @Published private(set) var inputPower: SystemPowerSample?
@@ -53,6 +59,17 @@ final class PowerSamplingService: ObservableObject {
     /// Exposed for tests and diagnostics.
     private(set) var demands: Set<Demand> = []
     private(set) var isRunning = false
+    /// Set while the display or the system is asleep. No surface can show
+    /// watts then, so the loop stops instead of waking the SMC for readings
+    /// nothing displays. Registered demands survive so a resume restores the
+    /// exact surfaces that existed before sleep.
+    private var isSuspended = false
+
+    /// The cadence the next tick uses. The panel and details page need live
+    /// watts; an icon-only demand does not.
+    var samplingInterval: Duration {
+        demands.isSubset(of: [.icon]) ? Self.iconOnlyInterval : Self.interval
+    }
 
     private static let queue = DispatchQueue(
         label: "com.lingsmbp.StatusTrio.power-sampling",
@@ -84,6 +101,9 @@ final class PowerSamplingService: ObservableObject {
     /// Idempotent: calling `begin` for a demand already registered does nothing.
     func begin(_ demand: Demand) {
         guard demands.insert(demand).inserted else { return }
+        // While suspended the loop stays stopped; the resume path restarts it
+        // for the demands that have accumulated in the meantime.
+        guard !isSuspended else { return }
         if !isRunning {
             isRunning = true
             startLoop()
@@ -105,6 +125,22 @@ final class PowerSamplingService: ObservableObject {
     func stopAll() {
         demands.removeAll()
         stopLoop()
+    }
+
+    /// Mirrors `ApplicationEnergyController.setSuspended`: sleep pauses the
+    /// loop without forgetting demands. A missed wake notification is repaired
+    /// by the store's popover-visible path, which clears the sleep flags and
+    /// calls this with `false`.
+    func setSuspended(_ suspended: Bool) {
+        guard isSuspended != suspended else { return }
+        isSuspended = suspended
+        if suspended {
+            if isRunning { stopLoop() }
+        } else if !demands.isEmpty {
+            isRunning = true
+            startLoop()
+            refresh()
+        }
     }
 
     /// Reads now instead of waiting for the next tick. Tests use it; production
@@ -146,13 +182,15 @@ final class PowerSamplingService: ObservableObject {
         loopTask?.cancel()
         loopTask = Task { @MainActor [weak self] in
             while !Task.isCancelled {
-                guard let self else { return }
+                // Read the cadence without retaining the service across the
+                // sleep; the demand set can change meanwhile.
+                let interval = self?.samplingInterval ?? Self.interval
                 do {
-                    try await Task.sleep(for: Self.interval, tolerance: .milliseconds(200))
+                    try await Task.sleep(for: interval, tolerance: .milliseconds(200))
                 } catch {
                     return
                 }
-                guard !Task.isCancelled else { return }
+                guard let self, !Task.isCancelled else { return }
                 self.refresh()
             }
         }

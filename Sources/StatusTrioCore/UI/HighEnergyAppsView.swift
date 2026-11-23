@@ -2,6 +2,7 @@ import SwiftUI
 
 @MainActor
 struct HighEnergyAppsView: View {
+    @Environment(\.statusPanelBoldTextEnabled) private var panelBoldText
     let ranking: ApplicationEnergyRanking
     @EnvironmentObject private var localization: Localization
     @Environment(\.displayScale) private var displayScale
@@ -17,7 +18,7 @@ struct HighEnergyAppsView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 5) {
-            Text(localization.string(.batteryHighEnergyApps)).font(.caption.weight(.semibold))
+            Text(localization.string(.batteryHighEnergyApps)).font(.caption.weight(panelBoldText ? .semibold : .regular))
             if ranking.phase == .sampling {
                 Text(localization.string(.batteryDetailsCollecting)).foregroundStyle(.secondary)
             } else if ranking.phase == .unavailable {

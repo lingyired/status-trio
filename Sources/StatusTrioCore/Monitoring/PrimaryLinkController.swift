@@ -132,7 +132,7 @@ final class PrimaryLinkController: ObservableObject {
         wiredInterfaces: any WiredInterfaceProviding = SystemWiredInterfaceProvider(),
         periodicRefreshInterval: Duration = .seconds(30),
         periodicRefreshSleep: @escaping @Sendable (Duration) async throws -> Void = {
-            try await Task.sleep(for: $0)
+            try await Task.sleep(for: $0, tolerance: $0 / 5)
         },
         completionDispatcher: @escaping PrimaryLinkCompletionDispatcher = { action in
             Task { @MainActor in action() }

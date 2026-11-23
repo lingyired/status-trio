@@ -32,4 +32,7 @@ struct PanelSummaryState: Equatable, Sendable {
     /// The provisional single-line power info bar under the battery module.
     /// `nil` unless the user enabled the option and at least one rail is fresh.
     var powerInfoBar: PowerInfoBarState? = nil
+    /// VPN-only: `nil` keeps the row read-only and is how proxy-only and
+    /// tunnel-only rows stay honest about having no service to control.
+    var vpnPower: VPNPowerPresentation? = nil
 }

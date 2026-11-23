@@ -48,9 +48,11 @@ public enum PowerHelperProtocolVersion {
     /// Adds `readProtocolVersion` plus the High Power Mode capability probe,
     /// read and write (issue #235).
     public static let highPowerMode = 2
+    /// readDisableSleep / setDisableSleep (issue #295).
+    public static let disableSleep = 3
 
     /// What the daemon in this build implements.
-    public static let current = highPowerMode
+    public static let current = disableSleep
 }
 
 /// The XPC surface the privileged helper exposes.
@@ -97,4 +99,18 @@ public enum PowerHelperProtocolVersion {
     ///
     /// Added in protocol version 2.
     func setHighPowerMode(_ enabled: Bool, withReply reply: @escaping (Bool, String?) -> Void)
+
+    /// Reads whether the lid-close sleep is disabled (`pmset -g` `SleepDisabled`).
+    ///
+    /// Added in protocol version 3. `enabled` is the observed value;
+    /// `errorDescription` is non-nil only when the state could not be read, in
+    /// which case `enabled` is meaningless.
+    func readDisableSleep(withReply reply: @escaping (Bool, String?) -> Void)
+
+    /// Sets `pmset -a disablesleep` and replies with the state the daemon
+    /// observed afterwards, so the caller never has to guess whether the write
+    /// took.
+    ///
+    /// Added in protocol version 3.
+    func setDisableSleep(_ enabled: Bool, withReply reply: @escaping (Bool, String?) -> Void)
 }

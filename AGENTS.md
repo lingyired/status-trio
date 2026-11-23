@@ -80,6 +80,7 @@ automatically by Codex.
 | Ordinary isolated feature or unit test | Rule for its subsystem | Focused `quick` tests; add the subsystem regression filter |
 | State/store schema, migration, `@MainActor`, `Sendable`, actor isolation, concurrency, `deinit`, generic/resource plumbing | `.agents/rules/performance.md`, `.agents/rules/macos-compatibility.md` | `full` before delivery; while iterating, the focused store/behavior tests |
 | Settings pane layout, control styling, copy or previews that only read existing state (no change to mapper, renderer, scene or stored schema) | `.agents/rules/rendering.md` only if a preview calls the renderer | `quick` with the pane's focused tests (e.g. `SettingsViewTests`); `full` only if the same change also touches rendering/model below |
+| Settings export/import allowlist (`SettingsPreferenceCatalog`), transfer document/session | `.agents/rules/rendering.md` only if a preview calls the renderer | Focused `SettingsTransfer*` and `SettingsPreferenceCatalogTests`; `quick` |
 | Icon scene, renderer, `StatusIconRenderer`, `StatusIconGeometry`, `IconPresentationMapper`, `IconSceneState`, `StatusBarController` icon path, `AppIconController`, `DockIconRenderKey`, `DockIconRenderer` | `.agents/rules/rendering.md` | `full` before delivery, plus `Issue30WiFiAlignmentTests` and Dock/Menu Bar parity tests; iterate with the focused renderer/mapper filter |
 | Bluetooth, nearby BLE, audio, battery, permission or privacy behavior | `.agents/rules/bluetooth.md` or the matching device rule | Affected focused tests; `full` for lifecycle or permission changes |
 | Wi-Fi, Ethernet, VPN, SSID/location, Settings pane route | `.agents/rules/network.md` | Focused network tests and `StatusMenuBuilderTests` for route changes |
@@ -123,8 +124,9 @@ half-unit shift. Keep `ChargingEffectRenderingTests` fingerprints honest.
 - Preserve permission boundaries and low-power idle behavior. Do not add
   polling, animation, logging, caches, or background work without an owner and
   a stop path.
-- Development bundles must display their `STDevelopmentCodename` beside the
-  status-panel Settings control and in the Settings About identity area.
+- Development bundles must display their `STDevelopmentCodename` in the
+  Settings About identity area. Keep the status-panel Settings label free of the
+  codename.
   Release bundles must not show a development codename. Build manual
   development bundles through `scripts/build-worktree.sh` so the codename is
   populated; never infer it from a checkout or process at runtime.
@@ -169,6 +171,13 @@ do not copy long reports for repeated runs.
 - If a setting is intentionally menu-bar-only, state that in the issue/spec,
   document the limitation, and add a test.
 
+- Icon Designer dimension controls and rendering follow
+  `docs/icon-sizing-standard.md`: one measured 100–180% center-size scale for
+  every primary and fallback source, the shared 80–120% outer/footer stroke
+  scale, and the existing outer battery text percentage baseline. Keep legacy
+  storage and rendering unchanged until the user explicitly edits them; do not
+  reintroduce per-source UI ranges.
+
 See `.agents/rules/rendering.md` and
 `docs/issue-30-wifi-centering-analysis.md`.
 
@@ -184,24 +193,52 @@ See `.agents/rules/rendering.md` and
 - Keep `StatusMenuBuilderTests.testSystemSettingsURLFallbackOrder` aligned with
   the route order.
 
+## Settings Transfer Catalog
+
+Settings export/import is driven by an explicit allowlist,
+`SettingsPreferenceCatalog` (`Sources/StatusTrioCore/Settings/SettingsPreferenceCatalog.swift`).
+It is deliberately independent of the UserDefaults domain: a persisted property
+is not transferable just because it exists.
+
+- Whenever a setting is added or its meaning/defaults change, explicitly decide
+  whether it belongs in settings export/import. If it does, add it to the
+  catalog (default, read, validation, write) and cover it in
+  `SettingsPreferenceCatalogTests` and the transfer tests; if it does not, that
+  is an intentional exclusion and should be evident from the catalog/comment.
+- Never assume a new `@Published` setting is transferable automatically. Device
+  identities/configuration, Helper state, consent/privacy, telemetry,
+  onboarding, global shortcuts and development/test state stay out of the
+  transfer document.
+- A setting that is exported must round-trip through the existing published
+  setters so the Menu Bar and Dock stay in sync; see "Menu Bar and Dock Icon
+  Parity".
+
 ## Release Boundaries
 
 - Release CI is required only before a formal release, not for ordinary commits,
   pull requests, or merges.
-- The only release entry point is a maintainer-dispatched manual
-  `release.yml` run. A `v*` tag push must never publish automatically.
-- Dispatch from `main` with a frozen lowercase 40-character `candidate_sha`.
-  The `verify` and `native` jobs run the full suite and native contracts on
-  that exact commit; `package` waits for both and builds one Universal
-  artifact; `publish` downloads that artifact without rebuilding, repackaging,
-  signing, or notarizing.
-- The `verify` and parallel `native` jobs must not receive signing or
-  notarization secrets. `package` and `publish` wait for both. Formal
-  publication always uses the reviewed `distribution` Environment;
-  owner-triggered diagnostics may use `distribution-owner-signing`, while all
-  other triggering actors and reruns use `distribution`. Publication is allowed
-  only when the candidate SHA, manifest SHA, Release Tag, appcast, DMG digest,
-  and public URLs all agree.
+- Formal releases use maintainer-dispatched manual workflows; a `v*` tag push
+  must never publish automatically:
+  - `build-candidate.yml` builds one notarized `release_candidate` from a frozen
+    lowercase 40-character `candidate_sha` with `release_mode=fast|strict`.
+  - `publish-candidate.yml` publishes that candidate by `candidate_run_id` and
+    downloads its artifact without rebuilding, repackaging, signing, or
+    notarizing.
+- The legacy `release.yml` (`verify`/`native`/`package`/`publish` with
+  `package_run_id` recovery) remains a compatible entry point for schema v1
+  manifests; both paths share `scripts/publish-release.sh`.
+- `fast` skips the remote full Swift/native suite (local testing is the
+  developer's declared prerequisite); `strict` runs the full suite and native
+  contracts. Both produce the same signed/notarized artifact. `fast` records
+  `verification.status=declared`, `strict` records `passed`. A `strict`
+  candidate is publishable only when its `verify`/`native` jobs succeeded, or
+  an independent `verify-candidate.yml` strict-evidence artifact is supplied.
+- `verify`/`native` must not receive signing or notarization secrets. Formal
+  publication always uses the reviewed `distribution` Environment; owner
+  diagnostics may use `distribution-owner-signing`, while all other triggering
+  actors and reruns use `distribution`. Publication is allowed only when the
+  candidate run, manifest, Release Tag, appcast, DMG/ZIP digests, and public
+  URLs all agree.
 - A failed Appcast or upload may be retried only with the same verified artifact.
   A retry must not create a second Release or rewrite a public appcast item.
 - Never publish a different SHA, rebuild during publish, or let a tag point at

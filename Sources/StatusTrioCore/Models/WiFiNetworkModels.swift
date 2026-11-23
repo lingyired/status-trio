@@ -499,6 +499,46 @@ struct BluetoothDevice: Identifiable, Equatable, Sendable {
             || lowered.contains("freelace")
             || lowered.contains("freeclip")
     }
+
+    /// Whether the device speaks the Redmi / Xiaomi vendor SPP noise-control
+    /// protocol (`FD2D` control service).
+    ///
+    /// Same policy as `isHuaweiAudio`: the Bluetooth SIG company ID is primary,
+    /// the name covers a report without one, and a wrong guess fails closed — a
+    /// device that never answers the `FD2D` handshake shows no control at all.
+    /// The 0x2717 company ID belongs to Xiaomi; Redmi-branded earbuds pair under
+    /// names such as "Redmi Buds 8".
+    var isRedmiAudio: Bool {
+        guard kind.isAudio else { return false }
+        if let vendorID { return vendorID == 0x2717 }
+        let lowered = name.lowercased()
+        return lowered.contains("redmi")
+            || lowered.contains("xiaomi")
+            || lowered.contains("buds 8")
+    }
+
+    /// Whether the device speaks the OPO v1 vendor SPP noise-control protocol
+    /// (the one the HeyMelody app drives, shared by OPPO, OnePlus and realme).
+    ///
+    /// Name evidence only: the same company ID is shared by OPPO's phones, watches
+    /// and earbuds, so it cannot separate an audio device from a handset the way
+    /// Xiaomi's does. Name matching is therefore the first gate, and the protocol
+    /// is the real one — a device that does not answer the handshake, or answers
+    /// without declaring a noise-control cycle, shows no control at all.
+    ///
+    /// Matching is on whole alphanumeric tokens, not substrings: `enco` must be its
+    /// own word so a `Lenco` headset or an `Encore` speaker is not mistaken for the
+    /// family, and a sibling brand must additionally name `buds` so a `OnePlus 13`
+    /// handset stays out.
+    var isOppoAudio: Bool {
+        guard kind.isAudio else { return false }
+        let tokens = Set(name.lowercased().split { !$0.isLetter && !$0.isNumber }.map(String.init))
+        if tokens.contains("oppo") || tokens.contains("enco") { return true }
+        let isSiblingBrand = tokens.contains("oneplus")
+            || tokens.contains("realme")
+            || (tokens.contains("one") && tokens.contains("plus"))
+        return isSiblingBrand && tokens.contains("buds")
+    }
 }
 
 /// What tapping the Bluetooth row does. The Wi-Fi row has the same shape — its

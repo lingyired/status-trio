@@ -2,6 +2,13 @@ import AppKit
 import SwiftUI
 
 struct StatusPopoverView: View {
+    /// Which window hosts this view. The primary window keeps the summary while
+    /// a detail is shown beside it; the detail window renders only the page.
+    enum Host {
+        case primary
+        case detail
+    }
+
     @ObservedObject var panel: StatusPanelViewModel
     /// Legacy charge limit for the battery details page; nil in previews/tests.
     var legacyChargeLimit: LegacyChargeLimitController? = nil
@@ -33,24 +40,51 @@ struct StatusPopoverView: View {
     let quit: () -> Void
     /// The footer's Actions menu closes the panel before opening another window.
     var dismissPanel: () -> Void = {}
+    /// Reject measurements from a retained tree after its hosting controller is replaced.
+    var contentMeasurementID: UUID? = nil
+    var host: Host = .primary
+
+    /// Fill colour of the panel's level sliders, from General settings (#359).
+    /// `.automatic` follows the label colour (white on a dark panel, black on a
+    /// light one) instead of pinning a fixed value.
+    private var levelSliderFillColor: Color {
+        switch panel.panelLevelSliderColor {
+        case .automatic:
+            return .primary
+        case let .custom(color):
+            return IconAppearanceColorConversion.color(from: color)
+        }
+    }
 
     var body: some View {
         // One scroll surface for every route (#237). The area measures the page
         // at its natural height and only scrolls once the screen budget cannot
         // hold it, so a short page still hugs its content. The summary footer
         // stays outside the scroll view so it is always reachable.
-        StatusPanelScrollArea(maximumHeight: layoutMetrics.maximumPanelHeight) {
+        StatusPanelScrollArea(
+            maximumHeight: layoutMetrics.maximumPanelHeight,
+            fillsWindow: layoutMetrics.fillsWindow,
+            onNaturalHeight: {
+                layoutMetrics.measure(contentHeight: $0, from: contentMeasurementID)
+            }
+        ) {
             routeContent
                 // Inside the panel there must be exactly one scroller. The
                 // detail pages and Bluetooth lists keep their own scroll views
                 // for other hosts, but disable them here.
                 .environment(\.statusPanelManagesScrolling, true)
+                .environment(\.airPodsConversationCache, panel.store.airPodsConversationCache)
+                .environment(\.statusPanelVisibility, layoutMetrics.visibilityPublisher)
         } footer: {
-            if panel.route == .summary {
+            if host == .primary, panel.isSummaryVisible {
                 pinnedFooter
             }
         }
+        .environment(\.panelCardSurfaceStyle, PanelCardSurfaceStyle.resolve(panel.effectivePanelBackgroundStyle))
+        .environment(\.statusPanelDetailHost, host == .detail)
         .frame(width: 330)
+        .environment(\.statusPanelBoldTextEnabled, panel.statusPanelBoldTextEnabled)
+        .environment(\.statusPanelMediumTextEnabled, panel.statusPanelMediumTextEnabled)
     }
 
     /// The current route, inset for the panel's fixed width.
@@ -59,7 +93,26 @@ struct StatusPopoverView: View {
     /// reproduces the old in-page `VStack` spacing before the footer's rule.
     private var routeContent: some View {
         Group {
-            switch panel.route {
+            switch host {
+            case .detail:
+                if panel.route != .summary { pageContent }
+            case .primary:
+                if panel.isShowingDetailPage && panel.detailPresentation == .alongside {
+                    summary
+                } else {
+                    pageContent
+                }
+            }
+        }
+        .padding(.top, host == .detail ? 8 : 14)
+        .padding(.horizontal, 14)
+        .padding(.bottom, routeBottomPadding)
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    @ViewBuilder
+    private var pageContent: some View {
+        switch panel.route {
             case .summary:
                 summary
             case .battery:
@@ -90,6 +143,10 @@ struct StatusPopoverView: View {
                     onOpenWiFiSettings: openWiFiSettings,
                     onOpenLocationSettings: openLocationSettings,
                     onSetPower: { panel.actions.setWiFiPower($0) },
+                    wifiPowerRequiresConfirmation: WiFiPowerTogglePolicy.requiresConfirmation(
+                        for: panel.store.popupSnapshot.wifi.state,
+                        confirmsPowerOff: panel.settings.confirmsWiFiPowerOff
+                    ),
                     onRefresh: { panel.actions.refreshWiFi() },
                     onOpenSharingSettings: openSharingSettings,
                     onCopyValue: { copyValue($0) },
@@ -113,19 +170,33 @@ struct StatusPopoverView: View {
                     onSelect: { panel.actions.selectInputSource($0) },
                     onOpenKeyboardSettings: openKeyboardSettings
                 )
-            }
+            case let .hardwareDetail(kind):
+                HardwareDetailView(kind: kind,
+                                   hardware: panel.hardwareMonitor,
+                                   onBack: { panel.showSummaryPage() },
+                                   metricColors: panel.hardwareMonitorMetricColors,
+                                   diskRingColor: panel.hardwareDiskRingColor,
+                                   topApps: panel.showsHardwareTopApps ? panel.topApps : nil,
+                                   downloadCapMbps: panel.settings.hardwareDownloadCapMbps,
+                                   uploadCapMbps: panel.settings.hardwareUploadCapMbps,
+                                   networkChartFixedScale: panel.settings.hardwareNetworkChartFixedScale,
+                                   historyWindowSeconds: panel.settings.hardwareHistoryWindowSeconds)
+                    // Key the detail page by its kind. The detail window is a
+                    // long-lived host that only swaps `kind` when the user picks
+                    // another metric card in alongside mode, so without a fresh
+                    // identity SwiftUI reuses the previous page's
+                    // `HardwareDetailHistoryStore` (its points, provider and
+                    // series count), painting the other metric's values onto the
+                    // new 0–100% axis. A distinct id forces a clean rebuild.
+                    .id(kind)
         }
-        .padding(.top, 14)
-        .padding(.horizontal, 14)
-        .padding(.bottom, routeBottomPadding)
-        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     /// The gap between the route content and the pinned footer. The summary
     /// keeps 12pt so the footer's rule sits where the old in-page spacing put
     /// it; an empty summary lets the footer own the whole inset.
     private var routeBottomPadding: CGFloat {
-        guard panel.route == .summary else { return 14 }
+        guard host == .primary, panel.isSummaryVisible else { return 14 }
         return displayedSections.isEmpty ? 0 : 12
     }
 
@@ -162,7 +233,11 @@ struct StatusPopoverView: View {
     /// dropped when every display is hidden, so no empty section or dangling
     /// separator is left behind (#241).
     private var displayedSections: [PopupSection] {
-        panel.displayedSummarySections
+        panel.displayedSummarySections.filter { section in
+            guard section == .quickActions else { return true }
+            // Drop the whole keep-awake section when both pills are turned off.
+            return panel.settings.showsKeepScreenButton || panel.settings.showsLidSleepButton
+        }
     }
 
     /// The footer only renders on the summary route, so its rule follows the
@@ -208,8 +283,14 @@ struct StatusPopoverView: View {
                 },
                 legacyChargeAction: legacyChargeLimit
             )
+        case .quickActions:
+            QuickActionsCardView(
+                control: panel.store.sleepControl,
+                showsDisplay: panel.settings.showsKeepScreenButton,
+                showsLid: panel.settings.showsLidSleepButton
+            )
         case .network:
-            NetworkStatusView(
+            WiFiPowerSummaryView(panel: panel,
                 state: panel.network,
                 onOpenWiFiDetails: { panel.showWiFiPage(showsDetailsInitially: $0) },
                 onOpenWiredDetails: { panel.showWiredPage() },
@@ -219,7 +300,9 @@ struct StatusPopoverView: View {
                 onOpenLocationSettings: openLocationSettings
             )
         case .vpn:
-            VPNStatusView(state: panel.vpn)
+            VPNStatusView(state: panel.vpn) { enabled in
+                panel.actions.setVPNPower(enabled)
+            }
         case .bluetooth:
             BluetoothStatusView(
                 controller: panel.store.bluetoothDevices,
@@ -230,11 +313,14 @@ struct StatusPopoverView: View {
                 nearbyBLESelections: panel.settings.nearbyBLESelections,
                 trustedAppleDeviceMetadata: panel.settings.trustedAppleDeviceMetadata,
                 currentTrustedAppleCandidates: panel.store.trustedAppleDeviceCandidates,
+                appleDeviceLastSuccessfulIDs: panel.store.appleDeviceLastSuccessfulIDs,
                 trustedDiscoveryGeneration: panel.store.trustedAppleDeviceDiscoveryGeneration,
                 listOptions: panel.settings.bluetoothDeviceListOptions,
                 showsRadioPowerControl: panel.settings.showsBluetoothPowerControl,
                 showsBluetoothInStatusPanel: panel.settings.enabledPopupSections.contains(.bluetooth),
-                listeningModePresentations: panel.store.bluetoothListeningModes.huaweiBluetoothRowPresentations,
+                listeningModePresentations: panel.settings.showsBluetoothListeningMode
+                    ? panel.store.bluetoothListeningModes.huaweiBluetoothRowPresentations
+                    : [:],
                 onSelectListeningMode: { panel.actions.setListeningMode(address: $0, mode: $1) },
                 onRequestAuthorization: requestBluetoothAuthorization,
                 onOpenBluetoothSettings: openBluetoothSettings,
@@ -249,21 +335,26 @@ struct StatusPopoverView: View {
                 model: panel.volumeControl,
                 actions: panel.actions,
                 scrollTargets: scrollTargets,
-                onOpenSoundSettings: openSoundSettings
+                onOpenSoundSettings: openSoundSettings,
+                fillColor: levelSliderFillColor,
+                matchesBrightnessThickness: panel.panelLevelSliderMatchesBrightnessThickness
             )
         case .brightness:
             BrightnessControlsView(
                 state: panel.brightness,
                 actions: panel.actions,
                 scrollTargets: scrollTargets,
-                onOpenDisplaySettings: openDisplaySettings
+                onOpenDisplaySettings: openDisplaySettings,
+                fillColor: levelSliderFillColor
             )
         case .audioInput:
             AudioInputControlsView(
                 state: panel.audioInput,
                 actions: panel.actions,
                 scrollTargets: scrollTargets,
-                onOpenSoundSettings: openSoundInputSettings
+                onOpenSoundSettings: openSoundInputSettings,
+                fillColor: levelSliderFillColor,
+                matchesBrightnessThickness: panel.panelLevelSliderMatchesBrightnessThickness
             )
         case .inputSource:
             InputSourceStatusView(
@@ -271,11 +362,74 @@ struct StatusPopoverView: View {
                 onOpen: { panel.showInputSourcePage() },
                 onOpenKeyboardSettings: openKeyboardSettings
             )
+        case .hardwareMonitor:
+            // Fixed compact summary: the existing four rings plus one aligned
+            // four-column data row. Card metric order/colour settings still feed
+            // the ring colours; the summary no longer depends on card metrics.
+            HardwareMonitorSummaryView(model: panel.hardwareMonitor,
+                                       metricColors: panel.hardwareMonitorMetricColors,
+                                       diskColor: panel.hardwareDiskRingColor,
+                                       showsRings: panel.showsHardwareRings,
+                                       showsSummaryRow: panel.showsHardwareSummaryRow,
+                                       onOpenHardwareDetail: { panel.showHardwareDetail($0) },
+                                       ringSlots: HardwareRingSlot.allCases.filter {
+                                           panel.enabledHardwareRingSlots.contains($0)
+                                       },
+                                       memoryRingDisplayMode: panel.memoryRingDisplayMode,
+                                       ssdRingDisplayMode: panel.ssdRingDisplayMode,
+                                       cpuRingCenterContent: panel.cpuRingCenterContent,
+                                       gpuRingCenterContent: panel.gpuRingCenterContent,
+                                       hardwareTemperatureMonitoringEnabled: panel.hardwareTemperatureMonitoringEnabled,
+                                       summaryMetrics: panel.enabledHardwareSummaryMetrics)
         }
     }
 
     private func copyValue(_ value: String) {
         NSPasteboard.general.clearContents()
         NSPasteboard.general.setString(value, forType: .string)
+    }
+}
+
+private struct WiFiPowerSummaryView: View {
+    @ObservedObject var panel: StatusPanelViewModel
+    @ObservedObject private var store: SystemStatusStore
+    let state: PanelSummaryState
+    let onOpenWiFiDetails: (Bool) -> Void
+    let onOpenWiredDetails: () -> Void
+    let onRequestNameAccess: () -> Void
+    let onOpenWiFiSettings: () -> Void
+    let onOpenNetworkSettings: () -> Void
+    let onOpenLocationSettings: () -> Void
+
+    init(panel: StatusPanelViewModel, state: PanelSummaryState, onOpenWiFiDetails: @escaping (Bool) -> Void, onOpenWiredDetails: @escaping () -> Void, onRequestNameAccess: @escaping () -> Void, onOpenWiFiSettings: @escaping () -> Void, onOpenNetworkSettings: @escaping () -> Void, onOpenLocationSettings: @escaping () -> Void) {
+        self.panel = panel
+        self.store = panel.store
+        self.state = state
+        self.onOpenWiFiDetails = onOpenWiFiDetails
+        self.onOpenWiredDetails = onOpenWiredDetails
+        self.onRequestNameAccess = onRequestNameAccess
+        self.onOpenWiFiSettings = onOpenWiFiSettings
+        self.onOpenNetworkSettings = onOpenNetworkSettings
+        self.onOpenLocationSettings = onOpenLocationSettings
+    }
+
+    var body: some View {
+        NetworkStatusView(
+            showsWiFiPowerControl: WiFiPowerControlVisibility.showsSummaryToggle(
+                state: store.popupSnapshot.wifi.state,
+                isEnabled: panel.settings.showsWiFiPowerControl
+            ),
+            wifiPowerIsOn: WiFiPowerControlVisibility.isRadioOn(state: store.popupSnapshot.wifi.state),
+            wifiPowerCanSet: !store.wifiPowerIsChanging,
+            wifiPowerRequiresConfirmation: WiFiPowerTogglePolicy.requiresConfirmation(
+                for: store.popupSnapshot.wifi.state,
+                confirmsPowerOff: panel.settings.confirmsWiFiPowerOff
+            ),
+            wifiPowerFailed: store.wifiPowerFailed,
+            onSetWiFiPower: { store.setWiFiPower($0) },
+            state: state, onOpenWiFiDetails: onOpenWiFiDetails, onOpenWiredDetails: onOpenWiredDetails,
+            onRequestNameAccess: onRequestNameAccess, onOpenWiFiSettings: onOpenWiFiSettings,
+            onOpenNetworkSettings: onOpenNetworkSettings, onOpenLocationSettings: onOpenLocationSettings
+        )
     }
 }

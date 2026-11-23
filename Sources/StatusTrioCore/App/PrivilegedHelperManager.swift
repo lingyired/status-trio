@@ -42,9 +42,7 @@ protocol PrivilegedHelperServicing: AnyObject {
 
 @MainActor
 final class SystemPrivilegedHelperService: PrivilegedHelperServicing {
-    private var service: SMAppService {
-        SMAppService.daemon(plistName: PowerHelperConstants.launchDaemonPlistName)
-    }
+    private lazy var service = SMAppService.daemon(plistName: PowerHelperConstants.launchDaemonPlistName)
 
     /// The daemon must be present in the bundle for registration to mean
     /// anything, and this process must carry the identity that daemon accepts:
@@ -128,12 +126,20 @@ final class PrivilegedHelperManager: ObservableObject {
 
     /// True when another feature (the legacy charge limiter) needs the shared
     /// daemon registered even though the Low Power Mode control intent is off.
-    /// Registration and health polling follow `wantsHelper`; only the Low Power
-    /// Mode toggle and its bindings follow `isEnabled`.
+    /// Registration and health polling follow `wantsHelper`; the Low Power Mode
+    /// switch and its bindings keep following `isEnabled`.
     @Published private(set) var sharedHelperDemand = false
 
-    /// How often the system state is re-read while a registration is pending.
+    /// Base delay for the bounded approval and registration retry window.
     private let pollInterval: Duration
+    private var needsBackgroundRecovery = false
+    private var remainingBackgroundProbes = 0
+    private static let maximumBackgroundProbes = 5
+    private let recoveryProbe = PassthroughSubject<Void, Never>()
+    var recoveryProbePublisher: AnyPublisher<Void, Never> { recoveryProbe.eraseToAnyPublisher() }
+    private var lastApprovalStatusRead: ContinuousClock.Instant?
+    private var awaitsApprovalReturn = false
+    private var healthCheckTask: Task<Void, Never>?
     /// How often a pending-but-reachable helper is re-probed. Every probe
     /// starts the root daemon, which then idle-exits about five seconds later,
     /// so this interval is a direct process-churn cost on a machine whose
@@ -141,9 +147,7 @@ final class PrivilegedHelperManager: ObservableObject {
     /// revoked grant surfaces as an error on the next real operation, so the
     /// timer only needs to keep the status line from going stale for long.
     private let healthCheckInterval: Duration
-    /// How often a helper the system reports as enabled is re-probed. Long
-    /// enough that the daemon's idle-exit cycle is not restarted for a healthy
-    /// helper, short enough that a crashed one surfaces within a session.
+    /// Probe cadence for an enabled helper with unfinished background work.
     private let enabledHealthCheckInterval: Duration
     private var nextPendingHealthCheck: ContinuousClock.Instant?
     /// Due time for the low-frequency re-probe of a helper the system already
@@ -157,10 +161,12 @@ final class PrivilegedHelperManager: ObservableObject {
     /// Offsets used to re-probe after a user-initiated read fails. See
     /// `defaultPendingProbeBackoff`.
     private let pendingProbeBackoff: [Duration]
+    /// At most one activation-driven status read per interval.
+    private let activationStatusRefreshInterval: Duration
     private var pendingProbeAttempts = 0
-    private var pollTask: Task<Void, Never>?
     private var verificationTask: Task<Void, Never>?
     private var registrationRetryTask: Task<Void, Never>?
+    private var registrationRetryMayRegister = false
     private var registrationRetryGeneration: UInt64 = 0
     private var registrationNeedsApproval = false
     private var provisionalRegistrationError: String?
@@ -189,26 +195,33 @@ final class PrivilegedHelperManager: ObservableObject {
     static let defaultPendingProbeBackoff: [Duration] = [
         .seconds(3), .seconds(10), .seconds(25),
     ]
+    /// Debounce for an activation-driven status re-read. Approval can only
+    /// change while the app is in the background, so one read per interval is
+    /// enough; rapid app switching shares the same read instead of re-querying.
+    static let defaultActivationStatusRefreshInterval: Duration = .seconds(60)
 
     init(
         service: PrivilegedHelperServicing = SystemPrivilegedHelperService(),
         pollInterval: Duration = .seconds(2),
         healthCheckInterval: Duration = PrivilegedHelperManager.defaultPendingHealthCheckInterval,
         enabledHealthCheckInterval: Duration = PrivilegedHelperManager.defaultEnabledHealthCheckInterval,
-        pendingProbeBackoff: [Duration] = PrivilegedHelperManager.defaultPendingProbeBackoff
+        pendingProbeBackoff: [Duration] = PrivilegedHelperManager.defaultPendingProbeBackoff,
+        activationStatusRefreshInterval: Duration = PrivilegedHelperManager.defaultActivationStatusRefreshInterval
     ) {
         self.service = service
-        let initialStatus = service.status
+        self.isAvailable = service.isSupported
+        let initialStatus: PrivilegedHelperStatus = isAvailable ? service.status : .notRegistered
         self.status = initialStatus
         self.isEnabled = initialStatus != .notRegistered
         self.pollInterval = pollInterval
         self.healthCheckInterval = healthCheckInterval
         self.enabledHealthCheckInterval = enabledHealthCheckInterval
         self.pendingProbeBackoff = pendingProbeBackoff
+        self.activationStatusRefreshInterval = activationStatusRefreshInterval
         // A previous session may have quit while the registration was still
         // waiting for approval, so start watching for the system to accept it.
-        updateStatusPolling()
-        checkHelperIfNeeded()
+        if initialStatus == .requiresApproval { startRegistrationRetryWindow(allowRegistration: false) }
+        checkHelperIfNeeded(confirmStartupApproval: initialStatus == .requiresApproval)
     }
 
     /// True while the system is waiting for the user to approve the helper.
@@ -223,16 +236,13 @@ final class PrivilegedHelperManager: ObservableObject {
         isEnabled && status != .notRegistered && isHelperResponsive
     }
 
-    /// False when this build or process cannot offer the helper at all.
-    var isAvailable: Bool {
-        service.isSupported
-    }
+    /// The running bundle and signing identity determine support once.
+    let isAvailable: Bool
 
-    /// Whether any feature needs the shared daemon registered and polled.
+    /// Whether any feature needs the shared daemon registered and probed.
     var wantsHelper: Bool { isEnabled || sharedHelperDemand }
 
-    /// Shared-helper readiness for features that do not own the Low Power Mode
-    /// intent (the legacy charge limiter).
+    /// Readiness for features that do not own the Low Power Mode intent.
     var isSharedHelperReady: Bool {
         wantsHelper && status != .notRegistered && isHelperResponsive
     }
@@ -241,23 +251,28 @@ final class PrivilegedHelperManager: ObservableObject {
         wantsHelper && (status == .requiresApproval || registrationNeedsApproval)
     }
 
+    /// Readiness of the feature that is actually asking for the helper.
+    private var intentReady: Bool { isEnabled ? isReady : isSharedHelperReady }
+
     /// Registers the shared daemon for a non-Low-Power-Mode feature without
     /// flipping the Low Power Mode control intent.
     func ensureSharedHelperRegistered() {
-        guard isAvailable else { return }
+        guard isAvailable, !sharedHelperDemand else { return }
         sharedHelperDemand = true
         publishSystemState()
-        registerIfNeeded()
-        updateStatusPolling()
-        checkHelperIfNeeded(userInitiated: true)
+        if status == .notRegistered {
+            do { try service.register() } catch { recordRegistrationError(error) }
+        }
         startRegistrationRetryWindow()
+        checkHelperIfNeeded(forceRead: true, userInitiated: true)
+        scheduleHealthCheck()
     }
 
-    /// Releases the shared-helper demand; polling stops when nothing needs it.
+    /// Releases the shared-helper demand; polling stops once nothing needs it.
     func releaseSharedHelperDemand() {
         guard sharedHelperDemand else { return }
         sharedHelperDemand = false
-        updateStatusPolling()
+        scheduleHealthCheck()
     }
 
     var isEnabledBinding: Binding<Bool> {
@@ -283,8 +298,8 @@ final class PrivilegedHelperManager: ObservableObject {
             registerIfNeeded()
         }
 
-        publishSystemState()
-        updateStatusPolling()
+        if enabled { publishSystemState() }
+        scheduleHealthCheck()
         // The switch the user just flipped, so a failed read may use the short
         // retry window.
         checkHelperIfNeeded(userInitiated: enabled)
@@ -295,26 +310,76 @@ final class PrivilegedHelperManager: ObservableObject {
     func restoreUserIntent(_ enabled: Bool) {
         if isEnabled != enabled { invalidateVerification() }
         isEnabled = enabled
-        updateStatusPolling()
         checkHelperIfNeeded()
         if enabled { startRegistrationRetryWindow() } else { cancelRegistrationRetry() }
+        scheduleHealthCheck()
     }
 
-    /// Activation and polling observe approval without changing registration.
+    /// Lid-sleep cleanup can outlive the panel. Give each pending cleanup a
+    /// bounded XPC retry window and stop it as soon as the cleanup resolves.
+    func setBackgroundRecoveryNeeded(_ needed: Bool) {
+        guard needsBackgroundRecovery != needed else { return }
+        needsBackgroundRecovery = needed
+        remainingBackgroundProbes = needed ? Self.maximumBackgroundProbes : 0
+        if needed {
+            let firstDeadline = ContinuousClock.now.advanced(by: healthCheckInterval)
+            nextEnabledHealthCheck = min(nextEnabledHealthCheck ?? firstDeadline, firstDeadline)
+            if !isReady { refreshForUse() }
+        }
+        scheduleHealthCheck()
+    }
+
     func refresh() {
+        guard isAvailable else { return }
         publishSystemState()
-        updateStatusPolling()
         checkHelperIfNeeded(forceRead: pendingProbeIsDue() || enabledProbeIsDue())
+        scheduleHealthCheck()
+    }
+
+    func refreshForUse() {
+        guard isAvailable, wantsHelper, recoveringGeneration != generation else { return }
+        if status == .notRegistered { publishSystemState() }
+        checkHelperIfNeeded(forceRead: true)
+    }
+
+    func verifyForUse() async -> Bool {
+        guard !Task.isCancelled else { return false }
+        refreshForUse()
+        await verificationTask?.value
+        return !Task.isCancelled && isReady
+    }
+
+    func refreshForApprovalSettings() {
+        guard isAvailable, wantsHelper, recoveringGeneration != generation else { return }
+        let now = ContinuousClock.now
+        // The approval pane and return from Login Items may arrive together.
+        if let lastApprovalStatusRead,
+           now - lastApprovalStatusRead < .milliseconds(250) { return }
+        lastApprovalStatusRead = now
+        publishSystemState()
+        checkHelperIfNeeded(forceRead: !intentReady, userInitiated: !intentReady)
     }
 
     /// Returning from approval can precede the system's permission update.
-    /// Give it a bounded retry window without removing the pending service.
+    /// Ordinary activations re-read once but share that read within
+    /// `activationStatusRefreshInterval`, so switching apps cannot turn into a
+    /// tight query loop.
     func refreshAfterActivation() {
-        refresh()
-        // Returning from System Settings is a user action, so an extra probe
-        // is worth one more daemon start even when the timer is not due.
-        checkHelperIfNeeded(forceRead: true, userInitiated: true)
-        startRegistrationRetryWindow()
+        guard isAvailable, wantsHelper, recoveringGeneration != generation else { return }
+        let now = ContinuousClock.now
+        if awaitsApprovalReturn {
+            awaitsApprovalReturn = false
+            lastApprovalStatusRead = now
+            publishSystemState()
+            checkHelperIfNeeded(forceRead: true, userInitiated: true)
+            startRegistrationRetryWindow()
+            return
+        }
+        if let lastApprovalStatusRead,
+           now - lastApprovalStatusRead < activationStatusRefreshInterval { return }
+        lastApprovalStatusRead = now
+        publishSystemState()
+        checkHelperIfNeeded(forceRead: !intentReady, userInitiated: !intentReady)
     }
 
     /// Every probe of a pending helper starts the root daemon, which then
@@ -341,7 +406,10 @@ final class PrivilegedHelperManager: ObservableObject {
     /// An owned recovery's intermediate removal is ignored.
     private func publishSystemState() {
         guard recoveringGeneration != generation else { return }
-        let observed = service.status
+        publishSystemState(service.status)
+    }
+
+    private func publishSystemState(_ observed: PrivilegedHelperStatus) {
         if observed == .enabled {
             registrationNeedsApproval = false
             provisionalRegistrationError = nil
@@ -362,7 +430,7 @@ final class PrivilegedHelperManager: ObservableObject {
     /// A pending approval is an expected intermediate state, including when
     /// macOS reports EPERM from register(). Leave its registration intact.
     private func registerIfNeeded() {
-        guard wantsHelper, isAvailable, status != .enabled, !(isEnabled ? isReady : isSharedHelperReady) else { return }
+        guard wantsHelper, isAvailable, status != .enabled, !intentReady else { return }
         do {
             try service.register()
         } catch {
@@ -370,8 +438,8 @@ final class PrivilegedHelperManager: ObservableObject {
         }
     }
 
-    private func recordRegistrationError(_ error: any Error) {
-        let observed = service.status
+    private func recordRegistrationError(_ error: any Error, observed: PrivilegedHelperStatus? = nil) {
+        let observed = observed ?? service.status
         // EPERM may precede requiresApproval. Keep the native status intact,
         // but don't present the same approval denial as two different errors.
         let nsError = error as NSError
@@ -395,13 +463,15 @@ final class PrivilegedHelperManager: ObservableObject {
         registrationRetryGeneration &+= 1
         registrationRetryTask?.cancel()
         registrationRetryTask = nil
+        registrationRetryMayRegister = false
     }
 
-    /// Retry only register(), at 2, 6, 14, 30 and 60 seconds by default.
-    /// Polling stays read-only; a new user interaction may start another window.
-    private func startRegistrationRetryWindow() {
-        guard isAvailable, wantsHelper, status != .enabled, !(isEnabled ? isReady : isSharedHelperReady),
-              registrationRetryTask == nil else { return }
+    /// Recheck approval at 2, 6, 14, 30 and 60 seconds by default. Startup
+    /// observes only; explicit opt-in and recovery may also retry registration.
+    private func startRegistrationRetryWindow(allowRegistration: Bool = true) {
+        guard isAvailable, wantsHelper, status != .enabled, !intentReady else { return }
+        registrationRetryMayRegister = registrationRetryMayRegister || allowRegistration
+        guard registrationRetryTask == nil else { return }
         let retryGeneration = registrationRetryGeneration
         registrationRetryTask = Task { [weak self, pollInterval] in
             for multiplier in [1, 2, 4, 8, 15] {
@@ -412,12 +482,16 @@ final class PrivilegedHelperManager: ObservableObject {
                 self.refresh()
                 guard self.wantsHelper, self.isAvailable else { break }
                 if self.status == .enabled || self.isReady { break }
-                self.registerIfNeeded()
-                self.refresh()
+                if self.registrationRetryMayRegister {
+                    self.registerIfNeeded()
+                    self.refresh()
+                }
                 if self.status == .enabled || self.isReady { break }
             }
             guard let self, self.registrationRetryGeneration == retryGeneration else { return }
             self.registrationRetryTask = nil
+            self.registrationRetryMayRegister = false
+            self.scheduleHealthCheck()
             // EPERM alone is not proof of pending consent. If the service
             // never registered, retire the provisional hint and expose why.
             if self.wantsHelper, self.status == .notRegistered,
@@ -434,6 +508,8 @@ final class PrivilegedHelperManager: ObservableObject {
         generation &+= 1
         verificationTask?.cancel()
         verificationTask = nil
+        healthCheckTask?.cancel()
+        healthCheckTask = nil
         isHelperResponsive = false
         nextPendingHealthCheck = nil
         nextEnabledHealthCheck = nil
@@ -468,7 +544,11 @@ final class PrivilegedHelperManager: ObservableObject {
     /// System Settings off-and-on flip is invisible in the native status and
     /// would otherwise look like it randomly failed. Each new user action
     /// opens its own window; the scheduled probes in between never do.
-    private func checkHelperIfNeeded(forceRead: Bool = false, userInitiated: Bool = false) {
+    private func checkHelperIfNeeded(
+        forceRead: Bool = false,
+        userInitiated: Bool = false,
+        confirmStartupApproval: Bool = false
+    ) {
         guard wantsHelper, isAvailable, status != .notRegistered,
               verificationTask == nil else { return }
         switch status {
@@ -485,11 +565,15 @@ final class PrivilegedHelperManager: ObservableObject {
         verificationTask = Task { [weak self] in
             guard let self, !Task.isCancelled, self.wantsHelper,
                   self.generation == requestGeneration else { return }
+            var finalStatus = self.status
             defer {
                 if self.recoveringGeneration == requestGeneration {
                     self.recoveringGeneration = nil
                 }
-                if self.generation == requestGeneration { self.verificationTask = nil }
+                if self.generation == requestGeneration {
+                    self.verificationTask = nil
+                    self.scheduleHealthCheck()
+                }
             }
             do {
                 try await self.service.verifyConnection()
@@ -503,6 +587,11 @@ final class PrivilegedHelperManager: ObservableObject {
                 // probe rather than clearing the due time, which would make the
                 // two-second approval poll retry immediately and forever.
                 let observed = self.service.status
+                if observed != self.status {
+                    self.publishSystemState(observed)
+                    self.scheduleHealthCheck()
+                    return
+                }
                 if observed == .requiresApproval {
                     let delay = self.pendingProbeDelayAfterFailure(userInitiated: userInitiated)
                     self.nextPendingHealthCheck = ContinuousClock.now.advanced(by: delay)
@@ -521,19 +610,20 @@ final class PrivilegedHelperManager: ObservableObject {
                     // Throttle the retry of an enabled helper to the same
                     // cadence: the recovery above is capped, and after the cap
                     // every poll would otherwise read-fail and re-register.
-                    self.nextEnabledHealthCheck = ContinuousClock.now
-                        .advanced(by: self.enabledHealthCheckInterval)
+                    let interval = self.recoveryAttempts < Self.maximumRecoveryAttempts
+                        ? self.pollInterval : self.enabledHealthCheckInterval
+                    self.nextEnabledHealthCheck = ContinuousClock.now.advanced(by: interval)
                 }
                 guard observed == .enabled else { return }
-                // Unregistering a shared helper can kill the process while it
-                // owns a charge gate or a recovery journal. Preserve registration
-                // and report the failure; the charge coordinator owns recovery.
+                // Unregistering a shared helper can kill the daemon while it
+                // owns a charge gate or recovery journal. Preserve registration
+                // and surface the failure instead.
                 guard !self.sharedHelperDemand else {
-                    self.recordRegistrationError(error)
+                    self.recordRegistrationError(error, observed: observed)
                     return
                 }
                 guard self.recoveryAttempts < Self.maximumRecoveryAttempts else {
-                    self.recordRegistrationError(error)
+                    self.recordRegistrationError(error, observed: observed)
                     return
                 }
                 self.recoveryAttempts += 1
@@ -549,8 +639,9 @@ final class PrivilegedHelperManager: ObservableObject {
                           self.wantsHelper else { return }
                     try self.service.register()
                     self.recoveringGeneration = nil
-                    guard self.service.status == .enabled else {
-                        self.publishSystemState()
+                    finalStatus = self.service.status
+                    guard finalStatus == .enabled else {
+                        self.publishSystemState(finalStatus)
                         self.startRegistrationRetryWindow()
                         return
                     }
@@ -558,61 +649,91 @@ final class PrivilegedHelperManager: ObservableObject {
                 } catch {
                     guard !Task.isCancelled, self.generation == requestGeneration else { return }
                     self.recoveringGeneration = nil
-                    self.recordRegistrationError(error)
-                    self.publishSystemState()
+                    let observed = self.service.status
+                    self.recordRegistrationError(error, observed: observed)
+                    self.publishSystemState(observed)
                     self.startRegistrationRetryWindow()
                     return
                 }
             }
-            guard !Task.isCancelled, self.generation == requestGeneration,
-                  self.wantsHelper, self.service.status != .notRegistered else { return }
+            guard !Task.isCancelled, self.generation == requestGeneration, self.wantsHelper else { return }
+            // An older session may have left approval in progress. Check once
+            // after the startup probe before retiring the observation window.
+            if confirmStartupApproval {
+                let observed = self.service.status
+                if observed != finalStatus {
+                    self.publishSystemState(observed)
+                    self.scheduleHealthCheck()
+                    return
+                }
+            }
+            let wasResponsive = self.isHelperResponsive
             self.isHelperResponsive = true
             self.pendingProbeAttempts = 0
             // A completed round trip is proof the recovery budget can start
             // over; otherwise two unrelated transient failures would disable
             // recovery for the rest of the session.
             self.recoveryAttempts = 0
-            if self.service.status == .requiresApproval {
+            if finalStatus == .requiresApproval {
                 self.nextPendingHealthCheck = ContinuousClock.now.advanced(by: self.healthCheckInterval)
             } else {
                 self.nextPendingHealthCheck = nil
             }
-            if self.service.status == .enabled {
-                self.nextEnabledHealthCheck = ContinuousClock.now
-                    .advanced(by: self.enabledHealthCheckInterval)
+            if finalStatus == .enabled {
+                let interval = self.needsBackgroundRecovery
+                    ? min(self.healthCheckInterval, self.enabledHealthCheckInterval)
+                    : self.enabledHealthCheckInterval
+                self.nextEnabledHealthCheck = ContinuousClock.now.advanced(by: interval)
             } else {
                 self.nextEnabledHealthCheck = nil
             }
             self.cancelRegistrationRetry()
             powerHelperLogger.debug("helper verified by XPC")
-            self.publishSystemState()
+            if self.didFailLastOperation {
+                self.didFailLastOperation = false
+                self.lastErrorMessage = nil
+            }
+            // A cleanup write can fail even when the helper keeps answering
+            // health checks. Give it another chance without flipping readiness.
+            if self.needsBackgroundRecovery, wasResponsive { self.recoveryProbe.send() }
         }
     }
 
-    /// Watches the system state while a registration is pending.
-    ///
-    /// The state the app waits for can only be reached from System Settings, and
-    /// macOS posts no notification when it changes, so re-reading on a timer is
-    /// the only way the settings pane catches up without the user having to
-    /// touch the app's switch again. The poll is read-only on purpose.
-    private func updateStatusPolling() {
-        guard isAvailable, wantsHelper else {
-            pollTask?.cancel()
-            pollTask = nil
-            return
+    /// Schedules only XPC work with outstanding demand. A successful probe
+    /// does not query ServiceManagement or restart the approval window.
+    private func scheduleHealthCheck() {
+        healthCheckTask?.cancel()
+        healthCheckTask = nil
+        guard isAvailable, wantsHelper, verificationTask == nil else { return }
+        let now = ContinuousClock.now
+        let canRetryCleanup = needsBackgroundRecovery && remainingBackgroundProbes > 0
+        let due: ContinuousClock.Instant?
+        switch status {
+        case .enabled:
+            let recovering = !isHelperResponsive && recoveryAttempts < Self.maximumRecoveryAttempts
+            due = (canRetryCleanup || recovering)
+                ? nextEnabledHealthCheck ?? now : nil
+        case .requiresApproval:
+            let observing = registrationRetryTask != nil || pendingProbeAttempts > 0
+            due = (canRetryCleanup || observing)
+                ? nextPendingHealthCheck ?? now : nil
+        case .notRegistered:
+            due = nil
         }
-        guard pollTask == nil else { return }
-
-        pollTask = Task { [weak self, pollInterval] in
-            while !Task.isCancelled {
-                try? await Task.sleep(for: pollInterval)
-                guard !Task.isCancelled, let self else { return }
-                self.refresh()
-            }
+        guard let due else { return }
+        let delay = max(.zero, now.duration(to: due))
+        healthCheckTask = Task { [weak self] in
+            do { try await Task.sleep(for: delay, tolerance: delay / 5) }
+            catch { return }
+            guard !Task.isCancelled, let self else { return }
+            self.healthCheckTask = nil
+            if canRetryCleanup { self.remainingBackgroundProbes -= 1 }
+            self.checkHelperIfNeeded(forceRead: true)
         }
     }
 
     func openLoginItemsSettings() {
+        awaitsApprovalReturn = isAvailable && wantsHelper
         service.openLoginItemsSettings()
         cancelRegistrationRetry()
         startRegistrationRetryWindow()

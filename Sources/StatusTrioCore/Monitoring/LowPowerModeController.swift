@@ -14,6 +14,11 @@ final class LowPowerModeController: ObservableObject {
     @Published private(set) var isApplying = false
     @Published private(set) var lastError: String?
 
+    /// Fired after a write the helper accepted with the mode turned on, so the
+    /// display layer can re-read the mutually-exclusive High Power Mode state.
+    /// Set by `SystemStatusStore`; nil until bound.
+    var onSuccessfulWrite: (() -> Void)?
+
     private let client: any LowPowerModeClienting
     private var isEnabled = false
     /// True once the helper has answered a read, after which its value is the
@@ -93,11 +98,13 @@ final class LowPowerModeController: ObservableObject {
         Task { [weak self] in
             guard let self, !Task.isCancelled, !self.isStopped, self.isEnabled,
                   self.generation == requestGeneration else { return }
+            var turnedOn = false
             do {
                 let observed = try await self.client.setLowPowerMode(enabled)
                 guard self.generation == requestGeneration else { return }
                 self.isLowPowerMode = observed
                 self.hasAuthoritativeReading = true
+                turnedOn = observed
             } catch {
                 guard self.generation == requestGeneration else { return }
                 self.isLowPowerMode = previous
@@ -105,6 +112,7 @@ final class LowPowerModeController: ObservableObject {
             }
             guard self.generation == requestGeneration else { return }
             self.isApplying = false
+            if turnedOn { self.onSuccessfulWrite?() }
         }
     }
 

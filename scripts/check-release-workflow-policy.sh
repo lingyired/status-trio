@@ -328,4 +328,25 @@ abort "release policy: unexpected cache action in release jobs" unless
   }
 RUBY
 
+# Publish Existing Candidate must never regain build, sign, or notarize power.
+# Guarded by file existence so the legacy release.yml fixtures (which only copy
+# release.yml) keep exercising their own contract unchanged.
+PUBLISH_CANDIDATE_WORKFLOW="$ROOT/.github/workflows/publish-candidate.yml"
+if [[ -f "$PUBLISH_CANDIDATE_WORKFLOW" ]]; then
+    require_text "$PUBLISH_CANDIDATE_WORKFLOW" "candidate_run_id:"
+    require_text "$PUBLISH_CANDIDATE_WORKFLOW" "bash scripts/publish-release.sh"
+    require_text "$PUBLISH_CANDIDATE_WORKFLOW" "environment:"
+    for forbidden in \
+        "bash scripts/package-release.sh" \
+        "bash scripts/build-app.sh" \
+        "swift build" \
+        "xcodebuild build" \
+        "codesign --sign" \
+        "notarytool submit" \
+        "hdiutil create" \
+        "create-dmg"; do
+        forbid_text "$PUBLISH_CANDIDATE_WORKFLOW" "$forbidden"
+    done
+fi
+
 echo "release workflow policy check passed"

@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct WiFiNetworkListView: View {
+    @Environment(\.statusPanelBoldTextEnabled) private var panelBoldText
     @EnvironmentObject private var localization: Localization
     @Environment(\.colorScheme) private var colorScheme
     let state: WiFiPanelState
@@ -9,6 +10,10 @@ struct WiFiNetworkListView: View {
     let onOpenWiFiSettings: () -> Void
     let onOpenLocationSettings: () -> Void
     let onSetPower: (Bool) -> Void
+    /// Mirrors the "Confirm Before Turning Off Wi-Fi" setting (#305) so the
+    /// detail page and the summary row behave the same. Defaults to false for
+    /// previews and fixtures that do not exercise the confirmation.
+    var wifiPowerRequiresConfirmation: Bool = false
     let onRefresh: () -> Void
     let onOpenSharingSettings: () -> Void
     let onCopyValue: (String) -> Void
@@ -21,14 +26,38 @@ struct WiFiNetworkListView: View {
     /// second one on top of it.
     @Environment(\.statusPanelManagesScrolling) private var statusPanelManagesScrolling
 
+    @State private var confirmingPowerOff = false
+
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             header
             Toggle(
                 localization.string(.wifiPower),
-                isOn: Binding(get: { state.powerIsOn }, set: { onSetPower($0) })
+                isOn: Binding(
+                    get: { state.powerIsOn },
+                    set: { requested in
+                        // Turning off while associated asks first, unless the
+                        // user turned the confirmation setting off (#305).
+                        if !requested && wifiPowerRequiresConfirmation {
+                            confirmingPowerOff = true
+                        } else {
+                            onSetPower(requested)
+                        }
+                    }
+                )
             )
             .disabled(!state.canSetPower)
+            .alert(
+                localization.string(.wifiPowerOffConfirmTitle),
+                isPresented: $confirmingPowerOff
+            ) {
+                Button(localization.string(.wifiPowerOffConfirmAction), role: .destructive) {
+                    onSetPower(false)
+                }
+                Button(localization.string(.commonCancel), role: .cancel) {}
+            } message: {
+                Text(localization.string(.wifiPowerOffConfirmMessage))
+            }
 
             if statusPanelManagesScrolling {
                 networkSections
@@ -149,7 +178,7 @@ struct WiFiNetworkListView: View {
 
     private func sectionTitle(_ title: String) -> some View {
         Text(title)
-            .font(.caption.weight(.semibold))
+            .font(.caption.weight(panelBoldText ? .semibold : .regular))
             .foregroundStyle(.secondary)
     }
 

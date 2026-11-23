@@ -195,6 +195,18 @@ enum AboutAssets {
         image(named: "AboutQQQR")
     }
 
+    /// The author's WeChat Pay collection QR, revealed on demand from the
+    /// Chinese-only support group.
+    static var weChatPayQRCode: NSImage? {
+        image(named: "AboutWeChatPayQR")
+    }
+
+    /// The author's Alipay collection QR, revealed on demand from the
+    /// Chinese-only support group.
+    static var alipayQRCode: NSImage? {
+        image(named: "AboutAlipayQR")
+    }
+
     static func appIcon(for app: AboutAppLink) -> NSImage? {
         image(named: app.iconResource)
     }

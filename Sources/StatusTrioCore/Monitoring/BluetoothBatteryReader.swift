@@ -112,44 +112,37 @@ enum BluetoothBatteryReader {
         }
 
         var levels: [String: BluetoothBatteryLevel] = [:]
-        // The addresses already carried, so one device reports one level.
-        //
-        // The collections are read connected-first, which makes a report that
-        // lists one address in both — the shape a connect or a disconnect caught
-        // mid-flight produces — keep the connected reading. Without this the
-        // stale `device_not_connected` entry, read second, overwrote the live
-        // one, so a row showing the current level silently fell back to the last
-        // value macOS wrote down.
+        // Disconnected profiler entries retain historical percentages without a
+        // measurement timestamp. Only connected entries can supply live levels;
+        // deduplicate their normalized addresses across all controller sections.
         var carriedAddresses: Set<String> = []
         for section in sections {
-            for collectionKey in ["device_connected", "device_not_connected"] {
-                guard let devices = section[collectionKey] as? [[String: Any]] else { continue }
-                for entry in devices {
-                    for value in entry.values {
-                        guard let properties = value as? [String: Any],
-                              let address = properties["device_address"] as? String,
-                              !address.isEmpty else {
-                            continue
-                        }
-                        let main = percentage(properties["device_batteryLevelMain"])
-                            ?? percentage(properties["device_batteryLevel"])
-                        let level = BluetoothBatteryLevel(
-                            deviceAddress: address,
-                            main: main,
-                            left: percentage(properties["device_batteryLevelLeft"]),
-                            right: percentage(properties["device_batteryLevelRight"]),
-                            caseLevel: percentage(properties["device_batteryLevelCase"])
-                        )
-                        guard level.summary != nil else { continue }
-                        let key = normalizedAddress(address)
-                        // An address the normalizer cannot reduce names no
-                        // device, so two of them are not necessarily the same
-                        // one and both stay.
-                        if !key.isEmpty {
-                            guard carriedAddresses.insert(key).inserted else { continue }
-                        }
-                        levels[key] = level
+            guard let devices = section["device_connected"] as? [[String: Any]] else { continue }
+            for entry in devices {
+                for value in entry.values {
+                    guard let properties = value as? [String: Any],
+                          let address = properties["device_address"] as? String,
+                          !address.isEmpty else {
+                        continue
                     }
+                    let main = percentage(properties["device_batteryLevelMain"])
+                        ?? percentage(properties["device_batteryLevel"])
+                    let level = BluetoothBatteryLevel(
+                        deviceAddress: address,
+                        main: main,
+                        left: percentage(properties["device_batteryLevelLeft"]),
+                        right: percentage(properties["device_batteryLevelRight"]),
+                        caseLevel: percentage(properties["device_batteryLevelCase"])
+                    )
+                    guard level.summary != nil else { continue }
+                    let key = normalizedAddress(address)
+                    // An address the normalizer cannot reduce names no
+                    // device, so two of them are not necessarily the same
+                    // one and both stay.
+                    if !key.isEmpty {
+                        guard carriedAddresses.insert(key).inserted else { continue }
+                    }
+                    levels[key] = level
                 }
             }
         }

@@ -963,7 +963,8 @@ private final class RecordingExternalAudioOutputController: AudioOutputControlli
 private final class IntegrationVolumeEventMonitor: VolumeEventMonitoring {
     func start(
         onDefaultDeviceChange: @escaping @MainActor () -> Void,
-        onVolumeChange: @escaping @MainActor () -> Void
+        onVolumeChange: @escaping @MainActor () -> Void,
+        onDeviceListChange: @escaping @MainActor @Sendable () -> Void
     ) {}
     func reconcile() {}
     func recover() {}

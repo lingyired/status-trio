@@ -9,6 +9,8 @@ protocol PmsetRunning: Sendable {
     func highPowerModeSupported() async -> Bool?
     func setHighPowerMode(enabled: Bool) async throws
     func currentHighPowerMode() async -> Bool?
+    func setDisableSleep(enabled: Bool) async throws
+    func currentDisableSleep() async -> Bool?
 }
 
 /// Defaults keep a runner that only models Low Power Mode (the fixtures in the
@@ -19,6 +21,10 @@ extension PmsetRunning {
         throw PmsetError.launchFailed("High Power Mode is not supported")
     }
     func currentHighPowerMode() async -> Bool? { nil }
+    func setDisableSleep(enabled: Bool) async throws {
+        throw PmsetError.launchFailed("Disable sleep is not supported")
+    }
+    func currentDisableSleep() async -> Bool? { nil }
 }
 
 enum PmsetError: LocalizedError {
@@ -37,6 +43,64 @@ enum PmsetError: LocalizedError {
             }
         case .timedOut: "pmset did not finish in time"
         }
+    }
+}
+
+/// Reads a pipe until EOF or a deadline.
+///
+/// `readDataToEndOfFile()` has no bound: a descendant that inherits the write
+/// end keeps the pipe open long after the child this daemon started has exited.
+/// The drain runs on the cooperative executor, so an unbounded read parks a pool
+/// worker for as long as that descendant lives.
+enum BoundedPipeDrain {
+    static let defaultTimeout: TimeInterval = 1
+
+    static func readToEnd(_ handle: FileHandle, timeout: TimeInterval) -> Data {
+        let descriptor = handle.fileDescriptor
+        let originalFlags = fcntl(descriptor, F_GETFL)
+        guard originalFlags >= 0,
+              fcntl(descriptor, F_SETFL, originalFlags | O_NONBLOCK) >= 0 else {
+            return Data()
+        }
+        defer { _ = fcntl(descriptor, F_SETFL, originalFlags) }
+
+        let deadline = Date().addingTimeInterval(timeout)
+        var data = Data()
+        var buffer = [UInt8](repeating: 0, count: 64 * 1024)
+
+        while data.count < 1_048_576 {
+            let remaining = deadline.timeIntervalSinceNow
+            guard remaining > 0 else { break }
+            var descriptorState = pollfd(
+                fd: descriptor,
+                events: Int16(POLLIN),
+                revents: 0
+            )
+            let ready = poll(
+                &descriptorState,
+                1,
+                Int32(max(1, min(remaining, 0.25) * 1_000))
+            )
+            if ready == 0 { continue }
+            if ready < 0 {
+                if errno == EINTR { continue }
+                break
+            }
+            let count = buffer.withUnsafeMutableBytes { raw -> Int in
+                guard let base = raw.baseAddress else { return 0 }
+                return read(descriptor, base, raw.count)
+            }
+            if count > 0 {
+                data.append(contentsOf: buffer[0..<count])
+            } else if count == 0 {
+                break
+            } else if errno == EINTR || errno == EAGAIN || errno == EWOULDBLOCK {
+                continue
+            } else {
+                break
+            }
+        }
+        return data
     }
 }
 
@@ -119,6 +183,16 @@ struct SystemPmsetRunner: PmsetRunning {
         try await runWrite(arguments: HighPowerModeCommand.arguments(enabled: enabled))
     }
 
+    func currentDisableSleep() async -> Bool? {
+        guard let outcome = try? await run(arguments: ["-g"], capturesOutput: true),
+              outcome.status == 0 else { return nil }
+        return DisableSleepCommand.parseSleepDisabled(fromPmsetOutput: outcome.output)
+    }
+
+    func setDisableSleep(enabled: Bool) async throws {
+        try await runWrite(arguments: DisableSleepCommand.arguments(enabled: enabled))
+    }
+
     private func runWrite(arguments: [String]) async throws {
         // Capture both streams so a rejected write reports `pmset`'s own reason
         // (`Unsupported mode 3`, usage text) instead of only an exit status.
@@ -185,10 +259,22 @@ struct SystemPmsetRunner: PmsetRunning {
             return Outcome(status: nil, output: "", errorOutput: "")
         }
         let output = stdoutPipe.map {
-            String(data: $0.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8) ?? ""
+            String(
+                data: BoundedPipeDrain.readToEnd(
+                    $0.fileHandleForReading,
+                    timeout: BoundedPipeDrain.defaultTimeout
+                ),
+                encoding: .utf8
+            ) ?? ""
         } ?? ""
         let errorOutput = stderrPipe.map {
-            String(data: $0.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8) ?? ""
+            String(
+                data: BoundedPipeDrain.readToEnd(
+                    $0.fileHandleForReading,
+                    timeout: BoundedPipeDrain.defaultTimeout
+                ),
+                encoding: .utf8
+            ) ?? ""
         } ?? ""
         return Outcome(status: status, output: output, errorOutput: errorOutput)
     }
@@ -339,6 +425,34 @@ final class PowerModeService: NSObject, PowerHelperXPCProtocol {
                 return
             }
             reply.send(observed, nil)
+        }
+    }
+
+    func readDisableSleep(withReply reply: @escaping (Bool, String?) -> Void) {
+        let reply = PowerHelperReply(reply)
+        let runner = self.runner
+        Task {
+            guard let enabled = await runner.currentDisableSleep() else {
+                reply.send(false, "Disable sleep state is unavailable.")
+                return
+            }
+            reply.send(enabled, nil)
+        }
+    }
+
+    func setDisableSleep(_ enabled: Bool, withReply reply: @escaping (Bool, String?) -> Void) {
+        let reply = PowerHelperReply(reply)
+        let runner = self.runner
+        Task {
+            do {
+                try await runner.setDisableSleep(enabled: enabled)
+            } catch {
+                reply.send(false, error.localizedDescription)
+                return
+            }
+            // Reply with the state the daemon observes after the change so the app
+            // never has to assume the write took.
+            reply.send(await runner.currentDisableSleep() ?? enabled, nil)
         }
     }
 }
