@@ -18,5 +18,5 @@ final class UpdaterManager: ObservableObject {
     }
 
     func start(activationPolicy: AppActivationPolicy) {}
-    func checkForUpdates() {}
+    func checkForUpdates(preference: UpdatePreference = .githubFirst) {}
 }
