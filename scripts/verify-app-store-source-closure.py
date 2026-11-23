@@ -73,6 +73,7 @@ ALLOWED_FRAMEWORKS = {
     "ServiceManagement",
     "SwiftUI",
     "SystemConfiguration",
+    "UniformTypeIdentifiers",
     "notify",
     "os",
 }

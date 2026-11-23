@@ -11,9 +11,10 @@ Store 目标当前**不能编译**，且不是「补几个排除项」能解决�
 
 ## 1. 扫描结果
 
-- 含禁用标记的文件：**15** 个（本轮前 16）；含禁用 import 的文件：**9** 个（本轮前 10）。
-- 其中**未纳入** `AppStore/direct-only-sources.txt` 的有 **7** 个（本轮前 8；main 新引入）。
-- `--check-membership-only` 当前精确阻塞：**4 个 `import PowerHelperProtocol` 的共享文件**（本轮前 5；`HighPowerModeSystemReader` 已去依赖）。
+- 含禁用标记的文件：**12** 个（最初 16）；含禁用 import 的文件：**6** 个（最初 10）。
+- 其中**未纳入** `AppStore/direct-only-sources.txt` 的有 **3** 个（最初 8）：`Models/SystemIconAppearanceReader`、`Monitoring/SMCReadOnlyClient`、`Monitoring/WiFiMonitor`。
+- **`--check-membership-only` 已通过**（PowerHelperProtocol importer 全部归零，XPC 客户端已抽到 Direct-only）。
+- 真实 `build-app-store.sh` 当前停在**下一层**：`unclassified Store Swift imports: PowerUIPrivateAPI`（`Battery/BatteryChargeControlling.swift`，属 Charge 组）。
 
 ### 1.1 8 个「必须处理」的文件（按标记）
 
@@ -81,7 +82,10 @@ Store ：协议的空实现（Unavailable*/Fallback*，返回 .unsupported / 安
 
 `App/AppEnvironment.swift` 现有 816 行：`@MainActor final class AppEnvironment`（第 5 行起）+ `init(`（51）+ `static func makeStore(`（521）+ `static func live(`（556）。只有 `AppDelegate.swift:54` 调用 `AppEnvironment.live(backgroundUITesting:)`。拆分步骤：
 
-> **进度（已落地步骤 1 + 2a）**：
+> **进度（已落地步骤 1 + 2a + Power 组）**：
+> - Power 组已完成：`XPCPrivilegedHelperClient`/`XPCPrivilegedHighPowerClient`/`OneShotReply`/`DisableSleep` 扩展移入 Direct-only `Platform/DirectPowerHelperClients.swift`；共享层只剩协议+错误+`Unavailable*` 桩；新增共享 `PowerHelperFeatureVersion`；控制器默认改桩、Direct 组合注入 XPC。membership 通过。
+>
+> 旧记录（步骤 1 + 2a）：
 > - 步骤 1：`makeStore` / `live` / `isDebugBuild` 已抽到 **Direct-only** 的 `App/DirectAppEnvironment.swift`（`extension AppEnvironment`，已加入 manifest，Store 排除）；`AppEnvironment.swift` 只留 `class` + `init` + 实例方法。
 > - 步骤 2a：`AppEnvironment.swift` 里唯一的排除类型引用 `PrivilegedHelperManager.shared` 已协议化为注入的 `any PrivilegedHelperControlling`（新增共享 `App/PrivilegedHelperControlling.swift` + `UnavailablePrivilegedHelper`；Direct 组合注入 `PrivilegedHelperManager.shared`）。
 > - 现状：**`AppEnvironment.swift` 已无排除类型引用、token-clean**。Direct build + 1278 tests 全绿。后续（init 其余具体类型、`SystemStatusStore` 依赖、`StoreAppEnvironment` 组合）待做。
@@ -96,9 +100,9 @@ Store ：协议的空实现（Unavailable*/Fallback*，返回 .unsupported / 安
 
 ## 4. 当前证据
 
-- `--check-membership-only` 失败（现 4 个 PowerHelperProtocol importer：`HighPowerModeClient`、`HighPowerModeController`、`LowPowerModeClient`、`SleepControlController`）。
-- `APP_STORE_UNSIGNED=1 build-app-store.sh` 在 membership 阶段即失败（同上）。
-- 已安全修正：① 从 manifest 删除 12 个不存在的旧条目；② `HighPowerModeSystemReader` 去掉 `import PowerHelperProtocol`（内联纯解析，Direct build + 1278 tests 全绿）。
-- 剩余 token 命中（未在 manifest）：`Models/SystemIconAppearanceReader`、`Monitoring/HighPowerModeClient|Controller`、`Monitoring/LowPowerModeClient`、`Monitoring/SleepControlController`、`Monitoring/SMCReadOnlyClient`、`Monitoring/WiFiMonitor`。
+- `--check-membership-only`：**通过**（import 级 Store 源码闭包正确）。
+- `APP_STORE_UNSIGNED=1 build-app-store.sh`：停在 framework/import 分类检查，`unclassified Store Swift imports: PowerUIPrivateAPI`（下一层 = Charge 组 `BatteryChargeControlling`）。
+- 已修：manifest 剪除 12 条不存在项；`HighPowerModeSystemReader` 去 `PowerHelperProtocol` 依赖；Power 组 XPC 抽离；`UniformTypeIdentifiers` 加入生成器 `SWIFT_MODULE_FRAMEWORKS` 与验证器 `ALLOWED_FRAMEWORKS`。
+- 剩余 token 命中（未在 manifest，需协议化/抽取）：`SystemIconAppearanceReader`、`SMCReadOnlyClient`、`WiFiMonitor`。
 
 > 本审计只做静态与闭包级证据，不代表沙盒运行时、签名或审核结论。

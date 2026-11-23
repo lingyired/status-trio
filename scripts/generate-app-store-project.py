@@ -91,6 +91,7 @@ SWIFT_MODULE_FRAMEWORKS = {
     "ServiceManagement": "ServiceManagement",
     "SwiftUI": "SwiftUI",
     "SystemConfiguration": "SystemConfiguration",
+    "UniformTypeIdentifiers": "UniformTypeIdentifiers",
 }
 FORBIDDEN_SWIFT_IMPORTS = {
     "CoreDisplay",
