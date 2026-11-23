@@ -156,3 +156,6 @@ Store 目标已从「manifest 阶段即失败」推进到「真实 xcodebuild �
 - Direct 每步 `swift build` + 1278 tests 全绿。
 
 **仍未做**：Phase 1 剩余「把能力模型 9 态展示接到 Store UI」（§6，UI 层）；Phase 2–6（Enhancer/IPC、多系统真机、ASC、审核、签名公证发布）—NOT RUN/BLOCKED（外部条件）。
+
+### 最终 Direct 回归门（Round 23）
+`bash scripts/verify-local.sh full` **exit 0**，head=`5c63ae52`（Release 构建、非 Universal app bundle、bundle 契约 80/80、archive dSYM 5/5、双分发 workflow 114/114 + semantic 85/85 + shell 29/29、原生兼容/依赖、离线发布模拟全 PASS）。与 Store unsigned 构建 green 同一代码 SHA。
