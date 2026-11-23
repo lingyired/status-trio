@@ -77,6 +77,18 @@ Store ：协议的空实现（Unavailable*/Fallback*，返回 .unsupported / 安
    - `verify-app-store-source-closure.py`（token 级）通过；
    - Direct 侧 `verify-local.sh full` 保持通过（零退化）。
 
+### 3.1 AppEnvironment / AppDelegate 拆分（关键路径，建议单独排期）
+
+`App/AppEnvironment.swift` 现有 816 行：`@MainActor final class AppEnvironment`（第 5 行起）+ `init(`（51）+ `static func makeStore(`（521）+ `static func live(`（556）。只有 `AppDelegate.swift:54` 调用 `AppEnvironment.live(backgroundUITesting:)`。拆分步骤：
+
+1. 把 `static func live(backgroundUITesting:)` 及它引用的 Direct 私有工厂从 `AppEnvironment.swift` 移到新建的 `App/DirectAppEnvironment.swift`（**Direct-only**，加入 manifest）。
+2. `AppEnvironment.swift` 只保留 `class` + `init` + `makeStore`；把 `init` 里的**私有具体类型参数**改为协议/注入（可直接复用 reference 中已有的 `PrivilegedHelperServicing` / `UpdateServicing` / `SystemPowerReading` / `SystemChargeLimitProviding` / `SafePlatformReaders` 等协议）。
+3. `AppDelegate` 保持共享；让 `AppEnvironment.live(backgroundUITesting:)` **按 target 各编译一份实现**：Direct 编 `DirectAppEnvironment.swift`，Store 编 `AppStore/Platform/StoreAppEnvironment.swift`（只用公开 API + `Unavailable*` 实现）。这样 `AppDelegate` 的调用点不变。
+4. `SystemStatusStore.init` 已把 `lowPowerMode`/`highPowerMode`/`sleepControl` 作为可选注入参数（386–388 行）：默认值改为共享 `Unavailable*` 桩；Direct 组合注入 XPC 客户端，Store 组合注入桩。
+5. 启动层（`Sources/StatusTrio/main.swift`、`AppDelegate`）若含 Direct 专属调用，用 **target 独占文件** 解决，不要用 `#if`（source-closure 的 token 扫描不认 `#if`，会误报）。
+
+> 风险：触碰 816 行核心类与应用启动引导，需多轮 Direct `verify-local.sh full` 回归。建议作为独立任务排期，而不是在单轮内硬改。
+
 ## 4. 当前证据
 
 - `--check-membership-only` 失败（现 4 个 PowerHelperProtocol importer：`HighPowerModeClient`、`HighPowerModeController`、`LowPowerModeClient`、`SleepControlController`）。
