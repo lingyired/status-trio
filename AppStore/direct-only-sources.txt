@@ -17,3 +17,5 @@ Sources/StatusTrioCore/Monitoring/SystemPowerReader.swift
 Sources/StatusTrioCore/Audio/BetterDisplayFramebufferReader.swift
 Sources/StatusTrioCore/Audio/BetterDisplayIntegrationClient.swift
 Sources/StatusTrioCore/Monitoring/ApplicationEnergyReader.swift
+
+Sources/StatusTrioCore/App/DirectAppEnvironment.swift

@@ -81,6 +81,8 @@ Store ：协议的空实现（Unavailable*/Fallback*，返回 .unsupported / 安
 
 `App/AppEnvironment.swift` 现有 816 行：`@MainActor final class AppEnvironment`（第 5 行起）+ `init(`（51）+ `static func makeStore(`（521）+ `static func live(`（556）。只有 `AppDelegate.swift:54` 调用 `AppEnvironment.live(backgroundUITesting:)`。拆分步骤：
 
+> **进度（已落地步骤 1）**：`makeStore` / `live` / `isDebugBuild` 已抽到 **Direct-only** 的 `App/DirectAppEnvironment.swift`（`extension AppEnvironment`，已加入 manifest，Store 排除）；`AppEnvironment.swift` 现在只剩 `class` + `init` + 实例方法（token-clean）。Direct build + 1278 tests 全绿。后续步骤（init 参数协议化、Store 组合）待做。
+
 1. 把 `static func live(backgroundUITesting:)` 及它引用的 Direct 私有工厂从 `AppEnvironment.swift` 移到新建的 `App/DirectAppEnvironment.swift`（**Direct-only**，加入 manifest）。
 2. `AppEnvironment.swift` 只保留 `class` + `init` + `makeStore`；把 `init` 里的**私有具体类型参数**改为协议/注入（可直接复用 reference 中已有的 `PrivilegedHelperServicing` / `UpdateServicing` / `SystemPowerReading` / `SystemChargeLimitProviding` / `SafePlatformReaders` 等协议）。
 3. `AppDelegate` 保持共享；让 `AppEnvironment.live(backgroundUITesting:)` **按 target 各编译一份实现**：Direct 编 `DirectAppEnvironment.swift`，Store 编 `AppStore/Platform/StoreAppEnvironment.swift`（只用公开 API + `Unavailable*` 实现）。这样 `AppDelegate` 的调用点不变。
