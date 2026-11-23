@@ -121,3 +121,21 @@ Store 目标已成功进入 xcodebuild 编译阶段（membership + framework 分
 **结论**：让 App Store 目标真正编译通过，等价于把旧分支 24 提交的 Platform 分层在 main 上重做一遍（Power/Charge 已完成，剩 DDC、Sensor、外观、Wi‑Fi、Settings、Store 组合、AppDelegate 引导）。这是**多日架构工程**，不适合在单会话里高风险硬推。当前分支 Phase 0 已达硬门槛并长期保持全绿；Store 编译作为独立排期更稳妥。
 
 外部项（多系统真机、ASC 注册、App Review、Developer ID 签名/公证/发布）按计划记为 NOT RUN。
+
+## Store 编译收敛进展（Update 2026-11-23，实测）
+
+Store 目标已从「manifest 阶段即失败」推进到「真实 xcodebuild 编译」，错误数单调下降：
+
+`706 → 674 → 612 → 604 → 568 → 560 → 532 → 500 → 292 → 232 → 220`
+
+主要已完成：
+- Power 组、Charge 组、Helper readiness、SystemChargeLimit、VolumeFeedback、SystemPowerSample/PowerSensorReadings、UpdateSource/UpdatePreference 等纯类型抽共享或协议化。
+- Store-only shims：`PrivilegedHelperManager`、`UpdaterManager`、`SystemPowerReader`、`IOBluetoothRadioPowerBackend`。
+- 排除只被 Direct 使用的文件（`UpdateCycleState`）。
+
+**剩余 ~220 errors（8 文件）**：
+- `AppStore/Platform/StoreAppEnvironment.swift`（44）：旧 Store 组合层，引用大量已移出类型 + 旧 API，需按 main 的 `AppEnvironment`/`SystemStatusStore` 重写。
+- DDC 族 ~62：`VolumeMonitor`(26)、`DDCBrightnessCoordinator`(22)、`StoreDDCFactory`(8)、`DDCVolumeReply`(4)、`BetterDisplayVolumeCoordinator`(2)。DDC 私有子系统（`DDCDisplayTarget` 绑 `IOAVService`）需对 `VolumeMonitor`/`BrightnessMonitor` 做 DDC 抽象注入。
+- `StoreResourceBundle`(2)、`AppDelegate`(2)。
+
+**判断**：剩余是「Store 组合层重写 + DDC/Brightness 抽象注入」——与本项目旧分支 24 提交同量级的架构工作，属多日工程。当前分支 Phase 0 已稳（`verify-local full` 通过、长期保持 Direct 全绿），Store 编译建议作为独立排期继续。
