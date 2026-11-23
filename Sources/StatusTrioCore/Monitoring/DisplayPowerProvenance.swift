@@ -53,12 +53,15 @@ final class AppleARMBacklightPowerEstimator: BacklightPowerEstimating, @unchecke
         self.panelIsOn = panelIsOn
     }
 
-    /// Effective backlight rail voltage used for the estimate. macpow's generic
-    /// 6 V assumption underestimates Apple Silicon XDR panels by roughly 8×:
-    /// on Mac15,9 the calibration-derived 3.199 A and the measured 10.69 W PDBR
-    /// imply ≈3.34 V, so use that explicitly as an estimate parameter. It is
-    /// still an assumption, never presented as a measured voltage.
-    static let assumedVoltage: Double = 3.34
+    /// Effective backlight rail voltage used for an XDR estimate. macpow's
+    /// generic 6 V assumption underestimates Apple Silicon XDR panels by
+    /// roughly 8×: on Mac15,9 the calibration-derived 3.199 A and the measured
+    /// 10.69 W PDBR imply ≈3.34 V. It is still an assumption, never presented
+    /// as a measured voltage.
+    static let xdrAssumedVoltage: Double = 3.34
+    /// SDR panels (including MacBook Air) use macpow's original 6 V model; it
+    /// was designed for this class and there is no XDR HDR current scaling.
+    static let sdrAssumedVoltage: Double = 6.0
     /// A branch below this is not drawn; it is a UI visibility threshold, not a
     /// sensor validity threshold.
     static let minimumVisibleWatts: Double = 0.05
@@ -104,9 +107,12 @@ final class AppleARMBacklightPowerEstimator: BacklightPowerEstimating, @unchecke
               current.value > 0, current.max > 0, calibration > 0 else {
             return nil
         }
+        let profile = Self.panelProfile(maxNits: Self.maxNits(from: properties))
+        let voltage = Self.assumedVoltage(for: profile)
         guard let watts = Self.estimatedWatts(currentMicroAmps: current.value,
                                               maximumMicroAmps: current.max,
-                                              calibrationFixedPoint: calibration) else {
+                                              calibrationFixedPoint: calibration,
+                                              profile: profile) else {
             return nil
         }
         guard (Self.minimumVisibleWatts...Self.maximumPlausibleWatts).contains(watts) else {
@@ -114,7 +120,7 @@ final class AppleARMBacklightPowerEstimator: BacklightPowerEstimating, @unchecke
         }
         return DisplayPowerSample(watts: watts, readAt: date, provenance: .estimated,
                                   source: "AppleARMBacklight",
-                                  assumedVoltage: Self.assumedVoltage)
+                                  assumedVoltage: voltage)
     }
 
     private func propertiesLocked() -> [String: Any]? {
@@ -163,16 +169,45 @@ final class AppleARMBacklightPowerEstimator: BacklightPowerEstimating, @unchecke
         return (value, maximum)
     }
 
+    enum PanelProfile: String, Equatable, Sendable {
+        case xdr
+        case sdr
+    }
+
+    static func panelProfile(maxNits: Double?) -> PanelProfile {
+        (maxNits ?? 0) >= 1_000 ? .xdr : .sdr
+    }
+
+    static func assumedVoltage(for profile: PanelProfile) -> Double {
+        profile == .xdr ? xdrAssumedVoltage : sdrAssumedVoltage
+    }
+
+    /// `BrightnessMilliNits.max` is the panel's peak (HDR) nits. It separates
+    /// XDR panels (where BrightnessMicroAmps' max is the HDR peak current) from
+    /// SDR Air-style panels (where macpow's 6 V model applies).
+    static func maxNits(from properties: [String: Any]) -> Double? {
+        guard let display = properties["IODisplayParameters"] as? [String: Any],
+              let nits = display["BrightnessMilliNits"] as? [String: Any],
+              let maximum = number(nits["max"]), maximum.isFinite else { return nil }
+        return maximum / 1000
+    }
+
     static func estimatedWatts(currentMicroAmps value: Double, maximumMicroAmps maximum: Double,
                                calibrationFixedPoint: Double,
-                               assumedVoltage: Double = AppleARMBacklightPowerEstimator.assumedVoltage) -> Double? {
+                               profile: PanelProfile = .xdr,
+                               assumedVoltage: Double? = nil) -> Double? {
         guard value.isFinite, maximum.isFinite, calibrationFixedPoint.isFinite,
               value > 0, maximum > 0, calibrationFixedPoint > 0 else { return nil }
         let fraction = min(max(value / maximum, 0), 1)
-        // Calibration is 16.16 fixed-point amps; BrightnessMicroAmps is the same
-        // fraction at millamp scale. Power uses the named effective rail voltage.
-        let maxAmps = calibrationFixedPoint / 65_536
-        let watts = fraction * maxAmps * assumedVoltage
+        // XDR calibration is 16.16 fixed-point amps; SDR keeps macpow's
+        // microamp/milliamp interpretation. Power uses the named profile voltage.
+        let maxAmps: Double
+        switch profile {
+        case .xdr: maxAmps = calibrationFixedPoint / 65_536
+        case .sdr: maxAmps = calibrationFixedPoint / 1_000_000
+        }
+        let voltage = assumedVoltage ?? Self.assumedVoltage(for: profile)
+        let watts = fraction * maxAmps * voltage
         guard watts.isFinite else { return nil }
         return watts
     }

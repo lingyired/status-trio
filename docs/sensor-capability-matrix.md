@@ -67,7 +67,10 @@
 优先级：**SMC 实测（PBwo → PDBR → PBLR）→ AppleARMBacklight 估算 → 不可用**。
 
 - M3 Air（Mac15,12）`PDBR` 不存在、`PBLR` 恒为 0：0 不再作为有效背光分支发布，改为尝试 `AppleARMBacklight` 估算。
-- 估算值 = `BrightnessMicroAmps.value / max × (current-for-max-backlight ÷ 65,536) A × 3.34 V`；3.34 V 是由本机 PDBR 与校准电流反推的等效估算参数（macpow 的通用 6 V 假设在 Apple Silicon XDR 上明显偏低），不是实测电压，UI 以 `≈` 和 “Estimated” 标注。
+- 估算值按面板类型分开：
+  - XDR（`BrightnessMilliNits.max ≥ 1000`）：`BrightnessMicroAmps.value / max × (current-for-max-backlight ÷ 65,536) A × 3.34 V`；3.34 V 是由 Mac15,9 PDBR 与校准电流反推的等效估算参数（macpow 的通用 6 V 在 XDR 上明显偏低），不是实测电压。
+  - SDR / MacBook Air（`max < 1000`）：保留 macpow 的 6 V 模型，`current-for-max-backlight` 按微安解释，100% SDR 背光上限约 5.4 W；Air 仍未实机验证，不能宣称准确。
+  - 两种情况都以 `≈` 和 “Estimated” 标注。
 - 缺少有效电流或校准数据时返回 `nil`，不伪造功耗；估算导致 residual 超出容差时丢弃估算分支，而不是发布异常负 residual。
 - `DISP/DISPEXT` 不作为背光功率；它们只代表 SoC 显示控制器。
 - 显示器、USB 汇总、逐端口低于 `BatteryPowerFlowState.minimumVisibleWatts`（0.05 W）的 0 分支不绘制。

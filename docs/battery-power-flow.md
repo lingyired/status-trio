@@ -31,8 +31,10 @@
 M3 Air（Mac15,12）没有 `PDBR`，`PBLR` 恒为 0。旧逻辑把 0 当成有效背光并绘制“显示器 0.00 W”。现在按以下顺序：
 
 1. 实测 SMC 背光轨道：新代际先 `PBwo`，再 `PDBR`，最后 `PBLR`；任一读数大于 0.05 W 即使用实测值。
-2. 若实测轨道全部缺失或为 0，读取 `AppleARMBacklight` 的 `BrightnessMicroAmps` 与 `backlight-calibration-parameters.current-for-max-backlight`，按 macpow 方法估算：`电流比例 × (校准最大电流 ÷ 65,536) A × 3.34 V`。
-3. 3.34 V 是按本机 PDBR 反推的等效估算参数，不是实测电压；macpow 通用的 6 V 假设在 Apple Silicon XDR 上会低约 8 倍；估算值在流向图显示 `≈`，悬停提示标 “Estimated”，并让系统 residual 也标记为估算（因为 residual = source − charging − display − usb）。
+2. 若实测轨道全部缺失或为 0，读取 `AppleARMBacklight` 的 `BrightnessMicroAmps` 与 `backlight-calibration-parameters.current-for-max-backlight`，按面板类型估算：
+   - XDR：`电流比例 × (校准值 ÷ 65,536) A × 3.34 V`（3.34 V 是按本机 PDBR 反推的等效参数）。
+   - SDR / MacBook Air：保留 macpow 的 6 V 模型（校准值按微安解释），100% 上限约 5.4 W；Air 尚未实机校准。
+3. 这些电压都是估算假设，不是实测电压；估算值在流向图显示 `≈`，悬停提示标 “Estimated”，并让系统 residual 也标记为估算（因为 residual = source − charging − display − usb）。
 4. 没有有效电流/校准数据时不发布估算分支；估算超出预算或导致 residual 超出容差时，丢弃估算分支并保留其余拆分，不伪造负 residual。内建屏不在线或已休眠（例如合盖只用外接显示器）时也不发布内建背光估算，因为 `AppleARMBacklight` 会保留旧电流值，不能把陈旧值当成当前功耗。
 5. `DISP/DISPEXT` 只代表 SoC 显示控制器，不能冒充背光功率。
 

@@ -346,6 +346,13 @@ extension SystemPowerReaderTests {
         XCTAssertEqual(AppleARMBacklightPowerEstimator.estimatedWatts(
             currentMicroAmps: 3_199, maximumMicroAmps: 13_799,
             calibrationFixedPoint: 904_383) ?? 0, 10.66, accuracy: 0.05)
+        // SDR/Air profile keeps macpow's 6 V model; full-scale is 0.904 A × 6 V.
+        XCTAssertEqual(AppleARMBacklightPowerEstimator.estimatedWatts(
+            currentMicroAmps: 13_799, maximumMicroAmps: 13_799,
+            calibrationFixedPoint: 904_383, profile: .sdr) ?? 0, 5.426, accuracy: 0.01)
+        XCTAssertEqual(AppleARMBacklightPowerEstimator.panelProfile(maxNits: 1_600), .xdr)
+        XCTAssertEqual(AppleARMBacklightPowerEstimator.panelProfile(maxNits: 500), .sdr)
+        XCTAssertEqual(AppleARMBacklightPowerEstimator.panelProfile(maxNits: nil), .sdr)
     }
 }
 
