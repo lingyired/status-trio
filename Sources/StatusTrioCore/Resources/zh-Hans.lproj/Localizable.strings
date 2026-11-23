@@ -1410,5 +1410,3 @@
 "settings.localPlugins.unauthorized" = "本地 JSON 包需要已授权的目录。";
 "settings.localPlugins.loadFailed" = "无法读取包目录。";
 "settings.localPlugins.reload" = "重新加载";
-"settings.battery.forceBacklightEstimate" = "强制使用背光估算";
-"settings.battery.forceBacklightEstimate.description" = "测试用：有可用估算时，用 AppleARMBacklight 估算代替 SMC 实测的显示器功耗。";

@@ -1409,5 +1409,3 @@
 "settings.localPlugins.unauthorized" = "Local JSON packages require an authorized folder.";
 "settings.localPlugins.loadFailed" = "Could not read the package folder.";
 "settings.localPlugins.reload" = "Reload";
-"settings.battery.forceBacklightEstimate" = "Force Backlight Estimate";
-"settings.battery.forceBacklightEstimate.description" = "Testing: use the AppleARMBacklight estimate for display power instead of the measured SMC rail when an estimate is available.";

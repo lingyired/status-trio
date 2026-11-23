@@ -31,7 +31,7 @@ final class SettingsPreferenceCatalogTests: XCTestCase {
                 "panelLevelSliderColor", "panelLevelSliderMatchesBrightnessThickness",
                 "menuBarRightClickAction", "iconSize", "batteryOnBatteryMarker",
                 "batteryChargingMarker", "batteryConnectedMarker", "batteryNoBatteryMarker",
-                "showsBatteryPowerFlow", "forcesBacklightEstimate", "showsBatteryPowerInfoBar", "showsHighEnergyApps",
+                "showsBatteryPowerFlow", "showsBatteryPowerInfoBar", "showsHighEnergyApps",
                 "showsPanelDetailsAlongside", "showsPanelOnHover",
                 "highEnergyAppsRefreshIntervalSeconds", "showsChargeToFullNowButton",
                 "showsMenuBarChargingEffect", "showsDockChargingEffect", "showsChargingBoltHeartbeat",

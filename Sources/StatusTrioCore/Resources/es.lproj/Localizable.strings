@@ -1410,5 +1410,3 @@
 "settings.localPlugins.unauthorized" = "Los paquetes JSON locales requieren una carpeta autorizada.";
 "settings.localPlugins.loadFailed" = "No se pudo leer la carpeta del paquete.";
 "settings.localPlugins.reload" = "Recargar";
-"settings.battery.forceBacklightEstimate" = "Forzar estimación de retroiluminación";
-"settings.battery.forceBacklightEstimate.description" = "Prueba: usar la estimación de AppleARMBacklight en lugar de la vía SMC medida cuando haya una estimación disponible.";

@@ -10,10 +10,8 @@ final class BatteryPowerBreakdownTests: XCTestCase {
         SystemPowerSample(watts: watts, readAt: now.addingTimeInterval(offset))
     }
 
-    private func displaySample(_ watts: Double, at offset: TimeInterval = 0,
-                               provenance: PowerMeasurementProvenance = .measured) -> DisplayPowerSample {
-        DisplayPowerSample(watts: watts, readAt: now.addingTimeInterval(offset),
-                           provenance: provenance, source: "PDBR", assumedVoltage: nil)
+    private func displaySample(_ watts: Double, at offset: TimeInterval = 0) -> SystemPowerSample {
+        SystemPowerSample(watts: watts, readAt: now.addingTimeInterval(offset))
     }
 
     private func usb(_ watts: Double, at offset: TimeInterval = 0) -> USBOutputSample {
@@ -511,34 +509,3 @@ final class BatteryPowerFlowLayoutTests: XCTestCase {
     }
 }
 
-extension BatteryPowerBreakdownTests {
-    func testEstimatedDisplayIsSubtractedAndMarksSystemEstimated() throws {
-        let split = try XCTUnwrap(BatteryPowerBreakdown.resolve(
-            adapterInput: sample(60, at: -1), charging: 0, discharge: nil,
-            display: displaySample(5, at: -1, provenance: .estimated),
-            usb: nil, now: now))
-        XCTAssertEqual(split.display?.watts, 5)
-        XCTAssertEqual(split.system.watts, 55, accuracy: 0.0001)
-        XCTAssertEqual(split.displayProvenance, .estimated)
-        XCTAssertTrue(split.systemIsEstimated)
-    }
-
-    func testMeasuredDisplayDoesNotMarkSystemEstimated() throws {
-        let split = try XCTUnwrap(BatteryPowerBreakdown.resolve(
-            adapterInput: sample(60, at: -1), charging: 0, discharge: nil,
-            display: displaySample(5, at: -1), usb: nil, now: now))
-        XCTAssertFalse(split.systemIsEstimated)
-    }
-}
-
-extension BatteryPowerBreakdownTests {
-    func testEstimateThatBreaksTheBudgetIsDroppedInsteadOfPublished() throws {
-        let split = try XCTUnwrap(BatteryPowerBreakdown.resolve(
-            adapterInput: sample(10, at: -1), charging: 0, discharge: nil,
-            display: displaySample(20, at: -1, provenance: .estimated),
-            usb: nil, now: now))
-        XCTAssertNil(split.display)
-        XCTAssertFalse(split.systemIsEstimated)
-        XCTAssertEqual(split.system.watts, 10, accuracy: 0.0001)
-    }
-}

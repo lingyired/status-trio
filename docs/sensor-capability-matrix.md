@@ -40,7 +40,7 @@
 - iSMC：<https://github.com/dkorunic/iSMC>，`src/temp.txt` 的分组/探针语义与 M3/M5/M6/A18 段；本仓库只根据其事实重新编写实现，未复制 GPL 代码。
 - macmon：<https://github.com/vladkens/macmon>，动态能力发现与按需读取思路。
 - macos-smc：<https://github.com/sebhildebrandt/macos-smc>，SMC 数据类型与解码交叉参考。
-- macpow：<https://github.com/k06a/macpow>，`AppleARMBacklight` 的 `BrightnessMicroAmps` / `backlight-calibration-parameters` 与约 6 V 估算方法。
+- macpow：<https://github.com/k06a/macpow>，仅作为 SMC 背光轨道语义的交叉参考；其 `AppleARMBacklight` 估算模型在 XDR 与 Air 上都未达到可用精度，本项目已移除该估算路径。
 - 本仓库实测/回放：`docs/research/data/m3-max-macos27/`（Mac15,9）与用户提供的 Mac15,12 M3 Air 诊断数据。
 
 ## 4. 尚需真实设备验证的型号与风险
@@ -59,19 +59,15 @@
 
 - 只在菜单栏/状态面板/详情页实际依赖某项指标时读取；需求消失后由现有 `HardwareMetricsService` 停止循环并释放资源。
 - `SensorCapabilityCache` 首次探测有限候选 Key，之后只重读可读 Key；失败 Key 按 30/120/600/1800/3600 秒退避，唤醒或 `HardwareSampler.reset()` 清空负缓存。
-- 没有新增常驻 timer、线程、Helper、`sudo` 或生产 `ioreg` 子进程；背光估算只在电池详情页请求 breakdown 时读取 `AppleARMBacklight`，详情页关闭即释放 service/calibration 缓存。
+- 没有新增常驻 timer、线程、Helper、`sudo` 或生产 `ioreg` 子进程；显示器功耗只读 SMC 实测轨道。
 - 同一 refresh 的 SMC 读取次数上限为“可读 Key 数”，不再每个 2 秒 tick 重试全部不可读 Key；回放测试 `testCapabilityCacheStopsProbingMissingKeysOnLaterTicks` 覆盖了这条行为。
 
-## 6. Issue #374 背光功耗回退
+## 6. Issue #374 显示器零值处理
 
-优先级：**SMC 实测（PBwo → PDBR → PBLR）→ AppleARMBacklight 估算 → 不可用**。
+优先级：**SMC 实测（PBwo → PDBR → PBLR）→ 不可用**。不包含 `AppleARMBacklight` 估算。
 
-- M3 Air（Mac15,12）`PDBR` 不存在、`PBLR` 恒为 0：0 不再作为有效背光分支发布，改为尝试 `AppleARMBacklight` 估算。
-- 估算值按面板类型分开：
-  - XDR（`BrightnessMilliNits.max ≥ 1000`）：`BrightnessMicroAmps.value / max × (current-for-max-backlight ÷ 65,536) A × 3.34 V`；3.34 V 是由 Mac15,9 PDBR 与校准电流反推的等效估算参数（macpow 的通用 6 V 在 XDR 上明显偏低），不是实测电压。
-  - SDR / MacBook Air（`max < 1000`）：保留 macpow 的 6 V 模型，`current-for-max-backlight` 按微安解释，100% SDR 背光上限约 5.4 W；Air 仍未实机验证，不能宣称准确。
-  - 两种情况都以 `≈` 和 “Estimated” 标注。
-- 缺少有效电流或校准数据时返回 `nil`，不伪造功耗；估算导致 residual 超出容差时丢弃估算分支，而不是发布异常负 residual。
+- M3 Air（Mac15,12）`PDBR` 不存在、`PBLR` 恒为 0：0 不再作为有效背光分支发布，显示器分支隐藏。
+- 内建屏不在线或休眠（合盖外接屏）时，所有背光轨道都隐藏，避免陈旧小读数被误发布。
 - `DISP/DISPEXT` 不作为背光功率；它们只代表 SoC 显示控制器。
 - 显示器、USB 汇总、逐端口低于 `BatteryPowerFlowState.minimumVisibleWatts`（0.05 W）的 0 分支不绘制。
 

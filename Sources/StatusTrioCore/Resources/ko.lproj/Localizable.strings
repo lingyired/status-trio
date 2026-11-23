@@ -1410,5 +1410,3 @@
 "settings.localPlugins.loadFailed" = "패키지 폴더를 읽을 수 없습니다.";
 "settings.localPlugins.reload" = "다시 로드";
 "settings.battery.colors.discharging" = "방전 중 (전원 미연결)";
-"settings.battery.forceBacklightEstimate" = "백라이트 추정 강제";
-"settings.battery.forceBacklightEstimate.description" = "테스트: 추정값이 있으면 측정된 SMC 값 대신 AppleARMBacklight 추정을 사용합니다.";

@@ -530,7 +530,6 @@ extension PanelDetailMapperTests {
 
 extension PanelDetailMapperTests {
     private func mappedFlow(display: BatteryPowerBreakdown.Component?,
-                            provenance: PowerMeasurementProvenance,
                             systemWatts: Double) -> BatteryPowerFlowState? {
         let localization = makeLocalization()
         let timestamp = Date(timeIntervalSince1970: 1_700_000_000)
@@ -538,8 +537,7 @@ extension PanelDetailMapperTests {
                                     isLowPowerMode: false, isConnectedToPower: false)
         let split = BatteryPowerBreakdown(
             source: .battery, sourceWatts: systemWatts + (display?.watts ?? 0), display: display,
-            displayProvenance: provenance, usb: nil,
-            system: .init(watts: systemWatts, readAt: timestamp), readAt: timestamp)
+            usb: nil, system: .init(watts: systemWatts, readAt: timestamp), readAt: timestamp)
         let details = BatteryDetailsReader.parse(
             registry: [:], adapterWatts: nil, state: BatteryPowerState(battery),
             now: timestamp, breakdown: split)
@@ -552,18 +550,7 @@ extension PanelDetailMapperTests {
 
     func testZeroDisplayBranchIsNotDrawn() {
         let flow = mappedFlow(display: .init(watts: 0, readAt: Date(timeIntervalSince1970: 1_700_000_000)),
-                              provenance: .measured, systemWatts: 30)
+                              systemWatts: 30)
         XCTAssertFalse(flow?.destinations.contains { $0.kind == .display } ?? true)
-    }
-
-    func testEstimatedDisplayAndResidualUseApproximationMarker() {
-        let flow = mappedFlow(display: .init(watts: 5, readAt: Date(timeIntervalSince1970: 1_700_000_000)),
-                              provenance: .estimated, systemWatts: 30)
-        let display = flow?.destinations.first { $0.kind == .display }
-        let system = flow?.destinations.first { $0.kind == .system }
-        XCTAssertEqual(display?.value, "≈ 5.00 W")
-        XCTAssertEqual(system?.value, "≈ 30.00 W")
-        XCTAssertEqual(display?.help, "Estimated")
-        XCTAssertEqual(system?.help, "System power (incl. SoC) · Estimated")
     }
 }

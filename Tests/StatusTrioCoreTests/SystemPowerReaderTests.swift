@@ -262,16 +262,6 @@ final class SystemPowerReaderTests: XCTestCase {
     }
 }
 
-final class FakeBacklightEstimator: BacklightPowerEstimating, @unchecked Sendable {
-    var sample: DisplayPowerSample?
-    private(set) var calls = 0
-    func estimate(at date: Date) -> DisplayPowerSample? {
-        calls += 1
-        return sample
-    }
-    func reset() {}
-}
-
 extension SystemPowerReaderTests {
     private func absentInfo() -> [UInt8] {
         var bytes = info()
@@ -279,12 +269,8 @@ extension SystemPowerReaderTests {
         return bytes
     }
 
-    func testDisplaySampleTreatsZeroPBLRAsUnavailableAndFallsBackToEstimate() throws {
-        let estimator = FakeBacklightEstimator()
-        let now = Date()
-        estimator.sample = DisplayPowerSample(watts: 3.2, readAt: now, provenance: .estimated,
-                                              source: "AppleARMBacklight", assumedVoltage: 6)
-        let sample = SystemPowerReader.readDisplaySample(
+    func testMeasuredDisplayHidesZeroPBLR() {
+        let sample = SystemPowerReader.readMeasuredDisplaySample(
             exchange: { request in
                 let key = Array(request.prefix(4))
                 if key == [0x52, 0x42, 0x44, 0x50] || key == [0x6F, 0x77, 0x42, 0x50] {
@@ -293,128 +279,41 @@ extension SystemPowerReaderTests {
                 return request[42] == 9 ? self.info() : self.value(self.floatPayload(0))
             },
             identity: MachineIdentity(chipName: "Apple M3"),
-            estimator: estimator, at: now, panelIsOn: { true })
-        XCTAssertEqual(sample?.provenance, .estimated)
-        XCTAssertEqual(sample?.watts ?? 0, 3.2, accuracy: 0.0001)
-        XCTAssertEqual(estimator.calls, 1)
+            at: Date(), panelIsOn: { true })
+        XCTAssertNil(sample)
     }
 
-    func testDisplaySamplePrefersMeasuredPBwoOnM5WithoutEstimating() throws {
-        let estimator = FakeBacklightEstimator()
-        estimator.sample = DisplayPowerSample(watts: 99, readAt: Date(), provenance: .estimated,
-                                              source: "AppleARMBacklight", assumedVoltage: 6)
-        let sample = SystemPowerReader.readDisplaySample(
+    func testMeasuredDisplayPrefersPBwoOnM5() {
+        let sample = SystemPowerReader.readMeasuredDisplaySample(
             exchange: { request in
                 XCTAssertEqual(Array(request.prefix(4)), [0x6F, 0x77, 0x42, 0x50], "PBwo is first on M5")
                 return request[42] == 9 ? self.info() : self.value(self.floatPayload(7.5))
             },
             identity: MachineIdentity(chipName: "Apple M5"),
-            estimator: estimator, at: Date(), panelIsOn: { true })
-        XCTAssertEqual(sample?.provenance, .measured)
-        XCTAssertEqual(sample?.source, "PBwo")
+            at: Date(), panelIsOn: { true })
         XCTAssertEqual(sample?.watts ?? 0, 7.5, accuracy: 0.0001)
-        XCTAssertEqual(estimator.calls, 0)
     }
 
-    func testDisplaySampleWithoutEstimatorHidesAZeroPBLR() {
-        let sample = SystemPowerReader.readDisplaySample(
-            exchange: { request in
-                let key = Array(request.prefix(4))
-                if key == [0x52, 0x42, 0x44, 0x50] || key == [0x6F, 0x77, 0x42, 0x50] {
-                    return self.absentInfo()
-                }
-                return request[42] == 9 ? self.info() : self.value(self.floatPayload(0))
-            },
-            identity: MachineIdentity(chipName: "Apple M3"),
-            estimator: nil, at: Date(), panelIsOn: { true })
-        XCTAssertNil(sample)
-    }
-
-    func testBacklightEstimateFormulaUsesCalibrationAndNamedVoltage() {
-        let watts = AppleARMBacklightPowerEstimator.estimatedWatts(
-            currentMicroAmps: 500, maximumMicroAmps: 1_000,
-            calibrationFixedPoint: 65_536, assumedVoltage: 3.34)
-        XCTAssertEqual(watts ?? 0, 1.67, accuracy: 0.01)
-        XCTAssertNil(AppleARMBacklightPowerEstimator.estimatedWatts(
-            currentMicroAmps: 500, maximumMicroAmps: 0,
-            calibrationFixedPoint: 65_536))
-        XCTAssertNil(AppleARMBacklightPowerEstimator.estimatedWatts(
-            currentMicroAmps: 500, maximumMicroAmps: 1_000,
-            calibrationFixedPoint: 0))
-        // Mac15,9 live values: 3199/13799 × (904383/65536) A × 3.34 V ≈ 10.66 W,
-        // matching the measured PDBR 10.69 W at the same brightness.
-        XCTAssertEqual(AppleARMBacklightPowerEstimator.estimatedWatts(
-            currentMicroAmps: 3_199, maximumMicroAmps: 13_799,
-            calibrationFixedPoint: 904_383) ?? 0, 10.66, accuracy: 0.05)
-        // SDR/Air profile keeps macpow's 6 V model; full-scale is 0.904 A × 6 V.
-        XCTAssertEqual(AppleARMBacklightPowerEstimator.estimatedWatts(
-            currentMicroAmps: 13_799, maximumMicroAmps: 13_799,
-            calibrationFixedPoint: 904_383, profile: .sdr) ?? 0, 5.426, accuracy: 0.01)
-        XCTAssertEqual(AppleARMBacklightPowerEstimator.panelProfile(maxNits: 1_600), .xdr)
-        XCTAssertEqual(AppleARMBacklightPowerEstimator.panelProfile(maxNits: 500), .sdr)
-        XCTAssertEqual(AppleARMBacklightPowerEstimator.panelProfile(maxNits: nil), .sdr)
-    }
-}
-
-extension SystemPowerReaderTests {
-    func testForceBacklightEstimatePrefersEstimateOverMeasuredRail() throws {
-        let estimator = FakeBacklightEstimator()
-        let now = Date()
-        estimator.sample = DisplayPowerSample(watts: 1.26, readAt: now, provenance: .estimated,
-                                              source: "AppleARMBacklight", assumedVoltage: 6)
-        let sample = SystemPowerReader.readDisplaySample(
-            exchange: { _ in
-                XCTFail("A forced estimate must not read the measured rail first")
-                return nil
-            },
-            identity: MachineIdentity(chipName: "Apple M5"),
-            estimator: estimator, at: now, forceEstimate: true, panelIsOn: { true })
-        XCTAssertEqual(sample?.provenance, .estimated)
-        XCTAssertEqual(sample?.watts ?? 0, 1.26, accuracy: 0.0001)
-        XCTAssertEqual(estimator.calls, 1)
-    }
-
-    func testForceBacklightEstimateFallsBackToMeasuredRailWhenNoEstimate() throws {
-        let estimator = FakeBacklightEstimator()
-        estimator.sample = nil
-        let sample = SystemPowerReader.readDisplaySample(
-            exchange: { request in
-                XCTAssertEqual(Array(request.prefix(4)), [0x6F, 0x77, 0x42, 0x50])
-                return request[42] == 9 ? self.info() : self.value(self.floatPayload(7.5))
-            },
-            identity: MachineIdentity(chipName: "Apple M5"),
-            estimator: estimator, at: Date(), forceEstimate: true, panelIsOn: { true })
-        XCTAssertEqual(sample?.provenance, .measured)
-        XCTAssertEqual(sample?.watts ?? 0, 7.5, accuracy: 0.0001)
-        XCTAssertEqual(estimator.calls, 1)
-    }
-}
-
-extension SystemPowerReaderTests {
-    func testDisplaySampleHidesEveryRailWhenNoBuiltInPanelIsOn() {
-        let estimator = FakeBacklightEstimator()
-        estimator.sample = DisplayPowerSample(watts: 1.26, readAt: Date(), provenance: .estimated,
-                                              source: "AppleARMBacklight", assumedVoltage: 6)
-        let sample = SystemPowerReader.readDisplaySample(
+    func testMeasuredDisplayHidesEveryRailWhenNoBuiltInPanelIsOn() {
+        let sample = SystemPowerReader.readMeasuredDisplaySample(
             exchange: { _ in
                 XCTFail("No display rail should be read while the built-in panel is off")
                 return nil
             },
             identity: MachineIdentity(chipName: "Apple M5"),
-            estimator: estimator, at: Date(), panelIsOn: { false })
+            at: Date(), panelIsOn: { false })
         XCTAssertNil(sample)
-        XCTAssertEqual(estimator.calls, 0)
     }
 
-    func testBacklightEstimateOnlyWhenABuiltInPanelIsOnlineAndAwake() {
+    func testBuiltInPanelDecisionCoversLidClosedAndAsleep() {
         // Lid closed with only an external display: no built-in panel online.
-        XCTAssertFalse(AppleARMBacklightPowerEstimator.panelIsOn(
+        XCTAssertFalse(SystemPowerReader.panelIsOn(
             displays: [5], isBuiltIn: { _ in false }, isAsleep: { _ in false }))
         // Built-in online and awake.
-        XCTAssertTrue(AppleARMBacklightPowerEstimator.panelIsOn(
+        XCTAssertTrue(SystemPowerReader.panelIsOn(
             displays: [1, 5], isBuiltIn: { $0 == 1 }, isAsleep: { _ in false }))
         // Built-in online but asleep.
-        XCTAssertFalse(AppleARMBacklightPowerEstimator.panelIsOn(
+        XCTAssertFalse(SystemPowerReader.panelIsOn(
             displays: [1, 5], isBuiltIn: { $0 == 1 }, isAsleep: { $0 == 1 }))
     }
 }

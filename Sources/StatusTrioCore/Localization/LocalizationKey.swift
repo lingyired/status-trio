@@ -1081,8 +1081,6 @@ enum LocalizationKey: String, CaseIterable, Hashable, Sendable {
     case settingsBatteryBreakdownDescription = "settings.battery.breakdown.description"
     case settingsBatteryPowerFlowDiagram = "settings.battery.powerFlowDiagram"
     case settingsBatteryPowerFlowDiagramDescription = "settings.battery.powerFlowDiagramDescription"
-    case settingsBatteryForceBacklightEstimate = "settings.battery.forceBacklightEstimate"
-    case settingsBatteryForceBacklightEstimateDescription = "settings.battery.forceBacklightEstimate.description"
     case settingsBatteryPowerInfoBar = "settings.battery.powerInfoBar"
     case settingsBatteryPowerInfoBarDescription = "settings.battery.powerInfoBarDescription"
     case batteryHighEnergyApps = "battery.energy.apps"

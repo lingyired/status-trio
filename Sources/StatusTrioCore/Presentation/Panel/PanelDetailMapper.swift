@@ -173,10 +173,8 @@ enum PanelDetailMapper {
                                   options: BatteryPowerDisplayOptions, localization: Localization) -> BatteryPowerFlowState {
         func metric(_ label: LocalizationKey, _ watts: Double?,
                     kind: BatteryPowerFlowState.Kind = .system,
-                    help: LocalizationKey? = nil,
-                    helpSuffix: LocalizationKey? = nil,
-                    estimated: Bool = false) -> BatteryPowerFlowState.Metric {
-            var value = watts.map { watts -> String in
+                    help: LocalizationKey? = nil) -> BatteryPowerFlowState.Metric {
+            let value = watts.map { watts -> String in
                 // The flow cards are only 62 pt wide. Three-digit values with
                 // two decimals wrap onto a second line, so drop the fraction
                 // from 100 W upward. Round to the displayed precision first so
@@ -190,15 +188,9 @@ enum PanelDetailMapper {
                 )
                 return number + " W"
             } ?? localization.string(.batteryDetailsUnavailable)
-            if estimated {
-                value = "≈ " + value
-            }
-            let helpText = [help, helpSuffix]
-                .compactMap { $0.map { localization.string($0) } }
-                .joined(separator: " · ")
             return BatteryPowerFlowState.Metric(
                 label: localization.string(label), value: value, watts: watts, kind: kind,
-                help: helpText.isEmpty ? nil : helpText)
+                help: help.map { localization.string($0) })
         }
         // A live positive sample wins over the snapshot's charging flag: during
         // a charge-limit pulse macOS can keep `isCharging` false for tens of
@@ -235,10 +227,7 @@ enum PanelDetailMapper {
             // threshold is a UI visibility rule, not a sensor-validity rule.
             if let display = split.display,
                display.watts > BatteryPowerFlowState.minimumVisibleWatts {
-                destinations.append(metric(.batteryPowerDisplay, display.watts, kind: .display,
-                                           helpSuffix: split.displayProvenance == .estimated
-                                               ? .hardwareDetailEstimated : nil,
-                                           estimated: split.displayProvenance == .estimated))
+                destinations.append(metric(.batteryPowerDisplay, display.watts, kind: .display))
             }
             // One branch per powered port. A split without per-port data (an
             // older sample) keeps the single summed node.
@@ -256,11 +245,8 @@ enum PanelDetailMapper {
             // The residual covers the SoC and every DC load not measured above,
             // so it takes the system node's place and its switch.
             if options.showsSystem {
-                let estimated = split.systemIsEstimated
                 destinations.append(metric(.batteryPowerSystem, split.system.watts, kind: .system,
-                                           help: .batteryPowerSystemHelp,
-                                           helpSuffix: estimated ? .hardwareDetailEstimated : nil,
-                                           estimated: estimated))
+                                           help: .batteryPowerSystemHelp))
             }
             return BatteryPowerFlowState(input: input, destinations: destinations)
         }

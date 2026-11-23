@@ -1,5 +1,6 @@
 import Foundation
 import IOKit
+import CoreGraphics
 
 struct SystemPowerSample: Equatable, Sendable {
     let watts: Double
@@ -17,10 +18,9 @@ struct PowerSensorReadings: Equatable, Sendable {
     var system: SystemPowerSample?
     var input: SystemPowerSample?
     var battery: BatteryPowerSample?
-    /// Built-in display backlight power. Measured SMC rails (`PBwo`/`PDBR`/
-    /// `PBLR`) win; an `AppleARMBacklight` estimate is used only when no
-    /// measured rail reports positive power.
-    var display: DisplayPowerSample?
+    /// Built-in display backlight power from a measured SMC rail
+    /// (`PBwo`/`PDBR`/`PBLR`). There is no AppleARMBacklight estimate.
+    var display: SystemPowerSample?
     /// Accessory output on SMC channels D1–D4 (`DnJV` volts × `DnJI` amps).
     var portRails: PortOutputRails = .unavailable
     /// Battery temperature from `TB0T`, decoded by `BatteryHealthParser`.
@@ -30,11 +30,9 @@ struct PowerSensorReadings: Equatable, Sendable {
 }
 
 struct SystemPowerReader: Sendable {
-    private let backlightEstimator: any BacklightPowerEstimating
-
-    init(backlightEstimator: any BacklightPowerEstimating = AppleARMBacklightPowerEstimator.shared) {
-        self.backlightEstimator = backlightEstimator
-    }
+    /// UI visibility threshold for the display branch; not a sensor-validity
+    /// threshold. Values below this are hidden instead of drawn as zero.
+    static let minimumVisibleWatts: Double = 0.05
 
     /// Best-effort SMC system-total power (the PSTR sensor used by Stats).
     /// Apple does not publish a cross-model contract for this sensor. Read only;
@@ -45,7 +43,7 @@ struct SystemPowerReader: Sendable {
 
     /// One short-lived connection per refresh; fixed read-only keys, no scanning.
     func readSensors(system: Bool, input: Bool, battery: Bool, breakdown: Bool = false,
-                     temperature: Bool = false, forceBacklightEstimate: Bool = false) -> PowerSensorReadings {
+                     temperature: Bool = false) -> PowerSensorReadings {
         var readings = PowerSensorReadings.empty
         guard system || input || battery || breakdown || temperature else { return readings }
         // Share the read-only SMC transport/decoder with the hardware readers.
@@ -69,12 +67,10 @@ struct SystemPowerReader: Sendable {
         // backlight key hides that branch. Port keys that do not answer stay
         // `.unavailable` so the caller can fall back to PowerOutDetails.
         if breakdown {
-            readings.display = Self.readDisplaySample(
+            readings.display = Self.readMeasuredDisplaySample(
                 exchange: exchange,
                 identity: MachineIdentity.current(),
-                estimator: backlightEstimator,
-                at: readAt,
-                forceEstimate: forceBacklightEstimate
+                at: readAt
             )
             readings.portRails = Self.readPortOutput(exchange: exchange, readAt: readAt)
         }
@@ -124,41 +120,47 @@ struct SystemPowerReader: Sendable {
         readValue(sensor: .system, exchange: exchange)
     }
 
-    /// Built-in backlight wattage, reading `PDBR` only once. `readScalar`
-    /// already returns both "the key exists" (`acknowledged`) and the decoded
-    /// value, so a machine that exposes `PDBR` no longer pays a second read.
-    /// A `PDBR` that exists but decodes out of range still hides the branch
-    /// (no `PBLR` fallback); only a missing `PDBR` falls back to `PBLR`.
-    /// Reads the preferred measured rail and, only when every measured rail is
-    /// absent or reports no positive power, asks the backlight-current estimator.
-    /// A `PBLR` of 0 is exactly the M3 Air (#374) case: the key exists but is not
-    /// a usable backlight reading, so it must not become a 0.00 W branch.
-    static func readDisplaySample(exchange: ([UInt8]) -> [UInt8]?,
-                                  identity: MachineIdentity,
-                                  estimator: (any BacklightPowerEstimating)?,
-                                  at date: Date,
-                                  forceEstimate: Bool = false,
-                                  panelIsOn: () -> Bool = { AppleARMBacklightPowerEstimator.builtInPanelIsOn() }) -> DisplayPowerSample? {
-        // The display branch is the built-in backlight only. When the built-in
-        // panel is offline (lid closed with an external display) or asleep, the
-        // SMC rails can keep a stale small reading (for example 0.06 W) just as
-        // AppleARMBacklight keeps a stale current. Publish neither.
+    /// Reads the preferred measured rail only. `PBLR` of 0 is the M3 Air
+    /// (#374) case: the key exists but is not a usable backlight reading, so it
+    /// must not become a 0.00 W branch. When the built-in panel is offline
+    /// (lid closed with an external display) or asleep, every rail can keep a
+    /// stale small value; publish none of them.
+    static func readMeasuredDisplaySample(exchange: ([UInt8]) -> [UInt8]?,
+                                          identity: MachineIdentity,
+                                          at date: Date,
+                                          panelIsOn: () -> Bool = { SystemPowerReader.builtInPanelIsOn() }) -> SystemPowerSample? {
         guard panelIsOn() else { return nil }
-        // A testing override may ask for the estimate even when a measured
-        // rail is available. If the estimate is unavailable, fall through to
-        // the measured rails so the branch does not disappear.
-        if forceEstimate, let estimate = estimator?.estimate(at: date) {
-            return estimate
-        }
         for sensor in displaySensors(for: identity) {
             let scalar = readScalar(key: sensor.rawValue, exchange: exchange)
             guard scalar.acknowledged, let watts = scalar.value,
                   (0...150).contains(watts),
-                  watts > AppleARMBacklightPowerEstimator.minimumVisibleWatts else { continue }
-            return DisplayPowerSample(watts: watts, readAt: date, provenance: .measured,
-                                      source: sensorName(sensor), assumedVoltage: nil)
+                  watts > minimumVisibleWatts else { continue }
+            return SystemPowerSample(watts: watts, readAt: date)
         }
-        return estimator?.estimate(at: date)
+        return nil
+    }
+
+    /// True when an online, awake built-in display exists. If CoreGraphics
+    /// cannot answer, do not suppress a potentially valid reading.
+    static func builtInPanelIsOn() -> Bool {
+        var count: UInt32 = 0
+        guard CGGetOnlineDisplayList(0, nil, &count) == .success, count > 0 else {
+            return true
+        }
+        var displays = [CGDirectDisplayID](repeating: 0, count: Int(count))
+        guard CGGetOnlineDisplayList(count, &displays, &count) == .success else {
+            return true
+        }
+        return panelIsOn(displays: Array(displays.prefix(Int(count))),
+                         isBuiltIn: { CGDisplayIsBuiltin($0) != 0 },
+                         isAsleep: { CGDisplayIsAsleep($0) != 0 })
+    }
+
+    static func panelIsOn(displays: [CGDirectDisplayID],
+                          isBuiltIn: (CGDirectDisplayID) -> Bool,
+                          isAsleep: (CGDirectDisplayID) -> Bool) -> Bool {
+        guard let builtIn = displays.first(where: isBuiltIn) else { return false }
+        return !isAsleep(builtIn)
     }
 
     static func displaySensors(for identity: MachineIdentity) -> [Sensor] {
@@ -169,15 +171,6 @@ struct SystemPowerReader: Sendable {
             return [.displayNew, .display, .displayBacklight]
         default:
             return [.display, .displayNew, .displayBacklight]
-        }
-    }
-
-    private static func sensorName(_ sensor: Sensor) -> String {
-        switch sensor {
-        case .display: return "PDBR"
-        case .displayNew: return "PBwo"
-        case .displayBacklight: return "PBLR"
-        default: return "SMC"
         }
     }
 

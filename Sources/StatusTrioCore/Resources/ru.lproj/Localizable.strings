@@ -1410,5 +1410,3 @@
 "settings.localPlugins.unauthorized" = "Для локальных JSON-пакетов нужна разрешённая папка.";
 "settings.localPlugins.loadFailed" = "Не удалось прочитать папку пакета.";
 "settings.localPlugins.reload" = "Перезагрузить";
-"settings.battery.forceBacklightEstimate" = "Принудительная оценка подсветки";
-"settings.battery.forceBacklightEstimate.description" = "Тест: использовать оценку AppleARMBacklight вместо измеренного канала SMC, если оценка доступна.";

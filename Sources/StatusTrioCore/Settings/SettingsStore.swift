@@ -87,7 +87,6 @@ final class SettingsStore: ObservableObject {
     static let defaultBatterySymbolScale: Double = 1
     static let showsBatteryPercentageDefaultsKey = "showsBatteryPercentage"
     static let showsBatteryPowerFlowDefaultsKey = "showsBatteryPowerFlow"
-    static let forcesBacklightEstimateDefaultsKey = "forcesBacklightEstimate"
     static let showsBatteryPowerInfoBarDefaultsKey = "showsBatteryPowerInfoBar"
     // Per-button visibility inside the panel's keep-awake section. Display-only
     // preferences (intentionally not part of the settings transfer document).
@@ -620,12 +619,6 @@ final class SettingsStore: ObservableObject {
     @Published var showsBatteryPowerFlow: Bool {
         didSet { defaults.set(showsBatteryPowerFlow, forKey: Self.showsBatteryPowerFlowDefaultsKey) }
     }
-    /// Testing aid: prefer the AppleARMBacklight display estimate over the
-    /// measured SMC backlight rail. Lives next to the flow switch because it
-    /// only affects the breakdown's display branch.
-    @Published var forcesBacklightEstimate: Bool {
-        didSet { defaults.set(forcesBacklightEstimate, forKey: Self.forcesBacklightEstimateDefaultsKey) }
-    }
     /// Provisional: shows input/battery/system power under the panel's battery
     /// module. Off by default; not yet an accepted specification.
     @Published var showsBatteryPowerInfoBar: Bool {
@@ -668,8 +661,7 @@ final class SettingsStore: ObservableObject {
             showsInput: showsBatteryPowerFlow,
             showsCharging: showsBatteryPowerFlow,
             showsSystem: showsBatteryPowerFlow,
-            showsBreakdown: showsBatteryPowerFlow,
-            forceBacklightEstimate: forcesBacklightEstimate
+            showsBreakdown: showsBatteryPowerFlow
         )
     }
 
@@ -2810,9 +2802,6 @@ final class SettingsStore: ObservableObject {
         // #315 migration inputs: the old two booleans plus the connected choice.
         let legacyShowsPercentage = defaults.object(forKey: Self.showsBatteryPercentageDefaultsKey) as? Bool ?? true
         self.showsBatteryPowerFlow = defaults.object(forKey: Self.showsBatteryPowerFlowDefaultsKey) as? Bool ?? true
-        self.forcesBacklightEstimate = defaults.object(
-            forKey: Self.forcesBacklightEstimateDefaultsKey
-        ) as? Bool ?? false
         self.useBetterDisplayCombinedBrightness = defaults.object(
             forKey: Self.useBetterDisplayCombinedBrightnessDefaultsKey
         ) as? Bool ?? false

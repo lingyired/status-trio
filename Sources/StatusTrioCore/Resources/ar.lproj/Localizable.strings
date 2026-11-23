@@ -1410,5 +1410,3 @@
 "settings.localPlugins.unauthorized" = "تتطلب حزم JSON المحلية مجلدًا مصرحًا به.";
 "settings.localPlugins.loadFailed" = "تعذر قراءة مجلد الحزمة.";
 "settings.localPlugins.reload" = "إعادة تحميل";
-"settings.battery.forceBacklightEstimate" = "فرض تقدير الإضاءة الخلفية";
-"settings.battery.forceBacklightEstimate.description" = "للاختبار: استخدم تقدير AppleARMBacklight بدل قناة SMC المقاسة عند توفر تقدير.";
