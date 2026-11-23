@@ -11,7 +11,7 @@ final class LowPowerModeControlSynchronizer {
     private var cancellables = Set<AnyCancellable>()
     private var activationObserver: NSObjectProtocol?
 
-    func start(settings: SettingsStore, helper: PrivilegedHelperManager) {
+    func start(settings: SettingsStore, helper: any PrivilegedHelperControlling) {
         guard cancellables.isEmpty, activationObserver == nil else { return }
 
         // The helper is shared by two independent consumer intents: the battery

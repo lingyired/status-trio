@@ -26,6 +26,7 @@ final class AppEnvironment {
     private let bluetoothNearbyBatteryOptOutSynchronizer = BluetoothNearbyBatteryOptOutSynchronizer()
     private let lowPowerModeControlSynchronizer = LowPowerModeControlSynchronizer()
     private let memoryPressureMonitor: MemoryPressureMonitor
+    private let privilegedHelper: any PrivilegedHelperControlling
     private let previewResourceLifecycle: PreviewResourceLifecycle
     let backgroundUITesting: BackgroundUITestingConfiguration
 
@@ -70,9 +71,11 @@ final class AppEnvironment {
         bluetoothProfilerCache: BluetoothProfilerReportCache = .shared,
         previewResourceLifecycle: PreviewResourceLifecycle? = nil,
         backgroundUITesting: BackgroundUITestingConfiguration = .disabled,
-        localIconPluginRuntime: LocalIconPluginRuntime = LocalIconPluginRuntime(directories: { [] })
+        localIconPluginRuntime: LocalIconPluginRuntime = LocalIconPluginRuntime(directories: { [] }),
+        privilegedHelper: any PrivilegedHelperControlling = UnavailablePrivilegedHelper()
     ) {
         self.store = store
+        self.privilegedHelper = privilegedHelper
         self.settings = settings
         self.localization = localization
         self.iconPresentation = iconPresentation
@@ -162,7 +165,7 @@ final class AppEnvironment {
         )
         lowPowerModeControlSynchronizer.start(
             settings: settings,
-            helper: PrivilegedHelperManager.shared
+            helper: privilegedHelper
         )
         store.bindInputSettings(settings)
         store.bindLocalIPSettings(settings)

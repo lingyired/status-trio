@@ -690,3 +690,7 @@ final class PrivilegedHelperManager: ObservableObject {
         startRegistrationRetryWindow()
     }
 }
+
+
+@MainActor
+extension PrivilegedHelperManager: PrivilegedHelperControlling {}

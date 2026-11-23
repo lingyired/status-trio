@@ -287,7 +287,8 @@ extension AppEnvironment {
             dockVisibilityMonitor: dockVisibilityMonitor,
             telemetryReporter: telemetryReporter,
             backgroundUITesting: backgroundUITesting,
-            localIconPluginRuntime: localIconPluginRuntime
+            localIconPluginRuntime: localIconPluginRuntime,
+            privilegedHelper: PrivilegedHelperManager.shared
         )
     }
 
