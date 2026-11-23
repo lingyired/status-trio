@@ -7,10 +7,27 @@ import Foundation
 @MainActor
 final class TopAppsObservable: ObservableObject {
     @Published private(set) var state: TopAppsState = .idle
+    /// When the next sample is expected, so the card can show a countdown. Nil
+    /// while idle/asleep or between a sample finishing and the next schedule.
+    @Published private(set) var nextRefreshAt: Date?
 
     func update(_ state: TopAppsState) {
         guard self.state != state else { return }
         self.state = state
+    }
+
+    func updateNextRefresh(_ date: Date?) {
+        guard nextRefreshAt != date else { return }
+        nextRefreshAt = date
+    }
+
+    /// A force-quit just removed a row; ask the service to drop it from the
+    /// ranking immediately instead of waiting for it to age out at zero.
+    private let rowRemovalSubject = PassthroughSubject<TopAppIdentity, Never>()
+    var rowRemovalRequests: AnyPublisher<TopAppIdentity, Never> { rowRemovalSubject.eraseToAnyPublisher() }
+
+    func requestRowRemoval(_ id: TopAppIdentity) {
+        rowRemovalSubject.send(id)
     }
 }
 
@@ -48,6 +65,12 @@ final class TopAppsService {
     /// turn retries quickly instead of waiting a full interval.
     private var lastSampleWasCollecting = false
 
+    /// Rows the user force-quit: dropped from the ranking at once and kept out
+    /// until a fresh sample no longer reports them (so a stale in-flight read
+    /// cannot resurrect the row).
+    private var suppressedIDs: Set<TopAppIdentity> = []
+    private var rowRemovalCancellable: AnyCancellable?
+
     /// After a cumulative metric only establishes its baseline, retry once
     /// quickly so the first frame appears in about half a second instead of a
     /// full refresh interval.
@@ -76,6 +99,9 @@ final class TopAppsService {
         self.sleepFor = sleepFor
         self.clock = clock
         self.intervalSeconds = intervalSeconds
+        rowRemovalCancellable = observable.rowRemovalRequests.sink { [weak self] id in
+            self?.forgetRow(id)
+        }
     }
 
     deinit { loopTask?.cancel() }
@@ -117,6 +143,7 @@ final class TopAppsService {
             }
         } else {
             observable.update(.idle)
+            observable.updateNextRefresh(nil)
             resetTrackersWhenIdle()
         }
         startLoopIfNeeded()
@@ -133,6 +160,7 @@ final class TopAppsService {
         } else {
             observable.update(.idle)
         }
+        observable.updateNextRefresh(nil)
         needsTrackerReset = true
         resetTrackersWhenIdle()
     }
@@ -152,11 +180,13 @@ final class TopAppsService {
         demand = nil
         retainedRows = []
         lastRowsByMetric.removeAll()
+        suppressedIDs.removeAll()
         lastSampleWasCollecting = false
         sessionGeneration &+= 1
         loopTask?.cancel()
         loopTask = nil
         observable.update(.idle)
+        observable.updateNextRefresh(nil)
         needsTrackerReset = true
         resetTrackersWhenIdle()
     }
@@ -191,6 +221,7 @@ final class TopAppsService {
                     ? min(Self.collectingRetryInterval, interval)
                     : interval
                 let remaining = target - Double(elapsed) / 1_000_000_000
+                self.observable.updateNextRefresh(Date().addingTimeInterval(max(0, remaining)))
                 if remaining > 0 {
                     try? await self.sleepFor(.seconds(remaining))
                 } else {
@@ -246,7 +277,12 @@ final class TopAppsService {
                 observable.update(.measured(metric, retainedRows))
             }
         case .measured(let rows):
-            retainedRows = Self.mergedRows(previous: retainedRows, incoming: rows,
+            // Keep a just-quit row out until a fresh sample no longer lists it,
+            // so a close does not leave it lingering at zero in the list.
+            suppressedIDs = suppressedIDs.filter { id in rows.contains { $0.id == id } }
+            let incoming = rows.filter { !suppressedIDs.contains($0.id) }
+            retainedRows = Self.mergedRows(previous: retainedRows.filter { !suppressedIDs.contains($0.id) },
+                                           incoming: incoming,
                                            metric: metric, limit: Self.maximumRows)
             lastRowsByMetric[metric] = retainedRows
             observable.update(.measured(metric, retainedRows))
@@ -258,6 +294,17 @@ final class TopAppsService {
     }
 
     static let maximumRows = 8
+
+    /// Removes a just-quit row from the published ranking right away.
+    private func forgetRow(_ id: TopAppIdentity) {
+        suppressedIDs.insert(id)
+        retainedRows.removeAll { $0.id == id }
+        guard let metric = demand else { return }
+        lastRowsByMetric[metric] = retainedRows
+        if case let .measured(stateMetric, _) = observable.state, stateMetric == metric {
+            observable.update(.measured(metric, retainedRows))
+        }
+    }
 
     /// Merge then rank. Previous apps keep a slot with refreshed values (or zero
     /// when the app stopped using the resource) and newly seen apps are added;

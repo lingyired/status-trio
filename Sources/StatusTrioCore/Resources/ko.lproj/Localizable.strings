@@ -1278,6 +1278,8 @@
 "hardware.monitor.settings.colorTitle" = "색상";
 "hardware.monitor.settings.resetColors" = "색상 초기화";
 "hardware.monitor.settings.showRings.description" = "CPU / GPU / RAM / SSD 링을 표시합니다.";
+"hardware.monitor.settings.splitGapProgress" = "링 진행률을 좀우로 나누기";
+"hardware.monitor.settings.splitGapProgress.description" = "네 개의 모니터링 링을 좀우 두 부분으로 표시합니다. 왼쪽 절반은 0–50%, 오른쪽 절반은 50–100%가 되어 위쪽 틈의 백분율이 진행률을 가리지 않습니다.";
 "hardware.monitor.settings.showSummaryRow" = "하단 표시줄 표시";
 
 /* Status-panel per-item visibility */
@@ -1343,6 +1345,12 @@
 "hardware.detail.title.network" = "네트워크";
 "hardware.detail.title.disk" = "디스크";
 "hardware.detail.back" = "하드웨어 모니터";
+"hardware.detail.openActivityMonitor" = "활성 상태 보기 열기";
+"app.forceQuit.action" = "%@ 강제 종료";
+"app.forceQuit.confirmTitle" = "%@을(를) 강제 종료할까요?";
+"app.forceQuit.confirmMessage" = "저장하지 않은 변경 사항이 손실될 수 있습니다.";
+"app.forceQuit.confirmAction" = "강제 종료";
+"app.forceQuit.failed" = "%@을(를) 종료하지 못했습니다(다른 사용자 또는 시스템 프로세스일 수 있음).";
 "hardware.detail.totalUsage" = "총 사용률";
 "hardware.detail.temperature" = "온도";
 "hardware.detail.logicalCores" = "논리 코어";
@@ -1399,6 +1407,7 @@
 "hardware.detail.topApps.empty" = "활성 앱 없음";
 "hardware.detail.topApps.unsupported" = "지원되지 않음";
 "hardware.detail.topApps.failed" = "읽기 실패";
+"hardware.detail.topApps.refreshCountdown" = "%d초 후 새로 고침";
 "settings.localPlugins.title" = "로컬 JSON 플러그인";
 "settings.localPlugins.description" = "활성화된 패키지 폴더의 data.json을 필요할 때 읽습니다. 파일 쓰기는 스크립트가 담당합니다. 텍스트와 0–1 값을 지원합니다.";
 "settings.localPlugins.add" = "패키지 폴더 추가…";

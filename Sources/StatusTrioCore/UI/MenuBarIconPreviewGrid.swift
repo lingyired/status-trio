@@ -36,6 +36,9 @@ struct HardwareRingStrip: View {
     var cpuCenterContent: HardwareRingCenterContent = .temperature
     var gpuCenterContent: HardwareRingCenterContent = .temperature
     var temperatureMonitoringEnabled: Bool = true
+    /// Whether each ring's progress is split across the top gap (left half
+    /// 0–50%, right half 50–100%) instead of the gap absorbing it (#375).
+    var splitGapProgress: Bool = false
 
     /// Capacity is read once when the strip appears, not on every redraw: the
     /// volume query is a real filesystem/APFS lookup and was running on every
@@ -91,7 +94,8 @@ struct HardwareRingStrip: View {
             color: spec.color,
             progress: spec.progress,
             topTextVerticalAdjustment: topAdjustment,
-            animatesProgress: animatesProgress
+            animatesProgress: animatesProgress,
+            splitGapProgress: splitGapProgress
         )
         .animation(animatesProgress ? .easeOut(duration: 0.35) : nil, value: spec.progress)
     }
@@ -255,12 +259,29 @@ struct MenuBarIconPreviewGrid: View {
     }
 }
 
+/// Builds the ring scene the panel and design-preview strip draw. Extracted from
+/// `AnimatedRingLayer` so the split-gap option is unit-testable without a
+/// SwiftUI host.
+enum HardwareRingSceneBuilder {
+    static func outerRing(progress: Double, color: IconRGBA, splitGapProgress: Bool) -> OuterRingState {
+        OuterRingState(
+            segments: [RingSegmentState(progress: progress, color: .custom(color))],
+            gap: .value,
+            layout: .standard,
+            accessory: nil,
+            strokeScale: 1.1,
+            gapProgressMode: splitGapProgress ? .split : .absorbed
+        )
+    }
+}
+
 /// Renders only the app's real ring (no text) and lets the caller overlay static
 /// text. Conforming to `Animatable` means only the ring's progress interpolates;
 /// numeric/label text changes are siblings and update instantly.
 private struct AnimatedRingLayer: View, Animatable {
     let color: IconRGBA
     var progress: Double
+    var splitGapProgress: Bool = false
 
     @Environment(\.colorScheme) private var colorScheme
 
@@ -283,12 +304,10 @@ private struct AnimatedRingLayer: View, Animatable {
     }
 
     private var image: NSImage? {
-        let ring = OuterRingState(
-            segments: [RingSegmentState(progress: progress, color: .custom(color))],
-            gap: .value,
-            layout: .standard,
-            accessory: nil,
-            strokeScale: 1.1
+        let ring = HardwareRingSceneBuilder.outerRing(
+            progress: progress,
+            color: color,
+            splitGapProgress: splitGapProgress
         )
         return StatusIconPreviewCache.shared.image(
             scene: IconSceneState(outerRing: ring, center: nil),
@@ -311,12 +330,14 @@ struct AnimatedSceneIcon: View {
     var topTextVerticalAdjustment: CGFloat = 0
     /// Snap to new values instead of tweening when updated every second.
     var animatesProgress: Bool = true
+    /// Draw the ring with progress split across the top gap (#375).
+    var splitGapProgress: Bool = false
 
     var body: some View {
         GeometryReader { proxy in
             let side = min(proxy.size.width, proxy.size.height)
             ZStack {
-                AnimatedRingLayer(color: color, progress: progress)
+                AnimatedRingLayer(color: color, progress: progress, splitGapProgress: splitGapProgress)
                     .animation(animatesProgress ? .easeOut(duration: 0.35) : nil, value: progress)
                 Text(top)
                     .font(.system(size: side * 0.166 * 1.1, weight: .regular))

@@ -17,7 +17,11 @@ enum PowerInfoBarKind: String, Equatable, Hashable, Sendable {
 
     var title: LocalizationKey {
         switch self {
-        case .input, .inputDisconnected: return .powerInfoBarInput
+        case .input: return .powerInfoBarInput
+        // No adapter is a state, not a rail reading: keep the big number slot
+        // for the (zero) wattage and put the explanation on the wide label line,
+        // exactly as the battery rail does for "Not charging".
+        case .inputDisconnected: return .powerInfoBarNoInput
         case .batteryCharging: return .powerInfoBarBattery
         case .batteryDischarging: return .powerInfoBarDischarging
         case .batteryIdle: return .powerInfoBarNotCharging

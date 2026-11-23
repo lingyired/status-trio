@@ -21,6 +21,26 @@ final class AudioInputControlsViewTests: XCTestCase {
         XCTAssertTrue(controls.contains(".audioInputVolumeUnavailable"))
     }
 
+    func testNoDeviceStateReplacesSliderWithEmptyHintAndDropsSquareBackground() throws {
+        let sourceURL = packageRoot
+            .appendingPathComponent("Sources/StatusTrioCore/UI/AudioInputControlsView.swift")
+        let source = try String(contentsOf: sourceURL, encoding: .utf8)
+        let controlsStart = try XCTUnwrap(source.range(of: "private var controls: some View {"))
+        let controlsEnd = try XCTUnwrap(source.range(of: "    @ViewBuilder\n    private var muteIcon"))
+        let controls = String(source[controlsStart.lowerBound..<controlsEnd.lowerBound])
+
+        XCTAssertTrue(
+            controls.contains("PanelAudioEmptyDevicesHint("),
+            "no input device must replace the slider with the shared empty hint"
+        )
+        XCTAssertTrue(controls.contains(".audioInputNoDevices"))
+        XCTAssertFalse(
+            controls.contains(".background(.background)"),
+            "the rectangular \"—\" background is the square artifact from #378"
+        )
+        XCTAssertTrue(controls.contains(".background(.background, in: Capsule())"))
+    }
+
     func testSliderAccessibilityValueUsesReadbackAwareDraftPresentation() throws {
         let sourceURL = packageRoot
             .appendingPathComponent("Sources/StatusTrioCore/UI/AudioInputControlsView.swift")

@@ -1279,6 +1279,8 @@
 "hardware.monitor.settings.colorTitle" = "Couleurs";
 "hardware.monitor.settings.resetColors" = "Réinitialiser les couleurs";
 "hardware.monitor.settings.showRings.description" = "Affiche les anneaux CPU / GPU / RAM / SSD.";
+"hardware.monitor.settings.splitGapProgress" = "Répartir la progression de l'anneau à gauche et à droite";
+"hardware.monitor.settings.splitGapProgress.description" = "Affiche les quatre anneaux de surveillance en deux moitiés : la moitié gauche de 0 à 50 % et la moitié droite de 50 à 100 %, afin que le pourcentage dans l'encoche supérieure ne masque plus la progression.";
 "hardware.monitor.settings.showSummaryRow" = "Afficher la barre inférieure";
 
 /* Status-panel per-item visibility */
@@ -1344,6 +1346,12 @@
 "hardware.detail.title.network" = "Réseau";
 "hardware.detail.title.disk" = "Disque";
 "hardware.detail.back" = "Moniteur matériel";
+"hardware.detail.openActivityMonitor" = "Ouvrir Moniteur d’activité";
+"app.forceQuit.action" = "Forcer à quitter %@";
+"app.forceQuit.confirmTitle" = "Forcer à quitter %@ ?";
+"app.forceQuit.confirmMessage" = "Les modifications non enregistrées peuvent être perdues.";
+"app.forceQuit.confirmAction" = "Forcer à quitter";
+"app.forceQuit.failed" = "Impossible de quitter %@ (il appartient peut-être à un autre utilisateur ou à un processus système).";
 "hardware.detail.totalUsage" = "Utilisation totale";
 "hardware.detail.temperature" = "Température";
 "hardware.detail.logicalCores" = "Cœurs logiques";
@@ -1384,6 +1392,7 @@
 "hardware.detail.topApps.empty" = "Aucune application active";
 "hardware.detail.topApps.unsupported" = "Non pris en charge";
 "hardware.detail.topApps.failed" = "Lecture impossible";
+"hardware.detail.topApps.refreshCountdown" = "Actualisation dans %d s";
 "hardware.detail.sessionDownload" = "Téléchargement (session)";
 "hardware.detail.sessionUpload" = "Envoi (session)";
 "hardware.detail.interfaces" = "Interfaces";

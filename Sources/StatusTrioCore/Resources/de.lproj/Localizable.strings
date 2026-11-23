@@ -412,7 +412,7 @@
 "audioInput.title" = "Mikrofon";
 "audioInput.inUse" = "In Benutzung";
 "audioInput.noDefault" = "Kein Standard-Eingabegerät";
-"audioInput.noDevices" = "Keine verfügbaren Eingabegeräte";
+"audioInput.noDevices" = "Keine Eingabegeräte verfügbar";
 "audioInput.unknownDevice" = "Unbekanntes Eingabegerät";
 "audioInput.devicePosition" = "Eingabegerät %d";
 "audioInput.current" = "Aktuell";
@@ -1279,6 +1279,8 @@
 "hardware.monitor.settings.colorTitle" = "Farben";
 "hardware.monitor.settings.resetColors" = "Farben zurücksetzen";
 "hardware.monitor.settings.showRings.description" = "Zeigt die Ringe für CPU / GPU / RAM / SSD.";
+"hardware.monitor.settings.splitGapProgress" = "Ringfortschritt links und rechts teilen";
+"hardware.monitor.settings.splitGapProgress.description" = "Zeigt die vier Überwachungsringe in zwei Hälften: links 0–50 % und rechts 50–100 %, damit der Prozentwert in der oberen Lücke den Fortschritt nicht mehr verdeckt.";
 "hardware.monitor.settings.showSummaryRow" = "Untere Leiste anzeigen";
 
 /* Status-panel per-item visibility */
@@ -1344,6 +1346,12 @@
 "hardware.detail.title.network" = "Netzwerk";
 "hardware.detail.title.disk" = "Festplatte";
 "hardware.detail.back" = "Hardware-Monitor";
+"hardware.detail.openActivityMonitor" = "Aktivitätsanzeige öffnen";
+"app.forceQuit.action" = "%@ sofort beenden";
+"app.forceQuit.confirmTitle" = "%@ sofort beenden?";
+"app.forceQuit.confirmMessage" = "Nicht gespeicherte Änderungen gehen möglicherweise verloren.";
+"app.forceQuit.confirmAction" = "Sofort beenden";
+"app.forceQuit.failed" = "%@ konnte nicht beendet werden (gehört möglicherweise einem anderen Benutzer oder einem Systemprozess).";
 "hardware.detail.totalUsage" = "Gesamtauslastung";
 "hardware.detail.temperature" = "Temperatur";
 "hardware.detail.logicalCores" = "Logische Kerne";
@@ -1384,6 +1392,7 @@
 "hardware.detail.topApps.empty" = "Keine aktiven Apps";
 "hardware.detail.topApps.unsupported" = "Nicht unterstützt";
 "hardware.detail.topApps.failed" = "Lesen fehlgeschlagen";
+"hardware.detail.topApps.refreshCountdown" = "Aktualisierung in %d s";
 "hardware.detail.sessionDownload" = "Download (Sitzung)";
 "hardware.detail.sessionUpload" = "Upload (Sitzung)";
 "hardware.detail.interfaces" = "Schnittstellen";

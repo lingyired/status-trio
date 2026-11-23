@@ -34,6 +34,36 @@ final class PanelActionAlignmentTests: XCTestCase {
         }
     }
 
+    func testVolumeRowShowsEmptyHintInsteadOfSliderWhenNoOutputDevice() throws {
+        let probe = try render(
+            VolumeControlsView(
+                state: try makeEmptyVolumeState(),
+                actions: StatusPanelActions(),
+                scrollTargets: PopoverScrollTargets(),
+                onOpenSoundSettings: {}
+            )
+        )
+        XCTAssertNil(
+            probe.subviewCenterY(where: { $0 is NSSlider }),
+            "a missing output device must not render a dead volume slider (#378)"
+        )
+    }
+
+    func testAudioInputRowShowsEmptyHintInsteadOfSliderWhenNoInputDevice() throws {
+        let probe = try render(
+            AudioInputControlsView(
+                state: try makeAudioInputState(hasDevice: false),
+                actions: StatusPanelActions(),
+                scrollTargets: PopoverScrollTargets(),
+                onOpenSoundSettings: {}
+            )
+        )
+        XCTAssertNil(
+            probe.subviewCenterY(where: { $0 is NSSlider }),
+            "a missing input device must not render a dead input slider (#378)"
+        )
+    }
+
     func testBrightnessRowCentersPercentageAndGearWithTheSlider() throws {
         let state = BrightnessPanelState(rows: [
             BrightnessRowState(
@@ -74,7 +104,7 @@ final class PanelActionAlignmentTests: XCTestCase {
     }
 
     func testAudioInputControlsCenterMuteAndSettingsWithTheSliderRow() throws {
-        let state = try makeAudioInputState(showsDeviceList: false)
+        let state = try makeAudioInputState(hasDevice: true)
         let probe = try render(
             AudioInputControlsView(
                 state: state,
@@ -200,7 +230,7 @@ final class PanelActionAlignmentTests: XCTestCase {
         )
         let micProbe = try render(
             AudioInputControlsView(
-                state: try makeAudioInputState(showsDeviceList: false),
+                state: try makeAudioInputState(hasDevice: true),
                 actions: StatusPanelActions(),
                 scrollTargets: PopoverScrollTargets(),
                 onOpenSoundSettings: {}
@@ -348,7 +378,25 @@ final class PanelActionAlignmentTests: XCTestCase {
         )
     }
 
-    private func makeAudioInputState(showsDeviceList: Bool) throws -> AudioInputPanelState {
+    private func makeEmptyVolumeState() throws -> VolumePanelState {
+        let suite = "StatusTrioCoreTests.EmptyVolumeActionAlignment.\(UUID().uuidString)"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
+        defer { defaults.removeTestSuite(named: suite) }
+        let localization = Localization(defaults: defaults, preferredLanguages: ["en"])
+        return AudioPanelMapper.volume(
+            VolumeStatus(
+                scalar: nil,
+                isMuted: false,
+                deviceName: nil,
+                outputDevices: []
+            ),
+            controllerAvailable: true,
+            deviceList: AudioOutputListPreferences(visibleLimit: nil),
+            localization: localization
+        )
+    }
+
+    private func makeAudioInputState(hasDevice: Bool) throws -> AudioInputPanelState {
         let suite = "StatusTrioCoreTests.AudioInputActionAlignment.\(UUID().uuidString)"
         let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
         defer { defaults.removeTestSuite(named: suite) }
@@ -356,8 +404,8 @@ final class PanelActionAlignmentTests: XCTestCase {
         let device = AudioInputDevice(id: 11, uid: "layout-mic", name: "Studio Mic")
         return AudioPanelMapper.input(
             AudioInputStatus(
-                devices: showsDeviceList ? [device] : [],
-                defaultDeviceID: showsDeviceList ? device.id : nil,
+                devices: hasDevice ? [device] : [],
+                defaultDeviceID: hasDevice ? device.id : nil,
                 deviceName: device.name,
                 scalar: 0.5,
                 canSetVolume: true,

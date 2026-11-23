@@ -209,6 +209,9 @@ final class StatusPanelViewModel: ObservableObject {
     @Published private(set) var cpuRingCenterContent: HardwareRingCenterContent
     @Published private(set) var gpuRingCenterContent: HardwareRingCenterContent
     @Published private(set) var hardwareTemperatureMonitoringEnabled: Bool
+    /// Whether the four panel rings split their progress across the top gap
+    /// (left half 0–50%, right half 50–100%) instead of absorbing it.
+    @Published private(set) var hardwareRingSplitGapProgress: Bool
 
     private var isStarted = false
     private var bluetoothIsExpanded = false
@@ -297,6 +300,7 @@ final class StatusPanelViewModel: ObservableObject {
         cpuRingCenterContent = settings.cpuRingCenterContent
         gpuRingCenterContent = settings.gpuRingCenterContent
         hardwareTemperatureMonitoringEnabled = settings.hardwareTemperatureMonitoringEnabled
+        hardwareRingSplitGapProgress = settings.hardwareRingSplitGapProgress
         hardwareSpeedCapsMbps = [
             .downloadSpeed: settings.hardwareDownloadCapMbps,
             .uploadSpeed: settings.hardwareUploadCapMbps
@@ -583,6 +587,14 @@ final class StatusPanelViewModel: ObservableObject {
                 guard let self, self.hardwareTemperatureMonitoringEnabled != enabled else { return }
                 self.hardwareTemperatureMonitoringEnabled = enabled
                 self.scheduleHardwareDemandRecompute()
+            }
+            .store(in: &cancellables)
+
+        settings.$hardwareRingSplitGapProgress
+            .removeDuplicates()
+            .sink { [weak self] split in
+                guard let self, self.hardwareRingSplitGapProgress != split else { return }
+                self.hardwareRingSplitGapProgress = split
             }
             .store(in: &cancellables)
 

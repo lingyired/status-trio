@@ -23,6 +23,9 @@ struct HardwareDetailView: View {
     var networkChartFixedScale: Bool = false
     /// Detail-chart history window from the user's 1–5 minute setting.
     var historyWindowSeconds: TimeInterval = HardwareDetailHistoryStore.window
+    /// Opens the system Activity Monitor from the header shortcut. Injectable so
+    /// tests can observe the tap without launching the app.
+    var openActivityMonitor: () -> Void = { ActivityMonitorShortcut.open() }
 
     @EnvironmentObject private var localization: Localization
     @StateObject private var history: HardwareDetailHistoryStore
@@ -36,7 +39,8 @@ struct HardwareDetailView: View {
          uploadCapMbps: Double = SettingsStore.defaultHardwareUploadCapMbps,
          networkChartFixedScale: Bool = false,
          historyWindowSeconds: TimeInterval = HardwareDetailHistoryStore.window,
-         previewHistory: [HardwareDetailHistoryPoint]? = nil) {
+         previewHistory: [HardwareDetailHistoryPoint]? = nil,
+         openActivityMonitor: @escaping () -> Void = { ActivityMonitorShortcut.open() }) {
         self.kind = kind
         _hardware = ObservedObject(wrappedValue: hardware)
         self.onBack = onBack
@@ -48,6 +52,7 @@ struct HardwareDetailView: View {
         self.networkChartFixedScale = networkChartFixedScale
         self.historyWindowSeconds = historyWindowSeconds
         self.previewHistory = previewHistory
+        self.openActivityMonitor = openActivityMonitor
         _history = StateObject(wrappedValue: HardwareDetailHistoryStore(seriesCount: kind.historySeriesCount,
                                                                         seeded: previewHistory,
                                                                         historyWindow: historyWindowSeconds))
@@ -60,7 +65,9 @@ struct HardwareDetailView: View {
         VStack(alignment: .leading, spacing: 12) {
             NavigationBackRow(accessibilityLabel: localization.string(.hardwareDetailBack),
                               title: localization.string(kind.titleKey),
-                              action: onBack)
+                              action: onBack) {
+                activityMonitorButton
+            }
             content
             if let topApps, let metric = kind.topAppMetric {
                 TopAppsListView(metric: metric, observable: topApps)
@@ -75,6 +82,19 @@ struct HardwareDetailView: View {
                           seedMetricIDs: kind.historyMetricIDs)
         }
         .onDisappear { history.stop() }
+    }
+
+    /// Header shortcut that opens the system Activity Monitor. Only the hardware
+    /// pages carry it; battery, Wi-Fi and other detail pages do not.
+    private var activityMonitorButton: some View {
+        Button(action: openActivityMonitor) {
+            PanelActionGlyph(systemName: "waveform.path.ecg", size: PanelSummaryActionMetrics.actionSlot)
+                .foregroundStyle(.secondary)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .help(localization.string(.hardwareDetailOpenActivityMonitor))
+        .accessibilityLabel(localization.string(.hardwareDetailOpenActivityMonitor))
     }
 
     @ViewBuilder

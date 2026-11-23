@@ -411,7 +411,7 @@
 "audioInput.title" = "Microphone";
 "audioInput.inUse" = "In Use";
 "audioInput.noDefault" = "No default input device";
-"audioInput.noDevices" = "No available input devices";
+"audioInput.noDevices" = "No input devices available";
 "audioInput.unknownDevice" = "Unknown input device";
 "audioInput.devicePosition" = "Input device %d";
 "audioInput.current" = "Current";
@@ -438,7 +438,7 @@
 "settings.refreshInterval.onBattery" = "On battery";
 "settings.refreshInterval.onPower" = "Plugged in";
 "settings.refreshInterval.description" = "Periodically checks battery, Wi-Fi, and volume status. Shorter intervals check more often.";
-"settings.refreshInterval.value" = "%d seconds";
+"settings.refreshInterval.value" = "%ds";
 "settings.popup.order" = "Displayed Items";
 "settings.popup.order.description" = "Choose which items appear in the status panel and drag to change their order.";
 "settings.popup.order.battery" = "Battery";
@@ -707,7 +707,7 @@
 "wifi.summary.band" = "%@ GHz";
 "wifi.summary.signal" = "%d dBm";
 "wifi.summary.bandAndSignal" = "%@ · %@";
-"wifi.summary.nameAccessHint" = "Tap to allow location to show the Wi-Fi name";
+"wifi.summary.nameAccessHint" = "Allow location to show Wi-Fi name";
 "settings.bluetooth.hideDevice" = "Hide device";
 "settings.bluetooth.showDevice" = "Show device";
 "settings.bluetooth.permissionRequired" = "Bluetooth permission required";
@@ -980,16 +980,16 @@
 "settings.battery.powerInfoBarDescription" = "Shows input, battery and system power below the battery module while the panel is open. Off by default.";
 "settings.battery.energyRefreshInterval" = "Background sampling interval";
 "settings.battery.energyRefreshInterval.description" = "Used while the panel is closed. The battery detail page still refreshes every 5 seconds.";
-"battery.power.input" = "Charger input";
+"battery.power.input" = "Charger";
 "battery.power.source.battery" = "Battery";
 "battery.power.charging" = "To battery";
 "battery.power.system" = "System power";
 "battery.power.system.help" = "System power (incl. SoC)";
 "battery.power.system.explanation" = "“System” is what remains after battery charging, the display and USB: it covers the SoC, memory, display controllers and other loads that are not measured on their own.";
 "power.infoBar.input" = "Charger input";
-"power.infoBar.noInput" = "No power adapter";
-"power.infoBar.battery" = "Battery charging";
-"power.infoBar.discharging" = "Battery discharging";
+"power.infoBar.noInput" = "No adapter";
+"power.infoBar.battery" = "Charging";
+"power.infoBar.discharging" = "Discharging";
 "power.infoBar.system" = "System power";
 "power.infoBar.notCharging" = "Not charging";
 "battery.power.display" = "Display";
@@ -1278,6 +1278,8 @@
 "hardware.monitor.settings.colorTitle" = "Colors";
 "hardware.monitor.settings.resetColors" = "Reset colors";
 "hardware.monitor.settings.showRings.description" = "Show the CPU, GPU, memory and disk-capacity rings; each can be turned off independently.";
+"hardware.monitor.settings.splitGapProgress" = "Split ring progress left and right";
+"hardware.monitor.settings.splitGapProgress.description" = "Draw the ring progress in two halves: the left half is 0–50% and the right half 50–100%, so the percentage at the top no longer hides progress.";
 "hardware.monitor.settings.showSummaryRow" = "Show bottom bar";
 
 /* Status-panel per-item visibility */
@@ -1343,6 +1345,12 @@
 "hardware.detail.title.network" = "Network";
 "hardware.detail.title.disk" = "Disk";
 "hardware.detail.back" = "Hardware Monitor";
+"hardware.detail.openActivityMonitor" = "Open Activity Monitor";
+"app.forceQuit.action" = "Force quit %@";
+"app.forceQuit.confirmTitle" = "Force quit %@?";
+"app.forceQuit.confirmMessage" = "Unsaved changes may be lost.";
+"app.forceQuit.confirmAction" = "Force Quit";
+"app.forceQuit.failed" = "Couldn't quit %@ (it may belong to another user or a system process).";
 "hardware.detail.totalUsage" = "Total usage";
 "hardware.detail.temperature" = "Temperature";
 "hardware.detail.logicalCores" = "Logical cores";
@@ -1383,6 +1391,7 @@
 "hardware.detail.topApps.empty" = "No active apps";
 "hardware.detail.topApps.unsupported" = "Not supported";
 "hardware.detail.topApps.failed" = "Could not read";
+"hardware.detail.topApps.refreshCountdown" = "Refresh in %d s";
 "hardware.detail.sessionDownload" = "Session download";
 "hardware.detail.sessionUpload" = "Session upload";
 "hardware.detail.interfaces" = "Interfaces";

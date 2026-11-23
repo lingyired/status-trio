@@ -376,6 +376,7 @@ struct StatusPopoverView: View {
                                        cpuRingCenterContent: panel.cpuRingCenterContent,
                                        gpuRingCenterContent: panel.gpuRingCenterContent,
                                        hardwareTemperatureMonitoringEnabled: panel.hardwareTemperatureMonitoringEnabled,
+                                       hardwareRingSplitGapProgress: panel.hardwareRingSplitGapProgress,
                                        summaryMetrics: panel.enabledHardwareSummaryMetrics)
         }
     }

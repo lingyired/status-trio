@@ -1279,6 +1279,8 @@
 "hardware.monitor.settings.colorTitle" = "色";
 "hardware.monitor.settings.resetColors" = "色をリセット";
 "hardware.monitor.settings.showRings.description" = "CPU / GPU / RAM / SSD のリングを表示します。";
+"hardware.monitor.settings.splitGapProgress" = "リングの進捗を左右に分割";
+"hardware.monitor.settings.splitGapProgress.description" = "4つのモニタリングリングを左右2つの半分で表示します。左半分が 0–50%、右半分が 50–100% となり、上部のすき間に表示される割合が進捗を隠さなくなります。";
 "hardware.monitor.settings.showSummaryRow" = "下部バーを表示";
 
 /* Status-panel per-item visibility */
@@ -1344,6 +1346,12 @@
 "hardware.detail.title.network" = "ネットワーク";
 "hardware.detail.title.disk" = "ディスク";
 "hardware.detail.back" = "ハードウェアモニタ";
+"hardware.detail.openActivityMonitor" = "アクティビティモニタを開く";
+"app.forceQuit.action" = "%@ を強制終了";
+"app.forceQuit.confirmTitle" = "%@ を強制終了しますか？";
+"app.forceQuit.confirmMessage" = "保存されていない変更は失われる可能性があります。";
+"app.forceQuit.confirmAction" = "強制終了";
+"app.forceQuit.failed" = "%@ を終了できませんでした（別のユーザーまたはシステムプロセスの可能性があります）。";
 "hardware.detail.totalUsage" = "合計使用率";
 "hardware.detail.temperature" = "温度";
 "hardware.detail.logicalCores" = "論理コア";
@@ -1384,6 +1392,7 @@
 "hardware.detail.topApps.empty" = "アクティブなアプリなし";
 "hardware.detail.topApps.unsupported" = "未対応";
 "hardware.detail.topApps.failed" = "読み取り失敗";
+"hardware.detail.topApps.refreshCountdown" = "%d 秒後に更新";
 "hardware.detail.sessionDownload" = "今回のダウンロード";
 "hardware.detail.sessionUpload" = "今回のアップロード";
 "hardware.detail.interfaces" = "インターフェース";
