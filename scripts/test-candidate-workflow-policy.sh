@@ -62,4 +62,42 @@ if run_policy "$mutated_type"; then
     fail "build workflow that ignores on_main was accepted"
 fi
 
+# A branch candidate must never skip the reviewed signing environment, even
+# when the owner triggers it. Dropping the main-ref guard reintroduces that.
+mutated_actor="$WORK/mutated-actor"
+make_fixture "$mutated_actor"
+python3 - "$mutated_actor/.github/workflows/build-candidate.yml" <<'PY'
+import sys
+path = sys.argv[1]
+with open(path) as fh:
+    text = fh.read()
+old = "needs.prepare.outputs.on_main == 'true' && github.ref == 'refs/heads/main' && github.triggering_actor == 'lingyired' && 'distribution-owner-signing' || 'distribution'"
+new = "github.triggering_actor != 'lingyired' && 'distribution' || 'distribution-owner-signing'"
+if old not in text:
+    raise SystemExit("expected signing-environment expression not found in fixture")
+with open(path, "w") as fh:
+    fh.write(text.replace(old, new))
+PY
+if run_policy "$mutated_actor"; then
+    fail "branch candidate with actor-only signing environment was accepted"
+fi
+
+# Keeping the actor check but dropping the ref check is still a branch bypass.
+mutated_ref="$WORK/mutated-ref"
+make_fixture "$mutated_ref"
+python3 - "$mutated_ref/.github/workflows/build-candidate.yml" <<'PY'
+import sys
+path = sys.argv[1]
+with open(path) as fh:
+    text = fh.read()
+old = "github.ref == 'refs/heads/main' && "
+if old not in text:
+    raise SystemExit("expected main-ref guard not found in fixture")
+with open(path, "w") as fh:
+    fh.write(text.replace(old, "", 1))
+PY
+if run_policy "$mutated_ref"; then
+    fail "signing environment without the main-ref guard was accepted"
+fi
+
 echo "test-candidate-workflow-policy: PASS"

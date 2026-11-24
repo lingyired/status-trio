@@ -674,32 +674,41 @@ PUBLIC_VERIFY_DELAY_SECONDS="${PUBLIC_VERIFY_DELAY_SECONDS:-5}"
 [[ "$PUBLIC_VERIFY_DELAY_SECONDS" =~ ^[0-9]+$ ]] ||
     die "PUBLIC_VERIFY_DELAY_SECONDS must be a non-negative integer."
 
-REMOTE_FEED="$TEMP_ROOT/public-appcast.xml"
+API_FEED="$TEMP_ROOT/api-appcast.xml"
+PUBLIC_FEED="$TEMP_ROOT/public-appcast.xml"
 PUBLIC_DMG_PATH="$TEMP_ROOT/public.dmg"
 PUBLIC_FEED_URL="https://raw.githubusercontent.com/$RELEASE_REPO/$RELEASE_BRANCH/$APPCAST_FILE"
 PUBLIC_DMG_SHA256=""
 PUBLIC_ERROR="$TEMP_ROOT/public-error.log"
+API_VERIFIED=false
 PUBLIC_VERIFIED=false
 
-# Prefer the GitHub contents API, which reflects the just-pushed appcast commit
-# immediately. raw.githubusercontent.com can still serve a stale copy from its
-# CDN cache, which once made a successful publish look like a mismatch.
-fetch_public_feed() {
-    local destination="$1"
-    if gh api "$APPCAST_API_PATH?ref=$RELEASE_BRANCH" -H "Accept: application/vnd.github.raw" \
-        > "$destination" 2>>"$PUBLIC_ERROR"; then
-        return 0
-    fi
-    curl -fsSL --connect-timeout 15 --max-time 300 "$PUBLIC_FEED_URL" > "$destination" 2>>"$PUBLIC_ERROR"
-}
+# 1) Authenticated API confirmation. The contents API serves the just-pushed
+# commit immediately, so this answers "does the release metadata in GitHub match
+# the verified package?" It says nothing about what public clients can see.
+: > "$PUBLIC_ERROR"
+if gh api "$APPCAST_API_PATH?ref=$RELEASE_BRANCH" -H "Accept: application/vnd.github.raw" \
+        > "$API_FEED" 2>>"$PUBLIC_ERROR" &&
+    verify_appcast_item "$API_FEED" 2>>"$PUBLIC_ERROR"; then
+    API_VERIFIED=true
+fi
+if [[ "$API_VERIFIED" != "true" ]]; then
+    cat "$PUBLIC_ERROR" >&2
+    die "API verification failed: the authenticated appcast does not match the verified package."
+fi
+echo "API verification: PASS (authenticated appcast matches $TAG)."
 
+# 2) Client-facing public verification. The download URL and the raw update feed
+# are what users and Sparkle actually resolve, and the CDN can lag the push, so
+# retry with a bound. Never treat the API copy as proof that the public feed
+# propagated: report PASS only when both sides match.
 for ((attempt = 1; attempt <= PUBLIC_VERIFY_ATTEMPTS; attempt++)); do
     : > "$PUBLIC_ERROR"
     if curl -fsSL --connect-timeout 15 --max-time 300 "$DMG_URL" > "$PUBLIC_DMG_PATH" 2>"$PUBLIC_ERROR"; then
         PUBLIC_DMG_SHA256="$(file_sha256 "$PUBLIC_DMG_PATH")"
         if [[ "$PUBLIC_DMG_SHA256" == "$DMG_SHA256" ]] &&
-            fetch_public_feed "$REMOTE_FEED" &&
-            verify_appcast_item "$REMOTE_FEED" 2>>"$PUBLIC_ERROR"; then
+            curl -fsSL --connect-timeout 15 --max-time 300 "$PUBLIC_FEED_URL" > "$PUBLIC_FEED" 2>>"$PUBLIC_ERROR" &&
+            verify_appcast_item "$PUBLIC_FEED" 2>>"$PUBLIC_ERROR"; then
             PUBLIC_VERIFIED=true
             break
         fi
@@ -711,10 +720,12 @@ for ((attempt = 1; attempt <= PUBLIC_VERIFY_ATTEMPTS; attempt++)); do
     fi
 done
 
-[[ "$PUBLIC_VERIFIED" == "true" ]] || {
+if [[ "$PUBLIC_VERIFIED" != "true" ]]; then
     cat "$PUBLIC_ERROR" >&2
+    echo "Public verification: UNCONFIRMED (API verified; public download or update feed still does not match)." >&2
     die "Public DMG or appcast did not match the verified package after $PUBLIC_VERIFY_ATTEMPTS attempts."
-}
+fi
+echo "Public verification: PASS (public download and update feed match the verified package)."
 
 echo "Published $TAG from source $SOURCE_SHA with package SHA-256 $DMG_SHA256."
 echo "Signing: $SIGNING_KIND; notarization: $NOTARIZATION_STATUS."
