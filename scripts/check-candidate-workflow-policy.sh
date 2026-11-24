@@ -33,6 +33,11 @@ require_text "$BUILD_WF" "strict"
 require_text "$BUILD_WF" 'ref: ${{ inputs.candidate_sha }}'
 require_text "$BUILD_WF" "CANDIDATE_TYPE:"
 require_text "$BUILD_WF" "needs.prepare.outputs.on_main == 'true' && 'release_candidate' || 'test_candidate'"
+# The signing environment must fail closed: a branch SHA always needs the
+# reviewed `distribution` environment, even for the owner. The owner-only
+# exception requires a main candidate that was dispatched from main.
+require_text "$BUILD_WF" "needs.prepare.outputs.on_main == 'true' && github.ref == 'refs/heads/main' && github.triggering_actor == 'lingyired'"
+forbid_text "$BUILD_WF" "name: \${{ github.triggering_actor != 'lingyired' && 'distribution' || 'distribution-owner-signing' }}"
 require_text "$BUILD_WF" 'NOTARIZE: "true"'
 require_text "$BUILD_WF" "bash scripts/package-release.sh"
 require_text "$BUILD_WF" "name: status-trio-release-package"

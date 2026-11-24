@@ -143,6 +143,28 @@ struct PopoverSectionView: View {
                     set: { store.applyPanelBoldTextToggle($0) }
                 )
             )
+            SettingsDivider()
+            // Appearance also owns how the panel's level sliders look; the
+            // generic slider styling used to live on the General page (#359).
+            SettingsRow(
+                "slider.horizontal.3",
+                tint: .teal,
+                title: localization.string(.settingsPanelLevelSliderColor),
+                subtitle: localization.string(.settingsPanelLevelSliderColorDescription)
+            ) {
+                PanelLevelSliderColorRow(
+                    store: store,
+                    localization: localization
+                )
+            }
+            SettingsDivider()
+            SettingsToggleRow(
+                symbol: "rectangle.portrait.arrowtriangle.2.outward",
+                tint: .teal,
+                title: localization.string(.settingsPanelLevelSliderThickness),
+                subtitle: localization.string(.settingsPanelLevelSliderThicknessDescription),
+                isOn: $store.panelLevelSliderMatchesBrightnessThickness
+            )
         }
     }
 

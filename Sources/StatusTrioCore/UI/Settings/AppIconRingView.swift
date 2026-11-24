@@ -100,7 +100,8 @@ struct AppIconRingView: View {
         // the extra group heading (matching the middle-icon page); the full App
         // Icon overview keeps it so the section stays labelled among the others.
         SettingsGroup(
-            showsRingContentTitle ? localization.string(.settingsRingContentGroupTitle) : nil
+            showsRingContentTitle ? localization.string(.settingsRingContentGroupTitle) : nil,
+            footnote: localization.string(.settingsBatterySharedSyncNote)
         ) {
             SettingsVisualChoicePicker(
                 descriptionText: localization.string(.settingsRingContentRowDescription),

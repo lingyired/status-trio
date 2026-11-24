@@ -402,15 +402,17 @@ final class PanelActionAlignmentTests: XCTestCase {
         defer { defaults.removeTestSuite(named: suite) }
         let localization = Localization(defaults: defaults, preferredLanguages: ["en"])
         let device = AudioInputDevice(id: 11, uid: "layout-mic", name: "Studio Mic")
+        // With no input device the reader also reports no name, level or
+        // controllable volume; keeping those would describe a live row.
         return AudioPanelMapper.input(
             AudioInputStatus(
                 devices: hasDevice ? [device] : [],
                 defaultDeviceID: hasDevice ? device.id : nil,
-                deviceName: device.name,
-                scalar: 0.5,
-                canSetVolume: true,
-                muteState: .unmuted,
-                canSetMute: true,
+                deviceName: hasDevice ? device.name : nil,
+                scalar: hasDevice ? 0.5 : nil,
+                canSetVolume: hasDevice,
+                muteState: hasDevice ? AudioInputMuteState.unmuted : nil,
+                canSetMute: hasDevice,
                 isRefreshing: false,
                 isBusy: false,
                 error: nil

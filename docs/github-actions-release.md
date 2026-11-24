@@ -98,8 +98,9 @@ Developer ID 凭据存在时，`publish=true` 必须成功完成公证；若 Dev
 `distribution`。`verify` 和 `native` 不访问 Environment，也不接收签名或公证
 secrets。Environment 审批不能替代 SHA 冻结和 artifact 校验。
 
-两个 signing Environment 都只允许 `main`。`distribution` 必须保留 reviewer；
-`distribution-owner-signing` 不配置 reviewer，但必须保持同一 `main` 分支限制。
+`distribution-owner-signing` 只允许 `main`；`distribution` 必须保留 reviewer，并允许
+任意分支部署（分支候选正是通过它走人工审批）。这样非 `main` SHA 永远进不了无
+reviewer 的 owner Environment，而需要测试的分支候选仍能由 reviewer 批准后签名。
 创建 owner Environment 的命令：
 
 ```bash
@@ -294,11 +295,22 @@ sqlite3 ~/Library/Caches/com.lingsmbp.StatusTrio/Cache.db \
 
 `Support/Info.plist` 的 `CFBundleShortVersionString` 与 `CFBundleVersion` 是**默认构建的版本来源**：当 `build-candidate.yml` / `release.yml` 不显式传 `version` / `build` 时，就从这里读取。因此**每次正式发版都必须把它同步更新到刚发布的版本与构建号**，否则默认构建出来的包会挂着过期的版本号——例如 1.10.4 已经发布，plist 却仍停在 1.9.5，不传版本号打的包就还是 1.9.5。
 
-- `CFBundleShortVersionString` 必须等于 `appcast.xml` 最新条目的 `sparkle:shortVersionString`。
-- `CFBundleVersion` 必须等于 `appcast.xml` 最新条目的 `sparkle:version`（即最大构建号）。
+- 发布完成时，`CFBundleShortVersionString` 必须等于 `appcast.xml` 最新条目的
+  `sparkle:shortVersionString`，`CFBundleVersion` 必须等于最新条目的
+  `sparkle:version`（即最大构建号）。
 - 操作：发布时更新 `release-notes/<version>/`、写入 `appcast.xml` 之后，**在同一批改动里**把 `Support/Info.plist` 这两个字段改成相同的版本与构建号并提交。
 
-`scripts/check-info-plist-version-sync.sh` 校验两者一致，`scripts/verify-local.sh full` 会调用它；不一致时本地验证直接失败，避免再出现「最新代码却打出旧版本号」的问题。
+`scripts/check-info-plist-version-sync.sh` 有两种模式，对应两个使用场景：
+
+- **默认（`--allow-ahead`）**：日常本地验证。开发中的版本通常已经领先尚未更新的
+  `appcast.xml`，因此允许 `Info.plist` 领先；但拒绝回退（构建号或营销版本低于
+  公开源），也拒绝「同一构建号对应不同营销版本」。
+- **`--exact`**：发布/发布门禁。要求 `Info.plist` 与公开源完全一致。
+- `scripts/verify-local.sh full` 调用默认模式，并用
+  `scripts/test-info-plist-version-sync.sh` 的离线夹具覆盖领先、回退、同构建号漂移、
+  空源和非法构建号。
+- 发版收尾（`appcast.xml` 已写入之后的复查）使用 `--exact`，避免「本地放过的
+  领先版本」在公开源更新后仍被当作已对齐。
 
 ## 第一次配置
 
@@ -423,8 +435,23 @@ workflow dispatch，确保同一 SHA 的验证、Universal package、签名/公�
      - SHA 不在 `origin/main`（任意分支测试）→ `CANDIDATE_TYPE=test_candidate`，
        同样 Developer ID 签名 + Apple 公证，但 manifest `publishable=false`，
        只能下载安装测试，**不能进入 Publish 或 Verify**。
-   - 从分支构建测试包：在上述页面的 *Use workflow from* 选目标分支，或用
+   - **分支候选固定走人工审批。** `package` 的 Environment 规则是：
+     - 任意非 `main` SHA：一律使用有 reviewer 的 `distribution`，触发者是谁都不例外。
+     - `main` SHA 且本次 workflow 从 `main` 派发，触发者为 `lingyired`：才允许
+       无 reviewer 的 `distribution-owner-signing`。
+     - 其他情况（他人触发、从分支重新运行、从分支派发）：使用 `distribution`。
+   - 推荐从 `main` 的 workflow 定义派发分支候选，这样运行的是已审查的 workflow，
+     同时仍构建冻结的分支 SHA：
+
+     ```bash
+     gh workflow run build-candidate.yml --ref main \
+       -f candidate_sha="$(git rev-parse <branch>)" \
+       -f release_mode=fast
+     ```
+
+     只有需要验证 workflow 文件本身的改动时，才在 *Use workflow from* 选分支，或用
      `gh workflow run build-candidate.yml --ref <branch> -f candidate_sha="$(git rev-parse <branch>)"`；
+     这种情况下 `distribution-owner-signing` 永远不会被选中，必须人工批准。
      构建完成后下载 `status-trio-release-package` Artifact 安装测试。
 
 2. `.github/workflows/publish-candidate.yml`（**Publish Existing Candidate**）
@@ -444,6 +471,25 @@ workflow dispatch，确保同一 SHA 的验证、Universal package、签名/公�
      不可变的 `strict-evidence.json` 并作为 `status-trio-strict-evidence`
      Artifact 存储；不重建、不重公证原始包。Publish 阶段可用其把 Fast 候选
      升级为「已通过 Strict 测试」发布。
+
+### 发布后的 API 确认与公开更新源验证
+
+`scripts/publish-release.sh` 在公开 Release 之后把两类验证分开报告，避免把
+「GitHub 元数据正确」误当成「客户端已经能收到更新」：
+
+1. **API 确认（认证通道）**：用 GitHub contents API 读取刚推送的 appcast，校验
+   item 的版本、构建号、最低系统版本、enclosure URL、长度和 EdDSA 签名。API 会
+   立即反映推送的 commit；这一步失败会直接以 `API verification failed` 结束。
+2. **公开更新源验证（客户端通道）**：下载公开 DMG 并读取
+   `raw.githubusercontent.com` 上的 appcast。CDN 可能晚于推送，因此保留
+   `PUBLIC_VERIFY_ATTEMPTS` × `PUBLIC_VERIFY_DELAY_SECONDS` 的有界重试。
+   - 两边都匹配才输出 `Public verification: PASS`，并视为公开验证通过。
+   - API 已通过、公开源仍未传播时输出 `Public verification: UNCONFIRMED` 并以
+     非零退出；不会再回退到 API 读取来「证明」公开源可用。
+   - 重新运行发布必须复用同一份已验证 Artifact，不能重打包。
+
+`scripts/test-release-pipeline.sh` 用离线夹具锁定三个分支：API 未更新、API 已更新
+但公开源滞后、API 与公开源都匹配。
 
 ### release_candidate 与 diagnostic
 
@@ -466,7 +512,12 @@ manifest 升级为 schema v2（保留 v1 兼容），新增
 - `scripts/test-release-candidate-publish-gate.sh`：离线校验 `publish-release.sh`
   对 schema v2 候选的门禁（不可发布 / strict 未通过 / SHA 不一致 / Ad-hoc 拒绝）。
 - `scripts/test-candidate-workflow-policy.sh`：静态断言 Publish 工作流不含任何
-  构建、签名或公证步骤。
+  构建、签名或公证步骤；并断言分支候选无法使用无 reviewer 的
+  `distribution-owner-signing`（去掉 `on_main`、`github.ref` 或 `triggering_actor`
+  任一条都会失败）。
+- `scripts/test-info-plist-version-sync.sh`：离线版本夹具，覆盖待发版本领先、
+  回退、同构建号但营销版本不同、空源和非法构建号，并区分本地默认模式与
+  `--exact` 发布模式。
 - 性能断言：同一 Candidate 从测试到公开发布，**编译次数为 0，公证提交次数为 0**。
   实际耗时以 GitHub Actions 日志为准，不预设固定分钟数。
 

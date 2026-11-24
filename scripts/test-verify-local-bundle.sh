@@ -58,6 +58,7 @@ SH
     for script in test.sh test-workflow-policy.sh test-powerui-charge-restore.sh \
         test-macos13-deployment-contract-regressions.sh \
         test-macos13-deployment-contract.sh test-appcast-minimum-system-version.sh \
+        test-info-plist-version-sync.sh \
         test-macos13-bundle-contract.sh test-app-icon-contract.sh \
         test-privileged-helper-bundle-contract.sh \
         test-mobile-battery-helper.sh test-mobile-battery-rpaths.sh test-otool-dependencies.sh \
@@ -125,6 +126,7 @@ for expected in \
     "platform dist/StatusTrio.app/Contents/MacOS/StatusTrio 13.0 26" \
     "mobile-bundle dist/StatusTrio.app" \
     "helper-bundle dist/StatusTrio.app" \
+    "test-info-plist-version-sync.sh" \
     "test-powerui-charge-restore.sh" \
     "test-launch-computer-use.sh" \
     "test-background-ui-configuration.sh" \

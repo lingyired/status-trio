@@ -64,6 +64,7 @@ struct KeepAwakeSectionView: View {
                 symbol: "lightbulb.fill",
                 tint: .orange,
                 title: showNamed(.quickActionsDisplaySleep),
+                subtitle: localization.string(.quickActionsDisplaySleepDescription),
                 isOn: $store.showsKeepScreenButton
             )
             .disabled(!sectionEnabled)
@@ -71,11 +72,15 @@ struct KeepAwakeSectionView: View {
     }
 
     private var lidGroup: some View {
-        SettingsGroup(localization.string(.quickActionsLidSleep)) {
+        SettingsGroup(
+            localization.string(.quickActionsLidSleep),
+            footnote: localization.string(.settingsKeepAwakeOnlyLid)
+        ) {
             SettingsToggleRow(
                 symbol: "moon.zzz.fill",
                 tint: .blue,
                 title: showNamed(.quickActionsLidSleep),
+                subtitle: localization.string(.quickActionsLidSleepDescription),
                 isOn: $store.showsLidSleepButton
             )
             .disabled(!sectionEnabled)
@@ -90,6 +95,7 @@ struct KeepAwakeSectionView: View {
                 symbol: "battery.25",
                 tint: .orange,
                 title: localization.string(.settingsKeepAwakeAutoOff),
+                subtitle: localization.string(.settingsKeepAwakeAutoOffDescription),
                 isOn: $store.autoDisableLidSleepOnLowBattery
             )
             .disabled(!sectionEnabled)

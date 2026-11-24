@@ -45,6 +45,11 @@ SH
 set -euo pipefail
 printf 'appcast\n' >> "${VERIFY_TRACE:?}"
 SH
+    cat > "$fixture/scripts/test-info-plist-version-sync.sh" <<'SH'
+#!/usr/bin/env bash
+set -euo pipefail
+printf 'version-sync\n' >> "${VERIFY_TRACE:?}"
+SH
     cat > "$fixture/scripts/test-privileged-helper-bundle-contract.sh" <<'SH'
 #!/usr/bin/env bash
 set -euo pipefail
@@ -327,7 +332,7 @@ grep -Fq "mode: docs" "$WORK/docs.log" ||
 bash "$WORK/repo/scripts/verify-local.sh" full >"$WORK/full.log" 2>&1 ||
     fail "full verification failed"
 for expected in forbidden "swift test" "swift build -c release" powerui-restore deployment deployment-regressions \
-    appcast helper-contract mobile-helper mobile-rpaths otool sparkle mobile-source-cache release-policy \
+    appcast version-sync helper-contract mobile-helper mobile-rpaths otool sparkle mobile-source-cache release-policy \
     release-pipeline release-notarization dmg-installer clang gitee-mirror gitee-workflow self-test \
     workflow-policy bundle-self-test bundle app-icon-contract "build-app release no-open" \
     "BUNDLE_ID=com.lingsmbp.StatusTrio.dev.verify-local" \

@@ -41,7 +41,7 @@
 "settings.dockIconBackground.light" = "Clair";
 "settings.iconSize" = "Taille de l’icône";
 "settings.iconSize.accessibilityValue" = "%d points";
-"settings.iconSize.description" = "Ajuste la taille de rendu de l’icône dans la barre des menus de 16 à 36 pt. L’icône du Dock conserve sa taille de design fixe.";
+"settings.iconSize.description" = "Icône de la barre des menus : 16–36 pt. L’icône du Dock garde sa taille fixe.";
 "settings.ringStrokeStyle" = "Épaisseur de l'anneau extérieur";
 "settings.ringStrokeStyle.description" = "Réglez l'épaisseur du trait de l'anneau d'état dans la barre des menus et le Dock.";
 "settings.ringStrokeStyle.light" = "Fin";
@@ -66,7 +66,7 @@
 "settings.appIcon.middleIcon.batteryPercentage" = "Pourcentage de batterie";
 "settings.appIcon.middleIcon.power" = "Puissance (watts)";
 "settings.appIcon.middleIcon.chargingStatus" = "État de charge";
-"settings.appIcon.middleIcon.chargingStatus.description" = "Dans ce mode, « Afficher un indicateur pendant la charge ou sur secteur » de l'arc supérieur est désactivé pour éviter une icône en double.";
+"settings.appIcon.middleIcon.chargingStatus.description" = "Affiche l’état de charge au lieu du pourcentage. L’indicateur de charge de l’arc supérieur se désactive pour éviter un doublon.";
 "settings.appIcon.middleIcon.size" = "Taille de l’icône centrale";
 "settings.appIcon.middleIcon.size.description" = "Une seule taille pour tout le contenu central : Wi-Fi, Bluetooth, source de saisie et nombres.";
 "settings.appIcon.middleIcon.networkWarnings" = "Prioriser les problèmes réseau";
@@ -109,7 +109,7 @@
 "settings.bluetooth.networkErrorPriority" = "Donner la priorité aux erreurs réseau";
 "settings.bluetooth.networkErrorPriorityDescription" = "Les erreurs de connexion et l’état hors ligne conservent l’icône réseau au lieu du périphérique Bluetooth.";
 "settings.bluetooth.batteryLevels" = "Afficher les niveaux de batterie Bluetooth";
-"settings.bluetooth.batteryLevelsDescription" = "Lit les niveaux de batterie des AirPods lorsque l’entrée Bluetooth est affichée. Aucune autorisation supplémentaire n’est demandée.";
+"settings.bluetooth.batteryLevelsDescription" = "Lit la batterie des accessoires Bluetooth pris en charge affichés dans le panneau.";
 "settings.bluetooth.listeningModeTitle" = "Afficher les contrôles du mode d’écoute";
 "settings.bluetooth.listeningModeDescription" = "Prend en charge les AirPods et certains casques HUAWEI : affiche les pastilles de réduction de bruit/transparence/désactivé sur les appareils connectés. Seuls certains modèles HUAWEI sont pris en charge ; si un changement échoue, le mode précédent est restauré.";
 "settings.bluetooth.listeningModePreview" = "Aperçu du mode d’écoute (test uniquement)";
@@ -163,11 +163,11 @@
 "settings.audio.maximumVisibleInput" = "Nombre maximal d’appareils d’entrée visibles";
 "settings.audio.maximumVisibleInputDescription" = "Nombre d’appareils d’entrée affichés avant le bouton Développer.";
 "settings.audio.orderTitle" = "Ordre des appareils de sortie";
-"settings.audio.orderDescription" = "Faites glisser les appareils pour modifier leur ordre dans le panneau de volume. Décochez ceux que vous n’utilisez pas pour les masquer ; la sortie active reste toujours visible. Les nouveaux appareils apparaissent à la fin.";
+"settings.audio.orderDescription" = "Les appareils apparaissent par défaut dans le panneau. Faites-les glisser pour les réordonner ; décochez-en un pour le masquer. La sortie active reste toujours visible.";
 "settings.audio.orderEmpty" = "Aucun appareil de sortie disponible.";
 "settings.audio.showDevice" = "Afficher dans le panneau d’état";
 "settings.audio.inputOrderTitle" = "Ordre des appareils d’entrée";
-"settings.audio.inputOrderDescription" = "Faites glisser les appareils pour modifier leur ordre dans la section Entrée audio. Décochez ceux que vous n’utilisez pas pour les masquer ; l’entrée actuelle reste toujours visible. Les nouveaux appareils apparaissent à la fin.";
+"settings.audio.inputOrderDescription" = "Les entrées apparaissent par défaut dans le panneau. Faites-les glisser pour les réordonner ; décochez-en une pour la masquer. L’entrée active reste toujours visible.";
 "settings.audio.inputOrderEmpty" = "Aucun appareil d’entrée disponible.";
 "settings.audio.inputOrderSectionOff" = "Activez Entrée audio dans Panneau d’état › Éléments affichés pour réordonner ou masquer les appareils d’entrée.";
 "settings.about.version" = "Version %@";
@@ -181,6 +181,7 @@
 "settings.about.copyright" = "© lingyired";
 "settings.battery.title" = "Affichage de la batterie";
 "settings.battery.group.icon" = "Arc supérieur de batterie";
+"settings.battery.sharedSyncNote" = "Ces réglages d’anneau sont partagés avec la page « Batterie » ; toute modification est synchronisée.";
 "settings.battery.group.colors" = "État et couleurs";
 "settings.battery.group.chargingEffects" = "Effets de charge";
 "settings.battery.group.charging" = "Charge";
@@ -189,7 +190,7 @@
 "settings.battery.group.topMarkers" = "Repères supérieurs";
 "settings.ringContent.group" = "Ring Content";
 "settings.ringContent.row.title" = "Ring Shows";
-"settings.ringContent.row.description" = "Choose what the outer ring displays: this Mac's battery or your AirPods battery.";
+"settings.ringContent.row.description" = "Choisissez ce qu’affiche l’anneau extérieur : la batterie de ce Mac, vos AirPods ou une mesure matérielle personnalisée.";
 "settings.ringContent.systemBattery" = "This Mac's Battery";
 "settings.ringContent.airPodsBattery" = "AirPods Battery";
 "settings.ringContent.airPodsGroup" = "AirPods Ring";
@@ -357,9 +358,9 @@
 "settings.network.showLocalIP.description" = "Affiche l’adresse LAN privée de ce Mac sur la ligne réseau, avant les détails Wi-Fi.";
 
 "settings.network.permissionNotDeterminedTitle" = "Autorisation de localisation requise";
-"settings.network.permissionNotDeterminedDescription" = "Status Trio a besoin d’accéder à votre localisation pour afficher les réseaux Wi‑Fi. Cliquez ci-dessous pour l’autoriser.";
+"settings.network.permissionNotDeterminedDescription" = "L’état de connexion fonctionne sans Localisation. Lire le nom du Wi-Fi et les réseaux à proximité nécessite l’accès à la Localisation. Accordez-le ci-dessous.";
 "settings.network.permissionDeniedTitle" = "Autorisation de localisation désactivée";
-"settings.network.permissionDeniedDescription" = "Sans accès à la localisation, les réseaux Wi‑Fi ne peuvent pas être affichés. Activez-le dans les Réglages Système.";
+"settings.network.permissionDeniedDescription" = "L’état de connexion fonctionne toujours. Sans accès à la Localisation, le nom du Wi-Fi et les réseaux proches restent masqués. Activez-le dans Réglages Système.";
 "settings.audio.externalVolume.title" = "Volume de l’écran externe";
 "settings.audio.externalVolume.controlMethod" = "Méthode de contrôle";
 "settings.audio.externalVolume.controlMethodDescription" = "Si les commandes de volume du panneau d’état ne contrôlent pas cet appareil, utilisez BetterDisplay.";
@@ -433,9 +434,9 @@
 "accessibility.status" = "%@, %@, %@";
 "accessibility.battery" = "Batterie %d%%";
 "accessibility.volume" = "Volume %@";
-"settings.statusCheck.title" = "Intervalle de vérification";
+"settings.statusCheck.title" = "Fréquence de vérification";
 "settings.quickActions.title" = "Actions rapides";
-"settings.refreshInterval" = "Intervalle d’actualisation";
+"settings.refreshInterval" = "Fréquence";
 "settings.refreshInterval.onBattery" = "Sur batterie";
 "settings.refreshInterval.onPower" = "Branché sur secteur";
 "settings.refreshInterval.description" = "Vérifie régulièrement l’état de la batterie, du Wi-Fi et du volume. Un intervalle plus court vérifie plus souvent.";
@@ -460,8 +461,9 @@
 "settings.keepAwake.helperReady" = "L’assistant privilégié est prêt.";
 "settings.keepAwake.helperHint" = "Activer « Garder éveillé capot fermé » (ou le contrôle du mode économie d’énergie) installe et demande l’autorisation automatiquement.";
 "settings.keepAwake.allowBattery" = "Autoriser sur batterie";
-"settings.keepAwake.autoOff" = "Désactiver le maintien éveillé capot fermé lorsque la batterie est faible";
-"settings.keepAwake.onlyLid" = "S’applique uniquement à « Garder éveillé capot fermé »";
+"settings.keepAwake.autoOff" = "Désactiver si batterie faible";
+"settings.keepAwake.autoOff.description" = "Désactive le maintien éveillé capot fermé à 20 % de batterie ou moins.";
+"settings.keepAwake.onlyLid" = "Concerne uniquement le maintien éveillé capot fermé ; « Garder l’écran allumé » reste actif.";
 "quickActions.displaySleep" = "Garder l’écran allumé";
 "quickActions.displaySleep.description" = "Empêche l’écran de se mettre en veille en cas d’inactivité.";
 "quickActions.lidSleep" = "Rester éveillé avec le capot fermé";
@@ -488,7 +490,7 @@
 "quickActions.turnedOffLowBattery" = "Batterie faible — prévention de la veille avec capot fermé désactivée.";
 "quickActions.turnedOffTimerEnded" = "Minuteur terminé — désactivé automatiquement.";
 "quickActions.error" = "Impossible de modifier le réglage : %@";
-"settings.panel.background.title" = "Fond du panneau";
+"settings.panel.background.title" = "Apparence";
 "settings.panel.background.style" = "Style d’arrière-plan";
 "settings.panel.background.style.description" = "Choisissez le rendu de l’arrière-plan du panneau d’état.";
 "settings.panel.background.style.liquidGlass" = "Liquid Glass";
@@ -503,17 +505,17 @@
 "settings.panel.levelSliderThickness.description" = "Dessiner les curseurs de volume et de microphone avec la même hauteur de capsule que la luminosité.";
 "settings.panel.openBehavior.title" = "Détails et ouverture";
 "settings.panel.returnsToSummaryOnOpen" = "Rouvrir la dernière page de détail";
-"settings.panel.returnsToSummaryOnOpen.description" = "Lorsque cette option est activée, rouvrir le panneau d’état revient à la page de détail affichée lors de sa fermeture ; sinon, il démarre toujours sur la vue d’ensemble.";
+"settings.panel.returnsToSummaryOnOpen.description" = "À la réouverture, revient à la dernière page de détail ; sinon le panneau démarre toujours sur le résumé.";
 "settings.panel.showsDetailsAlongside" = "Afficher les détails à côté";
 "settings.panel.showsDetailsAlongside.description" = "Lorsque cette option est activée, les pages de détail s’ouvrent à droite du panneau d’état, puis à gauche. Si aucun côté ne convient, elles s’affichent dans le panneau.";
 "settings.panel.showsPanelOnHover" = "Afficher le panneau au survol";
-"settings.panel.showsPanelOnHover.description" = "Lorsque cette option est activée, maintenir le pointeur sur l’icône de la barre des menus pendant environ 0,3 seconde ouvre le panneau d’état. Entrer dans le panneau le garde ouvert ; quitter l’icône et le panneau le ferme après un court délai. Un clic bascule toujours l’affichage.";
+"settings.panel.showsPanelOnHover.description" = "Laisser le pointeur environ 0,3 seconde sur l’icône de la barre des menus ouvre le panneau. Y entrer le garde ouvert ; quitter les deux le ferme après un court délai. Un clic continue de basculer.";
 "settings.popup.volumeScroll.group" = "Défilement du panneau";
 "settings.audio.volumeScroll.group" = "Défilement du volume";
 "settings.popup.panelScroll" = "Faire défiler le panneau pour régler le volume";
 "settings.popup.panelScroll.description" = "Le défilement sur les zones vides de la page de résumé modifie le volume de sortie. Les curseurs se règlent toujours au défilement.";
 "settings.popup.volumeScroll.natural" = "Défilement naturel";
-"settings.popup.volumeScroll.natural.description" = "Lorsque cette option est activée, faire défiler vers le haut augmente la valeur sous le pointeur (volume, luminosité ou gain d’entrée) ; sinon, le défilement suit la direction du système. Si la valeur baisse encore en défilant vers le haut après avoir activé cette option, excluez Status Trio dans MOS, Scroll Reverser, LinearMouse ou une app similaire, généralement via une liste d’exceptions/d’ignorés.";
+"settings.popup.volumeScroll.natural.description" = "Faites défiler vers le haut pour augmenter la valeur sous le pointeur ; désactivé, suit le sens du système. Si cela reste inversé après avoir activé cette option, ajoutez Status Trio à la liste d’exceptions/d’ignorés de MOS, Scroll Reverser ou LinearMouse.";
 "settings.audio.volumeFeedbackTitle" = "Retour sonore du volume";
 "settings.audio.volumeFeedback" = "Émettre un son lors du réglage du volume par défilement";
 "settings.audio.volumeFeedbackDescription" = "Émet le son lorsque vous réglez le volume par défilement. Par défaut, suit le réglage macOS « émettre un retour sonore lors du changement de volume » ; ce commutateur ne s’applique qu’à Status Trio.";
@@ -607,7 +609,7 @@
 "settings.preview.dark" = "Sombre";
 "settings.preview.light" = "Clair";
 "settings.preview.toggleHelp" = "Basculer l'aperçu de la barre des menus en sombre/clair";
-"settings.audio.displayRules" = "Règles d'affichage";
+"settings.audio.displayRules" = "Liste des appareils";
 "settings.audio.activeDeviceFootnote" = "Le périphérique de sortie audio actif est mis en évidence avec la couleur d'accentuation.";
 "settings.audio.inUse" = "En cours d'utilisation";
 "settings.wifi.symbolScale" = "Taille de l'icône Wi-Fi";
@@ -619,14 +621,14 @@
 "settings.audio.indicatorStyle.arc" = "Arc";
 "settings.audio.bottomIndicatorTitle" = "Indicateur inférieur";
 "settings.audio.bottomIndicatorDescription" = "Choisissez ce que la barre sous l’icône affiche. Le style à quatre points ou en arc reste inchangé.";
-"settings.audio.bottomIndicatorSource" = "Source de l’indicateur inférieur";
+"settings.audio.bottomIndicatorSource" = "Indicateur inférieur";
 "settings.audio.bottomIndicatorSource.volume" = "Volume";
 "settings.audio.bottomIndicatorSource.wifi" = "Wi-Fi";
 "settings.audio.bottomIndicatorSource.battery" = "Batterie";
 "settings.audio.bottomIndicatorSource.hidden" = "Masqué";
 "settings.audio.bottomIndicatorSource.metric" = "Personnalisé";
-"settings.audio.bottomIndicatorMetric" = "Personnalisé";
-"settings.audio.bottomIndicatorMetricDescription" = "Choisissez la mesure matérielle affichée par la barre. Le style à quatre points ou en arc reste identique.";
+"settings.audio.bottomIndicatorMetric" = "Mesure";
+"settings.audio.bottomIndicatorMetricDescription" = "Choisissez la mesure affichée par la barre inférieure. Le style points ou arc ne change pas.";
 "settings.audio.airPodsInlineControlsTitle" = "Commandes du casque";
 "settings.audio.airPodsInlineControls" = "Afficher les commandes AirPods dans le panneau du volume";
 "settings.audio.airPodsInlineControlsDescription" = "Affiche les commandes de perception des conversations, de l'audio spatial et de l'adaptatif à côté de votre sortie AirPods. Désactivez pour masquer ces commandes basées sur des API privées.";
@@ -733,7 +735,7 @@
 "settings.appleDevicesAndBattery" = "Afficher les appareils Apple et leur batterie";
 "settings.appleTrustHelp" = "Pour l’iPhone et l’iPad, connectez-les une fois par câble, déverrouillez-les et touchez « Se fier ». La lecture sans fil exige aussi la synchronisation Wi‑Fi sur le même réseau. L’Apple Watch est lue via l’iPhone de confiance.";
 "settings.appleBluetoothReadHelp" = "Une lecture Bluetooth peut déclencher une demande d’appairage. Des échecs répétés mettent la lecture de cet appareil en pause ; utilisez le bouton d’actualisation du panneau pour réessayer.";
-"settings.appleDevicesAndBattery.description" = "Les appareils Apple de confiance et nommés à proximité apparaissent dans la liste Bluetooth.";
+"settings.appleDevicesAndBattery.description" = "Affiche les appareils Apple de confiance et les appareils Bluetooth Apple à proximité nommés. L’iPhone et l’iPad se lisent après un appairage par câble, un déverrouillage et « Faire confiance ».";
 "settings.appleBackgroundRefresh" = "Actualiser les batteries Apple en arrière-plan";
 "settings.appleBackgroundRefresh.description" = "Actualise la batterie des appareils Apple sélectionnés lorsque le panneau est fermé.";
 "settings.appleBackgroundRefresh.interval" = "Intervalle d’actualisation des batteries en arrière-plan";
@@ -1063,8 +1065,8 @@
 "brightness.backend.automatic" = "Automatique";
 "brightness.backend.directDDC" = "DDC direct";
 "brightness.backend.betterDisplay" = "BetterDisplay";
-"settings.brightness.description" = "Désactivez un écran pour masquer sa ligne de luminosité.";
-"settings.brightness.backend" = "Backend de luminosité";
+"settings.brightness.description" = "Ces interrupteurs masquent uniquement la ligne de luminosité de l’écran dans le panneau d’état. Le contrôle de la luminosité reste inchangé.";
+"settings.brightness.backend" = "Méthode de contrôle de la luminosité";
 // About: community, author social links and more apps
 "settings.about.social.title" = "Suivre l’auteur";
 "settings.about.social.douyin" = "Douyin";
@@ -1111,6 +1113,7 @@
 "settings.menuBarRightClickAction.openSoundSettings" = "Ouvrir les réglages Son";
 "settings.tab.brightness" = "Luminosité";
 "settings.brightness.group.title" = "Écrans connectés";
+"settings.brightness.group.betterDisplay" = "BetterDisplay";
 "settings.brightness.empty" = "Aucun écran connecté.";
 "settings.brightness.builtIn" = "Intégré";
 "settings.brightness.internalBackend.description" = "La luminosité de l’écran intégré utilise le backend DisplayServices.";
@@ -1131,8 +1134,8 @@
 "settings.battery.colors.discharging" = "Décharge (sans secteur)";
 "battery.lowPowerMode.autoEnable" = "Activer automatiquement le mode économie d’énergie";
 "battery.lowPowerMode.autoEnableDescription" = "Une fois l’alimentation débranchée, le mode économie d’énergie s’active automatiquement dès que la batterie passe sous le seuil de batterie faible. Une fois par cycle de batterie faible.";
-"settings.battery.autoLowPowerThreshold" = "Activer automatiquement le mode économie d’énergie";
-"settings.battery.autoLowPowerThresholdDescription" = "Le mode économie d’énergie s’active automatiquement sous ce niveau lorsque vous êtes sur batterie.";
+"settings.battery.autoLowPowerThreshold" = "Seuil d’activation";
+"settings.battery.autoLowPowerThresholdDescription" = "Le mode économie d’énergie s’active sur batterie lorsque la batterie atteint ce niveau.";
 "battery.highPowerMode.toggle" = "Mode haute puissance";
 "battery.details.highPower.unsupported" = "Non pris en charge";
 "battery.highPowerMode.toggleDescription" = "Fait tourner les ventilateurs plus vite pour des performances soutenues plus élevées, au prix d’un bruit plus important.";
@@ -1267,24 +1270,25 @@
 "hardware.monitor.settings.networkScale" = "Échelle réseau fixe";
 "hardware.monitor.settings.networkScale.description" = "Désactivé : échelle auto sur le pic de la fenêtre avec 15 % de marge. Activé : plafonds téléchargement/envoi comme échelle pleine.";
 "hardware.monitor.settings.background" = "Conserver l’historique";
-"hardware.monitor.settings.background.description" = "Enregistre les 3 dernières minutes d’historique matériel panneau fermé, au rythme du panneau, pour ouvrir une page détaillée avec une tendance.";
+"hardware.monitor.settings.background.description" = "Conserve jusqu’à 5 minutes d’historique matériel panneau fermé, au rythme ci-dessus, pour ouvrir une page de détail avec une tendance.";
 "hardware.monitor.background.off" = "Désactivé";
 "hardware.monitor.background.seconds" = "%d s";
 "hardware.monitor.settings.historyWindow" = "Durée de l’historique";
 "hardware.monitor.settings.historyWindow.description" = "Jusqu’où remonte la tendance du détail.";
 "hardware.monitor.settings.historyWindow.minutes" = "%d min";
 "hardware.monitor.settings.panelRefresh" = "Intervalle d’actualisation des données matérielles";
-"hardware.monitor.settings.panelRefresh.description" = "Fréquence d’actualisation des données matérielles lorsque le panneau est ouvert. Avec l’historique en arrière-plan, le panneau fermé garde le même rythme. Chaque mesure conserve sa propre limite de lecture. Plus rapide = plus direct mais lit davantage ; plus lent = économise l’énergie.";
+"hardware.monitor.settings.panelRefresh.description" = "Fréquence de rafraîchissement des données matérielles. Avec l’historique en arrière-plan, le panneau fermé garde le même rythme. Plus rapide est plus réactif mais lit davantage ; plus lent économise l’énergie.";
 "hardware.monitor.settings.showRings" = "Afficher les anneaux";
 "hardware.monitor.settings.colorTitle" = "Couleurs";
 "hardware.monitor.settings.resetColors" = "Réinitialiser les couleurs";
 "hardware.monitor.settings.showRings.description" = "Affiche les anneaux CPU / GPU / RAM / SSD.";
-"hardware.monitor.settings.splitGapProgress" = "Répartir la progression de l'anneau à gauche et à droite";
-"hardware.monitor.settings.splitGapProgress.description" = "Affiche les quatre anneaux de surveillance en deux moitiés : la moitié gauche de 0 à 50 % et la moitié droite de 50 à 100 %, afin que le pourcentage dans l'encoche supérieure ne masque plus la progression.";
+"hardware.monitor.settings.splitGapProgress" = "Diviser la progression de l’anneau";
+"hardware.monitor.settings.splitGapProgress.description" = "Moitié gauche 0–50 %, moitié droite 50–100 %, pour que la valeur en haut ne masque plus la progression.";
 "hardware.monitor.settings.showSummaryRow" = "Afficher la barre inférieure";
 
 /* Status-panel per-item visibility */
 "hardware.monitor.settings.group.rings" = "Indicateurs en anneau";
+"hardware.monitor.settings.group.sampling" = "Échantillonnage et tendances";
 "hardware.monitor.settings.group.bottomBar" = "Barre inférieure";
 "hardware.monitor.settings.item.diskCapacity" = "Capacité du disque";
 "hardware.monitor.settings.showSummaryRow.description" = "Affiche téléchargement, envoi, ventilateur et E/S disque sous les anneaux.";
@@ -1299,7 +1303,7 @@
 "hardware.monitor.download.help" = "Débit de téléchargement total sur les interfaces réseau physiques.";
 "hardware.monitor.upload.help" = "Débit d’envoi total sur les interfaces réseau physiques.";
 
-"settings.transfer.title" = "Transfert des réglages";
+"settings.transfer.title" = "Importer et exporter les réglages";
 "settings.transfer.description" = "Enregistrez les préférences transférables dans un fichier JSON lisible, ou examinez un fichier de réglages avant de l’importer.";
 "settings.transfer.exclusions" = "Les éléments d’ouverture, l’installation de Helper, les autorisations de confidentialité, le consentement aux analyses et les raccourcis globaux ne sont jamais transférés. Configurez-les manuellement après l’importation.";
 "settings.transfer.export" = "Exporter…";
@@ -1328,7 +1332,7 @@
 "settings.transfer.warningCount" = "Nombre total d’avertissements : %d (50 affichés au maximum).";
 
 "settings.popup.scrollWheelStep" = "Pas de la molette";
-"settings.popup.scrollWheelStep.description" = "Variation par cran du volume, de la luminosité et du micro. Le trackpad reste continu.";
+"settings.popup.scrollWheelStep.description" = "Valeur par cran de molette pour le volume, la luminosité et le microphone. Les trackpads restent continus.";
 "settings.panel.boldText" = "Texte du panneau en gras";
 "settings.panel.boldText.description" = "Les titres et valeurs s’affichent en gras (aspect d’origine). Désactivé, le texte reste en épaisseur normale.";
 "settings.panel.keepOpenForComparison" = "Garder le panneau ouvert en ouvrant les réglages";

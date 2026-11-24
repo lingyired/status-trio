@@ -125,7 +125,7 @@ struct VolumeControlsView: View {
                 }
             }
 
-            if state.showsDeviceList && !hasNoOutputDevices {
+            if state.showsDeviceList && hasDeviceListContent {
                 OutputDeviceList(
                     rows: state.rows,
                     previewRows: state.previewRows,
@@ -145,14 +145,22 @@ struct VolumeControlsView: View {
         }
     }
 
-    /// No output device means the slider has nothing to control. Show the
-    /// device-list empty copy in its place instead of a dead slider or a "—".
-    /// Skipping the transient skeleton state keeps a re-read from flashing the
-    /// empty copy over a cached row layout.
+    /// Only a truly absent output means the slider has nothing to control. A
+    /// real current output stays adjustable before the device list loads (or
+    /// when the list is disabled), and a pending skeleton keeps its layout.
     private var hasNoOutputDevices: Bool {
-        state.rows.isEmpty
+        !state.hasUsableOutput
+            && state.rows.isEmpty
             && state.previewRows.isEmpty
             && state.deviceListPlaceholder == nil
+    }
+
+    /// The device list only needs space once it has rows or a skeleton; an
+    /// unloaded list must not push an empty card under the live slider.
+    private var hasDeviceListContent: Bool {
+        !state.rows.isEmpty
+            || !state.previewRows.isEmpty
+            || state.deviceListPlaceholder != nil
     }
 
     private var settingsButton: some View {
