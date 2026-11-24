@@ -37,6 +37,16 @@ final class DisableSleepCommandTests: XCTestCase {
         try await runner.setDisableSleep(enabled: true)
     }
 
+    func testClientWaitsLongerThanTheDaemonForOneCommand() {
+        // Two bounded 1s pipe drains can follow the process wait, so the app's
+        // XPC wait must clear that sum or it times out before the daemon's
+        // precise code arrives (#383).
+        XCTAssertGreaterThan(
+            PowerHelperTiming.clientRequestTimeout,
+            PowerHelperTiming.pmsetProcessTimeout + 2
+        )
+    }
+
     func testDiagnosticDecodeSplitsCodeAndDetail() {
         let coded = DisableSleepDiagnostic.decode("DS-R4: SleepDisabled not found")
         XCTAssertEqual(coded.code, .readKeyMissing)

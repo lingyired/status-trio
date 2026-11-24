@@ -41,7 +41,7 @@ final class XPCPrivilegedHighPowerClient: HighPowerModeClienting, @unchecked Sen
     private let queue = DispatchQueue(label: "StatusTrio.PowerHelper.HighPower.XPC")
     private let requestTimeout: TimeInterval
 
-    init(requestTimeout: TimeInterval = 3) {
+    init(requestTimeout: TimeInterval = PowerHelperTiming.clientRequestTimeout) {
         self.requestTimeout = requestTimeout
     }
 

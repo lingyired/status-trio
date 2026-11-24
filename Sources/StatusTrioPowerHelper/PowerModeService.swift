@@ -126,9 +126,10 @@ enum BoundedPipeDrain {
 /// stays alive. Each run is awaited asynchronously and killed once `timeout`
 /// elapses.
 struct SystemPmsetRunner: PmsetRunning {
-    /// Long enough for `pmset` to persist a setting on a loaded machine, short
-    /// enough that a stuck power-management call cannot be mistaken for a hang.
-    static let defaultTimeout: Duration = .seconds(5)
+    /// Kept below the app's XPC wait (`PowerHelperTiming.clientRequestTimeout`)
+    /// so a slow `pmset` returns its real result/code instead of making the app
+    /// time out, retry, and run a second child (#383).
+    static let defaultTimeout: Duration = .seconds(PowerHelperTiming.pmsetProcessTimeout)
 
     private let timeout: Duration
     private let executableURL: URL

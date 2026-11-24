@@ -39,6 +39,19 @@
 3. `DS-R3` / `DS-W3` 的 detail 里有 pmset 的 stderr，通常是原因所在。
 4. `DS-R4` / `DS-R5` 需要看该机型 `pmset -g` 的原始输出再补解析规则。
 
+## 超时对齐
+
+app 的 XPC 等待必须长于 daemon 跑一条命令的最坏耗时，否则 app 会先超时、重试，
+导致同一条 `pmset` 被并发执行两次，并且拿到的是 `DS-H1`（传输超时）而不是
+daemon 的真实诊断码。
+
+- daemon 单个 `pmset` 子进程超时：`PowerHelperTiming.pmsetProcessTimeout = 3s`
+- 两个有界管道排空各 1s（pid 持有管道时）：最坏再加 2s
+- app 单次 XPC 等待：`PowerHelperTiming.clientRequestTimeout = 6s`（> 3+2s）
+
+由 `Tests/StatusTrioPowerHelperTests/DisableSleepCommandTests` 里的
+`testClientWaitsLongerThanTheDaemonForOneCommand` 守护，防止以后漂移。
+
 相关代码：`Sources/PowerHelperProtocol/DisableSleepDiagnostic.swift`、
 `Sources/StatusTrioPowerHelper/PowerModeService.swift`、
 `Sources/StatusTrioCore/Monitoring/SleepControlController.swift`。

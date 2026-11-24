@@ -32,7 +32,7 @@ final class XPCPrivilegedHelperClient: LowPowerModeClienting, @unchecked Sendabl
     private let queue = DispatchQueue(label: "StatusTrio.PowerHelper.XPC")
     private let requestTimeout: TimeInterval
 
-    init(requestTimeout: TimeInterval = 3) {
+    init(requestTimeout: TimeInterval = PowerHelperTiming.clientRequestTimeout) {
         self.requestTimeout = requestTimeout
     }
 

@@ -55,6 +55,25 @@ public enum PowerHelperProtocolVersion {
     public static let current = disableSleep
 }
 
+/// Cross-process timing contract for helper commands (#383).
+///
+/// The app must wait longer than the daemon can take for one `pmset` child,
+/// otherwise the app times out first, retries, and runs a second `pmset`
+/// while the first is still alive — and reports a transport failure (`DS-H1`)
+/// instead of the daemon's precise diagnostic code.
+///
+/// Daemon worst case for a single command is
+/// `pmsetProcessTimeout` (a hung child) plus the two bounded pipe drains (1s
+/// each when a descendant holds the pipe), so `clientRequestTimeout` is set
+/// above that sum with margin.
+public enum PowerHelperTiming {
+    /// How long the daemon lets one `pmset` child run before killing it.
+    public static let pmsetProcessTimeout: TimeInterval = 3
+    /// How long the app waits for one helper reply. Must exceed the daemon's
+    /// worst case (3s process + 2×1s drain = 5s) with margin.
+    public static let clientRequestTimeout: TimeInterval = 6
+}
+
 /// The XPC surface the privileged helper exposes.
 ///
 /// Deliberately small: one boolean read and one boolean write for Low Power
