@@ -1195,6 +1195,11 @@
 "hardware.monitor.ringValue.group" = "リング表示";
 "hardware.monitor.ringValue.groupDescription" = "メモリと SSD のリングに使用量と空き容量のどちらを表示するか選びます。";
 "hardware.monitor.ringValue.ssd" = "SSD";
+"hardware.monitor.externalDisk.group" = "外付けドライブ";
+"hardware.monitor.externalDisk.listDescription" = "SSD リングの外付け合計に含めるドライブにチェックを入れます。";
+"hardware.monitor.externalDisk.includeInPercent" = "上部の割合に外付け SSD を含める";
+"hardware.monitor.externalDisk.includeInPercentDescription" = "オンにすると、SSD リング上部の割合はチェックした外付けドライブを内蔵ディスクと合算します。オフでは内蔵ディスクのみ。";
+"hardware.monitor.externalDisk.empty" = "外付けドライブが見つかりません";
 "hardware.monitor.ringValue.used" = "使用中";
 "hardware.monitor.ringValue.remaining" = "空き";
 "hardware.monitor.settings.temperatureMonitoring" = "CPU/GPU 温度モニタリング";
@@ -1408,6 +1413,8 @@
 "hardware.detail.fileSystem" = "ファイルシステム";
 "hardware.detail.readSpeed" = "読み込み速度";
 "hardware.detail.writeSpeed" = "書き込み速度";
+"hardware.detail.diskExternal" = "外付け";
+"hardware.detail.diskAvailable" = "空き %@ / %@";
 "hardware.detail.usageTrend" = "使用率の推移";
 "hardware.detail.speedTrend" = "速度の推移";
 "hardware.detail.pressureNormal" = "正常";

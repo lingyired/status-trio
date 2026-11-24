@@ -1195,6 +1195,11 @@
 "hardware.monitor.ringValue.group" = "Visualizzazione anello";
 "hardware.monitor.ringValue.groupDescription" = "Scegli se gli anelli memoria e SSD mostrano la quantità usata o quella rimanente.";
 "hardware.monitor.ringValue.ssd" = "SSD";
+"hardware.monitor.externalDisk.group" = "Dischi esterni";
+"hardware.monitor.externalDisk.listDescription" = "Seleziona i dischi da includere nel totale esterno dell'anello SSD.";
+"hardware.monitor.externalDisk.includeInPercent" = "Includi SSD esterni nella percentuale";
+"hardware.monitor.externalDisk.includeInPercentDescription" = "Attivo, la percentuale dell'anello SSD somma i dischi esterni selezionati al disco interno; disattivo, solo l'interno.";
+"hardware.monitor.externalDisk.empty" = "Nessun disco esterno rilevato";
 "hardware.monitor.ringValue.used" = "Usato";
 "hardware.monitor.ringValue.remaining" = "Rimanente";
 "hardware.monitor.settings.temperatureMonitoring" = "Monitoraggio temperatura CPU/GPU";
@@ -1408,6 +1413,8 @@
 "hardware.detail.fileSystem" = "File system";
 "hardware.detail.readSpeed" = "Velocità di lettura";
 "hardware.detail.writeSpeed" = "Velocità di scrittura";
+"hardware.detail.diskExternal" = "Esterno";
+"hardware.detail.diskAvailable" = "Disponibile %@ / %@";
 "hardware.detail.usageTrend" = "Andamento utilizzo";
 "hardware.detail.speedTrend" = "Andamento velocità";
 "hardware.detail.pressureNormal" = "Normale";

@@ -161,6 +161,10 @@ final class HardwareMonitorObservable: ObservableObject {
     /// stale, so a later reopen dims it instead of presenting it as live.
     func pruneInactive(_ ids: Set<HardwareMetricID>, now: Date) {
         var changed = false
+        if ids.contains(.memoryPressure), stored.memoryPressure != nil {
+            stored.memoryPressure = nil
+            changed = true
+        }
         for id in ids {
             if stored.samples.removeValue(forKey: id) != nil { changed = true }
         }
@@ -406,6 +410,7 @@ final class HardwareMetricsService: ObservableObject {
         needReaderReset = true
         lastRead.removeAll()
         forcedIDs = requestedIDs
+        observable.pruneInactive([.memoryPressure], now: now())
         observable.markStale(now: now())
         observable.clearDetailPayloads(except: nil)
         sampler.releaseFrequencyReader()
@@ -430,6 +435,7 @@ final class HardwareMetricsService: ObservableObject {
         loopTask = nil
         lastRead.removeAll()
         forcedIDs.removeAll()
+        observable.pruneInactive([.memoryPressure], now: now())
         observable.markStale(now: now())
         observable.clearDetailPayloads(except: nil)
         // History is deliberately NOT cleared here: a background sample collected
@@ -458,7 +464,14 @@ final class HardwareMetricsService: ObservableObject {
         // A pending read is bounded by its own timeout; waking every 50 ms while
         // its metric is overdue only spins the main actor. Completion restarts
         // the loop at the freshly computed cadence.
-        if inFlight { return 30 }
+        if inFlight {
+            if let pressure = observable.snapshot.memoryPressure, pressure.level != .unknown {
+                // Clear a previously coloured footer even if the sampler queue stalls.
+                let expiration = pressure.sampledAt.addingTimeInterval(HardwareMetricSample.freshnessInterval)
+                return min(max(expiration.timeIntervalSince(now()), 0.05), 30)
+            }
+            return 30
+        }
         let ids = requestedIDs
         guard !ids.isEmpty else { return 2 }
         let current = now()
@@ -564,6 +577,9 @@ final class HardwareMetricsService: ObservableObject {
             if let detail = snapshot.cpuDetail { merged.cpuDetail = detail }
             if let detail = snapshot.gpuDetail { merged.gpuDetail = detail }
             if let detail = snapshot.memoryDetail { merged.memoryDetail = detail }
+            if due.contains(.memoryPressure), self.isRequested(.memoryPressure) {
+                merged.memoryPressure = snapshot.memoryPressure
+            }
             if let detail = snapshot.networkDetail { merged.networkDetail = detail }
             if let detail = snapshot.diskDetail { merged.diskDetail = detail }
             self.observable.update(merged, now: self.now())
@@ -631,7 +647,7 @@ final class HardwareMetricsService: ObservableObject {
 
     private func defaultMetricInterval(for id: HardwareMetricID) -> TimeInterval {
         switch id {
-        case .cpuUsage, .gpuUsage, .memoryUsage: 2
+        case .cpuUsage, .gpuUsage, .memoryUsage, .memoryPressure: 2
         case .cpuTemperature, .gpuTemperature, .batteryTemperature, .fanRPM: 4
         case .networkDownload, .networkUpload: 1
         case .diskRead, .diskWrite: 1
@@ -649,6 +665,9 @@ final class HardwareMetricsService: ObservableObject {
     private func pruneSnapshot() {
         var next = observable.snapshot
         next.samples = next.samples.filter { isRequested($0.key) }
+        if !isRequested(.memoryPressure) {
+            next.memoryPressure = nil
+        }
         if !requestedIDs.contains(where: { if case .fanRPM = $0 { return true }; return false }) {
             next.fanCount = nil
         }

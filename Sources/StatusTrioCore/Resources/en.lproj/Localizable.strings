@@ -1194,6 +1194,11 @@
 "hardware.monitor.ringValue.group" = "Ring display";
 "hardware.monitor.ringValue.groupDescription" = "Choose whether the memory and SSD rings show the used or the remaining amount.";
 "hardware.monitor.ringValue.ssd" = "SSD";
+"hardware.monitor.externalDisk.group" = "External drives";
+"hardware.monitor.externalDisk.listDescription" = "Tick the drives to include in the SSD ring's external total.";
+"hardware.monitor.externalDisk.includeInPercent" = "Include external drives in the top percentage";
+"hardware.monitor.externalDisk.includeInPercentDescription" = "When on, the SSD ring's percentage pools the ticked external drives with the internal disk; when off it uses the internal disk alone.";
+"hardware.monitor.externalDisk.empty" = "No external drives detected";
 "hardware.monitor.ringValue.used" = "Used";
 "hardware.monitor.ringValue.remaining" = "Remaining";
 "hardware.monitor.settings.temperatureMonitoring" = "CPU/GPU temperature monitoring";
@@ -1407,6 +1412,8 @@
 "hardware.detail.fileSystem" = "File system";
 "hardware.detail.readSpeed" = "Read speed";
 "hardware.detail.writeSpeed" = "Write speed";
+"hardware.detail.diskExternal" = "External";
+"hardware.detail.diskAvailable" = "Available %@ / %@";
 "hardware.detail.usageTrend" = "Usage trend";
 "hardware.detail.speedTrend" = "Speed trend";
 "hardware.detail.pressureNormal" = "Normal";

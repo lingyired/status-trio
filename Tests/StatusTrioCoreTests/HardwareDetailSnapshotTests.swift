@@ -50,7 +50,27 @@ final class HardwareDetailSnapshotTests: XCTestCase {
             snapshot.diskDetail = DiskDetailReading(
                 capacity: DiskCapacityReading(totalBytes: 1_995_000_000_000, freeBytes: 533_000_000_000,
                                               usedBytes: 1_462_000_000_000, fileSystem: "APFS", sampledAt: date),
-                readBytesPerSecond: 45_000_000, writeBytesPerSecond: 12_000_000, sampledAt: date)
+                readBytesPerSecond: 45_000_000, writeBytesPerSecond: 12_000_000,
+                volumes: [
+                    DiskVolumeReading(name: "Macintosh HD", mountPath: "/",
+                                      totalBytes: 1_995_000_000_000, freeBytes: 533_000_000_000,
+                                      fileSystem: "APFS", isExternal: false, isReadOnly: false),
+                    DiskVolumeReading(name: "新加卷", mountPath: "/Volumes/新加卷",
+                                      totalBytes: 1_500_166_221_824, freeBytes: 1_427_726_479_360,
+                                      fileSystem: "Windows NT File System (NTFS)", isExternal: true, isReadOnly: true),
+                    DiskVolumeReading(name: "MacData", mountPath: "/Volumes/MacData",
+                                      totalBytes: 477_000_000_000, freeBytes: 7_800_000_000,
+                                      fileSystem: "APFS", isExternal: true, isReadOnly: false)
+                ],
+                volumeSpeeds: [
+                    "/": DiskThroughputReading(readBytesPerSecond: 45_000_000,
+                                               writeBytesPerSecond: 12_000_000, sampledAt: date),
+                    "/Volumes/新加卷": DiskThroughputReading(readBytesPerSecond: 3_200_000,
+                                                          writeBytesPerSecond: 640_000, sampledAt: date),
+                    "/Volumes/MacData": DiskThroughputReading(readBytesPerSecond: 120_000,
+                                                             writeBytesPerSecond: 8_000, sampledAt: date)
+                ],
+                sampledAt: date)
             snapshot.samples[.diskRead] = HardwareMetricSample(value: 45_000_000, unit: .bytesPerSecond, sampledAt: date, source: .ioStorage, availability: .measured)
             snapshot.samples[.diskWrite] = HardwareMetricSample(value: 12_000_000, unit: .bytesPerSecond, sampledAt: date, source: .ioStorage, availability: .measured)
         case .fan:

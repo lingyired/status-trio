@@ -1195,6 +1195,11 @@
 "hardware.monitor.ringValue.group" = "Отображение кольца";
 "hardware.monitor.ringValue.groupDescription" = "Выберите, что показывать на кольцах памяти и SSD — занятый или свободный объём.";
 "hardware.monitor.ringValue.ssd" = "SSD";
+"hardware.monitor.externalDisk.group" = "Внешние диски";
+"hardware.monitor.externalDisk.listDescription" = "Отметьте диски, которые входят во внешний итог кольца SSD.";
+"hardware.monitor.externalDisk.includeInPercent" = "Учитывать внешние SSD в проценте";
+"hardware.monitor.externalDisk.includeInPercentDescription" = "Вкл.: процент кольца SSD суммирует отмеченные внешние диски с внутренним; выкл.: только внутренний.";
+"hardware.monitor.externalDisk.empty" = "Внешние диски не найдены";
 "hardware.monitor.ringValue.used" = "Занято";
 "hardware.monitor.ringValue.remaining" = "Свободно";
 "hardware.monitor.settings.temperatureMonitoring" = "Мониторинг температуры CPU/GPU";
@@ -1408,6 +1413,8 @@
 "hardware.detail.fileSystem" = "Файловая система";
 "hardware.detail.readSpeed" = "Скорость чтения";
 "hardware.detail.writeSpeed" = "Скорость записи";
+"hardware.detail.diskExternal" = "Внешний";
+"hardware.detail.diskAvailable" = "Доступно %@ / %@";
 "hardware.detail.usageTrend" = "Динамика загрузки";
 "hardware.detail.speedTrend" = "Динамика скорости";
 "hardware.detail.pressureNormal" = "Норма";

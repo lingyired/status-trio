@@ -73,6 +73,7 @@ final class HardwareSamplerTests: XCTestCase {
                                                cpuProvider: { _ in cpuCalls += 1; return CPUReading(usage: 25, perCoreUsage: [25], sampledAt: self.date) },
                                                gpuProvider: { _ in XCTFail("CPUOnly must not read GPU"); return nil },
                                                memoryProvider: { _ in XCTFail("CPUOnly must not read memory"); return nil },
+                                               pressureProvider: { XCTFail("CPUOnly must not read pressure"); return .unknown },
                                                sensorProvider: { _, _, _, _, _ in XCTFail("CPUOnly must not read SMC"); return self.sensors() })
         XCTAssertEqual(cpuCalls, 1)
         XCTAssertEqual(Set(snapshot.samples.keys), [.cpuUsage])
@@ -122,6 +123,20 @@ final class HardwareSamplerTests: XCTestCase {
         XCTAssertEqual(snapshot[.memoryUsage].availability, .measured)
         XCTAssertEqual(snapshot[.batteryTemperature].value ?? 0, 32.3, accuracy: 0.001)
         XCTAssertEqual(snapshot[.batteryTemperature].unit, .celsius)
+    }
+
+    func testPressureOnlyReadsTheDiscreteLevelWithoutReadingMemoryUsage() {
+        var pressureCalls = 0
+        let snapshot = HardwareSampler.collect(
+            ids: [.memoryPressure], isFirstCPURead: false, at: date,
+            cpuProvider: { _ in XCTFail("pressure must not read CPU"); return nil },
+            gpuProvider: { _ in XCTFail("pressure must not read GPU"); return nil },
+            memoryProvider: { _ in XCTFail("pressure must not read memory usage"); return nil },
+            pressureProvider: { pressureCalls += 1; return .warning },
+            sensorProvider: { _, _, _, _, _ in XCTFail("pressure must not read SMC"); return self.sensors() })
+        XCTAssertEqual(pressureCalls, 1)
+        XCTAssertEqual(snapshot.memoryPressure, .init(level: .warning, sampledAt: date))
+        XCTAssertTrue(snapshot.samples.isEmpty)
     }
 
     func testMemoryOnlyDoesNotTouchCPUOrSMC() {

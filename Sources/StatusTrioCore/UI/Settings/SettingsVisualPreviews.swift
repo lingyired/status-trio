@@ -71,7 +71,7 @@ struct VolumeIndicatorPreview: View {
     var source: BottomIndicatorSource = .volume
     /// The metric the `.metric` source draws, so the style preview matches the
     /// live artwork.
-    var sourceMetric: HardwareMonitorMetric = .cpuUsage
+    var sourceMetric: BottomIndicatorMetric = .cpuUsage
     let isDarkBackground: Bool
     @ObservedObject var store: SettingsStore
     @ObservedObject var statusStore: SystemStatusStore
@@ -80,7 +80,7 @@ struct VolumeIndicatorPreview: View {
         if source == .metric {
             return BottomIndicatorMetricPreview.scene(
                 metric: sourceMetric, style: style, strokeScale: store.ringStrokeStyle.scale,
-                baseColor: store.hardwareColor(for: sourceMetric))
+                baseColor: sourceMetric.hardwareMetric.map { store.hardwareColor(for: $0) })
         }
         return IconPreviewScene.make(
             status: menuBarPreviewStatus(from: statusStore),
