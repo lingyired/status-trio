@@ -5,6 +5,7 @@ enum HardwareMetricID: Hashable, Sendable {
     case cpuUsage
     case gpuUsage
     case memoryUsage
+    case memoryPressure
     case cpuTemperature
     case gpuTemperature
     case batteryTemperature
@@ -167,6 +168,15 @@ struct CPUDetailReading: Equatable, Sendable {
     var coreCount: Int { perCoreUsage.count }
 }
 
+struct MemoryPressureReading: Equatable, Sendable {
+    let level: MemoryPressureLevel
+    let sampledAt: Date
+
+    func isFresh(at now: Date) -> Bool {
+        HardwareMetricSample.freshRange.contains(now.timeIntervalSince(sampledAt))
+    }
+}
+
 /// One refresh's aggregate snapshot. UI layers observe this, never a broad
 /// panel snapshot, so a metric tick cannot re-render unrelated sections.
 struct HardwareMetricsSnapshot: Equatable, Sendable {
@@ -181,6 +191,7 @@ struct HardwareMetricsSnapshot: Equatable, Sendable {
     var cpuDetail: CPUDetailReading?
     var gpuDetail: GPUDetailReading?
     var memoryDetail: MemoryDetailReading?
+    var memoryPressure: MemoryPressureReading?
     var networkDetail: NetworkDetailReading?
     var diskDetail: DiskDetailReading?
 
@@ -310,6 +321,9 @@ struct HardwareMetricsSnapshot: Equatable, Sendable {
             let expired = sample.expiring(at: now)
             if expired != sample { copy.samples[id] = expired }
         }
+        if let memoryPressure, !memoryPressure.isFresh(at: now) {
+            copy.memoryPressure = nil
+        }
         if let frequency = cpuFrequency {
             let age = now.timeIntervalSince(frequency.sampledAt)
             if age < -HardwareMetricSample.freshRange.upperBound || age > HardwareMetricSample.freshRange.upperBound {
@@ -322,6 +336,7 @@ struct HardwareMetricsSnapshot: Equatable, Sendable {
     static func unit(for id: HardwareMetricID) -> HardwareMetricUnit {
         switch id {
         case .cpuUsage, .gpuUsage, .memoryUsage: .percent
+        case .memoryPressure: .none
         case .cpuTemperature, .gpuTemperature, .batteryTemperature: .celsius
         case .fanRPM: .rpm
         case .networkDownload, .networkUpload, .diskRead, .diskWrite: .bytesPerSecond
@@ -343,7 +358,7 @@ enum HardwareMetricFamily: Hashable, Sendable, CaseIterable {
         var result: Set<HardwareMetricFamily> = []
         for id in ids {
             switch id {
-            case .cpuUsage, .gpuUsage, .memoryUsage: result.insert(.usage)
+            case .cpuUsage, .gpuUsage, .memoryUsage, .memoryPressure: result.insert(.usage)
             case .cpuTemperature, .gpuTemperature, .batteryTemperature: result.insert(.temperature)
             case .fanRPM: result.insert(.fan)
             case .networkDownload, .networkUpload: result.insert(.network)

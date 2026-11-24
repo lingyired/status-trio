@@ -27,7 +27,7 @@ struct IconPresentationRuntimeOptions: Equatable, Sendable {
     /// The hardware-monitor metric drawn when the bottom source is `.metric`.
     /// Runtime-only like the source above; changing it never rewrites the
     /// persisted slot binding.
-    var bottomIndicatorMetric: HardwareMonitorMetric = .cpuUsage
+    var bottomIndicatorMetric: BottomIndicatorMetric = .cpuUsage
     /// The dot/arc style the bottom indicator draws with right now (the metric
     /// source has its own arc-by-default style). Runtime-only.
     var bottomIndicatorStyle: VolumeDisplayStyle = .dots
@@ -111,7 +111,7 @@ struct IconPresentationInputs: Equatable, Sendable {
     /// the settings previews and the empty-battery simulation.
     var bottomIndicatorSource: BottomIndicatorSource = .volume
     /// The hardware-monitor metric used when `bottomIndicatorSource == .metric`.
-    var bottomIndicatorMetric: HardwareMonitorMetric = .cpuUsage
+    var bottomIndicatorMetric: BottomIndicatorMetric = .cpuUsage
     /// The dot/arc style the bottom indicator draws with right now.
     var bottomIndicatorStyle: VolumeDisplayStyle = .dots
 
@@ -124,7 +124,7 @@ struct IconPresentationInputs: Equatable, Sendable {
         isHighPowerMode: Bool = false,
         sources: IconSourceSnapshot = .empty,
         bottomIndicatorSource: BottomIndicatorSource = .volume,
-        bottomIndicatorMetric: HardwareMonitorMetric = .cpuUsage,
+        bottomIndicatorMetric: BottomIndicatorMetric = .cpuUsage,
         bottomIndicatorStyle: VolumeDisplayStyle = .dots
     ) {
         self.snapshot = snapshot

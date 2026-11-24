@@ -80,7 +80,7 @@ struct MenuBarPreviewBar<TrailingAccessory: View>: View {
     /// chosen quantity (volume / Wi-Fi / battery / hardware metric) instead of
     /// always drawing the volume bar.
     var bottomIndicatorSource: BottomIndicatorSource = .volume
-    var bottomIndicatorMetric: HardwareMonitorMetric = .cpuUsage
+    var bottomIndicatorMetric: BottomIndicatorMetric = .cpuUsage
     var bottomIndicatorMetricColor: IconRGBA? = nil
     var bottomIndicatorStyle: VolumeDisplayStyle? = nil
     /// Rendered after `rightContext` inside the same `HStack`, so a caller's
@@ -141,7 +141,7 @@ struct MenuBarPreviewBar<TrailingAccessory: View>: View {
         inputSource: InputSourceDescriptor? = nil,
         isHighPowerMode: Bool = false,
         bottomIndicatorSource: BottomIndicatorSource = .volume,
-        bottomIndicatorMetric: HardwareMonitorMetric = .cpuUsage,
+        bottomIndicatorMetric: BottomIndicatorMetric = .cpuUsage,
         bottomIndicatorMetricColor: IconRGBA? = nil,
         bottomIndicatorStyle: VolumeDisplayStyle? = nil,
         @ViewBuilder trailingAccessory: @escaping () -> TrailingAccessory
