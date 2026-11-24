@@ -470,6 +470,7 @@
 "quickActions.timer" = "Timer";
 "quickActions.timer.choose" = "Choose Duration";
 "quickActions.lidSleep.external" = "Another app has already turned on “keep awake with lid closed”. Status Trio won’t override it.";
+"quickActions.lidSleep.helperStarting" = "The privileged helper is starting; please try again in a moment.";
 "quickActions.lidSleep.unreadable" = "Couldn’t read the “keep awake with lid closed” state; left unchanged.";
 "quickActions.lidSleep.externalNamed" = "“Keep awake with lid closed” is already on, possibly by: %@. Status Trio won’t override it.";
 "quickActions.timer.thirtyMinutes" = "30 minutes";

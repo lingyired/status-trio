@@ -471,6 +471,7 @@
 "quickActions.timer" = "計時器";
 "quickActions.timer.choose" = "選擇持續時間";
 "quickActions.lidSleep.external" = "系統裡的「合蓋不睡眠」已被其他程式開啟，Status Trio 不會覆蓋它。";
+"quickActions.lidSleep.helperStarting" = "輔助程式正在啟動，請稍後再試。";
 "quickActions.lidSleep.unreadable" = "暫時無法讀取「合蓋不睡眠」狀態，未做修改。";
 "quickActions.lidSleep.externalNamed" = "系統裡的「合蓋不睡眠」已被其他程式開啟（可能是：%@），Status Trio 不會覆蓋它。";
 "quickActions.timer.thirtyMinutes" = "30 分鐘";

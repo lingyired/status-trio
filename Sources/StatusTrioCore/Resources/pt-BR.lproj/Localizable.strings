@@ -471,6 +471,7 @@
 "quickActions.timer" = "Temporizador";
 "quickActions.timer.choose" = "Escolher duração";
 "quickActions.lidSleep.external" = "«Manter ativo com a tampa fechada» já está ativado por outro app. O Status Trio não vai substituí-lo.";
+"quickActions.lidSleep.helperStarting" = "O assistente privilegiado está iniciando. Tente novamente em instantes.";
 "quickActions.lidSleep.unreadable" = "Não foi possível ler o estado «Manter ativo com a tampa fechada»; inalterado.";
 "quickActions.lidSleep.externalNamed" = "«Manter ativo com a tampa fechada» já está ativo, possivelmente por: %@. O Status Trio não vai substituí-lo.";
 "quickActions.timer.thirtyMinutes" = "30 minutos";

@@ -471,6 +471,7 @@
 "quickActions.timer" = "Таймер";
 "quickActions.timer.choose" = "Выберите длительность";
 "quickActions.lidSleep.external" = "«Не спать при закрытой крышке» уже включено другим приложением. Status Trio не будет это перезаписывать.";
+"quickActions.lidSleep.helperStarting" = "Привилегированный помощник запускается. Повторите попытку чуть позже.";
 "quickActions.lidSleep.unreadable" = "Не удалось прочитать состояние «Не спать при закрытой крышке»; без изменений.";
 "quickActions.lidSleep.externalNamed" = "«Не спать при закрытой крышке» уже включено, возможно, приложением: %@. Status Trio не будет это перезаписывать.";
 "quickActions.timer.thirtyMinutes" = "30 минут";
