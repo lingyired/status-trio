@@ -79,6 +79,19 @@ enum HardwareRingValuePresentation {
         return max(0, totalBytes - freeBytes)
     }
 
+    /// Used fraction when the SSD ring pools the internal disk with ticked
+    /// external volumes: (internal + external used) / (internal + external
+    /// total). Returns nil when the internal totals are unknown or the pooled
+    /// capacity is zero, so callers fall back to the internal-only value.
+    static func combinedUsedFraction(internalTotal: Int64?, internalFree: Int64?,
+                                     externalTotal: Int64, externalFree: Int64) -> Double? {
+        guard let internalTotal, let internalFree else { return nil }
+        let total = Double(max(0, internalTotal) + max(0, externalTotal))
+        guard total > 0 else { return nil }
+        let free = Double(max(0, internalFree) + max(0, externalFree))
+        return min(1, max(0, (total - free) / total))
+    }
+
     private static func topText(_ fraction: Double) -> String {
         String(format: "%d%%", Int((min(1, max(0, fraction)) * 100).rounded()))
     }

@@ -1193,6 +1193,11 @@
 "hardware.monitor.ringValue.group" = "Ringanzeige";
 "hardware.monitor.ringValue.groupDescription" = "Wählen Sie, ob der Arbeitsspeicher- und SSD-Ring den belegten oder den freien Wert zeigt.";
 "hardware.monitor.ringValue.ssd" = "SSD";
+"hardware.monitor.externalDisk.group" = "Externe Laufwerke";
+"hardware.monitor.externalDisk.listDescription" = "Laufwerke auswählen, die in die externe Summe des SSD-Rings einfließen.";
+"hardware.monitor.externalDisk.includeInPercent" = "Externe SSDs in Prozentwert einbeziehen";
+"hardware.monitor.externalDisk.includeInPercentDescription" = "Wenn aktiv, fasst der SSD-Ring die ausgewählten externen Laufwerke mit dem internen Datenträger zusammen; sonst nur intern.";
+"hardware.monitor.externalDisk.empty" = "Keine externen Laufwerke gefunden";
 "hardware.monitor.ringValue.used" = "Belegt";
 "hardware.monitor.ringValue.remaining" = "Frei";
 "hardware.monitor.settings.temperatureMonitoring" = "CPU/GPU-Temperaturüberwachung";
@@ -1406,6 +1411,8 @@
 "hardware.detail.fileSystem" = "Dateisystem";
 "hardware.detail.readSpeed" = "Lesegeschwindigkeit";
 "hardware.detail.writeSpeed" = "Schreibgeschwindigkeit";
+"hardware.detail.diskExternal" = "Extern";
+"hardware.detail.diskAvailable" = "Verfügbar %@ / %@";
 "hardware.detail.usageTrend" = "Auslastungsverlauf";
 "hardware.detail.speedTrend" = "Geschwindigkeitsverlauf";
 "hardware.detail.pressureNormal" = "Normal";

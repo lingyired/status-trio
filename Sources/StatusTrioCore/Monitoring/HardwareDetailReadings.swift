@@ -60,6 +60,32 @@ struct NetworkDetailReading: Equatable, Sendable {
     var sampledAt: Date
 }
 
+/// One mounted volume shown on the disk detail page. Capacity comes from the
+/// same `FileManager` volume keys as `DiskCapacityReading`; `isExternal` comes
+/// from the volume's `volumeIsInternal` flag so a USB/Thunderbolt disk is
+/// labelled without any extra probing.
+struct DiskVolumeReading: Equatable, Sendable, Identifiable {
+    var name: String
+    var mountPath: String
+    var totalBytes: UInt64
+    var freeBytes: UInt64
+    var fileSystem: String?
+    var isExternal: Bool
+    var isReadOnly: Bool
+
+    var id: String { mountPath }
+
+    var usedBytes: UInt64 { totalBytes > freeBytes ? totalBytes - freeBytes : 0 }
+    var usedFraction: Double {
+        guard totalBytes > 0 else { return 0 }
+        return Double(usedBytes) / Double(totalBytes)
+    }
+    var freeFraction: Double {
+        guard totalBytes > 0 else { return 0 }
+        return Double(freeBytes) / Double(totalBytes)
+    }
+}
+
 /// Disk capacity for the detail page (system volume), separate from the I/O
 /// rates which are measured on the physical drivers.
 struct DiskCapacityReading: Equatable, Sendable {
@@ -82,5 +108,12 @@ struct DiskDetailReading: Equatable, Sendable {
     var capacity: DiskCapacityReading?
     var readBytesPerSecond: Double?
     var writeBytesPerSecond: Double?
+    /// Every mounted local volume (internal + external), startup volume first.
+    /// Empty when the volume enumeration produced nothing; the UI then falls
+    /// back to the single `capacity` summary.
+    var volumes: [DiskVolumeReading] = []
+    /// Per-volume read/write throughput, keyed by the volume's mount path, so
+    /// each disk reports its own rate instead of one aggregate.
+    var volumeSpeeds: [String: DiskThroughputReading] = [:]
     var sampledAt: Date
 }

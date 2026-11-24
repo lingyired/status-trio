@@ -100,3 +100,92 @@ final class DiskThroughputReader: @unchecked Sendable {
         return result.isEmpty ? nil : result
     }
 }
+
+/// Per-volume read/write throughput: every volume is mapped to the physical
+/// `IOBlockStorageDriver` that backs its disk, so the internal disk and each
+/// external disk report their own rates instead of one aggregate. Device
+/// mapping is refreshed only when the mounted volume set changes.
+final class DiskVolumeThroughputReader: @unchecked Sendable {
+    private static let minimumInterval: TimeInterval = 0.2
+    private static let maximumInterval: TimeInterval = 15
+
+    private var previous: (totals: [UInt64: DiskByteTotals], at: Date)?
+    private var volumeToDriver: [String: UInt64] = [:]
+    private var mappedPaths: [String] = []
+
+    func read(at date: Date, volumes: [DiskVolumeReading]) -> [String: DiskThroughputReading] {
+        let paths = volumes.map(\.mountPath)
+        if paths != mappedPaths {
+            var mapping: [String: UInt64] = [:]
+            for path in paths {
+                if let id = Self.driverEntryID(forVolumePath: path) { mapping[path] = id }
+            }
+            volumeToDriver = mapping
+            mappedPaths = paths
+        }
+        guard let current = DiskThroughputReader.readDeviceTotals() else {
+            previous = nil
+            return [:]
+        }
+        defer { previous = (current, date) }
+        guard let previous else { return [:] }
+        let interval = date.timeIntervalSince(previous.at)
+        guard interval >= Self.minimumInterval, interval <= Self.maximumInterval else { return [:] }
+        var result: [String: DiskThroughputReading] = [:]
+        for (path, id) in volumeToDriver {
+            guard let now = current[id], let before = previous.totals[id],
+                  now.read >= before.read, now.written >= before.written else { continue }
+            result[path] = DiskThroughputReading(
+                readBytesPerSecond: Double(now.read - before.read) / interval,
+                writeBytesPerSecond: Double(now.written - before.written) / interval,
+                sampledAt: date)
+        }
+        return result
+    }
+
+    func reset() {
+        previous = nil
+        volumeToDriver = [:]
+        mappedPaths = []
+    }
+
+    /// The `IOBlockStorageDriver` registry entry that backs a mounted volume.
+    /// Walks up from the volume's `IOMedia` so APFS container volumes resolve to
+    /// the physical store driver (e.g. disk3s7 → disk0's driver).
+    static func driverEntryID(forVolumePath path: String) -> UInt64? {
+        guard let bsd = bsdName(forPath: path),
+              let matching = IOBSDNameMatching(kIOMainPortDefault, 0, bsd) else { return nil }
+        var current = IOServiceGetMatchingService(kIOMainPortDefault, matching)
+        guard current != 0 else { return nil }
+        var depth = 0
+        while depth < 16 {
+            var buffer = [CChar](repeating: 0, count: 128)
+            if IOObjectGetClass(current, &buffer) == KERN_SUCCESS,
+               String(cString: buffer) == "IOBlockStorageDriver" {
+                var entryID: UInt64 = 0
+                let ok = IORegistryEntryGetRegistryEntryID(current, &entryID) == KERN_SUCCESS
+                IOObjectRelease(current)
+                return ok ? entryID : nil
+            }
+            var parent: io_registry_entry_t = 0
+            guard IORegistryEntryGetParentEntry(current, kIOServicePlane, &parent) == KERN_SUCCESS else {
+                IOObjectRelease(current)
+                return nil
+            }
+            IOObjectRelease(current)
+            current = parent
+            depth += 1
+        }
+        IOObjectRelease(current)
+        return nil
+    }
+
+    private static func bsdName(forPath path: String) -> String? {
+        var stats = statfs()
+        guard statfs(path, &stats) == 0 else { return nil }
+        let device = withUnsafePointer(to: &stats.f_mntfromname) {
+            $0.withMemoryRebound(to: CChar.self, capacity: Int(MAXPATHLEN)) { String(cString: $0) }
+        }
+        return (device as NSString).lastPathComponent
+    }
+}

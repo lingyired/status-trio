@@ -212,6 +212,10 @@ final class StatusPanelViewModel: ObservableObject {
     /// Whether the four panel rings split their progress across the top gap
     /// (left half 0–50%, right half 50–100%) instead of absorbing it.
     @Published private(set) var hardwareRingSplitGapProgress: Bool
+    /// Whether the SSD ring percentage pools ticked external volumes, and which
+    /// external volume mount paths are ticked.
+    @Published private(set) var hardwareSSDIncludeExternalInPercent: Bool
+    @Published private(set) var hardwareSSDExternalVolumePaths: Set<String>
 
     private var isStarted = false
     private var bluetoothIsExpanded = false
@@ -301,6 +305,8 @@ final class StatusPanelViewModel: ObservableObject {
         gpuRingCenterContent = settings.gpuRingCenterContent
         hardwareTemperatureMonitoringEnabled = settings.hardwareTemperatureMonitoringEnabled
         hardwareRingSplitGapProgress = settings.hardwareRingSplitGapProgress
+        hardwareSSDIncludeExternalInPercent = settings.hardwareSSDIncludeExternalInPercent
+        hardwareSSDExternalVolumePaths = settings.hardwareSSDExternalVolumePaths
         hardwareSpeedCapsMbps = [
             .downloadSpeed: settings.hardwareDownloadCapMbps,
             .uploadSpeed: settings.hardwareUploadCapMbps
@@ -595,6 +601,22 @@ final class StatusPanelViewModel: ObservableObject {
             .sink { [weak self] split in
                 guard let self, self.hardwareRingSplitGapProgress != split else { return }
                 self.hardwareRingSplitGapProgress = split
+            }
+            .store(in: &cancellables)
+
+        settings.$hardwareSSDIncludeExternalInPercent
+            .removeDuplicates()
+            .sink { [weak self] include in
+                guard let self, self.hardwareSSDIncludeExternalInPercent != include else { return }
+                self.hardwareSSDIncludeExternalInPercent = include
+            }
+            .store(in: &cancellables)
+
+        settings.$hardwareSSDExternalVolumePaths
+            .removeDuplicates()
+            .sink { [weak self] paths in
+                guard let self, self.hardwareSSDExternalVolumePaths != paths else { return }
+                self.hardwareSSDExternalVolumePaths = paths
             }
             .store(in: &cancellables)
 

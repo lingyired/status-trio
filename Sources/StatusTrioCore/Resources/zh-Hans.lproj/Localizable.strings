@@ -1193,6 +1193,11 @@
 "hardware.monitor.ringValue.group" = "环内显示";
 "hardware.monitor.ringValue.groupDescription" = "选择内存和 SSD 环显示已占用还是剩余的量。";
 "hardware.monitor.ringValue.ssd" = "SSD";
+"hardware.monitor.externalDisk.group" = "外接硬盘";
+"hardware.monitor.externalDisk.listDescription" = "勾选要计入 SSD 环外接总量的硬盘。";
+"hardware.monitor.externalDisk.includeInPercent" = "顶部百分比计入外接 SSD";
+"hardware.monitor.externalDisk.includeInPercentDescription" = "打开后，SSD 环顶部百分比会把勾选的外接盘与内置盘合并计算；关闭则只算内置盘。";
+"hardware.monitor.externalDisk.empty" = "未检测到外接硬盘";
 "hardware.monitor.ringValue.used" = "已占用";
 "hardware.monitor.ringValue.remaining" = "剩余";
 "hardware.monitor.settings.temperatureMonitoring" = "CPU/GPU 温度监控";
@@ -1406,6 +1411,8 @@
 "hardware.detail.fileSystem" = "文件系统";
 "hardware.detail.readSpeed" = "读取速度";
 "hardware.detail.writeSpeed" = "写入速度";
+"hardware.detail.diskExternal" = "外置";
+"hardware.detail.diskAvailable" = "可用 %@ / %@";
 "hardware.detail.usageTrend" = "使用率趋势";
 "hardware.detail.speedTrend" = "速度趋势";
 "hardware.detail.pressureNormal" = "正常";

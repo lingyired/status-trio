@@ -116,6 +116,95 @@ final class HardwareDetailTests: XCTestCase {
         XCTAssertTrue((0...1).contains(capacity.usedFraction))
     }
 
+    func testDiskFreeBytesFallsBackWhenImportantUsageIsZero() {
+        // NTFS/exFAT read-only mounts report 0 for the important-usage key.
+        XCTAssertEqual(
+            DiskCapacityReader.resolvedFreeBytes(importantUsage: 0,
+                                                  plainAvailable: 1_427_726_479_360,
+                                                  totalBytes: 1_500_166_221_824),
+            1_427_726_479_360)
+        // Internal APFS trusts the positive important-usage value.
+        XCTAssertEqual(
+            DiskCapacityReader.resolvedFreeBytes(importantUsage: 413_607_933_190,
+                                                  plainAvailable: 387_092_254_720,
+                                                  totalBytes: 1_995_218_165_760),
+            413_607_933_190)
+        // Clamped to the total when the reported free space overshoots.
+        XCTAssertEqual(
+            DiskCapacityReader.resolvedFreeBytes(importantUsage: 2_000,
+                                                  plainAvailable: 1_000,
+                                                  totalBytes: 1_500),
+            1_500)
+        XCTAssertEqual(
+            DiskCapacityReader.resolvedFreeBytes(importantUsage: nil,
+                                                  plainAvailable: nil,
+                                                  totalBytes: 100),
+            0)
+    }
+
+    func testDiskCapacityReaderEnumeratesVolumes() throws {
+        let volumes = DiskCapacityReader.readVolumes()
+        guard !volumes.isEmpty else { throw XCTSkip("no mounted volumes on this host") }
+        // The startup volume is listed first.
+        XCTAssertEqual(volumes.first?.mountPath, "/")
+        for volume in volumes {
+            XCTAssertGreaterThan(volume.totalBytes, 0)
+            XCTAssertLessThanOrEqual(volume.freeBytes, volume.totalBytes)
+            XCTAssertEqual(volume.usedBytes, volume.totalBytes - volume.freeBytes)
+            XCTAssertTrue((0...1).contains(volume.usedFraction))
+            XCTAssertTrue((0...1).contains(volume.freeFraction))
+        }
+        // No duplicate mount points.
+        XCTAssertEqual(Set(volumes.map(\.mountPath)).count, volumes.count)
+    }
+
+    func testDiskVolumeReadingFractions() {
+        let volume = DiskVolumeReading(name: "Test", mountPath: "/Volumes/Test",
+                                       totalBytes: 1_000, freeBytes: 250,
+                                       fileSystem: "APFS", isExternal: true, isReadOnly: false)
+        XCTAssertEqual(volume.usedBytes, 750)
+        XCTAssertEqual(volume.usedFraction, 0.75, accuracy: 0.0001)
+        XCTAssertEqual(volume.freeFraction, 0.25, accuracy: 0.0001)
+        let overfull = DiskVolumeReading(name: "Over", mountPath: "/Volumes/Over",
+                                        totalBytes: 1_000, freeBytes: 2_000,
+                                        fileSystem: nil, isExternal: false, isReadOnly: true)
+        XCTAssertEqual(overfull.usedBytes, 0) // free above total clamps used to 0
+    }
+
+    func testAPFSContainerIDIdentifiesSharedCapacityPool() throws {
+        guard let container = DiskCapacityReader.apfsContainerID(for: "/") else {
+            throw XCTSkip("startup volume is not APFS on this host")
+        }
+        XCTAssertTrue(container.hasPrefix("disk"))
+        XCTAssertNil(DiskCapacityReader.apfsContainerID(for: "/dev/null"))
+    }
+
+    func testReadVolumesDedupesVolumesSharingAnAPFSContainer() throws {
+        let volumes = DiskCapacityReader.readVolumes()
+        guard !volumes.isEmpty else { throw XCTSkip("no mounted volumes on this host") }
+        // At most one row per APFS container, so the same physical disk's shared
+        // capacity pool is never listed twice.
+        let containers = volumes.compactMap { DiskCapacityReader.apfsContainerID(for: $0.mountPath) }
+        XCTAssertEqual(Set(containers).count, containers.count)
+    }
+
+    func testReadVolumesExcludesDiskImages() throws {
+        let volumes = DiskCapacityReader.readVolumes()
+        guard !volumes.isEmpty else { throw XCTSkip("no mounted volumes on this host") }
+        // A mounted disk image (DMG) must never be listed as a disk.
+        for volume in volumes {
+            XCTAssertFalse(DiskCapacityReader.isDiskImage(path: volume.mountPath),
+                           "\(volume.name) at \(volume.mountPath) is a disk image")
+        }
+        // If a known disk image is mounted on this host, it must be detected and
+        // excluded (not silently treated as internal or external).
+        let diskImagePath = "/Volumes/OneSwitchOfficial-440"
+        if FileManager.default.fileExists(atPath: diskImagePath) {
+            XCTAssertTrue(DiskCapacityReader.isDiskImage(path: diskImagePath))
+            XCTAssertFalse(volumes.contains { $0.mountPath == diskImagePath })
+        }
+    }
+
     // MARK: - History store
 
     private func usageSnapshot(_ value: Double, at date: Date) -> HardwareMetricsSnapshot {

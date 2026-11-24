@@ -16,6 +16,7 @@ final class HardwareSampler: @unchecked Sendable {
     private let sensorReader = SensorSMCReader()
     private let networkReader = NetworkThroughputReader()
     private let diskReader = DiskThroughputReader()
+    private let diskVolumeReader = DiskVolumeThroughputReader()
     private let cpuFrequencyReader = CPUFrequencyReader()
     private var hasAttemptedCPURead = false
 
@@ -177,10 +178,13 @@ final class HardwareSampler: @unchecked Sendable {
                 }
                 if detailKinds.contains(.disk) {
                     let capacity = DiskCapacityReader.read(at: date)
+                    let volumes = DiskCapacityReader.readVolumes()
                     snapshot.diskDetail = DiskDetailReading(
                         capacity: capacity,
                         readBytesPerSecond: snapshot.samples[.diskRead]?.value,
                         writeBytesPerSecond: snapshot.samples[.diskWrite]?.value,
+                        volumes: volumes,
+                        volumeSpeeds: self.diskVolumeReader.read(at: date, volumes: volumes),
                         sampledAt: date)
                 }
                 if ids.contains(.cpuUsage) { self.hasAttemptedCPURead = true }

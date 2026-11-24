@@ -1192,6 +1192,11 @@
 "hardware.monitor.ringValue.group" = "링 표시";
 "hardware.monitor.ringValue.groupDescription" = "메모리 및 SSD 링에 사용량과 남은 용량 중 무엇을 표시할지 선택합니다.";
 "hardware.monitor.ringValue.ssd" = "SSD";
+"hardware.monitor.externalDisk.group" = "외장 드라이브";
+"hardware.monitor.externalDisk.listDescription" = "SSD 링의 외장 합계에 포함할 드라이브를 선택하세요.";
+"hardware.monitor.externalDisk.includeInPercent" = "상단 비율에 외장 SSD 포함";
+"hardware.monitor.externalDisk.includeInPercentDescription" = "켜면 SSD 링 상단 비율이 선택한 외장 드라이브를 내장 디스크와 합산합니다. 끄면 내장 디스크만 사용합니다.";
+"hardware.monitor.externalDisk.empty" = "외장 드라이브를 찾을 수 없습니다";
 "hardware.monitor.ringValue.used" = "사용 중";
 "hardware.monitor.ringValue.remaining" = "남음";
 "hardware.monitor.settings.temperatureMonitoring" = "CPU/GPU 온도 모니터링";
@@ -1398,6 +1403,8 @@
 "hardware.detail.fileSystem" = "파일 시스템";
 "hardware.detail.readSpeed" = "읽기 속도";
 "hardware.detail.writeSpeed" = "쓰기 속도";
+"hardware.detail.diskExternal" = "외장";
+"hardware.detail.diskAvailable" = "사용 가능 %@ / %@";
 "hardware.detail.usageTrend" = "사용률 추세";
 "hardware.detail.speedTrend" = "속도 추세";
 "hardware.detail.pressureNormal" = "정상";

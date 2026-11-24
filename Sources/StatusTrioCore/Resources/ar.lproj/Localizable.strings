@@ -1193,6 +1193,11 @@
 "hardware.monitor.ringValue.group" = "عرض الحلقة";
 "hardware.monitor.ringValue.groupDescription" = "اختر ما إذا كانت حلقات الذاكرة وSSD تعرض المقدار المستخدم أم المتبقي.";
 "hardware.monitor.ringValue.ssd" = "SSD";
+"hardware.monitor.externalDisk.group" = "الأقراص الخارجية";
+"hardware.monitor.externalDisk.listDescription" = "حدّد الأقراص التي تُحتسب في الإجمالي الخارجي لحلقة SSD.";
+"hardware.monitor.externalDisk.includeInPercent" = "احتساب أقراص SSD الخارجية في النسبة";
+"hardware.monitor.externalDisk.includeInPercentDescription" = "عند التشغيل، تجمع نسبة حلقة SSD الأقراصَ الخارجية المحددة مع القرص الداخلي؛ وعند الإيقاف، القرص الداخلي فقط.";
+"hardware.monitor.externalDisk.empty" = "لم يتم العثور على أقراص خارجية";
 "hardware.monitor.ringValue.used" = "مستخدم";
 "hardware.monitor.ringValue.remaining" = "متبقٍ";
 "hardware.monitor.settings.temperatureMonitoring" = "مراقبة درجة حرارة CPU/GPU";
@@ -1406,6 +1411,8 @@
 "hardware.detail.fileSystem" = "نظام الملفات";
 "hardware.detail.readSpeed" = "سرعة القراءة";
 "hardware.detail.writeSpeed" = "سرعة الكتابة";
+"hardware.detail.diskExternal" = "خارجي";
+"hardware.detail.diskAvailable" = "متاح %@ / %@";
 "hardware.detail.usageTrend" = "اتجاه الاستخدام";
 "hardware.detail.speedTrend" = "اتجاه السرعة";
 "hardware.detail.pressureNormal" = "طبيعي";

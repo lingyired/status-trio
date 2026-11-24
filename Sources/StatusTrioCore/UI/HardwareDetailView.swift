@@ -514,49 +514,105 @@ struct HardwareDetailView: View {
     private var diskContent: some View {
         let detail = snapshot.diskDetail
         let capacity = detail?.capacity
-        // Fall back to the shared rate samples so entering the page (or a gap
-        // longer than the reader's 15 s baseline window) does not flash a dash.
-        let readSpeed = detail?.readBytesPerSecond ?? snapshot[.diskRead].value
-        let writeSpeed = detail?.writeBytesPerSecond ?? snapshot[.diskWrite].value
+        let volumes = detail?.volumes ?? []
+        let speeds = detail?.volumeSpeeds ?? [:]
         return VStack(alignment: .leading, spacing: 12) {
-            HardwareDetailCard {
-                VStack(alignment: .leading, spacing: 8) {
-                    HStack(alignment: .firstTextBaseline) {
-                        Text(localization.string(.hardwareDetailFreeSpace))
-                            .font(.subheadline).foregroundStyle(.secondary)
-                        Spacer(minLength: 8)
-                        Text(HardwareDetailFormat.bytes(capacity?.freeBytes))
-                            .font(.system(size: 22, weight: .semibold, design: .rounded))
-                            .monospacedDigit()
-                    }
-                    HardwareDetailProgressBar(fraction: capacity?.usedFraction ?? 0, tint: accentColor)
-                    HStack(spacing: 0) {
-                        topMetric(localization.string(.hardwareDetailTotal),
-                                  HardwareDetailFormat.bytes(capacity?.totalBytes))
-                        verticalDivider
-                        topMetric(localization.string(.hardwareDetailUsage),
-                                  HardwareDetailFormat.fractionPercent(capacity?.usedFraction))
-                    }
-                }
+            if volumes.isEmpty {
+                capacitySummaryCard(capacity)
+            } else {
+                volumeList(volumes, speeds: speeds)
             }
-            HardwareDetailCard {
-                VStack(alignment: .leading, spacing: 6) {
-                    HardwareDetailRow(label: localization.string(.hardwareDetailUsedSpace),
-                                      value: HardwareDetailFormat.bytes(capacity?.usedBytes))
-                    HardwareDetailRow(label: localization.string(.hardwareDetailFreeSpace),
-                                      value: HardwareDetailFormat.bytes(capacity?.freeBytes))
-                    HardwareDetailRow(label: localization.string(.hardwareDetailTotalSpace),
-                                      value: HardwareDetailFormat.bytes(capacity?.totalBytes))
-                    HardwareDetailRow(label: localization.string(.hardwareDetailFileSystem),
-                                      value: capacity?.fileSystem ?? HardwareDetailFormat.dash)
-                    divider
-                    HardwareDetailRow(label: localization.string(.hardwareDetailReadSpeed),
-                                      value: HardwareDetailFormat.rate(readSpeed))
-                    HardwareDetailRow(label: localization.string(.hardwareDetailWriteSpeed),
-                                      value: HardwareDetailFormat.rate(writeSpeed))
+        }
+    }
+
+    /// Fallback summary for hosts (and offscreen previews) where per-volume data
+    /// is unavailable; mirrors the old single-volume card.
+    private func capacitySummaryCard(_ capacity: DiskCapacityReading?) -> some View {
+        HardwareDetailCard {
+            VStack(alignment: .leading, spacing: 8) {
+                HStack(alignment: .firstTextBaseline) {
+                    Text(localization.string(.hardwareDetailFreeSpace))
+                        .font(.subheadline).foregroundStyle(.secondary)
+                    Spacer(minLength: 8)
+                    Text(HardwareDetailFormat.bytes(capacity?.freeBytes))
+                        .font(.system(size: 22, weight: .semibold, design: .rounded))
+                        .monospacedDigit()
+                }
+                HardwareDetailProgressBar(fraction: capacity?.usedFraction ?? 0, tint: accentColor)
+                HStack(spacing: 0) {
+                    topMetric(localization.string(.hardwareDetailTotal),
+                              HardwareDetailFormat.bytes(capacity?.totalBytes))
+                    verticalDivider
+                    topMetric(localization.string(.hardwareDetailUsage),
+                              HardwareDetailFormat.fractionPercent(capacity?.usedFraction))
                 }
             }
         }
+    }
+
+    /// Every mounted volume, one row each: name plus an external badge, the
+    /// available/total on the right, and a used-space bar tinted by free space.
+    private func volumeList(_ volumes: [DiskVolumeReading],
+                            speeds: [String: DiskThroughputReading]) -> some View {
+        HardwareDetailCard {
+            VStack(alignment: .leading, spacing: 12) {
+                ForEach(Array(volumes.enumerated()), id: \.element.id) { index, volume in
+                    volumeRow(volume, speed: speeds[volume.mountPath])
+                    if index < volumes.count - 1 { divider }
+                }
+            }
+        }
+    }
+
+    private func volumeRow(_ volume: DiskVolumeReading, speed: DiskThroughputReading?) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(alignment: .firstTextBaseline, spacing: 6) {
+                Text(volume.name)
+                    .font(.system(size: 13, weight: .medium))
+                    .lineLimit(1)
+                    .truncationMode(.middle)
+                if volume.isExternal {
+                    Text(localization.string(.hardwareDetailDiskExternal))
+                        .font(.system(size: 10, weight: .medium))
+                        .foregroundStyle(.secondary)
+                }
+                Spacer(minLength: 8)
+                Text(localization.format(.hardwareDetailDiskAvailable,
+                                         HardwareDetailFormat.bytes(volume.freeBytes),
+                                         HardwareDetailFormat.bytes(volume.totalBytes)))
+                    .font(.system(size: 12, weight: .medium, design: .rounded))
+                    .monospacedDigit()
+                    .foregroundStyle(volume.freeFraction <= 0.10 ? Color.red : Color.secondary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
+            }
+            HardwareDetailProgressBar(fraction: volume.usedFraction, tint: volumeTint(volume))
+            if let speed {
+                HStack(spacing: 10) {
+                    Label(HardwareDetailFormat.rate(speed.readBytesPerSecond), systemImage: "arrow.down")
+                        .labelStyle(.titleAndIcon)
+                    Label(HardwareDetailFormat.rate(speed.writeBytesPerSecond), systemImage: "arrow.up")
+                        .labelStyle(.titleAndIcon)
+                }
+                .font(.system(size: 10, weight: .regular, design: .rounded))
+                .monospacedDigit()
+                .foregroundStyle(.tertiary)
+                .accessibilityLabel(
+                    localization.string(.hardwareDetailReadSpeed) + " "
+                    + HardwareDetailFormat.rate(speed.readBytesPerSecond) + ", "
+                    + localization.string(.hardwareDetailWriteSpeed) + " "
+                    + HardwareDetailFormat.rate(speed.writeBytesPerSecond))
+            }
+        }
+        .accessibilityElement(children: .combine)
+    }
+
+    /// Free-space severity tint: red at 10% free or less, orange at 20% or less,
+    /// otherwise the user's disk accent colour so it matches the ring.
+    private func volumeTint(_ volume: DiskVolumeReading) -> Color {
+        if volume.freeFraction <= 0.10 { return .red }
+        if volume.freeFraction <= 0.20 { return .orange }
+        return accentColor
     }
 
     // MARK: - Shared pieces

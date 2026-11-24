@@ -228,6 +228,8 @@ final class SettingsStore: ObservableObject {
     static let memoryRingDisplayModeDefaultsKey = "memoryRingDisplayModeV1"
     static let ssdRingDisplayModeDefaultsKey = "ssdRingDisplayModeV1"
     static let hardwareRingSplitGapProgressDefaultsKey = "hardwareRingSplitGapProgress"
+    static let hardwareSSDIncludeExternalInPercentDefaultsKey = "hardwareSSDIncludeExternalInPercentV1"
+    static let hardwareSSDExternalVolumePathsDefaultsKey = "hardwareSSDExternalVolumePathsV1"
     static let hardwareTemperatureMonitoringEnabledDefaultsKey = "hardwareTemperatureMonitoringEnabledV1"
     static let cpuRingCenterContentDefaultsKey = "cpuRingCenterContentV1"
     static let gpuRingCenterContentDefaultsKey = "gpuRingCenterContentV1"
@@ -1469,6 +1471,38 @@ final class SettingsStore: ObservableObject {
                 hardwareRingSplitGapProgress,
                 forKey: Self.hardwareRingSplitGapProgressDefaultsKey
             )
+        }
+    }
+
+    /// Whether the SSD ring's top percentage pools the internal disk with the
+    /// external volumes the user ticked in Settings. Off (default) keeps the
+    /// percentage on the startup volume alone.
+    @Published var hardwareSSDIncludeExternalInPercent: Bool = false {
+        didSet {
+            defaults.set(
+                hardwareSSDIncludeExternalInPercent,
+                forKey: Self.hardwareSSDIncludeExternalInPercentDefaultsKey
+            )
+        }
+    }
+
+    /// Mount paths of the external volumes the user ticked to include in the SSD
+    /// ring's external total (and, when enabled, its percentage). Device-specific
+    /// state, so it is intentionally excluded from settings export/import.
+    @Published var hardwareSSDExternalVolumePaths: Set<String> = [] {
+        didSet {
+            defaults.set(
+                hardwareSSDExternalVolumePaths.sorted(),
+                forKey: Self.hardwareSSDExternalVolumePathsDefaultsKey
+            )
+        }
+    }
+
+    func setHardwareSSDExternalVolume(path: String, included: Bool) {
+        if included {
+            hardwareSSDExternalVolumePaths.insert(path)
+        } else {
+            hardwareSSDExternalVolumePaths.remove(path)
         }
     }
 
@@ -3387,6 +3421,10 @@ final class SettingsStore: ObservableObject {
             rawValue: defaults.string(forKey: Self.ssdRingDisplayModeDefaultsKey) ?? "") ?? .used
         self.hardwareRingSplitGapProgress =
             defaults.object(forKey: Self.hardwareRingSplitGapProgressDefaultsKey) as? Bool ?? false
+        self.hardwareSSDIncludeExternalInPercent =
+            defaults.object(forKey: Self.hardwareSSDIncludeExternalInPercentDefaultsKey) as? Bool ?? false
+        self.hardwareSSDExternalVolumePaths = Set(
+            defaults.stringArray(forKey: Self.hardwareSSDExternalVolumePathsDefaultsKey) ?? [])
         self.hardwareTemperatureMonitoringEnabled =
             defaults.object(forKey: Self.hardwareTemperatureMonitoringEnabledDefaultsKey) as? Bool ?? true
         self.cpuRingCenterContent = HardwareRingCenterContent(
