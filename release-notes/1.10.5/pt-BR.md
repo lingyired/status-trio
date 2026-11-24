@@ -1,18 +1,22 @@
-# Versão %VERSION% (build %BUILD%)
+# Versão %VERSION% (Build %BUILD%)
 
-## Sensores e temperaturas
+## Novidades
 
-- A temperatura da GPU do M3 Air (Mac15,12) voltou a funcionar: os sensores Tf ilegíveis são substituídos pelos Tg verificados, agrupados em seis pares para não contar a mesma zona física duas vezes.
-- No M5 e M6, sondas do mesmo núcleo de CPU são agrupadas; várias sondas não aumentam mais a contagem de núcleos nem a média.
-- Adicionada a identificação do A18 Pro. Chips desconhecidos não usam mais as chaves de temperatura de outra geração; mostram leitura indisponível em vez de um número plausível, mas errado.
+- O indicador inferior agora tem a opção «Pressão de memória», para ver rapidamente o uso atual de memória.
+- Os detalhes do disco agora listam todos os volumes montados (internos e externos) com a velocidade de leitura/gravação de cada um; o percentual superior pode incluir SSDs externos opcionalmente.
+- Os quatro anéis do monitor de hardware agora podem dividir o progresso para os dois lados, então o percentual superior não cobre mais o anel.
+- A página de detalhes de hardware ganhou o botão «Abrir Monitor de Atividade» para ver rapidamente o que está consumindo recursos.
+- A lista de alto uso / alto consumo agora permite fixar uma linha e forçar o encerramento (incluindo os processos filhos); os cartões mostram uma contagem regressiva de atualização e o item sai da lista assim que é encerrado.
 
-## Consumo do display
+## Correções
 
-- Corrigido o Issue #374: um M3 Air sem PDBR e com PBLR fixo em 0 não mostra mais uma ramificação de display de 0,00 W.
-- Sem uma via de retroiluminação medida utilizável, a ramificação de display fica oculta; nenhum valor estimado é publicado.
-- Ramificações de display e USB com 0 W ficam ocultas.
-
-## Monitoramento e desempenho
-
-- As capacidades dos sensores são sondadas uma vez e armazenadas; chaves inexistentes são tentadas novamente com backoff.
-- Nenhum novo timer, helper ou acesso privilegiado. A coleta de temperatura e retroiluminação continua parando ao fechar o painel.
+- Corrigida a temperatura de GPU do M3 Air que não podia ser lida e evitado contar a mesma zona duas vezes.
+- Otimizado o cálculo da temperatura de CPU para M5 / M6.
+- Adicionado o reconhecimento do A18 Pro; chips não reconhecidos agora mostram «indisponível» em vez de uma temperatura errada.
+- Corrigido um caso em que alguns modelos ainda mostravam 0,00 W de consumo da tela sem leitura real.
+- O consumo da tela agora é ocultado quando não há leitura real, em vez de mostrar estimativa; não ficam mais valores antigos com a tela desligada ou a tampa fechada.
+- O consumo de 0 W da tela e da USB não é mais exibido como consumo real.
+- Corrigida a falha da primeira leitura do ajuste da tampa na inicialização a frio; agora ela é repetida automaticamente.
+- Corrigido um falso timeout em que o app desistia antes do serviço em segundo plano; as mensagens de falha agora incluem um código de erro para diagnóstico.
+- Quando não há dispositivo de áudio disponível, o controle de volume é ocultado e aparece o aviso «Nenhum dispositivo disponível».
+- Ajustados alguns textos em inglês e linhas longas para não serem cortados.
