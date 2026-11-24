@@ -49,6 +49,12 @@ struct AudioInputPanelState: Equatable, Sendable {
     let usageText: String?
     let completedScalarRequestID: UUID?
 
+    /// A readable level or a selected current input keeps the slider usable even
+    /// while the device list is still loading.
+    var hasUsableInput: Bool {
+        scalar != nil || selectedDeviceIdentity != nil
+    }
+
     var hasHiddenRows: Bool {
         OutputDeviceListPresentation.canToggleExpansion(for: rows, limit: visibleLimit)
     }

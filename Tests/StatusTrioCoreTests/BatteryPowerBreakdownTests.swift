@@ -508,4 +508,3 @@ final class BatteryPowerFlowLayoutTests: XCTestCase {
         XCTAssertGreaterThan(hosting.fittingSize.height, 90)
     }
 }
-

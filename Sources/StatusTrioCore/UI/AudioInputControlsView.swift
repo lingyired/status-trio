@@ -227,11 +227,10 @@ struct AudioInputControlsView: View {
         }
     }
 
-    /// No input device means the slider has nothing to control. Show the
-    /// device-list empty copy in its place instead of a dead slider or the
-    /// rectangular "—" placeholder that produced the square artifact (#378).
+    /// Only an absent input means the slider has nothing to control. A real
+    /// current input stays adjustable before the device list has loaded.
     private var hasNoInputDevices: Bool {
-        state.rows.isEmpty
+        !state.hasUsableInput && state.rows.isEmpty
     }
 
     private var settingsButton: some View {
@@ -272,7 +271,7 @@ struct AudioInputControlsView: View {
 
     @ViewBuilder
     private var deviceList: some View {
-        if state.showsDeviceList {
+        if state.showsDeviceList && !state.rows.isEmpty {
             VStack(spacing: 2) {
                 ForEach(state.visibleRows(expanded: isDeviceListExpanded)) { row in
                     Button {

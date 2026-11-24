@@ -14,10 +14,29 @@ final class PopoverScrollTargetsTests: XCTestCase {
         let targets = PopoverScrollTargets()
         let settings = SettingsStore(defaults: defaults)
         let localization = Localization(defaults: defaults, preferredLanguages: ["en"])
+        // A real output is live while its device list is still loading: the
+        // panel must keep the volume slider (and its scroll marker) usable.
+        let currentOutput = AudioOutputDevice(
+            id: 1,
+            name: "Studio Display",
+            isCurrent: true,
+            volume: 0.42
+        )
         let store = SystemStatusStore(
             batteryMonitor: MarkerBatteryMonitor(),
             wifiMonitor: MarkerWiFiMonitor(),
-            volumeMonitor: MarkerVolumeMonitor()
+            volumeMonitor: MarkerVolumeMonitor(),
+            initialSnapshot: StatusSnapshot(
+                battery: .placeholder,
+                wifi: .placeholder,
+                volume: VolumeStatus(
+                    scalar: 0.42,
+                    isMuted: false,
+                    deviceName: currentOutput.name,
+                    currentDevice: currentOutput,
+                    outputDevices: []
+                )
+            )
         )
         let panel = StatusPanelViewModel(
             store: store,

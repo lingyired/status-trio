@@ -80,6 +80,12 @@ struct VolumePanelState: Equatable, Sendable {
     let listeningModeTaskID: String
     let previewLanguageCode: String
 
+    /// A readable level or a named current output keeps the slider usable even
+    /// while the device list is still loading (or is hidden by preference).
+    var hasUsableOutput: Bool {
+        scalar != nil || outputIdentity != nil
+    }
+
     var hasHiddenRows: Bool {
         OutputDeviceListPresentation.canToggleExpansion(for: rows, limit: visibleLimit)
     }

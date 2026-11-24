@@ -16,6 +16,10 @@ struct RunningAppInfo: Equatable, Sendable {
 struct ForceQuitTarget: Equatable, Sendable {
     let displayName: String
     let pids: [pid_t]
+    /// Start time captured when the row was resolved, keyed by PID. The
+    /// confirmation dialog can sit open while the app exits, so every signal
+    /// re-checks this to avoid killing a process that reused the PID.
+    var startedAt: [pid_t: UInt64] = [:]
 }
 
 /// Resolves list rows to running processes and force-quits them, following the
@@ -49,7 +53,8 @@ enum AppQuitter {
         switch row.id {
         case .application(let path):
             return target(forApplicationPath: path, name: row.name,
-                          running: running, selfPID: selfPID, selfBundleID: selfBundleID)
+                          running: running, startTime: startTime,
+                          selfPID: selfPID, selfBundleID: selfBundleID)
         case .process(let identity):
             return target(forProcess: identity, name: row.name,
                           running: running, startTime: startTime, selfPID: selfPID)
@@ -60,6 +65,7 @@ enum AppQuitter {
     static func target(forApplicationPath path: String,
                        name: String,
                        running: [RunningAppInfo],
+                       startTime: (Int32) -> UInt64? = { SystemProcessMetadataReader.startTime(for: $0) },
                        selfPID: pid_t = ProcessInfo.processInfo.processIdentifier,
                        selfBundleID: String? = Bundle.main.bundleIdentifier) -> ForceQuitTarget? {
         let canonical = canonicalPath(path)
@@ -94,8 +100,17 @@ enum AppQuitter {
         // and the app's usage keeps showing in the list.
         pids.append(contentsOf: pidsWithExecutableUnder(bundlePath: path, selfPID: selfPID))
 
-        let unique = Array(Set(pids)).sorted()
-        return unique.isEmpty ? nil : ForceQuitTarget(displayName: name, pids: unique)
+        // Capture every incarnation now: an app can relaunch and reuse a PID
+        // before the user confirms, so the signal path verifies these again.
+        var identities: [pid_t: UInt64] = [:]
+        let verified = Array(Set(pids)).sorted().filter { pid in
+            guard let started = startTime(pid) else { return false }
+            identities[pid] = started
+            return true
+        }
+        return verified.isEmpty
+            ? nil
+            : ForceQuitTarget(displayName: name, pids: verified, startedAt: identities)
     }
 
     /// Same-user processes whose executable path sits inside `bundlePath`.
@@ -125,29 +140,44 @@ enum AppQuitter {
                                running: [RunningAppInfo],
                                startTime: (Int32) -> UInt64?,
                                selfPID: pid_t) -> ForceQuitTarget? {
-        // Any live PID can be force-quit, like Stats (the × is enabled for any
-        // pid > 0). System/root processes will fail the SIGKILL and report a
+        // Any live PID with a verifiable start time can be force-quit, like
+        // Stats. System/root processes will fail the SIGKILL and report a
         // message rather than being silently hidden.
         guard identity.pid > 0, identity.pid != selfPID else { return nil }
-        // Reject PID reuse: when the sampler recorded a start time, the current
-        // process must still be the same incarnation.
-        if let expected = identity.startedAt, let actual = startTime(identity.pid), actual != expected {
-            return nil
-        }
-        return ForceQuitTarget(displayName: name, pids: [identity.pid])
+        // Without a recorded start time there is no way to tell the sampled
+        // process from a later one that reused its PID, so refuse the target.
+        guard let expected = identity.startedAt,
+              let actual = startTime(identity.pid),
+              actual == expected else { return nil }
+        return ForceQuitTarget(
+            displayName: name,
+            pids: [identity.pid],
+            startedAt: [identity.pid: expected]
+        )
     }
 
-    /// SIGKILLs every PID in the target. Returns true when every signal was
-    /// delivered (or the process was already gone). Never touches Status Trio.
+    /// SIGKILLs every PID in the target after re-checking its identity.
+    /// Returns true only when every signal was delivered (or the process was
+    /// already gone) *and* every PID still belonged to the captured process.
+    /// A mismatched or unreadable identity skips its signal and fails the batch,
+    /// so a relaunched app is never killed by a stale confirmation. Never
+    /// touches Status Trio.
     @discardableResult
     static func forceQuit(_ target: ForceQuitTarget,
                           terminate: (pid_t) -> Bool = { pid in
                               if Darwin.kill(pid, SIGKILL) == 0 { return true }
                               return errno == ESRCH
                           },
+                          startTime: (Int32) -> UInt64? = { SystemProcessMetadataReader.startTime(for: $0) },
                           selfPID: pid_t = ProcessInfo.processInfo.processIdentifier) -> Bool {
         var allSucceeded = true
         for pid in target.pids where pid != selfPID {
+            guard let expected = target.startedAt[pid],
+                  let actual = startTime(pid),
+                  actual == expected else {
+                allSucceeded = false
+                continue
+            }
             if !terminate(pid) { allSucceeded = false }
         }
         return allSucceeded

@@ -20,10 +20,14 @@ final class AppQuitterTests: XCTestCase {
             // Terminated instance must not be targeted.
             RunningAppInfo(pid: 300, path: "/Applications/Foo.app", bundleIdentifier: "com.foo", terminated: true),
         ]
-        let target = AppQuitter.target(forApplicationPath: "/Applications/Foo.app", name: "Foo",
-                                       running: running, selfPID: 999, selfBundleID: "com.me")
+        let target = AppQuitter.target(
+            forApplicationPath: "/Applications/Foo.app", name: "Foo",
+            running: running, startTime: { UInt64($0) },
+            selfPID: 999, selfBundleID: "com.me"
+        )
         XCTAssertEqual(target?.displayName, "Foo")
         XCTAssertEqual(target?.pids, [100, 101])
+        XCTAssertEqual(target?.startedAt, [100: 100, 101: 101])
     }
 
     func testApplicationPathTargetIsNilWhenNoLiveInstanceMatches() {
@@ -69,25 +73,108 @@ final class AppQuitterTests: XCTestCase {
                                        running: running, startTime: { _ in 222 }, selfPID: 1, selfBundleID: nil))
     }
 
-    func testForceQuitSignalsEveryPIDAndReportsSuccess() {
+    func testForceQuitSignalsEveryVerifiedPIDAndReportsSuccess() {
         var signalled: [pid_t] = []
-        let target = ForceQuitTarget(displayName: "Foo", pids: [10, 20])
-        let ok = AppQuitter.forceQuit(target, terminate: { pid in signalled.append(pid); return true }, selfPID: 99)
+        let target = ForceQuitTarget(
+            displayName: "Foo", pids: [10, 20], startedAt: [10: 1, 20: 2]
+        )
+        let ok = AppQuitter.forceQuit(
+            target,
+            terminate: { pid in signalled.append(pid); return true },
+            startTime: { $0 == 10 ? 1 : 2 },
+            selfPID: 99
+        )
         XCTAssertTrue(ok)
         XCTAssertEqual(signalled, [10, 20])
     }
 
     func testForceQuitReportsFailureWhenASignalFails() {
-        let target = ForceQuitTarget(displayName: "Root Proc", pids: [10, 20])
-        let ok = AppQuitter.forceQuit(target, terminate: { $0 != 20 }, selfPID: 99)
+        let target = ForceQuitTarget(
+            displayName: "Root Proc", pids: [10, 20], startedAt: [10: 1, 20: 2]
+        )
+        let ok = AppQuitter.forceQuit(
+            target,
+            terminate: { $0 != 20 },
+            startTime: { $0 == 10 ? 1 : 2 },
+            selfPID: 99
+        )
         XCTAssertFalse(ok)
     }
 
     func testForceQuitNeverSignalsItself() {
         var signalled: [pid_t] = []
-        let target = ForceQuitTarget(displayName: "Status Trio", pids: [5, 10])
-        _ = AppQuitter.forceQuit(target, terminate: { pid in signalled.append(pid); return true }, selfPID: 5)
+        let target = ForceQuitTarget(
+            displayName: "Status Trio", pids: [5, 10], startedAt: [5: 1, 10: 2]
+        )
+        _ = AppQuitter.forceQuit(
+            target,
+            terminate: { pid in signalled.append(pid); return true },
+            startTime: { $0 == 5 ? 1 : 2 },
+            selfPID: 5
+        )
         XCTAssertEqual(signalled, [10])
+    }
+
+    /// The row was resolved minutes before the confirmation: if the PID now
+    /// belongs to another incarnation, skip that signal and report the batch.
+    func testForceQuitSkipsAReusedPIDAndReportsFailure() {
+        var signalled: [pid_t] = []
+        let target = ForceQuitTarget(
+            displayName: "Foo", pids: [10, 20], startedAt: [10: 1, 20: 2]
+        )
+        let ok = AppQuitter.forceQuit(
+            target,
+            terminate: { pid in signalled.append(pid); return true },
+            startTime: { $0 == 10 ? 1 : 999 },
+            selfPID: 99
+        )
+        XCTAssertFalse(ok)
+        XCTAssertEqual(signalled, [10], "the reused PID must never receive a signal")
+    }
+
+    /// An unreadable start time at signal time is unverifiable, not a match.
+    func testForceQuitSkipsAPIDWhoseStartTimeCannotBeRead() {
+        var signalled: [pid_t] = []
+        let target = ForceQuitTarget(
+            displayName: "Foo", pids: [10, 20], startedAt: [10: 1, 20: 2]
+        )
+        let ok = AppQuitter.forceQuit(
+            target,
+            terminate: { pid in signalled.append(pid); return true },
+            startTime: { $0 == 10 ? 1 : nil },
+            selfPID: 99
+        )
+        XCTAssertFalse(ok)
+        XCTAssertEqual(signalled, [10])
+    }
+
+    /// A target resolved without recorded identities cannot be verified at all.
+    func testForceQuitRefusesAnUnverifiedTarget() {
+        var signalled: [pid_t] = []
+        let target = ForceQuitTarget(displayName: "Foo", pids: [10])
+        let ok = AppQuitter.forceQuit(
+            target,
+            terminate: { pid in signalled.append(pid); return true },
+            startTime: { _ in 1 },
+            selfPID: 99
+        )
+        XCTAssertFalse(ok)
+        XCTAssertTrue(signalled.isEmpty)
+    }
+
+    /// An app instance whose start time cannot be read is not targetable.
+    func testApplicationPathDropsAnInstanceWithAnUnreadableStartTime() {
+        let running = [
+            RunningAppInfo(pid: 100, path: "/Applications/Foo.app", bundleIdentifier: "com.foo", terminated: false),
+            RunningAppInfo(pid: 101, path: "/Applications/Foo.app", bundleIdentifier: "com.foo", terminated: false),
+        ]
+        let target = AppQuitter.target(
+            forApplicationPath: "/Applications/Foo.app", name: "Foo",
+            running: running, startTime: { $0 == 101 ? nil : 5 },
+            selfPID: 999, selfBundleID: "com.me"
+        )
+        XCTAssertEqual(target?.pids, [100])
+        XCTAssertEqual(target?.startedAt, [100: 5])
     }
 }
 
@@ -114,8 +201,12 @@ extension AppQuitterTests {
             RunningAppInfo(pid: 700, path: "/Applications/Foo Preview.app",
                            bundleIdentifier: "com.example.foo", terminated: false),
         ]
-        let target = AppQuitter.target(forApplicationPath: bundleURL.path, name: "Foo",
-                                       running: running, selfPID: 5, selfBundleID: "com.me")
+        let target = AppQuitter.target(
+            forApplicationPath: bundleURL.path, name: "Foo",
+            running: running, startTime: { _ in 7000 },
+            selfPID: 5, selfBundleID: "com.me"
+        )
         XCTAssertEqual(target?.pids, [700])
+        XCTAssertEqual(target?.startedAt, [700: 7000])
     }
 }
