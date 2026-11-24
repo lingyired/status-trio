@@ -11,7 +11,7 @@ struct HardwareMonitorSectionView: View {
     var body: some View {
         SettingsPage {
             placementGroup
-            refreshGroup
+            samplingGroup
             networkCapGroup
             temperatureMonitoringGroup
             ringGroup
@@ -51,8 +51,10 @@ struct HardwareMonitorSectionView: View {
         }
     }
 
-    private var refreshGroup: some View {
-        SettingsGroup {
+    /// Sampling cadence and how much history survives while the panel is
+    /// closed. Grouped together because they trade freshness against readings.
+    private var samplingGroup: some View {
+        SettingsGroup(localization.string(.hardwareMonitorSettingsGroupSampling)) {
             SettingsRow(
                 "speedometer",
                 tint: .blue,

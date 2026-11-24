@@ -41,7 +41,7 @@
 "settings.dockIconBackground.light" = "Light";
 "settings.iconSize" = "Icon Size";
 "settings.iconSize.accessibilityValue" = "%d points";
-"settings.iconSize.description" = "Adjusts the menu bar icon render size from 16–36 pt. The Dock icon keeps its fixed design size.";
+"settings.iconSize.description" = "Menu bar icon: 16–36 pt. The Dock icon keeps its fixed size.";
 "settings.ringStrokeStyle" = "Ring Stroke Width";
 "settings.ringStrokeStyle.description" = "Adjust the line thickness of the status ring in the menu bar and Dock icons.";
 "settings.ringStrokeStyle.light" = "Light";
@@ -66,7 +66,7 @@
 "settings.appIcon.middleIcon.batteryPercentage" = "Battery Percentage";
 "settings.appIcon.middleIcon.power" = "Power (Watts)";
 "settings.appIcon.middleIcon.chargingStatus" = "Charging status";
-"settings.appIcon.middleIcon.chargingStatus.description" = "In this mode the top arc's “Show an indicator while charging or connected to power” is disabled to avoid a duplicate icon.";
+"settings.appIcon.middleIcon.chargingStatus.description" = "Uses charging state instead of the percentage. The top arc's charging indicator turns off to avoid a duplicate.";
 "settings.appIcon.middleIcon.size" = "Middle Icon Size";
 "settings.appIcon.middleIcon.size.description" = "One size for every middle content: Wi-Fi, Bluetooth, input source, and numbers.";
 "settings.appIcon.middleIcon.networkWarnings" = "Show network problems instead";
@@ -82,8 +82,8 @@
 "settings.network.wifiIconForHotspot" = "Use Wi-Fi icon for Personal Hotspot";
 "settings.network.wifiIconForTemporaryConnection" = "Use Wi-Fi icon for Temporary Connection";
 "settings.network.wifiIconForInternetSharing" = "Use Wi-Fi icon for Internet Sharing";
-"settings.network.centerSource" = "Middle Slot";
-"settings.network.centerSource.description" = "Choose what the status icon’s middle slot shows. Automatic keeps the usual network and Bluetooth behavior.";
+"settings.network.centerSource" = "Middle Icon";
+"settings.network.centerSource.description" = "Choose what the middle icon shows. Automatic keeps the usual network and Bluetooth behavior.";
 "settings.network.centerSource.automatic" = "Automatic";
 "settings.network.centerSource.inputSource" = "Current Input Source";
 "settings.network.centerSource.batteryPercentage" = "Battery Percentage";
@@ -109,7 +109,7 @@
 "settings.bluetooth.networkErrorPriority" = "Let network errors take priority";
 "settings.bluetooth.networkErrorPriorityDescription" = "Connection errors and offline states keep the network icon instead of the Bluetooth device icon.";
 "settings.bluetooth.batteryLevels" = "Show Bluetooth battery levels";
-"settings.bluetooth.batteryLevelsDescription" = "Reads battery levels for visible Bluetooth and Apple device rows in the status panel.";
+"settings.bluetooth.batteryLevelsDescription" = "Reads battery levels for supported Bluetooth accessories shown in the panel.";
 "settings.bluetooth.listeningModeTitle" = "Show listening mode controls";
 "settings.bluetooth.listeningModeDescription" = "Supports AirPods, HUAWEI FreeBuds, Redmi/Xiaomi and OPPO/OnePlus/realme (Enco family) earbuds: shows noise-cancelling, transparency and off capsules on connected devices. Only some third-party models are supported; if a switch fails, the previous mode is restored.";
 "settings.bluetooth.listeningModePreview" = "Listening mode preview (test only)";
@@ -163,11 +163,11 @@
 "settings.audio.maximumVisibleInput" = "Maximum Visible Input Devices";
 "settings.audio.maximumVisibleInputDescription" = "How many input devices appear before the Expand control.";
 "settings.audio.orderTitle" = "Output Device Order";
-"settings.audio.orderDescription" = "Drag devices to change the order shown in the volume popover. Uncheck devices you don't use to hide them; the active output always stays visible. New devices appear at the end.";
+"settings.audio.orderDescription" = "Devices appear in the panel by default. Drag to reorder; uncheck one to hide it. The active output always stays visible.";
 "settings.audio.orderEmpty" = "No output devices available.";
 "settings.audio.showDevice" = "Show in Status Panel";
 "settings.audio.inputOrderTitle" = "Input Device Order";
-"settings.audio.inputOrderDescription" = "Drag devices to change the order shown in the Audio Input section. Uncheck devices you don't use to hide them; the current input always stays visible. New devices appear at the end.";
+"settings.audio.inputOrderDescription" = "Input devices appear in the panel by default. Drag to reorder; uncheck one to hide it. The current input always stays visible.";
 "settings.audio.inputOrderEmpty" = "No input devices available.";
 "settings.audio.inputOrderSectionOff" = "Turn on Audio Input in Status Panel › Displayed Items to reorder or hide input devices.";
 "settings.about.version" = "Version %@";
@@ -181,6 +181,7 @@
 "settings.about.copyright" = "© lingyired";
 "settings.battery.title" = "Battery Display";
 "settings.battery.group.icon" = "Top Battery Arc";
+"settings.battery.sharedSyncNote" = "These ring settings are shared with the Battery page; changes on either page stay in sync.";
 "settings.battery.group.colors" = "Status & Colors";
 "settings.battery.group.chargingEffects" = "Charging Effects";
 "settings.battery.group.charging" = "Charging";
@@ -189,7 +190,7 @@
 "settings.battery.group.topMarkers" = "Top Markers";
 "settings.ringContent.group" = "Ring Content";
 "settings.ringContent.row.title" = "Ring Shows";
-"settings.ringContent.row.description" = "Choose what the outer ring displays: this Mac's battery or your AirPods battery.";
+"settings.ringContent.row.description" = "Choose what the outer ring reports: this Mac's battery, your AirPods, or a custom hardware metric.";
 "settings.ringContent.systemBattery" = "This Mac's Battery";
 "settings.ringContent.airPodsBattery" = "AirPods Battery";
 "settings.ringContent.airPodsGroup" = "AirPods Ring";
@@ -356,9 +357,9 @@
 "settings.network.showLocalIP" = "Show Local IP Address";
 "settings.network.showLocalIP.description" = "Shows this Mac's private LAN address on the network row, before the Wi-Fi details.";
 "settings.network.permissionNotDeterminedTitle" = "Location permission needed";
-"settings.network.permissionNotDeterminedDescription" = "Status Trio needs Location access to show Wi-Fi networks. Click below to grant it.";
+"settings.network.permissionNotDeterminedDescription" = "Connection status works without Location. Reading the Wi-Fi name and nearby networks needs Location access. Grant it below.";
 "settings.network.permissionDeniedTitle" = "Location permission is off";
-"settings.network.permissionDeniedDescription" = "Wi-Fi networks can't be shown without Location access. Enable it in System Settings.";
+"settings.network.permissionDeniedDescription" = "Connection status still works. Without Location access, the Wi-Fi name and nearby networks stay hidden. Enable it in System Settings.";
 "settings.audio.externalVolume.title" = "External Display Volume";
 "settings.audio.externalVolume.controlMethod" = "Control Method";
 "settings.audio.externalVolume.controlMethodDescription" = "If the status panel cannot control this device’s volume, choose BetterDisplay.";
@@ -432,9 +433,9 @@
 "accessibility.status" = "%@, %@, %@";
 "accessibility.battery" = "Battery %d%%";
 "accessibility.volume" = "Volume %@";
-"settings.statusCheck.title" = "Status check interval";
+"settings.statusCheck.title" = "Status Check Frequency";
 "settings.quickActions.title" = "Quick actions";
-"settings.refreshInterval" = "Status refresh interval";
+"settings.refreshInterval" = "Check frequency";
 "settings.refreshInterval.onBattery" = "On battery";
 "settings.refreshInterval.onPower" = "Plugged in";
 "settings.refreshInterval.description" = "Periodically checks battery, Wi-Fi, and volume status. Shorter intervals check more often.";
@@ -459,8 +460,9 @@
 "settings.keepAwake.helperReady" = "Privileged helper is ready.";
 "settings.keepAwake.helperHint" = "Turning on “keep awake with lid closed” (or Low Power Mode control) installs and requests approval automatically.";
 "settings.keepAwake.allowBattery" = "Allow while on battery";
-"settings.keepAwake.autoOff" = "Turn off lid sleep prevention when battery is low";
-"settings.keepAwake.onlyLid" = "Applies only to “keep awake with lid closed”";
+"settings.keepAwake.autoOff" = "Turn Off at Low Battery";
+"settings.keepAwake.autoOff.description" = "Turns off lid sleep prevention at 20% battery or below.";
+"settings.keepAwake.onlyLid" = "Applies only to lid sleep prevention; Keep Screen Awake keeps running.";
 "quickActions.displaySleep" = "Keep Screen Awake";
 "quickActions.displaySleep.description" = "Prevent the display from sleeping while idle.";
 "quickActions.lidSleep" = "Keep Awake With Lid Closed";
@@ -487,7 +489,7 @@
 "quickActions.turnedOffLowBattery" = "Battery low — lid sleep prevention turned off.";
 "quickActions.turnedOffTimerEnded" = "Timer ended — turned off automatically.";
 "quickActions.error" = "Couldn’t change the setting: %@";
-"settings.panel.background.title" = "Panel Background";
+"settings.panel.background.title" = "Appearance";
 "settings.panel.background.style" = "Background Style";
 "settings.panel.background.style.description" = "Choose how the status panel background is drawn.";
 "settings.panel.background.style.liquidGlass" = "Liquid Glass";
@@ -502,17 +504,17 @@
 "settings.panel.levelSliderThickness.description" = "Draw the volume and microphone sliders with the same capsule height as brightness.";
 "settings.panel.openBehavior.title" = "Details & Opening";
 "settings.panel.returnsToSummaryOnOpen" = "Reopen the Last Detail Page";
-"settings.panel.returnsToSummaryOnOpen.description" = "When enabled, reopening the status panel returns to the detail page that was showing when it closed; otherwise it always starts on the summary page.";
+"settings.panel.returnsToSummaryOnOpen.description" = "Reopening returns to the last detail page; otherwise the panel always starts on the summary.";
 "settings.panel.showsDetailsAlongside" = "Show Details Alongside";
 "settings.panel.showsDetailsAlongside.description" = "When enabled, detail pages open to the right of the status panel, then the left. If neither side fits, they open inside the panel.";
 "settings.panel.showsPanelOnHover" = "Show Panel on Hover";
-"settings.panel.showsPanelOnHover.description" = "When enabled, resting the pointer on the menu bar icon for about 0.3 seconds opens the status panel. Moving into the panel keeps it open; leaving the icon and panel closes it after a short delay. Clicking still toggles the panel.";
+"settings.panel.showsPanelOnHover.description" = "Resting the pointer on the menu bar icon for about 0.3 seconds opens the panel. Moving into it keeps it open; leaving both closes it after a short delay. Clicking still toggles it.";
 "settings.popup.volumeScroll.group" = "Panel Scrolling";
 "settings.audio.volumeScroll.group" = "Volume Scrolling";
 "settings.popup.panelScroll" = "Scroll Panel to Adjust Volume";
 "settings.popup.panelScroll.description" = "Scroll over empty areas of the summary page to change the output volume. Sliders always adjust by scrolling.";
 "settings.popup.volumeScroll.natural" = "Natural Scrolling";
-"settings.popup.volumeScroll.natural.description" = "When on, scrolling up increases the value under the pointer (volume, brightness, or input gain). When off, it follows the system's scrolling direction. If scrolling up still lowers the value after turning this on, configure MOS, Scroll Reverser, LinearMouse, or a similar app to leave Status Trio unchanged, usually through an exception/ignore list (sometimes called an allowlist).";
+"settings.popup.volumeScroll.natural.description" = "Scroll up to raise the value under the pointer; off follows the system direction. If it still moves the wrong way after turning this on, add Status Trio to the exception/ignore list of MOS, Scroll Reverser, or LinearMouse.";
 "settings.audio.volumeFeedbackTitle" = "Volume feedback";
 "settings.audio.volumeFeedback" = "Play a sound when scrolling to change the volume";
 "settings.audio.volumeFeedbackDescription" = "Plays the tick when you change the volume by scrolling. By default it follows the macOS “Play feedback when volume is changed” setting; toggling this here overrides it for Status Trio only.";
@@ -606,7 +608,7 @@
 "settings.preview.dark" = "Dark";
 "settings.preview.light" = "Light";
 "settings.preview.toggleHelp" = "Toggle menu bar dark/light preview";
-"settings.audio.displayRules" = "Display Rules";
+"settings.audio.displayRules" = "Device List";
 "settings.audio.activeDeviceFootnote" = "The active audio output device is highlighted with the accent color.";
 "settings.audio.inUse" = "In Use";
 "settings.wifi.symbolScale" = "Wi-Fi Icon Size";
@@ -618,14 +620,14 @@
 "settings.audio.indicatorStyle.arc" = "Arc";
 "settings.audio.bottomIndicatorTitle" = "Bottom Indicator";
 "settings.audio.bottomIndicatorDescription" = "Choose what the bar under the icon reports. The four-dot or arc style stays the same.";
-"settings.audio.bottomIndicatorSource" = "Bottom Indicator Source";
+"settings.audio.bottomIndicatorSource" = "Bottom Indicator";
 "settings.audio.bottomIndicatorSource.volume" = "Volume";
 "settings.audio.bottomIndicatorSource.wifi" = "Wi-Fi";
 "settings.audio.bottomIndicatorSource.battery" = "Battery";
 "settings.audio.bottomIndicatorSource.hidden" = "Hidden";
 "settings.audio.bottomIndicatorSource.metric" = "Custom";
-"settings.audio.bottomIndicatorMetric" = "Custom";
-"settings.audio.bottomIndicatorMetricDescription" = "Choose which hardware metric the bar reports. The four-dot or arc style stays the same.";
+"settings.audio.bottomIndicatorMetric" = "Metric";
+"settings.audio.bottomIndicatorMetricDescription" = "Choose which metric the bottom bar reports. The four-dot or arc style stays the same.";
 "settings.audio.airPodsInlineControlsTitle" = "Headphone Controls";
 "settings.audio.airPodsInlineControls" = "Show AirPods controls on the volume panel";
 "settings.audio.airPodsInlineControlsDescription" = "Show Conversation Awareness, Spatial Audio, and Adaptive controls beside your AirPods output. Disable to hide these private-API controls.";
@@ -732,7 +734,7 @@
 "settings.appleDevicesAndBattery" = "Show Apple devices and battery";
 "settings.appleTrustHelp" = "For iPhone and iPad, connect once with a cable, unlock the device, and tap Trust. Wireless readings also need Wi-Fi sync with this Mac. Apple Watch is read through its trusted paired iPhone.";
 "settings.appleBluetoothReadHelp" = "A Bluetooth reading may make the phone ask to pair. Repeated failures pause that device; use the panel's refresh button to retry.";
-"settings.appleDevicesAndBattery.description" = "Shows trusted Apple devices and nearby named Apple Bluetooth devices in the Bluetooth list.";
+"settings.appleDevicesAndBattery.description" = "Shows trusted Apple devices and named nearby Apple Bluetooth devices. iPhone and iPad read after one cable pairing, unlock, and Trust.";
 "settings.appleBackgroundRefresh" = "Refresh Apple batteries in the background";
 "settings.appleBackgroundRefresh.description" = "Refresh selected Apple device batteries while the status panel is closed.";
 "settings.appleBackgroundRefresh.interval" = "Background battery refresh interval";
@@ -1062,8 +1064,8 @@
 "brightness.backend.automatic" = "Automatic";
 "brightness.backend.directDDC" = "Direct DDC";
 "brightness.backend.betterDisplay" = "BetterDisplay";
-"settings.brightness.description" = "Turn a display off to hide its brightness row.";
-"settings.brightness.backend" = "Brightness Backend";
+"settings.brightness.description" = "These switches only hide that display's brightness row in the status panel. Brightness control is unchanged.";
+"settings.brightness.backend" = "Brightness Control Method";
 // About: community, author social links and more apps
 "settings.about.social.title" = "Follow the Author";
 "settings.about.social.douyin" = "Douyin";
@@ -1110,6 +1112,7 @@
 "settings.menuBarRightClickAction.openSoundSettings" = "Open Sound settings";
 "settings.tab.brightness" = "Brightness";
 "settings.brightness.group.title" = "Connected Displays";
+"settings.brightness.group.betterDisplay" = "BetterDisplay";
 "settings.brightness.empty" = "No displays are connected.";
 "settings.brightness.builtIn" = "Built-in";
 "settings.brightness.internalBackend.description" = "Built-in display brightness uses the DisplayServices backend.";
@@ -1130,8 +1133,8 @@
 "settings.battery.colors.discharging" = "Discharging (not on power)";
 "battery.lowPowerMode.autoEnable" = "Auto-enable Low Power Mode";
 "battery.lowPowerMode.autoEnableDescription" = "When unplugged, Low Power Mode turns on automatically once the battery drops below the low-battery threshold. Once per low-battery cycle.";
-"settings.battery.autoLowPowerThreshold" = "Auto-enable Low Power Mode";
-"settings.battery.autoLowPowerThresholdDescription" = "Low Power Mode turns on when the battery drops below this level on battery.";
+"settings.battery.autoLowPowerThreshold" = "Auto-enable threshold";
+"settings.battery.autoLowPowerThresholdDescription" = "Low Power Mode turns on when the battery drops to this level while on battery.";
 "battery.highPowerMode.toggle" = "High Power Mode";
 "battery.details.highPower.unsupported" = "Not supported";
 "battery.highPowerMode.toggleDescription" = "Runs the fans faster for higher sustained performance, at the cost of more fan noise.";
@@ -1266,24 +1269,25 @@
 "hardware.monitor.settings.networkScale" = "Fixed network scale";
 "hardware.monitor.settings.networkScale.description" = "Off: auto-scale to the window peak with 15% headroom. On: use the download/upload caps as the full scale.";
 "hardware.monitor.settings.background" = "Keep background history";
-"hardware.monitor.settings.background.description" = "Keep the last 3 minutes of hardware history while the panel is closed, at the panel refresh rate, so a detail page opens with a trend.";
+"hardware.monitor.settings.background.description" = "Keeps up to 5 minutes of hardware history while the panel is closed at the refresh rate above, so a detail page opens with a trend.";
 "hardware.monitor.background.off" = "Off";
 "hardware.monitor.background.seconds" = "%d s";
 "hardware.monitor.settings.historyWindow" = "History window";
 "hardware.monitor.settings.historyWindow.description" = "How far back the detail trend goes.";
 "hardware.monitor.settings.historyWindow.minutes" = "%d min";
 "hardware.monitor.settings.panelRefresh" = "Hardware data refresh interval";
-"hardware.monitor.settings.panelRefresh.description" = "How often hardware data updates while the panel is open. With background history on, the closed panel keeps the same cadence. Each metric still has its own read floor. Faster is more live but reads more; slower saves power.";
+"hardware.monitor.settings.panelRefresh.description" = "How often hardware data refreshes. With background history on, the closed panel keeps the same rate. Faster is more live but reads more; slower saves power.";
 "hardware.monitor.settings.showRings" = "Show rings";
 "hardware.monitor.settings.colorTitle" = "Colors";
 "hardware.monitor.settings.resetColors" = "Reset colors";
 "hardware.monitor.settings.showRings.description" = "Show the CPU, GPU, memory and disk-capacity rings; each can be turned off independently.";
-"hardware.monitor.settings.splitGapProgress" = "Split ring progress left and right";
-"hardware.monitor.settings.splitGapProgress.description" = "Draw the ring progress in two halves: the left half is 0–50% and the right half 50–100%, so the percentage at the top no longer hides progress.";
+"hardware.monitor.settings.splitGapProgress" = "Split Ring Progress";
+"hardware.monitor.settings.splitGapProgress.description" = "Left half 0–50%, right half 50–100%, so the value at the top no longer hides progress.";
 "hardware.monitor.settings.showSummaryRow" = "Show bottom bar";
 
 /* Status-panel per-item visibility */
 "hardware.monitor.settings.group.rings" = "Rings";
+"hardware.monitor.settings.group.sampling" = "Sampling & Trends";
 "hardware.monitor.settings.group.bottomBar" = "Bottom bar";
 "hardware.monitor.settings.item.diskCapacity" = "Disk capacity";
 "hardware.monitor.settings.showSummaryRow.description" = "Show download, upload, fan speed and disk I/O below the rings; each can be turned off independently.";
@@ -1298,7 +1302,7 @@
 "hardware.monitor.download.help" = "Total download throughput across physical network interfaces.";
 "hardware.monitor.upload.help" = "Total upload throughput across physical network interfaces.";
 
-"settings.transfer.title" = "Settings transfer";
+"settings.transfer.title" = "Import & Export Settings";
 "settings.transfer.description" = "Save portable preferences as readable JSON, or preview a settings file before importing.";
 "settings.transfer.exclusions" = "Login items, Helper installation, privacy consent, analytics consent and global shortcuts are never transferred. Set these up manually after import.";
 "settings.transfer.export" = "Export…";
@@ -1326,8 +1330,8 @@
 "settings.transfer.done" = "Done";
 "settings.transfer.warningCount" = "Total warnings: %d (showing up to 50).";
 
-"settings.popup.scrollWheelStep" = "Wheel adjustment step";
-"settings.popup.scrollWheelStep.description" = "Change per notch for volume, brightness, and microphone. Trackpad scrolling stays continuous.";
+"settings.popup.scrollWheelStep" = "Wheel Step";
+"settings.popup.scrollWheelStep.description" = "Amount per wheel notch for volume, brightness, and microphone. Trackpads stay continuous.";
 "settings.panel.boldText" = "Bold panel text";
 "settings.panel.boldText.description" = "Titles and values use a bold weight (restores the classic look); turn off for regular weight.";
 "settings.panel.keepOpenForComparison" = "Keep panel open when opening Settings";

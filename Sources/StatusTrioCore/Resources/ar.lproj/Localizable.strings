@@ -24,7 +24,7 @@
 "onboarding.analytics.toggle" = "مشاركة بيانات الاستخدام المجهولة";
 "settings.iconSize" = "حجم الرمز";
 "settings.iconSize.accessibilityValue" = "%d نقطة";
-"settings.iconSize.description" = "يضبط حجم عرض رمز شريط القوائم بين 16 و36 نقطة. يحتفظ رمز Dock بحجم التصميم الثابت.";
+"settings.iconSize.description" = "أيقونة شريط القوائم: 16–36 نقطة. تحتفظ أيقونة Dock بحجمها الثابت.";
 "settings.ringStrokeStyle" = "سمك الحلقة الخارجية";
 "settings.ringStrokeStyle.description" = "اضبط سمك خط حلقة الحالة في شريط القوائم وفي Dock.";
 "settings.ringStrokeStyle.light" = "رفيع";
@@ -49,7 +49,7 @@
 "settings.appIcon.middleIcon.batteryPercentage" = "نسبة البطارية";
 "settings.appIcon.middleIcon.power" = "الطاقة (واط)";
 "settings.appIcon.middleIcon.chargingStatus" = "حالة الشحن";
-"settings.appIcon.middleIcon.chargingStatus.description" = "في هذا الوضع يُعطَّل خيار «إظهار رمز أثناء الشحن أو الاتصال بالطاقة» في القوس العلوي لتجنب تكرار الأيقونة.";
+"settings.appIcon.middleIcon.chargingStatus.description" = "يعرض حالة الشحن بدل النسبة المئوية. يُطفأ مؤشر الشحن في القوس العلوي لتجنب التكرار.";
 "settings.appIcon.middleIcon.size" = "حجم الأيقونة الوسطى";
 "settings.appIcon.middleIcon.size.description" = "حجم واحد لكل محتوى المنتصف: Wi-Fi وBluetooth ومصدر الإدخال والأرقام.";
 "settings.appIcon.middleIcon.networkWarnings" = "إعطاء أولوية لمشاكل الشبكة";
@@ -92,7 +92,7 @@
 "settings.bluetooth.networkErrorPriority" = "إعطاء أولوية لأخطاء الشبكة";
 "settings.bluetooth.networkErrorPriorityDescription" = "تبقى أيقونة الشبكة ظاهرة عند انقطاع الاتصال أو غياب الإنترنت بدلًا من أيقونة جهاز Bluetooth.";
 "settings.bluetooth.batteryLevels" = "عرض مستويات بطارية Bluetooth";
-"settings.bluetooth.batteryLevelsDescription" = "تقرأ مستويات بطارية AirPods أثناء عرض إدخال Bluetooth. لن يظهر طلب إذن إضافي.";
+"settings.bluetooth.batteryLevelsDescription" = "يقرأ مستويات بطارية ملحقات Bluetooth المدعومة الظاهرة في اللوحة.";
 "settings.bluetooth.listeningModeTitle" = "عرض عناصر التحكم في وضع السمع";
 "settings.bluetooth.listeningModeDescription" = "يدعم AirPods وبعض سماعات HUAWEI: يعرض كبسولات إلغاء الضوضاء/الشفافية/إيقاف على الأجهزة المتصلة. لا تُدعم سوى بعض طرز HUAWEI؛ وإذا فشل التبديل فسيُستعاد الوضع السابق.";
 "settings.bluetooth.listeningModePreview" = "معاينة وضع الاستماع (للاختبار فقط)";
@@ -146,11 +146,11 @@
 "settings.audio.maximumVisibleInput" = "الحد الأقصى لأجهزة الإدخال الظاهرة";
 "settings.audio.maximumVisibleInputDescription" = "عدد أجهزة الإدخال المعروضة قبل زر التوسيع.";
 "settings.audio.orderTitle" = "ترتيب أجهزة الإخراج";
-"settings.audio.orderDescription" = "اسحب الأجهزة لتغيير ترتيبها في نافذة مستوى الصوت. ألغِ تحديد الأجهزة التي لا تستخدمها لإخفائها، ويظل جهاز الإخراج النشط ظاهرًا دائمًا. تظهر الأجهزة الجديدة في النهاية.";
+"settings.audio.orderDescription" = "تظهر الأجهزة في اللوحة افتراضيًا. اسحب لإعادة الترتيب، وأزل التحديد لإخفاء جهاز. يبقى الخرج النشط ظاهرًا دائمًا.";
 "settings.audio.orderEmpty" = "لا تتوفر أجهزة إخراج.";
 "settings.audio.showDevice" = "إظهار في لوحة الحالة";
 "settings.audio.inputOrderTitle" = "ترتيب أجهزة الإدخال";
-"settings.audio.inputOrderDescription" = "اسحب الأجهزة لتغيير ترتيبها في قسم إدخال الصوت. ألغِ تحديد الأجهزة التي لا تستخدمها لإخفائها، ويظل جهاز الإدخال الحالي ظاهرًا دائمًا. تظهر الأجهزة الجديدة في النهاية.";
+"settings.audio.inputOrderDescription" = "تظهر أجهزة الإدخال في اللوحة افتراضيًا. اسحب لإعادة الترتيب، وأزل التحديد لإخفاء جهاز. يبقى الإدخال النشط ظاهرًا دائمًا.";
 "settings.audio.inputOrderEmpty" = "لا تتوفر أجهزة إدخال.";
 "settings.audio.inputOrderSectionOff" = "شغّل إدخال الصوت في لوحة الحالة › عناصر لوحة الحالة لإعادة ترتيب أجهزة الإدخال أو إخفائها.";
 "settings.about.version" = "الإصدار %@";
@@ -164,6 +164,7 @@
 "settings.about.copyright" = "© lingyired";
 "settings.battery.title" = "عرض البطارية";
 "settings.battery.group.icon" = "قوس البطارية العلوي";
+"settings.battery.sharedSyncNote" = "إعدادات الحلقة هذه مشتركة مع صفحة «البطارية»؛ وتُزامَن التغييرات بين الصفحتين.";
 "settings.battery.group.colors" = "الحالة والألوان";
 "settings.battery.group.chargingEffects" = "تأثيرات الشحن";
 "settings.battery.group.charging" = "الشحن";
@@ -172,7 +173,7 @@
 "settings.battery.group.topMarkers" = "العلامات العلوية";
 "settings.ringContent.group" = "Ring Content";
 "settings.ringContent.row.title" = "Ring Shows";
-"settings.ringContent.row.description" = "Choose what the outer ring displays: this Mac's battery or your AirPods battery.";
+"settings.ringContent.row.description" = "اختر ما تعرضه الحلقة الخارجية: بطارية هذا الـ Mac أو AirPods أو مؤشر عتاد مخصص.";
 "settings.ringContent.systemBattery" = "This Mac's Battery";
 "settings.ringContent.airPodsBattery" = "AirPods Battery";
 "settings.ringContent.airPodsGroup" = "AirPods Ring";
@@ -357,9 +358,9 @@
 "settings.network.showLocalIP.description" = "يعرض عنوان الشبكة المحلية لهذا الـ Mac في سطر الشبكة، قبل تفاصيل Wi-Fi.";
 
 "settings.network.permissionNotDeterminedTitle" = "مطلوب إذن الموقع";
-"settings.network.permissionNotDeterminedDescription" = "يحتاج Status Trio إلى الوصول إلى موقعك لإظهار شبكات Wi‑Fi. انقر أدناه للمنح.";
+"settings.network.permissionNotDeterminedDescription" = "تعمل حالة الاتصال دون الموقع. تتطلب قراءة اسم Wi-Fi والشبكات القريبة إذن الموقع. امنحه أدناه.";
 "settings.network.permissionDeniedTitle" = "إذن الموقع معطّل";
-"settings.network.permissionDeniedDescription" = "بدون الوصول إلى الموقع، لا يمكن عرض شبكات Wi‑Fi. فعّله في إعدادات النظام.";
+"settings.network.permissionDeniedDescription" = "تظل حالة الاتصال تعمل. دون إذن الموقع، يبقى اسم Wi-Fi والشبكات القريبة مخفيًا. فعّله في إعدادات النظام.";
 "settings.audio.externalVolume.title" = "مستوى صوت الشاشة الخارجية";
 "settings.audio.externalVolume.controlMethod" = "طريقة التحكم";
 "settings.audio.externalVolume.controlMethodDescription" = "إذا لم تتمكن أدوات التحكم في مستوى الصوت بلوحة الحالة من التحكم في هذا الجهاز، فاستخدم BetterDisplay.";
@@ -433,9 +434,9 @@
 "accessibility.status" = "%@, %@, %@";
 "accessibility.battery" = "البطارية %d%%";
 "accessibility.volume" = "مستوى الصوت %@";
-"settings.statusCheck.title" = "فترة فحص الحالة";
+"settings.statusCheck.title" = "تكرار فحص الحالة";
 "settings.quickActions.title" = "إجراءات سريعة";
-"settings.refreshInterval" = "فترة تحديث الحالة";
+"settings.refreshInterval" = "تكرار الفحص";
 "settings.refreshInterval.onBattery" = "على البطارية";
 "settings.refreshInterval.onPower" = "متصل بالطاقة";
 "settings.refreshInterval.description" = "يفحص حالة البطارية وWi-Fi والصوت دوريًا. الفواصل الأقصر تفحص أكثر.";
@@ -460,8 +461,9 @@
 "settings.keepAwake.helperReady" = "المساعد المميز جاهز.";
 "settings.keepAwake.helperHint" = "تشغيل «البقاء مستيقظًا عند إغلاق الغطاء» (أو التحكم في وضع الطاقة المنخفضة) يثبّت المساعد ويطلب الإذن تلقائيًا.";
 "settings.keepAwake.allowBattery" = "السماح أثناء استخدام البطارية";
-"settings.keepAwake.autoOff" = "إيقاف منع النوم عند إغلاق الغطاء عند انخفاض البطارية";
-"settings.keepAwake.onlyLid" = "ينطبق فقط على «البقاء مستيقظًا عند إغلاق الغطاء»";
+"settings.keepAwake.autoOff" = "الإيقاف عند انخفاض البطارية";
+"settings.keepAwake.autoOff.description" = "يوقف منع السكون عند إغلاق الغطاء عند 20% من البطارية أو أقل.";
+"settings.keepAwake.onlyLid" = "ينطبق فقط على منع السكون عند إغلاق الغطاء؛ يبقى «إبقاء الشاشة مستيقظة» يعمل.";
 "quickActions.displaySleep" = "إبقاء الشاشة مستيقظة";
 "quickActions.displaySleep.description" = "منع الشاشة من الدخول في وضع النوم أثناء الخمول.";
 "quickActions.lidSleep" = "إبقاء الاستيقاظ مع إغلاق الغطاء";
@@ -488,7 +490,7 @@
 "quickActions.turnedOffLowBattery" = "البطارية منخفضة — أُوقف منع النوم عند إغلاق الغطاء.";
 "quickActions.turnedOffTimerEnded" = "انتهى المؤقت — أُوقف تلقائيًا.";
 "quickActions.error" = "تعذّر تغيير الإعداد: %@";
-"settings.panel.background.title" = "خلفية اللوحة";
+"settings.panel.background.title" = "المظهر";
 "settings.panel.background.style" = "نمط الخلفية";
 "settings.panel.background.style.description" = "اختر طريقة رسم خلفية لوحة الحالة.";
 "settings.panel.background.style.liquidGlass" = "Liquid Glass";
@@ -503,17 +505,17 @@
 "settings.panel.levelSliderThickness.description" = "رسم أشرطة مستوى الصوت والميكروفون بنفس ارتفاع كبسولة السطوع.";
 "settings.panel.openBehavior.title" = "التفاصيل وطريقة الفتح";
 "settings.panel.returnsToSummaryOnOpen" = "إعادة فتح آخر صفحة تفاصيل";
-"settings.panel.returnsToSummaryOnOpen.description" = "عند التفعيل، تعود لوحة الحالة عند إعادة فتحها إلى صفحة التفاصيل التي كانت معروضة عند إغلاقها؛ وإلا فتبدأ دائمًا من النظرة العامة.";
+"settings.panel.returnsToSummaryOnOpen.description" = "عند إعادة الفتح يعود إلى آخر صفحة تفاصيل؛ وإلا تبدأ اللوحة دائمًا من الملخص.";
 "settings.panel.showsDetailsAlongside" = "إظهار التفاصيل بجانب اللوحة";
 "settings.panel.showsDetailsAlongside.description" = "عند التفعيل، تُفتح صفحات التفاصيل يمين لوحة الحالة ثم يسارها. وإذا لم يتسع أي جانب، تُفتح داخل اللوحة.";
 "settings.panel.showsPanelOnHover" = "إظهار اللوحة عند التمرير";
-"settings.panel.showsPanelOnHover.description" = "عند التفعيل، يؤدي إبقاء المؤشر على رمز شريط القوائم نحو 0.3 ثانية إلى فتح لوحة الحالة. الانتقال إلى اللوحة يُبقيها مفتوحة، ومغادرة الرمز واللوحة يغلقها بعد تأخير قصير. النقر لا يزال يبدّل العرض.";
+"settings.panel.showsPanelOnHover.description" = "إبقاء المؤشر على أيقونة شريط القوائم نحو 0.3 ثانية يفتح اللوحة. الانتقال إليها يبقيها مفتوحة؛ مغادرة الاثنين يغلقها بعد تأخير قصير. النقر ما زال يبدّلها.";
 "settings.popup.volumeScroll.group" = "تمرير اللوحة";
 "settings.audio.volumeScroll.group" = "تمرير مستوى الصوت";
 "settings.popup.panelScroll" = "تمرير اللوحة لضبط مستوى الصوت";
 "settings.popup.panelScroll.description" = "يؤدي التمرير فوق المناطق الفارغة في صفحة الملخص إلى تغيير مستوى صوت الإخراج. تُضبط أشرطة التمرير دائمًا بالتمرير.";
 "settings.popup.volumeScroll.natural" = "التمرير الطبيعي";
-"settings.popup.volumeScroll.natural.description" = "عند التفعيل، يؤدي التمرير لأعلى إلى زيادة القيمة تحت المؤشر (مستوى الصوت أو السطوع أو كسب الإدخال)؛ وعند الإيقاف يتبع اتجاه التمرير في النظام. إذا استمر انخفاض القيمة عند التمرير لأعلى بعد تشغيل هذا الخيار، فاستثنِ Status Trio في MOS أو Scroll Reverser أو LinearMouse أو تطبيق مشابه، عادةً عبر قائمة استثناءات/تجاهل.";
+"settings.popup.volumeScroll.natural.description" = "مرّر لأعلى لرفع القيمة تحت المؤشر؛ وعند الإيقاف يتبع اتجاه النظام. إذا بقي الاتجاه معكوسًا بعد تشغيل هذا الخيار، فأضف Status Trio إلى قائمة استثناءات/تجاهل في MOS أو Scroll Reverser أو LinearMouse.";
 "settings.audio.volumeFeedbackTitle" = "التغذية الراجعة لمستوى الصوت";
 "settings.audio.volumeFeedback" = "تشغيل صوت عند تغيير مستوى الصوت بالتمرير";
 "settings.audio.volumeFeedbackDescription" = "يشغّل النقرة عند تغيير مستوى الصوت بالتمرير. الافتراضي يتبع إعداد macOS «تشغيل التغذية الراجعة عند تغيير مستوى الصوت»؛ التبديل هنا ينطبق على Status Trio فقط.";
@@ -607,7 +609,7 @@
 "settings.preview.dark" = "داكن";
 "settings.preview.light" = "فاتح";
 "settings.preview.toggleHelp" = "تبديل معاينة شريط القوائم بين الداكن والفاتح";
-"settings.audio.displayRules" = "قواعد العرض";
+"settings.audio.displayRules" = "قائمة الأجهزة";
 "settings.audio.activeDeviceFootnote" = "يتم تمييز جهاز إخراج الصوت النشط بلون التمييز.";
 "settings.audio.inUse" = "قيد الاستخدام";
 "settings.wifi.symbolScale" = "حجم أيقونة Wi-Fi";
@@ -619,14 +621,14 @@
 "settings.audio.indicatorStyle.arc" = "قوس";
 "settings.audio.bottomIndicatorTitle" = "مؤشر سفلي";
 "settings.audio.bottomIndicatorDescription" = "اختر ما يعرضه الشريط أسفل الأيقونة. يبقى نمط النقاط الأربع أو القوس كما هو.";
-"settings.audio.bottomIndicatorSource" = "مصدر المؤشر السفلي";
+"settings.audio.bottomIndicatorSource" = "مؤشر سفلي";
 "settings.audio.bottomIndicatorSource.volume" = "مستوى الصوت";
 "settings.audio.bottomIndicatorSource.wifi" = "Wi-Fi";
 "settings.audio.bottomIndicatorSource.battery" = "البطارية";
 "settings.audio.bottomIndicatorSource.hidden" = "مخفي";
 "settings.audio.bottomIndicatorSource.metric" = "مخصص";
-"settings.audio.bottomIndicatorMetric" = "مخصص";
-"settings.audio.bottomIndicatorMetricDescription" = "اختر مؤشر العتاد الذي يعرضه الشريط. يبقى نمط النقاط الأربع أو القوس كما هو.";
+"settings.audio.bottomIndicatorMetric" = "المؤشر";
+"settings.audio.bottomIndicatorMetricDescription" = "اختر المؤشر الذي يعرضه الشريط السفلي. يبقى نمط النقاط أو القوس كما هو.";
 "settings.audio.airPodsInlineControlsTitle" = "عناصر تحكم السماعات";
 "settings.audio.airPodsInlineControls" = "عرض عناصر تحكم AirPods في لوحة الصوت";
 "settings.audio.airPodsInlineControlsDescription" = "يعرض أدوات التحكم في إدراك المحادثة والصوت المكاني والتكيّف بجانب مخرج AirPods. عطّل لإخفاء هذه الأدوات القائمة على واجهات برمجية خاصة.";
@@ -733,7 +735,7 @@
 "settings.appleDevicesAndBattery" = "إظهار أجهزة Apple والبطارية";
 "settings.appleTrustHelp" = "يجب توصيل iPhone وiPad مرة واحدة بالكابل، وفك القفل، ثم الضغط على «الثقة». وتتطلب القراءة اللاسلكية أيضًا مزامنة Wi‑Fi على الشبكة نفسها. تُقرأ Apple Watch عبر iPhone الموثوق.";
 "settings.appleBluetoothReadHelp" = "قد تطلب القراءة عبر Bluetooth الاقتران. تؤدي الإخفاقات المتكررة إلى إيقاف قراءة ذلك الجهاز مؤقتًا؛ استخدم زر التحديث في اللوحة لإعادة المحاولة.";
-"settings.appleDevicesAndBattery.description" = "تظهر أجهزة Apple الموثوقة والقريبة ذات الأسماء في قائمة Bluetooth.";
+"settings.appleDevicesAndBattery.description" = "يعرض أجهزة Apple الموثوقة وأجهزة Apple Bluetooth القريبة المسماة. يُقرأ iPhone وiPad بعد إقران واحد بالكابل وفتح القفل والثقة.";
 "settings.appleBackgroundRefresh" = "تحديث بطاريات Apple في الخلفية";
 "settings.appleBackgroundRefresh.description" = "تحديث بطاريات أجهزة Apple المحددة عند إغلاق لوحة الحالة.";
 "settings.appleBackgroundRefresh.interval" = "فترة تحديث شحن البطارية في الخلفية";
@@ -1063,8 +1065,8 @@
 "brightness.backend.automatic" = "تلقائي";
 "brightness.backend.directDDC" = "DDC مباشر";
 "brightness.backend.betterDisplay" = "BetterDisplay";
-"settings.brightness.description" = "أوقف تشغيل شاشة لإخفاء صف السطوع الخاص بها.";
-"settings.brightness.backend" = "خلفية السطوع";
+"settings.brightness.description" = "هذه المفاتيح تخفي فقط صف السطوع لذلك العرض في لوحة الحالة. لا تتغير طريقة التحكم بالسطوع.";
+"settings.brightness.backend" = "طريقة التحكم بالسطوع";
 // About: community, author social links and more apps
 "settings.about.social.title" = "متابعة المؤلف";
 "settings.about.social.douyin" = "Douyin";
@@ -1111,6 +1113,7 @@
 "settings.menuBarRightClickAction.openSoundSettings" = "فتح إعدادات الصوت";
 "settings.tab.brightness" = "السطوع";
 "settings.brightness.group.title" = "الشاشات المتصلة";
+"settings.brightness.group.betterDisplay" = "BetterDisplay";
 "settings.brightness.empty" = "لا توجد شاشات متصلة.";
 "settings.brightness.builtIn" = "مدمجة";
 "settings.brightness.internalBackend.description" = "يستخدم سطوع الشاشة المدمجة خلفية DisplayServices.";
@@ -1131,8 +1134,8 @@
 "settings.battery.colors.discharging" = "التفريغ (بدون طاقة)";
 "battery.lowPowerMode.autoEnable" = "تشغيل وضع الطاقة المنخفضة تلقائيًا";
 "battery.lowPowerMode.autoEnableDescription" = "بعد فصل الطاقة، يتم تشغيل وضع الطاقة المنخفضة تلقائيًا عندما ينخفض مستوى البطارية إلى ما دون حد البطارية المنخفضة. مرة واحدة لكل دورة بطارية منخفضة.";
-"settings.battery.autoLowPowerThreshold" = "تشغيل وضع الطاقة المنخفضة تلقائيًا";
-"settings.battery.autoLowPowerThresholdDescription" = "يتم تشغيل وضع الطاقة المنخفضة تلقائيًا عند انخفاض البطارية عن هذا المستوى أثناء العمل على البطارية.";
+"settings.battery.autoLowPowerThreshold" = "عتبة التفعيل التلقائي";
+"settings.battery.autoLowPowerThresholdDescription" = "يُفعّل وضع الطاقة المنخفضة عند العمل على البطارية عندما ينخفض مستوى البطارية إلى هذه القيمة.";
 "battery.highPowerMode.toggle" = "وضع الطاقة العالية";
 "battery.details.highPower.unsupported" = "غير مدعوم";
 "battery.highPowerMode.toggleDescription" = "يزيد سرعة المراوح لتحقيق أداء مستمر أعلى، مقابل ضجيج أكبر.";
@@ -1267,24 +1270,25 @@
 "hardware.monitor.settings.networkScale" = "مقياس الشبكة الثابت";
 "hardware.monitor.settings.networkScale.description" = "إيقاف: تحجيم تلقائي حسب ذروة النافذة بهامش 15%. تشغيل: حدود التنزيل/الرفع كمقياس كامل.";
 "hardware.monitor.settings.background" = "الاحتفاظ بالسجل";
-"hardware.monitor.settings.background.description" = "يسجّل آخر 3 دقائق من سجل العتاد أثناء إغلاق اللوحة بمعدل تحديث اللوحة، لتُفتح صفحة التفاصيل مع اتجاه.";
+"hardware.monitor.settings.background.description" = "يحتفظ بما يصل إلى 5 دقائق من سجل العتاد أثناء إغلاق اللوحة بالمعدل أعلاه، لتُفتح صفحة التفاصيل مع اتجاه.";
 "hardware.monitor.background.off" = "إيقاف";
 "hardware.monitor.background.seconds" = "%d ث";
 "hardware.monitor.settings.historyWindow" = "مدة السجل";
 "hardware.monitor.settings.historyWindow.description" = "إلى أي مدى يُحفظ اتجاه صفحة التفاصيل.";
 "hardware.monitor.settings.historyWindow.minutes" = "%d د";
 "hardware.monitor.settings.panelRefresh" = "فترة تحديث بيانات العتاد";
-"hardware.monitor.settings.panelRefresh.description" = "عدد مرات تحديث بيانات العتاد أثناء فتح اللوحة. عند تفعيل السجل في الخلفية، تحافظ اللوحة المغلقة على الإيقاع نفسه. ولكل مقياس حد قراءة خاص به. الأسرع أكثر حيوية لكنه يقرأ أكثر؛ الأبطأ يوفر الطاقة.";
+"hardware.monitor.settings.panelRefresh.description" = "معدل تحديث بيانات العتاد. عند تفعيل السجل في الخلفية، تحتفظ اللوحة المغلقة بالمعدل نفسه. الأسرع أكثر حيوية لكنه يقرأ أكثر، والأبطأ يوفر الطاقة.";
 "hardware.monitor.settings.showRings" = "إظهار الحلقات";
 "hardware.monitor.settings.colorTitle" = "الألوان";
 "hardware.monitor.settings.resetColors" = "إعادة تعيين الألوان";
 "hardware.monitor.settings.showRings.description" = "إظهار حلقات CPU / GPU / RAM / SSD.";
-"hardware.monitor.settings.splitGapProgress" = "تقسيم تقدّم الحلقة يمينًا ويسارًا";
-"hardware.monitor.settings.splitGapProgress.description" = "يعرض حلقات المراقبة الأربع على نصفين: النصف الأيسر من 0 إلى 50% والنصف الأيمن من 50 إلى 100%، بحيث لم تعد النسبة المئوية في الفجوة العلوية تحجب التقدّم.";
+"hardware.monitor.settings.splitGapProgress" = "تقسيم تقدم الحلقة";
+"hardware.monitor.settings.splitGapProgress.description" = "النصف الأيسر 0–50% والنصف الأيمن 50–100%، حتى لا تحجب القيمة العلوية التقدم.";
 "hardware.monitor.settings.showSummaryRow" = "إظهار الشريط السفلي";
 
 /* Status-panel per-item visibility */
 "hardware.monitor.settings.group.rings" = "مؤشرات الحلقات";
+"hardware.monitor.settings.group.sampling" = "الاستعيان والاتجاهات";
 "hardware.monitor.settings.group.bottomBar" = "الشريط السفلي";
 "hardware.monitor.settings.item.diskCapacity" = "سعة القرص";
 "hardware.monitor.settings.showSummaryRow.description" = "إظهار التنزيل والرفع والمروحة وإدخال/إخراج القرص أسفل الحلقات.";
@@ -1299,7 +1303,7 @@
 "hardware.monitor.download.help" = "إجمالي سرعة التنزيل عبر واجهات الشبكة الفعلية.";
 "hardware.monitor.upload.help" = "إجمالي سرعة الرفع عبر واجهات الشبكة الفعلية.";
 
-"settings.transfer.title" = "نقل الإعدادات";
+"settings.transfer.title" = "استيراد وتصدير الإعدادات";
 "settings.transfer.description" = "احفظ التفضيلات القابلة للنقل بصيغة JSON مقروءة، أو عاين ملف إعدادات قبل استيراده.";
 "settings.transfer.exclusions" = "لا يتم أبداً نقل عناصر تسجيل الدخول أو تثبيت Helper أو أذونات الخصوصية أو الموافقة على التحليلات أو الاختصارات العامة. قم بإعدادها يدوياً بعد الاستيراد.";
 "settings.transfer.export" = "تصدير…";
@@ -1327,8 +1331,8 @@
 "settings.transfer.done" = "تم";
 "settings.transfer.warningCount" = "إجمالي التحذيرات: %d (يُعرض ما يصل إلى 50).";
 
-"settings.popup.scrollWheelStep" = "خطوة ضبط العجلة";
-"settings.popup.scrollWheelStep.description" = "مقدار تغيير الصوت والسطوع والميكروفون لكل نقرة. تظل لوحة التعقب سلسة.";
+"settings.popup.scrollWheelStep" = "خطوة العجلة";
+"settings.popup.scrollWheelStep.description" = "المقدار لكل نقرة عجلة لمستوى الصوت والسطوع والميكروفون. تبقى لوحات التتبع متصلة.";
 "settings.panel.boldText" = "نص اللوحة العريض";
 "settings.panel.boldText.description" = "تُعرض العناوين والقيم بخط عريض (المظهر السابق)؛ عند الإيقاف يبقى الوزن العادي.";
 "settings.panel.keepOpenForComparison" = "إبقاء اللوحة مفتوحة عند فتح الإعدادات";

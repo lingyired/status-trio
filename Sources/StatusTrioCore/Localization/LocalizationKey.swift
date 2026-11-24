@@ -289,6 +289,7 @@ enum LocalizationKey: String, CaseIterable, Hashable, Sendable {
     case hardwareMonitorUpload = "hardware.monitor.upload"
     case hardwareMonitorVolume = "hardware.monitor.volume"
     case hardwareMonitorSignalStrength = "hardware.monitor.signalStrength"
+    case hardwareMonitorSettingsGroupSampling = "hardware.monitor.settings.group.sampling"
     case hardwareMonitorSettingsGroupRings = "hardware.monitor.settings.group.rings"
     case hardwareMonitorSettingsGroupBottomBar = "hardware.monitor.settings.group.bottomBar"
     case hardwareMonitorSettingsItemDiskCapacity = "hardware.monitor.settings.item.diskCapacity"
@@ -324,6 +325,7 @@ enum LocalizationKey: String, CaseIterable, Hashable, Sendable {
     case settingsKeepAwakeHelperHint = "settings.keepAwake.helperHint"
     case settingsKeepAwakeAllowBattery = "settings.keepAwake.allowBattery"
     case settingsKeepAwakeAutoOff = "settings.keepAwake.autoOff"
+    case settingsKeepAwakeAutoOffDescription = "settings.keepAwake.autoOff.description"
     case settingsKeepAwakeOnlyLid = "settings.keepAwake.onlyLid"
 
     // Quick actions: keep-awake toggles (issue #295).
@@ -390,6 +392,7 @@ enum LocalizationKey: String, CaseIterable, Hashable, Sendable {
     case settingsBrightnessDescription = "settings.brightness.description"
     case settingsBrightnessBackend = "settings.brightness.backend"
     case settingsBrightnessGroupTitle = "settings.brightness.group.title"
+    case settingsBrightnessGroupBetterDisplay = "settings.brightness.group.betterDisplay"
     case settingsBrightnessEmpty = "settings.brightness.empty"
     case settingsBrightnessBuiltIn = "settings.brightness.builtIn"
     case settingsBrightnessInternalBackendDescription = "settings.brightness.internalBackend.description"
@@ -854,6 +857,7 @@ enum LocalizationKey: String, CaseIterable, Hashable, Sendable {
     case settingsBatteryMacBehaviorDescription = "settings.battery.macBehaviorDescription"
     case settingsBatteryDesignerEntry = "settings.battery.designerEntry"
     case settingsBatteryGroupIcon = "settings.battery.group.icon"
+    case settingsBatterySharedSyncNote = "settings.battery.sharedSyncNote"
     case settingsBatteryGroupColors = "settings.battery.group.colors"
     case settingsBatteryGroupChargingEffects = "settings.battery.group.chargingEffects"
     case settingsBatteryGroupCharging = "settings.battery.group.charging"
