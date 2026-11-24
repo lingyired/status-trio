@@ -472,6 +472,7 @@
 "quickActions.timer.choose" = "継続時間を選択";
 "quickActions.lidSleep.external" = "「蓋を閉じてもスリープしない」は他のアプリで既にオンです。Status Trio は上書きしません。";
 "quickActions.lidSleep.helperStarting" = "特権ヘルパーを起動しています。しばらくしてからもう一度お試しください。";
+"quickActions.lidSleep.failureCode" = "（エラーコード %@）";
 "quickActions.lidSleep.unreadable" = "「蓋を閉じてもスリープしない」の状態を読み取れませんでした。変更していません。";
 "quickActions.lidSleep.externalNamed" = "「蓋を閉じてもスリープしない」は他のアプリで既にオンです（%@ の可能性）。Status Trio は上書きしません。";
 "quickActions.timer.thirtyMinutes" = "30分";

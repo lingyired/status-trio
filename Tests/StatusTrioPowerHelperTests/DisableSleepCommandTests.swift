@@ -37,6 +37,72 @@ final class DisableSleepCommandTests: XCTestCase {
         try await runner.setDisableSleep(enabled: true)
     }
 
+    func testDiagnosticDecodeSplitsCodeAndDetail() {
+        let coded = DisableSleepDiagnostic.decode("DS-R4: SleepDisabled not found")
+        XCTAssertEqual(coded.code, .readKeyMissing)
+        XCTAssertEqual(coded.detail, "SleepDisabled not found")
+        XCTAssertEqual(DisableSleepDiagnostic.decode("DS-R2").code, .readPmsetTimedOut)
+
+        let legacy = DisableSleepDiagnostic.decode("Disable sleep state is unavailable.")
+        XCTAssertNil(legacy.code)
+        XCTAssertEqual(legacy.detail, "Disable sleep state is unavailable.")
+        XCTAssertNil(DisableSleepDiagnostic.decode(nil).code)
+    }
+
+    func testDiagnosticWireStringRoundTrips() {
+        XCTAssertEqual(DisableSleepDiagnostic.readKeyMissing.wireString(detail: " x "), "DS-R4: x")
+        XCTAssertEqual(DisableSleepDiagnostic.readPmsetTimedOut.wireString(), "DS-R2")
+        let decoded = DisableSleepDiagnostic.decode(
+            DisableSleepDiagnostic.writePmsetNonZeroExit.wireString(detail: "Unsupported mode 3")
+        )
+        XCTAssertEqual(decoded.code, .writePmsetNonZeroExit)
+        XCTAssertEqual(decoded.detail, "Unsupported mode 3")
+    }
+
+    func testParseSleepDisabledDiagnosedDistinguishesMissingAndBadValue() {
+        XCTAssertEqual(
+            DisableSleepCommand.parseSleepDisabledDiagnosed(fromPmsetOutput: " SleepDisabled\t\t1"),
+            .value(true)
+        )
+        XCTAssertEqual(
+            DisableSleepCommand.parseSleepDisabledDiagnosed(
+                fromPmsetOutput: "Battery Power:\n lowpowermode 0"
+            ),
+            .keyMissing
+        )
+        XCTAssertEqual(
+            DisableSleepCommand.parseSleepDisabledDiagnosed(fromPmsetOutput: " SleepDisabled yes"),
+            .unparseable("yes")
+        )
+    }
+
+    func testRunnerReportsPreciseReadFailureCodes() async throws {
+        let missing = try makeScript("printf 'Battery Power:\\n lowpowermode 0\\n'")
+        defer { try? FileManager.default.removeItem(at: missing) }
+        let missingRunner = SystemPmsetRunner(timeout: .seconds(15), executableURL: missing)
+        guard case let .failure(missingCode, _) = await missingRunner.readDisableSleepDiagnosed() else {
+            return XCTFail("expected a failure")
+        }
+        XCTAssertEqual(missingCode, .readKeyMissing)
+
+        let badValue = try makeScript("printf ' SleepDisabled\\t\\tyes\\n'")
+        defer { try? FileManager.default.removeItem(at: badValue) }
+        let badRunner = SystemPmsetRunner(timeout: .seconds(15), executableURL: badValue)
+        guard case let .failure(badCode, _) = await badRunner.readDisableSleepDiagnosed() else {
+            return XCTFail("expected a failure")
+        }
+        XCTAssertEqual(badCode, .readValueUnparseable)
+
+        let nonZero = try makeScript("echo boom >&2\nexit 7")
+        defer { try? FileManager.default.removeItem(at: nonZero) }
+        let nonZeroRunner = SystemPmsetRunner(timeout: .seconds(15), executableURL: nonZero)
+        guard case let .failure(exitCode, detail) = await nonZeroRunner.readDisableSleepDiagnosed() else {
+            return XCTFail("expected a failure")
+        }
+        XCTAssertEqual(exitCode, .readPmsetNonZeroExit)
+        XCTAssertTrue(detail.contains("boom"))
+    }
+
     private func makeScript(_ body: String) throws -> URL {
         let url = FileManager.default.temporaryDirectory
             .appendingPathComponent("pmset-runner-\(UUID().uuidString).sh")

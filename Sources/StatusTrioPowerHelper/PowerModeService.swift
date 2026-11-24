@@ -11,6 +11,15 @@ protocol PmsetRunning: Sendable {
     func currentHighPowerMode() async -> Bool?
     func setDisableSleep(enabled: Bool) async throws
     func currentDisableSleep() async -> Bool?
+    /// Read `disablesleep` and keep the failure cause instead of collapsing it
+    /// into `nil` (#383).
+    func readDisableSleepDiagnosed() async -> DisableSleepReadResult
+}
+
+/// Outcome of a diagnosed `disablesleep` read.
+enum DisableSleepReadResult: Equatable, Sendable {
+    case value(Bool)
+    case failure(DisableSleepDiagnostic, String)
 }
 
 /// Defaults keep a runner that only models Low Power Mode (the fixtures in the
@@ -25,6 +34,10 @@ extension PmsetRunning {
         throw PmsetError.launchFailed("Disable sleep is not supported")
     }
     func currentDisableSleep() async -> Bool? { nil }
+    func readDisableSleepDiagnosed() async -> DisableSleepReadResult {
+        if let value = await currentDisableSleep() { return .value(value) }
+        return .failure(.readUnavailable, "")
+    }
 }
 
 enum PmsetError: LocalizedError {
@@ -184,9 +197,45 @@ struct SystemPmsetRunner: PmsetRunning {
     }
 
     func currentDisableSleep() async -> Bool? {
-        guard let outcome = try? await run(arguments: ["-g"], capturesOutput: true),
-              outcome.status == 0 else { return nil }
-        return DisableSleepCommand.parseSleepDisabled(fromPmsetOutput: outcome.output)
+        if case .value(let value) = await readDisableSleepDiagnosed() { return value }
+        return nil
+    }
+
+    func readDisableSleepDiagnosed() async -> DisableSleepReadResult {
+        let outcome: Outcome
+        do {
+            outcome = try await run(arguments: ["-g"], capturesOutput: true, capturesError: true)
+        } catch let error as PmsetError {
+            return .failure(Self.readDiagnostic(for: error), error.errorDescription ?? "")
+        } catch {
+            return .failure(.readUnavailable, error.localizedDescription)
+        }
+        guard let status = outcome.status else {
+            return .failure(.readPmsetTimedOut, PmsetError.timedOut.errorDescription ?? "")
+        }
+        guard status == 0 else {
+            let detail = outcome.errorOutput.trimmingCharacters(in: .whitespacesAndNewlines)
+            return .failure(
+                .readPmsetNonZeroExit,
+                detail.isEmpty ? "pmset exited with status \(status)" : detail
+            )
+        }
+        switch DisableSleepCommand.parseSleepDisabledDiagnosed(fromPmsetOutput: outcome.output) {
+        case .value(let value):
+            return .value(value)
+        case .keyMissing:
+            return .failure(.readKeyMissing, "SleepDisabled not found in `pmset -g`")
+        case .unparseable(let raw):
+            return .failure(.readValueUnparseable, "unexpected SleepDisabled value: \(raw)")
+        }
+    }
+
+    static func readDiagnostic(for error: PmsetError) -> DisableSleepDiagnostic {
+        switch error {
+        case .launchFailed: return .readPmsetLaunchFailed
+        case .timedOut: return .readPmsetTimedOut
+        case .nonZeroExit: return .readPmsetNonZeroExit
+        }
     }
 
     func setDisableSleep(enabled: Bool) async throws {
@@ -432,11 +481,12 @@ final class PowerModeService: NSObject, PowerHelperXPCProtocol {
         let reply = PowerHelperReply(reply)
         let runner = self.runner
         Task {
-            guard let enabled = await runner.currentDisableSleep() else {
-                reply.send(false, "Disable sleep state is unavailable.")
-                return
+            switch await runner.readDisableSleepDiagnosed() {
+            case .value(let enabled):
+                reply.send(enabled, nil)
+            case let .failure(diagnostic, detail):
+                reply.send(false, diagnostic.wireString(detail: detail))
             }
-            reply.send(enabled, nil)
         }
     }
 
@@ -447,12 +497,24 @@ final class PowerModeService: NSObject, PowerHelperXPCProtocol {
             do {
                 try await runner.setDisableSleep(enabled: enabled)
             } catch {
-                reply.send(false, error.localizedDescription)
+                let diagnostic = Self.writeDiagnostic(for: error)
+                reply.send(false, diagnostic.wireString(detail: error.localizedDescription))
                 return
             }
             // Reply with the state the daemon observes after the change so the app
             // never has to assume the write took.
             reply.send(await runner.currentDisableSleep() ?? enabled, nil)
+        }
+    }
+
+    /// Maps a failed `disablesleep` write to its stable diagnostic code so the
+    /// app can show (and report) a specific identifier (#383).
+    static func writeDiagnostic(for error: Error) -> DisableSleepDiagnostic {
+        guard let error = error as? PmsetError else { return .writeObservedMismatch }
+        switch error {
+        case .launchFailed: return .writePmsetLaunchFailed
+        case .timedOut: return .writePmsetTimedOut
+        case .nonZeroExit: return .writePmsetNonZeroExit
         }
     }
 }

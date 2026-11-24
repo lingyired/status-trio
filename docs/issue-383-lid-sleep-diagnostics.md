@@ -1,0 +1,44 @@
+# Issue #383 — 合盖不睡眠诊断码
+
+为了让用户反馈「合盖不睡眠」失败时能快速定位原因，而不是只看到一句笼统的
+「暂时无法读取状态」，helper 会在 XPC 错误字符串前带一个稳定的、与语言无关的
+诊断码，形如 `DS-R4: SleepDisabled not found in pmset -g`。
+
+- 码通过现有的 `String?` 错误通道传输，**不改 XPC 方法签名、不升协议版本**。
+- 旧 helper 只发纯文本、没有码时，app 归为 `DS-R0`，仍显示原有文案。
+- app 在提示后追加「（错误码 DS-R4）」，同时用 `os.Logger`
+  （subsystem `com.lingsmbp.StatusTrio`，category `SleepControl`）记录码与 detail。
+
+## 读取侧（点「合盖不睡眠」时读取 `disablesleep`）
+
+| 码 | 含义 | 典型原因 |
+| --- | --- | --- |
+| `DS-R0` | 未分类 / 旧 helper 无码 | 老版本 helper，或没有可识别的码 |
+| `DS-R1` | `pmset` 启动失败 | helper 运行环境异常，`Process.run` 失败 |
+| `DS-R2` | `pmset -g` 超时 | pmset 卡住，超过 runner 超时被 kill |
+| `DS-R3` | `pmset -g` 退出码非 0 | 看 detail 里的 stderr |
+| `DS-R4` | 输出里没有 `SleepDisabled` 行 | 某些机型/系统版本没有该设置，或输出格式变了 |
+| `DS-R5` | `SleepDisabled` 值不是 `0/1` | 输出格式/本地化变化，解析失败 |
+| `DS-H1` | helper 没响应 | XPC 超时/不可用（冷启动重试后仍失败） |
+| `DS-X0` | 其他未知错误 | 非预期的传输层错误 |
+
+## 写入侧（开启/关闭 `disablesleep`）
+
+| 码 | 含义 |
+| --- | --- |
+| `DS-W1` | `pmset` 启动失败 |
+| `DS-W2` | `pmset` 超时 |
+| `DS-W3` | `pmset` 退出码非 0（detail 含 pmset 原文，如 `Unsupported mode 3`） |
+| `DS-W4` | 写入后观察到的状态与请求不一致（app 侧判定） |
+
+## 排障
+
+1. 让用户报出提示里的码（如 `DS-R2`）。
+2. 需要更细信息时，取统一日志：
+   `log show --predicate 'category == "SleepControl"' --last 1h`
+3. `DS-R3` / `DS-W3` 的 detail 里有 pmset 的 stderr，通常是原因所在。
+4. `DS-R4` / `DS-R5` 需要看该机型 `pmset -g` 的原始输出再补解析规则。
+
+相关代码：`Sources/PowerHelperProtocol/DisableSleepDiagnostic.swift`、
+`Sources/StatusTrioPowerHelper/PowerModeService.swift`、
+`Sources/StatusTrioCore/Monitoring/SleepControlController.swift`。

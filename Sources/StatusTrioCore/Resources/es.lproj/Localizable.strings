@@ -472,6 +472,7 @@
 "quickActions.timer.choose" = "Elegir duración";
 "quickActions.lidSleep.external" = "Otra app ya activó «seguir despierto con la tapa cerrada». Status Trio no lo sobrescribirá.";
 "quickActions.lidSleep.helperStarting" = "El asistente con privilegios se está iniciando. Inténtalo de nuevo en un momento.";
+"quickActions.lidSleep.failureCode" = " (código %@)";
 "quickActions.lidSleep.unreadable" = "No se pudo leer el estado «seguir despierto con la tapa cerrada»; sin cambios.";
 "quickActions.lidSleep.externalNamed" = "«Seguir despierto con la tapa cerrada» ya está activo, posiblemente por: %@. Status Trio no lo sobrescribirá.";
 "quickActions.timer.thirtyMinutes" = "30 minutos";

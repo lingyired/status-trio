@@ -472,6 +472,7 @@
 "quickActions.timer.choose" = "Dauer auswählen";
 "quickActions.lidSleep.external" = "„Wach bei geschlossenem Deckel“ ist bereits von einer anderen App aktiviert. Status Trio überschreibt das nicht.";
 "quickActions.lidSleep.helperStarting" = "Der privilegierte Helfer wird gestartet. Bitte gleich noch einmal versuchen.";
+"quickActions.lidSleep.failureCode" = " (Fehlercode %@)";
 "quickActions.lidSleep.unreadable" = "Status „Wach bei geschlossenem Deckel“ konnte nicht gelesen werden; unverändert.";
 "quickActions.lidSleep.externalNamed" = "„Wach bei geschlossenem Deckel“ ist bereits von einer anderen App aktiv (evtl.: %@). Status Trio überschreibt das nicht.";
 "quickActions.timer.thirtyMinutes" = "30 Minuten";

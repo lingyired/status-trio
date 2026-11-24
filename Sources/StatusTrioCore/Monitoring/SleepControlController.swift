@@ -3,6 +3,15 @@ import Combine
 import Foundation
 import IOKit.pwr_mgt
 import PowerHelperProtocol
+import os
+
+/// Diagnostic log for lid-close sleep failures. The unified log is the channel
+/// a user-facing bug report can be checked against, so each failure records its
+/// stable code with the detail the daemon returned (#383).
+private let lidSleepLogger = Logger(
+    subsystem: "com.lingsmbp.StatusTrio",
+    category: "SleepControl"
+)
 
 /// The timer choices offered next to each keep-awake toggle (#295).
 enum SleepTimerDuration: String, CaseIterable, Identifiable, Sendable {
@@ -213,6 +222,12 @@ final class SleepControlController: ObservableObject {
     @Published private(set) var isHelperReady = false
     /// Non-error explanation for the lid toggle (external ownership / unreadable).
     @Published private(set) var lidSleepExternalState: LidSleepExternalState?
+    /// Stable, language-neutral diagnostic code for the last lid-sleep failure
+    /// (e.g. `DS-R4`), shown next to the copy so a user report is triageable.
+    @Published private(set) var lidSleepFailureCode: String?
+    /// The daemon's human detail for that code (pmset stderr, etc.); logged and
+    /// kept for diagnostics, not shown inline.
+    @Published private(set) var lidSleepFailureDetail: String?
     /// Best-effort names of processes currently holding a sleep-preventing power
     /// assertion, shown as "possibly X" when an external disablesleep is found.
     @Published private(set) var lidExternalOwnerNames: [String] = []
@@ -588,11 +603,13 @@ final class SleepControlController: ObservableObject {
             return await applyEnableLidSleep(current: current)
         case .interrupted:
             return .blockedByPolicy
-        case .helperStarting:
+        case let .helperStarting(code, detail):
             lidSleepExternalState = .helperStarting
+            recordLidFailure(code: code, detail: detail)
             return .failed
-        case .unreadable:
+        case let .unreadable(code, detail):
             lidSleepExternalState = .stateUnreadable
+            recordLidFailure(code: code, detail: detail)
             return .failed
         }
     }
@@ -604,9 +621,9 @@ final class SleepControlController: ObservableObject {
         /// The user's intent changed (or the controller stopped) mid-retry.
         case interrupted
         /// The helper never answered within the bounded retries.
-        case helperStarting
+        case helperStarting(code: String, detail: String)
         /// The helper answered, but not with a usable value.
-        case unreadable
+        case unreadable(code: String, detail: String)
     }
 
     private func readDisableSleepForEnable() async -> LidReadResult {
@@ -616,11 +633,14 @@ final class SleepControlController: ObservableObject {
             do {
                 return .value(try await client.readDisableSleep())
             } catch {
+                let transient = Self.isTransientHelperFailure(error)
+                let (code, detail) = Self.diagnostic(for: error)
                 // Only a missing helper (XPC timeout / not yet up) is worth
                 // retrying. A daemon-side rejection is a real read failure.
-                let transient = Self.isTransientHelperFailure(error)
                 guard transient, attempt < lidReadRetryDelays.count else {
-                    return transient ? .helperStarting : .unreadable
+                    return transient
+                        ? .helperStarting(code: code, detail: detail)
+                        : .unreadable(code: code, detail: detail)
                 }
                 let delay = lidReadRetryDelays[attempt]
                 attempt += 1
@@ -645,9 +665,36 @@ final class SleepControlController: ObservableObject {
         }
     }
 
+    /// Stable code + loggable detail for any failure on the lid path. Daemon
+    /// rejections carry a `DS-*` code inside their payload; a helper that never
+    /// answered is tagged `DS-H1`; anything else falls back to `DS-X0`.
+    static func diagnostic(for error: Error) -> (code: String, detail: String) {
+        guard let clientError = error as? HighPowerModeClientError else {
+            return ("DS-X0", error.localizedDescription)
+        }
+        switch clientError {
+        case let .rejected(payload):
+            let decoded = DisableSleepDiagnostic.decode(payload)
+            return (decoded.code?.rawValue ?? "DS-R0", decoded.detail)
+        case .helperUnavailable:
+            return ("DS-H1", "helper did not answer (XPC timeout/unavailable)")
+        }
+    }
+
+    private func recordLidFailure(code: String, detail: String) {
+        lidSleepFailureCode = code
+        lidSleepFailureDetail = detail
+        lidSleepLogger.error(
+            "lid sleep failure \(code, privacy: .public): \(detail, privacy: .public)"
+        )
+    }
+
     private func clearTransientLidState() {
         switch lidSleepExternalState {
-        case .helperStarting, .stateUnreadable: lidSleepExternalState = nil
+        case .helperStarting, .stateUnreadable:
+            lidSleepExternalState = nil
+            lidSleepFailureCode = nil
+            lidSleepFailureDetail = nil
         default: break
         }
     }
@@ -677,10 +724,12 @@ final class SleepControlController: ObservableObject {
         lidInFlightWrite = true
         var observed: Bool?
         var writeAnswered = false
+        var writeError: Error?
         do {
             observed = try await client.setDisableSleep(true)
             writeAnswered = true
         } catch {
+            writeError = error
             observed = nil
         }
         lidInFlightWrite = false
@@ -697,6 +746,8 @@ final class SleepControlController: ObservableObject {
             isPreventingLidSleep = true
             lidForeignActive = false
             lidSleepExternalState = nil
+            lidSleepFailureCode = nil
+            lidSleepFailureDetail = nil
             lidExternalOwnerNames = []
             lidPendingRecovery = false
             scheduleLidAutoOff()
@@ -709,12 +760,16 @@ final class SleepControlController: ObservableObject {
             // system permanently unable to sleep after a restart.
             lidPendingRecovery = true
             lidSleepExternalState = .stateUnreadable
-            lastError = "The helper did not confirm lid sleep prevention; cleanup will be retried."
+            let (code, detail) = Self.diagnostic(for: writeError ?? HighPowerModeClientError.helperUnavailable)
+            recordLidFailure(code: code, detail: detail)
+            lastError = "The helper did not confirm lid sleep prevention; cleanup will be retried. [\(code)]"
             scheduleLidRecoveryRetry()
             return .retryableFailure
         }
         ownership.ownsDisableSleep = false
-        lastError = "The helper did not apply lid sleep prevention."
+        let code = DisableSleepDiagnostic.writeObservedMismatch.rawValue
+        recordLidFailure(code: code, detail: "helper replied observed=\(String(describing: observed))")
+        lastError = "The helper did not apply lid sleep prevention. [\(code)]"
         return .failed
     }
 
@@ -727,7 +782,13 @@ final class SleepControlController: ObservableObject {
         }
         lidInFlightWrite = true
         let observed: Bool?
-        do { observed = try await client.setDisableSleep(false) } catch { observed = nil }
+        var writeError: Error?
+        do {
+            observed = try await client.setDisableSleep(false)
+        } catch {
+            writeError = error
+            observed = nil
+        }
         lidInFlightWrite = false
         var offNow = (observed == false)
         if !offNow { offNow = ((try? await client.readDisableSleep()) == false) }
@@ -735,13 +796,19 @@ final class SleepControlController: ObservableObject {
             isPreventingLidSleep = false
             ownership.ownsDisableSleep = false
             lidSleepExternalState = nil
+            lidSleepFailureCode = nil
+            lidSleepFailureDetail = nil
             lidExternalOwnerNames = []
             lidPendingRecovery = false
             lidDisableAttempts = 0
             cancelLidTimer()
             return .applied
         }
-        lastError = "The helper did not clear lid sleep prevention."
+        let (code, detail) = writeError.map { Self.diagnostic(for: $0) }
+            ?? (DisableSleepDiagnostic.writeObservedMismatch.rawValue,
+                "helper replied observed=\(String(describing: observed))")
+        recordLidFailure(code: code, detail: detail)
+        lastError = "The helper did not clear lid sleep prevention. [\(code)]"
         return .retryableFailure
     }
 

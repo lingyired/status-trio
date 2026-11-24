@@ -472,6 +472,7 @@
 "quickActions.timer.choose" = "اختيار المدة";
 "quickActions.lidSleep.external" = "تم تفعيل «البقاء مستيقظًا عند إغلاق الغطاء» بواسطة تطبيق آخر. لن يقوم Status Trio بالكتابة فوقه.";
 "quickActions.lidSleep.helperStarting" = "جارٍ تشغيل المساعد ذي الصلاحيات. حاول مرة أخرى بعد قليل.";
+"quickActions.lidSleep.failureCode" = " (الرمز %@)";
 "quickActions.lidSleep.unreadable" = "تعذّرت قراءة حالة «البقاء مستيقظًا عند إغلاق الغطاء»؛ دون تغيير.";
 "quickActions.lidSleep.externalNamed" = "تم تفعيل «البقاء مستيقظًا عند إغلاق الغطاء» مسبقًا، ربما بواسطة: %@. لن يقوم Status Trio بالكتابة فوقه.";
 "quickActions.timer.thirtyMinutes" = "30 دقيقة";
