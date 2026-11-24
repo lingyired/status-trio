@@ -155,6 +155,9 @@ final class HardwareSampler: @unchecked Sendable {
                                             memoryProvider: { sampleDate in
                                                 memorySnapshot?.reading ?? self.memoryReader.read(at: sampleDate)
                                             },
+                                            pressureProvider: {
+                                                memorySnapshot?.detail.pressure ?? MemoryReader.pressureLevel()
+                                            },
                                             sensorProvider: { temperature, gpuTemperature, batteryTemperature, fans, date in
                     self.readSensors(includeCPU: temperature,
                                      includeGPU: gpuTemperature,
@@ -293,6 +296,7 @@ final class HardwareSampler: @unchecked Sendable {
                         includeCPUDetail: Bool = false,
                         gpuProvider: (Date) -> GPUReading?,
                         memoryProvider: (Date) -> MemoryReader.Reading?,
+                        pressureProvider: () -> MemoryPressureLevel = { .unknown },
                         sensorProvider: (Bool, Bool, Bool, Bool, Date) -> SensorReading,
                         networkProvider: (Date) -> NetworkThroughputReading? = { _ in nil },
                         diskProvider: (Date) -> DiskThroughputReading? = { _ in nil }) -> HardwareMetricsSnapshot {
@@ -310,9 +314,13 @@ final class HardwareSampler: @unchecked Sendable {
         let network = needsNetwork ? networkProvider(date) : nil
         let needsDisk = ids.contains(.diskRead) || ids.contains(.diskWrite)
         let disk = needsDisk ? diskProvider(date) : nil
-        return map(ids: ids, cpu: cpu, gpu: gpu, memory: memory, sensors: sensors, network: network,
-                   disk: disk, cpuFrequency: frequency, includeCPUDetail: includeCPUDetail,
-                   isFirstCPURead: isFirstCPURead, at: date)
+        var snapshot = map(ids: ids, cpu: cpu, gpu: gpu, memory: memory, sensors: sensors, network: network,
+                           disk: disk, cpuFrequency: frequency, includeCPUDetail: includeCPUDetail,
+                           isFirstCPURead: isFirstCPURead, at: date)
+        if ids.contains(.memoryPressure) {
+            snapshot.memoryPressure = MemoryPressureReading(level: pressureProvider(), sampledAt: date)
+        }
+        return snapshot
     }
 
     /// Pure mapping of one read attempt. Reader nil alone cannot establish lack
@@ -387,6 +395,9 @@ final class HardwareSampler: @unchecked Sendable {
                 snapshot.samples[id] = HardwareMetricSample(
                     value: value, unit: .bytesPerSecond, sampledAt: disk?.sampledAt ?? date,
                     source: .ioStorage, availability: value != nil ? .measured : .collecting)
+            case .memoryPressure:
+                // The discrete reading is attached by collect(), outside numeric samples.
+                break
             case .volume, .wifiSignal, .batteryLevel:
                 // Status-snapshot readings come from the general snapshot, not the
                 // hardware sampler; leave the slot untouched if ever requested.

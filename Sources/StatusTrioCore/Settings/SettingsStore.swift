@@ -260,7 +260,7 @@ final class SettingsStore: ObservableObject {
     /// Which hardware-monitor metric the `.metric` bottom source draws. Kept
     /// beside `bottomIndicatorSource` so the concrete metric can change without
     /// touching the source enum.
-    static let defaultBottomIndicatorMetric: HardwareMonitorMetric = .cpuUsage
+    static let defaultBottomIndicatorMetric: BottomIndicatorMetric = .cpuUsage
     static let bottomIndicatorMetricDefaultsKey = "bottomIndicatorMetric"
     /// The dot/arc style used by the `.metric` bottom source. It defaults to the
     /// arc because a continuous fill reads the hardware metrics better than four
@@ -1593,7 +1593,7 @@ final class SettingsStore: ObservableObject {
     /// Only meaningful in that mode; changing it never rewrites the source or the
     /// persisted slot binding (the metric rides the runtime inputs, not the
     /// binding), but it must still publish so the menu bar re-resolves.
-    @Published var bottomIndicatorMetric: HardwareMonitorMetric {
+    @Published var bottomIndicatorMetric: BottomIndicatorMetric {
         didSet {
             let metric = hardwareTemperatureMonitoringEnabled
                 ? bottomIndicatorMetric : bottomIndicatorMetric.withoutCPUGPUTemperature
@@ -3162,7 +3162,7 @@ final class SettingsStore: ObservableObject {
             .flatMap(BottomIndicatorSource.init(rawValue:))
             ?? Self.defaultBottomIndicatorSource
         self.bottomIndicatorMetric = storedBottomIndicatorMetric
-            .flatMap(HardwareMonitorMetric.init(rawValue:))
+            .flatMap(BottomIndicatorMetric.init(rawValue:))
             ?? Self.defaultBottomIndicatorMetric
         self.metricBottomIndicatorStyle = storedMetricBottomIndicatorStyle
             .flatMap(VolumeDisplayStyle.init(rawValue:))

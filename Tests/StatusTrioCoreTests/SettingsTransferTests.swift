@@ -191,6 +191,25 @@ struct SettingsTransferSessionTests {
         }
     }
 
+    @Test(arguments: ["memoryUsage", "memoryPressure"])
+    func memoryUsageAndPressureRoundTripAsSeparateOptions(_ rawValue: String) throws {
+        let (store, localization, directory, defaults, name) = try fixture()
+        defer { defaults.removePersistentDomain(forName: name) }
+        let session = SettingsTransferSession(store: store, localization: localization, backupDirectory: directory)
+        let document = SettingsTransferDocument(appVersion: "1.10.4", preferences: [
+            "bottomIndicatorMetric": .string(rawValue),
+            "metricBottomIndicatorStyle": .string("dots"),
+        ])
+        let preview = try session.stageImport(document.encoded())
+        #expect(preview.warnings.isEmpty)
+        _ = try session.applyImport()
+        #expect(store.bottomIndicatorMetric.rawValue == rawValue)
+        #expect(store.metricBottomIndicatorStyle == .dots)
+        let exported = try SettingsTransferDocument.decode(session.exportData())
+        #expect(exported.preferences["bottomIndicatorMetric"] == .string(rawValue))
+        #expect(SettingsStore(defaults: defaults).bottomIndicatorMetric.rawValue == rawValue)
+    }
+
     @Test(arguments: [false, true])
     func importingTemperatureUsesTheImportedMonitoringSetting(_ enablesMonitoring: Bool) throws {
         let (store, localization, directory, defaults, name) = try fixture()
@@ -204,7 +223,7 @@ struct SettingsTransferSessionTests {
             "hardwareTemperatureMonitoringEnabled": .bool(enablesMonitoring)
         ]).encoded())
         _ = try session.applyImport()
-        let expected: HardwareMonitorMetric = enablesMonitoring ? .gpuTemperature : .gpuUsage
+        let expected: BottomIndicatorMetric = enablesMonitoring ? .gpuTemperature : .gpuUsage
         #expect(store.iconRuntimePresentationOptions.bottomIndicatorMetric == expected)
         #expect(defaults.string(forKey: SettingsStore.bottomIndicatorMetricDefaultsKey) == expected.rawValue)
     }

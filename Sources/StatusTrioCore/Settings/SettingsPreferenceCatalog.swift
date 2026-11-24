@@ -239,7 +239,7 @@ enum SettingsPreferenceCatalog {
             // Apply the temperature switch before restoring the metric it makes available.
             enumeration("bottomIndicatorMetric", \.bottomIndicatorMetric,
                         default: SettingsStore.defaultBottomIndicatorMetric,
-                        allowed: HardwareMonitorMetric.allCases.filter { !$0.usesStatusSnapshot }),
+                        allowed: BottomIndicatorMetric.allCases.filter { $0.hardwareMetric?.usesStatusSnapshot != true }),
             enumeration("cpuRingCenterContent", \.cpuRingCenterContent,
                         default: .temperature, allowed: HardwareRingCenterContent.allCases),
             enumeration("gpuRingCenterContent", \.gpuRingCenterContent,

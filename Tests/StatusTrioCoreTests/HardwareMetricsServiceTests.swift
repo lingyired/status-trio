@@ -620,6 +620,37 @@ final class HardwareMetricsServiceTests: XCTestCase {
         XCTAssertNil(observable.summarySnapshot(at: t0.addingTimeInterval(400)).networkDownload.value)
     }
 
+    func testPressureSamplesImmediatelyAtTwoSecondCadenceAndClearsOnLastEnd() async {
+        let clock = Clock()
+        let recorder = Recorder()
+        let service = HardwareMetricsService(automaticScheduling: false,
+                                             now: { clock.date }, reader: recorder.waitingReader())
+        service.begin(.menuBarArc, metrics: [.memoryPressure])
+        XCTAssertEqual(service.currentTickIntervalForTesting, 2)
+        await awaitReadingStarted(recorder)
+        XCTAssertEqual(recorder.calls, [[.memoryPressure]])
+        guard let first = recorder.continuations.first else { return XCTFail("first sample missing") }
+        first.resume(returning: .init(memoryPressure: .init(level: .normal, sampledAt: clock.date)))
+        await awaitSettled(service, recorder)
+        XCTAssertEqual(service.observable.snapshot.memoryPressure?.level, .normal)
+
+        clock.advance(1)
+        service.refreshIfNeeded(forceFamilies: [])
+        XCTAssertFalse(service.isAwaitingReadForTesting)
+        clock.advance(1)
+        service.refreshIfNeeded(forceFamilies: [])
+        await awaitReadingStarted(recorder, count: 2)
+        XCTAssertEqual(recorder.calls, [[.memoryPressure], [.memoryPressure]])
+        guard recorder.continuations.count == 2 else { return XCTFail("second sample missing") }
+
+        service.end(.menuBarArc)
+        XCTAssertNil(service.observable.snapshot.memoryPressure)
+        recorder.continuations[1].resume(returning: .init(memoryPressure: .init(level: .critical, sampledAt: clock.date)))
+        await awaitSettled(service, recorder)
+        XCTAssertFalse(service.isRunning)
+        XCTAssertNil(service.observable.snapshot.memoryPressure)
+    }
+
     func testDiskDemandUsesOneSecondCadenceAndStopsOnEnd() async {
         let clock = Clock()
         let recorder = Recorder()
