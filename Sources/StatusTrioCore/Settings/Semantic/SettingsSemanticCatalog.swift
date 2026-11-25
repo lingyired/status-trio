@@ -1,0 +1,599 @@
+import Foundation
+
+/// The concrete semantic catalog for Status Trio settings.
+///
+/// This is authored data, not derived from UserDefaults. It intentionally covers
+/// the modules and complex cases described by the settings-semantic plan; the
+/// Phase 0 inventory is the checklist that Phase 4 grows this catalog against.
+///
+/// Logical ids are stable and semantic. They are deliberately **not** UserDefaults
+/// keys; `storageKey` records the real underlying key when the provider is core
+/// settings, and is `nil` when the setting is virtual or owned by another provider.
+enum SettingsSemanticCatalog {
+
+    // MARK: - Value helpers
+
+    private static func s(_ value: String) -> SettingsTransferValue { .string(value) }
+    private static func b(_ value: Bool) -> SettingsTransferValue { .bool(value) }
+    private static func n(_ value: Double) -> SettingsTransferValue { .number(value) }
+
+    private static func opt(_ id: String, _ title: String, _ description: String? = nil) -> SettingsOptionDescriptor {
+        SettingsOptionDescriptor(id: id, title: title, description: description, value: s(id))
+    }
+
+    /// Build a preference with only the fields the author knows.
+    private static func pref(
+        _ id: String,
+        _ title: String,
+        _ category: String,
+        _ type: SettingsValueType,
+        _ description: String? = nil,
+        _ configure: (inout SettingsPreferenceDescriptor) -> Void = { _ in }
+    ) -> SettingsPreferenceDescriptor {
+        var descriptor = SettingsPreferenceDescriptor(
+            id: id, title: title, category: category, type: type, description: description
+        )
+        configure(&descriptor)
+        return descriptor
+    }
+
+    /// A UI-only underlying field: persisted and readable by the service, but not
+    /// separately exposed as an ordinary writable user setting.
+    private static let underlyingOnly = SettingsAccessPolicy(
+        uiAccessible: false,
+        developmentProfile: false,
+        transferable: false,
+        externalRead: false,
+        externalWrite: false
+    )
+
+    /// A setting with a real system side effect (login item, helper, power).
+    private static let systemRestricted = SettingsAccessPolicy(
+        uiAccessible: true,
+        developmentProfile: false,
+        transferable: false,
+        externalRead: false,
+        externalWrite: false,
+        requiresConfirmation: true,
+        containsSensitiveInfo: false,
+        systemSideEffect: true
+    )
+
+    // MARK: - Registry
+
+    static func makeRegistry(appVersion: String? = nil) -> SettingsSemanticRegistry {
+        SettingsSemanticRegistry(
+            schemaVersion: currentSchemaVersion,
+            appVersion: appVersion,
+            preferences: preferences,
+            features: features,
+            capabilities: capabilities,
+            actions: actions
+        )
+    }
+
+    static let currentSchemaVersion = 1
+
+    // MARK: - Capabilities
+
+    static let capabilities: [SettingsCapabilityDescriptor] = [
+        SettingsCapabilityDescriptor(id: "ui.liquidGlass", title: "Liquid Glass 界面", description: "当前系统是否支持 NSGlassEffectView（macOS 26+）。"),
+        SettingsCapabilityDescriptor(id: "hardware.hasBattery", title: "内置电池", description: "当前机器是否内置电池。"),
+        SettingsCapabilityDescriptor(id: "hardware.hasFan", title: "风扇", description: "当前机器是否有可读风扇转速。"),
+        SettingsCapabilityDescriptor(id: "sensor.cpu.temperature", title: "CPU 温度传感器", description: "是否可读取 CPU 温度。"),
+        SettingsCapabilityDescriptor(id: "sensor.gpu.temperature", title: "GPU 温度传感器", description: "是否可读取 GPU 温度。"),
+        SettingsCapabilityDescriptor(id: "permission.bluetooth", title: "蓝牙权限", description: "是否已获得蓝牙访问权限。"),
+        SettingsCapabilityDescriptor(id: "permission.location", title: "定位权限", description: "是否已获得定位权限（Wi-Fi 名称等）。"),
+        SettingsCapabilityDescriptor(id: "helper.available", title: "Helper 可用", description: "特权 Helper 是否已安装。"),
+        SettingsCapabilityDescriptor(id: "helper.ready", title: "Helper 就绪", description: "特权 Helper 是否已连接并就绪。"),
+        SettingsCapabilityDescriptor(id: "integration.betterDisplay", title: "BetterDisplay", description: "是否检测到 BetterDisplay 集成。"),
+        SettingsCapabilityDescriptor(id: "distribution.direct", title: "直发版本", description: "是否为 GitHub Direct 分发版本。"),
+        SettingsCapabilityDescriptor(id: "distribution.appStore", title: "App Store 版本", description: "是否为 App Store 分发版本。"),
+    ]
+
+    // MARK: - Actions
+
+    static let actions: [SettingsActionDescriptor] = [
+        SettingsActionDescriptor(id: "action.checkForUpdates", title: "检查更新", description: "触发一次 Sparkle 更新检查。", systemSideEffect: false, accessPolicy: .uiOnly),
+        SettingsActionDescriptor(id: "action.chargeToFullNow", title: "立即充满电", description: "通过 Helper 立即把充电上限设为 100%。", systemSideEffect: true, accessPolicy: .restricted),
+        SettingsActionDescriptor(id: "action.enableLidSleep", title: "启用盒盖不睡眠", description: "通过 Helper 开启合盖不睡眠。", systemSideEffect: true, accessPolicy: .restricted),
+        SettingsActionDescriptor(id: "action.requestBluetoothPermission", title: "请求蓝牙权限", description: "弹出系统蓝牙授权提示。", systemSideEffect: true, accessPolicy: .restricted),
+        SettingsActionDescriptor(id: "action.installHelper", title: "安装 Helper", description: "安装特权 Helper。", systemSideEffect: true, accessPolicy: .restricted),
+        SettingsActionDescriptor(id: "action.readChargeLimit", title: "读取系统充电上限", description: "读取当前系统充电上限。", systemSideEffect: false, accessPolicy: .uiOnly),
+        SettingsActionDescriptor(id: "action.resetIcon", title: "重置图标", description: "把图标外观恢复为默认配置。", systemSideEffect: false, accessPolicy: .uiOnly),
+    ]
+
+    // MARK: - Preferences
+
+    static let preferences: [SettingsPreferenceDescriptor] = [
+        // ---- General ----
+        pref("general.language", "语言", "general", .enumeration, "App 界面语言；由 Localization 管理，不通过 UserDefaults 存储。") { d in
+            d.uiPath = "设置 › 通用 › 语言"
+            d.optionsProvider = "localization.languages"
+            d.keywords = ["language", "语言"]
+            d.accessPolicy = .profileSafe
+            d.provider = "localization"
+        },
+        pref("general.launchAtLogin", "登录时启动", "general", .boolean, "登录时自动启动 App。由系统登录项管理，具有系统副作用。") { d in
+            d.uiPath = "设置 › 通用 › 登录时启动"
+            d.keywords = ["launch", "login", "启动"]
+            d.accessPolicy = systemRestricted
+            d.provider = "launchAtLogin"
+        },
+        pref("general.menuBarRightClickAction", "菜单栏右键行为", "general", .enumeration, "右键点击菜单栏图标时执行的动作。") { d in
+            d.uiPath = "设置 › 通用 › 菜单栏右键"
+            d.options = [
+                opt("contextMenu", "打开右键菜单"),
+                opt("toggleLowPowerMode", "切换低电量模式"),
+                opt("chargeToFullNow", "立即充满电"),
+                opt("toggleMute", "切换静音"),
+                opt("toggleWiFi", "切换 Wi-Fi"),
+                opt("refreshStatus", "刷新状态"),
+                opt("openWiFiSettings", "打开 Wi-Fi 设置"),
+                opt("openBluetoothSettings", "打开蓝牙设置"),
+                opt("openBatterySettings", "打开电池设置"),
+                opt("openSoundSettings", "打开声音设置"),
+            ]
+            d.storageKey = "menuBarRightClickAction"
+            d.accessPolicy = .transferable
+            d.provider = "core"
+        },
+        pref("general.iconSize", "图标大小", "general", .number, "菜单栏图标尺寸。") { d in
+            d.uiPath = "设置 › 通用 › 图标大小"
+            d.range = SettingsNumericRange(min: 16, max: 36)
+            d.step = 1
+            d.unit = "pt"
+            d.defaultValue = n(24)
+            d.storageKey = "menuBarIconSize"
+            d.accessPolicy = .transferable
+            d.provider = "core"
+        },
+
+        // ---- Panel ----
+        pref("panel.appearance.backgroundStyle", "状态面板背景样式", "panel", .enumeration, "状态面板窗口的背景材质。Liquid Glass 仅在 macOS 26+ 可渲染，旧系统回退到经典材质；降低透明度时始终使用纯色。") { d in
+            d.uiPath = "设置 › 状态面板 › 背景样式"
+            d.options = [
+                opt("liquidGlass", "液态玻璃", "macOS 26+ 原生玻璃材质。"),
+                opt("classicMaterial", "经典材质", "Tahoe 之前的毛玻璃材质。"),
+                opt("solid", "纯色", "跟随系统明暗的纯色背景。"),
+            ]
+            d.availableWhen = .capability("ui.liquidGlass")
+            d.storageKey = "panelBackgroundStyle"
+            d.accessPolicy = .transferable
+            d.provider = "core"
+        },
+        pref("panel.appearance.boldText", "面板粗体文字", "panel", .boolean, "同时启用标题/数值的半粗体与说明文字的中等字重。这是一个虚拟设置：一次改动两个底层字重字段。") { d in
+            d.uiPath = "设置 › 状态面板 › 粗体文字"
+            // `value: nil` means "mirror the triggering value" — both weights follow the toggle.
+            d.onChange = [
+                SettingsMutationDescriptor(id: "panel.appearance.boldText.titleWeight", operation: .set, value: nil),
+                SettingsMutationDescriptor(id: "panel.appearance.boldText.mediumWeight", operation: .set, value: nil),
+            ]
+            d.accessPolicy = .profileSafe
+            d.provider = "core"
+        },
+        pref("panel.appearance.boldText.titleWeight", "面板标题字重（底层）", "panel", .boolean, "由“面板粗体文字”联动；不单独暴露。") { d in
+            d.storageKey = "statusPanelBoldTextEnabled.v2"
+            d.accessPolicy = underlyingOnly
+            d.provider = "core"
+        },
+        pref("panel.appearance.boldText.mediumWeight", "面板说明字重（底层）", "panel", .boolean, "由“面板粗体文字”联动；不单独暴露。") { d in
+            d.storageKey = "statusPanelMediumTextEnabled.v2"
+            d.accessPolicy = underlyingOnly
+            d.provider = "core"
+        },
+        pref("panel.behavior.showOnHover", "悬停展开状态面板", "panel", .boolean, "鼠标悬停菜单栏图标时自动展开状态面板。") { d in
+            d.uiPath = "设置 › 状态面板 › 悬停展开"
+            d.storageKey = "showsPanelOnHover"
+            d.accessPolicy = .transferable
+            d.provider = "core"
+        },
+        pref("panel.behavior.keepOpenWhenOpeningSettings", "打开设置时保持面板", "panel", .boolean, "从状态面板打开设置时保持面板不关闭。") { d in
+            d.uiPath = "设置 › 状态面板 › 打开设置时保持面板"
+            d.storageKey = "keepsStatusPanelOpenWhenOpeningSettings"
+            d.accessPolicy = .transferable
+            d.provider = "core"
+        },
+        pref("panel.modules.enabled", "启用的面板模块", "panel", .set, "状态面板中启用的模块集合及顺序。") { d in
+            d.uiPath = "设置 › 状态面板 › 模块"
+            d.optionsProvider = "panel.sections"
+            d.storageKey = "enabledPopupSections"
+            d.accessPolicy = .transferable
+            d.provider = "core"
+        },
+
+        // ---- Icon / outer ring / center / footer ----
+        pref("icon.outerRing.source", "外环来源", "icon", .enumeration, "菜单栏图标外环显示的内容。") { d in
+            d.uiPath = "设置 › 图标 › 外环来源"
+            d.options = [
+                opt("systemBattery", "Mac 电池"),
+                opt("airPodsBattery", "AirPods 电池"),
+                opt("hardwareMonitor", "系统监控"),
+            ]
+            d.storageKey = "outerRingContent"
+            d.accessPolicy = .transferable
+            d.provider = "core"
+        },
+        pref("icon.outerRing.hardware.layout", "硬件外环布局", "icon", .enumeration, "硬件监控外环的画法：单环一个指标，双环一主一副。") { d in
+            d.uiPath = "设置 › 图标 › 硬件外环 › 布局"
+            d.options = [opt("single", "单环"), opt("dual", "双环")]
+            d.defaultValue = s("single")
+            d.effectiveWhen = .equals(preference: "icon.outerRing.source", value: s("hardwareMonitor"))
+            d.accessPolicy = .profileSafe
+            d.provider = "core"
+        },
+        pref("icon.outerRing.hardware.primaryMetric", "硬件外环主要指标", "icon", .enumeration, "硬件外环的主指标。") { d in
+            d.uiPath = "设置 › 图标 › 硬件外环 › 主要指标"
+            d.optionsProvider = "hardware.ringMetrics"
+            d.effectiveWhen = .equals(preference: "icon.outerRing.source", value: s("hardwareMonitor"))
+            d.constraints = [
+                SettingsConstraint(
+                    kind: .distinctValues,
+                    other: "icon.outerRing.hardware.secondaryMetric",
+                    when: .equals(preference: "icon.outerRing.hardware.layout", value: s("dual")),
+                    resolution: .swap,
+                    message: "双环主副指标不能相同，选择重复指标时自动交换。"
+                )
+            ]
+            d.accessPolicy = .profileSafe
+            d.provider = "core"
+        },
+        pref("icon.outerRing.hardware.secondaryMetric", "硬件外环次要指标", "icon", .enumeration, "硬件外环的副指标（仅双环布局生效）。") { d in
+            d.uiPath = "设置 › 图标 › 硬件外环 › 次要指标"
+            d.optionsProvider = "hardware.ringMetrics"
+            d.effectiveWhen = .allOf([
+                .equals(preference: "icon.outerRing.source", value: s("hardwareMonitor")),
+                .equals(preference: "icon.outerRing.hardware.layout", value: s("dual")),
+            ])
+            d.accessPolicy = .profileSafe
+            d.provider = "core"
+        },
+        pref("icon.outerRing.hardware.ringSlots", "启用的硬件圆环", "icon", .set, "状态面板硬件摘要中启用的圆环（CPU/GPU/RAM/SSD）。至少保留一个；如需隐藏全部圆环请关闭“显示硬件圆环”，不要清空集合。") { d in
+            d.uiPath = "设置 › 图标 › 硬件外环 › 圆环"
+            d.options = [opt("cpu", "CPU"), opt("gpu", "GPU"), opt("ram", "内存"), opt("ssd", "SSD")]
+            d.constraints = [
+                SettingsConstraint(kind: .minimumCount, resolution: .reject, message: "至少保留一个硬件圆环。", min: 1)
+            ]
+            d.storageKey = "enabledHardwareRingSlotsV1"
+            d.accessPolicy = .profileSafe
+            d.provider = "core"
+        },
+        pref("icon.center.source", "中间槽来源", "icon", .enumeration, "菜单栏与 Dock 共享的中间槽内容来源。") { d in
+            d.uiPath = "设置 › 图标 › 中间来源"
+            d.options = [
+                opt("network", "网络"),
+                opt("bluetoothDevice", "蓝牙设备"),
+                opt("inputSource", "输入源"),
+                opt("batteryPercentage", "电池电量"),
+                opt("power", "功率"),
+                opt("chargingStatus", "充电状态"),
+            ]
+            d.storageKey = "connectionCenterSource"
+            d.accessPolicy = .transferable
+            d.provider = "core"
+        },
+        pref("icon.footer.source", "底部指标来源", "icon", .enumeration, "图标下方指示条报告的数量来源。") { d in
+            d.uiPath = "设置 › 图标 › 底部指标"
+            d.options = [
+                opt("volume", "音量"),
+                opt("wifi", "Wi-Fi 信号"),
+                opt("battery", "电池电量"),
+                opt("metric", "硬件指标"),
+                opt("hidden", "隐藏"),
+            ]
+            d.storageKey = "bottomIndicatorSource"
+            d.accessPolicy = .transferable
+            d.provider = "core"
+        },
+        pref("icon.footer.metric", "底部指标的具体指标", "icon", .enumeration, "底部指标来源选择“硬件指标”时，具体显示哪个指标。") { d in
+            d.uiPath = "设置 › 图标 › 底部指标 › 指标"
+            d.optionsProvider = "hardware.ringMetrics"
+            d.effectiveWhen = .equals(preference: "icon.footer.source", value: s("metric"))
+            d.accessPolicy = .profileSafe
+            d.provider = "core"
+        },
+
+        // ---- Hardware monitor ----
+        pref("hardware.rings.enabled", "显示硬件圆环", "hardware", .boolean, "是否在状态面板显示系统监控硬件圆环。关闭它可隐藏全部圆环而不清空圆环集合。") { d in
+            d.uiPath = "设置 › 监控 › 显示圆环"
+            d.defaultValue = b(true)
+            d.storageKey = "showsHardwareRings"
+            d.performanceImpact = SettingsPerformanceImpact(resources: ["hardwareSampling"], activation: .onDemand)
+            d.accessPolicy = .transferable
+            d.provider = "core"
+        },
+        pref("hardware.summary.enabled", "显示硬件摘要行", "hardware", .boolean, "在状态面板显示硬件摘要行。") { d in
+            d.uiPath = "设置 › 监控 › 摘要行"
+            d.defaultValue = b(true)
+            d.storageKey = "showsHardwareSummaryRow"
+            d.accessPolicy = .transferable
+            d.provider = "core"
+        },
+        pref("hardware.topApps.enabled", "显示占用最高的 App", "hardware", .boolean, "在状态面板显示 Top Apps。") { d in
+            d.uiPath = "设置 › 监控 › Top Apps"
+            d.defaultValue = b(true)
+            d.storageKey = "showsHardwareTopApps"
+            d.accessPolicy = .transferable
+            d.provider = "core"
+        },
+        pref("hardware.temperature.enabled", "温度监控", "hardware", .boolean, "采集并显示温度指标。关闭后相关温度读取停止，外环/底部温度指标会被替换。") { d in
+            d.uiPath = "设置 › 监控 › 温度监控"
+            d.defaultValue = b(true)
+            d.storageKey = "hardwareTemperatureMonitoringEnabledV1"
+            d.performanceImpact = SettingsPerformanceImpact(resources: ["temperatureSampling"], activation: .onDemand)
+            d.accessPolicy = .profileSafe
+            d.provider = "core"
+        },
+        pref("hardware.history.backgroundEnabled", "后台历史采集", "hardware", .boolean, "在后台持续采集硬件历史数据（即使面板未打开）。会带来持续开销，按需开启。") { d in
+            d.uiPath = "设置 › 监控 › 后台历史"
+            d.storageKey = "hardwareBackgroundHistoryEnabled"
+            d.performanceImpact = SettingsPerformanceImpact(resources: ["hardwareHistory"], activation: .continuous)
+            d.accessPolicy = .profileSafe
+            d.provider = "core"
+        },
+        pref("hardware.refresh.intervalSeconds", "刷新频率（秒）", "hardware", .integer, "硬件监控面板的刷新间隔。") { d in
+            d.uiPath = "设置 › 监控 › 刷新频率"
+            d.range = SettingsNumericRange(min: 1, max: 60)
+            d.unit = "s"
+            d.storageKey = "hardwarePanelRefreshSeconds"
+            d.performanceImpact = SettingsPerformanceImpact(resources: ["hardwareSampling"], activation: .periodic)
+            d.accessPolicy = .profileSafe
+            d.provider = "core"
+        },
+        pref("hardware.history.windowMinutes", "历史记录长度（分钟）", "hardware", .integer, "硬件历史图表的窗口长度。") { d in
+            d.uiPath = "设置 › 监控 › 历史长度"
+            d.range = SettingsNumericRange(min: 1, max: 180)
+            d.unit = "min"
+            d.storageKey = "hardwareHistoryWindowMinutes"
+            d.accessPolicy = .profileSafe
+            d.provider = "core"
+        },
+        pref("hardware.network.downloadCapMbps", "下载速度上限（Mbps）", "hardware", .number, "网络速度图表按此上限归一化。") { d in
+            d.uiPath = "设置 › 监控 › 网络 › 下载上限"
+            d.range = SettingsNumericRange(min: 1, max: 100000)
+            d.unit = "Mbps"
+            d.storageKey = "hardwareDownloadCapMbps"
+            d.accessPolicy = .transferable
+            d.provider = "core"
+        },
+        pref("hardware.network.uploadCapMbps", "上传速度上限（Mbps）", "hardware", .number, "网络速度图表按此上限归一化。") { d in
+            d.uiPath = "设置 › 监控 › 网络 › 上传上限"
+            d.range = SettingsNumericRange(min: 1, max: 100000)
+            d.unit = "Mbps"
+            d.storageKey = "hardwareUploadCapMbps"
+            d.accessPolicy = .transferable
+            d.provider = "core"
+        },
+
+        // ---- Battery & keep awake ----
+        pref("battery.thresholds.critical", "低电量颜色阈值", "battery", .number, "电池低于该百分比时图标转为低电量颜色。") { d in
+            d.uiPath = "设置 › 电池 › 低电量阈值"
+            d.range = SettingsNumericRange(min: 0, max: 100)
+            d.unit = "%"
+            d.storageKey = "batteryCriticalThreshold"
+            d.accessPolicy = .transferable
+            d.provider = "core"
+        },
+        pref("battery.thresholds.full", "满电阈值", "battery", .number, "电池达到该百分比时视为满电（仅用于显示，不等于系统充电上限）。") { d in
+            d.uiPath = "设置 › 电池 › 满电阈值"
+            d.range = SettingsNumericRange(min: 0, max: 100)
+            d.unit = "%"
+            d.storageKey = "batteryFullThreshold"
+            d.accessPolicy = .transferable
+            d.provider = "core"
+        },
+        pref("battery.automation.autoLowPower", "自动开启低电量模式", "battery", .boolean, "电量低于阈值时自动开启系统低电量模式。具有真实系统影响。") { d in
+            d.uiPath = "设置 › 电池 › 自动低电量模式"
+            d.storageKey = "autoEnablesLowPowerMode"
+            d.constraints = [
+                SettingsConstraint(kind: .requires, other: "battery.automation.lowPowerThreshold", resolution: .reject, message: "需先设置低电量模式阈值。")
+            ]
+            d.accessPolicy = systemRestricted
+            d.provider = "core"
+        },
+        pref("battery.automation.lowPowerThreshold", "自动低电量模式阈值", "battery", .number, "触发自动低电量模式的电量百分比（独立于低电量颜色阈值）。") { d in
+            d.uiPath = "设置 › 电池 › 自动低电量模式阈值"
+            d.range = SettingsNumericRange(min: 0, max: 100)
+            d.unit = "%"
+            d.defaultValue = n(20)
+            d.storageKey = "autoLowPowerThreshold"
+            d.accessPolicy = .profileSafe
+            d.provider = "core"
+        },
+        pref("battery.powerFlow.enabled", "显示电量流向", "battery", .boolean, "在面板电池模块显示输入/电池/系统功率流向图。") { d in
+            d.uiPath = "设置 › 电池 › 电量流向"
+            d.storageKey = "showsBatteryPowerFlow"
+            d.accessPolicy = .transferable
+            d.provider = "core"
+        },
+        pref("battery.highEnergyApps.enabled", "显示高耗能 App", "battery", .boolean, "在电池模块显示高耗能 App 列表。") { d in
+            d.uiPath = "设置 › 电池 › 高耗能 App"
+            d.storageKey = "showsHighEnergyApps"
+            d.performanceImpact = SettingsPerformanceImpact(resources: ["energySampling"], activation: .periodic)
+            d.accessPolicy = .transferable
+            d.provider = "core"
+        },
+        pref("keepAwake.displayControl", "显示“保持屏幕常亮”按钮", "battery", .boolean, "在面板显示保持屏幕常亮的控制按钮（仅显示控件）。") { d in
+            d.uiPath = "设置 › 保持唤醒 › 屏幕常亮"
+            d.storageKey = "showsKeepScreenButton"
+            d.accessPolicy = .profileSafe
+            d.provider = "core"
+        },
+        pref("keepAwake.lidControl", "显示“盒盖不睡眠”按钮", "battery", .boolean, "在面板显示盒盖不睡眠的控制按钮（仅显示控件，不代表已开启）。") { d in
+            d.uiPath = "设置 › 保持唤醒 › 盒盖不睡眠"
+            d.storageKey = "showsLidSleepButton"
+            d.accessPolicy = .profileSafe
+            d.provider = "core"
+        },
+        pref("keepAwake.allowLidSleepOnBattery", "使用电池时允许盒盖不睡眠", "battery", .boolean, "在电池供电时允许合盖不睡眠。具有真实系统影响。") { d in
+            d.uiPath = "设置 › 保持唤醒 › 电池供电"
+            d.storageKey = "allowLidSleepOnBattery"
+            d.accessPolicy = systemRestricted
+            d.provider = "core"
+        },
+        pref("keepAwake.autoDisableOnLowBattery", "低电量时自动关闭盒盖不睡眠", "battery", .boolean, "电量过低时自动停止盒盖不睡眠。具有真实系统影响。") { d in
+            d.uiPath = "设置 › 保持唤醒 › 低电量自动关闭"
+            d.storageKey = "autoDisableLidSleepOnLowBattery"
+            d.accessPolicy = systemRestricted
+            d.provider = "core"
+        },
+
+        // ---- Bluetooth ----
+        pref("bluetooth.deviceList.enabled", "显示蓝牙设备列表", "bluetooth", .boolean, "在面板显示蓝牙设备列表。") { d in
+            d.uiPath = "设置 › 蓝牙 › 设备列表"
+            d.storageKey = "showsBluetoothDeviceList"
+            d.accessPolicy = .transferable
+            d.provider = "core"
+        },
+        pref("bluetooth.batteryLevels.enabled", "显示蓝牙设备电量", "bluetooth", .boolean, "显示已连接蓝牙设备的电量。") { d in
+            d.uiPath = "设置 › 蓝牙 › 设备电量"
+            d.storageKey = "showsBluetoothBatteryLevels"
+            d.accessPolicy = .transferable
+            d.provider = "core"
+        },
+        pref("bluetooth.appleBattery.backgroundRefresh", "后台刷新 Apple 设备电量", "bluetooth", .boolean, "在后台定期读取 Apple 设备（AirPods 等）电量。") { d in
+            d.uiPath = "设置 › 蓝牙 › 后台刷新"
+            d.storageKey = "refreshesAppleBatteriesInBackground"
+            d.performanceImpact = SettingsPerformanceImpact(resources: ["appleBatterySampling"], activation: .periodic)
+            d.accessPolicy = .profileSafe
+            d.provider = "core"
+        },
+        pref("bluetooth.devices.hidden", "隐藏的蓝牙设备", "bluetooth", .set, "按设备地址隐藏的蓝牙设备集合。设备地址属于敏感信息。") { d in
+            d.uiPath = "设置 › 蓝牙 › 隐藏设备"
+            d.storageKey = "hiddenBluetoothDeviceAddresses"
+            d.accessPolicy = SettingsAccessPolicy(
+                uiAccessible: true,
+                developmentProfile: false,
+                transferable: false,
+                externalRead: false,
+                externalWrite: false,
+                requiresConfirmation: false,
+                containsSensitiveInfo: true,
+                systemSideEffect: false
+            )
+            d.provider = "core"
+        },
+
+        // ---- Audio ----
+        pref("audio.output.maxVisibleDevices", "输出设备最大显示数量", "audio", .integer, "输出设备列表中最多显示的数量。") { d in
+            d.uiPath = "设置 › 音量 › 输出设备数量"
+            d.range = SettingsNumericRange(min: 1, max: 20)
+            d.storageKey = "maxVisibleOutputDevices"
+            d.accessPolicy = .transferable
+            d.provider = "core"
+        },
+        pref("audio.output.showAllDevices", "显示全部输出设备", "audio", .boolean, "忽略最大数量限制，显示全部输出设备。") { d in
+            d.uiPath = "设置 › 音量 › 显示全部输出设备"
+            d.storageKey = "alwaysShowsAllOutputDevices"
+            d.accessPolicy = .transferable
+            d.provider = "core"
+        },
+        pref("audio.input.maxVisibleDevices", "输入设备最大显示数量", "audio", .integer, "输入设备列表中最多显示的数量。") { d in
+            d.uiPath = "设置 › 麦克风 › 输入设备数量"
+            d.range = SettingsNumericRange(min: 1, max: 20)
+            d.storageKey = "maxVisibleInputDevices"
+            d.accessPolicy = .transferable
+            d.provider = "core"
+        },
+        pref("audio.input.showAllDevices", "显示全部输入设备", "audio", .boolean, "忽略最大数量限制，显示全部输入设备。") { d in
+            d.uiPath = "设置 › 麦克风 › 显示全部输入设备"
+            d.storageKey = "alwaysShowsAllInputDevices"
+            d.accessPolicy = .transferable
+            d.provider = "core"
+        },
+
+        // ---- Brightness ----
+        pref("brightness.betterDisplay.combined", "BetterDisplay 合并亮度", "brightness", .boolean, "使用 BetterDisplay 的合并亮度控制。仅在检测到 BetterDisplay 时可见。") { d in
+            d.uiPath = "设置 › 亮度 › BetterDisplay"
+            d.storageKey = "useBetterDisplayCombinedBrightness"
+            d.visibleWhen = .capability("integration.betterDisplay")
+            d.accessPolicy = .profileSafe
+            d.provider = "core"
+        },
+    ]
+
+    // MARK: - Features
+
+    static let features: [SettingsFeatureDescriptor] = [
+        SettingsFeatureDescriptor(
+            id: "panel.hardware",
+            title: "系统监控面板",
+            description: "状态面板中的系统监控模块父功能。",
+            mutations: [SettingsMutationDescriptor(id: "hardware.rings.enabled", operation: .set, value: b(true))],
+            performanceImpact: SettingsPerformanceImpact(resources: ["hardwareSampling"], activation: .onDemand)
+        ),
+        SettingsFeatureDescriptor(
+            id: "hardware.panel.rings",
+            title: "硬件圆环",
+            description: "硬件监控圆环区域。",
+            requires: ["panel.hardware"],
+            mutations: [SettingsMutationDescriptor(id: "hardware.rings.enabled", operation: .set, value: b(true))]
+        ),
+        SettingsFeatureDescriptor(
+            id: "hardware.panel.cpu",
+            title: "CPU 圆环",
+            description: "显示 CPU 指标的硬件圆环。",
+            requires: ["panel.hardware", "hardware.panel.rings"],
+            mutations: [
+                SettingsMutationDescriptor(id: "icon.outerRing.source", operation: .set, value: s("hardwareMonitor")),
+                SettingsMutationDescriptor(id: "icon.outerRing.hardware.layout", operation: .set, value: s("single")),
+                SettingsMutationDescriptor(id: "icon.outerRing.hardware.primaryMetric", operation: .set, value: s("cpuUsage")),
+            ]
+        ),
+        SettingsFeatureDescriptor(
+            id: "hardware.panel.gpu",
+            title: "GPU 圆环",
+            description: "显示 GPU 指标的硬件圆环。",
+            requires: ["panel.hardware", "hardware.panel.rings"],
+            mutations: [
+                SettingsMutationDescriptor(id: "icon.outerRing.source", operation: .set, value: s("hardwareMonitor")),
+                SettingsMutationDescriptor(id: "icon.outerRing.hardware.layout", operation: .set, value: s("single")),
+                SettingsMutationDescriptor(id: "icon.outerRing.hardware.primaryMetric", operation: .set, value: s("gpuUsage")),
+            ]
+        ),
+        SettingsFeatureDescriptor(
+            id: "hardware.panel.gpu.temperature",
+            title: "GPU 温度显示",
+            description: "在 GPU 圆环中显示 GPU 温度；需要先开启 GPU 圆环。",
+            requires: ["panel.hardware", "hardware.panel.rings", "hardware.panel.gpu"],
+            mutations: [SettingsMutationDescriptor(id: "hardware.temperature.enabled", operation: .set, value: b(true))],
+            performanceImpact: SettingsPerformanceImpact(resources: ["temperatureSampling"], activation: .onDemand)
+        ),
+        SettingsFeatureDescriptor(
+            id: "panel.bluetooth",
+            title: "蓝牙面板",
+            description: "状态面板蓝牙模块。",
+            mutations: [SettingsMutationDescriptor(id: "bluetooth.deviceList.enabled", operation: .set, value: b(true))]
+        ),
+        SettingsFeatureDescriptor(
+            id: "panel.audio.input",
+            title: "麦克风输入模块",
+            description: "状态面板的输入设备模块。",
+            mutations: [SettingsMutationDescriptor(id: "audio.input.maxVisibleDevices", operation: .set, value: n(3))]
+        ),
+        SettingsFeatureDescriptor(
+            id: "battery.powerFlow",
+            title: "电量流向",
+            description: "面板电池模块的功率流向图。",
+            mutations: [SettingsMutationDescriptor(id: "battery.powerFlow.enabled", operation: .set, value: b(true))]
+        ),
+        SettingsFeatureDescriptor(
+            id: "battery.highEnergyApps",
+            title: "高耗能 App",
+            description: "面板电池模块的高耗能 App 列表。",
+            mutations: [SettingsMutationDescriptor(id: "battery.highEnergyApps.enabled", operation: .set, value: b(true))]
+        ),
+        SettingsFeatureDescriptor(
+            id: "keepAwake.displayControl",
+            title: "屏幕常亮控制",
+            description: "面板中的屏幕常亮控件。",
+            mutations: [SettingsMutationDescriptor(id: "keepAwake.displayControl", operation: .set, value: b(true))]
+        ),
+        SettingsFeatureDescriptor(
+            id: "keepAwake.lidControl",
+            title: "盒盖不睡眠控制",
+            description: "面板中的盒盖不睡眠控件。",
+            mutations: [SettingsMutationDescriptor(id: "keepAwake.lidControl", operation: .set, value: b(true))]
+        ),
+    ]
+}
