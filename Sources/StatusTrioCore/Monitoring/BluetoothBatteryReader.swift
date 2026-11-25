@@ -111,15 +111,20 @@ struct BluetoothBatteryLevel: Equatable, Sendable {
     }
 
     /// The charging-case channel: its glyph stands in for the word "Case", the
-    /// bolt follows it when charging, then the percentage.
+    /// bolt follows a space when charging, then the percentage — so the bolt sits
+    /// right against the number exactly as it does for L/R, and the case glyph
+    /// stays the label rather than being glued to the bolt.
     private static func caseChannel(value: Int, isCharging: Bool?) -> [BluetoothBatterySegment] {
         var pieces: [BluetoothBatterySegment] = [
             .symbol(name: caseSymbolName, label: caseTextLabel)
         ]
-        if isCharging == true {
-            pieces.append(.symbol(name: chargingSymbolName, label: ""))
+        guard isCharging == true else {
+            pieces.append(.text(" \(value)%"))
+            return pieces
         }
-        pieces.append(.text(" \(value)%"))
+        pieces.append(.text(" "))
+        pieces.append(.symbol(name: chargingSymbolName, label: ""))
+        pieces.append(.text("\(value)%"))
         return pieces
     }
 
