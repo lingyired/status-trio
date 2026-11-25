@@ -1443,3 +1443,4 @@
 "hardware.monitor.settings.refresh.topApps" = "Aktualisierung der Top-Apps";
 "hardware.monitor.settings.refresh.topApps.description" = "Wie oft die Liste auf der Detailseite aktualisiert wird. Die Speicherliste behält ihre eigene Untergrenze von 6 s.";
 "hardware.monitor.settings.group.sampling.footnote" = "Panel und Menüleisten-/Dock-Symbole teilen sich eine Hardware-Messung. Die Intervalle steuern nur, wie oft das Panel aktualisiert; Symbole bleiben reaktionsschnell, nichts wird doppelt gelesen.";
+"settings.hardwareRing.iconRefreshNote" = "Das Symbol aktualisiert sich im schnellsten Takt der jeweiligen Metrik (CPU/GPU ca. 2 s, Netzwerk/Datenträger ca. 1 s, Temperatur ca. 4 s) und zeichnet nur bei geändertem Inhalt neu, um reaktionsschnell zu bleiben. Die Panel-Aktualisierungsrate beeinflusst es nicht.";

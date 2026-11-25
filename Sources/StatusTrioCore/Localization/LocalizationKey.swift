@@ -907,6 +907,7 @@ enum LocalizationKey: String, CaseIterable, Hashable, Sendable {
     case settingsRingAirPodsFallbackCustom = "settings.ringContent.airPodsFallback.custom"
     case settingsRingContentHardwareMonitor = "settings.ringContent.hardwareMonitor"
     case settingsHardwareRingGroupArc = "settings.hardwareRing.group.arc"
+    case settingsHardwareRingIconRefreshNote = "settings.hardwareRing.iconRefreshNote"
     case settingsHardwareRingGroupOther = "settings.hardwareRing.group.other"
     case settingsHardwareRingLayout = "settings.hardwareRing.layout"
     case settingsHardwareRingLayoutSingle = "settings.hardwareRing.layout.single"

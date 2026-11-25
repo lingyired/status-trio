@@ -1443,3 +1443,4 @@
 "hardware.monitor.settings.refresh.topApps" = "Actualisation des applis principales";
 "hardware.monitor.settings.refresh.topApps.description" = "Fréquence d'actualisation de la liste de la page de détail. La liste mémoire conserve son plancher de 6 s.";
 "hardware.monitor.settings.group.sampling.footnote" = "Le panneau et les icônes de la barre des menus/Dock partagent un même échantillon matériel. Ces intervalles ne règlent que la fréquence d'actualisation du panneau ; les icônes restent réactives, rien n'est lu deux fois.";
+"settings.hardwareRing.iconRefreshNote" = "L'icône s'actualise au rythme le plus rapide de chaque métrique (CPU/GPU env. 2 s, réseau/disque env. 1 s, température env. 4 s) et n'est redessinée que lorsque le contenu change, pour rester réactive. Elle n'est pas affectée par la fréquence d'actualisation du panneau.";

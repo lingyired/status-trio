@@ -250,7 +250,10 @@ struct AppIconRingView: View {
     }
 
     private var hardwareArcGroup: some View {
-        SettingsGroup(localization.string(.settingsHardwareRingGroupArc)) {
+        SettingsGroup(
+            localization.string(.settingsHardwareRingGroupArc),
+            footnote: localization.string(.settingsHardwareRingIconRefreshNote)
+        ) {
             SettingsMenuRow(
                 symbol: "circle.dashed",
                 tint: .blue,

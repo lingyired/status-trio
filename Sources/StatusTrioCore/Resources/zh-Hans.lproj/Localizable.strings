@@ -1443,3 +1443,4 @@
 "hardware.monitor.settings.refresh.topApps" = "高占用应用刷新间隔";
 "hardware.monitor.settings.refresh.topApps.description" = "详情页底部列表的刷新间隔。内存列表受自身 6 秒下限限制，不会更快。";
 "hardware.monitor.settings.group.sampling.footnote" = "面板与菜单栏/Dock 图标共用同一次硬件采样。下面的间隔只决定面板多久刷新一次，图标仍保持灵敏，不会重复读取硬件。";
+"settings.hardwareRing.iconRefreshNote" = "图标按各指标的最快节奏刷新（CPU/GPU 约 2 秒，网络/磁盘约 1 秒，温度约 4 秒），仅在显示内容变化时重绘，以保持灵敏；不受「面板更新频率」影响。";
