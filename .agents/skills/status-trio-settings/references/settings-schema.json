@@ -92,6 +92,86 @@
     {
       "accessPolicy" : {
         "containsSensitiveInfo" : false,
+        "developmentProfile" : true,
+        "externalRead" : true,
+        "externalWrite" : false,
+        "requiresConfirmation" : false,
+        "systemSideEffect" : false,
+        "transferable" : false,
+        "uiAccessible" : true
+      },
+      "category" : "audio",
+      "description" : "音量滚轮使用自然滚动方向。",
+      "id" : "audio.popup.naturalScrolling",
+      "provider" : "core",
+      "storageKey" : "popupVolumeNaturalScrolling",
+      "title" : "自然滚动方向",
+      "type" : "boolean",
+      "uiPath" : "设置 › 音量 › 自然滚动"
+    },
+    {
+      "accessPolicy" : {
+        "containsSensitiveInfo" : false,
+        "developmentProfile" : true,
+        "externalRead" : true,
+        "externalWrite" : false,
+        "requiresConfirmation" : false,
+        "systemSideEffect" : false,
+        "transferable" : false,
+        "uiAccessible" : true
+      },
+      "category" : "audio",
+      "description" : "在面板上滚动滚轮调整音量。",
+      "id" : "audio.popup.scrollAdjustsVolume",
+      "provider" : "core",
+      "storageKey" : "popupPanelScrollAdjustsVolume",
+      "title" : "滚轮调整音量",
+      "type" : "boolean",
+      "uiPath" : "设置 › 音量 › 滚轮调整音量"
+    },
+    {
+      "accessPolicy" : {
+        "containsSensitiveInfo" : false,
+        "developmentProfile" : true,
+        "externalRead" : true,
+        "externalWrite" : false,
+        "requiresConfirmation" : false,
+        "systemSideEffect" : false,
+        "transferable" : false,
+        "uiAccessible" : true
+      },
+      "category" : "audio",
+      "description" : "显示空间音频（Spatial Audio）控制。",
+      "id" : "audio.spatialControls.enabled",
+      "provider" : "core",
+      "storageKey" : "showsSpatialAudioControls",
+      "title" : "显示空间音频控件",
+      "type" : "boolean",
+      "uiPath" : "设置 › 音量 › 空间音频"
+    },
+    {
+      "accessPolicy" : {
+        "containsSensitiveInfo" : false,
+        "developmentProfile" : true,
+        "externalRead" : true,
+        "externalWrite" : false,
+        "requiresConfirmation" : false,
+        "systemSideEffect" : false,
+        "transferable" : false,
+        "uiAccessible" : true
+      },
+      "category" : "battery",
+      "description" : "显示 Apple 设备及其电量。",
+      "id" : "battery.appleDevicesAndBattery.enabled",
+      "provider" : "core",
+      "storageKey" : "showsAppleDevicesAndBattery",
+      "title" : "显示 Apple 设备与电量",
+      "type" : "boolean",
+      "uiPath" : "设置 › 电池 › Apple 设备"
+    },
+    {
+      "accessPolicy" : {
+        "containsSensitiveInfo" : false,
         "developmentProfile" : false,
         "externalRead" : false,
         "externalWrite" : false,
@@ -116,6 +196,26 @@
       "title" : "自动开启低电量模式",
       "type" : "boolean",
       "uiPath" : "设置 › 电池 › 自动低电量模式"
+    },
+    {
+      "accessPolicy" : {
+        "containsSensitiveInfo" : false,
+        "developmentProfile" : false,
+        "externalRead" : false,
+        "externalWrite" : false,
+        "requiresConfirmation" : true,
+        "systemSideEffect" : true,
+        "transferable" : false,
+        "uiAccessible" : true
+      },
+      "category" : "battery",
+      "description" : "允许 App 控制系统低电量模式。具有系统影响。",
+      "id" : "battery.automation.controlsLowPowerMode",
+      "provider" : "core",
+      "storageKey" : "controlsLowPowerMode",
+      "title" : "允许控制低电量模式",
+      "type" : "boolean",
+      "uiPath" : "设置 › 电池 › 低电量模式控制"
     },
     {
       "accessPolicy" : {
@@ -151,6 +251,151 @@
         "externalWrite" : false,
         "requiresConfirmation" : false,
         "systemSideEffect" : false,
+        "transferable" : false,
+        "uiAccessible" : true
+      },
+      "category" : "battery",
+      "description" : "显示蓝牙电源开关控件。",
+      "id" : "battery.bluetoothPowerControl.enabled",
+      "provider" : "core",
+      "storageKey" : "showsBluetoothPowerControl",
+      "title" : "显示蓝牙开关控件",
+      "type" : "boolean",
+      "uiPath" : "设置 › 电池 › 蓝牙开关"
+    },
+    {
+      "accessPolicy" : {
+        "containsSensitiveInfo" : false,
+        "developmentProfile" : true,
+        "externalRead" : true,
+        "externalWrite" : false,
+        "requiresConfirmation" : false,
+        "systemSideEffect" : false,
+        "transferable" : false,
+        "uiAccessible" : true
+      },
+      "category" : "battery",
+      "description" : "显示“立即充满电”按钮（仅显示控件，不代表执行）。",
+      "id" : "battery.chargeToFullButton.enabled",
+      "provider" : "core",
+      "storageKey" : "showsChargeToFullNowButton",
+      "title" : "显示立即充满按钮",
+      "type" : "boolean",
+      "uiPath" : "设置 › 电池 › 立即充满按钮"
+    },
+    {
+      "accessPolicy" : {
+        "containsSensitiveInfo" : false,
+        "developmentProfile" : true,
+        "externalRead" : true,
+        "externalWrite" : false,
+        "requiresConfirmation" : false,
+        "systemSideEffect" : false,
+        "transferable" : false,
+        "uiAccessible" : true
+      },
+      "category" : "battery",
+      "description" : "立即充满电后恢复到该充电上限百分比。",
+      "id" : "battery.chargeToFullRestoreLimit",
+      "provider" : "core",
+      "range" : {
+        "max" : 100,
+        "min" : 0
+      },
+      "storageKey" : "chargeToFullRestoreLimit",
+      "title" : "充满后恢复的充电上限",
+      "type" : "number",
+      "uiPath" : "设置 › 电池 › 充满后恢复上限",
+      "unit" : "%"
+    },
+    {
+      "accessPolicy" : {
+        "containsSensitiveInfo" : false,
+        "developmentProfile" : true,
+        "externalRead" : true,
+        "externalWrite" : false,
+        "requiresConfirmation" : false,
+        "systemSideEffect" : false,
+        "transferable" : false,
+        "uiAccessible" : true
+      },
+      "category" : "battery",
+      "description" : "充电时电池闪电图标的脉动动画。",
+      "id" : "battery.charging.boltHeartbeat",
+      "provider" : "core",
+      "storageKey" : "showsChargingBoltHeartbeat",
+      "title" : "充电闪电心跳动画",
+      "type" : "boolean",
+      "uiPath" : "设置 › 电池 › 充电效果 › 心跳"
+    },
+    {
+      "accessPolicy" : {
+        "containsSensitiveInfo" : false,
+        "developmentProfile" : true,
+        "externalRead" : true,
+        "externalWrite" : false,
+        "requiresConfirmation" : false,
+        "systemSideEffect" : false,
+        "transferable" : false,
+        "uiAccessible" : true
+      },
+      "category" : "battery",
+      "description" : "在 Dock 图标上显示充电效果。",
+      "id" : "battery.charging.dockEffect",
+      "provider" : "core",
+      "storageKey" : "showsDockChargingEffect",
+      "title" : "Dock 充电效果",
+      "type" : "boolean",
+      "uiPath" : "设置 › 电池 › 充电效果 › Dock"
+    },
+    {
+      "accessPolicy" : {
+        "containsSensitiveInfo" : false,
+        "developmentProfile" : true,
+        "externalRead" : true,
+        "externalWrite" : false,
+        "requiresConfirmation" : false,
+        "systemSideEffect" : false,
+        "transferable" : false,
+        "uiAccessible" : true
+      },
+      "category" : "battery",
+      "description" : "在菜单栏图标上显示充电效果。",
+      "id" : "battery.charging.menuBarEffect",
+      "provider" : "core",
+      "storageKey" : "showsMenuBarChargingEffect",
+      "title" : "菜单栏充电效果",
+      "type" : "boolean",
+      "uiPath" : "设置 › 电池 › 充电效果 › 菜单栏"
+    },
+    {
+      "accessPolicy" : {
+        "containsSensitiveInfo" : false,
+        "developmentProfile" : true,
+        "externalRead" : true,
+        "externalWrite" : false,
+        "requiresConfirmation" : false,
+        "systemSideEffect" : false,
+        "transferable" : false,
+        "uiAccessible" : true
+      },
+      "category" : "battery",
+      "description" : "执行关闭 Wi-Fi 前要求确认。",
+      "id" : "battery.confirmWiFiPowerOff",
+      "provider" : "core",
+      "storageKey" : "confirmsWiFiPowerOff",
+      "title" : "关闭 Wi-Fi 前确认",
+      "type" : "boolean",
+      "uiPath" : "设置 › 电池 › Wi-Fi 关闭确认"
+    },
+    {
+      "accessPolicy" : {
+        "containsSensitiveInfo" : false,
+        "developmentProfile" : true,
+        "externalRead" : true,
+        "externalWrite" : false,
+        "requiresConfirmation" : false,
+        "systemSideEffect" : false,
         "transferable" : true,
         "uiAccessible" : true
       },
@@ -177,6 +422,195 @@
         "externalWrite" : false,
         "requiresConfirmation" : false,
         "systemSideEffect" : false,
+        "transferable" : false,
+        "uiAccessible" : true
+      },
+      "category" : "battery",
+      "description" : "高耗能 App 列表的刷新间隔。",
+      "id" : "battery.highEnergyApps.refreshIntervalSeconds",
+      "provider" : "core",
+      "storageKey" : "highEnergyAppsRefreshIntervalSeconds",
+      "title" : "高耗能 App 刷新间隔",
+      "type" : "number",
+      "uiPath" : "设置 › 电池 › 高耗能 App › 刷新间隔",
+      "unit" : "s"
+    },
+    {
+      "accessPolicy" : {
+        "containsSensitiveInfo" : false,
+        "developmentProfile" : true,
+        "externalRead" : true,
+        "externalWrite" : false,
+        "requiresConfirmation" : false,
+        "systemSideEffect" : false,
+        "transferable" : false,
+        "uiAccessible" : true
+      },
+      "category" : "battery",
+      "description" : "充电时电量环顶部的标记样式。",
+      "id" : "battery.marker.charging",
+      "options" : [
+        {
+          "id" : "percentage",
+          "title" : "百分比",
+          "value" : "percentage"
+        },
+        {
+          "id" : "bolt",
+          "title" : "闪电",
+          "value" : "bolt"
+        },
+        {
+          "id" : "plug",
+          "title" : "插头",
+          "value" : "plug"
+        },
+        {
+          "id" : "hidden",
+          "title" : "隐藏",
+          "value" : "hidden"
+        }
+      ],
+      "provider" : "core",
+      "storageKey" : "batteryChargingMarker",
+      "title" : "充电标记",
+      "type" : "enumeration",
+      "uiPath" : "设置 › 电池 › 标记 › 充电"
+    },
+    {
+      "accessPolicy" : {
+        "containsSensitiveInfo" : false,
+        "developmentProfile" : true,
+        "externalRead" : true,
+        "externalWrite" : false,
+        "requiresConfirmation" : false,
+        "systemSideEffect" : false,
+        "transferable" : false,
+        "uiAccessible" : true
+      },
+      "category" : "battery",
+      "description" : "已连接电源时电量环顶部的标记样式。",
+      "id" : "battery.marker.connected",
+      "options" : [
+        {
+          "id" : "percentage",
+          "title" : "百分比",
+          "value" : "percentage"
+        },
+        {
+          "id" : "bolt",
+          "title" : "闪电",
+          "value" : "bolt"
+        },
+        {
+          "id" : "plug",
+          "title" : "插头",
+          "value" : "plug"
+        },
+        {
+          "id" : "hidden",
+          "title" : "隐藏",
+          "value" : "hidden"
+        }
+      ],
+      "provider" : "core",
+      "storageKey" : "batteryConnectedMarker",
+      "title" : "已连接标记",
+      "type" : "enumeration",
+      "uiPath" : "设置 › 电池 › 标记 › 已连接"
+    },
+    {
+      "accessPolicy" : {
+        "containsSensitiveInfo" : false,
+        "developmentProfile" : true,
+        "externalRead" : true,
+        "externalWrite" : false,
+        "requiresConfirmation" : false,
+        "systemSideEffect" : false,
+        "transferable" : false,
+        "uiAccessible" : true
+      },
+      "category" : "battery",
+      "description" : "无电池时的标记样式。",
+      "id" : "battery.marker.noBattery",
+      "options" : [
+        {
+          "id" : "percentage",
+          "title" : "百分比",
+          "value" : "percentage"
+        },
+        {
+          "id" : "bolt",
+          "title" : "闪电",
+          "value" : "bolt"
+        },
+        {
+          "id" : "plug",
+          "title" : "插头",
+          "value" : "plug"
+        },
+        {
+          "id" : "hidden",
+          "title" : "隐藏",
+          "value" : "hidden"
+        }
+      ],
+      "provider" : "core",
+      "storageKey" : "batteryNoBatteryMarker",
+      "title" : "无电池标记",
+      "type" : "enumeration",
+      "uiPath" : "设置 › 电池 › 标记 › 无电池"
+    },
+    {
+      "accessPolicy" : {
+        "containsSensitiveInfo" : false,
+        "developmentProfile" : true,
+        "externalRead" : true,
+        "externalWrite" : false,
+        "requiresConfirmation" : false,
+        "systemSideEffect" : false,
+        "transferable" : false,
+        "uiAccessible" : true
+      },
+      "category" : "battery",
+      "description" : "使用电池时电量环顶部的标记样式。",
+      "id" : "battery.marker.onBattery",
+      "options" : [
+        {
+          "id" : "percentage",
+          "title" : "百分比",
+          "value" : "percentage"
+        },
+        {
+          "id" : "bolt",
+          "title" : "闪电",
+          "value" : "bolt"
+        },
+        {
+          "id" : "plug",
+          "title" : "插头",
+          "value" : "plug"
+        },
+        {
+          "id" : "hidden",
+          "title" : "隐藏",
+          "value" : "hidden"
+        }
+      ],
+      "provider" : "core",
+      "storageKey" : "batteryOnBatteryMarker",
+      "title" : "电池百分比标记",
+      "type" : "enumeration",
+      "uiPath" : "设置 › 电池 › 标记 › 使用电池"
+    },
+    {
+      "accessPolicy" : {
+        "containsSensitiveInfo" : false,
+        "developmentProfile" : true,
+        "externalRead" : true,
+        "externalWrite" : false,
+        "requiresConfirmation" : false,
+        "systemSideEffect" : false,
         "transferable" : true,
         "uiAccessible" : true
       },
@@ -188,6 +622,106 @@
       "title" : "显示电量流向",
       "type" : "boolean",
       "uiPath" : "设置 › 电池 › 电量流向"
+    },
+    {
+      "accessPolicy" : {
+        "containsSensitiveInfo" : false,
+        "developmentProfile" : true,
+        "externalRead" : true,
+        "externalWrite" : false,
+        "requiresConfirmation" : false,
+        "systemSideEffect" : false,
+        "transferable" : false,
+        "uiAccessible" : true
+      },
+      "category" : "battery",
+      "description" : "在面板电池模块显示输入/电池/系统功率信息条（实验性）。",
+      "id" : "battery.powerInfoBar.enabled",
+      "provider" : "core",
+      "storageKey" : "showsBatteryPowerInfoBar",
+      "title" : "功率信息条",
+      "type" : "boolean",
+      "uiPath" : "设置 › 电池 › 功率信息条"
+    },
+    {
+      "accessPolicy" : {
+        "containsSensitiveInfo" : false,
+        "developmentProfile" : true,
+        "externalRead" : true,
+        "externalWrite" : false,
+        "requiresConfirmation" : false,
+        "systemSideEffect" : false,
+        "transferable" : false,
+        "uiAccessible" : true
+      },
+      "category" : "battery",
+      "description" : "开发/演示用：模拟设备无电池。",
+      "id" : "battery.simulateNoBattery",
+      "provider" : "core",
+      "storageKey" : "simulatesNoBattery",
+      "title" : "模拟无电池",
+      "type" : "boolean",
+      "uiPath" : "设置 › 电池 › 模拟无电池"
+    },
+    {
+      "accessPolicy" : {
+        "containsSensitiveInfo" : false,
+        "developmentProfile" : true,
+        "externalRead" : true,
+        "externalWrite" : false,
+        "requiresConfirmation" : false,
+        "systemSideEffect" : false,
+        "transferable" : false,
+        "uiAccessible" : true
+      },
+      "category" : "battery",
+      "description" : "电量环在断口处按进度绘制。",
+      "id" : "battery.splitGapProgress",
+      "provider" : "core",
+      "storageKey" : "batterySplitGapProgress",
+      "title" : "电量环断口进度",
+      "type" : "boolean",
+      "uiPath" : "设置 › 电池 › 电量环"
+    },
+    {
+      "accessPolicy" : {
+        "containsSensitiveInfo" : false,
+        "developmentProfile" : true,
+        "externalRead" : true,
+        "externalWrite" : false,
+        "requiresConfirmation" : false,
+        "systemSideEffect" : false,
+        "transferable" : false,
+        "uiAccessible" : true
+      },
+      "category" : "battery",
+      "description" : "按电量状态为电池图标着色。",
+      "id" : "battery.statusColors.enabled",
+      "provider" : "core",
+      "storageKey" : "usesBatteryStatusColors",
+      "title" : "使用电池状态颜色",
+      "type" : "boolean",
+      "uiPath" : "设置 › 电池 › 状态颜色"
+    },
+    {
+      "accessPolicy" : {
+        "containsSensitiveInfo" : false,
+        "developmentProfile" : true,
+        "externalRead" : true,
+        "externalWrite" : false,
+        "requiresConfirmation" : false,
+        "systemSideEffect" : false,
+        "transferable" : false,
+        "uiAccessible" : true
+      },
+      "category" : "battery",
+      "description" : "电池图标的符号缩放比例。",
+      "id" : "battery.symbolScale",
+      "provider" : "core",
+      "storageKey" : "batterySymbolScale",
+      "title" : "电池符号缩放",
+      "type" : "number",
+      "uiPath" : "设置 › 电池 › 符号缩放"
     },
     {
       "accessPolicy" : {
@@ -238,6 +772,26 @@
       "type" : "number",
       "uiPath" : "设置 › 电池 › 满电阈值",
       "unit" : "%"
+    },
+    {
+      "accessPolicy" : {
+        "containsSensitiveInfo" : false,
+        "developmentProfile" : true,
+        "externalRead" : true,
+        "externalWrite" : false,
+        "requiresConfirmation" : false,
+        "systemSideEffect" : false,
+        "transferable" : false,
+        "uiAccessible" : true
+      },
+      "category" : "battery",
+      "description" : "显示 Wi-Fi 电源开关控件。",
+      "id" : "battery.wifiPowerControl.enabled",
+      "provider" : "core",
+      "storageKey" : "showsWiFiPowerControl",
+      "title" : "显示 Wi-Fi 开关控件",
+      "type" : "boolean",
+      "uiPath" : "设置 › 电池 › Wi-Fi 开关"
     },
     {
       "accessPolicy" : {
@@ -348,6 +902,26 @@
         "capability" : "integration.betterDisplay",
         "type" : "capability"
       }
+    },
+    {
+      "accessPolicy" : {
+        "containsSensitiveInfo" : false,
+        "developmentProfile" : true,
+        "externalRead" : true,
+        "externalWrite" : false,
+        "requiresConfirmation" : false,
+        "systemSideEffect" : false,
+        "transferable" : false,
+        "uiAccessible" : true
+      },
+      "category" : "brightness",
+      "description" : "面板音量滑块粗细匹配亮度条。",
+      "id" : "brightness.sliderMatchesBrightnessThickness",
+      "provider" : "core",
+      "storageKey" : "panelLevelSliderMatchesBrightnessThickness",
+      "title" : "滑块匹配亮度条粗细",
+      "type" : "boolean",
+      "uiPath" : "设置 › 亮度 › 滑块粗细"
     },
     {
       "accessPolicy" : {
@@ -732,6 +1306,46 @@
         "externalWrite" : false,
         "requiresConfirmation" : false,
         "systemSideEffect" : false,
+        "transferable" : false,
+        "uiAccessible" : true
+      },
+      "category" : "icon",
+      "description" : "AirPods 电量使用双环显示左右耳。",
+      "id" : "icon.airPods.ringUsesDualRing",
+      "provider" : "core",
+      "storageKey" : "airPodsRingUsesDualRing",
+      "title" : "AirPods 使用双环",
+      "type" : "boolean",
+      "uiPath" : "设置 › 图标 › AirPods › 双环"
+    },
+    {
+      "accessPolicy" : {
+        "containsSensitiveInfo" : false,
+        "developmentProfile" : true,
+        "externalRead" : true,
+        "externalWrite" : false,
+        "requiresConfirmation" : false,
+        "systemSideEffect" : false,
+        "transferable" : false,
+        "uiAccessible" : true
+      },
+      "category" : "icon",
+      "description" : "在 AirPods 环顶部显示符号。",
+      "id" : "icon.airPods.topSymbolInRing",
+      "provider" : "core",
+      "storageKey" : "showsAirPodsTopSymbolInRing",
+      "title" : "AirPods 顶部符号",
+      "type" : "boolean",
+      "uiPath" : "设置 › 图标 › AirPods › 顶部符号"
+    },
+    {
+      "accessPolicy" : {
+        "containsSensitiveInfo" : false,
+        "developmentProfile" : true,
+        "externalRead" : true,
+        "externalWrite" : false,
+        "requiresConfirmation" : false,
+        "systemSideEffect" : false,
         "transferable" : true,
         "uiAccessible" : true
       },
@@ -847,6 +1461,86 @@
       "title" : "底部指标来源",
       "type" : "enumeration",
       "uiPath" : "设置 › 图标 › 底部指标"
+    },
+    {
+      "accessPolicy" : {
+        "containsSensitiveInfo" : false,
+        "developmentProfile" : true,
+        "externalRead" : true,
+        "externalWrite" : false,
+        "requiresConfirmation" : false,
+        "systemSideEffect" : false,
+        "transferable" : false,
+        "uiAccessible" : true
+      },
+      "category" : "icon",
+      "description" : "以太网连接时使用 Wi-Fi 图标。",
+      "id" : "icon.network.wifiIconForEthernet",
+      "provider" : "core",
+      "storageKey" : "showsWiFiIconForEthernet",
+      "title" : "以太网用 Wi-Fi 图标",
+      "type" : "boolean",
+      "uiPath" : "设置 › 图标 › 网络 › 以太网图标"
+    },
+    {
+      "accessPolicy" : {
+        "containsSensitiveInfo" : false,
+        "developmentProfile" : true,
+        "externalRead" : true,
+        "externalWrite" : false,
+        "requiresConfirmation" : false,
+        "systemSideEffect" : false,
+        "transferable" : false,
+        "uiAccessible" : true
+      },
+      "category" : "icon",
+      "description" : "个人热点连接时使用 Wi-Fi 图标。",
+      "id" : "icon.network.wifiIconForHotspot",
+      "provider" : "core",
+      "storageKey" : "showsWiFiIconForHotspot",
+      "title" : "热点用 Wi-Fi 图标",
+      "type" : "boolean",
+      "uiPath" : "设置 › 图标 › 网络 › 热点图标"
+    },
+    {
+      "accessPolicy" : {
+        "containsSensitiveInfo" : false,
+        "developmentProfile" : true,
+        "externalRead" : true,
+        "externalWrite" : false,
+        "requiresConfirmation" : false,
+        "systemSideEffect" : false,
+        "transferable" : false,
+        "uiAccessible" : true
+      },
+      "category" : "icon",
+      "description" : "互联网共享时使用 Wi-Fi 图标。",
+      "id" : "icon.network.wifiIconForInternetSharing",
+      "provider" : "core",
+      "storageKey" : "showsWiFiIconForInternetSharing",
+      "title" : "共享用 Wi-Fi 图标",
+      "type" : "boolean",
+      "uiPath" : "设置 › 图标 › 网络 › 共享图标"
+    },
+    {
+      "accessPolicy" : {
+        "containsSensitiveInfo" : false,
+        "developmentProfile" : true,
+        "externalRead" : true,
+        "externalWrite" : false,
+        "requiresConfirmation" : false,
+        "systemSideEffect" : false,
+        "transferable" : false,
+        "uiAccessible" : true
+      },
+      "category" : "icon",
+      "description" : "临时连接时使用 Wi-Fi 图标。",
+      "id" : "icon.network.wifiIconForTemporaryConnection",
+      "provider" : "core",
+      "storageKey" : "showsWiFiIconForTemporaryConnection",
+      "title" : "临时连接用 Wi-Fi 图标",
+      "type" : "boolean",
+      "uiPath" : "设置 › 图标 › 网络 › 临时连接图标"
     },
     {
       "accessPolicy" : {
@@ -1016,6 +1710,26 @@
         "externalWrite" : false,
         "requiresConfirmation" : false,
         "systemSideEffect" : false,
+        "transferable" : false,
+        "uiAccessible" : true
+      },
+      "category" : "icon",
+      "description" : "硬件外环在断口处按进度绘制。",
+      "id" : "icon.outerRing.hardware.splitGapProgress",
+      "provider" : "core",
+      "storageKey" : "hardwareRingSplitGapProgress",
+      "title" : "硬件环断口进度",
+      "type" : "boolean",
+      "uiPath" : "设置 › 图标 › 硬件外环 › 断口进度"
+    },
+    {
+      "accessPolicy" : {
+        "containsSensitiveInfo" : false,
+        "developmentProfile" : true,
+        "externalRead" : true,
+        "externalWrite" : false,
+        "requiresConfirmation" : false,
+        "systemSideEffect" : false,
         "transferable" : true,
         "uiAccessible" : true
       },
@@ -1044,6 +1758,26 @@
       "title" : "外环来源",
       "type" : "enumeration",
       "uiPath" : "设置 › 图标 › 外环来源"
+    },
+    {
+      "accessPolicy" : {
+        "containsSensitiveInfo" : false,
+        "developmentProfile" : true,
+        "externalRead" : true,
+        "externalWrite" : false,
+        "requiresConfirmation" : false,
+        "systemSideEffect" : false,
+        "transferable" : false,
+        "uiAccessible" : true
+      },
+      "category" : "icon",
+      "description" : "充电环使用单色绘制。",
+      "id" : "icon.ring.monochromeCharging",
+      "provider" : "core",
+      "storageKey" : "monochromeChargingRing",
+      "title" : "单色充电环",
+      "type" : "boolean",
+      "uiPath" : "设置 › 图标 › 充电环单色"
     },
     {
       "accessPolicy" : {
@@ -1124,6 +1858,86 @@
       "title" : "显示“盒盖不睡眠”按钮",
       "type" : "boolean",
       "uiPath" : "设置 › 保持唤醒 › 盒盖不睡眠"
+    },
+    {
+      "accessPolicy" : {
+        "containsSensitiveInfo" : false,
+        "developmentProfile" : true,
+        "externalRead" : true,
+        "externalWrite" : false,
+        "requiresConfirmation" : false,
+        "systemSideEffect" : false,
+        "transferable" : false,
+        "uiAccessible" : true
+      },
+      "category" : "network",
+      "description" : "网络速度图表使用固定刻度而非自适应。",
+      "id" : "network.chart.fixedScale",
+      "provider" : "core",
+      "storageKey" : "hardwareNetworkChartFixedScale",
+      "title" : "网络图表固定刻度",
+      "type" : "boolean",
+      "uiPath" : "设置 › 网络 › 图表固定刻度"
+    },
+    {
+      "accessPolicy" : {
+        "containsSensitiveInfo" : false,
+        "developmentProfile" : true,
+        "externalRead" : true,
+        "externalWrite" : false,
+        "requiresConfirmation" : false,
+        "systemSideEffect" : false,
+        "transferable" : false,
+        "uiAccessible" : true
+      },
+      "category" : "network",
+      "description" : "网络异常时优先显示错误而非其他图标。",
+      "id" : "network.prioritizeErrors",
+      "provider" : "core",
+      "storageKey" : "prioritizesNetworkErrors",
+      "title" : "优先显示网络错误",
+      "type" : "boolean",
+      "uiPath" : "设置 › 网络 › 优先错误"
+    },
+    {
+      "accessPolicy" : {
+        "containsSensitiveInfo" : false,
+        "developmentProfile" : true,
+        "externalRead" : true,
+        "externalWrite" : false,
+        "requiresConfirmation" : false,
+        "systemSideEffect" : false,
+        "transferable" : false,
+        "uiAccessible" : true
+      },
+      "category" : "network",
+      "description" : "在面板显示本地 IP 地址。",
+      "id" : "network.showLocalIPAddress",
+      "provider" : "core",
+      "storageKey" : "showsLocalIPAddress",
+      "title" : "显示本地 IP",
+      "type" : "boolean",
+      "uiPath" : "设置 › 网络 › 本地 IP"
+    },
+    {
+      "accessPolicy" : {
+        "containsSensitiveInfo" : false,
+        "developmentProfile" : true,
+        "externalRead" : true,
+        "externalWrite" : false,
+        "requiresConfirmation" : false,
+        "systemSideEffect" : false,
+        "transferable" : false,
+        "uiAccessible" : true
+      },
+      "category" : "network",
+      "description" : "Wi-Fi 图标的符号缩放比例。",
+      "id" : "network.symbolScale",
+      "provider" : "core",
+      "storageKey" : "wifiSymbolScale",
+      "title" : "Wi-Fi 符号缩放",
+      "type" : "number",
+      "uiPath" : "设置 › 网络 › 符号缩放"
     },
     {
       "accessPolicy" : {
@@ -1244,6 +2058,26 @@
         "externalWrite" : false,
         "requiresConfirmation" : false,
         "systemSideEffect" : false,
+        "transferable" : false,
+        "uiAccessible" : true
+      },
+      "category" : "panel",
+      "description" : "详情页面在状态面板旁并排展开。",
+      "id" : "panel.behavior.detailsAlongside",
+      "provider" : "core",
+      "storageKey" : "showsPanelDetailsAlongside",
+      "title" : "详情面板并排展开",
+      "type" : "boolean",
+      "uiPath" : "设置 › 状态面板 › 详情并排"
+    },
+    {
+      "accessPolicy" : {
+        "containsSensitiveInfo" : false,
+        "developmentProfile" : true,
+        "externalRead" : true,
+        "externalWrite" : false,
+        "requiresConfirmation" : false,
+        "systemSideEffect" : false,
         "transferable" : true,
         "uiAccessible" : true
       },
@@ -1255,6 +2089,27 @@
       "title" : "打开设置时保持面板",
       "type" : "boolean",
       "uiPath" : "设置 › 状态面板 › 打开设置时保持面板"
+    },
+    {
+      "accessPolicy" : {
+        "containsSensitiveInfo" : false,
+        "developmentProfile" : true,
+        "externalRead" : true,
+        "externalWrite" : false,
+        "requiresConfirmation" : false,
+        "systemSideEffect" : false,
+        "transferable" : false,
+        "uiAccessible" : true
+      },
+      "category" : "panel",
+      "description" : "面板滚轮每次调整的百分比步进。",
+      "id" : "panel.behavior.scrollWheelStepPercent",
+      "provider" : "core",
+      "storageKey" : "popupScrollWheelStepPercent",
+      "title" : "滚轮步进百分比",
+      "type" : "number",
+      "uiPath" : "设置 › 状态面板 › 滚轮步进",
+      "unit" : "%"
     },
     {
       "accessPolicy" : {

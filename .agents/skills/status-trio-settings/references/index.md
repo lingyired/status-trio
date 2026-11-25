@@ -7,7 +7,7 @@ than hand-editing the JSON.
 
 | File | Contents |
 |---|---|
-| `settings-schema.json` | All user-visible setting descriptors (47 in this cut). |
+| `settings-schema.json` | All user-visible setting descriptors (85 in this cut). |
 | `feature-registry.json` | User-facing features, their parent `requires`, and the mutations they emit. |
 | `capability-registry.json` | Environment capabilities (`ui.liquidGlass`, `hardware.hasBattery`, `permission.bluetooth`, `helper.ready`, …). |
 | `action-registry.json` | One-shot operations (never auto-run by a profile). |

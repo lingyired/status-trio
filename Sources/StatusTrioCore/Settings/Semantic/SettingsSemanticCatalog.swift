@@ -510,6 +510,169 @@ enum SettingsSemanticCatalog {
             d.accessPolicy = .profileSafe
             d.provider = "core"
         },
+
+        // ---- Additional battery / charging ----
+        pref("battery.charging.boltHeartbeat", "充电闪电心跳动画", "battery", .boolean, "充电时电池闪电图标的脉动动画。") { d in
+            d.uiPath = "设置 › 电池 › 充电效果 › 心跳"
+            d.storageKey = "showsChargingBoltHeartbeat"; d.accessPolicy = .profileSafe; d.provider = "core"
+        },
+        pref("battery.charging.menuBarEffect", "菜单栏充电效果", "battery", .boolean, "在菜单栏图标上显示充电效果。") { d in
+            d.uiPath = "设置 › 电池 › 充电效果 › 菜单栏"
+            d.storageKey = "showsMenuBarChargingEffect"; d.accessPolicy = .profileSafe; d.provider = "core"
+        },
+        pref("battery.charging.dockEffect", "Dock 充电效果", "battery", .boolean, "在 Dock 图标上显示充电效果。") { d in
+            d.uiPath = "设置 › 电池 › 充电效果 › Dock"
+            d.storageKey = "showsDockChargingEffect"; d.accessPolicy = .profileSafe; d.provider = "core"
+        },
+        pref("battery.splitGapProgress", "电量环断口进度", "battery", .boolean, "电量环在断口处按进度绘制。") { d in
+            d.uiPath = "设置 › 电池 › 电量环"
+            d.storageKey = "batterySplitGapProgress"; d.accessPolicy = .profileSafe; d.provider = "core"
+        },
+        pref("battery.powerInfoBar.enabled", "功率信息条", "battery", .boolean, "在面板电池模块显示输入/电池/系统功率信息条（实验性）。") { d in
+            d.uiPath = "设置 › 电池 › 功率信息条"
+            d.storageKey = "showsBatteryPowerInfoBar"; d.accessPolicy = .profileSafe; d.provider = "core"
+        },
+        pref("battery.chargeToFullButton.enabled", "显示立即充满按钮", "battery", .boolean, "显示“立即充满电”按钮（仅显示控件，不代表执行）。") { d in
+            d.uiPath = "设置 › 电池 › 立即充满按钮"
+            d.storageKey = "showsChargeToFullNowButton"; d.accessPolicy = .profileSafe; d.provider = "core"
+        },
+        pref("battery.automation.controlsLowPowerMode", "允许控制低电量模式", "battery", .boolean, "允许 App 控制系统低电量模式。具有系统影响。") { d in
+            d.uiPath = "设置 › 电池 › 低电量模式控制"
+            d.storageKey = "controlsLowPowerMode"; d.accessPolicy = systemRestricted; d.provider = "core"
+        },
+        pref("battery.statusColors.enabled", "使用电池状态颜色", "battery", .boolean, "按电量状态为电池图标着色。") { d in
+            d.uiPath = "设置 › 电池 › 状态颜色"
+            d.storageKey = "usesBatteryStatusColors"; d.accessPolicy = .profileSafe; d.provider = "core"
+        },
+        pref("battery.simulateNoBattery", "模拟无电池", "battery", .boolean, "开发/演示用：模拟设备无电池。") { d in
+            d.uiPath = "设置 › 电池 › 模拟无电池"
+            d.storageKey = "simulatesNoBattery"; d.accessPolicy = .profileSafe; d.provider = "core"
+        },
+        pref("battery.confirmWiFiPowerOff", "关闭 Wi-Fi 前确认", "battery", .boolean, "执行关闭 Wi-Fi 前要求确认。") { d in
+            d.uiPath = "设置 › 电池 › Wi-Fi 关闭确认"
+            d.storageKey = "confirmsWiFiPowerOff"; d.accessPolicy = .profileSafe; d.provider = "core"
+        },
+        pref("battery.appleDevicesAndBattery.enabled", "显示 Apple 设备与电量", "battery", .boolean, "显示 Apple 设备及其电量。") { d in
+            d.uiPath = "设置 › 电池 › Apple 设备"
+            d.storageKey = "showsAppleDevicesAndBattery"; d.accessPolicy = .profileSafe; d.provider = "core"
+        },
+        pref("battery.bluetoothPowerControl.enabled", "显示蓝牙开关控件", "battery", .boolean, "显示蓝牙电源开关控件。") { d in
+            d.uiPath = "设置 › 电池 › 蓝牙开关"
+            d.storageKey = "showsBluetoothPowerControl"; d.accessPolicy = .profileSafe; d.provider = "core"
+        },
+        pref("battery.wifiPowerControl.enabled", "显示 Wi-Fi 开关控件", "battery", .boolean, "显示 Wi-Fi 电源开关控件。") { d in
+            d.uiPath = "设置 › 电池 › Wi-Fi 开关"
+            d.storageKey = "showsWiFiPowerControl"; d.accessPolicy = .profileSafe; d.provider = "core"
+        },
+        pref("battery.symbolScale", "电池符号缩放", "battery", .number, "电池图标的符号缩放比例。") { d in
+            d.uiPath = "设置 › 电池 › 符号缩放"
+            d.storageKey = "batterySymbolScale"; d.accessPolicy = .profileSafe; d.provider = "core"
+        },
+        pref("battery.chargeToFullRestoreLimit", "充满后恢复的充电上限", "battery", .number, "立即充满电后恢复到该充电上限百分比。") { d in
+            d.uiPath = "设置 › 电池 › 充满后恢复上限"
+            d.range = SettingsNumericRange(min: 0, max: 100); d.unit = "%"
+            d.storageKey = "chargeToFullRestoreLimit"; d.accessPolicy = .profileSafe; d.provider = "core"
+        },
+        pref("battery.highEnergyApps.refreshIntervalSeconds", "高耗能 App 刷新间隔", "battery", .number, "高耗能 App 列表的刷新间隔。") { d in
+            d.uiPath = "设置 › 电池 › 高耗能 App › 刷新间隔"
+            d.unit = "s"; d.storageKey = "highEnergyAppsRefreshIntervalSeconds"; d.accessPolicy = .profileSafe; d.provider = "core"
+        },
+        pref("battery.marker.onBattery", "电池百分比标记", "battery", .enumeration, "使用电池时电量环顶部的标记样式。") { d in
+            d.uiPath = "设置 › 电池 › 标记 › 使用电池"
+            d.options = [opt("percentage", "百分比"), opt("bolt", "闪电"), opt("plug", "插头"), opt("hidden", "隐藏")]
+            d.storageKey = "batteryOnBatteryMarker"; d.accessPolicy = .profileSafe; d.provider = "core"
+        },
+        pref("battery.marker.charging", "充电标记", "battery", .enumeration, "充电时电量环顶部的标记样式。") { d in
+            d.uiPath = "设置 › 电池 › 标记 › 充电"
+            d.options = [opt("percentage", "百分比"), opt("bolt", "闪电"), opt("plug", "插头"), opt("hidden", "隐藏")]
+            d.storageKey = "batteryChargingMarker"; d.accessPolicy = .profileSafe; d.provider = "core"
+        },
+        pref("battery.marker.connected", "已连接标记", "battery", .enumeration, "已连接电源时电量环顶部的标记样式。") { d in
+            d.uiPath = "设置 › 电池 › 标记 › 已连接"
+            d.options = [opt("percentage", "百分比"), opt("bolt", "闪电"), opt("plug", "插头"), opt("hidden", "隐藏")]
+            d.storageKey = "batteryConnectedMarker"; d.accessPolicy = .profileSafe; d.provider = "core"
+        },
+        pref("battery.marker.noBattery", "无电池标记", "battery", .enumeration, "无电池时的标记样式。") { d in
+            d.uiPath = "设置 › 电池 › 标记 › 无电池"
+            d.options = [opt("percentage", "百分比"), opt("bolt", "闪电"), opt("plug", "插头"), opt("hidden", "隐藏")]
+            d.storageKey = "batteryNoBatteryMarker"; d.accessPolicy = .profileSafe; d.provider = "core"
+        },
+
+        // ---- Additional icon / network indicators ----
+        pref("icon.airPods.ringUsesDualRing", "AirPods 使用双环", "icon", .boolean, "AirPods 电量使用双环显示左右耳。") { d in
+            d.uiPath = "设置 › 图标 › AirPods › 双环"
+            d.storageKey = "airPodsRingUsesDualRing"; d.accessPolicy = .profileSafe; d.provider = "core"
+        },
+        pref("icon.outerRing.hardware.splitGapProgress", "硬件环断口进度", "icon", .boolean, "硬件外环在断口处按进度绘制。") { d in
+            d.uiPath = "设置 › 图标 › 硬件外环 › 断口进度"
+            d.storageKey = "hardwareRingSplitGapProgress"; d.accessPolicy = .profileSafe; d.provider = "core"
+        },
+        pref("icon.ring.monochromeCharging", "单色充电环", "icon", .boolean, "充电环使用单色绘制。") { d in
+            d.uiPath = "设置 › 图标 › 充电环单色"
+            d.storageKey = "monochromeChargingRing"; d.accessPolicy = .profileSafe; d.provider = "core"
+        },
+        pref("icon.airPods.topSymbolInRing", "AirPods 顶部符号", "icon", .boolean, "在 AirPods 环顶部显示符号。") { d in
+            d.uiPath = "设置 › 图标 › AirPods › 顶部符号"
+            d.storageKey = "showsAirPodsTopSymbolInRing"; d.accessPolicy = .profileSafe; d.provider = "core"
+        },
+        pref("icon.network.wifiIconForEthernet", "以太网用 Wi-Fi 图标", "icon", .boolean, "以太网连接时使用 Wi-Fi 图标。") { d in
+            d.uiPath = "设置 › 图标 › 网络 › 以太网图标"
+            d.storageKey = "showsWiFiIconForEthernet"; d.accessPolicy = .profileSafe; d.provider = "core"
+        },
+        pref("icon.network.wifiIconForHotspot", "热点用 Wi-Fi 图标", "icon", .boolean, "个人热点连接时使用 Wi-Fi 图标。") { d in
+            d.uiPath = "设置 › 图标 › 网络 › 热点图标"
+            d.storageKey = "showsWiFiIconForHotspot"; d.accessPolicy = .profileSafe; d.provider = "core"
+        },
+        pref("icon.network.wifiIconForInternetSharing", "共享用 Wi-Fi 图标", "icon", .boolean, "互联网共享时使用 Wi-Fi 图标。") { d in
+            d.uiPath = "设置 › 图标 › 网络 › 共享图标"
+            d.storageKey = "showsWiFiIconForInternetSharing"; d.accessPolicy = .profileSafe; d.provider = "core"
+        },
+        pref("icon.network.wifiIconForTemporaryConnection", "临时连接用 Wi-Fi 图标", "icon", .boolean, "临时连接时使用 Wi-Fi 图标。") { d in
+            d.uiPath = "设置 › 图标 › 网络 › 临时连接图标"
+            d.storageKey = "showsWiFiIconForTemporaryConnection"; d.accessPolicy = .profileSafe; d.provider = "core"
+        },
+
+        // ---- Additional panel / network / audio / brightness ----
+        pref("panel.behavior.detailsAlongside", "详情面板并排展开", "panel", .boolean, "详情页面在状态面板旁并排展开。") { d in
+            d.uiPath = "设置 › 状态面板 › 详情并排"
+            d.storageKey = "showsPanelDetailsAlongside"; d.accessPolicy = .profileSafe; d.provider = "core"
+        },
+        pref("panel.behavior.scrollWheelStepPercent", "滚轮步进百分比", "panel", .number, "面板滚轮每次调整的百分比步进。") { d in
+            d.uiPath = "设置 › 状态面板 › 滚轮步进"
+            d.unit = "%"; d.storageKey = "popupScrollWheelStepPercent"; d.accessPolicy = .profileSafe; d.provider = "core"
+        },
+        pref("network.chart.fixedScale", "网络图表固定刻度", "network", .boolean, "网络速度图表使用固定刻度而非自适应。") { d in
+            d.uiPath = "设置 › 网络 › 图表固定刻度"
+            d.storageKey = "hardwareNetworkChartFixedScale"; d.accessPolicy = .profileSafe; d.provider = "core"
+        },
+        pref("network.prioritizeErrors", "优先显示网络错误", "network", .boolean, "网络异常时优先显示错误而非其他图标。") { d in
+            d.uiPath = "设置 › 网络 › 优先错误"
+            d.storageKey = "prioritizesNetworkErrors"; d.accessPolicy = .profileSafe; d.provider = "core"
+        },
+        pref("network.showLocalIPAddress", "显示本地 IP", "network", .boolean, "在面板显示本地 IP 地址。") { d in
+            d.uiPath = "设置 › 网络 › 本地 IP"
+            d.storageKey = "showsLocalIPAddress"; d.accessPolicy = .profileSafe; d.provider = "core"
+        },
+        pref("network.symbolScale", "Wi-Fi 符号缩放", "network", .number, "Wi-Fi 图标的符号缩放比例。") { d in
+            d.uiPath = "设置 › 网络 › 符号缩放"
+            d.storageKey = "wifiSymbolScale"; d.accessPolicy = .profileSafe; d.provider = "core"
+        },
+        pref("audio.popup.scrollAdjustsVolume", "滚轮调整音量", "audio", .boolean, "在面板上滚动滚轮调整音量。") { d in
+            d.uiPath = "设置 › 音量 › 滚轮调整音量"
+            d.storageKey = "popupPanelScrollAdjustsVolume"; d.accessPolicy = .profileSafe; d.provider = "core"
+        },
+        pref("audio.popup.naturalScrolling", "自然滚动方向", "audio", .boolean, "音量滚轮使用自然滚动方向。") { d in
+            d.uiPath = "设置 › 音量 › 自然滚动"
+            d.storageKey = "popupVolumeNaturalScrolling"; d.accessPolicy = .profileSafe; d.provider = "core"
+        },
+        pref("audio.spatialControls.enabled", "显示空间音频控件", "audio", .boolean, "显示空间音频（Spatial Audio）控制。") { d in
+            d.uiPath = "设置 › 音量 › 空间音频"
+            d.storageKey = "showsSpatialAudioControls"; d.accessPolicy = .profileSafe; d.provider = "core"
+        },
+        pref("brightness.sliderMatchesBrightnessThickness", "滑块匹配亮度条粗细", "brightness", .boolean, "面板音量滑块粗细匹配亮度条。") { d in
+            d.uiPath = "设置 › 亮度 › 滑块粗细"
+            d.storageKey = "panelLevelSliderMatchesBrightnessThickness"; d.accessPolicy = .profileSafe; d.provider = "core"
+        },
     ]
 
     // MARK: - Features
