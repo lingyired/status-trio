@@ -10,7 +10,12 @@ Generated from `SettingsSemanticCatalog`. Do not edit by hand.
 | `hardware.metricColors` | 硬件指标颜色 | `map` | — | hardwareMonitorMetricColorsV1 |
 | `hardware.network.downloadCapMbps` | 下载速度上限（Mbps） | `number` | — | hardwareDownloadCapMbps |
 | `hardware.network.uploadCapMbps` | 上传速度上限（Mbps） | `number` | — | hardwareUploadCapMbps |
-| `hardware.refresh.intervalSeconds` | 刷新频率（秒） | `integer` | — | hardwarePanelRefreshSeconds |
+| `hardware.refresh.cpuUsage` | CPU 占用刷新频率（秒） | `integer` | — | hardwareCPUUsageRefreshSeconds |
+| `hardware.refresh.disk` | 磁盘刷新频率（秒） | `integer` | — | hardwareDiskRefreshSeconds |
+| `hardware.refresh.gpuUsage` | GPU 占用刷新频率（秒） | `integer` | — | hardwareGPUUsageRefreshSeconds |
+| `hardware.refresh.memory` | 内存刷新频率（秒） | `integer` | — | hardwareMemoryRefreshSeconds |
+| `hardware.refresh.network` | 网络刷新频率（秒） | `integer` | — | hardwareNetworkRefreshSeconds |
+| `hardware.refresh.temperature` | 温度刷新频率（秒） | `integer` | — | hardwareTemperatureRefreshSeconds |
 | `hardware.ring.memoryDisplayMode` | 内存环显示模式 | `enumeration` | — | memoryRingDisplayModeV1 |
 | `hardware.ring.ssdDisplayMode` | SSD 环显示模式 | `enumeration` | — | ssdRingDisplayModeV1 |
 | `hardware.rings.enabled` | 显示硬件圆环 | `boolean` | true | showsHardwareRings |
@@ -20,3 +25,4 @@ Generated from `SettingsSemanticCatalog`. Do not edit by hand.
 | `hardware.summaryMetrics` | 启用的硬件摘要指标 | `set` | — | enabledHardwareSummaryMetricsV1 |
 | `hardware.temperature.enabled` | 温度监控 | `boolean` | true | hardwareTemperatureMonitoringEnabledV1 |
 | `hardware.topApps.enabled` | 显示占用最高的 App | `boolean` | true | showsHardwareTopApps |
+| `hardware.topApps.refreshSeconds` | 高占用应用刷新频率（秒） | `integer` | — | hardwareTopAppsRefreshSeconds |

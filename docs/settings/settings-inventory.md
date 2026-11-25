@@ -181,7 +181,13 @@ This document is the authoritative inventory of every persisted / user-visible s
 | `hardwareHistoryWindowMinutes` | `Int` | `SettingsStore.defaultHardwareHistoryWindowMinutes` | `hardwareHistoryWindowMinutes` | SettingsStore.swift:1395 | `publicPreference` | ✅ |
 | `hardwareMonitorMetricColors` | `[HardwareMonitorMetric: IconRGBA]` | `[:]` | `hardwareMonitorMetricColorsV1` | SettingsStore.swift:1320 | `publicPreference` | ✅ |
 | `hardwareMonitorMetricOrder` | `[HardwareMonitorMetric]` | `init` | `hardwareMonitorMetricOrder` | SettingsStore.swift:1943 | `publicPreference` | — |
-| `hardwarePanelRefreshSeconds` | `Int` | `SettingsStore.defaultHardwarePanelRefreshSeconds` | `hardwarePanelRefreshSeconds` | SettingsStore.swift:1383 | `publicPreference` | ✅ |
+| `hardwareCPUUsageRefreshSeconds` | `Int` | `HardwareRefreshGroup.cpuUsage.defaultSeconds` | `hardwareCPUUsageRefreshSeconds` | SettingsStore.swift:1414 | `publicPreference` | ✅ |
+| `hardwareGPUUsageRefreshSeconds` | `Int` | `HardwareRefreshGroup.gpuUsage.defaultSeconds` | `hardwareGPUUsageRefreshSeconds` | SettingsStore.swift:1424 | `publicPreference` | ✅ |
+| `hardwareMemoryRefreshSeconds` | `Int` | `HardwareRefreshGroup.memory.defaultSeconds` | `hardwareMemoryRefreshSeconds` | SettingsStore.swift:1434 | `publicPreference` | ✅ |
+| `hardwareNetworkRefreshSeconds` | `Int` | `HardwareRefreshGroup.network.defaultSeconds` | `hardwareNetworkRefreshSeconds` | SettingsStore.swift:1444 | `publicPreference` | ✅ |
+| `hardwareTemperatureRefreshSeconds` | `Int` | `HardwareRefreshGroup.temperature.defaultSeconds` | `hardwareTemperatureRefreshSeconds` | SettingsStore.swift:1454 | `publicPreference` | ✅ |
+| `hardwareDiskRefreshSeconds` | `Int` | `HardwareRefreshGroup.disk.defaultSeconds` | `hardwareDiskRefreshSeconds` | SettingsStore.swift:1464 | `publicPreference` | ✅ |
+| `hardwareTopAppsRefreshSeconds` | `Int` | `SettingsStore.defaultHardwareTopAppsRefreshSeconds` | `hardwareTopAppsRefreshSeconds` | SettingsStore.swift:1476 | `publicPreference` | ✅ |
 | `hardwareSSDIncludeExternalInPercent` | `Bool` | `false` | `hardwareSSDIncludeExternalInPercentV1` | SettingsStore.swift:1480 | `publicPreference` | ✅ |
 | `metricBottomIndicatorStyle` | `VolumeDisplayStyle` | `init` | `metricBottomIndicatorStyle` | SettingsStore.swift:1642 | `publicPreference` | ✅ |
 | `refreshIntervalSeconds` | `Double` | `init` | `statusRefreshIntervalSeconds` | SettingsStore.swift:1687 | `publicPreference` | — |

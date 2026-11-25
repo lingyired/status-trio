@@ -353,11 +353,65 @@ enum SettingsSemanticCatalog {
             d.accessPolicy = .profileSafe
             d.provider = "core"
         },
-        pref("hardware.refresh.intervalSeconds", "刷新频率（秒）", "hardware", .integer, "硬件监控面板的刷新间隔。") { d in
-            d.uiPath = "设置 › 监控 › 刷新频率"
-            d.range = SettingsNumericRange(min: 1, max: 60)
+        pref("hardware.refresh.cpuUsage", "CPU 占用刷新频率（秒）", "hardware", .integer, "面板上 CPU 占用指标多久刷新一次。") { d in
+            d.uiPath = "设置 › 监控 › 面板更新频率"
+            d.range = SettingsNumericRange(min: 2, max: 8)
             d.unit = "s"
-            d.storageKey = "hardwarePanelRefreshSeconds"
+            d.storageKey = "hardwareCPUUsageRefreshSeconds"
+            d.performanceImpact = SettingsPerformanceImpact(resources: ["hardwareSampling"], activation: .periodic)
+            d.accessPolicy = .profileSafe
+            d.provider = "core"
+        },
+        pref("hardware.refresh.gpuUsage", "GPU 占用刷新频率（秒）", "hardware", .integer, "面板上 GPU 占用指标多久刷新一次。") { d in
+            d.uiPath = "设置 › 监控 › 面板更新频率"
+            d.range = SettingsNumericRange(min: 2, max: 8)
+            d.unit = "s"
+            d.storageKey = "hardwareGPUUsageRefreshSeconds"
+            d.performanceImpact = SettingsPerformanceImpact(resources: ["hardwareSampling"], activation: .periodic)
+            d.accessPolicy = .profileSafe
+            d.provider = "core"
+        },
+        pref("hardware.refresh.memory", "内存刷新频率（秒）", "hardware", .integer, "面板上内存指标多久刷新一次。") { d in
+            d.uiPath = "设置 › 监控 › 面板更新频率"
+            d.range = SettingsNumericRange(min: 2, max: 8)
+            d.unit = "s"
+            d.storageKey = "hardwareMemoryRefreshSeconds"
+            d.performanceImpact = SettingsPerformanceImpact(resources: ["hardwareSampling"], activation: .periodic)
+            d.accessPolicy = .profileSafe
+            d.provider = "core"
+        },
+        pref("hardware.refresh.network", "网络刷新频率（秒）", "hardware", .integer, "面板上网络速度指标多久刷新一次。") { d in
+            d.uiPath = "设置 › 监控 › 面板更新频率"
+            d.range = SettingsNumericRange(min: 1, max: 8)
+            d.unit = "s"
+            d.storageKey = "hardwareNetworkRefreshSeconds"
+            d.performanceImpact = SettingsPerformanceImpact(resources: ["hardwareSampling"], activation: .periodic)
+            d.accessPolicy = .profileSafe
+            d.provider = "core"
+        },
+        pref("hardware.refresh.temperature", "温度刷新频率（秒）", "hardware", .integer, "面板上温度指标多久刷新一次。") { d in
+            d.uiPath = "设置 › 监控 › 面板更新频率"
+            d.range = SettingsNumericRange(min: 4, max: 8)
+            d.unit = "s"
+            d.storageKey = "hardwareTemperatureRefreshSeconds"
+            d.performanceImpact = SettingsPerformanceImpact(resources: ["hardwareSampling"], activation: .periodic)
+            d.accessPolicy = .profileSafe
+            d.provider = "core"
+        },
+        pref("hardware.refresh.disk", "磁盘刷新频率（秒）", "hardware", .integer, "面板上磁盘读写指标多久刷新一次。") { d in
+            d.uiPath = "设置 › 监控 › 面板更新频率"
+            d.range = SettingsNumericRange(min: 1, max: 8)
+            d.unit = "s"
+            d.storageKey = "hardwareDiskRefreshSeconds"
+            d.performanceImpact = SettingsPerformanceImpact(resources: ["hardwareSampling"], activation: .periodic)
+            d.accessPolicy = .profileSafe
+            d.provider = "core"
+        },
+        pref("hardware.topApps.refreshSeconds", "高占用应用刷新频率（秒）", "hardware", .integer, "详情页底部高占用应用列表多久刷新一次；内存列表受自身 6 秒下限限制。") { d in
+            d.uiPath = "设置 › 监控 › 高占用应用刷新频率"
+            d.range = SettingsNumericRange(min: 1, max: 30)
+            d.unit = "s"
+            d.storageKey = "hardwareTopAppsRefreshSeconds"
             d.performanceImpact = SettingsPerformanceImpact(resources: ["hardwareSampling"], activation: .periodic)
             d.accessPolicy = .profileSafe
             d.provider = "core"

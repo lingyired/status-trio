@@ -62,8 +62,20 @@ final class CoreSettingsProvider: SettingsStateProvider {
             return .bool(store.hardwareTemperatureMonitoringEnabled)
         case "hardware.history.backgroundEnabled":
             return .bool(store.hardwareBackgroundHistoryEnabled)
-        case "hardware.refresh.intervalSeconds":
-            return .number(Double(store.hardwarePanelRefreshSeconds))
+        case "hardware.refresh.cpuUsage":
+            return .number(Double(store.hardwareCPUUsageRefreshSeconds))
+        case "hardware.refresh.gpuUsage":
+            return .number(Double(store.hardwareGPUUsageRefreshSeconds))
+        case "hardware.refresh.memory":
+            return .number(Double(store.hardwareMemoryRefreshSeconds))
+        case "hardware.refresh.network":
+            return .number(Double(store.hardwareNetworkRefreshSeconds))
+        case "hardware.refresh.temperature":
+            return .number(Double(store.hardwareTemperatureRefreshSeconds))
+        case "hardware.refresh.disk":
+            return .number(Double(store.hardwareDiskRefreshSeconds))
+        case "hardware.topApps.refreshSeconds":
+            return .number(Double(store.hardwareTopAppsRefreshSeconds))
         case "hardware.history.windowMinutes":
             return .number(Double(store.hardwareHistoryWindowMinutes))
         case "hardware.network.downloadCapMbps":
@@ -219,8 +231,20 @@ final class CoreSettingsProvider: SettingsStateProvider {
             if case .bool(let flag) = value { store.hardwareTemperatureMonitoringEnabled = flag }
         case "hardware.history.backgroundEnabled":
             if case .bool(let flag) = value { store.hardwareBackgroundHistoryEnabled = flag }
-        case "hardware.refresh.intervalSeconds":
-            if let number = Self.number(value) { store.hardwarePanelRefreshSeconds = Int(number) }
+        case "hardware.refresh.cpuUsage":
+            if let number = Self.number(value) { store.hardwareCPUUsageRefreshSeconds = Int(number) }
+        case "hardware.refresh.gpuUsage":
+            if let number = Self.number(value) { store.hardwareGPUUsageRefreshSeconds = Int(number) }
+        case "hardware.refresh.memory":
+            if let number = Self.number(value) { store.hardwareMemoryRefreshSeconds = Int(number) }
+        case "hardware.refresh.network":
+            if let number = Self.number(value) { store.hardwareNetworkRefreshSeconds = Int(number) }
+        case "hardware.refresh.temperature":
+            if let number = Self.number(value) { store.hardwareTemperatureRefreshSeconds = Int(number) }
+        case "hardware.refresh.disk":
+            if let number = Self.number(value) { store.hardwareDiskRefreshSeconds = Int(number) }
+        case "hardware.topApps.refreshSeconds":
+            if let number = Self.number(value) { store.hardwareTopAppsRefreshSeconds = Int(number) }
         case "hardware.history.windowMinutes":
             if let number = Self.number(value) { store.hardwareHistoryWindowMinutes = Int(number) }
         case "hardware.network.downloadCapMbps":

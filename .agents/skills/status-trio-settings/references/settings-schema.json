@@ -1657,8 +1657,8 @@
         "uiAccessible" : true
       },
       "category" : "hardware",
-      "description" : "硬件监控面板的刷新间隔。",
-      "id" : "hardware.refresh.intervalSeconds",
+      "description" : "面板上 CPU 占用指标多久刷新一次。",
+      "id" : "hardware.refresh.cpuUsage",
       "performanceImpact" : {
         "activation" : "periodic",
         "resources" : [
@@ -1667,13 +1667,168 @@
       },
       "provider" : "core",
       "range" : {
-        "max" : 60,
+        "max" : 8,
+        "min" : 2
+      },
+      "storageKey" : "hardwareCPUUsageRefreshSeconds",
+      "title" : "CPU 占用刷新频率（秒）",
+      "type" : "integer",
+      "uiPath" : "设置 › 监控 › 面板更新频率",
+      "unit" : "s"
+    },
+    {
+      "accessPolicy" : {
+        "containsSensitiveInfo" : false,
+        "developmentProfile" : true,
+        "externalRead" : true,
+        "externalWrite" : false,
+        "requiresConfirmation" : false,
+        "systemSideEffect" : false,
+        "transferable" : false,
+        "uiAccessible" : true
+      },
+      "category" : "hardware",
+      "description" : "面板上磁盘读写指标多久刷新一次。",
+      "id" : "hardware.refresh.disk",
+      "performanceImpact" : {
+        "activation" : "periodic",
+        "resources" : [
+          "hardwareSampling"
+        ]
+      },
+      "provider" : "core",
+      "range" : {
+        "max" : 8,
         "min" : 1
       },
-      "storageKey" : "hardwarePanelRefreshSeconds",
-      "title" : "刷新频率（秒）",
+      "storageKey" : "hardwareDiskRefreshSeconds",
+      "title" : "磁盘刷新频率（秒）",
       "type" : "integer",
-      "uiPath" : "设置 › 监控 › 刷新频率",
+      "uiPath" : "设置 › 监控 › 面板更新频率",
+      "unit" : "s"
+    },
+    {
+      "accessPolicy" : {
+        "containsSensitiveInfo" : false,
+        "developmentProfile" : true,
+        "externalRead" : true,
+        "externalWrite" : false,
+        "requiresConfirmation" : false,
+        "systemSideEffect" : false,
+        "transferable" : false,
+        "uiAccessible" : true
+      },
+      "category" : "hardware",
+      "description" : "面板上 GPU 占用指标多久刷新一次。",
+      "id" : "hardware.refresh.gpuUsage",
+      "performanceImpact" : {
+        "activation" : "periodic",
+        "resources" : [
+          "hardwareSampling"
+        ]
+      },
+      "provider" : "core",
+      "range" : {
+        "max" : 8,
+        "min" : 2
+      },
+      "storageKey" : "hardwareGPUUsageRefreshSeconds",
+      "title" : "GPU 占用刷新频率（秒）",
+      "type" : "integer",
+      "uiPath" : "设置 › 监控 › 面板更新频率",
+      "unit" : "s"
+    },
+    {
+      "accessPolicy" : {
+        "containsSensitiveInfo" : false,
+        "developmentProfile" : true,
+        "externalRead" : true,
+        "externalWrite" : false,
+        "requiresConfirmation" : false,
+        "systemSideEffect" : false,
+        "transferable" : false,
+        "uiAccessible" : true
+      },
+      "category" : "hardware",
+      "description" : "面板上内存指标多久刷新一次。",
+      "id" : "hardware.refresh.memory",
+      "performanceImpact" : {
+        "activation" : "periodic",
+        "resources" : [
+          "hardwareSampling"
+        ]
+      },
+      "provider" : "core",
+      "range" : {
+        "max" : 8,
+        "min" : 2
+      },
+      "storageKey" : "hardwareMemoryRefreshSeconds",
+      "title" : "内存刷新频率（秒）",
+      "type" : "integer",
+      "uiPath" : "设置 › 监控 › 面板更新频率",
+      "unit" : "s"
+    },
+    {
+      "accessPolicy" : {
+        "containsSensitiveInfo" : false,
+        "developmentProfile" : true,
+        "externalRead" : true,
+        "externalWrite" : false,
+        "requiresConfirmation" : false,
+        "systemSideEffect" : false,
+        "transferable" : false,
+        "uiAccessible" : true
+      },
+      "category" : "hardware",
+      "description" : "面板上网络速度指标多久刷新一次。",
+      "id" : "hardware.refresh.network",
+      "performanceImpact" : {
+        "activation" : "periodic",
+        "resources" : [
+          "hardwareSampling"
+        ]
+      },
+      "provider" : "core",
+      "range" : {
+        "max" : 8,
+        "min" : 1
+      },
+      "storageKey" : "hardwareNetworkRefreshSeconds",
+      "title" : "网络刷新频率（秒）",
+      "type" : "integer",
+      "uiPath" : "设置 › 监控 › 面板更新频率",
+      "unit" : "s"
+    },
+    {
+      "accessPolicy" : {
+        "containsSensitiveInfo" : false,
+        "developmentProfile" : true,
+        "externalRead" : true,
+        "externalWrite" : false,
+        "requiresConfirmation" : false,
+        "systemSideEffect" : false,
+        "transferable" : false,
+        "uiAccessible" : true
+      },
+      "category" : "hardware",
+      "description" : "面板上温度指标多久刷新一次。",
+      "id" : "hardware.refresh.temperature",
+      "performanceImpact" : {
+        "activation" : "periodic",
+        "resources" : [
+          "hardwareSampling"
+        ]
+      },
+      "provider" : "core",
+      "range" : {
+        "max" : 8,
+        "min" : 4
+      },
+      "storageKey" : "hardwareTemperatureRefreshSeconds",
+      "title" : "温度刷新频率（秒）",
+      "type" : "integer",
+      "uiPath" : "设置 › 监控 › 面板更新频率",
       "unit" : "s"
     },
     {
@@ -1874,6 +2029,37 @@
       "title" : "显示占用最高的 App",
       "type" : "boolean",
       "uiPath" : "设置 › 监控 › Top Apps"
+    },
+    {
+      "accessPolicy" : {
+        "containsSensitiveInfo" : false,
+        "developmentProfile" : true,
+        "externalRead" : true,
+        "externalWrite" : false,
+        "requiresConfirmation" : false,
+        "systemSideEffect" : false,
+        "transferable" : false,
+        "uiAccessible" : true
+      },
+      "category" : "hardware",
+      "description" : "详情页底部高占用应用列表多久刷新一次；内存列表受自身 6 秒下限限制。",
+      "id" : "hardware.topApps.refreshSeconds",
+      "performanceImpact" : {
+        "activation" : "periodic",
+        "resources" : [
+          "hardwareSampling"
+        ]
+      },
+      "provider" : "core",
+      "range" : {
+        "max" : 30,
+        "min" : 1
+      },
+      "storageKey" : "hardwareTopAppsRefreshSeconds",
+      "title" : "高占用应用刷新频率（秒）",
+      "type" : "integer",
+      "uiPath" : "设置 › 监控 › 高占用应用刷新频率",
+      "unit" : "s"
     },
     {
       "accessPolicy" : {
