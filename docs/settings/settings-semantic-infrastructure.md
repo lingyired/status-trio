@@ -11,9 +11,9 @@
 | 1 语义注册表 | ✅ 完成 | `Semantic/` 下 ValueType / Condition / Constraint / AccessPolicy / PerformanceImpact / Option / Mutation / PreferenceDescriptor / FeatureDescriptor / Capability / Action / Registry。注册表确定性排序、结构校验、Feature 环检测。`SettingsSemanticCatalog` 收录 47 个设置（覆盖 8 个模块及计划中的复杂案例）。 |
 | 2 依赖解析与约束 | ✅ 完成 | `SettingsPlanner`：Feature 依赖闭包、`onChange` 连带修改（虚拟设置镜像）、`distinctValues→swap`、`minimumCount/requires/numericRange`、类型/范围校验、确定性、幂等。 |
 | 3 统一 SettingsService | ✅ 完成（内存 provider） | list/describe/snapshot/preview/apply/restore；预览不改状态、apply 全量校验后一次写入并捕获 before。`SettingsStateProvider` 协议预留各领域 provider。 |
-| 4 复杂模块适配 | ◑ 部分 | 图标/硬件/电池/蓝牙/音频/亮度/面板的核心设置已语义化；**真实 SettingsStore 领域 provider 适配器尚未接线**（见 §6）。 |
+| 4 复杂模块适配 | ✅ 核心完成 | `CoreSettingsProvider` 把 47 个 core 设置经真实 `@Published`/setter 读写（含 hardwareRingConfiguration 嵌套、ring slots 领域 setter、boldText 虚拟设置）。未接入的领域：Localization/LaunchAtLogin（非 core，返回 nil）。 |
 | 5 Capability/Action/权限 | ◑ 语义层完成 | Capability/Action 描述符与 `SettingsAccessPolicy`（UI/devProfile/transfer/externalRead/externalWrite/敏感/系统副作用）已具备；**运行时 Capability provider 与 Effective State 快照未接线**。 |
-| 6 Development Profile | ✅ 核心 + 构建嵌入 | `DevelopmentTestProfile`/Validator/Bootstrap；`.dev-profile.example.json`；`.gitignore`；`build-app.sh` 仅开发版身份在签名前嵌入 profile + `STAllowsDevProfile` 标记；加载仅在开发构建生效。 |
+| 6 Development Profile | ✅ 完成 | `DevelopmentTestProfile`/Validator/Bootstrap + `CoreSettingsProvider`；`AppEnvironment.live` 在迁移后、监控启动前应用；`.dev-profile.example.json`；`build-app.sh` 仅开发版身份签名前嵌入 + `STAllowsDevProfile` 标记；加载仅开发构建生效。 |
 | 7 Schema 导出 + Skill | ✅ 完成 | `SettingsSchemaExporter` 确定性输出 5 份 JSON + 每模块 md；`.agents/skills/status-trio-settings/`（SKILL.md + references）。 |
 | 8 AGENTS.md | ✅ 完成 | 新增 Development Test Profile 规范与"新增设置必须同步语义定义"。 |
 | 9 性能/体积 | ◑ 静态测量 | 见 §5；运行时/包体/冷启动为 NOT RUN。 |
@@ -61,6 +61,7 @@ SettingsService.restore(_:)
 | `SettingsServiceTests` | 5 | ✅ 全通过 |
 | `DevelopmentProfileTests` | 8 | ✅ 全通过 |
 | `SettingsSchemaExporterTests` | 6 | ✅ 全通过 |
+| `CoreSettingsProviderTests` | 4 | ✅ 全通过（真实 SettingsStore） |
 
 运行方式：`bash scripts/test.sh '<Suite>'`（含 forbidden-pattern 检查）。
 `swift build -c release --target StatusTrioCore` 通过（116s）。
@@ -81,15 +82,17 @@ SettingsService.restore(_:)
 
 ## 6. 明确未完成 / 后续
 
-1. **SettingsStore 领域 provider 适配器**：需要为 47（最终 128）个设置实现
-   `SettingsStateProvider`，读走 `@Published`、写走真实 setter（含副作用与 UI/监控
-   需求更新）。这是"开发版启动自动具备测试条件"落地的关键剩余项。
-2. **启动接线**：在 App 启动序列（SettingsStore 迁移之后、UI/监控初始化之前）调用
-   `DevelopmentProfileBootstrap.runAtLaunch`，需要先有 (1)。
-3. **覆盖到 100%**：把剩余 user-visible 设置补进 `SettingsSemanticCatalog`。
-4. **Capability provider 运行时**：用现有缓存/系统信息给出 available/unavailable/
-   unknown，避免为查 Schema 启动采集。
-5. **真实性能/体积测量**与 §13.4 监控生命周期测试。
+1. **覆盖率到 100%**：当前 `SettingsSemanticCatalog` 描述 47/128 个 user-visible 设置。
+   其余（大量电池标记/颜色、音频设备排序、图标子来源、蓝牙设备级等）需补进目录；
+   每补一个都要在 `docs/settings/settings-inventory.md` 对上。
+2. **运行时 Capability provider 与 Effective State**：用现有缓存/系统信息给出
+   available/unavailable/unknown（unknown≠不支持），不为查 Schema 启动采集。
+3. **真实性能/体积测量**：需签名 App Bundle 与运行环境，按 §12.3 对比前后。
+4. **§13.4 监控生命周期测试**：验证父模块自动开启不无条件启动全部采集等。
+
+已完成的启动闭环：dev build 启动 → `AppEnvironment.live` 在迁移后、控制器/监控
+启动前 → `DevelopmentProfileBootstrap` 校验→预览→经 `CoreSettingsProvider` 写入
+真实 SettingsStore → 日志输出。
 
 ## 7. 未改变的契约（防回归）
 
