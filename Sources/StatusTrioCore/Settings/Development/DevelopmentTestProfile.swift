@@ -129,10 +129,25 @@ enum DevelopmentProfileLoader {
         environment: [String: String] = ProcessInfo.processInfo.environment,
         bundle: Bundle = .main
     ) -> URL? {
+        // A release/App Store bundle never loads a development profile, even if a
+        // stray resource were present. Only a development identity opts in.
+        guard isDevelopmentBuild(bundle: bundle) else { return nil }
         if let path = environment[environmentVariable], !path.isEmpty {
             let url = URL(fileURLWithPath: path)
             if FileManager.default.fileExists(atPath: url.path) { return url }
         }
         return bundle.url(forResource: bundleResourceName, withExtension: "json")
+    }
+
+    /// A build may load a development profile only when it carries an explicit
+    /// development marker (set by the worktree dev build), never merely because a
+    /// resource exists.
+    static func isDevelopmentBuild(bundle: Bundle = .main) -> Bool {
+        if bundle.object(forInfoDictionaryKey: "STAllowsDevProfile") as? Bool == true { return true }
+        if let codename = bundle.object(forInfoDictionaryKey: "STDevelopmentCodename") as? String,
+           !codename.isEmpty {
+            return true
+        }
+        return false
     }
 }
