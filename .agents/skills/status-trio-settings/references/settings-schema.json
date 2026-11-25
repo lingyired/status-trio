@@ -1,5 +1,5 @@
 {
-  "appVersion" : "1.10.5",
+  "appVersion" : "1.10.6",
   "preferences" : [
     {
       "accessPolicy" : {
@@ -860,7 +860,7 @@
         "uiAccessible" : true
       },
       "category" : "battery",
-      "description" : "各电量状态的自定义颜色（放电/充电/低电量/高电量/严重）。",
+      "description" : "各电量状态的自定义颜色（放电/充电/已连接/低电量/高电量/严重）；复合设置，含 batteryStatusColors.* 子键。",
       "id" : "battery.statusColors",
       "storageKey" : "batteryStatusColors.discharging",
       "title" : "电池状态颜色",

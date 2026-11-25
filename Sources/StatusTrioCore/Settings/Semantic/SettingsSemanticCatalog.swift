@@ -833,7 +833,7 @@ enum SettingsSemanticCatalog {
         pref("brightness.hiddenDisplays", "隐藏的显示器", "brightness", .set, "按显示器 ID 隐藏的亮度设备（设备标识属敏感信息）。") { d in
             d.uiPath = "设置 › 亮度 › 隐藏显示器"; d.storageKey = "hiddenBrightnessDisplayIDs"; d.accessPolicy = sensitiveDescribed
         },
-        pref("battery.statusColors", "电池状态颜色", "battery", .object, "各电量状态的自定义颜色（放电/充电/低电量/高电量/严重）。") { d in
+        pref("battery.statusColors", "电池状态颜色", "battery", .object, "各电量状态的自定义颜色（放电/充电/已连接/低电量/高电量/严重）；复合设置，含 batteryStatusColors.* 子键。") { d in
             d.uiPath = "设置 › 电池 › 状态颜色"; d.storageKey = "batteryStatusColors.discharging"; d.accessPolicy = describedNotWritable
         },
         pref("bluetooth.deviceOrder", "蓝牙设备排序", "bluetooth", .orderedList, "蓝牙设备列表的显示顺序。") { d in
