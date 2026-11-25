@@ -26,6 +26,14 @@ final class UpdaterManager: NSObject, ObservableObject, SPUUpdaterDelegate {
     private var updateCycle = UpdateCycleState()
     private var manualUpdatePresentation: ManualUpdatePresentation?
 
+    /// Injectable full-screen probe. Tests replace it to exercise the gate
+    /// without a real full-screen Space.
+    var isFullScreenActive: @MainActor () -> Bool = { FullScreenActivity.isActive() }
+    private var fullScreenMonitor: FullScreenActivityMonitor?
+    /// Set when a scheduled check is postponed because another app owns the
+    /// screen; cleared when the postponed check is finally run.
+    private var didPostponeScheduledCheckForFullScreen = false
+
     var automaticallyChecksForUpdatesBinding: Binding<Bool> {
         Binding(
             get: { self.automaticallyChecksForUpdates },
@@ -55,6 +63,7 @@ final class UpdaterManager: NSObject, ObservableObject, SPUUpdaterDelegate {
         } catch {
             NSAlert(error: error).runModal()
         }
+        startFullScreenMonitor()
         #endif
     }
 
@@ -68,6 +77,59 @@ final class UpdaterManager: NSObject, ObservableObject, SPUUpdaterDelegate {
         manualUpdatePresentation?.begin()
         updater.checkForUpdates()
         #endif
+    }
+
+    /// Defers only background (scheduled) checks while another app owns the
+    /// screen; a check the user asked for must still run.
+    ///
+    /// Throwing aborts the check before Sparkle fetches the appcast or shows
+    /// any alert. Sparkle suppresses updater errors that happen before an
+    /// update was presented, so the deferral is silent. The postponed check is
+    /// re-run when the full-screen session ends.
+    func updater(_ updater: SPUUpdater, mayPerform updateCheck: SPUUpdateCheck) throws {
+        guard shouldDeferUpdateCheck(updateCheck) else {
+            if updateCheck == .updatesInBackground {
+                didPostponeScheduledCheckForFullScreen = false
+            }
+            return
+        }
+        didPostponeScheduledCheckForFullScreen = true
+        throw Self.fullScreenPostponementError()
+    }
+
+    /// Pure decision shared by the delegate and tests.
+    func shouldDeferUpdateCheck(_ updateCheck: SPUUpdateCheck) -> Bool {
+        updateCheck == .updatesInBackground && isFullScreenActive()
+    }
+
+    private func startFullScreenMonitor() {
+        let monitor = FullScreenActivityMonitor(
+            probe: { [weak self] in self?.isFullScreenActive() ?? false }
+        )
+        monitor.onExitFullScreen = { [weak self] in
+            self?.resumePostponedScheduledCheck()
+        }
+        monitor.start()
+        fullScreenMonitor = monitor
+    }
+
+    private func resumePostponedScheduledCheck() {
+        guard didPostponeScheduledCheckForFullScreen else { return }
+        guard !isFullScreenActive() else { return }
+        didPostponeScheduledCheckForFullScreen = false
+        guard automaticallyChecksForUpdates, canCheckForUpdates else { return }
+        updater.checkForUpdatesInBackground()
+    }
+
+    private static func fullScreenPostponementError() -> NSError {
+        NSError(
+            domain: "com.lingsmbp.StatusTrio.Updater",
+            code: 1,
+            userInfo: [
+                NSLocalizedDescriptionKey:
+                    "Update check postponed while another app is in full screen.",
+            ]
+        )
     }
 
     /// Raw appcast URL from Info.plist, before mirroring. Injectable for tests.
