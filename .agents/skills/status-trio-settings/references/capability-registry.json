@@ -1,0 +1,65 @@
+{
+  "capabilities" : [
+    {
+      "description" : "是否为 App Store 分发版本。",
+      "id" : "distribution.appStore",
+      "title" : "App Store 版本"
+    },
+    {
+      "description" : "是否为 GitHub Direct 分发版本。",
+      "id" : "distribution.direct",
+      "title" : "直发版本"
+    },
+    {
+      "description" : "当前机器是否内置电池。",
+      "id" : "hardware.hasBattery",
+      "title" : "内置电池"
+    },
+    {
+      "description" : "当前机器是否有可读风扇转速。",
+      "id" : "hardware.hasFan",
+      "title" : "风扇"
+    },
+    {
+      "description" : "特权 Helper 是否已安装。",
+      "id" : "helper.available",
+      "title" : "Helper 可用"
+    },
+    {
+      "description" : "特权 Helper 是否已连接并就绪。",
+      "id" : "helper.ready",
+      "title" : "Helper 就绪"
+    },
+    {
+      "description" : "是否检测到 BetterDisplay 集成。",
+      "id" : "integration.betterDisplay",
+      "title" : "BetterDisplay"
+    },
+    {
+      "description" : "是否已获得蓝牙访问权限。",
+      "id" : "permission.bluetooth",
+      "title" : "蓝牙权限"
+    },
+    {
+      "description" : "是否已获得定位权限（Wi-Fi 名称等）。",
+      "id" : "permission.location",
+      "title" : "定位权限"
+    },
+    {
+      "description" : "是否可读取 CPU 温度。",
+      "id" : "sensor.cpu.temperature",
+      "title" : "CPU 温度传感器"
+    },
+    {
+      "description" : "是否可读取 GPU 温度。",
+      "id" : "sensor.gpu.temperature",
+      "title" : "GPU 温度传感器"
+    },
+    {
+      "description" : "当前系统是否支持 NSGlassEffectView（macOS 26+）。",
+      "id" : "ui.liquidGlass",
+      "title" : "Liquid Glass 界面"
+    }
+  ],
+  "schemaVersion" : 1
+}
