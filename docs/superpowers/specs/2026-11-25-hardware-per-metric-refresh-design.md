@@ -113,10 +113,11 @@
 
 ## 9. 实现备注（设计侧取舍，供实现参考）
 
-- 把 `HardwareMonitorObservable.summarySnapshot(at:)` 的派生逻辑提成纯函数，投影与实时 observable 复用。
-- `PanelHardwareDisplay` 持有一个实时 `HardwareMonitorObservable` 引用用于 `historyRowsForDetail` 透传；
-  曲线/历史不改稠密度。`HardwareDetailHistoryStore.start` 接受投影提供的实时历史源。
-- 非面板场景（`MenuBarIconPreviewGrid` 等预览）继续用实时 observable，不换投影。
-- 投影注入可注入时钟（默认 `Date()`），便于用可控时钟做单测。
-- 投影仅在面板会话存在时订阅；`stop()`/关闭面板取消订阅，避免空转。
+- **落地取舍**：投影没有做成独立对象，而是内建在 `HardwareMonitorObservable` 里——
+  新增 `panelDisplayCadence` + `panelStored`，暴露 `panelSnapshot`/`panelSummarySnapshot`。
+  原因：`summarySnapshot` 依赖私有的 `lastKnown` 兜底，拆独立对象要重复这套逻辑；内建后
+  行为与“独立投影”一致，且面板视图只改读取属性、类型不变，改动面更小。图标仍读 `snapshot`/
+  `snapshotPublisher`，物理采样一份共享。
+- 把 `HardwareMonitorObservable.summarySnapshot(at:)` 的派生逻辑提成 `summarySnapshot(filling:at:)`，
+  面板节流副本与实时快照复用同一套 stale 兜底。
 
