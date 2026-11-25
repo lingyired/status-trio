@@ -90,10 +90,11 @@ final class DisableSleepCommandTests: XCTestCase {
         let missing = try makeScript("printf 'Battery Power:\\n lowpowermode 0\\n'")
         defer { try? FileManager.default.removeItem(at: missing) }
         let missingRunner = SystemPmsetRunner(timeout: .seconds(15), executableURL: missing)
-        guard case let .failure(missingCode, _) = await missingRunner.readDisableSleepDiagnosed() else {
-            return XCTFail("expected a failure")
-        }
-        XCTAssertEqual(missingCode, .readKeyMissing)
+        // A `pmset -g` with no `SleepDisabled` line means the setting was never
+        // used, which is off — not a read failure (#383 follow-up). Previously
+        // this surfaced as DS-R4 on Macs that had never run `disablesleep`.
+        let missingResult = await missingRunner.readDisableSleepDiagnosed()
+        XCTAssertEqual(missingResult, .value(false))
 
         let badValue = try makeScript("printf ' SleepDisabled\\t\\tyes\\n'")
         defer { try? FileManager.default.removeItem(at: badValue) }
