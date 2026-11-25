@@ -170,4 +170,25 @@ final class TopAppsPanelDemandTests: XCTestCase {
         XCTAssertTrue(service.isStopped)
         XCTAssertNil(service.demand)
     }
+
+    func testHardwareRefreshIntervalBoundsTheTopAppsList() {
+        let (fixture, service) = makeFixture()
+        let panel = startVisible(fixture)
+        defer {
+            panel.showSummaryPage()
+            panel.stop()
+            fixture.store.setPopoverVisible(false)
+            fixture.store.stop()
+        }
+
+        fixture.settings.hardwarePanelRefreshSeconds = 8
+        panel.showHardwareDetail(.cpu)
+        XCTAssertEqual(service.demand, .cpu)
+        XCTAssertEqual(service.minimumIntervalSeconds, 8)
+
+        // Changing the setting while the page is open updates the bound too, so
+        // the list slows or speeds up with the panel instead of staying fixed.
+        fixture.settings.hardwarePanelRefreshSeconds = 3
+        XCTAssertEqual(service.minimumIntervalSeconds, 3)
+    }
 }

@@ -1224,6 +1224,9 @@ final class StatusPanelViewModel: ObservableObject {
         // Only the visible detail page pays for its structured payload and the
         // per-page expensive work (frequency for CPU, session totals for network).
         store.hardwareMetrics.setDetailDemand(detailVisible ? detailKind : nil)
+        // Keep the top-app list no faster than the hardware data refresh
+        // interval so a slow panel and its fast list never disagree.
+        store.topApps.minimumIntervalSeconds = TimeInterval(panelRefresh)
         store.topApps.setDemand(detailVisible && showsHardwareTopApps ? detailKind?.topAppMetric : nil)
         // Background history belongs to the app-lifetime controller, so closing
         // the panel (which stops this view model's subscriptions) cannot kill it.

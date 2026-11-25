@@ -496,6 +496,54 @@ struct TopAppsServiceTests {
         cpuService.stop()
     }
 
+    @Test func testMinimumIntervalSlowsAListThatWouldOtherwiseOutrunIt() async throws {
+        let sampler = FakeTopAppsSampler()
+        let recorder = SleepRecorder()
+        let service = TopAppsService(sampler: sampler,
+                                     applications: { [] },
+                                     automaticScheduling: true,
+                                     sleepFor: { duration in
+                                         await recorder.record(duration)
+                                         try await Task.sleep(for: .seconds(60))
+                                     },
+                                     clock: { 0 })
+        // A hardware refresh interval of 5 s must slow the GPU list from its
+        // 1 s default to 5 s so the visible list never outruns the panel.
+        service.minimumIntervalSeconds = 5
+        service.setDemand(.gpu)
+        for _ in 0..<100 {
+            if await recorder.count > 0 { break }
+            try await Task.sleep(for: .milliseconds(5))
+        }
+        let gpuSleep = await recorder.last
+        #expect(gpuSleep?.components.seconds == 5)
+        service.stop()
+    }
+
+    @Test func testMinimumIntervalNeverSpeedsUpAFasterList() async throws {
+        let sampler = FakeTopAppsSampler()
+        let recorder = SleepRecorder()
+        let service = TopAppsService(sampler: sampler,
+                                     applications: { [] },
+                                     automaticScheduling: true,
+                                     sleepFor: { duration in
+                                         await recorder.record(duration)
+                                         try await Task.sleep(for: .seconds(60))
+                                     },
+                                     clock: { 0 })
+        // Memory keeps its costlier 6 s floor even when the setting is 2 s: the
+        // bound only slows the list, it never speeds it past its metric floor.
+        service.minimumIntervalSeconds = 2
+        service.setDemand(.memory)
+        for _ in 0..<100 {
+            if await recorder.count > 0 { break }
+            try await Task.sleep(for: .milliseconds(5))
+        }
+        let memorySleep = await recorder.last
+        #expect(memorySleep?.components.seconds == 6)
+        service.stop()
+    }
+
     @Test func testFailureDoesNotKeepNumbersAsLive() async {
         let sampler = FakeTopAppsSampler()
         await sampler.setResults([.memory: .failed])

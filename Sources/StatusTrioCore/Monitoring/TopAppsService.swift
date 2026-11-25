@@ -76,6 +76,23 @@ final class TopAppsService {
     /// full refresh interval.
     static let collectingRetryInterval: Double = 0.5
 
+    /// Lower bound, in seconds, on the list cadence, driven by the hardware
+    /// data refresh interval setting. The list never refreshes faster than
+    /// this, so raising the setting slows the list with it instead of letting
+    /// the fixed fast cadence outrun the panel. `0` disables the bound and
+    /// keeps the per-metric defaults.
+    var minimumIntervalSeconds: Double = 0 {
+        didSet {
+            guard minimumIntervalSeconds != oldValue else { return }
+            // Re-schedule immediately instead of waiting out the current sleep,
+            // so changing the setting on an open page takes effect now.
+            guard demand != nil, !inFlight, !isAsleep, !isStopped else { return }
+            loopTask?.cancel()
+            loopTask = nil
+            startLoopIfNeeded()
+        }
+    }
+
     /// Per-metric default cadence for the top-app list. GPU is cheap to read
     /// through IOKit and drives the high-usage ranking, so it refreshes at 1 s;
     /// the syscall and top readers stay slower to keep the page low-power.
@@ -214,7 +231,12 @@ final class TopAppsService {
                 guard !Task.isCancelled else { return }
                 let now = self.clock()
                 let elapsed = now >= started ? now - started : 0
-                let interval = max(0.1, self.intervalSeconds(metric))
+                // Follow the hardware data refresh interval: a slow panel must
+                // not be outrun by the list's fixed fast cadence. The floor only
+                // slows the list; it never speeds it past its own metric floor
+                // (memory stays at its costlier 6 s when that is slower).
+                let base = self.intervalSeconds(metric)
+                let interval = max(0.1, max(base, self.minimumIntervalSeconds))
                 // A baseline-only frame retries quickly so the ranking appears
                 // in about half a second; steady-state keeps the metric cadence.
                 let target = self.lastSampleWasCollecting
