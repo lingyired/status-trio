@@ -68,60 +68,64 @@ struct VolumeControlsView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            HStack(alignment: .center, spacing: 10) {
-                Button(action: {
-                    VolumePanelActionGate.toggleMute(in: state) {
-                        actions.toggleMute()
-                    }
-                }) {
-                    PanelActionGlyph(
-                        systemName: state.muteSymbol,
-                        font: .system(size: 15, weight: .medium)
+            if hasNoOutputDevices {
+                HStack(alignment: .center, spacing: 10) {
+                    PanelAudioEmptyDevicesHint(
+                        text: localization.string(.volumeOutputEmpty),
+                        systemImage: "questionmark.circle"
                     )
-                        .frame(width: PanelSummaryActionMetrics.leadingGlyphSlot)
-                        .foregroundStyle(state.muted ? Color.red : Color.secondary)
-                        .contentShape(Rectangle())
+                    settingsButton
                 }
-                .buttonStyle(.plain)
-                .disabled(!state.canMute)
-                .help(state.muteHelp)
-                .accessibilityLabel(state.muteHelp)
+                .frame(height: PanelSummaryActionMetrics.actionSlot)
+            } else {
+                HStack(alignment: .center, spacing: 10) {
+                    Button(action: {
+                        VolumePanelActionGate.toggleMute(in: state) {
+                            actions.toggleMute()
+                        }
+                    }) {
+                        PanelActionGlyph(
+                            systemName: state.muteSymbol,
+                            font: .system(size: 15, weight: .medium)
+                        )
+                            .frame(width: PanelSummaryActionMetrics.leadingGlyphSlot)
+                            .foregroundStyle(state.muted ? Color.red : Color.secondary)
+                            .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                    .disabled(!state.canMute)
+                    .help(state.muteHelp)
+                    .accessibilityLabel(state.muteHelp)
 
-                PanelLevelSlider(
-                    value: volumeBinding,
-                    isEnabled: state.canAdjust,
-                    tint: state.muted ? Color.secondary : fillColor,
-                    accessibilityLabel: state.sliderLabel,
-                    accessibilityValue: percentageText,
-                    onEditingChanged: { isEditing in
-                        handleVolumeEditing(isEditing)
-                    },
-                    height: matchesBrightnessThickness
-                        ? PanelLevelSliderMetrics.controlHeight
-                        : PanelLevelSliderMetrics.compactSlotHeight,
-                    barHeight: matchesBrightnessThickness
-                        ? PanelLevelSliderMetrics.barHeight
-                        : PanelLevelSliderMetrics.compactBarHeight
-                )
-                    .background(VolumeControlScrollTarget(targets: scrollTargets))
+                    PanelLevelSlider(
+                        value: volumeBinding,
+                        isEnabled: state.canAdjust,
+                        tint: state.muted ? Color.secondary : fillColor,
+                        accessibilityLabel: state.sliderLabel,
+                        accessibilityValue: percentageText,
+                        onEditingChanged: { isEditing in
+                            handleVolumeEditing(isEditing)
+                        },
+                        height: matchesBrightnessThickness
+                            ? PanelLevelSliderMetrics.controlHeight
+                            : PanelLevelSliderMetrics.compactSlotHeight,
+                        barHeight: matchesBrightnessThickness
+                            ? PanelLevelSliderMetrics.barHeight
+                            : PanelLevelSliderMetrics.compactBarHeight
+                    )
+                        .background(VolumeControlScrollTarget(targets: scrollTargets))
 
-                Text(percentageText)
-                    .font(.caption.monospacedDigit())
-                    .foregroundStyle(.secondary)
-                    .frame(minWidth: 34, alignment: .trailing)
-                    .accessibilityHidden(true)
-
-                Button(action: onOpenSoundSettings) {
-                    PanelActionGlyph(systemName: "gearshape", size: PanelSummaryActionMetrics.actionSlot)
+                    Text(percentageText)
+                        .font(.caption.monospacedDigit())
                         .foregroundStyle(.secondary)
-                        .contentShape(Rectangle())
+                        .frame(minWidth: 34, alignment: .trailing)
+                        .accessibilityHidden(true)
+
+                    settingsButton
                 }
-                .buttonStyle(.plain)
-                .help(localization.string(.volumeActionOpenSettings))
-                .accessibilityLabel(localization.string(.volumeActionOpenSettings))
             }
 
-            if state.showsDeviceList {
+            if state.showsDeviceList && hasDeviceListContent {
                 OutputDeviceList(
                     rows: state.rows,
                     previewRows: state.previewRows,
@@ -139,6 +143,35 @@ struct VolumeControlsView: View {
         .onChange(of: synchronizationSnapshot) { snapshot in
             synchronizeVolume(snapshot)
         }
+    }
+
+    /// Only a truly absent output means the slider has nothing to control. A
+    /// real current output stays adjustable before the device list loads (or
+    /// when the list is disabled), and a pending skeleton keeps its layout.
+    private var hasNoOutputDevices: Bool {
+        !state.hasUsableOutput
+            && state.rows.isEmpty
+            && state.previewRows.isEmpty
+            && state.deviceListPlaceholder == nil
+    }
+
+    /// The device list only needs space once it has rows or a skeleton; an
+    /// unloaded list must not push an empty card under the live slider.
+    private var hasDeviceListContent: Bool {
+        !state.rows.isEmpty
+            || !state.previewRows.isEmpty
+            || state.deviceListPlaceholder != nil
+    }
+
+    private var settingsButton: some View {
+        Button(action: onOpenSoundSettings) {
+            PanelActionGlyph(systemName: "gearshape", size: PanelSummaryActionMetrics.actionSlot)
+                .foregroundStyle(.secondary)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .help(localization.string(.volumeActionOpenSettings))
+        .accessibilityLabel(localization.string(.volumeActionOpenSettings))
     }
 
     private var percentageText: String {

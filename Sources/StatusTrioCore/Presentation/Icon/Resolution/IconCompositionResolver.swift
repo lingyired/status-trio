@@ -73,6 +73,10 @@ enum IconCompositionResolver {
         if ring.trace.selectedSourceID == RingSource.hardwareMonitor.rawValue {
             sceneAppearance.outerRing.color = .automatic
         }
+        if inputs.system.bottomIndicatorMetric == .memoryPressure,
+           footer.trace.binding == IconContentLegacyAdapter.binding(for: .metric) {
+            sceneAppearance.footer.color = .automatic
+        }
         return IconResolutionOutput(
             scene: IconPaletteResolver.apply(
                 IconSceneState(
@@ -116,7 +120,7 @@ enum IconCompositionResolver {
     private static func dependencies(
         for traces: [SlotResolutionTrace],
         configuration: IconConfigurationV1,
-        bottomIndicatorMetric: HardwareMonitorMetric,
+        bottomIndicatorMetric: BottomIndicatorMetric,
         registry: IconContentPluginRegistry
     ) -> IconContentDependencies {
         let context = IconContentDependencyContext(
@@ -134,7 +138,7 @@ enum IconCompositionResolver {
         bindings: IconSlotBindingsV1,
         traces: [SlotResolutionTrace],
         configuration: IconConfigurationV1,
-        bottomIndicatorMetric: HardwareMonitorMetric,
+        bottomIndicatorMetric: BottomIndicatorMetric,
         registry: IconContentPluginRegistry
     ) -> IconPresentationDemand {
         var selected = Set<IconContentBinding>()

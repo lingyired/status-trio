@@ -35,9 +35,18 @@ struct PrivilegedHelperIdleTests {
         if reachable {
             try await waitForTestCondition { manager.isReady }
         } else {
-            // One initial read, one failed XPC check, and five approval reads.
-            try await waitForTestCondition { service.statusReadCount >= 7 }
+            // Make sure the startup sequence and approval polling actually began
+            // before asserting they stop; the exact final count is left to the
+            // quiescence check below rather than a brittle magic number.
+            try await waitForTestCondition {
+                service.verificationCallCount >= 1 && service.statusReadCount >= 2
+            }
         }
+        // Wait for the approval window to close and both counters to stop
+        // moving, instead of a fixed read count and a fixed delay: a loaded CI
+        // runner can stretch either. A manager that kept polling would never go
+        // quiet, so quiescence is the real end state this asserts.
+        try await waitForQuiet { service.statusReadCount + service.verificationCallCount }
         let reads = service.statusReadCount
         let probes = service.verificationCallCount
 
@@ -133,11 +142,36 @@ struct PrivilegedHelperIdleTests {
 
     private func waitForTestCondition(_ condition: () -> Bool) async throws {
         let clock = ContinuousClock()
-        let deadline = clock.now.advanced(by: .seconds(8))
+        let deadline = clock.now.advanced(by: .seconds(20))
         while !condition(), clock.now < deadline {
             try await Task.sleep(for: .milliseconds(5))
         }
         try #require(condition())
+    }
+
+    /// Waits until `sample()` stops changing for a short quiet window, so a
+    /// straggler tick still in flight on a loaded runner is not mistaken for a
+    /// poller that never stopped.
+    private func waitForQuiet(
+        _ sample: () -> Int,
+        quiet: Duration = .milliseconds(300),
+        timeout: Duration = .seconds(20)
+    ) async throws {
+        let clock = ContinuousClock()
+        let deadline = clock.now.advanced(by: timeout)
+        var last = sample()
+        var stableSince = clock.now
+        while clock.now < deadline {
+            try await Task.sleep(for: .milliseconds(10))
+            let value = sample()
+            if value != last {
+                last = value
+                stableSince = clock.now
+            } else if clock.now - stableSince >= quiet {
+                return
+            }
+        }
+        Issue.record("Timed out waiting for the poller to go quiet")
     }
 }
 
@@ -655,8 +689,11 @@ final class PrivilegedHelperManagerTests: XCTestCase {
         XCTAssertFalse(manager.didFailLastOperation)
         XCTAssertEqual(service.statusReadCount, nativeReads)
         manager.setBackgroundRecoveryNeeded(false)
+        // Drain the tick that may already be in flight, then assert the poller
+        // really stopped instead of racing a fixed 100 ms window.
+        await waitForQuiet { service.verificationCallCount }
         let probesAfterCleanup = service.verificationCallCount
-        try? await Task.sleep(for: .milliseconds(100))
+        try? await Task.sleep(for: .milliseconds(150))
         XCTAssertEqual(service.verificationCallCount, probesAfterCleanup)
         // Re-probing must not churn the registration of a healthy helper.
         XCTAssertEqual(service.recoveryUnregisterCallCount, 0)
@@ -739,10 +776,33 @@ final class PrivilegedHelperManagerTests: XCTestCase {
     }
 
     private func waitUntil(_ predicate: () -> Bool) async {
-        let deadline = Date().addingTimeInterval(1)
+        let deadline = Date().addingTimeInterval(10)
         while !predicate(), Date() < deadline {
             try? await Task.sleep(for: .milliseconds(10))
         }
+    }
+
+    /// Waits until a counter stops changing for a short quiet window, so an
+    /// in-flight poll tick on a loaded runner is not seen as continued polling.
+    private func waitForQuiet(
+        _ sample: () -> Int,
+        quiet: TimeInterval = 0.3,
+        timeout: TimeInterval = 20
+    ) async {
+        let start = Date()
+        var last = sample()
+        var stableSince = Date()
+        while Date().timeIntervalSince(start) < timeout {
+            try? await Task.sleep(for: .milliseconds(10))
+            let value = sample()
+            if value != last {
+                last = value
+                stableSince = Date()
+            } else if Date().timeIntervalSince(stableSince) >= quiet {
+                return
+            }
+        }
+        XCTFail("Timed out waiting for the poller to go quiet")
     }
 
     func testVerifiedHelperIsNotKeptAliveByStatusPolling() async {

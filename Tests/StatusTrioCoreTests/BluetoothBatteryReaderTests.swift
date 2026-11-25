@@ -193,7 +193,7 @@ struct BluetoothBatteryReaderTests {
     /// parse the same JSON, so the second read must reuse the first report
     /// instead of running `/usr/sbin/system_profiler` again.
     @Test func batteryReadReusesTheDeviceReportWithoutSpawningAgain() async {
-        let reportCache = BluetoothProfilerReportCache()
+        let reportCache = BluetoothProfilerReportCache(maxAge: 600)
         let data = Data(sharedReport.utf8)
         let deviceWorker = SystemProfilerBluetoothPairedDeviceWorker(
             outputProvider: { data },
@@ -221,7 +221,7 @@ struct BluetoothBatteryReaderTests {
     }
 
     @Test func cachedDisconnectedReportAnswersWithAnEmptySuccessfulRead() async {
-        let reportCache = BluetoothProfilerReportCache()
+        let reportCache = BluetoothProfilerReportCache(maxAge: 600)
         let data = Data("""
         {"SPBluetoothDataType": [{"device_not_connected": [{"AirPods": {
           "device_address": "AC:90:85:C2:9C:1F",
@@ -313,7 +313,7 @@ struct BluetoothBatteryReaderTests {
         let expectedDevices = BluetoothPairedDeviceReader.parse(json: data)
         let expectedLevels = BluetoothBatteryReader.parse(json: data)
 
-        let reportCache = BluetoothProfilerReportCache()
+        let reportCache = BluetoothProfilerReportCache(maxAge: 600)
         let deviceWorker = SystemProfilerBluetoothPairedDeviceWorker(
             outputProvider: { data },
             reportCache: reportCache
@@ -364,7 +364,7 @@ struct BluetoothBatteryReaderTests {
     /// the read re-stamped the entry, that query would still find it fresh.
     @Test func cacheServedReadDoesNotExtendTheReportLifetime() async {
         let maxAge = BluetoothProfilerReportCache.defaultMaxAge
-        let reportCache = BluetoothProfilerReportCache()
+        let reportCache = BluetoothProfilerReportCache(maxAge: 600)
         // Produced `maxAge - 1` seconds ago: still fresh, so the read reuses it.
         let producedAt = Date().addingTimeInterval(-(maxAge - 1))
         reportCache.store(Data(sharedReport.utf8), at: producedAt)
@@ -385,7 +385,7 @@ struct BluetoothBatteryReaderTests {
         #expect(spawnCount.value == 0, "the read should reuse the fresh report")
         #expect(levels.value?[BluetoothBatteryReader.normalizedAddress("AC:90:85:C2:9C:1F")]?.main == 95)
         #expect(
-            reportCache.freshData(now: producedAt.addingTimeInterval(maxAge + 1)) == nil,
+            reportCache.freshData(maxAge: maxAge, now: producedAt.addingTimeInterval(maxAge + 1)) == nil,
             "a cache-served read extended the report's life past the freshness window"
         )
     }
@@ -399,7 +399,7 @@ struct BluetoothBatteryReaderTests {
     @Test func cacheServedReadDoesNotRollBackANewerStoredReport() async {
         let maxAge = BluetoothProfilerReportCache.defaultMaxAge
         let newer = Data(sharedReport.utf8)
-        let reportCache = BluetoothProfilerReportCache()
+        let reportCache = BluetoothProfilerReportCache(maxAge: 600)
         let producedAt = Date().addingTimeInterval(-(maxAge - 1))
         reportCache.store(Data(emptyReport.utf8), at: producedAt)
 
@@ -420,7 +420,7 @@ struct BluetoothBatteryReaderTests {
         await waitUntil { olderRead.hasAnswered }
         #expect(spawnCount.value == 0)
         #expect(
-            reportCache.freshData(now: producedAt.addingTimeInterval(maxAge + 1)) == nil,
+            reportCache.freshData(maxAge: maxAge, now: producedAt.addingTimeInterval(maxAge + 1)) == nil,
             "the read stored the older bytes it only read, making them servable again"
         )
 

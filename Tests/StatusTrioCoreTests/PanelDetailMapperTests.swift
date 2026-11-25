@@ -527,3 +527,30 @@ extension PanelDetailMapperTests {
         XCTAssertFalse(row?.value.isEmpty ?? true)
     }
 }
+
+extension PanelDetailMapperTests {
+    private func mappedFlow(display: BatteryPowerBreakdown.Component?,
+                            systemWatts: Double) -> BatteryPowerFlowState? {
+        let localization = makeLocalization()
+        let timestamp = Date(timeIntervalSince1970: 1_700_000_000)
+        let battery = BatteryStatus(rawPercentage: 60, isPresent: true, isCharging: false,
+                                    isLowPowerMode: false, isConnectedToPower: false)
+        let split = BatteryPowerBreakdown(
+            source: .battery, sourceWatts: systemWatts + (display?.watts ?? 0), display: display,
+            usb: nil, system: .init(watts: systemWatts, readAt: timestamp), readAt: timestamp)
+        let details = BatteryDetailsReader.parse(
+            registry: [:], adapterWatts: nil, state: BatteryPowerState(battery),
+            now: timestamp, breakdown: split)
+        var options = BatteryPowerDisplayOptions.default
+        options.showsInput = true
+        let state = PanelDetailMapper.battery(status: battery, details: details,
+                                              localization: localization, powerOptions: options)
+        return state.powerFlow
+    }
+
+    func testZeroDisplayBranchIsNotDrawn() {
+        let flow = mappedFlow(display: .init(watts: 0, readAt: Date(timeIntervalSince1970: 1_700_000_000)),
+                              systemWatts: 30)
+        XCTAssertFalse(flow?.destinations.contains { $0.kind == .display } ?? true)
+    }
+}

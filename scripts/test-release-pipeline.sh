@@ -227,8 +227,15 @@ if [[ "$1" == "api" ]]; then
             body="{\"ref\":\"refs/tags/v1.0.0\",\"object\":{\"sha\":\"$tag_sha\",\"type\":\"commit\"}}"
             ;;
         GET:repos/example/status-trio/contents/appcast.xml?ref=*)
+            appcast_ref="${endpoint##*?ref=}"
             if [[ "$accept" == *"raw"* ]]; then
-                if [[ "${FAKE_API_APPCAST_MODE:-valid}" == "invalid" ]]; then
+                # Corrupt the feed only for the post-publication check of main.
+                # The pre-publish read and the pushed-commit readback must still
+                # return the real fixture, otherwise publication fails before it
+                # reaches the API verification this fixture exercises.
+                if [[ "${FAKE_API_APPCAST_MODE:-valid}" == "invalid" &&
+                    "$appcast_ref" == "main" &&
+                    -f "$state/appcast-commit" ]]; then
                     body='<rss version="2.0"><channel/></rss>'
                 else
                     body="$(cat "$state/appcast")"
@@ -545,6 +552,8 @@ make_manifest "$PACKAGE/release-manifest.json" "$PACKAGE/StatusTrio-1.0.0.dmg" \
     "$DMG_SHA" "$DMG_LENGTH" "fixture-signature" ad_hoc not_requested
 run_publish >"$WORK/ad-hoc.log" 2>&1
 assert_contains "$WORK/ad-hoc.log" "Warning: publishing an Ad-hoc package without notarization."
+assert_contains "$WORK/ad-hoc.log" "API verification: PASS"
+assert_contains "$WORK/ad-hoc.log" "Public verification: PASS"
 [[ "$(cat "$WORK/github/release-draft")" == "false" ]] || fail "Ad-hoc release was not published"
 
 reset_state
@@ -729,22 +738,33 @@ run_publish >"$WORK/upload-recovery.log" 2>&1
 [[ "$(grep -c '^release create ' "$WORK/github/writes")" -eq 1 ]] ||
     fail "upload recovery created a duplicate release"
 
+# The authenticated API copy is checked first and on its own: a bad API item
+# fails before any public retry, with a distinct message.
 reset_state
 make_manifest "$PACKAGE/release-manifest.json" "$PACKAGE/StatusTrio-1.0.0.dmg" \
     "$DMG_SHA" "$DMG_LENGTH" "fixture-signature"
-run_publish >/dev/null
-FAKE_API_APPCAST_MODE=invalid \
-FAKE_PUBLIC_APPCAST_MODE=invalid PUBLIC_VERIFY_ATTEMPTS=2 expect_failure \
-    "public appcast mismatch" run_publish
-assert_contains "$WORK/output.log" "Public DMG or appcast did not match"
+FAKE_API_APPCAST_MODE=invalid PUBLIC_VERIFY_ATTEMPTS=2 expect_failure \
+    "authenticated appcast mismatch" run_publish
+assert_contains "$WORK/output.log" "API verification failed"
 
-# A stale raw CDN copy must not fail a publish the contents API already shows.
+# A stale public feed is exactly the case the split must not hide: the API is
+# already updated, the client-facing feed has not propagated, and the run ends
+# with an explicit UNCONFIRMED status instead of a false pass.
 reset_state
 make_manifest "$PACKAGE/release-manifest.json" "$PACKAGE/StatusTrio-1.0.0.dmg" \
     "$DMG_SHA" "$DMG_LENGTH" "fixture-signature"
-run_publish >/dev/null
-FAKE_PUBLIC_APPCAST_MODE=invalid PUBLIC_VERIFY_ATTEMPTS=2 run_publish >/dev/null || \
-    fail "stale raw appcast cache rejected a publish the contents API confirmed"
+FAKE_PUBLIC_APPCAST_MODE=invalid PUBLIC_VERIFY_ATTEMPTS=2 expect_failure \
+    "public appcast lag" run_publish
+assert_contains "$WORK/output.log" "API verification: PASS"
+assert_contains "$WORK/output.log" "Public verification: UNCONFIRMED"
+
+# Once the public feed matches, the same run reports both sides as PASS.
+reset_state
+make_manifest "$PACKAGE/release-manifest.json" "$PACKAGE/StatusTrio-1.0.0.dmg" \
+    "$DMG_SHA" "$DMG_LENGTH" "fixture-signature"
+run_publish >"$WORK/public-match.log" 2>&1
+assert_contains "$WORK/public-match.log" "API verification: PASS"
+assert_contains "$WORK/public-match.log" "Public verification: PASS"
 
 reset_state
 make_manifest "$PACKAGE/release-manifest.json" "$PACKAGE/StatusTrio-1.0.0.dmg" \

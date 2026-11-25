@@ -41,7 +41,7 @@
 "settings.dockIconBackground.light" = "淺色";
 "settings.iconSize" = "圖示顯示尺寸";
 "settings.iconSize.accessibilityValue" = "%d 點";
-"settings.iconSize.description" = "調整選單列圖示的繪製尺寸，可選 16–36 pt。Dock 圖示使用固定設計尺寸。";
+"settings.iconSize.description" = "選單列圖示：16–36 pt。Dock 圖示維持固定尺寸。";
 "settings.ringStrokeStyle" = "外環線條粗細";
 "settings.ringStrokeStyle.description" = "調整選單列與 Dock 圖示狀態環線條的粗細。";
 "settings.ringStrokeStyle.light" = "細";
@@ -66,7 +66,7 @@
 "settings.appIcon.middleIcon.batteryPercentage" = "電池百分比";
 "settings.appIcon.middleIcon.power" = "功耗（瓦）";
 "settings.appIcon.middleIcon.chargingStatus" = "充電狀態";
-"settings.appIcon.middleIcon.chargingStatus.description" = "此模式下，頂部圓弧的「充電/連接電源時顯示指示圖示」會失效，避免與中間圖示重複。";
+"settings.appIcon.middleIcon.chargingStatus.description" = "以充電狀態取代電量百分比。頂部圓弧的充電指示會自動關閉，避免重複。";
 "settings.appIcon.middleIcon.size" = "中間圖示大小";
 "settings.appIcon.middleIcon.size.description" = "中間顯示的所有內容（Wi‑Fi、藍牙、輸入法、數字）共用這個大小。";
 "settings.appIcon.middleIcon.networkWarnings" = "優先顯示網路異常";
@@ -109,7 +109,7 @@
 "settings.bluetooth.networkErrorPriority" = "網路異常優先於藍牙圖示";
 "settings.bluetooth.networkErrorPriorityDescription" = "斷線或無網路時仍顯示網路圖示，不顯示藍牙裝置圖示。";
 "settings.bluetooth.batteryLevels" = "顯示藍牙裝置電量";
-"settings.bluetooth.batteryLevelsDescription" = "當狀態面板顯示藍牙裝置時讀取 AirPods 電量，不會額外要求權限。";
+"settings.bluetooth.batteryLevelsDescription" = "讀取狀態面板中支援電量顯示的藍牙配件電量。";
 "settings.bluetooth.listeningModeTitle" = "顯示聆聽模式控制";
 "settings.bluetooth.listeningModeDescription" = "支援 AirPods 和部分華為耳機：在已連線的裝置上顯示降噪/通透/關閉膠囊。華為僅部分型號支援，切換失敗時會恢復原模式。";
 "settings.bluetooth.listeningModePreview" = "聆聽模式預覽（僅測試）";
@@ -163,11 +163,11 @@
 "settings.audio.maximumVisibleInput" = "最多顯示輸入裝置";
 "settings.audio.maximumVisibleInputDescription" = "輸入裝置超過此數量時顯示「展開」按鈕。";
 "settings.audio.orderTitle" = "輸出裝置順序";
-"settings.audio.orderDescription" = "拖移裝置可調整音量彈出式視窗中的顯示順序。取消勾選不使用的裝置即可將其隱藏，目前的輸出裝置一律會顯示。新裝置會排在最後。";
+"settings.audio.orderDescription" = "裝置預設顯示在面板中。拖曳可調整順序，取消勾選即可隱藏；目前輸出裝置始終顯示。";
 "settings.audio.orderEmpty" = "沒有可用的輸出裝置。";
 "settings.audio.showDevice" = "在狀態面板中顯示";
 "settings.audio.inputOrderTitle" = "輸入裝置順序";
-"settings.audio.inputOrderDescription" = "拖移裝置可調整「聲音輸入」中的顯示順序。取消勾選不使用的裝置即可將其隱藏，目前的輸入裝置一律會顯示。新裝置會排在最後。";
+"settings.audio.inputOrderDescription" = "輸入裝置預設顯示在面板中。拖曳可調整順序，取消勾選即可隱藏；目前輸入裝置始終顯示。";
 "settings.audio.inputOrderEmpty" = "沒有可用的輸入裝置。";
 "settings.audio.inputOrderSectionOff" = "在「狀態面板 › 顯示項目」中開啟「聲音輸入」後，即可調整輸入裝置的順序或將其隱藏。";
 "settings.about.version" = "版本 %@";
@@ -181,6 +181,7 @@
 "settings.about.copyright" = "© lingyired";
 "settings.battery.title" = "電池顯示";
 "settings.battery.group.icon" = "頂部電池圓弧";
+"settings.battery.sharedSyncNote" = "這些圓環設定與「電池」頁共用，在任一頁修改都會同步。";
 "settings.battery.group.colors" = "狀態與顏色";
 "settings.battery.group.chargingEffects" = "充電效果";
 "settings.battery.group.charging" = "充電";
@@ -189,7 +190,7 @@
 "settings.battery.group.topMarkers" = "頂部標記";
 "settings.ringContent.group" = "外環內容";
 "settings.ringContent.row.title" = "外環顯示";
-"settings.ringContent.row.description" = "選擇外環顯示的內容：本機電池或 AirPods 電量。";
+"settings.ringContent.row.description" = "選擇外環顯示的內容：本機電池、AirPods 或自訂硬體指標。";
 "settings.ringContent.systemBattery" = "本機電池";
 "settings.ringContent.airPodsBattery" = "AirPods 電量";
 "settings.ringContent.airPodsGroup" = "AirPods 環";
@@ -357,9 +358,9 @@
 "settings.network.showLocalIP.description" = "在網路的第二行顯示本機內網 IP，位於 Wi-Fi 資訊之前。";
 
 "settings.network.permissionNotDeterminedTitle" = "需要定位權限";
-"settings.network.permissionNotDeterminedDescription" = "Status Trio 需要定位權限才能顯示 Wi-Fi 網路。點擊下方按鈕進行授權。";
+"settings.network.permissionNotDeterminedDescription" = "連線狀態不需要定位權限。讀取 Wi-Fi 名稱和附近網路需要定位權限，請在下方授權。";
 "settings.network.permissionDeniedTitle" = "定位權限已關閉";
-"settings.network.permissionDeniedDescription" = "沒有定位權限時無法顯示 Wi-Fi 網路。請在系統設定中開啟。";
+"settings.network.permissionDeniedDescription" = "連線狀態仍可使用。沒有定位權限時，Wi-Fi 名稱和附近網路會隱藏。請在系統設定中開啟。";
 "settings.audio.externalVolume.title" = "外部顯示器音量";
 "settings.audio.externalVolume.controlMethod" = "控制方式";
 "settings.audio.externalVolume.controlMethodDescription" = "如果狀態面板的音量控制無法調整此裝置，可改用 BetterDisplay。";
@@ -412,7 +413,7 @@
 "audioInput.title" = "麥克風";
 "audioInput.inUse" = "使用中";
 "audioInput.noDefault" = "未設定預設輸入裝置";
-"audioInput.noDevices" = "沒有可用的輸入裝置";
+"audioInput.noDevices" = "無可用的輸入裝置";
 "audioInput.unknownDevice" = "未知輸入裝置";
 "audioInput.devicePosition" = "第 %d 個輸入裝置";
 "audioInput.current" = "目前";
@@ -433,9 +434,9 @@
 "accessibility.status" = "%@，%@，%@";
 "accessibility.battery" = "電池 %d%%";
 "accessibility.volume" = "音量 %@";
-"settings.statusCheck.title" = "狀態補查間隔";
+"settings.statusCheck.title" = "狀態檢查頻率";
 "settings.quickActions.title" = "快捷操作";
-"settings.refreshInterval" = "狀態重新整理間隔";
+"settings.refreshInterval" = "檢查頻率";
 "settings.refreshInterval.onBattery" = "使用電池時";
 "settings.refreshInterval.onPower" = "連接電源時";
 "settings.refreshInterval.description" = "定期補查電池、Wi-Fi 與音量狀態。間隔越短，補查越頻繁。";
@@ -460,8 +461,9 @@
 "settings.keepAwake.helperReady" = "特權輔助程式已就緒。";
 "settings.keepAwake.helperHint" = "開啟「合蓋不睡眠」（或低電量模式控制）後，會自動安裝並請求授權。";
 "settings.keepAwake.allowBattery" = "允許僅用電池時開啟";
-"settings.keepAwake.autoOff" = "低電量時關閉闔蓋不睡眠";
-"settings.keepAwake.onlyLid" = "僅作用於「合蓋不睡眠」";
+"settings.keepAwake.autoOff" = "低電量時自動關閉";
+"settings.keepAwake.autoOff.description" = "電量 20% 及以下時，關閉「闔蓋不睡眠」。";
+"settings.keepAwake.onlyLid" = "僅影響闔蓋不睡眠；「保持螢幕」不受影響。";
 "quickActions.displaySleep" = "保持螢幕常亮";
 "quickActions.displaySleep.description" = "閒置時防止顯示器休眠。";
 "quickActions.lidSleep" = "闔蓋時保持喚醒";
@@ -469,6 +471,8 @@
 "quickActions.timer" = "計時器";
 "quickActions.timer.choose" = "選擇持續時間";
 "quickActions.lidSleep.external" = "系統裡的「合蓋不睡眠」已被其他程式開啟，Status Trio 不會覆蓋它。";
+"quickActions.lidSleep.helperStarting" = "輔助程式正在啟動，請稍後再試。";
+"quickActions.lidSleep.failureCode" = "（錯誤碼 %@）";
 "quickActions.lidSleep.unreadable" = "暫時無法讀取「合蓋不睡眠」狀態，未做修改。";
 "quickActions.lidSleep.externalNamed" = "系統裡的「合蓋不睡眠」已被其他程式開啟（可能是：%@），Status Trio 不會覆蓋它。";
 "quickActions.timer.thirtyMinutes" = "30 分鐘";
@@ -488,7 +492,7 @@
 "quickActions.turnedOffLowBattery" = "電量不足 — 闔蓋防休眠已關閉。";
 "quickActions.turnedOffTimerEnded" = "計時結束 — 已自動關閉。";
 "quickActions.error" = "無法更改設定：%@";
-"settings.panel.background.title" = "面板背景";
+"settings.panel.background.title" = "外觀";
 "settings.panel.background.style" = "背景樣式";
 "settings.panel.background.style.description" = "選擇狀態面板背景的繪製方式。";
 "settings.panel.background.style.liquidGlass" = "液態玻璃";
@@ -503,17 +507,17 @@
 "settings.panel.levelSliderThickness.description" = "讓音量和麥克風滑條使用與亮度相同的膠囊高度。";
 "settings.panel.openBehavior.title" = "詳情與開啟方式";
 "settings.panel.returnsToSummaryOnOpen" = "重新開啟時恢復詳情頁";
-"settings.panel.returnsToSummaryOnOpen.description" = "開啟後，再次開啟狀態面板會回到上次收起時仍顯示的詳情頁；關閉後，每次只顯示主介面。";
+"settings.panel.returnsToSummaryOnOpen.description" = "開啟後，重新開啟會回到上次的詳情頁；關閉後每次都從主介面開始。";
 "settings.panel.showsDetailsAlongside" = "並排顯示詳情";
 "settings.panel.showsDetailsAlongside.description" = "開啟後，詳情頁優先顯示在狀態面板右側，其次左側；兩側都放不下時，在面板內顯示。";
 "settings.panel.showsPanelOnHover" = "懸停顯示狀態面板";
-"settings.panel.showsPanelOnHover.description" = "開啟後，滑鼠懸停在選單列圖示上約 0.3 秒即開啟狀態面板；移入面板不會收起，離開圖示與面板後短暫延遲再收起。點擊行為仍為切換。";
+"settings.panel.showsPanelOnHover.description" = "滑鼠在選單列圖示上停留約 0.3 秒即開啟狀態面板；移入面板不會收起，離開圖示與面板後短暫延遲再收起。點按仍為切換。";
 "settings.popup.volumeScroll.group" = "面板滾動";
 "settings.audio.volumeScroll.group" = "音量滾動";
 "settings.popup.panelScroll" = "在面板中捲動調節音量";
 "settings.popup.panelScroll.description" = "在總覽頁面空白處捲動可調節輸出音量；滑桿始終支援捲動調節。";
 "settings.popup.volumeScroll.natural" = "自然捲動";
-"settings.popup.volumeScroll.natural.description" = "開啟後，上滾增大指標下的數值（音量、亮度或輸入增益）；關閉後跟隨系統的滾動方向。如果開啟後上滾仍然減小數值，請在 MOS、Scroll Reverser、LinearMouse 等應用中將 Status Trio 設為不處理，通常可加入例外/忽略清單（部分應用稱為白名單）。";
+"settings.popup.volumeScroll.natural.description" = "向上捲動即提高指標下的數值，關閉後跟隨系統方向。如果開啟後方向仍然相反，請在 MOS、Scroll Reverser 或 LinearMouse 的例外/忽略清單中加入 Status Trio。";
 "settings.audio.volumeFeedbackTitle" = "音量回饋";
 "settings.audio.volumeFeedback" = "滾動調節音量時播放提示音";
 "settings.audio.volumeFeedbackDescription" = "滾動調節音量時播放提示音。預設跟隨 macOS「音量更改時播放回饋」設定；在此切換後僅對 Status Trio 生效。";
@@ -607,7 +611,7 @@
 "settings.preview.dark" = "深色";
 "settings.preview.light" = "淺色";
 "settings.preview.toggleHelp" = "切換選單列深色/淺色底色預覽";
-"settings.audio.displayRules" = "顯示規則";
+"settings.audio.displayRules" = "裝置列表";
 "settings.audio.activeDeviceFootnote" = "目前活躍的音訊輸出裝置將優先以主題色強調顯示。";
 "settings.audio.inUse" = "使用中";
 "settings.wifi.symbolScale" = "Wi-Fi 圖示大小";
@@ -619,14 +623,14 @@
 "settings.audio.indicatorStyle.arc" = "圓弧條";
 "settings.audio.bottomIndicatorTitle" = "底部指示器";
 "settings.audio.bottomIndicatorDescription" = "選擇圖示下方指示條顯示的內容，四點或圓弧樣式不變。";
-"settings.audio.bottomIndicatorSource" = "底部指示器資料來源";
+"settings.audio.bottomIndicatorSource" = "底部指示器";
 "settings.audio.bottomIndicatorSource.volume" = "音量";
 "settings.audio.bottomIndicatorSource.wifi" = "Wi-Fi";
 "settings.audio.bottomIndicatorSource.battery" = "電池";
 "settings.audio.bottomIndicatorSource.hidden" = "隱藏";
 "settings.audio.bottomIndicatorSource.metric" = "自訂";
-"settings.audio.bottomIndicatorMetric" = "自訂";
-"settings.audio.bottomIndicatorMetricDescription" = "選擇底部指示器顯示的硬體指標，四點或圓弧樣式不變。";
+"settings.audio.bottomIndicatorMetric" = "指標";
+"settings.audio.bottomIndicatorMetricDescription" = "選擇底部指示列顯示的指標，四點或圓弧樣式不變。";
 "settings.audio.airPodsInlineControlsTitle" = "耳機控制";
 "settings.audio.airPodsInlineControls" = "在音量面板中顯示 AirPods 控制";
 "settings.audio.airPodsInlineControlsDescription" = "在你的 AirPods 輸出旁顯示對話感知、空間音訊和自適應控制。關閉可隱藏這些基於私有 API 的控制。";
@@ -733,7 +737,7 @@
 "settings.appleDevicesAndBattery" = "顯示 Apple 裝置與電量";
 "settings.appleTrustHelp" = "iPhone、iPad 首次需用連接線連接 Mac、解鎖並點按「信任」；無線讀取還需與 Mac 處於同一區域網路。Apple Watch 透過已信任的 iPhone 讀取。";
 "settings.appleBluetoothReadHelp" = "透過藍牙讀取時，裝置可能跳出配對要求；連續讀取失敗後會暫停，點面板的重新整理按鈕可再試。";
-"settings.appleDevicesAndBattery.description" = "已信任的 Apple 裝置和附近有名稱的裝置會顯示在藍牙列表中。";
+"settings.appleDevicesAndBattery.description" = "顯示已信任的 Apple 裝置和附近有名稱的 Apple 藍牙裝置。iPhone 和 iPad 需先用傳輸線配對一次，再解鎖並信任。";
 "settings.appleBackgroundRefresh" = "在背景更新 Apple 裝置電量";
 "settings.appleBackgroundRefresh.description" = "狀態面板關閉時，繼續更新已選 Apple 裝置的電量。";
 "settings.appleBackgroundRefresh.interval" = "背景更新電量的時間間隔";
@@ -1063,8 +1067,8 @@
 "brightness.backend.automatic" = "自動";
 "brightness.backend.directDDC" = "直接 DDC";
 "brightness.backend.betterDisplay" = "BetterDisplay";
-"settings.brightness.description" = "關閉某台顯示器即從狀態面板中隱藏其亮度列。";
-"settings.brightness.backend" = "亮度後端";
+"settings.brightness.description" = "這些開關只隱藏對應顯示器在狀態面板中的亮度列，不改變亮度控制方式。";
+"settings.brightness.backend" = "亮度控制方式";
 // About: community, author social links and more apps
 "settings.about.social.title" = "關注作者，歡迎點讚留言";
 "settings.about.social.douyin" = "抖音";
@@ -1132,6 +1136,7 @@
 
 "settings.tab.brightness" = "亮度";
 "settings.brightness.group.title" = "已連接的顯示器";
+"settings.brightness.group.betterDisplay" = "BetterDisplay";
 "settings.brightness.empty" = "沒有已連接的顯示器。";
 "settings.brightness.builtIn" = "內建";
 "settings.brightness.internalBackend.description" = "內建顯示器的亮度使用 DisplayServices 後端。";
@@ -1172,8 +1177,8 @@
 "settings.battery.colors.discharging" = "放電（未接電源）";
 "battery.lowPowerMode.autoEnable" = "自動開啟低電量模式";
 "battery.lowPowerMode.autoEnableDescription" = "拔掉電源後，電量低於低電量閾值會自動開啟低電量模式；每次低電只開一次。";
-"settings.battery.autoLowPowerThreshold" = "自動開啟低電量模式";
-"settings.battery.autoLowPowerThresholdDescription" = "使用電池時，電量低於此值就自動開啟低電量模式。";
+"settings.battery.autoLowPowerThreshold" = "自動開啟閾值";
+"settings.battery.autoLowPowerThresholdDescription" = "使用電池時，電量降到此閾值就自動開啟低耗電模式。";
 "battery.highPowerMode.toggle" = "高電量模式";
 "battery.details.highPower.unsupported" = "不支援";
 "battery.highPowerMode.toggleDescription" = "提高風扇轉速以獲得更高的持續效能，風扇噪音會增加。";
@@ -1231,6 +1236,11 @@
 "hardware.monitor.ringValue.group" = "環內顯示";
 "hardware.monitor.ringValue.groupDescription" = "選擇記憶體和 SSD 環顯示已使用還是剩餘的量。";
 "hardware.monitor.ringValue.ssd" = "SSD";
+"hardware.monitor.externalDisk.group" = "外接硬碟";
+"hardware.monitor.externalDisk.listDescription" = "勾選要計入 SSD 環外接總量的硬碟。";
+"hardware.monitor.externalDisk.includeInPercent" = "頂部百分比計入外接 SSD";
+"hardware.monitor.externalDisk.includeInPercentDescription" = "開啟後，SSD 環頂部百分比會把勾選的外接碟與內建碟合併計算；關閉則只算內建碟。";
+"hardware.monitor.externalDisk.empty" = "未偵測到外接硬碟";
 "hardware.monitor.ringValue.used" = "已使用";
 "hardware.monitor.ringValue.remaining" = "剩餘";
 "hardware.monitor.settings.temperatureMonitoring" = "CPU/GPU 溫度監控";
@@ -1308,22 +1318,25 @@
 "hardware.monitor.settings.networkScale" = "固定網路趨勢刻度";
 "hardware.monitor.settings.networkScale.description" = "關閉：依視窗峰值自動縮放（留 15% 餘量）；開啟：以下載/上傳上限為滿格。";
 "hardware.monitor.settings.background" = "保留後台歷史";
-"hardware.monitor.settings.background.description" = "面板關閉時依面板重新整理頻率持續記錄最近 3 分鐘的硬體歷史，開啟詳情頁即可看到趨勢。";
+"hardware.monitor.settings.background.description" = "面板關閉時按上方的更新頻率保留最多 5 分鐘的硬體歷史，開啟詳情頁即可看到趨勢。";
 "hardware.monitor.background.off" = "關閉";
 "hardware.monitor.background.seconds" = "%d 秒";
 "hardware.monitor.settings.historyWindow" = "歷史時長";
 "hardware.monitor.settings.historyWindow.description" = "詳情頁趨勢保留多久。";
 "hardware.monitor.settings.historyWindow.minutes" = "%d 分鐘";
 "hardware.monitor.settings.panelRefresh" = "硬體資料重新整理間隔";
-"hardware.monitor.settings.panelRefresh.description" = "面板開啟時硬體資料的更新頻率。開啟背景歷史後，關閉面板也沿用此時長；各指標仍有自己的讀取下限。越快越即時但讀取更多，越慢越省電。";
+"hardware.monitor.settings.panelRefresh.description" = "硬體資料的更新頻率。開啟背景歷史後，關閉面板也按同樣頻率記錄。越快越即時但讀取更多，越慢越省電。";
 "hardware.monitor.settings.showRings" = "顯示圓環";
 "hardware.monitor.settings.colorTitle" = "顏色";
 "hardware.monitor.settings.resetColors" = "恢復預設顏色";
 "hardware.monitor.settings.showRings.description" = "顯示 CPU / GPU / 記憶體 / 磁碟 四個圓環。";
+"hardware.monitor.settings.splitGapProgress" = "圓環進度左右平分";
+"hardware.monitor.settings.splitGapProgress.description" = "左半為 0–50%、右半為 50–100%，頂部的數值不再遮住進度。";
 "hardware.monitor.settings.showSummaryRow" = "顯示底部資訊列";
 
 /* Status-panel per-item visibility */
 "hardware.monitor.settings.group.rings" = "圓環指標";
+"hardware.monitor.settings.group.sampling" = "取樣與趨勢";
 "hardware.monitor.settings.group.bottomBar" = "底部資訊列";
 "hardware.monitor.settings.item.diskCapacity" = "磁碟容量";
 "hardware.monitor.settings.showSummaryRow.description" = "在圓環下方顯示下載、上傳、風扇與磁碟 I/O。";
@@ -1338,7 +1351,7 @@
 "hardware.monitor.download.help" = "所有實體網路介面的下載總吞吐。";
 "hardware.monitor.upload.help" = "所有實體網路介面的上傳總吞吐。";
 
-"settings.transfer.title" = "設定移轉";
+"settings.transfer.title" = "匯入與匯出設定";
 "settings.transfer.description" = "將可移轉的偏好設定儲存為易讀的 JSON 檔案，或在匯入前預覽設定檔案。";
 "settings.transfer.exclusions" = "登入項目、Helper 安裝、隱私權授權、分析資料共享授權和全域快速鍵均不會移轉。請在匯入後手動設定。";
 "settings.transfer.export" = "匯出…";
@@ -1366,8 +1379,8 @@
 "settings.transfer.done" = "完成";
 "settings.transfer.warningCount" = "警告總數：%d（最多顯示前 50 則）";
 
-"settings.popup.scrollWheelStep" = "滾輪調整幅度";
-"settings.popup.scrollWheelStep.description" = "每格調整音量、亮度和麥克風的幅度。觸控板維持連續調整。";
+"settings.popup.scrollWheelStep" = "滾輪步長";
+"settings.popup.scrollWheelStep.description" = "每格滾輪調節音量、亮度和麥克風的幅度。觸控板維持連續調節。";
 "settings.panel.boldText" = "加粗面板文字";
 "settings.panel.boldText.description" = "標題和數值使用加粗字重（恢復舊版觀感）；關閉後使用常規字重。";
 "settings.panel.keepOpenForComparison" = "開啟設定時狀態面板不隱藏";
@@ -1385,6 +1398,12 @@
 "hardware.detail.title.network" = "網路";
 "hardware.detail.title.disk" = "磁碟";
 "hardware.detail.back" = "硬體監控";
+"hardware.detail.openActivityMonitor" = "打開活動監視器";
+"app.forceQuit.action" = "強制退出 %@";
+"app.forceQuit.confirmTitle" = "強制退出 %@？";
+"app.forceQuit.confirmMessage" = "未儲存的變更可能會遺失。";
+"app.forceQuit.confirmAction" = "強制退出";
+"app.forceQuit.failed" = "無法退出 %@（可能屬於其他使用者或系統程序）。";
 "hardware.detail.totalUsage" = "總使用率";
 "hardware.detail.temperature" = "溫度";
 "hardware.detail.logicalCores" = "邏輯核心";
@@ -1425,6 +1444,7 @@
 "hardware.detail.topApps.empty" = "尚無活躍應用";
 "hardware.detail.topApps.unsupported" = "暫不支援";
 "hardware.detail.topApps.failed" = "讀取失敗";
+"hardware.detail.topApps.refreshCountdown" = "下次重新整理還有 %d 秒";
 "hardware.detail.sessionDownload" = "本次下載";
 "hardware.detail.sessionUpload" = "本次上傳";
 "hardware.detail.interfaces" = "網路介面";
@@ -1434,6 +1454,8 @@
 "hardware.detail.fileSystem" = "檔案系統";
 "hardware.detail.readSpeed" = "讀取速度";
 "hardware.detail.writeSpeed" = "寫入速度";
+"hardware.detail.diskExternal" = "外接";
+"hardware.detail.diskAvailable" = "可用 %@ / %@";
 "hardware.detail.usageTrend" = "使用率趨勢";
 "hardware.detail.speedTrend" = "速度趨勢";
 "hardware.detail.pressureNormal" = "正常";

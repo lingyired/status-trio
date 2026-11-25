@@ -93,9 +93,12 @@ enum PanelPresentationMapper {
             // keeps its real reading.
             let unplugged = status.isPresent && !status.isConnectedToPower && abs(inputPower.watts) < 0.05
             if unplugged {
+                // The descriptor "No adapter" moves to the label line (via the
+                // .inputDisconnected kind title); the number slot keeps the
+                // truthful 0.0 W reading so every card reads "number + note".
                 items.append(PowerInfoBarItem(
                     kind: .inputDisconnected,
-                    value: localization.string(.powerInfoBarNoInput)
+                    value: watts(inputPower.watts)
                 ))
             } else {
                 items.append(PowerInfoBarItem(kind: .input, value: watts(inputPower.watts)))

@@ -30,7 +30,8 @@ struct BatteryPowerBreakdown: Equatable, Sendable {
     let source: Source
     /// Adapter input watts, or battery discharge watts, depending on `source`.
     let sourceWatts: Double
-    /// Built-in display backlight (`PDBR`, else `PBLR`). Nil when this Mac exposes neither.
+    /// Built-in display backlight (`PBwo`/`PDBR`/`PBLR`). Nil when no measured
+    /// source is usable.
     let display: Component?
     /// Power sourced to accessories over USB / Thunderbolt, all ports summed.
     let usb: Component?

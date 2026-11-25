@@ -140,14 +140,24 @@ struct PanelDetailRowsView: View {
                     Text(row.label).foregroundStyle(.secondary)
                     Spacer(minLength: 8)
                     if row.isCopyable {
-                        Button(row.value) { onCopyValue(row.value) }
-                            .buttonStyle(.plain)
-                            .textSelection(.enabled)
-                            .accessibilityLabel("\(row.label): \(row.accessibilityValue)")
+                        Button {
+                            onCopyValue(row.value)
+                        } label: {
+                            Text(row.value)
+                                .multilineTextAlignment(.trailing)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                        .buttonStyle(.plain)
+                        .textSelection(.enabled)
+                        .accessibilityLabel("\(row.label): \(row.accessibilityValue)")
                     } else {
                         Text(row.value)
                             .multilineTextAlignment(.trailing)
                             .textSelection(.enabled)
+                            // Let a long value (e.g. the full "About 1 hour, 48
+                            // minutes remaining") take the height it needs and
+                            // wrap onto a second line instead of truncating.
+                            .fixedSize(horizontal: false, vertical: true)
                     }
                 }
                 .foregroundStyle(row.tint.color())

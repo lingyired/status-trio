@@ -319,7 +319,7 @@ struct BrightnessSectionView: View {
     /// meaningful when BetterDisplay is installed; the toggle is disabled
     /// otherwise.
     private var scaleGroup: some View {
-        SettingsGroup(localization.string(.settingsBrightnessBackend)) {
+        SettingsGroup(localization.string(.settingsBrightnessGroupBetterDisplay)) {
             SettingsToggleRow(
                 symbol: "circle.lefthalf.filled",
                 tint: .indigo,

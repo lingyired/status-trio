@@ -7,18 +7,66 @@ import SwiftUI
 struct HardwareMonitorSectionView: View {
     @ObservedObject var store: SettingsStore
     @EnvironmentObject private var localization: Localization
+    /// External volumes detected when the pane appears, for the SSD external
+    /// picker. Loaded once here rather than on every body evaluation.
+    @State private var externalVolumes: [DiskVolumeReading] = []
 
     var body: some View {
         SettingsPage {
             placementGroup
-            refreshGroup
+            samplingGroup
             networkCapGroup
             temperatureMonitoringGroup
             ringGroup
             if store.showsHardwareRings { ringValueGroup }
+            if store.showsHardwareRings { externalDiskGroup }
             bottomBarGroup
             colorGroup
             advancedThresholdGroup
+        }
+        .onAppear { externalVolumes = DiskCapacityReader.externalVolumes() }
+    }
+
+    /// SSD external-drive statistics: whether the ring percentage pools the
+    /// ticked external volumes, and which external volumes are ticked. Ticked
+    /// volumes feed the small external total under the SSD ring.
+    private var externalDiskGroup: some View {
+        SettingsGroup(
+            localization.string(.hardwareMonitorExternalDiskGroup),
+            footnote: localization.string(.hardwareMonitorExternalDiskListDescription)
+        ) {
+            SettingsToggleRow(
+                symbol: "externaldrive",
+                tint: .teal,
+                title: localization.string(.hardwareMonitorIncludeExternalInPercent),
+                subtitle: localization.string(.hardwareMonitorIncludeExternalInPercentDescription),
+                isOn: $store.hardwareSSDIncludeExternalInPercent
+            )
+            SettingsDivider()
+            if externalVolumes.isEmpty {
+                SettingsRow(title: localization.string(.hardwareMonitorExternalDiskEmpty)) {
+                    EmptyView()
+                }
+            } else {
+                ForEach(Array(externalVolumes.enumerated()), id: \.element.id) { index, volume in
+                    SettingsRow(
+                        "externaldrive",
+                        tint: .teal,
+                        title: volume.name,
+                        subtitle: localization.format(.hardwareDetailDiskAvailable,
+                                                      HardwareDetailFormat.bytes(volume.freeBytes),
+                                                      HardwareDetailFormat.bytes(volume.totalBytes))
+                    ) {
+                        Toggle("", isOn: Binding(
+                            get: { store.hardwareSSDExternalVolumePaths.contains(volume.mountPath) },
+                            set: { store.setHardwareSSDExternalVolume(path: volume.mountPath, included: $0) }
+                        ))
+                        .toggleStyle(.checkbox)
+                        .labelsHidden()
+                    }
+                    if index < externalVolumes.count - 1 { SettingsDivider() }
+                }
+            }
         }
     }
 
@@ -51,8 +99,10 @@ struct HardwareMonitorSectionView: View {
         }
     }
 
-    private var refreshGroup: some View {
-        SettingsGroup {
+    /// Sampling cadence and how much history survives while the panel is
+    /// closed. Grouped together because they trade freshness against readings.
+    private var samplingGroup: some View {
+        SettingsGroup(localization.string(.hardwareMonitorSettingsGroupSampling)) {
             SettingsRow(
                 "speedometer",
                 tint: .blue,
@@ -278,6 +328,14 @@ struct HardwareMonitorSectionView: View {
                         )
                     }
                 }
+                SettingsDivider()
+                SettingsToggleRow(
+                    symbol: "circle.lefthalf.filled",
+                    tint: .blue,
+                    title: localization.string(.hardwareMonitorSettingsSplitGapProgress),
+                    subtitle: localization.string(.hardwareMonitorSettingsSplitGapProgressDescription),
+                    isOn: $store.hardwareRingSplitGapProgress
+                )
             }
         }
     }

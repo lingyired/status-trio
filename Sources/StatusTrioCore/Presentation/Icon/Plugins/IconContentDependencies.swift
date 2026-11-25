@@ -3,7 +3,7 @@ struct IconContentDependencyContext: Sendable {
     let targetIsAudio: Bool
     /// Which hardware-monitor metric the `.metric` bottom source draws, so the
     /// footer hardware presentation can demand exactly that sample.
-    var bottomIndicatorMetric: HardwareMonitorMetric = .cpuUsage
+    var bottomIndicatorMetric: BottomIndicatorMetric = .cpuUsage
 }
 
 struct IconContentDependencies: Equatable, Sendable {

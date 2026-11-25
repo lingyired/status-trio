@@ -21,16 +21,31 @@ public enum DisableSleepCommand {
     /// separator). Returns nil when the key is absent so a caller never mistakes
     /// "unknown" for "off".
     public static func parseSleepDisabled(fromPmsetOutput output: String) -> Bool? {
+        switch parseSleepDisabledDiagnosed(fromPmsetOutput: output) {
+        case .value(let value): return value
+        case .keyMissing, .unparseable: return nil
+        }
+    }
+
+    /// Parser outcome that keeps "key absent" separate from "value unparseable",
+    /// so the daemon can report a precise diagnostic code (#383).
+    public enum ParseOutcome: Equatable, Sendable {
+        case value(Bool)
+        case keyMissing
+        case unparseable(String)
+    }
+
+    public static func parseSleepDisabledDiagnosed(fromPmsetOutput output: String) -> ParseOutcome {
         for line in output.split(separator: "\n") {
             let fields = line.split(whereSeparator: { $0 == " " || $0 == "\t" })
             guard fields.count >= 2 else { continue }
             guard fields[0] == "SleepDisabled" else { continue }
             switch fields[1] {
-            case "1": return true
-            case "0": return false
-            default: return nil
+            case "1": return .value(true)
+            case "0": return .value(false)
+            default: return .unparseable(String(fields[1]))
             }
         }
-        return nil
+        return .keyMissing
     }
 }

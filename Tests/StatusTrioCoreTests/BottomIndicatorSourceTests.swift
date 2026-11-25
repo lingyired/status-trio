@@ -105,9 +105,9 @@ final class BottomIndicatorSourceTests: XCTestCase {
         store.bottomIndicatorSource = .battery
         XCTAssertEqual(store.iconRuntimePresentationOptions.bottomIndicatorSource, .battery)
         store.bottomIndicatorSource = .metric
-        store.bottomIndicatorMetric = .memoryUsage
+        store.bottomIndicatorMetric = .memoryPressure
         XCTAssertEqual(store.iconRuntimePresentationOptions.bottomIndicatorSource, .metric)
-        XCTAssertEqual(store.iconRuntimePresentationOptions.bottomIndicatorMetric, .memoryUsage)
+        XCTAssertEqual(store.iconRuntimePresentationOptions.bottomIndicatorMetric, .memoryPressure)
     }
 
     func testEnumCapabilities() {
@@ -378,8 +378,7 @@ final class BottomIndicatorSourceTests: XCTestCase {
         return source
     }
 
-    private func metricScene(
-        metric: HardwareMonitorMetric,
+    private func cpuMetricScene(
         value: Double,
         style: VolumeDisplayStyle = .arc
     ) -> IconSceneState {
@@ -387,9 +386,9 @@ final class BottomIndicatorSourceTests: XCTestCase {
             inputs: IconPresentationInputs(
                 snapshot: snapshot(),
                 audioIcon: nil,
-                sources: metricSource(metric: metric, value: value),
+                sources: metricSource(metric: .cpuUsage, value: value),
                 bottomIndicatorSource: .metric,
-                bottomIndicatorMetric: metric
+                bottomIndicatorMetric: .cpuUsage
             ),
             configuration: IconPresentationConfiguration(
                 battery: .standard,
@@ -421,14 +420,111 @@ final class BottomIndicatorSourceTests: XCTestCase {
     }
 
     func testMetricFooterRendersFromHardwareSample() {
-        let arc = metricScene(metric: .cpuUsage, value: 42, style: .arc).footer
+        let arc = cpuMetricScene(value: 42, style: .arc).footer
         guard case let .arc(a)? = arc else { return XCTFail("expected arc footer") }
         XCTAssertEqual(a.progress, 0.42, accuracy: 0.001)
 
-        let dots = metricScene(metric: .cpuUsage, value: 42, style: .dots).footer
+        let dots = cpuMetricScene(value: 42, style: .dots).footer
         guard case let .dots(d)? = dots else { return XCTFail("expected dots footer") }
         XCTAssertEqual(d.count, 4)
         XCTAssertGreaterThan(d.activeCount, 0)
+    }
+
+    func testSavedMemoryUsageAndPressureRemainDistinct() {
+        let suite = makeSuite()
+        suite.defaults.set("dots", forKey: SettingsStore.metricBottomIndicatorStyleDefaultsKey)
+        for metric in [BottomIndicatorMetric.memoryUsage, .memoryPressure] {
+            suite.defaults.set(metric.rawValue, forKey: SettingsStore.bottomIndicatorMetricDefaultsKey)
+            let store = SettingsStore(defaults: suite.defaults, systemChargeLimit: { nil })
+
+            XCTAssertEqual(store.bottomIndicatorMetric, metric)
+            XCTAssertEqual(store.metricBottomIndicatorStyle, .dots)
+            XCTAssertEqual(suite.defaults.string(forKey: SettingsStore.bottomIndicatorMetricDefaultsKey), metric.rawValue)
+        }
+    }
+
+    func testMemoryUsageFooterReadsPercentageAndKeepsFixedPalette() {
+        let now = Date(timeIntervalSince1970: 1_000)
+        var sources = metricSource(metric: .memoryUsage, value: 42)
+        sources.hardwareMetrics.samples[.memoryUsage]?.sampledAt = now
+        sources.hardwareMetrics.memoryPressure = .init(level: .critical, sampledAt: now)
+        let inputs = IconPresentationInputs(snapshot: snapshot(), audioIcon: nil,
+                                            sources: sources, bottomIndicatorSource: .metric,
+                                            bottomIndicatorMetric: .memoryUsage, bottomIndicatorStyle: .arc)
+        var configuration = IconConfigurationV1.classic
+        configuration.appearance.footer.color = .fixed(.white)
+        let resolution = IconCompositionResolver.resolve(
+            inputs: .init(system: inputs, sources: sources), configuration: configuration, now: now,
+            bindings: .migrated(from: configuration, bottomIndicatorSource: .metric))
+
+        XCTAssertEqual(resolution.demand.hardwareMetricIDs, [.memoryUsage])
+        guard case let .arc(arc)? = resolution.scene.footer else { return XCTFail("expected memory usage arc") }
+        XCTAssertEqual(arc.progress, 0.42, accuracy: 0.0001)
+        XCTAssertEqual(arc.color, .custom(.white))
+    }
+
+    func testPressureFooterUsesSystemLevelsInBothStylesDespiteFixedPalette() {
+        let now = Date(timeIntervalSince1970: 1_000)
+        var configuration = IconConfigurationV1.classic
+        configuration.appearance.footer.color = .fixed(.white)
+        configuration.behaviors.hardwareRing.color.monochrome = true
+        configuration.behaviors.hardwareRing.color.thresholdColors = false
+        let bindings = IconSlotBindingsV1.migrated(from: configuration, bottomIndicatorSource: .metric)
+        let cases: [(MemoryPressureLevel, Int, Double, IconColorRole)] = [
+            (.normal, 2, 0.5, .custom(.init(red: 52.0 / 255, green: 199.0 / 255, blue: 89.0 / 255, alpha: 1))),
+            (.warning, 3, 0.75, .custom(HardwareRingColorConfiguration.warningColor)),
+            (.critical, 4, 1, .custom(HardwareRingColorConfiguration.criticalColor)),
+            (.unknown, 0, 0, .inactive),
+        ]
+        for (level, count, progress, color) in cases {
+            var sources = IconSourceSnapshot.empty
+            sources.hardwareMetrics.memoryPressure = MemoryPressureReading(level: level, sampledAt: now)
+            for style in [VolumeDisplayStyle.dots, .arc] {
+                let inputs = IconPresentationInputs(snapshot: snapshot(), audioIcon: nil,
+                                                    sources: sources, bottomIndicatorSource: .metric,
+                                                    bottomIndicatorMetric: .memoryPressure,
+                                                    bottomIndicatorStyle: style)
+                let resolution = IconCompositionResolver.resolve(
+                    inputs: .init(system: inputs, sources: sources), configuration: configuration,
+                    now: now, bindings: bindings)
+                XCTAssertEqual(resolution.demand.hardwareMetricIDs, [.memoryPressure])
+                switch (style, resolution.scene.footer) {
+                case let (.dots, .dots(dots)?):
+                    XCTAssertEqual(dots.count, 4)
+                    XCTAssertEqual(dots.activeCount, count)
+                    XCTAssertEqual(dots.color, color)
+                    XCTAssertEqual(dots.inactiveColor, .inactive)
+                case let (.arc, .arc(arc)?):
+                    XCTAssertEqual(arc.progress, progress)
+                    XCTAssertEqual(arc.color, color)
+                    XCTAssertEqual(arc.inactiveColor, .inactive)
+                default:
+                    XCTFail("pressure must render the selected style, including its unknown state")
+                }
+            }
+        }
+    }
+
+    func testStalePressureShowsTheEmptyTrackWhileTopRingUsesMemoryUsage() {
+        let now = Date(timeIntervalSince1970: 1_000)
+        var configuration = IconConfigurationV1.classic
+        configuration.composition.outerRing = SlotSelection(primary: .hardwareMonitor)
+        configuration.behaviors.hardwareRing = HardwareRingConfiguration(layout: .single, primaryMetric: .memoryUsage)
+        let bindings = IconSlotBindingsV1.migrated(from: configuration, bottomIndicatorSource: .metric)
+        var sources = IconSourceSnapshot.empty
+        sources.hardwareMetrics.samples[.memoryUsage] = .init(value: 82, unit: .percent,
+                                                               sampledAt: now, source: .mach, availability: .measured)
+        sources.hardwareMetrics.memoryPressure = .init(level: .normal, sampledAt: now.addingTimeInterval(-9))
+        let inputs = IconPresentationInputs(snapshot: snapshot(), audioIcon: nil, sources: sources,
+                                            bottomIndicatorSource: .metric, bottomIndicatorMetric: .memoryPressure,
+                                            bottomIndicatorStyle: .arc)
+        let resolution = IconCompositionResolver.resolve(inputs: .init(system: inputs, sources: sources),
+                                                          configuration: configuration, now: now, bindings: bindings)
+        XCTAssertEqual(resolution.demand.hardwareMetricIDs, [.memoryUsage, .memoryPressure])
+        XCTAssertEqual(resolution.scene.outerRing?.segments.first?.progress ?? 0, 0.82, accuracy: 0.0001)
+        guard case let .arc(arc)? = resolution.scene.footer else { return XCTFail("expected the empty pressure arc") }
+        XCTAssertEqual(arc.progress, 0)
+        XCTAssertEqual(arc.color, .inactive)
     }
 
     func testMetricFooterWithoutSampleDrawsNothing() {
@@ -788,7 +884,7 @@ final class BottomIndicatorSourceTests: XCTestCase {
     }
 
     func testDisablingTemperaturePublishesAndPersistsTheMatchingUsageFooter() {
-        for (temperature, usage): (HardwareMonitorMetric, HardwareMonitorMetric) in [
+        for (temperature, usage): (BottomIndicatorMetric, BottomIndicatorMetric) in [
             (.cpuTemperature, .cpuUsage), (.gpuTemperature, .gpuUsage)
         ] {
             let suite = makeSuite()

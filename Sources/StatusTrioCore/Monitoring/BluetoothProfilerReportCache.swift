@@ -18,6 +18,16 @@ final class BluetoothProfilerReportCache: @unchecked Sendable {
     /// data instead of reusing a level that may already be stale.
     static let defaultMaxAge: TimeInterval = 5
 
+    /// The freshness window applied when a caller does not pass one. Production
+    /// uses the shared 5 s window; tests inject a long window so a loaded CI
+    /// runner cannot expire a report between the paired-device read and the
+    /// battery read that is supposed to reuse it.
+    private let maxAge: TimeInterval
+
+    init(maxAge: TimeInterval = BluetoothProfilerReportCache.defaultMaxAge) {
+        self.maxAge = maxAge
+    }
+
     private let lock = NSLock()
     private var entry: (data: Data, storedAt: Date)?
     private var epoch: UInt64 = 0
@@ -41,12 +51,13 @@ final class BluetoothProfilerReportCache: @unchecked Sendable {
     }
 
     func freshData(
-        maxAge: TimeInterval = BluetoothProfilerReportCache.defaultMaxAge,
+        maxAge: TimeInterval? = nil,
         now: Date = Date()
     ) -> Data? {
-        lock.withLock {
+        let window = maxAge ?? self.maxAge
+        return lock.withLock {
             guard let entry else { return nil }
-            guard now.timeIntervalSince(entry.storedAt) < maxAge else {
+            guard now.timeIntervalSince(entry.storedAt) < window else {
                 self.entry = nil
                 return nil
             }

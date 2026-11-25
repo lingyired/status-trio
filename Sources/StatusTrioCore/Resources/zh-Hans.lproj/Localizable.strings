@@ -41,7 +41,7 @@
 "settings.dockIconBackground.light" = "浅色";
 "settings.iconSize" = "图标渲染范围";
 "settings.iconSize.accessibilityValue" = "%d 点";
-"settings.iconSize.description" = "调整菜单栏图标的渲染尺寸，可选 16–36 pt。Dock 图标使用固定设计尺寸。";
+"settings.iconSize.description" = "菜单栏图标：16–36 pt。程序坞图标保持固定尺寸。";
 "settings.ringStrokeStyle" = "外环线条粗细";
 "settings.ringStrokeStyle.description" = "调整菜单栏与程序坞图标状态环线条的粗细。";
 "settings.ringStrokeStyle.light" = "细";
@@ -66,7 +66,7 @@
 "settings.appIcon.middleIcon.batteryPercentage" = "电池百分比";
 "settings.appIcon.middleIcon.power" = "功耗（瓦）";
 "settings.appIcon.middleIcon.chargingStatus" = "充电状态";
-"settings.appIcon.middleIcon.chargingStatus.description" = "此模式下，顶部圆弧的「充电/连接电源时显示指示图标」会失效，避免与中间图标重复。";
+"settings.appIcon.middleIcon.chargingStatus.description" = "用充电状态代替电量百分比。顶部圆弧的充电指示会自动关闭，避免重复。";
 "settings.appIcon.middleIcon.size" = "中间图标大小";
 "settings.appIcon.middleIcon.size.description" = "中间显示的所有内容（Wi‑Fi、蓝牙、输入法、数字）共用这个大小。";
 "settings.appIcon.middleIcon.networkWarnings" = "优先显示网络异常";
@@ -109,7 +109,7 @@
 "settings.bluetooth.networkErrorPriority" = "网络异常优先于蓝牙图标";
 "settings.bluetooth.networkErrorPriorityDescription" = "断网或无网络时仍显示网络图标，不显示蓝牙设备图标。";
 "settings.bluetooth.batteryLevels" = "显示蓝牙设备电量";
-"settings.bluetooth.batteryLevelsDescription" = "当状态面板显示蓝牙设备时读取 AirPods 电量，不会额外请求权限。";
+"settings.bluetooth.batteryLevelsDescription" = "读取状态面板中支持电量显示的蓝牙配件电量。";
 "settings.bluetooth.listeningModeTitle" = "显示聆听模式控制";
 "settings.bluetooth.listeningModeDescription" = "支持 AirPods、华为 FreeBuds、红米/小米与 OPPO/一加/realme（Enco 系）耳机：在已连接的设备上显示降噪/透传/关闭胶囊。第三方耳机仅部分型号支持，切换失败时会恢复原模式。";
 "settings.bluetooth.listeningModePreview" = "聆听模式预览（仅测试）";
@@ -163,11 +163,11 @@
 "settings.audio.maximumVisibleInput" = "最多显示输入设备";
 "settings.audio.maximumVisibleInputDescription" = "输入设备超过该数量时显示“展开”按钮。";
 "settings.audio.orderTitle" = "输出设备顺序";
-"settings.audio.orderDescription" = "拖动设备可调整音量弹层中的显示顺序。取消勾选不用的设备即可将其隐藏，当前输出设备始终显示。新设备会排在末尾。";
+"settings.audio.orderDescription" = "设备默认显示在面板中。拖动可调整顺序，取消勾选即可隐藏；当前输出设备始终显示。";
 "settings.audio.orderEmpty" = "无可用输出设备。";
 "settings.audio.showDevice" = "在状态面板中显示";
 "settings.audio.inputOrderTitle" = "输入设备顺序";
-"settings.audio.inputOrderDescription" = "拖动设备可调整“声音输入”中的显示顺序。取消勾选不用的设备即可将其隐藏，当前输入设备始终显示。新设备会排在末尾。";
+"settings.audio.inputOrderDescription" = "输入设备默认显示在面板中。拖动可调整顺序，取消勾选即可隐藏；当前输入设备始终显示。";
 "settings.audio.inputOrderEmpty" = "无可用输入设备。";
 "settings.audio.inputOrderSectionOff" = "在“状态面板 › 显示项目”中打开“声音输入”后，即可调整输入设备的顺序或将其隐藏。";
 "settings.about.version" = "版本 %@";
@@ -181,6 +181,7 @@
 "settings.about.copyright" = "© lingyired";
 "settings.battery.title" = "电池显示";
 "settings.battery.group.icon" = "顶部电池圆弧";
+"settings.battery.sharedSyncNote" = "这些圆环设置与「电池」页共用，在任一页修改都会同步。";
 "settings.battery.group.colors" = "状态与颜色";
 "settings.battery.group.chargingEffects" = "充电效果";
 "settings.battery.group.charging" = "充电";
@@ -189,7 +190,7 @@
 "settings.battery.group.topMarkers" = "顶部标记";
 "settings.ringContent.group" = "外环内容";
 "settings.ringContent.row.title" = "外环显示";
-"settings.ringContent.row.description" = "选择外环显示的内容：本机电池或 AirPods 电量。";
+"settings.ringContent.row.description" = "选择外环显示的内容：本机电池、AirPods 或自定义硬件指标。";
 "settings.ringContent.systemBattery" = "本机电池";
 "settings.ringContent.airPodsBattery" = "AirPods 电量";
 "settings.ringContent.airPodsGroup" = "AirPods 环";
@@ -357,9 +358,9 @@
 "settings.network.showLocalIP.description" = "在网络的第二行显示本机内网 IP，位于 Wi-Fi 信息之前。";
 
 "settings.network.permissionNotDeterminedTitle" = "需要定位权限";
-"settings.network.permissionNotDeterminedDescription" = "Status Trio 需要定位权限才能显示 Wi-Fi 网络。点击下方按钮进行授权。";
+"settings.network.permissionNotDeterminedDescription" = "连接状态不需要定位权限。读取 Wi-Fi 名称和附近网络需要定位权限，请在下方授权。";
 "settings.network.permissionDeniedTitle" = "定位权限已关闭";
-"settings.network.permissionDeniedDescription" = "没有定位权限时无法显示 Wi-Fi 网络。请在系统设置中开启。";
+"settings.network.permissionDeniedDescription" = "连接状态仍然可用。没有定位权限时，Wi-Fi 名称和附近网络会隐藏。请在系统设置中开启。";
 "settings.audio.externalVolume.title" = "外部显示器音量";
 "settings.audio.externalVolume.controlMethod" = "控制方式";
 "settings.audio.externalVolume.controlMethodDescription" = "如果状态面板的音量控制无法调节此设备，可改用 BetterDisplay。";
@@ -412,7 +413,7 @@
 "audioInput.title" = "麦克风";
 "audioInput.inUse" = "使用中";
 "audioInput.noDefault" = "未设置默认输入设备";
-"audioInput.noDevices" = "没有可用的输入设备";
+"audioInput.noDevices" = "无可用输入设备";
 "audioInput.unknownDevice" = "未知输入设备";
 "audioInput.devicePosition" = "第 %d 个输入设备";
 "audioInput.current" = "当前";
@@ -433,9 +434,9 @@
 "accessibility.status" = "%@，%@，%@";
 "accessibility.battery" = "电池 %d%%";
 "accessibility.volume" = "音量 %@";
-"settings.statusCheck.title" = "状态补查间隔";
+"settings.statusCheck.title" = "状态检查频率";
 "settings.quickActions.title" = "快捷操作";
-"settings.refreshInterval" = "状态刷新间隔";
+"settings.refreshInterval" = "检查频率";
 "settings.refreshInterval.onBattery" = "电池供电时";
 "settings.refreshInterval.onPower" = "接通电源时";
 "settings.refreshInterval.description" = "定期补查电池、Wi-Fi 和音量状态。间隔越短，补查越频繁。";
@@ -460,8 +461,9 @@
 "settings.keepAwake.helperReady" = "特权辅助程序已就绪。";
 "settings.keepAwake.helperHint" = "打开「合盖不睡眠」（或低电量模式控制）后，会自动安装并请求授权。";
 "settings.keepAwake.allowBattery" = "允许仅用电池时开启";
-"settings.keepAwake.autoOff" = "低电量时关闭合盖不睡眠";
-"settings.keepAwake.onlyLid" = "仅作用于「合盖不睡眠」";
+"settings.keepAwake.autoOff" = "低电量时自动关闭";
+"settings.keepAwake.autoOff.description" = "电量 20% 及以下时，关闭「合盖不睡眠」。";
+"settings.keepAwake.onlyLid" = "仅影响合盖不睡眠；「保持屏幕」不受影响。";
 "quickActions.displaySleep" = "保持屏幕";
 "quickActions.displaySleep.description" = "空闲时防止显示器休眠。";
 "quickActions.lidSleep" = "合盖不睡眠";
@@ -469,6 +471,8 @@
 "quickActions.timer" = "计时器";
 "quickActions.timer.choose" = "选择持续时间";
 "quickActions.lidSleep.external" = "系统里的「合盖不睡眠」已被其他程序开启，Status Trio 不会覆盖它。";
+"quickActions.lidSleep.helperStarting" = "辅助程序正在启动，请稍后重试。";
+"quickActions.lidSleep.failureCode" = "（错误码 %@）";
 "quickActions.lidSleep.unreadable" = "暂时无法读取「合盖不睡眠」状态，未做修改。";
 "quickActions.lidSleep.externalNamed" = "系统里的「合盖不睡眠」已被其他程序开启（可能是：%@），Status Trio 不会覆盖它。";
 "quickActions.timer.thirtyMinutes" = "30 分钟";
@@ -488,7 +492,7 @@
 "quickActions.turnedOffLowBattery" = "电量不足 — 合盖防休眠已关闭。";
 "quickActions.turnedOffTimerEnded" = "计时结束 — 已自动关闭。";
 "quickActions.error" = "无法更改设置：%@";
-"settings.panel.background.title" = "面板背景";
+"settings.panel.background.title" = "外观";
 "settings.panel.background.style" = "背景样式";
 "settings.panel.background.style.description" = "选择状态面板背景的绘制方式。";
 "settings.panel.background.style.liquidGlass" = "液态玻璃";
@@ -503,17 +507,17 @@
 "settings.panel.levelSliderThickness.description" = "让音量和麦克风滑杆使用与亮度相同的胶囊高度。";
 "settings.panel.openBehavior.title" = "详情与打开方式";
 "settings.panel.returnsToSummaryOnOpen" = "重新打开时恢复详情页";
-"settings.panel.returnsToSummaryOnOpen.description" = "开启后，再次打开状态面板会回到上次收起时仍显示的详情页；关闭后，每次只显示主界面。";
+"settings.panel.returnsToSummaryOnOpen.description" = "开启后，重新打开会回到上次收起的详情页；关闭后每次都从主界面开始。";
 "settings.panel.showsDetailsAlongside" = "并排显示详情";
 "settings.panel.showsDetailsAlongside.description" = "开启后，详情页优先显示在状态面板右侧，其次左侧；两侧都放不下时，在面板内显示。";
 "settings.panel.showsPanelOnHover" = "悬停显示状态面板";
-"settings.panel.showsPanelOnHover.description" = "开启后，鼠标悬停在菜单栏图标上约 0.3 秒即打开状态面板；移入面板不会收起，离开图标与面板后短暂延迟再收起。点击行为仍为切换。";
+"settings.panel.showsPanelOnHover.description" = "鼠标在菜单栏图标上停留约 0.3 秒即打开状态面板；移入面板不会收起，离开图标与面板后短暂延迟再收起。点击仍为切换。";
 "settings.popup.volumeScroll.group" = "面板滚动";
 "settings.audio.volumeScroll.group" = "音量滚动";
 "settings.popup.panelScroll" = "在面板中滚动调节音量";
 "settings.popup.panelScroll.description" = "在摘要页空白处滚动可调节输出音量；滑杆始终支持滚动调节。";
 "settings.popup.volumeScroll.natural" = "自然滚动";
-"settings.popup.volumeScroll.natural.description" = "开启后，上滚增大指针下的数值（音量、亮度或输入增益）；关闭后跟随系统的滚动方向。如果开启后上滚仍然减小数值，请在 MOS、Scroll Reverser、LinearMouse 等应用中将 Status Trio 设为不处理，通常可加入例外/忽略列表（部分应用称为白名单）。";
+"settings.popup.volumeScroll.natural.description" = "向上滚动即提高指针下的数值，关闭后跟随系统方向。如果开启后方向仍然相反，请在 MOS、Scroll Reverser 或 LinearMouse 的例外/忽略列表中加入 Status Trio。";
 "settings.audio.volumeFeedbackTitle" = "音量反馈";
 "settings.audio.volumeFeedback" = "滚动调节音量时播放提示音";
 "settings.audio.volumeFeedbackDescription" = "滚动调节音量时播放提示音。默认跟随 macOS「音量更改时播放反馈」设置；在此切换后仅对 Status Trio 生效。";
@@ -607,7 +611,7 @@
 "settings.preview.dark" = "深色";
 "settings.preview.light" = "浅色";
 "settings.preview.toggleHelp" = "切换菜单栏深色/浅色底色预览";
-"settings.audio.displayRules" = "显示规则";
+"settings.audio.displayRules" = "设备列表";
 "settings.audio.activeDeviceFootnote" = "当前活跃的音频输出设备将优先以主题色高亮显示。";
 "settings.audio.inUse" = "正在使用";
 "settings.wifi.symbolScale" = "Wi-Fi 图标大小";
@@ -617,16 +621,16 @@
 "settings.audio.indicatorStyleDescription" = "选择在状态环底部显示为四个离散点还是连续圆弧条。";
 "settings.audio.indicatorStyle.dots" = "四个点";
 "settings.audio.indicatorStyle.arc" = "圆弧条";
-"settings.audio.bottomIndicatorTitle" = "底部指示器";
-"settings.audio.bottomIndicatorDescription" = "选择图标下方指示条显示的内容，四点或圆弧样式不变。";
-"settings.audio.bottomIndicatorSource" = "底部指示器数据源";
+"settings.audio.bottomIndicatorTitle" = "底部显示";
+"settings.audio.bottomIndicatorDescription" = "选择图标底部显示的内容。";
+"settings.audio.bottomIndicatorSource" = "底部显示内容";
 "settings.audio.bottomIndicatorSource.volume" = "音量";
 "settings.audio.bottomIndicatorSource.wifi" = "Wi-Fi";
 "settings.audio.bottomIndicatorSource.battery" = "电池";
 "settings.audio.bottomIndicatorSource.hidden" = "隐藏";
 "settings.audio.bottomIndicatorSource.metric" = "自定义";
-"settings.audio.bottomIndicatorMetric" = "自定义";
-"settings.audio.bottomIndicatorMetricDescription" = "选择底部指示器显示的硬件指标，四点或圆弧样式不变。";
+"settings.audio.bottomIndicatorMetric" = "显示指标";
+"settings.audio.bottomIndicatorMetricDescription" = "选择要显示的硬件指标。";
 "settings.audio.airPodsInlineControlsTitle" = "耳机控制";
 "settings.audio.airPodsInlineControls" = "在音量面板中显示 AirPods 控制";
 "settings.audio.airPodsInlineControlsDescription" = "在你的 AirPods 输出旁显示对话感知、空间音频和自适应控制。关闭可隐藏这些基于私有 API 的控制。";
@@ -671,8 +675,8 @@
 "guide.example" = "示例使用当前图标设置。选择一个部分了解含义。";
 "guide.battery" = "外侧电池弧线表示电量。可在设置中调整百分比和充电符号。";
 "guide.network" = "中间表示网络状态。符号会随连接类型及你的设置变化。";
-"guide.volumeDots" = "下方圆点表示底部指示器（默认为音量，也可显示 Wi-Fi 信号或电池电量），不是蜂窝信号。填充越多，读数越高。可在声音设置中选择数据源和样式。";
-"guide.volumeArc" = "下方弧线表示底部指示器（默认为音量，也可显示 Wi-Fi 信号或电池电量），不是蜂窝信号。弧线越长，读数越高。可在声音设置中选择数据源和样式。";
+"guide.volumeDots" = "下方圆点默认显示音量，也可以显示 Wi-Fi 信号、电池电量或自定义指标。填充越多，读数越高。可在「应用图标 → 底部显示」调整。";
+"guide.volumeArc" = "下方圆弧默认显示音量，也可以显示 Wi-Fi 信号、电池电量或自定义指标。圆弧越长，读数越高。可在「应用图标 → 底部显示」调整。";
 "guide.next" = "下一页";
 "guide.anatomy.title" = "一个图标，三种信息";
 "guide.anatomy.description" = "选择任意部分，菜单栏和 Dock 预览会同时高亮对应区域。";
@@ -733,7 +737,7 @@
 "settings.appleDevicesAndBattery" = "显示苹果设备与电量";
 "settings.appleTrustHelp" = "iPhone、iPad 首次需用数据线连接 Mac、解锁并点按“信任”；无线读取还需与 Mac 处于同一局域网。Apple Watch 通过已信任的 iPhone 读取。";
 "settings.appleBluetoothReadHelp" = "通过蓝牙读取时，手机可能弹出配对请求；连续读取失败后会暂停，点面板的刷新按钮可重试。";
-"settings.appleDevicesAndBattery.description" = "已信任的 Apple 设备和附近有名称的设备会显示在蓝牙列表中。";
+"settings.appleDevicesAndBattery.description" = "显示已信任的 Apple 设备和附近有名称的 Apple 蓝牙设备。iPhone 和 iPad 需先用数据线配对一次，再解锁并信任。";
 "settings.appleBackgroundRefresh" = "在后台更新 Apple 设备电量";
 "settings.appleBackgroundRefresh.description" = "状态面板关闭时，继续更新已选 Apple 设备的电量。";
 "settings.appleBackgroundRefresh.interval" = "后台更新电量的时间间隔";
@@ -1063,8 +1067,8 @@
 "brightness.backend.automatic" = "自动";
 "brightness.backend.directDDC" = "直接 DDC";
 "brightness.backend.betterDisplay" = "BetterDisplay";
-"settings.brightness.description" = "关闭某台显示器即从状态面板中隐藏其亮度行。";
-"settings.brightness.backend" = "亮度后端";
+"settings.brightness.description" = "这些开关只隐藏对应显示器在状态面板中的亮度行，不改变亮度控制方式。";
+"settings.brightness.backend" = "亮度控制方式";
 // About: community, author social links and more apps
 "settings.about.social.title" = "关注作者，欢迎点赞留言";
 "settings.about.social.douyin" = "抖音";
@@ -1132,6 +1136,7 @@
 
 "settings.tab.brightness" = "亮度";
 "settings.brightness.group.title" = "已连接的显示器";
+"settings.brightness.group.betterDisplay" = "BetterDisplay";
 "settings.brightness.empty" = "没有已连接的显示器。";
 "settings.brightness.builtIn" = "内建";
 "settings.brightness.internalBackend.description" = "内建显示器的亮度使用 DisplayServices 后端。";
@@ -1172,8 +1177,8 @@
 "settings.battery.colors.discharging" = "放电（未接电源）";
 "battery.lowPowerMode.autoEnable" = "自动开启低电量模式";
 "battery.lowPowerMode.autoEnableDescription" = "拔掉电源后，电量低于低电量阈值会自动开启低电量模式；每次低电只开一次。";
-"settings.battery.autoLowPowerThreshold" = "自动开启低电量模式";
-"settings.battery.autoLowPowerThresholdDescription" = "使用电池时，电量低于该值就自动开启低电量模式。";
+"settings.battery.autoLowPowerThreshold" = "自动开启阈值";
+"settings.battery.autoLowPowerThresholdDescription" = "使用电池时，电量降到该阈值就自动开启低电量模式。";
 "battery.highPowerMode.toggle" = "高电量模式";
 "battery.details.highPower.unsupported" = "不支持";
 "battery.highPowerMode.toggleDescription" = "提高风扇转速以获得更高的持续性能，风扇噪音会增加。";
@@ -1198,7 +1203,7 @@
 // Settings subpage labels
 "settings.subtopic.appIcon.appearance" = "整体外观";
 "settings.subtopic.appIcon.ring" = "顶部圆弧";
-"settings.subtopic.appIcon.bottomIndicator" = "底部指示器";
+"settings.subtopic.appIcon.bottomIndicator" = "底部显示";
 "settings.subtopic.appIcon.middleIcon" = "中间图标";
 "settings.subtopic.battery.charging" = "充电";
 "settings.subtopic.battery.powerMode" = "电源模式";
@@ -1231,6 +1236,11 @@
 "hardware.monitor.ringValue.group" = "环内显示";
 "hardware.monitor.ringValue.groupDescription" = "选择内存和 SSD 环显示已占用还是剩余的量。";
 "hardware.monitor.ringValue.ssd" = "SSD";
+"hardware.monitor.externalDisk.group" = "外接硬盘";
+"hardware.monitor.externalDisk.listDescription" = "勾选要计入 SSD 环外接总量的硬盘。";
+"hardware.monitor.externalDisk.includeInPercent" = "顶部百分比计入外接 SSD";
+"hardware.monitor.externalDisk.includeInPercentDescription" = "打开后，SSD 环顶部百分比会把勾选的外接盘与内置盘合并计算；关闭则只算内置盘。";
+"hardware.monitor.externalDisk.empty" = "未检测到外接硬盘";
 "hardware.monitor.ringValue.used" = "已占用";
 "hardware.monitor.ringValue.remaining" = "剩余";
 "hardware.monitor.settings.temperatureMonitoring" = "CPU/GPU 温度监控";
@@ -1308,22 +1318,25 @@
 "hardware.monitor.settings.networkScale" = "固定网络趋势刻度";
 "hardware.monitor.settings.networkScale.description" = "关闭：按窗口峰值自动缩放（留 15% 余量）；开启：以下载/上传上限为满格。";
 "hardware.monitor.settings.background" = "保留后台历史";
-"hardware.monitor.settings.background.description" = "面板关闭时按面板刷新频率继续记录最近 3 分钟的硬件历史，打开详情页即可看到趋势。";
+"hardware.monitor.settings.background.description" = "面板关闭时按上面的刷新频率保留最多 5 分钟的硬件历史，打开详情页即可看到趋势。";
 "hardware.monitor.background.off" = "关闭";
 "hardware.monitor.background.seconds" = "%d 秒";
 "hardware.monitor.settings.historyWindow" = "历史时长";
 "hardware.monitor.settings.historyWindow.description" = "详情页趋势保留多久。";
 "hardware.monitor.settings.historyWindow.minutes" = "%d 分钟";
 "hardware.monitor.settings.panelRefresh" = "硬件数据刷新间隔";
-"hardware.monitor.settings.panelRefresh.description" = "面板打开时硬件数据的更新频率。开启后台历史后，关闭面板也沿用此时长；各指标仍有自己的读取下限。越快越实时但读取更多，越慢越省电。";
+"hardware.monitor.settings.panelRefresh.description" = "硬件数据的刷新频率。开启后台历史后，关闭面板也按同样频率记录。越快越实时但读取更多，越慢越省电。";
 "hardware.monitor.settings.showRings" = "显示圆环";
 "hardware.monitor.settings.colorTitle" = "颜色";
 "hardware.monitor.settings.resetColors" = "恢复默认颜色";
 "hardware.monitor.settings.showRings.description" = "显示 CPU、GPU、内存和磁盘容量圆环，可单独关闭某一项。";
+"hardware.monitor.settings.splitGapProgress" = "圆环进度左右平分";
+"hardware.monitor.settings.splitGapProgress.description" = "左半为 0–50%、右半为 50–100%，顶部的数值不再挡住进度。";
 "hardware.monitor.settings.showSummaryRow" = "显示底部信息栏";
 
 /* Status-panel per-item visibility */
 "hardware.monitor.settings.group.rings" = "圆环指标";
+"hardware.monitor.settings.group.sampling" = "采样与趋势";
 "hardware.monitor.settings.group.bottomBar" = "底部信息栏";
 "hardware.monitor.settings.item.diskCapacity" = "磁盘容量";
 "hardware.monitor.settings.showSummaryRow.description" = "在圆环下方显示下载、上传、风扇转速和磁盘 I/O，可单独关闭某一项。";
@@ -1338,7 +1351,7 @@
 "hardware.monitor.download.help" = "所有物理网络接口的下载总吞吐。";
 "hardware.monitor.upload.help" = "所有物理网络接口的上传总吞吐。";
 
-"settings.transfer.title" = "设置迁移";
+"settings.transfer.title" = "导入与导出设置";
 "settings.transfer.description" = "将可迁移的偏好设置保存为易读的 JSON 文件，或在导入前预览设置文件。";
 "settings.transfer.exclusions" = "登录项、Helper 安装、隐私授权、分析数据共享授权和全局快捷键均不会迁移。请在导入后手动设置。";
 "settings.transfer.export" = "导出…";
@@ -1366,8 +1379,8 @@
 "settings.transfer.done" = "完成";
 "settings.transfer.warningCount" = "警告总数：%d（最多显示前 50 条）";
 
-"settings.popup.scrollWheelStep" = "滚轮调节步长";
-"settings.popup.scrollWheelStep.description" = "每格调节音量、亮度和麦克风的幅度。触控板保持连续调节。";
+"settings.popup.scrollWheelStep" = "滚轮步长";
+"settings.popup.scrollWheelStep.description" = "每格滚轮调节音量、亮度和麦克风的幅度。触控板保持连续调节。";
 "settings.panel.boldText" = "加粗面板文字";
 "settings.panel.boldText.description" = "标题和数值使用加粗字重（恢复旧版观感）；关闭后使用常规字重。";
 "settings.panel.keepOpenForComparison" = "打开设置时状态面板不隐藏";
@@ -1385,6 +1398,12 @@
 "hardware.detail.title.network" = "网络";
 "hardware.detail.title.disk" = "磁盘";
 "hardware.detail.back" = "硬件监控";
+"hardware.detail.openActivityMonitor" = "打开活动监视器";
+"app.forceQuit.action" = "强制退出 %@";
+"app.forceQuit.confirmTitle" = "强制退出 %@？";
+"app.forceQuit.confirmMessage" = "未保存的更改可能会丢失。";
+"app.forceQuit.confirmAction" = "强制退出";
+"app.forceQuit.failed" = "未能退出 %@（可能属于其他用户或系统进程）。";
 "hardware.detail.totalUsage" = "总使用率";
 "hardware.detail.temperature" = "温度";
 "hardware.detail.logicalCores" = "逻辑核心";
@@ -1425,6 +1444,7 @@
 "hardware.detail.topApps.empty" = "暂无活跃应用";
 "hardware.detail.topApps.unsupported" = "暂不支持";
 "hardware.detail.topApps.failed" = "读取失败";
+"hardware.detail.topApps.refreshCountdown" = "下次刷新还有 %d 秒";
 "hardware.detail.sessionDownload" = "本次下载";
 "hardware.detail.sessionUpload" = "本次上传";
 "hardware.detail.interfaces" = "网络接口";
@@ -1434,6 +1454,8 @@
 "hardware.detail.fileSystem" = "文件系统";
 "hardware.detail.readSpeed" = "读取速度";
 "hardware.detail.writeSpeed" = "写入速度";
+"hardware.detail.diskExternal" = "外置";
+"hardware.detail.diskAvailable" = "可用 %@ / %@";
 "hardware.detail.usageTrend" = "使用率趋势";
 "hardware.detail.speedTrend" = "速度趋势";
 "hardware.detail.pressureNormal" = "正常";

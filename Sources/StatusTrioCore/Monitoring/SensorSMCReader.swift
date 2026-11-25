@@ -71,40 +71,67 @@ enum SensorPlatform: Equatable, Sendable {
         // is deprecated. A failed or short read never fabricates a chip name.
         guard let terminator = bytes.firstIndex(of: 0), terminator > 0 else { return .unknown }
         let name = String(decoding: bytes[..<terminator].map { UInt8(bitPattern: $0) }, as: UTF8.self)
-        return name.hasPrefix("Apple M") ? .appleSilicon(name) : .unknown
+        if name.hasPrefix("Apple M") || name.hasPrefix("Apple A18") {
+            return .appleSilicon(name)
+        }
+        return .unknown
         #else
         return .unknown
         #endif
     }
 }
 
-/// Fixed, conservative community mappings, checked against Stats' sensor table:
-/// https://github.com/exelban/stats/blob/master/Modules/Sensors/values.swift
-/// A mapped key is still capability-probed on every read. M3 Max/Mac15,9 was
-/// measured locally; these tables are not runtime certification of other Macs.
+/// Fixed, conservative community mappings behind `SensorCapabilityCatalog`.
+/// A mapped key is still capability-probed; the catalog records whether a key is
+/// measured, community-mapped, or only a candidate. M3 Max/Mac15,9 and M3
+/// Air/Mac15,12 have local evidence; other machines are not runtime-certified.
 struct SensorSMCReader: Sendable {
     /// Battery pack temperature keys; present on Apple Silicon (all flt here) and
-    /// most Intel Macs. Probed on every read, never scanned.
+    /// most Intel Macs. Probed on demand, never scanned.
     static let batteryTemperatureKeys = ["TB0T", "TB1T", "TB2T"]
 
     private let platform: SensorPlatform
+    private let modelIdentifier: String?
+    private let cache: SensorCapabilityCache
 
     init() {
         platform = .current()
+        modelIdentifier = MachineIdentity.currentModelIdentifier()
+        cache = SensorCapabilityCache()
+    }
+
+    init(platform: SensorPlatform, modelIdentifier: String? = nil,
+         cache: SensorCapabilityCache = SensorCapabilityCache()) {
+        self.platform = platform
+        self.modelIdentifier = modelIdentifier
+        self.cache = cache
+    }
+
+    var machineIdentity: MachineIdentity {
+        MachineIdentity(platform: platform, modelIdentifier: modelIdentifier)
+    }
+
+    /// Clears the negative capability cache after sleep/wake or a reader reset.
+    /// Positive entries are cheap to re-confirm; stale negative entries are not.
+    func resetCapabilities() {
+        cache.reset()
     }
 
     func read(includeTemperature: Bool, includeGPUTemperature: Bool = false,
               includeBatteryTemperature: Bool = false,
               includeFans: Bool, at date: Date = Date()) -> SensorReading {
         guard includeTemperature || includeGPUTemperature || includeBatteryTemperature || includeFans else {
-            return Self.read(platform: platform, includeTemperature: false, includeFans: false, at: date) { _ in nil }
+            return Self.read(platform: platform, modelIdentifier: modelIdentifier,
+                             includeTemperature: false, includeFans: false, at: date,
+                             cache: cache) { _ in nil }
         }
         return SMCReadOnlyClient.withConnection { exchange in
-            Self.read(platform: platform, includeTemperature: includeTemperature,
+            Self.read(platform: platform, modelIdentifier: modelIdentifier,
+                      includeTemperature: includeTemperature,
                       includeGPUTemperature: includeGPUTemperature,
                       includeBatteryTemperature: includeBatteryTemperature,
                       includeFans: includeFans,
-                      at: date, nameProvider: { key in
+                      at: date, cache: cache, nameProvider: { key in
                 guard let code = SMCReadOnlyClient.key(key),
                       let data = SMCReadOnlyClient.read(key: code, exchange: exchange) else { return nil }
                 // F0ID is a {fds fan descriptor on some Macs and plain text on
@@ -118,36 +145,36 @@ struct SensorSMCReader: Sendable {
                 guard let code = SMCReadOnlyClient.key(key) else { return nil }
                 return SMCReadOnlyClient.readValue(key: code, exchange: exchange)
             })
-        } ?? Self.read(platform: platform, includeTemperature: false, includeFans: false, at: date) { _ in nil }
+        } ?? Self.read(platform: platform, modelIdentifier: modelIdentifier,
+                       includeTemperature: false, includeFans: false, at: date,
+                       cache: cache) { _ in nil }
     }
 
-    static func read(platform: SensorPlatform, includeTemperature: Bool,
+    static func read(platform: SensorPlatform, modelIdentifier: String? = nil,
+                     includeTemperature: Bool,
                      includeGPUTemperature: Bool = false, includeBatteryTemperature: Bool = false,
                      includeFans: Bool, at date: Date,
+                     cache: SensorCapabilityCache? = nil,
                      nameProvider: (String) -> String? = { _ in nil },
                      valueProvider: (String) -> Double?) -> SensorReading {
+        let identity = MachineIdentity(platform: platform, modelIdentifier: modelIdentifier)
+        let catalog = SensorCapabilityCatalog.catalog(for: identity)
         var cpuValues: [Double] = []
         var gpuValues: [Double] = []
-        let keys = includeTemperature || includeGPUTemperature ? temperatureKeys(for: platform) : (cpu: [], gpu: [])
         if includeTemperature {
-            cpuValues = keys.cpu.compactMap { validTemperature(valueProvider($0)) }
-            // Intel package/diode fallback is used only when no core die exists;
-            // never average proximity, battery, heatsink or ambient sensors.
-            if cpuValues.isEmpty, platform == .intel {
-                for key in ["TCAD", "TC0D", "TC0E", "TC0F"] {
-                    if let value = validTemperature(valueProvider(key)) {
-                        cpuValues = [value]
-                        break
-                    }
-                }
-            }
+            cpuValues = read(plan: catalog.cpuPlan, at: date, cache: cache, valueProvider: valueProvider)
         }
         if includeGPUTemperature {
-            gpuValues = keys.gpu.compactMap { validTemperature(valueProvider($0)) }
+            gpuValues = read(plan: catalog.gpuPlan, at: date, cache: cache, valueProvider: valueProvider)
         }
         var batteryValues: [Double] = []
         if includeBatteryTemperature {
-            batteryValues = Self.batteryTemperatureKeys.compactMap { validTemperature(valueProvider($0)) }
+            batteryValues = catalog.batteryTemperatureKeys.compactMap { key in
+                guard cache?.shouldProbe(key, at: date) ?? true else { return nil }
+                let value = validTemperature(valueProvider(key))
+                cache?.record(key, value: value, at: date)
+                return value
+            }
         }
         var fans: [FanReading] = []
         var fanCount: Int?
@@ -182,6 +209,38 @@ struct SensorSMCReader: Sendable {
                              fanCount: fanCount, sampledAt: date)
     }
 
+    /// Reads each group, averages the readable probes inside it, then returns one
+    /// representative per group. This is the single place that prevents two
+    /// probes for one physical core from counting as two cores.
+    private static func read(plan: SensorTemperaturePlan, at date: Date,
+                             cache: SensorCapabilityCache?,
+                             valueProvider: (String) -> Double?) -> [Double] {
+        let primary = representatives(of: plan.groups, at: date, cache: cache,
+                                      valueProvider: valueProvider)
+        guard primary.isEmpty else { return primary }
+        return representatives(of: plan.fallbackGroups, at: date, cache: cache,
+                               valueProvider: valueProvider)
+    }
+
+    private static func representatives(of groups: [SensorTemperatureGroup], at date: Date,
+                                        cache: SensorCapabilityCache?,
+                                        valueProvider: (String) -> Double?) -> [Double] {
+        groups.compactMap { group in
+            var values: [Double] = []
+            for definition in group.definitions {
+                guard cache?.shouldProbe(definition.key, at: date) ?? true else { continue }
+                let value = validTemperature(valueProvider(definition.key))
+                    .flatMap { definition.validRange.contains($0) ? $0 : nil }
+                cache?.record(definition.key, value: value, at: date)
+                if let value {
+                    values.append(value)
+                    if group.aggregation == .firstReadable { break }
+                }
+            }
+            return group.representative(from: values)
+        }
+    }
+
     private static func average(_ values: [Double]) -> Double? {
         values.isEmpty ? nil : values.reduce(0, +) / Double(values.count)
     }
@@ -195,61 +254,5 @@ struct SensorSMCReader: Sendable {
         guard let value, value.isFinite, value >= 0, value <= 30_000,
               allowZero || value > 0 else { return nil }
         return value
-    }
-
-    private static func temperatureKeys(for platform: SensorPlatform) -> (cpu: [String], gpu: [String]) {
-        switch platform {
-        case .intel:
-            // Core-die keys span hex indices 0–F (TCAC/TCBC are the A/B dies).
-            // Stats uses the TC%C / TC%c wildcard for the same coverage, which
-            // matters on high-core Intel Macs where indices exceed 9.
-            let hexCore = (0...15).map { String($0, radix: 16, uppercase: true) }
-            return (hexCore.map { "TC\($0)C" } + hexCore.map { "TC\($0)c" },
-                    ["TCGC", "TG0D", "TGDD"])
-        case .appleSilicon(let chip):
-            // Exact brand names prevent an unknown future generation from
-            // silently inheriting sensor meanings from a different chip.
-            switch chip {
-            case "Apple M1", "Apple M1 Pro", "Apple M1 Max", "Apple M1 Ultra":
-                return (["Tp09", "Tp0T", "Tp01", "Tp05", "Tp0D", "Tp0H", "Tp0L", "Tp0P", "Tp0X", "Tp0b"],
-                        ["Tg05", "Tg0D", "Tg0L", "Tg0T"])
-            case "Apple M2", "Apple M2 Pro", "Apple M2 Max", "Apple M2 Ultra":
-                return (["Tp1h", "Tp1t", "Tp1p", "Tp1l", "Tp01", "Tp05", "Tp09", "Tp0D", "Tp0X", "Tp0b", "Tp0f", "Tp0j"],
-                        ["Tg0f", "Tg0j"])
-            case "Apple M3", "Apple M3 Pro", "Apple M3 Max", "Apple M3 Ultra":
-                return (["Te05", "Te0L", "Te0P", "Te0S", "Tf04", "Tf09", "Tf0A", "Tf0B", "Tf0D", "Tf0E", "Tf44", "Tf49", "Tf4A", "Tf4B", "Tf4D", "Tf4E"],
-                        ["Tf14", "Tf18", "Tf19", "Tf1A", "Tf24", "Tf28", "Tf29", "Tf2A"])
-            case "Apple M4", "Apple M4 Pro", "Apple M4 Max":
-                // M4 base and Pro/Max share the CPU mapping; GPU keys differ by
-                // variant, and unmapped keys simply fail their capability probe.
-                let gpu = ["Tg0G", "Tg0H", "Tg0J", "Tg0K", "Tg0L", "Tg0T",
-                           "Tg0d", "Tg0e", "Tg0j", "Tg0k", "Tg1U", "Tg1k"]
-                return (["Te05", "Te0S", "Te09", "Te0H",
-                         "Tp01", "Tp05", "Tp09", "Tp0D", "Tp0V", "Tp0Y", "Tp0b", "Tp0e"],
-                        gpu)
-            case "Apple M5", "Apple M5 Pro", "Apple M5 Max":
-                // M5 uses super + performance CPU core keys (no efficiency core
-                // keys) and a new GPU key set. Core counts vary by variant, so
-                // extra keys simply fail their per-read capability probe rather
-                // than fabricating a reading. Source: Stats' sensor table.
-                return (["Tp00", "Tp04", "Tp08", "Tp0C", "Tp0G", "Tp0K",
-                         "Tp0O", "Tp0R", "Tp0U", "Tp0X", "Tp0a", "Tp0d", "Tp0g",
-                         "Tp0j", "Tp0m", "Tp0p", "Tp0u", "Tp0y"],
-                        ["Tg0U", "Tg0X", "Tg0d", "Tg0g", "Tg0j", "Tg1Y", "Tg1c", "Tg1g"])
-            case "Apple M6", "Apple M6 Pro", "Apple M6 Max":
-                // M6 mixes super/performance/efficiency CPU core keys again and
-                // expands the GPU set to 12 keys. As with M5, unavailable keys
-                // fail the per-read capability probe instead of guessing.
-                return (["Tp0j", "Tp0g", "Tp09", "Tp07",
-                         "Tp0m", "Tp0L", "Tp0I", "Tp0d", "Tp0E", "Tp0G", "Tp0b", "Tp05",
-                         "Te07", "Te08", "Te09", "Te0c", "Te0h", "Te0i"],
-                        ["Tg1e", "Tg0d", "Tg0c", "Tg0b", "Tg1c", "Tg1d",
-                         "Tg07", "Tg1f", "Tg09", "Tg0a", "Tg1g", "Tg1h"])
-            default:
-                return ([], [])
-            }
-        case .unknown:
-            return ([], [])
-        }
     }
 }

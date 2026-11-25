@@ -41,7 +41,7 @@
 "settings.dockIconBackground.light" = "밝은 색";
 "settings.iconSize" = "아이콘 표시 크기";
 "settings.iconSize.accessibilityValue" = "%d포인트";
-"settings.iconSize.description" = "메뉴 막대 아이콘의 렌더링 크기를 16–36pt에서 조정합니다. Dock 아이콘은 고정된 디자인 크기를 사용합니다.";
+"settings.iconSize.description" = "메뉴 막대 아이콘: 16–36 pt. Dock 아이콘은 고정 크기를 유지합니다.";
 "settings.ringStrokeStyle" = "외부 링 두께";
 "settings.ringStrokeStyle.description" = "메뉴 막대와 Dock 상태 링의 선 두께를 조절합니다.";
 "settings.ringStrokeStyle.light" = "가늘게";
@@ -66,7 +66,7 @@
 "settings.appIcon.middleIcon.batteryPercentage" = "배터리 잔량";
 "settings.appIcon.middleIcon.power" = "전력(와트)";
 "settings.appIcon.middleIcon.chargingStatus" = "충전 상태";
-"settings.appIcon.middleIcon.chargingStatus.description" = "이 모드에서는 상단 아크의 '충전 또는 전원 연결 시 아이콘 표시'가 비활성화되어 아이콘이 중복되지 않습니다.";
+"settings.appIcon.middleIcon.chargingStatus.description" = "백분율 대신 충전 상태를 표시합니다. 중복을 피하기 위해 위쪽 호의 충전 표시가 꺼집니다.";
 "settings.appIcon.middleIcon.size" = "중앙 아이콘 크기";
 "settings.appIcon.middleIcon.size.description" = "중앙에 표시되는 모든 내용(Wi-Fi, Bluetooth, 입력 소스, 숫자)에 공통으로 적용되는 크기입니다.";
 "settings.appIcon.middleIcon.networkWarnings" = "네트워크 문제 우선 표시";
@@ -109,7 +109,7 @@
 "settings.bluetooth.networkErrorPriority" = "네트워크 오류 우선";
 "settings.bluetooth.networkErrorPriorityDescription" = "연결 오류나 오프라인 상태에서는 Bluetooth 기기 아이콘 대신 네트워크 아이콘을 유지합니다.";
 "settings.bluetooth.batteryLevels" = "Bluetooth 배터리 잔량 표시";
-"settings.bluetooth.batteryLevelsDescription" = "Bluetooth 항목이 표시되는 동안 AirPods 배터리 잔량을 읽습니다. 추가 권한 요청은 표시되지 않습니다.";
+"settings.bluetooth.batteryLevelsDescription" = "패널에 표시되는 지원 Bluetooth 액세서리의 배터리 잔량을 읽습니다.";
 "settings.bluetooth.listeningModeTitle" = "청취 모드 컨트롤 표시";
 "settings.bluetooth.listeningModeDescription" = "AirPods와 일부 HUAWEI 헤드폰을 지원합니다: 연결된 기기에 노이즈 캔슬링/투명/꺼짐 단추를 표시합니다. HUAWEI는 일부 모델만 지원하며 전환에 실패하면 원래 모드로 복원됩니다.";
 "settings.bluetooth.listeningModePreview" = "리스닝 모드 미리보기(테스트 전용)";
@@ -163,11 +163,11 @@
 "settings.audio.maximumVisibleInput" = "표시할 최대 입력 장치 수";
 "settings.audio.maximumVisibleInputDescription" = "‘펼치기’ 컨트롤 전에 표시할 입력 장치 수입니다.";
 "settings.audio.orderTitle" = "출력 장치 순서";
-"settings.audio.orderDescription" = "장치를 드래그하여 볼륨 팝오버의 표시 순서를 변경합니다. 사용하지 않는 장치는 선택 해제하면 숨겨지며, 사용 중인 출력 장치는 항상 표시됩니다. 새 장치는 끝에 표시됩니다.";
+"settings.audio.orderDescription" = "기기는 기본적으로 패널에 표시됩니다. 드래그하여 순서를 바꾸고, 선택을 해제하면 숨겨집니다. 현재 출력은 항상 표시됩니다.";
 "settings.audio.orderEmpty" = "사용 가능한 출력 장치가 없습니다.";
 "settings.audio.showDevice" = "상태 패널에 표시";
 "settings.audio.inputOrderTitle" = "입력 장치 순서";
-"settings.audio.inputOrderDescription" = "장치를 드래그하여 오디오 입력 섹션의 표시 순서를 변경합니다. 사용하지 않는 장치는 선택 해제하면 숨겨지며, 현재 입력 장치는 항상 표시됩니다. 새 장치는 끝에 표시됩니다.";
+"settings.audio.inputOrderDescription" = "입력 기기는 기본적으로 패널에 표시됩니다. 드래그하여 순서를 바꾸고, 선택을 해제하면 숨겨집니다. 현재 입력은 항상 표시됩니다.";
 "settings.audio.inputOrderEmpty" = "사용 가능한 입력 장치가 없습니다.";
 "settings.audio.inputOrderSectionOff" = "입력 장치의 순서를 바꾸거나 숨기려면 상태 패널 › 표시 항목에서 오디오 입력을 켜십시오.";
 "settings.about.version" = "버전 %@";
@@ -181,6 +181,7 @@
 "settings.about.copyright" = "© lingyired";
 "settings.battery.title" = "배터리 표시";
 "settings.battery.group.icon" = "상단 배터리 호";
+"settings.battery.sharedSyncNote" = "이 링 설정은 ‘배터리’ 페이지와 공유되며, 어느 쪽에서 바꿔도 동기화됩니다.";
 "settings.battery.group.colors" = "상태 및 색상";
 "settings.battery.group.chargingEffects" = "충전 효과";
 "settings.battery.group.charging" = "충전";
@@ -189,7 +190,7 @@
 "settings.battery.group.topMarkers" = "상단 마커";
 "settings.ringContent.group" = "Ring Content";
 "settings.ringContent.row.title" = "Ring Shows";
-"settings.ringContent.row.description" = "Choose what the outer ring displays: this Mac's battery or your AirPods battery.";
+"settings.ringContent.row.description" = "바깥쪽 링에 표시할 내용을 선택하십시오: 이 Mac의 배터리, AirPods 또는 사용자화한 하드웨어 지표.";
 "settings.ringContent.systemBattery" = "This Mac's Battery";
 "settings.ringContent.airPodsBattery" = "AirPods Battery";
 "settings.ringContent.airPodsGroup" = "AirPods Ring";
@@ -357,9 +358,9 @@
 "settings.network.showLocalIP.description" = "네트워크 행의 둘째 줄에 Wi-Fi 정보보다 먼저 이 Mac의 사설 LAN 주소를 표시합니다.";
 
 "settings.network.permissionNotDeterminedTitle" = "위치 권한이 필요합니다";
-"settings.network.permissionNotDeterminedDescription" = "Status Trio가 Wi-Fi 네트워크를 표시하려면 위치 접근이 필요합니다. 아래 버튼을 눌러 허용하세요.";
+"settings.network.permissionNotDeterminedDescription" = "연결 상태는 위치 정보 없이 작동합니다. Wi-Fi 이름과 주변 네트워크를 읽으려면 위치 접근이 필요합니다. 아래에서 허용하십시오.";
 "settings.network.permissionDeniedTitle" = "위치 권한이 꺼져 있습니다";
-"settings.network.permissionDeniedDescription" = "위치 접근이 없으면 Wi-Fi 네트워크를 표시할 수 없습니다. 시스템 설정에서 활성화하세요.";
+"settings.network.permissionDeniedDescription" = "연결 상태는 계속 작동합니다. 위치 접근이 없으면 Wi-Fi 이름과 주변 네트워크가 숨겨집니다. 시스템 설정에서 켜십시오.";
 "settings.audio.externalVolume.title" = "외부 디스플레이 볼륨";
 "settings.audio.externalVolume.controlMethod" = "제어 방식";
 "settings.audio.externalVolume.controlMethodDescription" = "상태 패널의 볼륨 제어로 이 기기를 조절할 수 없다면 BetterDisplay를 사용하십시오.";
@@ -433,9 +434,9 @@
 "accessibility.status" = "%@, %@, %@";
 "accessibility.battery" = "배터리 %d%%";
 "accessibility.volume" = "볼륨 %@";
-"settings.statusCheck.title" = "상태 확인 간격";
+"settings.statusCheck.title" = "상태 확인 빈도";
 "settings.quickActions.title" = "빠른 작업";
-"settings.refreshInterval" = "상태 새로 고침 간격";
+"settings.refreshInterval" = "확인 빈도";
 "settings.refreshInterval.onBattery" = "배터리 사용 시";
 "settings.refreshInterval.onPower" = "전원 연결 시";
 "settings.refreshInterval.description" = "배터리, Wi-Fi, 볼륨 상태를 주기적으로 확인합니다. 간격이 짧을수록 더 자주 확인합니다.";
@@ -460,8 +461,9 @@
 "settings.keepAwake.helperReady" = "권한 도우미가 준비되었습니다.";
 "settings.keepAwake.helperHint" = "「덮개를 닫아도 잠자지 않기」(또는 저전력 모드 제어)를 켜면 자동으로 설치 및 승인을 요청합니다.";
 "settings.keepAwake.allowBattery" = "배터리 사용 중 허용";
-"settings.keepAwake.autoOff" = "배터리 부족 시 덮개 닫기 방지 끄기";
-"settings.keepAwake.onlyLid" = "「덮개를 닫아도 잠자지 않기」에만 적용";
+"settings.keepAwake.autoOff" = "배터리 부족 시 끄기";
+"settings.keepAwake.autoOff.description" = "배터리 20% 이하일 때 덮개를 닫아도 잠자지 않기를 끕니다.";
+"settings.keepAwake.onlyLid" = "덮개를 닫아도 잠자지 않기에만 적용되며, 화면 켜 두기는 계속 동작합니다.";
 "quickActions.displaySleep" = "화면 켜두기";
 "quickActions.displaySleep.description" = "유휴 상태에서 디스플레이가 잠자기로 전환되지 않도록 합니다.";
 "quickActions.lidSleep" = "덮개를 닫아도 깨어 있게 유지";
@@ -469,6 +471,8 @@
 "quickActions.timer" = "타이머";
 "quickActions.timer.choose" = "지속 시간 선택";
 "quickActions.lidSleep.external" = "「덮개를 닫아도 잠자지 않기」가 다른 앱에서 이미 켜져 있습니다. Status Trio는 덮어쓰지 않습니다.";
+"quickActions.lidSleep.helperStarting" = "권한 도우미를 시작하는 중입니다. 잠시 후 다시 시도하세요.";
+"quickActions.lidSleep.failureCode" = " (오류 코드 %@)";
 "quickActions.lidSleep.unreadable" = "「덮개를 닫아도 잠자지 않기」 상태를 읽을 수 없어 변경하지 않았습니다.";
 "quickActions.lidSleep.externalNamed" = "「덮개를 닫아도 잠자지 않기」가 다른 앱에서 이미 켜져 있습니다(가능: %@). Status Trio는 덮어쓰지 않습니다.";
 "quickActions.timer.thirtyMinutes" = "30분";
@@ -488,7 +492,7 @@
 "quickActions.turnedOffLowBattery" = "배터리 부족 — 덮개 닫기 잠자기 방지가 꺼졌습니다.";
 "quickActions.turnedOffTimerEnded" = "타이머 종료됨 — 자동으로 꺼졌습니다.";
 "quickActions.error" = "설정을 변경하지 못했습니다: %@";
-"settings.panel.background.title" = "패널 배경";
+"settings.panel.background.title" = "모양";
 "settings.panel.background.style" = "배경 스타일";
 "settings.panel.background.style.description" = "상태 패널 배경을 그리는 방식을 선택합니다.";
 "settings.panel.background.style.liquidGlass" = "리퀴드 글래스";
@@ -503,17 +507,17 @@
 "settings.panel.levelSliderThickness.description" = "볼륨 및 마이크 슬라이더를 밝기와 같은 캡슐 높이로 표시합니다.";
 "settings.panel.openBehavior.title" = "세부 정보 및 열기 방식";
 "settings.panel.returnsToSummaryOnOpen" = "마지막 세부 정보 페이지 다시 열기";
-"settings.panel.returnsToSummaryOnOpen.description" = "켜면 상태 패널을 다시 열 때 닫을 때 보던 세부 정보 페이지로 돌아갑니다. 끄면 항상 요약에서 시작합니다.";
+"settings.panel.returnsToSummaryOnOpen.description" = "다시 열면 마지막 세부 페이지로 돌아갑니다. 끄면 항상 요약에서 시작합니다.";
 "settings.panel.showsDetailsAlongside" = "세부 정보를 옆에 표시";
 "settings.panel.showsDetailsAlongside.description" = "켜면 세부 정보 페이지가 상태 패널 오른쪽, 다음으로 왼쪽에 열립니다. 양쪽에 공간이 없으면 패널 안에 표시합니다.";
 "settings.panel.showsPanelOnHover" = "가리키면 패널 표시";
-"settings.panel.showsPanelOnHover.description" = "활성화하면 메뉴 막대 아이콘에 포인터를 약 0.3초 올려 두면 상태 패널이 열립니다. 패널 안으로 이동하면 닫히지 않고, 아이콘과 패널에서 벗어나면 잠시 후 닫힙니다. 클릭은 계속 전환으로 동작합니다.";
+"settings.panel.showsPanelOnHover.description" = "메뉴 막대 아이콘에 포인터를 약 0.3초 두면 패널이 열립니다. 패널로 이동하면 열린 상태가 유지되고, 둘 다 벗어나면 잠시 후 닫힙니다. 클릭은 계속 전환입니다.";
 "settings.popup.volumeScroll.group" = "패널 스크롤";
 "settings.audio.volumeScroll.group" = "음량 스크롤";
 "settings.popup.panelScroll" = "패널 스크롤로 음량 조절";
 "settings.popup.panelScroll.description" = "요약 페이지의 빈 영역을 스크롤하면 출력 음량이 바뀝니다. 슬라이더는 항상 스크롤로 조절됩니다.";
 "settings.popup.volumeScroll.natural" = "자연스러운 스크롤";
-"settings.popup.volumeScroll.natural.description" = "켜면 위로 스크롤할 때 포인터 아래 값(음량, 밝기, 입력 게인)이 커집니다. 끄면 시스템 스크롤 방향을 따릅니다. 이 옵션을 켠 후에도 위로 스크롤할 때 값이 줄어들면 MOS, Scroll Reverser, LinearMouse 등에서 Status Trio를 예외/무시 목록에 추가하세요.";
+"settings.popup.volumeScroll.natural.description" = "위로 스크롤하면 포인터 아래 값이 올라갑니다. 끄면 시스템 방향을 따릅니다. 이 옵션을 켠 후에도 반대로 움직이면 MOS, Scroll Reverser, LinearMouse의 예외/무시 목록에 Status Trio를 추가하십시오.";
 "settings.audio.volumeFeedbackTitle" = "볼륨 피드백";
 "settings.audio.volumeFeedback" = "스크롤로 볼륨을 조절할 때 소리 재생";
 "settings.audio.volumeFeedbackDescription" = "스크롤로 볼륨을 조절할 때 알림음을 재생합니다. 기본값은 macOS의 '볼륨 변경 시 피드백 재생'을 따릅니다. 여기서 전환하면 Status Trio에만 적용됩니다.";
@@ -607,7 +611,7 @@
 "settings.preview.dark" = "다크";
 "settings.preview.light" = "라이트";
 "settings.preview.toggleHelp" = "메뉴 막대 다크/라이트 배경 미리보기 전환";
-"settings.audio.displayRules" = "표시 규칙";
+"settings.audio.displayRules" = "기기 목록";
 "settings.audio.activeDeviceFootnote" = "현재 활성화된 오디오 출력 기기는 강조 색상으로 표시됩니다.";
 "settings.audio.inUse" = "사용 중";
 "settings.wifi.symbolScale" = "Wi-Fi 아이콘 크기";
@@ -619,14 +623,14 @@
 "settings.audio.indicatorStyle.arc" = "호 막대";
 "settings.audio.bottomIndicatorTitle" = "하단 표시기";
 "settings.audio.bottomIndicatorDescription" = "아이콘 아래 표시줄에 표시할 내용을 선택합니다. 점 4개 또는 호 스타일은 그대로입니다.";
-"settings.audio.bottomIndicatorSource" = "하단 표시기 소스";
+"settings.audio.bottomIndicatorSource" = "하단 표시기";
 "settings.audio.bottomIndicatorSource.volume" = "볼륨";
 "settings.audio.bottomIndicatorSource.wifi" = "Wi-Fi";
 "settings.audio.bottomIndicatorSource.battery" = "배터리";
 "settings.audio.bottomIndicatorSource.hidden" = "숨김";
 "settings.audio.bottomIndicatorSource.metric" = "사용자화";
-"settings.audio.bottomIndicatorMetric" = "사용자화";
-"settings.audio.bottomIndicatorMetricDescription" = "막대에 표시할 하드웨어 지표를 선택합니다. 4개 점 또는 호 스타일은 그대로입니다.";
+"settings.audio.bottomIndicatorMetric" = "지표";
+"settings.audio.bottomIndicatorMetricDescription" = "아래쪽 막대에 표시할 지표를 선택하십시오. 점 또는 호 스타일은 그대로입니다.";
 "settings.audio.airPodsInlineControlsTitle" = "헤드폰 제어";
 "settings.audio.airPodsInlineControls" = "볼륨 패널에 AirPods 제어 표시";
 "settings.audio.airPodsInlineControlsDescription" = "AirPods 출력 옆에 대화 인식, 공간 오디오, 적응형 제어를 표시합니다. 비공개 API 기반의 이러한 제어를 숨기려면 끕니다.";
@@ -733,7 +737,7 @@
 "settings.appleDevicesAndBattery" = "Apple 기기 및 배터리 표시";
 "settings.appleTrustHelp" = "iPhone/iPad은 처음 한 번 케이블로 Mac에 연결해 잠금을 해제하고 '신뢰'를 눌러야 합니다. 무선 읽기는 같은 네트워크의 Wi‑Fi 동기화도 필요합니다. Apple Watch는 신뢰한 iPhone을 통해 읽습니다.";
 "settings.appleBluetoothReadHelp" = "Bluetooth로 읽을 때 기기가 페어링을 요청할 수 있습니다. 읽기에 반복해서 실패하면 해당 기기 읽기가 일시 중지되며, 패널의 새로 고침 버튼으로 다시 시도할 수 있습니다.";
-"settings.appleDevicesAndBattery.description" = "신뢰된 Apple 기기와 이름이 있는 주변 기기를 Bluetooth 목록에 표시합니다.";
+"settings.appleDevicesAndBattery.description" = "신뢰하는 Apple 기기와 이름이 있는 주변 Apple Bluetooth 기기를 표시합니다. iPhone과 iPad는 케이블로 한 번 페어링하고 잠금 해제 후 '신뢰'해야 읽습니다.";
 "settings.appleBackgroundRefresh" = "백그라운드에서 Apple 배터리 업데이트";
 "settings.appleBackgroundRefresh.description" = "상태 패널이 닫혀 있어도 선택한 Apple 기기의 배터리를 업데이트합니다.";
 "settings.appleBackgroundRefresh.interval" = "백그라운드 배터리 잔량 업데이트 간격";
@@ -1063,8 +1067,8 @@
 "brightness.backend.automatic" = "자동";
 "brightness.backend.directDDC" = "직접 DDC";
 "brightness.backend.betterDisplay" = "BetterDisplay";
-"settings.brightness.description" = "디스플레이를 끄면 해당 밝기 행이 숨겨집니다.";
-"settings.brightness.backend" = "밝기 백엔드";
+"settings.brightness.description" = "이 스위치는 상태 패널에서 해당 디스플레이의 밝기 행만 숨깁니다. 밝기 제어 방식은 그대로입니다.";
+"settings.brightness.backend" = "밝기 제어 방식";
 // About: community, author social links and more apps
 "settings.about.social.title" = "작성자 팔로우";
 "settings.about.social.douyin" = "Douyin";
@@ -1132,6 +1136,7 @@
 
 "settings.tab.brightness" = "밝기";
 "settings.brightness.group.title" = "연결된 디스플레이";
+"settings.brightness.group.betterDisplay" = "BetterDisplay";
 "settings.brightness.empty" = "연결된 디스플레이가 없습니다.";
 "settings.brightness.builtIn" = "내장";
 "settings.brightness.internalBackend.description" = "내장 디스플레이 밝기는 DisplayServices 백엔드를 사용합니다.";
@@ -1171,8 +1176,8 @@
 "settings.battery.colors.highPower" = "고전력 모드";
 "battery.lowPowerMode.autoEnable" = "저전력 모드 자동 켜기";
 "battery.lowPowerMode.autoEnableDescription" = "전원을 분리하면 배터리 잔량이 저배터리 임계값 아래로 떨어질 때 저전력 모드가 자동으로 켜집니다. 저배터리마다 한 번만 실행됩니다.";
-"settings.battery.autoLowPowerThreshold" = "저전력 모드 자동 켜기";
-"settings.battery.autoLowPowerThresholdDescription" = "배터리 사용 중 잔량이 이 값 아래로 떨어지면 저전력 모드를 자동으로 켭니다.";
+"settings.battery.autoLowPowerThreshold" = "자동 켜기 임계값";
+"settings.battery.autoLowPowerThresholdDescription" = "배터리 사용 중 배터리가 이 수준까지 떨어지면 저전력 모드가 켜집니다.";
 "battery.highPowerMode.toggle" = "고전력 모드";
 "battery.details.highPower.unsupported" = "지원 안 됨";
 "battery.highPowerMode.toggleDescription" = "팬 속도를 높여 지속 성능을 끌어올립니다. 팬 소음이 커집니다.";
@@ -1230,6 +1235,11 @@
 "hardware.monitor.ringValue.group" = "링 표시";
 "hardware.monitor.ringValue.groupDescription" = "메모리 및 SSD 링에 사용량과 남은 용량 중 무엇을 표시할지 선택합니다.";
 "hardware.monitor.ringValue.ssd" = "SSD";
+"hardware.monitor.externalDisk.group" = "외장 드라이브";
+"hardware.monitor.externalDisk.listDescription" = "SSD 링의 외장 합계에 포함할 드라이브를 선택하세요.";
+"hardware.monitor.externalDisk.includeInPercent" = "상단 비율에 외장 SSD 포함";
+"hardware.monitor.externalDisk.includeInPercentDescription" = "켜면 SSD 링 상단 비율이 선택한 외장 드라이브를 내장 디스크와 합산합니다. 끄면 내장 디스크만 사용합니다.";
+"hardware.monitor.externalDisk.empty" = "외장 드라이브를 찾을 수 없습니다";
 "hardware.monitor.ringValue.used" = "사용 중";
 "hardware.monitor.ringValue.remaining" = "남음";
 "hardware.monitor.settings.temperatureMonitoring" = "CPU/GPU 온도 모니터링";
@@ -1307,22 +1317,25 @@
 "hardware.monitor.settings.networkScale" = "네트워크 눈금 고정";
 "hardware.monitor.settings.networkScale.description" = "끔: 창 최대값에 맞춰 자동 조정(15% 여유). 켬: 다운로드/업로드 상한을 최대 눈금으로 사용합니다.";
 "hardware.monitor.settings.background" = "백그라운드 기록 유지";
-"hardware.monitor.settings.background.description" = "패널이 닫혀 있어도 패널 갱신 주기로 최근 3분 하드웨어 기록을 저장해 세부 페이지에서 추세를 볼 수 있습니다.";
+"hardware.monitor.settings.background.description" = "패널이 닫혀 있어도 위 갱신 주기로 최대 5분간 하드웨어 기록을 유지하여, 세부 페이지를 추세와 함께 엽니다.";
 "hardware.monitor.background.off" = "끔";
 "hardware.monitor.background.seconds" = "%d초";
 "hardware.monitor.settings.historyWindow" = "기록 길이";
 "hardware.monitor.settings.historyWindow.description" = "세부 페이지 추세를 어디까지 보관할지.";
 "hardware.monitor.settings.historyWindow.minutes" = "%d분";
 "hardware.monitor.settings.panelRefresh" = "하드웨어 데이터 새로 고침 간격";
-"hardware.monitor.settings.panelRefresh.description" = "패널을 열어 둔 동안 하드웨어 데이터의 업데이트 빈도입니다. 백그라운드 기록이 켜져 있으면 닫힌 패널도 같은 간격을 유지합니다. 각 지표에는 고유한 읽기 하한이 있습니다. 빠를수록 더 실시간이지만 더 많이 읽고, 느릴수록 전력을 절약합니다.";
+"hardware.monitor.settings.panelRefresh.description" = "하드웨어 데이터 갱신 빈도입니다. 배경 기록을 켜면 닫힌 패널도 같은 주기로 기록합니다. 빠를수록 실시간에 가깝지만 더 많이 읽고, 느릴수록 전력을 아낍니다.";
 "hardware.monitor.settings.showRings" = "링 표시";
 "hardware.monitor.settings.colorTitle" = "색상";
 "hardware.monitor.settings.resetColors" = "색상 초기화";
 "hardware.monitor.settings.showRings.description" = "CPU / GPU / RAM / SSD 링을 표시합니다.";
+"hardware.monitor.settings.splitGapProgress" = "링 진행률 좌우 분할";
+"hardware.monitor.settings.splitGapProgress.description" = "왼쪽 절반은 0–50%, 오른쪽 절반은 50–100%로 표시되어 위쪽 값이 진행률을 가리지 않습니다.";
 "hardware.monitor.settings.showSummaryRow" = "하단 표시줄 표시";
 
 /* Status-panel per-item visibility */
 "hardware.monitor.settings.group.rings" = "링 지표";
+"hardware.monitor.settings.group.sampling" = "샘플링 및 추세";
 "hardware.monitor.settings.group.bottomBar" = "하단 표시줄";
 "hardware.monitor.settings.item.diskCapacity" = "디스크 용량";
 "hardware.monitor.settings.showSummaryRow.description" = "링 아래에 다운로드, 업로드, 팬, 디스크 I/O를 표시합니다.";
@@ -1337,7 +1350,7 @@
 "hardware.monitor.download.help" = "물리 네트워크 인터페이스 전체의 다운로드 처리량입니다.";
 "hardware.monitor.upload.help" = "물리 네트워크 인터페이스 전체의 업로드 처리량입니다.";
 
-"settings.transfer.title" = "설정 이전";
+"settings.transfer.title" = "설정 가져오기 및 내보내기";
 "settings.transfer.description" = "이전 가능한 환경설정을 읽기 쉬운 JSON으로 저장하거나, 가져오기 전에 설정 파일을 미리 봅니다.";
 "settings.transfer.exclusions" = "로그인 항목, Helper 설치, 개인정보 보호 동의, 분석 데이터 공유 동의 및 전역 단축키는 이전되지 않습니다. 가져온 후 수동으로 설정하세요.";
 "settings.transfer.export" = "내보내기…";
@@ -1365,8 +1378,8 @@
 "settings.transfer.done" = "완료";
 "settings.transfer.warningCount" = "총 경고 수: %d(처음 50개까지 표시).";
 
-"settings.popup.scrollWheelStep" = "휠 조절 간격";
-"settings.popup.scrollWheelStep.description" = "휠 한 칸당 음량, 밝기, 마이크 조절량입니다. 트랙패드는 연속 조절을 유지합니다.";
+"settings.popup.scrollWheelStep" = "휠 단계";
+"settings.popup.scrollWheelStep.description" = "휠 한 칸당 음량, 밝기, 마이크 조절 폭입니다. 트랙패드는 계속 연속 조절됩니다.";
 "settings.panel.boldText" = "패널 글씨 굵게";
 "settings.panel.boldText.description" = "제목과 값을 굵게 표시합니다(이전 모양 복원). 끄면 보통 굵기가 됩니다.";
 "settings.panel.keepOpenForComparison" = "설정을 열어도 패널 유지";
@@ -1384,6 +1397,12 @@
 "hardware.detail.title.network" = "네트워크";
 "hardware.detail.title.disk" = "디스크";
 "hardware.detail.back" = "하드웨어 모니터";
+"hardware.detail.openActivityMonitor" = "활성 상태 보기 열기";
+"app.forceQuit.action" = "%@ 강제 종료";
+"app.forceQuit.confirmTitle" = "%@을(를) 강제 종료할까요?";
+"app.forceQuit.confirmMessage" = "저장하지 않은 변경 사항이 손실될 수 있습니다.";
+"app.forceQuit.confirmAction" = "강제 종료";
+"app.forceQuit.failed" = "%@을(를) 종료하지 못했습니다(다른 사용자 또는 시스템 프로세스일 수 있음).";
 "hardware.detail.totalUsage" = "총 사용률";
 "hardware.detail.temperature" = "온도";
 "hardware.detail.logicalCores" = "논리 코어";
@@ -1427,6 +1446,8 @@
 "hardware.detail.fileSystem" = "파일 시스템";
 "hardware.detail.readSpeed" = "읽기 속도";
 "hardware.detail.writeSpeed" = "쓰기 속도";
+"hardware.detail.diskExternal" = "외장";
+"hardware.detail.diskAvailable" = "사용 가능 %@ / %@";
 "hardware.detail.usageTrend" = "사용률 추세";
 "hardware.detail.speedTrend" = "속도 추세";
 "hardware.detail.pressureNormal" = "정상";
@@ -1440,6 +1461,7 @@
 "hardware.detail.topApps.empty" = "활성 앱 없음";
 "hardware.detail.topApps.unsupported" = "지원되지 않음";
 "hardware.detail.topApps.failed" = "읽기 실패";
+"hardware.detail.topApps.refreshCountdown" = "%d초 후 새로 고침";
 "settings.localPlugins.title" = "로컬 JSON 플러그인";
 "settings.localPlugins.description" = "활성화된 패키지 폴더의 data.json을 필요할 때 읽습니다. 파일 쓰기는 스크립트가 담당합니다. 텍스트와 0–1 값을 지원합니다.";
 "settings.localPlugins.add" = "패키지 폴더 추가…";

@@ -64,4 +64,22 @@ final class HardwareRingValuePresentationTests: XCTestCase {
     func testDiskStaysDecimal() {
         XCTAssertEqual(HardwareDetailFormat.compactDisk(1_000_000_000_000), "1000GB")
     }
+
+    func testCombinedUsedFractionPoolsExternalCapacity() {
+        // Internal 1 TB with 250 GB free, external 1 TB with 750 GB free:
+        // used = 750 + 250 = 1000 GB over 2000 GB total = 0.5.
+        let fraction = HardwareRingValuePresentation.combinedUsedFraction(
+            internalTotal: 1_000_000_000_000, internalFree: 250_000_000_000,
+            externalTotal: 1_000_000_000_000, externalFree: 750_000_000_000)
+        XCTAssertEqual(fraction ?? -1, 0.5, accuracy: 0.0001)
+    }
+
+    func testCombinedUsedFractionFallsBackWhenInternalUnknownOrEmpty() {
+        XCTAssertNil(HardwareRingValuePresentation.combinedUsedFraction(
+            internalTotal: nil, internalFree: nil,
+            externalTotal: 1_000, externalFree: 500))
+        XCTAssertNil(HardwareRingValuePresentation.combinedUsedFraction(
+            internalTotal: 0, internalFree: 0,
+            externalTotal: 0, externalFree: 0))
+    }
 }

@@ -227,6 +227,9 @@ final class SettingsStore: ObservableObject {
     static let enabledHardwareSummaryMetricsDefaultsKey = "enabledHardwareSummaryMetricsV1"
     static let memoryRingDisplayModeDefaultsKey = "memoryRingDisplayModeV1"
     static let ssdRingDisplayModeDefaultsKey = "ssdRingDisplayModeV1"
+    static let hardwareRingSplitGapProgressDefaultsKey = "hardwareRingSplitGapProgress"
+    static let hardwareSSDIncludeExternalInPercentDefaultsKey = "hardwareSSDIncludeExternalInPercentV1"
+    static let hardwareSSDExternalVolumePathsDefaultsKey = "hardwareSSDExternalVolumePathsV1"
     static let hardwareTemperatureMonitoringEnabledDefaultsKey = "hardwareTemperatureMonitoringEnabledV1"
     static let cpuRingCenterContentDefaultsKey = "cpuRingCenterContentV1"
     static let gpuRingCenterContentDefaultsKey = "gpuRingCenterContentV1"
@@ -259,7 +262,7 @@ final class SettingsStore: ObservableObject {
     /// Which hardware-monitor metric the `.metric` bottom source draws. Kept
     /// beside `bottomIndicatorSource` so the concrete metric can change without
     /// touching the source enum.
-    static let defaultBottomIndicatorMetric: HardwareMonitorMetric = .cpuUsage
+    static let defaultBottomIndicatorMetric: BottomIndicatorMetric = .cpuUsage
     static let bottomIndicatorMetricDefaultsKey = "bottomIndicatorMetric"
     /// The dot/arc style used by the `.metric` bottom source. It defaults to the
     /// arc because a continuous fill reads the hardware metrics better than four
@@ -1458,6 +1461,51 @@ final class SettingsStore: ObservableObject {
         didSet { defaults.set(ssdRingDisplayMode.rawValue, forKey: Self.ssdRingDisplayModeDefaultsKey) }
     }
 
+    /// Whether the four panel rings carry their progress across the top gap
+    /// instead of the gap absorbing it: the visible left half reads 0–50% and
+    /// the right half 50–100%, so the percentage in the gap never hides progress
+    /// (#375). Mirrors the menu-bar battery ring's split-gap option.
+    @Published var hardwareRingSplitGapProgress: Bool = false {
+        didSet {
+            defaults.set(
+                hardwareRingSplitGapProgress,
+                forKey: Self.hardwareRingSplitGapProgressDefaultsKey
+            )
+        }
+    }
+
+    /// Whether the SSD ring's top percentage pools the internal disk with the
+    /// external volumes the user ticked in Settings. Off (default) keeps the
+    /// percentage on the startup volume alone.
+    @Published var hardwareSSDIncludeExternalInPercent: Bool = false {
+        didSet {
+            defaults.set(
+                hardwareSSDIncludeExternalInPercent,
+                forKey: Self.hardwareSSDIncludeExternalInPercentDefaultsKey
+            )
+        }
+    }
+
+    /// Mount paths of the external volumes the user ticked to include in the SSD
+    /// ring's external total (and, when enabled, its percentage). Device-specific
+    /// state, so it is intentionally excluded from settings export/import.
+    @Published var hardwareSSDExternalVolumePaths: Set<String> = [] {
+        didSet {
+            defaults.set(
+                hardwareSSDExternalVolumePaths.sorted(),
+                forKey: Self.hardwareSSDExternalVolumePathsDefaultsKey
+            )
+        }
+    }
+
+    func setHardwareSSDExternalVolume(path: String, included: Bool) {
+        if included {
+            hardwareSSDExternalVolumePaths.insert(path)
+        } else {
+            hardwareSSDExternalVolumePaths.remove(path)
+        }
+    }
+
     /// Master switch for CPU/GPU temperature sampling. Off means no SMC or HID
     /// temperature reads anywhere; panel rings fall back to frequency (CPU) or a dash.
     @Published var hardwareTemperatureMonitoringEnabled: Bool = true {
@@ -1579,7 +1627,7 @@ final class SettingsStore: ObservableObject {
     /// Only meaningful in that mode; changing it never rewrites the source or the
     /// persisted slot binding (the metric rides the runtime inputs, not the
     /// binding), but it must still publish so the menu bar re-resolves.
-    @Published var bottomIndicatorMetric: HardwareMonitorMetric {
+    @Published var bottomIndicatorMetric: BottomIndicatorMetric {
         didSet {
             let metric = hardwareTemperatureMonitoringEnabled
                 ? bottomIndicatorMetric : bottomIndicatorMetric.withoutCPUGPUTemperature
@@ -3148,7 +3196,7 @@ final class SettingsStore: ObservableObject {
             .flatMap(BottomIndicatorSource.init(rawValue:))
             ?? Self.defaultBottomIndicatorSource
         self.bottomIndicatorMetric = storedBottomIndicatorMetric
-            .flatMap(HardwareMonitorMetric.init(rawValue:))
+            .flatMap(BottomIndicatorMetric.init(rawValue:))
             ?? Self.defaultBottomIndicatorMetric
         self.metricBottomIndicatorStyle = storedMetricBottomIndicatorStyle
             .flatMap(VolumeDisplayStyle.init(rawValue:))
@@ -3371,6 +3419,12 @@ final class SettingsStore: ObservableObject {
             rawValue: defaults.string(forKey: Self.memoryRingDisplayModeDefaultsKey) ?? "") ?? .used
         self.ssdRingDisplayMode = RingValueDisplayMode(
             rawValue: defaults.string(forKey: Self.ssdRingDisplayModeDefaultsKey) ?? "") ?? .used
+        self.hardwareRingSplitGapProgress =
+            defaults.object(forKey: Self.hardwareRingSplitGapProgressDefaultsKey) as? Bool ?? false
+        self.hardwareSSDIncludeExternalInPercent =
+            defaults.object(forKey: Self.hardwareSSDIncludeExternalInPercentDefaultsKey) as? Bool ?? false
+        self.hardwareSSDExternalVolumePaths = Set(
+            defaults.stringArray(forKey: Self.hardwareSSDExternalVolumePathsDefaultsKey) ?? [])
         self.hardwareTemperatureMonitoringEnabled =
             defaults.object(forKey: Self.hardwareTemperatureMonitoringEnabledDefaultsKey) as? Bool ?? true
         self.cpuRingCenterContent = HardwareRingCenterContent(

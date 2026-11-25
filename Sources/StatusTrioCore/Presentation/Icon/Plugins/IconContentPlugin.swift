@@ -56,7 +56,7 @@ struct IconContentContext: Sendable {
     var isAlertOverride = false
     /// Which hardware-monitor metric the `.metric` bottom source draws. Only the
     /// footer hardware presentation reads it; other slots ignore it.
-    var bottomIndicatorMetric: HardwareMonitorMetric = .cpuUsage
+    var bottomIndicatorMetric: BottomIndicatorMetric = .cpuUsage
 }
 
 /// Compiled-in content reads a supplied snapshot. The host owns persistence,

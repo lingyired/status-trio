@@ -40,6 +40,8 @@ private final class ControllableClient: DisableSleepClienting, @unchecked Sendab
     private var _failReadOnCall: Int?
     private var _suspendReads = false
     private var _pendingReads: [CheckedContinuation<Bool, Error>] = []
+    private var _helperUnavailableReadCount = 0
+    private var _readRejectPayload: String?
 
     init(disableSleep: Bool = false, version: Int = 3, versionThrows: Bool = false,
          readThrows: Bool = false, autoComplete: Bool = true, failSetCount: Int = 0) {
@@ -58,6 +60,13 @@ private final class ControllableClient: DisableSleepClienting, @unchecked Sendab
     func setFailReadCount(_ v: Int) { lock.withLock { _failReadCount = v } }
     func setFailReadOnCall(_ call: Int) { lock.withLock { _failReadOnCall = call } }
     func setSuspendReads(_ v: Bool) { lock.withLock { _suspendReads = v } }
+    func setReadThrows(_ v: Bool) { lock.withLock { _readThrows = v } }
+    /// Makes the next reads fail as a daemon rejection carrying a specific
+    /// payload (a coded `DS-*` message or a legacy codeless one).
+    func setReadRejectPayload(_ v: String?) { lock.withLock { _readRejectPayload = v } }
+    /// Makes the next `n` reads fail as a cold/unreachable helper (XPC timeout),
+    /// the transient error the controller must retry before reporting failure.
+    func setHelperUnavailableReadCount(_ v: Int) { lock.withLock { _helperUnavailableReadCount = v } }
     var pendingReadCount: Int { lock.withLock { _pendingReads.count } }
     func completeNextRead(_ value: Bool) {
         let next = lock.withLock { () -> CheckedContinuation<Bool, Error>? in
@@ -75,17 +84,23 @@ private final class ControllableClient: DisableSleepClienting, @unchecked Sendab
         }
     }
     func readDisableSleep() async throws -> Bool {
-        enum Decision { case fail, complete(Bool), suspend }
+        enum Decision { case fail(String), helperUnavailable, complete(Bool), suspend }
         let decision: Decision = lock.withLock {
             _readCalls += 1
-            if let failOn = _failReadOnCall, _readCalls == failOn { return .fail }
-            if _failReadCount > 0 { _failReadCount -= 1; return .fail }
-            if _readThrows { return .fail }
+            if let payload = _readRejectPayload { return .fail(payload) }
+            if _helperUnavailableReadCount > 0 {
+                _helperUnavailableReadCount -= 1
+                return .helperUnavailable
+            }
+            if let failOn = _failReadOnCall, _readCalls == failOn { return .fail("DS-R5: unparseable pmset output") }
+            if _failReadCount > 0 { _failReadCount -= 1; return .fail("DS-R5: unparseable pmset output") }
+            if _readThrows { return .fail("DS-R5: unparseable pmset output") }
             if _suspendReads { return .suspend }
             return .complete(_disableSleep)
         }
         switch decision {
-        case .fail: throw Failure.failed
+        case .fail(let payload): throw HighPowerModeClientError.rejected(payload)
+        case .helperUnavailable: throw HighPowerModeClientError.helperUnavailable
         case .complete(let value): return value
         case .suspend:
             return try await withCheckedThrowingContinuation { cont in
@@ -149,7 +164,8 @@ final class SleepControlSafetyTests: XCTestCase {
             helperReadiness: readiness,
             ownership: ownership,
             lidDisableRetryDelays: [0, 0, 0],
-            lidRecoveryRetryDelay: recoveryRetryDelay
+            lidRecoveryRetryDelay: recoveryRetryDelay,
+            lidReadRetryDelays: [0, 0]
         )
     }
 
@@ -271,8 +287,81 @@ final class SleepControlSafetyTests: XCTestCase {
         control.setLidSleep(true)
         await waitUntil { control.lidSleepExternalState == .stateUnreadable }
         XCTAssertEqual(control.lidSleepExternalState, .stateUnreadable)
+        XCTAssertEqual(control.lidSleepFailureCode, "DS-R5",
+                       "an unparseable daemon read must expose its diagnostic code")
         XCTAssertTrue(client.setCalls.isEmpty)
         XCTAssertFalse(control.isPreventingLidSleep)
+    }
+
+    /// A coded daemon rejection surfaces its code so a report can be triaged.
+    func testDaemonRejectionExposesItsCode() async {
+        let client = ControllableClient()
+        client.setReadRejectPayload("DS-R4: SleepDisabled not found in `pmset -g`")
+        let control = make(client: client)
+        control.setLidSleep(true)
+        await waitUntil { control.lidSleepExternalState == .stateUnreadable }
+        XCTAssertEqual(control.lidSleepFailureCode, "DS-R4")
+        XCTAssertEqual(control.lidSleepFailureDetail, "SleepDisabled not found in `pmset -g`")
+    }
+
+    /// An older helper that sends no code falls back to DS-R0 rather than
+    /// guessing a specific cause.
+    func testLegacyCodelessRejectionFallsBack() async {
+        let client = ControllableClient()
+        client.setReadRejectPayload("Disable sleep state is unavailable.")
+        let control = make(client: client)
+        control.setLidSleep(true)
+        await waitUntil { control.lidSleepExternalState == .stateUnreadable }
+        XCTAssertEqual(control.lidSleepFailureCode, "DS-R0")
+        XCTAssertEqual(control.lidSleepFailureDetail, "Disable sleep state is unavailable.")
+    }
+
+    /// A cold helper that times out on the very first read must be retried and
+    /// then enable normally — this is the #383 regression.
+    func testColdStartReadTimeoutRetriesThenEnables() async {
+        let client = ControllableClient()
+        client.setHelperUnavailableReadCount(1)
+        let control = make(client: client)
+        control.setLidSleep(true)
+        await waitUntil { control.isPreventingLidSleep }
+        XCTAssertTrue(control.isPreventingLidSleep)
+        XCTAssertNil(control.lidSleepExternalState, "a recovered read must not leave a notice")
+        XCTAssertNil(control.lidSleepFailureCode)
+        XCTAssertEqual(client.setCalls, [true])
+        XCTAssertEqual(client.readCalls, 2, "the first timeout is retried once")
+    }
+
+    /// When the helper never answers, the copy must say it is starting rather
+    /// than claiming the value is unreadable.
+    func testPersistentReadTimeoutReportsHelperStarting() async {
+        let client = ControllableClient()
+        client.setHelperUnavailableReadCount(99)
+        let control = make(client: client)
+        control.setLidSleep(true)
+        await waitUntil { control.lidSleepExternalState == .helperStarting }
+        XCTAssertEqual(control.lidSleepExternalState, .helperStarting)
+        XCTAssertEqual(control.lidSleepFailureCode, "DS-H1",
+                       "an exhausted helper timeout reports the helper-side code")
+        XCTAssertTrue(client.setCalls.isEmpty)
+        XCTAssertFalse(control.isPreventingLidSleep)
+        XCTAssertEqual(client.readCalls, 3, "initial read plus the two bounded retries")
+    }
+
+    /// A later successful read clears a stale "unreadable" notice instead of
+    /// leaving it hanging in the card.
+    func testSuccessfulEnableClearsStaleUnreadableNotice() async {
+        let client = ControllableClient(readThrows: true)
+        let control = make(client: client)
+        control.setLidSleep(true)
+        await waitUntil { control.lidSleepExternalState == .stateUnreadable }
+        await waitUntil { !control.isApplyingLidSleep }
+
+        client.setReadThrows(false)
+        control.setLidSleep(true)
+        await waitUntil { control.isPreventingLidSleep }
+        XCTAssertTrue(control.isPreventingLidSleep)
+        XCTAssertNil(control.lidSleepExternalState)
+        XCTAssertEqual(client.setCalls, [true])
     }
 
     func testTimerCloseFailureRetriesThenSucceeds() async {

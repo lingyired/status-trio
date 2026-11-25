@@ -54,7 +54,11 @@ struct HardwareMonitorIconPlugin: IconContentPlugin {
 
     func dependencies(presentationID: String, context: IconContentDependencyContext) -> IconContentDependencies {
         if presentationID == "footer" {
-            let metric = context.bottomIndicatorMetric
+            guard let metric = context.bottomIndicatorMetric.hardwareMetric else {
+                return .init(samples: [.hardwareMonitor],
+                             requiresHardwareMonitor: true,
+                             hardwareMetricIDs: [.memoryPressure])
+            }
             if metric.usesStatusSnapshot {
                 var samples: Set<IconPreviewSampleSource> = []
                 switch metric {

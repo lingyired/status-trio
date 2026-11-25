@@ -40,7 +40,7 @@ enum MetricProgressMapper {
         case .cpuUsage, .gpuUsage, .memoryUsage: percent(sample)
         case .cpuTemperature: temperature(sample)
         case .batteryTemperature: temperature(sample, range: 20...60)
-        case .gpuTemperature: nil
+        case .gpuTemperature, .memoryPressure: nil
         case .fanRPM: rpm(sample)
         // Network/disk need a configured cap, so they are not drawn on the ring.
         case .networkDownload, .networkUpload: nil

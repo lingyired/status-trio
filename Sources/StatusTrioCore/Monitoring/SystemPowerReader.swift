@@ -1,5 +1,6 @@
 import Foundation
 import IOKit
+import CoreGraphics
 
 struct SystemPowerSample: Equatable, Sendable {
     let watts: Double
@@ -17,8 +18,8 @@ struct PowerSensorReadings: Equatable, Sendable {
     var system: SystemPowerSample?
     var input: SystemPowerSample?
     var battery: BatteryPowerSample?
-    /// Built-in display backlight power (`PDBR`, else `PBLR`). Machines with
-    /// neither report nil.
+    /// Built-in display backlight power from a measured SMC rail
+    /// (`PBwo`/`PDBR`/`PBLR`). There is no AppleARMBacklight estimate.
     var display: SystemPowerSample?
     /// Accessory output on SMC channels D1–D4 (`DnJV` volts × `DnJI` amps).
     var portRails: PortOutputRails = .unavailable
@@ -29,6 +30,10 @@ struct PowerSensorReadings: Equatable, Sendable {
 }
 
 struct SystemPowerReader: Sendable {
+    /// UI visibility threshold for the display branch; not a sensor-validity
+    /// threshold. Values below this are hidden instead of drawn as zero.
+    static let minimumVisibleWatts: Double = 0.05
+
     /// Best-effort SMC system-total power (the PSTR sensor used by Stats).
     /// Apple does not publish a cross-model contract for this sensor. Read only;
     /// no helper, privileges, key enumeration, or persistent connection.
@@ -62,9 +67,11 @@ struct SystemPowerReader: Sendable {
         // backlight key hides that branch. Port keys that do not answer stay
         // `.unavailable` so the caller can fall back to PowerOutDetails.
         if breakdown {
-            if let watts = Self.readDisplay(exchange: exchange) {
-                readings.display = SystemPowerSample(watts: watts, readAt: readAt)
-            }
+            readings.display = Self.readMeasuredDisplaySample(
+                exchange: exchange,
+                identity: MachineIdentity.current(),
+                at: readAt
+            )
             readings.portRails = Self.readPortOutput(exchange: exchange, readAt: readAt)
         }
         if temperature, let raw = Self.readRaw(key: Self.batteryTemperatureKey, exchange: exchange) {
@@ -94,7 +101,9 @@ struct SystemPowerReader: Sendable {
     enum Sensor: UInt32 {
         case system = 0x50535452 // PSTR, system total
         case input = 0x50445452 // PDTR, adapter input
-        case display = 0x50444252 // PDBR, built-in display backlight
+        case display = 0x50444252 // PDBR, built-in display backlight (M1-M4 XDR rail)
+        /// PBwo, the newer backlight rail on M5 Pro/Max/Neo and A18.
+        case displayNew = 0x5042776F
         /// PBLR, the backlight rail on Macs without PDBR. Measured on Mac18,1
         /// (M6, macOS 27): 0.19 W at minimum brightness, 1.78 W mid, 4.5 W at
         /// maximum, while PDBR and PBwo are absent and PPBR stays flat at 2 W.
@@ -111,11 +120,60 @@ struct SystemPowerReader: Sendable {
         readValue(sensor: .system, exchange: exchange)
     }
 
-    /// Built-in backlight wattage, reading `PDBR` only once. `readScalar`
-    /// already returns both "the key exists" (`acknowledged`) and the decoded
-    /// value, so a machine that exposes `PDBR` no longer pays a second read.
-    /// A `PDBR` that exists but decodes out of range still hides the branch
-    /// (no `PBLR` fallback); only a missing `PDBR` falls back to `PBLR`.
+    /// Reads the preferred measured rail only. `PBLR` of 0 is the M3 Air
+    /// (#374) case: the key exists but is not a usable backlight reading, so it
+    /// must not become a 0.00 W branch. When the built-in panel is offline
+    /// (lid closed with an external display) or asleep, every rail can keep a
+    /// stale small value; publish none of them.
+    static func readMeasuredDisplaySample(exchange: ([UInt8]) -> [UInt8]?,
+                                          identity: MachineIdentity,
+                                          at date: Date,
+                                          panelIsOn: () -> Bool = { SystemPowerReader.builtInPanelIsOn() }) -> SystemPowerSample? {
+        guard panelIsOn() else { return nil }
+        for sensor in displaySensors(for: identity) {
+            let scalar = readScalar(key: sensor.rawValue, exchange: exchange)
+            guard scalar.acknowledged, let watts = scalar.value,
+                  (0...150).contains(watts),
+                  watts > minimumVisibleWatts else { continue }
+            return SystemPowerSample(watts: watts, readAt: date)
+        }
+        return nil
+    }
+
+    /// True when an online, awake built-in display exists. If CoreGraphics
+    /// cannot answer, do not suppress a potentially valid reading.
+    static func builtInPanelIsOn() -> Bool {
+        var count: UInt32 = 0
+        guard CGGetOnlineDisplayList(0, nil, &count) == .success, count > 0 else {
+            return true
+        }
+        var displays = [CGDirectDisplayID](repeating: 0, count: Int(count))
+        guard CGGetOnlineDisplayList(count, &displays, &count) == .success else {
+            return true
+        }
+        return panelIsOn(displays: Array(displays.prefix(Int(count))),
+                         isBuiltIn: { CGDisplayIsBuiltin($0) != 0 },
+                         isAsleep: { CGDisplayIsAsleep($0) != 0 })
+    }
+
+    static func panelIsOn(displays: [CGDirectDisplayID],
+                          isBuiltIn: (CGDirectDisplayID) -> Bool,
+                          isAsleep: (CGDirectDisplayID) -> Bool) -> Bool {
+        guard let builtIn = displays.first(where: isBuiltIn) else { return false }
+        return !isAsleep(builtIn)
+    }
+
+    static func displaySensors(for identity: MachineIdentity) -> [Sensor] {
+        switch identity.chipFamily {
+        case .m5, .m6, .a18Pro:
+            // PBwo is the newer rail on these generations; keep the older rails
+            // as read-only fallbacks rather than assuming one universal key.
+            return [.displayNew, .display, .displayBacklight]
+        default:
+            return [.display, .displayNew, .displayBacklight]
+        }
+    }
+
     static func readDisplay(exchange: ([UInt8]) -> [UInt8]?) -> Double? {
         let primary = readScalar(key: Sensor.display.rawValue, exchange: exchange)
         if primary.acknowledged {
@@ -161,7 +219,7 @@ struct SystemPowerReader: Sendable {
         case .batteryVoltage: return (1...30).contains(watts) ? watts : nil
         // A closed lid or a dark backlight can legitimately read 0 W; anything
         // outside the plausible rail range means the key is not this reading.
-        case .display, .displayBacklight: return (0...150).contains(watts) ? watts : nil
+        case .display, .displayNew, .displayBacklight: return (0...150).contains(watts) ? watts : nil
         }
     }
 

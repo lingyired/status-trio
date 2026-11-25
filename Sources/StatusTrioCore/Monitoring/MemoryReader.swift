@@ -162,7 +162,7 @@ struct MemoryReader: Sendable {
         return (UInt64(usage.xsu_used), UInt64(usage.xsu_total))
     }
 
-    private static func pressureLevel() -> MemoryPressureLevel {
+    static func pressureLevel() -> MemoryPressureLevel {
         var level: Int32 = 0
         var size = MemoryLayout<Int32>.size
         guard sysctlbyname("kern.memorystatus_vm_pressure_level", &level, &size, nil, 0) == 0 else {

@@ -125,6 +125,7 @@ else
         "scripts/test-macos13-deployment-contract-regressions.sh"
         "scripts/test-macos13-deployment-contract.sh"
         "scripts/test-appcast-minimum-system-version.sh"
+        "scripts/test-info-plist-version-sync.sh"
         "scripts/test-macos13-bundle-contract.sh"
         "scripts/test-app-icon-contract.sh"
         "scripts/test-privileged-helper-bundle-contract.sh"

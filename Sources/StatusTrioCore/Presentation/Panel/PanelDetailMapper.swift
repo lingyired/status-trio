@@ -223,15 +223,19 @@ enum PanelDetailMapper {
             if options.showsCharging, split.source == .adapter, let charging, charging > 0.05 {
                 destinations.append(metric(.batteryPowerCharging, charging, kind: .charging))
             }
-            if let display = split.display {
+            // A 0.00 W branch claims a destination that does not exist. The
+            // threshold is a UI visibility rule, not a sensor-validity rule.
+            if let display = split.display,
+               display.watts > BatteryPowerFlowState.minimumVisibleWatts {
                 destinations.append(metric(.batteryPowerDisplay, display.watts, kind: .display))
             }
             // One branch per powered port. A split without per-port data (an
             // older sample) keeps the single summed node.
-            if split.usbPorts.isEmpty, let usb = split.usb {
+            if split.usbPorts.isEmpty, let usb = split.usb,
+               usb.watts > BatteryPowerFlowState.minimumVisibleWatts {
                 destinations.append(metric(.batteryPowerUSB, usb.watts, kind: .usb))
             }
-            for port in split.usbPorts {
+            for port in split.usbPorts where port.watts > BatteryPowerFlowState.minimumVisibleWatts {
                 var item = metric(.batteryPowerUSB, port.watts, kind: .usb)
                 item = BatteryPowerFlowState.Metric(
                     label: port.name ?? item.label, value: item.value, watts: item.watts, kind: .usb,

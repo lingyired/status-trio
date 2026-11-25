@@ -41,7 +41,7 @@
 "settings.dockIconBackground.light" = "Hell";
 "settings.iconSize" = "Symbolgröße";
 "settings.iconSize.accessibilityValue" = "%d Punkte";
-"settings.iconSize.description" = "Passt die Darstellungsgröße des Menüleistensymbols auf 16–36 pt an. Das Dock-Symbol behält seine feste Designgröße.";
+"settings.iconSize.description" = "Menüleisten-Symbol: 16–36 pt. Das Dock-Symbol behält seine feste Größe.";
 "settings.ringStrokeStyle" = "Stärke des äußeren Rings";
 "settings.ringStrokeStyle.description" = "Wähle die Linienstärke des Statusrings in der Menüleiste und im Dock.";
 "settings.ringStrokeStyle.light" = "Fein";
@@ -66,7 +66,7 @@
 "settings.appIcon.middleIcon.batteryPercentage" = "Batterieprozentsatz";
 "settings.appIcon.middleIcon.power" = "Leistung (Watt)";
 "settings.appIcon.middleIcon.chargingStatus" = "Ladestatus";
-"settings.appIcon.middleIcon.chargingStatus.description" = "In diesem Modus ist „Symbol beim Laden oder Netzbetrieb anzeigen“ im oberen Bogen deaktiviert, um ein doppeltes Symbol zu vermeiden.";
+"settings.appIcon.middleIcon.chargingStatus.description" = "Zeigt den Ladezustand statt des Prozentsatzes. Der Ladeindikator des oberen Bogens wird ausgeblendet, um Doppelungen zu vermeiden.";
 "settings.appIcon.middleIcon.size" = "Größe des mittleren Symbols";
 "settings.appIcon.middleIcon.size.description" = "Eine Größe für alle mittleren Inhalte: WLAN, Bluetooth, Eingabequelle und Zahlen.";
 "settings.appIcon.middleIcon.networkWarnings" = "Netzwerkprobleme bevorzugen";
@@ -109,7 +109,7 @@
 "settings.bluetooth.networkErrorPriority" = "Netzwerkfehler priorisieren";
 "settings.bluetooth.networkErrorPriorityDescription" = "Bei Verbindungsfehlern oder Offline-Status bleibt das Netzwerksymbol sichtbar statt des Bluetooth-Gerätesymbols.";
 "settings.bluetooth.batteryLevels" = "Bluetooth-Batteriestände anzeigen";
-"settings.bluetooth.batteryLevelsDescription" = "Liest AirPods-Batteriestände, während der Bluetooth-Eintrag sichtbar ist. Es wird keine zusätzliche Berechtigung angefragt.";
+"settings.bluetooth.batteryLevelsDescription" = "Liest den Akkustand unterstützter Bluetooth-Zubehörteile, die im Panel erscheinen.";
 "settings.bluetooth.listeningModeTitle" = "Hörmodus-Steuerung anzeigen";
 "settings.bluetooth.listeningModeDescription" = "Unterstützt AirPods und einige HUAWEI-Kopfhörer: Zeigt Kapseln für Geräuschunterdrückung/Transparenz/Aus auf verbundenen Geräten an. Nur manche HUAWEI-Modelle werden unterstützt; schlägt ein Wechsel fehl, wird der vorherige Modus wiederhergestellt.";
 "settings.bluetooth.listeningModePreview" = "Vorschau des Hör-Modus (nur Test)";
@@ -163,11 +163,11 @@
 "settings.audio.maximumVisibleInput" = "Maximal sichtbare Eingabegeräte";
 "settings.audio.maximumVisibleInputDescription" = "Anzahl der Eingabegeräte, die vor „Erweitern“ angezeigt werden.";
 "settings.audio.orderTitle" = "Reihenfolge der Ausgabegeräte";
-"settings.audio.orderDescription" = "Geräte ziehen, um die Reihenfolge im Lautstärke-Popover zu ändern. Nicht genutzte Geräte abwählen, um sie auszublenden; das aktive Ausgabegerät bleibt immer sichtbar. Neue Geräte erscheinen am Ende.";
+"settings.audio.orderDescription" = "Geräte erscheinen standardmäßig im Panel. Ziehen ordnet sie neu; Häkchen entfernen blendet sie aus. Die aktive Ausgabe bleibt immer sichtbar.";
 "settings.audio.orderEmpty" = "Keine Ausgabegeräte verfügbar.";
 "settings.audio.showDevice" = "Im Statusbereich anzeigen";
 "settings.audio.inputOrderTitle" = "Reihenfolge der Eingabegeräte";
-"settings.audio.inputOrderDescription" = "Geräte ziehen, um die Reihenfolge im Bereich „Audioeingang“ zu ändern. Nicht genutzte Geräte abwählen, um sie auszublenden; das aktuelle Eingabegerät bleibt immer sichtbar. Neue Geräte erscheinen am Ende.";
+"settings.audio.inputOrderDescription" = "Eingabegeräte erscheinen standardmäßig im Panel. Ziehen ordnet sie neu; Häkchen entfernen blendet sie aus. Die aktive Eingabe bleibt immer sichtbar.";
 "settings.audio.inputOrderEmpty" = "Keine Eingabegeräte verfügbar.";
 "settings.audio.inputOrderSectionOff" = "Aktiviere „Audioeingang“ unter Statusbereich › Angezeigte Elemente, um Eingabegeräte zu sortieren oder auszublenden.";
 "settings.about.version" = "Version %@";
@@ -181,6 +181,7 @@
 "settings.about.copyright" = "© lingyired";
 "settings.battery.title" = "Batterieanzeige";
 "settings.battery.group.icon" = "Oberer Batteriebogen";
+"settings.battery.sharedSyncNote" = "Die Ring-Einstellungen sind mit der Seite „Batterie“ gemeinsam; Änderungen werden auf beiden Seiten übernommen.";
 "settings.battery.group.colors" = "Status & Farben";
 "settings.battery.group.chargingEffects" = "Ladeeffekte";
 "settings.battery.group.charging" = "Laden";
@@ -189,7 +190,7 @@
 "settings.battery.group.topMarkers" = "Obere Markierungen";
 "settings.ringContent.group" = "Ring Content";
 "settings.ringContent.row.title" = "Ring Shows";
-"settings.ringContent.row.description" = "Choose what the outer ring displays: this Mac's battery or your AirPods battery.";
+"settings.ringContent.row.description" = "Wähle, was der äußere Ring anzeigt: den Akku dieses Macs, deine AirPods oder eine eigene Hardware-Metrik.";
 "settings.ringContent.systemBattery" = "This Mac's Battery";
 "settings.ringContent.airPodsBattery" = "AirPods Battery";
 "settings.ringContent.airPodsGroup" = "AirPods Ring";
@@ -357,9 +358,9 @@
 "settings.network.showLocalIP.description" = "Zeigt die private LAN-Adresse dieses Macs in der Netzwerkzeile an, vor den WLAN-Details.";
 
 "settings.network.permissionNotDeterminedTitle" = "Standortberechtigung erforderlich";
-"settings.network.permissionNotDeterminedDescription" = "Status Trio benötigt Zugriff auf den Standort, um WLAN-Netzwerke anzuzeigen. Klicken Sie unten, um ihn zu erlauben.";
+"settings.network.permissionNotDeterminedDescription" = "Der Verbindungsstatus funktioniert ohne Standort. Für Wi-Fi-Namen und nahe Netzwerke ist Standortzugriff nötig. Unten erlauben.";
 "settings.network.permissionDeniedTitle" = "Standortberechtigung ist deaktiviert";
-"settings.network.permissionDeniedDescription" = "Ohne Standortzugriff können WLAN-Netzwerke nicht angezeigt werden. Aktivieren Sie ihn in den Systemeinstellungen.";
+"settings.network.permissionDeniedDescription" = "Der Verbindungsstatus funktioniert weiterhin. Ohne Standortzugriff bleiben Wi-Fi-Name und nahe Netzwerke verborgen. In den Systemeinstellungen aktivieren.";
 "settings.audio.externalVolume.title" = "Lautstärke externer Displays";
 "settings.audio.externalVolume.controlMethod" = "Steuerungsmethode";
 "settings.audio.externalVolume.controlMethodDescription" = "Wenn die Lautstärkeregelung im Statusfenster dieses Gerät nicht steuern kann, verwende BetterDisplay.";
@@ -412,7 +413,7 @@
 "audioInput.title" = "Mikrofon";
 "audioInput.inUse" = "In Benutzung";
 "audioInput.noDefault" = "Kein Standard-Eingabegerät";
-"audioInput.noDevices" = "Keine verfügbaren Eingabegeräte";
+"audioInput.noDevices" = "Keine Eingabegeräte verfügbar";
 "audioInput.unknownDevice" = "Unbekanntes Eingabegerät";
 "audioInput.devicePosition" = "Eingabegerät %d";
 "audioInput.current" = "Aktuell";
@@ -433,9 +434,9 @@
 "accessibility.status" = "%@, %@, %@";
 "accessibility.battery" = "Batterie %d%%";
 "accessibility.volume" = "Lautstärke %@";
-"settings.statusCheck.title" = "Statusprüfungsintervall";
+"settings.statusCheck.title" = "Häufigkeit der Statusprüfung";
 "settings.quickActions.title" = "Schnellaktionen";
-"settings.refreshInterval" = "Aktualisierungsintervall";
+"settings.refreshInterval" = "Prüfintervall";
 "settings.refreshInterval.onBattery" = "Im Akkubetrieb";
 "settings.refreshInterval.onPower" = "Am Netzstrom";
 "settings.refreshInterval.description" = "Prüft Batterie-, WLAN- und Lautstärkestatus regelmäßig. Kürzere Intervalle prüfen häufiger.";
@@ -460,8 +461,9 @@
 "settings.keepAwake.helperReady" = "Privilegierter Helper ist bereit.";
 "settings.keepAwake.helperHint" = "Wenn du „Wach bei geschlossenem Deckel“ (oder die Low-Power-Modus-Steuerung) einschaltest, wird der Helper automatisch installiert und zur Freigabe angefragt.";
 "settings.keepAwake.allowBattery" = "Auch im Akkubetrieb erlauben";
-"settings.keepAwake.autoOff" = "Bei niedrigem Akkustand „Wachhalten bei geschlossenem Deckel“ ausschalten";
-"settings.keepAwake.onlyLid" = "Gilt nur für „Wach bei geschlossenem Deckel“";
+"settings.keepAwake.autoOff" = "Bei niedrigem Akkustand ausschalten";
+"settings.keepAwake.autoOff.description" = "Schaltet den Lid-Schlafschutz bei 20 % Akkustand oder weniger aus.";
+"settings.keepAwake.onlyLid" = "Gilt nur für den Lid-Schlafschutz; „Bildschirm wach halten“ bleibt aktiv.";
 "quickActions.displaySleep" = "Bildschirm wach halten";
 "quickActions.displaySleep.description" = "Verhindert, dass das Display bei Inaktivität in den Ruhezustand geht.";
 "quickActions.lidSleep" = "Mit geschlossenem Deckel wach halten";
@@ -469,6 +471,8 @@
 "quickActions.timer" = "Timer";
 "quickActions.timer.choose" = "Dauer auswählen";
 "quickActions.lidSleep.external" = "„Wach bei geschlossenem Deckel“ ist bereits von einer anderen App aktiviert. Status Trio überschreibt das nicht.";
+"quickActions.lidSleep.helperStarting" = "Der privilegierte Helfer wird gestartet. Bitte gleich noch einmal versuchen.";
+"quickActions.lidSleep.failureCode" = " (Fehlercode %@)";
 "quickActions.lidSleep.unreadable" = "Status „Wach bei geschlossenem Deckel“ konnte nicht gelesen werden; unverändert.";
 "quickActions.lidSleep.externalNamed" = "„Wach bei geschlossenem Deckel“ ist bereits von einer anderen App aktiv (evtl.: %@). Status Trio überschreibt das nicht.";
 "quickActions.timer.thirtyMinutes" = "30 Minuten";
@@ -488,7 +492,7 @@
 "quickActions.turnedOffLowBattery" = "Akku schwach — Deckel-Ruhezustandsschutz deaktiviert.";
 "quickActions.turnedOffTimerEnded" = "Timer beendet — automatisch deaktiviert.";
 "quickActions.error" = "Einstellung konnte nicht geändert werden: %@";
-"settings.panel.background.title" = "Panel-Hintergrund";
+"settings.panel.background.title" = "Darstellung";
 "settings.panel.background.style" = "Hintergrundstil";
 "settings.panel.background.style.description" = "Wähle, wie der Hintergrund des Statuspanels gezeichnet wird.";
 "settings.panel.background.style.liquidGlass" = "Liquid Glass";
@@ -503,17 +507,17 @@
 "settings.panel.levelSliderThickness.description" = "Lautstärke- und Mikrofonregler mit derselben Kapselhöhe wie die Helligkeit darstellen.";
 "settings.panel.openBehavior.title" = "Details & Öffnen";
 "settings.panel.returnsToSummaryOnOpen" = "Letzte Detailseite wieder öffnen";
-"settings.panel.returnsToSummaryOnOpen.description" = "Wenn aktiviert, kehrt das Statuspanel beim erneuten Öffnen zur zuletzt angezeigten Detailseite zurück; andernfalls startet es immer auf der Übersicht.";
+"settings.panel.returnsToSummaryOnOpen.description" = "Beim erneuten Öffnen erscheint die letzte Detailseite; sonst startet das Panel immer mit der Übersicht.";
 "settings.panel.showsDetailsAlongside" = "Details daneben anzeigen";
 "settings.panel.showsDetailsAlongside.description" = "Wenn aktiviert, öffnen sich Detailseiten rechts neben dem Statuspanel, dann links. Passt keine Seite, öffnen sie sich im Panel.";
 "settings.panel.showsPanelOnHover" = "Panel beim Überfahren anzeigen";
-"settings.panel.showsPanelOnHover.description" = "Wenn aktiviert, öffnet sich das Statuspanel, wenn der Zeiger etwa 0,3 Sekunden auf dem Menüleisten-Symbol ruht. Beim Bewegen in das Panel bleibt es offen; verlässt der Zeiger Symbol und Panel, schließt es nach kurzer Verzögerung. Klicken schaltet weiterhin um.";
+"settings.panel.showsPanelOnHover.description" = "Ruht der Zeiger etwa 0,3 Sekunden auf dem Menüleisten-Symbol, öffnet sich das Panel. Hineinbewegen hält es offen; Verlassen beider schließt es nach kurzer Verzögerung. Klicken schaltet weiterhin um.";
 "settings.popup.volumeScroll.group" = "Panel-Scrollen";
 "settings.audio.volumeScroll.group" = "Lautstärke-Scrollen";
 "settings.popup.panelScroll" = "Durch Scrollen im Panel die Lautstärke ändern";
 "settings.popup.panelScroll.description" = "Scrollen über leere Bereiche der Übersichtsseite ändert die Ausgangslautstärke. Regler lassen sich immer per Scrollen einstellen.";
 "settings.popup.volumeScroll.natural" = "Natürliches Scrollen";
-"settings.popup.volumeScroll.natural.description" = "Wenn aktiviert, erhöht Scrollen nach oben den Wert unter dem Zeiger (Lautstärke, Helligkeit oder Eingangsverstärkung); deaktiviert folgt es der Scrollrichtung des Systems. Sinkt der Wert beim Hochscrollen nach dem Aktivieren dieser Option weiterhin, nehmen Sie Status Trio in MOS, Scroll Reverser, LinearMouse o. Ä. über eine Ausnahme-/Ignorierliste aus.";
+"settings.popup.volumeScroll.natural.description" = "Nach oben scrollen erhöht den Wert unter dem Zeiger; aus folgt der Systemrichtung. Wenn es nach dem Aktivieren dieser Option immer noch falsch läuft, nimm Status Trio in die Ausnahme-/Ignorierliste von MOS, Scroll Reverser oder LinearMouse auf.";
 "settings.audio.volumeFeedbackTitle" = "Lautstärke-Feedback";
 "settings.audio.volumeFeedback" = "Ton beim Scrollen zur Lautstärkeänderung abspielen";
 "settings.audio.volumeFeedbackDescription" = "Spielt den Ton ab, wenn du die Lautstärke durch Scrollen änderst. Standardmäßig gilt die macOS-Einstellung „Feedback bei Lautstärkeänderung wiedergeben“; ein Umschalten hier gilt nur für Status Trio.";
@@ -607,7 +611,7 @@
 "settings.preview.dark" = "Dunkel";
 "settings.preview.light" = "Hell";
 "settings.preview.toggleHelp" = "Menüleistenvorschau zwischen dunkel und hell umschalten";
-"settings.audio.displayRules" = "Anzeigeregeln";
+"settings.audio.displayRules" = "Geräteliste";
 "settings.audio.activeDeviceFootnote" = "Das aktive Audioausgabegerät wird in der Akzentfarbe hervorgehoben.";
 "settings.audio.inUse" = "In Verwendung";
 "settings.wifi.symbolScale" = "WLAN-Symbolgröße";
@@ -619,14 +623,14 @@
 "settings.audio.indicatorStyle.arc" = "Bogen";
 "settings.audio.bottomIndicatorTitle" = "Untere Anzeige";
 "settings.audio.bottomIndicatorDescription" = "Legen Sie fest, was der Balken unter dem Symbol anzeigt. Der Stil aus vier Punkten oder Bogen bleibt gleich.";
-"settings.audio.bottomIndicatorSource" = "Quelle der unteren Anzeige";
+"settings.audio.bottomIndicatorSource" = "Untere Anzeige";
 "settings.audio.bottomIndicatorSource.volume" = "Lautstärke";
 "settings.audio.bottomIndicatorSource.wifi" = "WLAN";
 "settings.audio.bottomIndicatorSource.battery" = "Batterie";
 "settings.audio.bottomIndicatorSource.hidden" = "Ausgeblendet";
 "settings.audio.bottomIndicatorSource.metric" = "Benutzerdefiniert";
-"settings.audio.bottomIndicatorMetric" = "Benutzerdefiniert";
-"settings.audio.bottomIndicatorMetricDescription" = "Wählen Sie, welchen Hardware-Messwert der Balken anzeigt. Der Stil aus vier Punkten oder Bogen bleibt gleich.";
+"settings.audio.bottomIndicatorMetric" = "Metrik";
+"settings.audio.bottomIndicatorMetricDescription" = "Wähle, welche Metrik der untere Balken anzeigt. Der Punkt- oder Bogenstil bleibt gleich.";
 "settings.audio.airPodsInlineControlsTitle" = "Kopfhörer-Steuerung";
 "settings.audio.airPodsInlineControls" = "AirPods-Steuerung im Lautstärke-Panel anzeigen";
 "settings.audio.airPodsInlineControlsDescription" = "Zeigt Steuerung für Dialogwahrnehmung, räumliches Audio und adaptiven Modus neben deinem AirPods-Ausgabegerät. Deaktivieren blendet diese Steuerung auf Basis privater APIs aus.";
@@ -733,7 +737,7 @@
 "settings.appleDevicesAndBattery" = "Apple-Geräte und Batteriestand anzeigen";
 "settings.appleTrustHelp" = "iPhone und iPad müssen einmal per Kabel verbunden, entsperrt und „Vertrauen“ bestätigt werden. Drahtloses Lesen braucht zusätzlich die WLAN-Synchronisierung im selben Netzwerk. Die Apple Watch wird über das vertraute iPhone gelesen.";
 "settings.appleBluetoothReadHelp" = "Beim Lesen über Bluetooth kann das Gerät eine Kopplung anfordern. Nach wiederholten Fehlern wird das Lesen pausiert; mit der Aktualisieren-Schaltfläche im Panel kannst du es erneut versuchen.";
-"settings.appleDevicesAndBattery.description" = "Vertrauenswürdige und benannte Apple-Geräte in der Nähe erscheinen in der Bluetooth-Liste.";
+"settings.appleDevicesAndBattery.description" = "Zeigt vertrauenswürdige Apple-Geräte und benannte Apple-Bluetooth-Geräte in der Nähe. iPhone und iPad liefern Daten nach einmaligem Kabel-Koppeln, Entsperren und „Vertrauen“.";
 "settings.appleBackgroundRefresh" = "Apple-Batteriestände im Hintergrund aktualisieren";
 "settings.appleBackgroundRefresh.description" = "Aktualisiert die Batteriestände ausgewählter Apple-Geräte bei geschlossenem Statusmenü.";
 "settings.appleBackgroundRefresh.interval" = "Intervall für Batterieaktualisierungen im Hintergrund";
@@ -1063,8 +1067,8 @@
 "brightness.backend.automatic" = "Automatisch";
 "brightness.backend.directDDC" = "Direktes DDC";
 "brightness.backend.betterDisplay" = "BetterDisplay";
-"settings.brightness.description" = "Schalte ein Display aus, um seine Helligkeitszeile auszublenden.";
-"settings.brightness.backend" = "Helligkeits-Backend";
+"settings.brightness.description" = "Diese Schalter blenden nur die Helligkeitszeile des Displays im Statuspanel aus. Die Helligkeitssteuerung bleibt unverändert.";
+"settings.brightness.backend" = "Helligkeitssteuerung";
 // About: community, author social links and more apps
 "settings.about.social.title" = "Autor folgen";
 "settings.about.social.douyin" = "Douyin";
@@ -1132,6 +1136,7 @@
 
 "settings.tab.brightness" = "Helligkeit";
 "settings.brightness.group.title" = "Angeschlossene Displays";
+"settings.brightness.group.betterDisplay" = "BetterDisplay";
 "settings.brightness.empty" = "Keine Displays verbunden.";
 "settings.brightness.builtIn" = "Integriert";
 "settings.brightness.internalBackend.description" = "Die Helligkeit des integrierten Displays nutzt das DisplayServices-Backend.";
@@ -1172,8 +1177,8 @@
 "settings.battery.colors.discharging" = "Entladen (ohne Netzbetrieb)";
 "battery.lowPowerMode.autoEnable" = "Niedrigenergiemodus automatisch aktivieren";
 "battery.lowPowerMode.autoEnableDescription" = "Ohne Netzteil schaltet sich der Niedrigenergiemodus automatisch ein, sobald der Akkustand unter den Schwellenwert für niedrigen Akkustand fällt. Einmal pro Niedrigakkupyklus.";
-"settings.battery.autoLowPowerThreshold" = "Niedrigenergiemodus automatisch aktivieren";
-"settings.battery.autoLowPowerThresholdDescription" = "Der Niedrigenergiemodus wird im Akkubetrieb unterhalb dieses Werts automatisch aktiviert.";
+"settings.battery.autoLowPowerThreshold" = "Schwelle für Automatik";
+"settings.battery.autoLowPowerThresholdDescription" = "Der Stromsparmodus wird im Akkubetrieb eingeschaltet, sobald der Akku diesen Wert erreicht.";
 "battery.highPowerMode.toggle" = "Hochenergiemodus";
 "battery.details.highPower.unsupported" = "Nicht unterstützt";
 "battery.highPowerMode.toggleDescription" = "Lässt die Lüfter schneller laufen, um dauerhaft höhere Leistung zu erreichen – auf Kosten lauterer Lüfter.";
@@ -1231,6 +1236,11 @@
 "hardware.monitor.ringValue.group" = "Ringanzeige";
 "hardware.monitor.ringValue.groupDescription" = "Wählen Sie, ob der Arbeitsspeicher- und SSD-Ring den belegten oder den freien Wert zeigt.";
 "hardware.monitor.ringValue.ssd" = "SSD";
+"hardware.monitor.externalDisk.group" = "Externe Laufwerke";
+"hardware.monitor.externalDisk.listDescription" = "Laufwerke auswählen, die in die externe Summe des SSD-Rings einfließen.";
+"hardware.monitor.externalDisk.includeInPercent" = "Externe SSDs in Prozentwert einbeziehen";
+"hardware.monitor.externalDisk.includeInPercentDescription" = "Wenn aktiv, fasst der SSD-Ring die ausgewählten externen Laufwerke mit dem internen Datenträger zusammen; sonst nur intern.";
+"hardware.monitor.externalDisk.empty" = "Keine externen Laufwerke gefunden";
 "hardware.monitor.ringValue.used" = "Belegt";
 "hardware.monitor.ringValue.remaining" = "Frei";
 "hardware.monitor.settings.temperatureMonitoring" = "CPU/GPU-Temperaturüberwachung";
@@ -1308,22 +1318,25 @@
 "hardware.monitor.settings.networkScale" = "Feste Netzwerkskala";
 "hardware.monitor.settings.networkScale.description" = "Aus: automatische Skalierung auf den Fenster-Peak mit 15 % Reserve. An: Download-/Upload-Limit als Vollausschlag.";
 "hardware.monitor.settings.background" = "Hintergrundverlauf behalten";
-"hardware.monitor.settings.background.description" = "Zeichnet bei geschlossenem Panel die letzten 3 Minuten Hardwareverlauf im Panel-Intervall auf, sodass eine Detailseite mit Trend öffnet.";
+"hardware.monitor.settings.background.description" = "Behält bei geschlossenem Panel im oben gewählten Tempo bis zu 5 Minuten Hardware-Verlauf, damit eine Detailseite mit Trend öffnet.";
 "hardware.monitor.background.off" = "Aus";
 "hardware.monitor.background.seconds" = "%d s";
 "hardware.monitor.settings.historyWindow" = "Verlaufsdauer";
 "hardware.monitor.settings.historyWindow.description" = "Wie weit der Detailverlauf zurückreicht.";
 "hardware.monitor.settings.historyWindow.minutes" = "%d Min.";
 "hardware.monitor.settings.panelRefresh" = "Aktualisierungsintervall der Hardwaredaten";
-"hardware.monitor.settings.panelRefresh.description" = "Wie oft Hardwaredaten bei geöffnetem Panel aktualisiert werden. Bei aktiver Hintergrundhistorie behält das geschlossene Panel dieselbe Frequenz. Jeder Messwert hat weiterhin seine eigene Lesegrenze. Schneller ist aktueller, liest aber mehr; langsamer spart Energie.";
+"hardware.monitor.settings.panelRefresh.description" = "Wie oft Hardware-Daten aktualisiert werden. Mit aktiver Hintergrundhistorie behält das geschlossene Panel dasselbe Tempo. Schneller ist liveer, liest aber mehr; langsamer spart Energie.";
 "hardware.monitor.settings.showRings" = "Ringe anzeigen";
 "hardware.monitor.settings.colorTitle" = "Farben";
 "hardware.monitor.settings.resetColors" = "Farben zurücksetzen";
 "hardware.monitor.settings.showRings.description" = "Zeigt die Ringe für CPU / GPU / RAM / SSD.";
+"hardware.monitor.settings.splitGapProgress" = "Ringfortschritt teilen";
+"hardware.monitor.settings.splitGapProgress.description" = "Linke Hälfte 0–50 %, rechte Hälfte 50–100 %, damit der Wert oben den Fortschritt nicht mehr verdeckt.";
 "hardware.monitor.settings.showSummaryRow" = "Untere Leiste anzeigen";
 
 /* Status-panel per-item visibility */
 "hardware.monitor.settings.group.rings" = "Ring-Metriken";
+"hardware.monitor.settings.group.sampling" = "Abtastung & Trends";
 "hardware.monitor.settings.group.bottomBar" = "Untere Leiste";
 "hardware.monitor.settings.item.diskCapacity" = "Speicherplatz";
 "hardware.monitor.settings.showSummaryRow.description" = "Zeigt Download, Upload, Lüfter und Festplatten-E/A unter den Ringen.";
@@ -1338,7 +1351,7 @@
 "hardware.monitor.download.help" = "Gesamter Download-Durchsatz über die physischen Netzwerkschnittstellen.";
 "hardware.monitor.upload.help" = "Gesamter Upload-Durchsatz über die physischen Netzwerkschnittstellen.";
 
-"settings.transfer.title" = "Einstellungen übertragen";
+"settings.transfer.title" = "Einstellungen importieren & exportieren";
 "settings.transfer.description" = "Übertragbare Einstellungen als lesbare JSON-Datei speichern oder eine Einstellungsdatei vor dem Import prüfen.";
 "settings.transfer.exclusions" = "Anmeldeobjekte, die Helper-Installation, Datenschutzfreigaben, die Zustimmung zur Analyse und globale Tastaturkurzbefehle werden nie übertragen. Richte diese nach dem Import manuell ein.";
 "settings.transfer.export" = "Exportieren…";
@@ -1366,8 +1379,8 @@
 "settings.transfer.done" = "Fertig";
 "settings.transfer.warningCount" = "Warnungen insgesamt: %d (bis zu 50 werden angezeigt).";
 
-"settings.popup.scrollWheelStep" = "Schrittweite des Mausrads";
-"settings.popup.scrollWheelStep.description" = "Änderung pro Raste für Lautstärke, Helligkeit und Mikrofon. Trackpad bleibt stufenlos.";
+"settings.popup.scrollWheelStep" = "Radschritt";
+"settings.popup.scrollWheelStep.description" = "Betrag pro Rastschritt für Lautstärke, Helligkeit und Mikrofon. Trackpads bleiben stufenlos.";
 "settings.panel.boldText" = "Paneltext fett";
 "settings.panel.boldText.description" = "Titel und Werte werden fett dargestellt (früheres Aussehen). Ausgeschaltet bleibt die normale Schriftstärke.";
 "settings.panel.keepOpenForComparison" = "Panel beim Öffnen der Einstellungen offen lassen";
@@ -1385,6 +1398,12 @@
 "hardware.detail.title.network" = "Netzwerk";
 "hardware.detail.title.disk" = "Festplatte";
 "hardware.detail.back" = "Hardware-Monitor";
+"hardware.detail.openActivityMonitor" = "Aktivitätsanzeige öffnen";
+"app.forceQuit.action" = "%@ sofort beenden";
+"app.forceQuit.confirmTitle" = "%@ sofort beenden?";
+"app.forceQuit.confirmMessage" = "Nicht gespeicherte Änderungen gehen möglicherweise verloren.";
+"app.forceQuit.confirmAction" = "Sofort beenden";
+"app.forceQuit.failed" = "%@ konnte nicht beendet werden (gehört möglicherweise einem anderen Benutzer oder einem Systemprozess).";
 "hardware.detail.totalUsage" = "Gesamtauslastung";
 "hardware.detail.temperature" = "Temperatur";
 "hardware.detail.logicalCores" = "Logische Kerne";
@@ -1425,6 +1444,7 @@
 "hardware.detail.topApps.empty" = "Keine aktiven Apps";
 "hardware.detail.topApps.unsupported" = "Nicht unterstützt";
 "hardware.detail.topApps.failed" = "Lesen fehlgeschlagen";
+"hardware.detail.topApps.refreshCountdown" = "Aktualisierung in %d s";
 "hardware.detail.sessionDownload" = "Download (Sitzung)";
 "hardware.detail.sessionUpload" = "Upload (Sitzung)";
 "hardware.detail.interfaces" = "Schnittstellen";
@@ -1434,6 +1454,8 @@
 "hardware.detail.fileSystem" = "Dateisystem";
 "hardware.detail.readSpeed" = "Lesegeschwindigkeit";
 "hardware.detail.writeSpeed" = "Schreibgeschwindigkeit";
+"hardware.detail.diskExternal" = "Extern";
+"hardware.detail.diskAvailable" = "Verfügbar %@ / %@";
 "hardware.detail.usageTrend" = "Auslastungsverlauf";
 "hardware.detail.speedTrend" = "Geschwindigkeitsverlauf";
 "hardware.detail.pressureNormal" = "Normal";

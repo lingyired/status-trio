@@ -186,8 +186,11 @@ struct HardwareMonitorPresentationTests {
         let keys = LocalizationKey.allCases.filter { $0.rawValue.hasPrefix("hardware.monitor.") }
         // Volume and Wi-Fi signal strength add two top-marker keys (64 → 66);
         // the RAM/SSD ring display-mode rows add five more (66 → 71); the
-        // temperature-monitoring switch and ring-center rows add six (71 → 77).
-        #expect(keys.count == 77)
+        // temperature-monitoring switch and ring-center rows add six (71 → 77);
+        // the four-ring split-gap option adds two more (77 → 79); the
+        // Sampling & Trends group title adds one (79 → 80); the SSD external
+        // drive group adds five (80 → 85).
+        #expect(keys.count == 85)
         for language in AppLanguage.allCases {
             let bundle = try #require(Localization.resourceBundle(for: language))
             for key in keys {

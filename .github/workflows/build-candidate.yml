@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       candidate_sha:
-        description: "Frozen 40-character commit SHA to build exactly once."
+        description: "Frozen 40-character commit SHA. Dispatch from main to build a branch SHA with the reviewed workflow."
         required: true
         type: string
       release_mode:
@@ -205,7 +205,10 @@ jobs:
     runs-on: xcode-27
     timeout-minutes: 75
     environment:
-      name: ${{ github.triggering_actor != 'lingyired' && 'distribution' || 'distribution-owner-signing' }}
+      # A branch candidate always needs the reviewed distribution environment.
+      # The owner-only signing environment is only for a main candidate started
+      # from main, so a frozen branch SHA cannot skip manual approval.
+      name: ${{ needs.prepare.outputs.on_main == 'true' && github.ref == 'refs/heads/main' && github.triggering_actor == 'lingyired' && 'distribution-owner-signing' || 'distribution' }}
     env:
       DEVELOPER_DIR: /Applications/Xcode_27.app/Contents/Developer
       CANDIDATE_SHA: ${{ needs.prepare.outputs.candidate_sha }}

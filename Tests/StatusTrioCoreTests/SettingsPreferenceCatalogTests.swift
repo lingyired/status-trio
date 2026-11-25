@@ -49,7 +49,7 @@ final class SettingsPreferenceCatalogTests: XCTestCase {
                 "autoEnablesLowPowerMode", "showsAppleDevicesAndBattery",
                 "refreshesAppleBatteriesInBackground", "appleBatteryRefreshIntervalMinutes",
                 "showsBluetoothListeningMode", "bluetoothAudioIconChoiceRawValue", "wifiSymbolScale",
-                "volumeDisplayStyle", "ringStrokeStyle", "hardwareBackgroundHistoryEnabled", "hardwarePanelRefreshSeconds", "hardwareHistoryWindowMinutes", "hardwareDownloadCapMbps", "hardwareUploadCapMbps", "hardwareNetworkChartFixedScale", "showsHardwareRings", "showsHardwareSummaryRow", "showsHardwareTopApps", "enabledHardwareRingSlots", "enabledHardwareSummaryMetrics", "memoryRingDisplayMode", "ssdRingDisplayMode", "hardwareTemperatureMonitoringEnabled", "cpuRingCenterContent", "gpuRingCenterContent", "refreshIntervalOnBatterySeconds",
+                "volumeDisplayStyle", "ringStrokeStyle", "hardwareBackgroundHistoryEnabled", "hardwarePanelRefreshSeconds", "hardwareHistoryWindowMinutes", "hardwareDownloadCapMbps", "hardwareUploadCapMbps", "hardwareNetworkChartFixedScale", "showsHardwareRings", "showsHardwareSummaryRow", "showsHardwareTopApps", "enabledHardwareRingSlots", "enabledHardwareSummaryMetrics", "memoryRingDisplayMode", "ssdRingDisplayMode", "hardwareRingSplitGapProgress", "hardwareTemperatureMonitoringEnabled", "cpuRingCenterContent", "gpuRingCenterContent", "refreshIntervalOnBatterySeconds",
                 "refreshIntervalOnPowerSeconds", "maxVisibleOutputDevices", "alwaysShowsAllOutputDevices",
                 "maxVisibleInputDevices", "alwaysShowsAllInputDevices", "showsBluetoothDeviceList",
                 "maxVisibleBluetoothDevices", "hidesGhostBluetoothDevices", "popupSectionOrder",
@@ -509,6 +509,20 @@ final class SettingsPreferenceCatalogTests: XCTestCase {
 
         XCTAssertEqual(result.values["showsPanelDetailsAlongside"], .bool(false))
         XCTAssertEqual(result.warnings.count, 1)
+    }
+
+    func testHardwareRingSplitGapProgressDefaultsOffAndRoundTrips() {
+        withStore { source, _ in
+            XCTAssertFalse(source.hardwareRingSplitGapProgress)
+            source.hardwareRingSplitGapProgress = true
+            let snapshot = SettingsPreferenceCatalog.snapshot(source)
+            XCTAssertEqual(snapshot["hardwareRingSplitGapProgress"], .bool(true))
+            withStore { target, _ in
+                XCTAssertFalse(target.hardwareRingSplitGapProgress)
+                SettingsPreferenceCatalog.apply(snapshot, to: target)
+                XCTAssertTrue(target.hardwareRingSplitGapProgress)
+            }
+        }
     }
 
     private func withStore(_ body: (SettingsStore, UserDefaults) -> Void) {

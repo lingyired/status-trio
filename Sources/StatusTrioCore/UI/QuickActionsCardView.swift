@@ -221,7 +221,17 @@ struct QuickActionsCardView: View {
                     .secondary
                 )
             }
-            return (localization.string(external.localizationKey), .secondary)
+            var text = localization.string(external.localizationKey)
+            // Failure states carry a stable code so a user report maps to a
+            // cause; external ownership is guidance and needs no code (#383).
+            if external != .managedExternally, let code = control.lidSleepFailureCode {
+                text += String(
+                    format: localization.string(.quickActionsLidSleepFailureCode),
+                    locale: localization.resolvedLanguage.locale,
+                    arguments: [code]
+                )
+            }
+            return (text, .secondary)
         }
         if shouldShowLid, !control.isPreventingLidSleep,
            let reason = control.lidUnavailableReason, reason != .requiresPower {

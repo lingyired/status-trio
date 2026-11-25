@@ -19,9 +19,16 @@ struct HardwareMonitorSummaryView: View {
     /// Whether the RAM / SSD rings read as consumed or remaining.
     var memoryRingDisplayMode: RingValueDisplayMode = .used
     var ssdRingDisplayMode: RingValueDisplayMode = .used
+    /// Whether the SSD ring's percentage pools selected external volumes and
+    /// whether the card shows the external total footer.
+    var ssdIncludeExternalInPercent: Bool = false
+    var ssdSelectedExternalPaths: Set<String> = []
     var cpuRingCenterContent: HardwareRingCenterContent = .temperature
     var gpuRingCenterContent: HardwareRingCenterContent = .temperature
     var hardwareTemperatureMonitoringEnabled: Bool = true
+    /// Split each ring's progress across the top gap (left half 0–50%, right
+    /// half 50–100%) so the percentage in the gap never hides progress (#375).
+    var hardwareRingSplitGapProgress: Bool = false
     /// Bottom info-bar metrics the user kept enabled.
     var summaryMetrics: Set<HardwareSummaryMetric> = Set(HardwareSummaryMetric.allCases)
 
@@ -57,7 +64,10 @@ struct HardwareMonitorSummaryView: View {
                                   ssdDisplayMode: ssdRingDisplayMode,
                                   cpuCenterContent: cpuRingCenterContent,
                                   gpuCenterContent: gpuRingCenterContent,
-                                  temperatureMonitoringEnabled: hardwareTemperatureMonitoringEnabled)
+                                  temperatureMonitoringEnabled: hardwareTemperatureMonitoringEnabled,
+                                  splitGapProgress: hardwareRingSplitGapProgress,
+                                  ssdIncludeExternalInPercent: ssdIncludeExternalInPercent,
+                                  ssdSelectedExternalPaths: ssdSelectedExternalPaths)
             }
             if showsSummaryRow, !visibleItems.isEmpty {
                 CompactSummaryInfoBar(items: visibleItems) { metric in

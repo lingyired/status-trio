@@ -41,7 +41,7 @@
 "settings.dockIconBackground.light" = "ライト";
 "settings.iconSize" = "アイコンの表示サイズ";
 "settings.iconSize.accessibilityValue" = "%d ポイント";
-"settings.iconSize.description" = "メニューバーアイコンの描画サイズを 16〜36 pt で調整します。Dock アイコンは固定のデザインサイズを使用します。";
+"settings.iconSize.description" = "メニューバーのアイコン：16～36 pt。Dockアイコンは固定サイズのままです。";
 "settings.ringStrokeStyle" = "外枠リングの太さ";
 "settings.ringStrokeStyle.description" = "メニューバーと Dock のステータスリングの線の太さを選択します。";
 "settings.ringStrokeStyle.light" = "細め";
@@ -66,7 +66,7 @@
 "settings.appIcon.middleIcon.batteryPercentage" = "バッテリー残量";
 "settings.appIcon.middleIcon.power" = "消費電力（W）";
 "settings.appIcon.middleIcon.chargingStatus" = "充電状態";
-"settings.appIcon.middleIcon.chargingStatus.description" = "このモードでは、上部アークの「充電中または電源接続時にアイコンを表示」は無効になり、アイコンの重複を防ぎます。";
+"settings.appIcon.middleIcon.chargingStatus.description" = "パーセントの代わりに充電状態を表示します。重複を避けるため、上部アークの充電インジケータはオフになります。";
 "settings.appIcon.middleIcon.size" = "中央アイコンのサイズ";
 "settings.appIcon.middleIcon.size.description" = "中央に表示するすべての内容（Wi-Fi、Bluetooth、入力ソース、数字）で共通のサイズです。";
 "settings.appIcon.middleIcon.networkWarnings" = "ネットワークの問題を優先";
@@ -109,7 +109,7 @@
 "settings.bluetooth.networkErrorPriority" = "ネットワークエラーを優先";
 "settings.bluetooth.networkErrorPriorityDescription" = "接続エラーやオフライン状態では、Bluetooth 機器ではなくネットワークアイコンを表示します。";
 "settings.bluetooth.batteryLevels" = "Bluetooth のバッテリー残量を表示";
-"settings.bluetooth.batteryLevelsDescription" = "Bluetooth 項目の表示中に AirPods の残量を読み取ります。追加の権限確認は表示されません。";
+"settings.bluetooth.batteryLevelsDescription" = "パネルに表示される対応Bluetoothアクセサリのバッテリー残量を読み取ります。";
 "settings.bluetooth.listeningModeTitle" = "ヒアリングモードのコントロールを表示";
 "settings.bluetooth.listeningModeDescription" = "AirPods と一部の HUAWEI ヘッドホンをサポート：接続中のデバイスにノイズキャンセリング/外音取り込み/オフのボタンを表示します。HUAWEI は一部のモデルのみ対応しており、切り替えに失敗した場合は元のモードに戻ります。";
 "settings.bluetooth.listeningModePreview" = "リスニングモードのプレビュー（テスト専用）";
@@ -163,11 +163,11 @@
 "settings.audio.maximumVisibleInput" = "表示する入力デバイスの最大数";
 "settings.audio.maximumVisibleInputDescription" = "「展開」を表示する前に表示する入力デバイス数です。";
 "settings.audio.orderTitle" = "出力デバイスの順序";
-"settings.audio.orderDescription" = "デバイスをドラッグして、音量ポップオーバーでの表示順を変更します。使わないデバイスのチェックを外すと非表示になります（使用中の出力は常に表示されます）。新しいデバイスは末尾に追加されます。";
+"settings.audio.orderDescription" = "デバイスは既定でパネルに表示されます。ドラッグで並べ替え、チェックを外すと非表示になります。使用中の出力は常に表示されます。";
 "settings.audio.orderEmpty" = "使用可能な出力デバイスがありません。";
 "settings.audio.showDevice" = "ステータスパネルに表示";
 "settings.audio.inputOrderTitle" = "入力デバイスの順序";
-"settings.audio.inputOrderDescription" = "デバイスをドラッグして、オーディオ入力セクションでの表示順を変更します。使わないデバイスのチェックを外すと非表示になります（現在の入力は常に表示されます）。新しいデバイスは末尾に追加されます。";
+"settings.audio.inputOrderDescription" = "入力デバイスは既定でパネルに表示されます。ドラッグで並べ替え、チェックを外すと非表示になります。使用中の入力は常に表示されます。";
 "settings.audio.inputOrderEmpty" = "使用可能な入力デバイスがありません。";
 "settings.audio.inputOrderSectionOff" = "入力デバイスを並べ替えたり非表示にしたりするには、ステータスパネル › 表示項目で「オーディオ入力」をオンにしてください。";
 "settings.about.version" = "バージョン %@";
@@ -181,6 +181,7 @@
 "settings.about.copyright" = "© lingyired";
 "settings.battery.title" = "バッテリー表示";
 "settings.battery.group.icon" = "上部バッテリーアーク";
+"settings.battery.sharedSyncNote" = "このリング設定は「バッテリー」ページと共通で、どちらで変更しても同期されます。";
 "settings.battery.group.colors" = "状態と色";
 "settings.battery.group.chargingEffects" = "充電エフェクト";
 "settings.battery.group.charging" = "充電";
@@ -189,7 +190,7 @@
 "settings.battery.group.topMarkers" = "上部マーカー";
 "settings.ringContent.group" = "リング内容";
 "settings.ringContent.row.title" = "リングの表示";
-"settings.ringContent.row.description" = "外側リングに表示する内容を選択：このMacのバッテリーまたはAirPodsのバッテリー。";
+"settings.ringContent.row.description" = "外側リングに表示する内容を選択します：このMacのバッテリー、AirPods、またはカスタムのハードウェア指標。";
 "settings.ringContent.systemBattery" = "このMacのバッテリー";
 "settings.ringContent.airPodsBattery" = "AirPodsバッテリー";
 "settings.ringContent.airPodsGroup" = "AirPodsリング";
@@ -357,9 +358,9 @@
 "settings.network.showLocalIP.description" = "ネットワーク行の 2 行目に、Wi-Fi の情報より前にこの Mac のプライベート LAN アドレスを表示します。";
 
 "settings.network.permissionNotDeterminedTitle" = "位置情報の許可が必要です";
-"settings.network.permissionNotDeterminedDescription" = "Wi-Fi ネットワークを表示するには Status Trio の位置情報へのアクセスが必要です。下のボタンから許可してください。";
+"settings.network.permissionNotDeterminedDescription" = "接続状態は位置情報なしで動作します。Wi-Fi名と付近のネットワークの読み取りには位置情報へのアクセスが必要です。下で許可してください。";
 "settings.network.permissionDeniedTitle" = "位置情報の許可がオフです";
-"settings.network.permissionDeniedDescription" = "位置情報へのアクセスがないと Wi-Fi ネットワークを表示できません。システム設定で有効にしてください。";
+"settings.network.permissionDeniedDescription" = "接続状態は引き続き動作します。位置情報へのアクセスがないと、Wi-Fi名と付近のネットワークは表示されません。システム設定で有効にしてください。";
 "settings.audio.externalVolume.title" = "外部ディスプレイ音量";
 "settings.audio.externalVolume.controlMethod" = "制御方法";
 "settings.audio.externalVolume.controlMethodDescription" = "ステータスパネルの音量コントロールでこのデバイスを調整できない場合は、BetterDisplay を使用してください。";
@@ -433,9 +434,9 @@
 "accessibility.status" = "%@、%@、%@";
 "accessibility.battery" = "バッテリー %d%%";
 "accessibility.volume" = "音量 %@";
-"settings.statusCheck.title" = "状態チェック間隔";
+"settings.statusCheck.title" = "ステータス確認の頻度";
 "settings.quickActions.title" = "クイック操作";
-"settings.refreshInterval" = "ステータス更新間隔";
+"settings.refreshInterval" = "確認頻度";
 "settings.refreshInterval.onBattery" = "バッテリー使用時";
 "settings.refreshInterval.onPower" = "電源接続時";
 "settings.refreshInterval.description" = "バッテリー、Wi-Fi、音量の状態を定期的に確認します。間隔が短いほど頻繁に確認します。";
@@ -460,8 +461,9 @@
 "settings.keepAwake.helperReady" = "特権ヘルパーの準備ができています。";
 "settings.keepAwake.helperHint" = "「蓋を閉じてもスリープしない」（または低電力モード制御）をオンにすると、自動でインストールと承認を求めます。";
 "settings.keepAwake.allowBattery" = "バッテリー駆動でも許可";
-"settings.keepAwake.autoOff" = "バッテリー低下時にフタ閉じ寝ない設定をオフ";
-"settings.keepAwake.onlyLid" = "「蓋を閉じてもスリープしない」にのみ適用";
+"settings.keepAwake.autoOff" = "バッテリー低下時にオフ";
+"settings.keepAwake.autoOff.description" = "バッテリー残量が20%以下のとき、フタを閉じてもスリープしない設定をオフにします。";
+"settings.keepAwake.onlyLid" = "フタを閉じてもスリープしない設定のみに適用されます。「画面をスリープさせない」は継続します。";
 "quickActions.displaySleep" = "画面をスリープさせない";
 "quickActions.displaySleep.description" = "アイドル時にディスプレイがスリープしないようにします。";
 "quickActions.lidSleep" = "フタを閉じてもスリープさせない";
@@ -469,6 +471,8 @@
 "quickActions.timer" = "タイマー";
 "quickActions.timer.choose" = "継続時間を選択";
 "quickActions.lidSleep.external" = "「蓋を閉じてもスリープしない」は他のアプリで既にオンです。Status Trio は上書きしません。";
+"quickActions.lidSleep.helperStarting" = "特権ヘルパーを起動しています。しばらくしてからもう一度お試しください。";
+"quickActions.lidSleep.failureCode" = "（エラーコード %@）";
 "quickActions.lidSleep.unreadable" = "「蓋を閉じてもスリープしない」の状態を読み取れませんでした。変更していません。";
 "quickActions.lidSleep.externalNamed" = "「蓋を閉じてもスリープしない」は他のアプリで既にオンです（%@ の可能性）。Status Trio は上書きしません。";
 "quickActions.timer.thirtyMinutes" = "30分";
@@ -488,7 +492,7 @@
 "quickActions.turnedOffLowBattery" = "バッテリー残量低下 — フタを閉じたときのスリープ防止をオフにしました。";
 "quickActions.turnedOffTimerEnded" = "タイマーが終了しました — 自動的にオフになりました。";
 "quickActions.error" = "設定を変更できませんでした: %@";
-"settings.panel.background.title" = "パネルの背景";
+"settings.panel.background.title" = "外観";
 "settings.panel.background.style" = "背景スタイル";
 "settings.panel.background.style.description" = "ステータスパネルの背景の描画方法を選択します。";
 "settings.panel.background.style.liquidGlass" = "リキッドグラス";
@@ -503,17 +507,17 @@
 "settings.panel.levelSliderThickness.description" = "音量とマイクのスライダーを明るさと同じカプセルの高さで描画します。";
 "settings.panel.openBehavior.title" = "詳細と開き方";
 "settings.panel.returnsToSummaryOnOpen" = "最後の詳細ページを再度開く";
-"settings.panel.returnsToSummaryOnOpen.description" = "有効にすると、ステータスパネルを開き直したときに、閉じる前に表示していた詳細ページに戻ります。無効の場合は常に概要から始まります。";
+"settings.panel.returnsToSummaryOnOpen.description" = "再度開くと最後の詳細ページに戻ります。オフの場合は常に概要から始まります。";
 "settings.panel.showsDetailsAlongside" = "詳細を横に表示";
 "settings.panel.showsDetailsAlongside.description" = "有効にすると、詳細ページはステータスパネルの右側、次に左側に開きます。どちらにも収まらない場合はパネル内に表示します。";
 "settings.panel.showsPanelOnHover" = "ホバーでパネルを表示";
-"settings.panel.showsPanelOnHover.description" = "有効にすると、メニューバーのアイコンに約 0.3 秒ポインタを置くとステータスパネルが開きます。パネル内へ移動すると開いたままになり、アイコンとパネルから離れると少し遅れて閉じます。クリックは従来どおり切り替えです。";
+"settings.panel.showsPanelOnHover.description" = "メニューバーのアイコンにポインタを約0.3秒置くとパネルが開きます。パネル内に移動すると開いたままになり、両方から離れると少し遅れて閉じます。クリックは従来どおり切り替えです。";
 "settings.popup.volumeScroll.group" = "パネルのスクロール";
 "settings.audio.volumeScroll.group" = "音量スクロール";
 "settings.popup.panelScroll" = "パネルのスクロールで音量を調整";
 "settings.popup.panelScroll.description" = "概要ページの空白領域をスクロールすると出力音量が変わります。スライダーは常にスクロールで調整できます。";
 "settings.popup.volumeScroll.natural" = "ナチュラルスクロール";
-"settings.popup.volumeScroll.natural.description" = "オンにすると、上方向のスクロールでポインタ下の値（音量・明るさ・入力ゲイン）が増えます。オフにするとシステムのスクロール方向に従います。オンにした後も上スクロールで値が下がる場合は、MOS、Scroll Reverser、LinearMouse などで Status Trio を例外/無視リストに追加してください。";
+"settings.popup.volumeScroll.natural.description" = "上にスクロールするとポインタ位置の値が上がります。オフではシステムの方向に従います。オンにした後も逆に動く場合は、MOS、Scroll Reverser、LinearMouse の例外/無視リストに Status Trio を追加してください。";
 "settings.audio.volumeFeedbackTitle" = "音量フィードバック";
 "settings.audio.volumeFeedback" = "スクロールで音量を変更したときに音を鳴らす";
 "settings.audio.volumeFeedbackDescription" = "スクロールで音量を変更したときに通知音を鳴らします。既定では macOS の「音量変更時にフィードバックを再生」に従います。ここで切り替えると Status Trio のみに適用されます。";
@@ -607,7 +611,7 @@
 "settings.preview.dark" = "ダーク";
 "settings.preview.light" = "ライト";
 "settings.preview.toggleHelp" = "メニューバーのダーク/ライト背景プレビューを切り替え";
-"settings.audio.displayRules" = "表示ルール";
+"settings.audio.displayRules" = "デバイスリスト";
 "settings.audio.activeDeviceFootnote" = "現在アクティブな音声出力デバイスはアクセントカラーでハイライトされます。";
 "settings.audio.inUse" = "使用中";
 "settings.wifi.symbolScale" = "Wi-Fiアイコンサイズ";
@@ -619,14 +623,14 @@
 "settings.audio.indicatorStyle.arc" = "円弧バー";
 "settings.audio.bottomIndicatorTitle" = "下部インジケーター";
 "settings.audio.bottomIndicatorDescription" = "アイコン下のバーに表示する内容を選択します。4 ドットまたは円弧のスタイルは変わりません。";
-"settings.audio.bottomIndicatorSource" = "下部インジケーターのソース";
+"settings.audio.bottomIndicatorSource" = "下部インジケーター";
 "settings.audio.bottomIndicatorSource.volume" = "音量";
 "settings.audio.bottomIndicatorSource.wifi" = "Wi-Fi";
 "settings.audio.bottomIndicatorSource.battery" = "バッテリー";
 "settings.audio.bottomIndicatorSource.hidden" = "非表示";
 "settings.audio.bottomIndicatorSource.metric" = "カスタム";
-"settings.audio.bottomIndicatorMetric" = "カスタム";
-"settings.audio.bottomIndicatorMetricDescription" = "バーに表示するハードウェア指標を選択します。4 ドットまたは円弧のスタイルは変わりません。";
+"settings.audio.bottomIndicatorMetric" = "指標";
+"settings.audio.bottomIndicatorMetricDescription" = "下部バーに表示する指標を選択します。ドットまたはアークのスタイルは変わりません。";
 "settings.audio.airPodsInlineControlsTitle" = "ヘッドフォンコントロール";
 "settings.audio.airPodsInlineControls" = "音量パネルに AirPods コントロールを表示";
 "settings.audio.airPodsInlineControlsDescription" = "AirPods 出力の横に会話認識・空間オーディオ・アダプティブのコントロールを表示します。私的 API ベースのこれらのコントロールを隠すにはオフにします。";
@@ -733,7 +737,7 @@
 "settings.appleDevicesAndBattery" = "Appleデバイスとバッテリーを表示";
 "settings.appleTrustHelp" = "iPhone / iPad は初回のみケーブルで Mac に接続し、ロック解除して「信頼」をタップしてください。ワイヤレス読み取りには同じネットワーク上での Wi‑Fi 同期も必要です。Apple Watch は信頼済みの iPhone 経由で読み取ります。";
 "settings.appleBluetoothReadHelp" = "Bluetooth で読み取る際、デバイスがペアリングを求めることがあります。読み取りに繰り返し失敗すると一時停止し、パネルの更新ボタンで再試行できます。";
-"settings.appleDevicesAndBattery.description" = "信頼済みの Apple デバイスと近くの名前付きデバイスを Bluetooth リストに表示します。";
+"settings.appleDevicesAndBattery.description" = "信頼済みのAppleデバイスと、名前のある近くのApple Bluetoothデバイスを表示します。iPhoneとiPadはケーブルで一度ペアリングし、ロック解除して「信頼」すると読み取れます。";
 "settings.appleBackgroundRefresh" = "Apple デバイスのバッテリーをバックグラウンドで更新";
 "settings.appleBackgroundRefresh.description" = "ステータスパネルを閉じている間も、選択した Apple デバイスの電池残量を更新します。";
 "settings.appleBackgroundRefresh.interval" = "バックグラウンドでのバッテリー残量更新間隔";
@@ -1063,8 +1067,8 @@
 "brightness.backend.automatic" = "自動";
 "brightness.backend.directDDC" = "ダイレクト DDC";
 "brightness.backend.betterDisplay" = "BetterDisplay";
-"settings.brightness.description" = "ディスプレイをオフにすると、その明るさの行が非表示になります。";
-"settings.brightness.backend" = "明るさバックエンド";
+"settings.brightness.description" = "これらのスイッチは、状態パネルでそのディスプレイの明るさ行を隠すだけです。明るさの制御方法は変わりません。";
+"settings.brightness.backend" = "明るさの制御方法";
 // About: community, author social links and more apps
 "settings.about.social.title" = "作者をフォロー";
 "settings.about.social.douyin" = "Douyin";
@@ -1132,6 +1136,7 @@
 
 "settings.tab.brightness" = "明るさ";
 "settings.brightness.group.title" = "接続中のディスプレイ";
+"settings.brightness.group.betterDisplay" = "BetterDisplay";
 "settings.brightness.empty" = "接続されているディスプレイはありません。";
 "settings.brightness.builtIn" = "内蔵";
 "settings.brightness.internalBackend.description" = "内蔵ディスプレイの明るさは DisplayServices バックエンドを使用します。";
@@ -1172,8 +1177,8 @@
 "settings.battery.colors.discharging" = "放電中（電源未接続）";
 "battery.lowPowerMode.autoEnable" = "低電力モードを自動でオン";
 "battery.lowPowerMode.autoEnableDescription" = "電源を外すと、バッテリー残量が低バッテリーしきい値を下回ったときに低電力モードが自動でオンになります。低バッテリーごとに 1 回だけです。";
-"settings.battery.autoLowPowerThreshold" = "低電力モードを自動でオン";
-"settings.battery.autoLowPowerThresholdDescription" = "バッテリー使用時に残量がこの値を下回ると低電力モードを自動でオンにします。";
+"settings.battery.autoLowPowerThreshold" = "自動オンにするしきい値";
+"settings.battery.autoLowPowerThresholdDescription" = "バッテリー駆動時にバッテリー残量がこの値まで下がると、低電力モードがオンになります。";
 "battery.highPowerMode.toggle" = "高電力モード";
 "battery.details.highPower.unsupported" = "非対応";
 "battery.highPowerMode.toggleDescription" = "ファンの回転数を上げて高い持続性能を引き出します。ファンの騒音は大きくなります。";
@@ -1231,6 +1236,11 @@
 "hardware.monitor.ringValue.group" = "リング表示";
 "hardware.monitor.ringValue.groupDescription" = "メモリと SSD のリングに使用量と空き容量のどちらを表示するか選びます。";
 "hardware.monitor.ringValue.ssd" = "SSD";
+"hardware.monitor.externalDisk.group" = "外付けドライブ";
+"hardware.monitor.externalDisk.listDescription" = "SSD リングの外付け合計に含めるドライブにチェックを入れます。";
+"hardware.monitor.externalDisk.includeInPercent" = "上部の割合に外付け SSD を含める";
+"hardware.monitor.externalDisk.includeInPercentDescription" = "オンにすると、SSD リング上部の割合はチェックした外付けドライブを内蔵ディスクと合算します。オフでは内蔵ディスクのみ。";
+"hardware.monitor.externalDisk.empty" = "外付けドライブが見つかりません";
 "hardware.monitor.ringValue.used" = "使用中";
 "hardware.monitor.ringValue.remaining" = "空き";
 "hardware.monitor.settings.temperatureMonitoring" = "CPU/GPU 温度モニタリング";
@@ -1308,22 +1318,25 @@
 "hardware.monitor.settings.networkScale" = "ネットワーク目盛り固定";
 "hardware.monitor.settings.networkScale.description" = "オフ：ウィンドウ内のピークに自動スケール（15%余白）。オン：ダウンロード/アップロード上限を満点にします。";
 "hardware.monitor.settings.background" = "バックグラウンド履歴を保持";
-"hardware.monitor.settings.background.description" = "パネルを閉じている間もパネルの更新間隔で直近3分のハードウェア履歴を記録し、詳細ページを開くと傾向が表示されます。";
+"hardware.monitor.settings.background.description" = "パネルを閉じている間も上の更新頻度で最大5分のハードウェア履歴を保持し、詳細ページを傾向付きで開けるようにします。";
 "hardware.monitor.background.off" = "オフ";
 "hardware.monitor.background.seconds" = "%d 秒";
 "hardware.monitor.settings.historyWindow" = "履歴の長さ";
 "hardware.monitor.settings.historyWindow.description" = "詳細ページの傾向をどこまで保持するか。";
 "hardware.monitor.settings.historyWindow.minutes" = "%d 分";
 "hardware.monitor.settings.panelRefresh" = "ハードウェアデータの更新間隔";
-"hardware.monitor.settings.panelRefresh.description" = "パネルを開いている間のハードウェアデータ更新頻度です。バックグラウンド履歴がオンの場合、閉じたパネルも同じ間隔を保ちます。各指標には固有の読み取り下限があります。速いほどリアルタイムですが読み取りが増え、遅いほど省電力です。";
+"hardware.monitor.settings.panelRefresh.description" = "ハードウェアデータの更新頻度です。バックグラウンド履歴をオンにすると、閉じたパネルでも同じ頻度で記録します。速いほどリアルタイムですが読み取りが増え、遅いほど省電力です。";
 "hardware.monitor.settings.showRings" = "リングを表示";
 "hardware.monitor.settings.colorTitle" = "色";
 "hardware.monitor.settings.resetColors" = "色をリセット";
 "hardware.monitor.settings.showRings.description" = "CPU / GPU / RAM / SSD のリングを表示します。";
+"hardware.monitor.settings.splitGapProgress" = "リング進捗を左右に分割";
+"hardware.monitor.settings.splitGapProgress.description" = "左半分が0～50%、右半分が50～100%となり、上部の値が進捗を隠さなくなります。";
 "hardware.monitor.settings.showSummaryRow" = "下部バーを表示";
 
 /* Status-panel per-item visibility */
 "hardware.monitor.settings.group.rings" = "リング指標";
+"hardware.monitor.settings.group.sampling" = "サンプリングとトレンド";
 "hardware.monitor.settings.group.bottomBar" = "下部バー";
 "hardware.monitor.settings.item.diskCapacity" = "ディスク容量";
 "hardware.monitor.settings.showSummaryRow.description" = "リングの下にダウンロード・アップロード・ファン・ディスク I/O を表示します。";
@@ -1338,7 +1351,7 @@
 "hardware.monitor.download.help" = "物理ネットワークインターフェイス全体のダウンロードスループット。";
 "hardware.monitor.upload.help" = "物理ネットワークインターフェイス全体のアップロードスループット。";
 
-"settings.transfer.title" = "設定の移行";
+"settings.transfer.title" = "設定の読み込みと書き出し";
 "settings.transfer.description" = "移行可能な環境設定を読みやすい JSON として保存するか、読み込む前に設定ファイルをプレビューします。";
 "settings.transfer.exclusions" = "ログイン項目、Helper のインストール、プライバシーに関する同意、解析データ共有への同意、グローバルショートカットは移行されません。読み込み後に手動で設定してください。";
 "settings.transfer.export" = "書き出す…";
@@ -1366,8 +1379,8 @@
 "settings.transfer.done" = "完了";
 "settings.transfer.warningCount" = "警告の総数：%d（最初の 50 件まで表示）。";
 
-"settings.popup.scrollWheelStep" = "ホイールの調整幅";
-"settings.popup.scrollWheelStep.description" = "1目盛りあたりの音量・明るさ・マイクの調整幅。トラックパッドは連続調整のままです。";
+"settings.popup.scrollWheelStep" = "ホイールの刻み";
+"settings.popup.scrollWheelStep.description" = "ホイール1刻みあたりの音量・明るさ・マイクの変化量です。トラックパッドは連続調整のままです。";
 "settings.panel.boldText" = "パネルの文字を太字にする";
 "settings.panel.boldText.description" = "見出しと数値を太字で表示します（以前の見た目に戻します）。オフにすると標準の太さになります。";
 "settings.panel.keepOpenForComparison" = "設定を開いてもパネルを閉じない";
@@ -1385,6 +1398,12 @@
 "hardware.detail.title.network" = "ネットワーク";
 "hardware.detail.title.disk" = "ディスク";
 "hardware.detail.back" = "ハードウェアモニタ";
+"hardware.detail.openActivityMonitor" = "アクティビティモニタを開く";
+"app.forceQuit.action" = "%@ を強制終了";
+"app.forceQuit.confirmTitle" = "%@ を強制終了しますか？";
+"app.forceQuit.confirmMessage" = "保存されていない変更は失われる可能性があります。";
+"app.forceQuit.confirmAction" = "強制終了";
+"app.forceQuit.failed" = "%@ を終了できませんでした（別のユーザーまたはシステムプロセスの可能性があります）。";
 "hardware.detail.totalUsage" = "合計使用率";
 "hardware.detail.temperature" = "温度";
 "hardware.detail.logicalCores" = "論理コア";
@@ -1425,6 +1444,7 @@
 "hardware.detail.topApps.empty" = "アクティブなアプリなし";
 "hardware.detail.topApps.unsupported" = "未対応";
 "hardware.detail.topApps.failed" = "読み取り失敗";
+"hardware.detail.topApps.refreshCountdown" = "%d 秒後に更新";
 "hardware.detail.sessionDownload" = "今回のダウンロード";
 "hardware.detail.sessionUpload" = "今回のアップロード";
 "hardware.detail.interfaces" = "インターフェース";
@@ -1434,6 +1454,8 @@
 "hardware.detail.fileSystem" = "ファイルシステム";
 "hardware.detail.readSpeed" = "読み込み速度";
 "hardware.detail.writeSpeed" = "書き込み速度";
+"hardware.detail.diskExternal" = "外付け";
+"hardware.detail.diskAvailable" = "空き %@ / %@";
 "hardware.detail.usageTrend" = "使用率の推移";
 "hardware.detail.speedTrend" = "速度の推移";
 "hardware.detail.pressureNormal" = "正常";
