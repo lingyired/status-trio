@@ -1,3 +1,4 @@
+import AppKit
 import SwiftUI
 
 /// Settings for how the battery indicator is drawn in the status icon.
@@ -39,7 +40,11 @@ struct BatterySectionView: View {
             noBatteryNoticeGroup
         }
         panelVisibilityGroup
-        chargeManagementGroup
+        // The "Charging" group (native charge-to-full) belongs to macOS 26.4+.
+        // macOS 13–15 get their own limiter group; 16–26.3 show neither.
+        if ChargeLimitSystemVersionGate.prefersSystemBatteryOptimization() {
+            chargeManagementGroup
+        }
         chargeLimitGroup
         if helper.isAvailable {
             powerModesGroup
@@ -99,7 +104,15 @@ struct BatterySectionView: View {
                   ) {
             LegacyChargeLimitSettingsView(
                 controller: legacyChargeLimit,
-                requestHelperApproval: { helper.ensureSharedHelperRegistered() }
+                requestHelperApproval: { helper.ensureSharedHelperRegistered() },
+                showsPanelButton: $store.showsLegacyChargeToFullButton,
+                sleepPolicy: $store.legacySleepPolicy,
+                openBatterySettings: {
+                    for url in StatusBarController.batterySettingsURLs
+                    where NSWorkspace.shared.open(url) {
+                        return
+                    }
+                }
             )
         }
     }

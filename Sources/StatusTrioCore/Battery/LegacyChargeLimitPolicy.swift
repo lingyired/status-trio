@@ -104,5 +104,5 @@ enum LegacyChargeLimitValidator {
     }
 
     /// Hysteresis gap between charging-enable and disable thresholds.
-    static let hysteresis = 2
+    static let hysteresis = 4
 }

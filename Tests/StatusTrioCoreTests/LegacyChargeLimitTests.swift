@@ -124,7 +124,7 @@ final class LegacyChargeLimitValidatorTests: XCTestCase {
     }
 
     func testHysteresis() {
-        XCTAssertEqual(LegacyChargeLimitValidator.hysteresis, 2)
+        XCTAssertEqual(LegacyChargeLimitValidator.hysteresis, 4)
     }
 }
 
@@ -202,5 +202,27 @@ final class LegacySessionTests: XCTestCase {
         XCTAssertTrue(LegacyChargeLimitSession(requestedLimit: 80, originalLimit: nil).isValid)
         XCTAssertTrue(LegacyChargeLimitSession(requestedLimit: 100, originalLimit: 100).isValid)
         XCTAssertFalse(LegacyChargeLimitSession(requestedLimit: 79, originalLimit: nil).isValid)
+    }
+}
+
+/// Sleep policy is a pure decision; the IOKit assertion only applies it.
+final class LegacySleepPolicyTests: XCTestCase {
+    func testPauseChargingNeverHoldsAwake() {
+        for level in [10, 60, 84, 100] {
+            XCTAssertFalse(LegacySleepPolicy.shouldStayAwake(
+                level: level, target: 85, isOnAC: true, hasSession: true, policy: .pauseCharging))
+        }
+    }
+
+    func testKeepAwakeUntilLimitWhileBelowTheCeilingOnAC() {
+        XCTAssertTrue(LegacySleepPolicy.shouldStayAwake(
+            level: 60, target: 85, isOnAC: true, hasSession: true, policy: .keepAwakeUntilLimit))
+        XCTAssertFalse(LegacySleepPolicy.shouldStayAwake(
+            level: 85, target: 85, isOnAC: true, hasSession: true, policy: .keepAwakeUntilLimit))
+        XCTAssertFalse(LegacySleepPolicy.shouldStayAwake(
+            level: 60, target: 85, isOnAC: false, hasSession: true, policy: .keepAwakeUntilLimit),
+            "On battery there is nothing to charge")
+        XCTAssertFalse(LegacySleepPolicy.shouldStayAwake(
+            level: 60, target: 85, isOnAC: true, hasSession: false, policy: .keepAwakeUntilLimit))
     }
 }

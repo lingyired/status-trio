@@ -10,6 +10,27 @@ import Foundation
 
 // MARK: - Runtime & OS classification
 
+/// How the legacy limiter behaves around system sleep on Apple Silicon, where
+/// the software gate only holds while something can act on it.
+enum LegacySleepPolicy: String, CaseIterable, Codable, Sendable, Identifiable {
+    /// Stop charging before sleep; resume toward the ceiling on wake. (Default)
+    case pauseCharging
+    /// Keep the Mac awake (the display may still turn off) until the ceiling is
+    /// reached, then allow normal sleep. Mirrors AlDente's "disable sleep until
+    /// limit" option.
+    case keepAwakeUntilLimit
+
+    var id: String { rawValue }
+
+    /// Pure decision: hold a sleep-prevention assertion right now?
+    static func shouldStayAwake(
+        level: Int, target: Int, isOnAC: Bool, hasSession: Bool, policy: LegacySleepPolicy
+    ) -> Bool {
+        guard policy == .keepAwakeUntilLimit, hasSession, isOnAC else { return false }
+        return level < target
+    }
+}
+
 enum LegacyRuntimeArchitecture: Equatable, Sendable {
     /// Native Intel (`x86_64` on non-Rosetta).
     case intel
@@ -257,8 +278,11 @@ struct LegacyChargeLimitSession: Codable, Equatable, Sendable {
     var requestedLimit: Int
     /// The original hardware value captured before we took over, if any.
     var originalLimit: Int?
-    /// True while a one-time "charge to full" override is in progress.
+    /// True while a temporary "charge to full" override is in progress.
     var isTemporarilyOverridden = false
+    /// When the temporary override ends (24h after it started). `nil` means the
+    /// older "until the battery is full" behaviour.
+    var temporaryFullUntil: Date?
     /// True when a newer command superseded us (last-writer-wins).
     var isPaused = false
     /// Persisted before issuing a write; restart requires revalidation.

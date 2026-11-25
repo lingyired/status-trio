@@ -68,6 +68,12 @@ final class PowerHelperService: NSObject, PowerHelperCombinedXPCProtocol {
         legacy.setLegacyChargeLimit(limit, expectedLimit: expectedLimit, withReply: reply)
     }
 
+    func reconcileLegacyChargeLimit(
+        _ limit: Int, withReply reply: @escaping (SMLegacyChargeLimitWriteReply?) -> Void
+    ) {
+        legacy.reconcileLegacyChargeLimit(limit, withReply: reply)
+    }
+
     func legacyChargeToFullOnce(
         withReply reply: @escaping (SMLegacyChargeLimitWriteReply?) -> Void
     ) {
@@ -121,9 +127,16 @@ final class LegacyChargeConnection: @unchecked Sendable {
     }
 
     func setLegacyChargeLimit(
-        _ limit: Int, expectedLimit: NSNumber?, withReply reply: @escaping (SMLegacyChargeLimitWriteReply?) -> Void
+        _ limit: Int, expectedLimit: NSNumber?,
+        withReply reply: @escaping (SMLegacyChargeLimitWriteReply?) -> Void
     ) {
         service?.setLegacyChargeLimit(limit, expectedLimit: expectedLimit, ownerID: ownerID, withReply: reply)
+    }
+
+    func reconcileLegacyChargeLimit(
+        _ limit: Int, withReply reply: @escaping (SMLegacyChargeLimitWriteReply?) -> Void
+    ) {
+        service?.reconcileLegacyChargeLimit(ownerID: ownerID, limit: limit, withReply: reply)
     }
 
     func legacyChargeToFullOnce(withReply reply: @escaping (SMLegacyChargeLimitWriteReply?) -> Void) {

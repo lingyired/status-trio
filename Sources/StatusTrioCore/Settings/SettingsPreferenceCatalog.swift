@@ -148,6 +148,8 @@ enum SettingsPreferenceCatalog {
                    default: SettingsStore.defaultHighEnergyAppsRefreshIntervalSeconds,
                    range: SettingsStore.highEnergyAppsRefreshIntervalRange, step: 5),
             boolean("showsChargeToFullNowButton", \.showsChargeToFullNowButton, default: true),
+            boolean("showsLegacyChargeToFullButton", \.showsLegacyChargeToFullButton, default: false),
+            enumeration("legacySleepPolicy", \.legacySleepPolicy, default: .pauseCharging),
             number("batteryCriticalThreshold", \.batteryCriticalThreshold,
                    default: SettingsStore.defaultBatteryCriticalThreshold, range: SettingsStore.batteryCriticalThresholdRange, step: 1),
             number("autoLowPowerThreshold", \.autoLowPowerThreshold,

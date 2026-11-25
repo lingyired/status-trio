@@ -22,6 +22,8 @@ struct BatteryStatusView: View {
     /// Legacy macOS 13-15 systems get the same one-tap full charge/cancel on
     /// the card. Only the action is shown here, never the charge ceiling.
     var legacyChargeAction: LegacyChargeLimitController? = nil
+    /// Low versions: whether the panel should surface the legacy full-charge button.
+    var showsLegacyChargeFullButton = false
 
     private var hasDetails: Bool { state.intent == .batteryDetails }
 
@@ -33,7 +35,10 @@ struct BatteryStatusView: View {
                 PowerInfoBarView(state: infoBar)
             }
 
-            if !chargeToFullNow.showsActionArea, hasDetails, let legacyChargeAction {
+            if (showsLegacyChargeFullButton || LegacyChargeLimitController.isDemoPreviewForced),
+               isConnectedToPower,
+               (!chargeToFullNow.showsActionArea || LegacyChargeLimitController.isDemoPreviewForced),
+               hasDetails, let legacyChargeAction {
                 LegacyChargeLimitPanelRow(controller: legacyChargeAction, style: .actionOnly)
             }
             if chargeToFullNow.showsActionArea {

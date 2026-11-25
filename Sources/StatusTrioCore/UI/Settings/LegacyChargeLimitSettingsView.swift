@@ -11,6 +11,13 @@ struct LegacyChargeLimitSettingsView: View {
     /// charge limiter, so the legacy group reuses that affordance instead of
     /// introducing a second approval mechanism.
     var requestHelperApproval: () -> Void = {}
+    /// Shows/hides the "立即充满电" button in the battery panel (low versions).
+    @Binding var showsPanelButton: Bool
+    /// Sleep behaviour while a ceiling is held (low versions).
+    @Binding var sleepPolicy: LegacySleepPolicy
+    /// Opens System Settings → Battery so the user can turn off Optimized
+    /// Battery Charging. No detection is attempted.
+    var openBatterySettings: () -> Void = {}
     @EnvironmentObject private var localization: Localization
 
     var body: some View {
@@ -23,19 +30,14 @@ struct LegacyChargeLimitSettingsView: View {
             Color.clear
                 .frame(height: 0)
                 .task { await controller.refreshAvailability() }
-            SettingsRow(
-                "battery.100",
+            SettingsToggleRow(
+                symbol: "battery.100",
                 tint: .orange,
                 title: localization.string(.settingsBatteryLegacyChargeLimitToggle),
-                subtitle: localization.string(.settingsBatteryLegacyChargeLimitDescription)
-            ) {
-                Toggle("", isOn: isEnabledBinding)
-                    .labelsHidden()
-                    .disabled(controller.isApplying || !controller.isAvailable)
-                    .accessibilityLabel(
-                        localization.string(.settingsBatteryLegacyChargeLimitToggle)
-                    )
-            }
+                subtitle: localization.string(.settingsBatteryLegacyChargeLimitDescription),
+                isOn: isEnabledBinding
+            )
+            .disabled(controller.isApplying || !controller.isAvailable)
 
             SettingsDivider()
 
@@ -43,20 +45,36 @@ struct LegacyChargeLimitSettingsView: View {
                 "gauge.medium",
                 tint: .orange,
                 title: localization.string(.settingsBatteryLegacyChargeLimitTarget),
-                subtitle: nil
+                subtitle: localization.string(.settingsBatteryLegacyChargeLimitTargetSliderNote)
             ) {
-                Picker(
-                    localization.string(.settingsBatteryLegacyChargeLimitTarget),
-                    selection: limitSelection
-                ) {
-                    ForEach(LegacyChargeLimitController.limits, id: \.self) { limit in
-                        Text("\(limit)%").tag(limit)
-                    }
+                HStack(spacing: 10) {
+                    Text("\(displayedLimit)%")
+                        .font(.system(size: 12, weight: .medium))
+                        .monospacedDigit()
+                        .foregroundStyle(.secondary)
+                        .frame(width: 42, alignment: .trailing)
+                    Slider(value: limitSlider, in: 80...100, step: 5)
+                        .frame(width: 150)
+                }
+                .disabled(controller.isApplying || !controller.isAvailable)
+            }
+
+            SettingsDivider()
+            SettingsRow(
+                "moon.zzz.fill",
+                tint: .orange,
+                title: localization.string(.settingsBatteryLegacyChargeLimitSleepPolicy),
+                subtitle: localization.string(.settingsBatteryLegacyChargeLimitSleepPolicyDescription)
+            ) {
+                Picker("", selection: $sleepPolicy) {
+                    Text(localization.string(.settingsBatteryLegacyChargeLimitSleepPause))
+                        .tag(LegacySleepPolicy.pauseCharging)
+                    Text(localization.string(.settingsBatteryLegacyChargeLimitSleepKeepAwake))
+                        .tag(LegacySleepPolicy.keepAwakeUntilLimit)
                 }
                 .pickerStyle(.menu)
                 .labelsHidden()
                 .fixedSize()
-                .disabled(controller.isApplying || !controller.isAvailable)
             }
 
             if LegacyChargeLimitRecovery.showsRestoreAction(status: controller.status) {
@@ -95,15 +113,51 @@ struct LegacyChargeLimitSettingsView: View {
                         run { await controller.refresh() }
                     }
                     .controlSize(.small)
-                } else if controller.selectedLimit != nil {
-                    Button(localization.string(.settingsBatteryLegacyChargeLimitChargeToFull)) {
-                        run { await controller.chargeToFullOnce() }
-                    }
-                    .controlSize(.small)
-                    .disabled(!controller.isAvailable)
                 }
             }
+
+            // Low versions only (macOS 13–15): a toggle that decides whether the
+            // battery panel shows the "立即充满电" button. The button itself does
+            // the same job as the high-version one; only its backing logic is the
+            // legacy limiter (temporary lift, restored the next day).
+            if controller.selectedLimit != nil, !needsHelperApproval {
+                SettingsDivider()
+                SettingsToggleRow(
+                    symbol: "bolt.badge.clock.fill",
+                    tint: .orange,
+                    title: localization.string(.settingsBatteryLegacyChargeLimitShowPanelButton),
+                    subtitle: localization.string(.settingsBatteryLegacyChargeLimitTemporaryNote),
+                    isOn: $showsPanelButton
+                )
+            }
+
+            SettingsDivider()
+            SettingsRow(
+                "info.circle",
+                tint: .orange,
+                title: localization.string(.settingsBatteryLegacyChargeLimitOptimizedChargingNote),
+                subtitle: nil
+            ) {
+                Button(localization.string(.settingsBatteryFullThresholdOpenSystemSettings)) {
+                    openBatterySettings()
+                }
+                .controlSize(.small)
+            }
         }
+    }
+
+    /// Switch semantics: on = lift the ceiling for 24h, off = resume at once.
+    private var temporaryFullBinding: Binding<Bool> {
+        Binding(
+            get: { controller.isTemporarilyCharging },
+            set: { enabled in
+                if enabled {
+                    run { await controller.chargeToFullOnce() }
+                } else {
+                    run { await controller.cancelChargeToFull() }
+                }
+            }
+        )
     }
 
     private var isEnabledBinding: Binding<Bool> {
@@ -119,10 +173,20 @@ struct LegacyChargeLimitSettingsView: View {
         )
     }
 
-    private var limitSelection: Binding<Int> {
+    /// 100% means "no ceiling": the slider then simply turns limiting off.
+    private var displayedLimit: Int { controller.selectedLimit ?? 100 }
+
+    private var limitSlider: Binding<Double> {
         Binding(
-            get: { controller.selectedLimit ?? 80 },
-            set: { limit in run { await controller.setLimit(limit) } }
+            get: { Double(controller.selectedLimit ?? 100) },
+            set: { raw in
+                let limit = Int(raw.rounded())
+                if limit >= 100 {
+                    run { await controller.disable() }
+                } else {
+                    run { await controller.setLimit(limit) }
+                }
+            }
         )
     }
 

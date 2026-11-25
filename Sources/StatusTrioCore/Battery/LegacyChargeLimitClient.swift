@@ -6,6 +6,8 @@ import PowerHelperProtocol
 protocol LegacyChargeLimitClienting: Sendable {
     func probe() async throws -> LegacyChargeLimitProbeFacts
     func setLimit(_ limit: Int, expectedLimit: Int?) async throws -> LegacyChargeLimitWriteOutcome
+    /// Read the current ceiling and repair a reset value; report a foreign owner.
+    func reconcile(_ limit: Int) async throws -> LegacyChargeLimitWriteOutcome
     func chargeToFullOnce() async throws -> LegacyChargeLimitWriteOutcome
     func cancelChargeToFull() async throws -> LegacyChargeLimitWriteOutcome
     func disable(expectedLimit: Int?) async throws -> LegacyChargeLimitWriteOutcome
@@ -95,6 +97,12 @@ final class XPCPrivilegedLegacyChargeClient: LegacyChargeLimitClienting, @unchec
                 expectedLimit: expectedLimit.map { NSNumber(value: $0) },
                 withReply: reply
             )
+        }
+    }
+
+    func reconcile(_ limit: Int) async throws -> LegacyChargeLimitWriteOutcome {
+        try await write { proxy, reply in
+            proxy.reconcileLegacyChargeLimit(limit, withReply: reply)
         }
     }
 

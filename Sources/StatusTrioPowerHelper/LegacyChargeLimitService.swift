@@ -166,6 +166,59 @@ final class LegacyChargeLimitService: NSObject, @unchecked Sendable {
         }
     }
 
+    /// Read → classify → re-apply. Used by launch, wake, AC plug-in and the
+    /// Settings pane so a system reset self-heals, while a foreign writer is
+    /// reported instead of overwritten.
+    func reconcileLegacyChargeLimit(
+        ownerID: UUID, limit: Int, withReply reply: @escaping (Reply?) -> Void
+    ) {
+        perform(reply) {
+            try requireEligible()
+            try claimHardware(ownerID)
+            guard (80...100).contains(limit) else {
+                throw Failure(.limitOutOfRange, "The charge limit is outside 80–100%.")
+            }
+            let previous = try loadOwnedJournal()
+            let current: [String: Data]
+            var session: Session
+            if let previous {
+                var raw: [String: Data] = [:]
+                for key in previous.lastWrittenRaw.keys {
+                    guard let value = validRead(key) else {
+                        throw Failure(.verificationFailed, "A charge setting could not be read.")
+                    }
+                    raw[key] = value
+                }
+                if raw == previous.lastWrittenRaw {
+                    // Still ours; a level or AC change may still need a rewrite.
+                } else if raw == previous.originalRaw {
+                    // The system reset the keys; this is drift we repair.
+                } else {
+                    throw Failure(.ownershipConflict, "Another controller changed a charge setting.")
+                }
+                current = raw
+                session = previous
+            } else {
+                let raw = try discoverOriginal()
+                current = raw
+                session = Session(
+                    backend: hardware.isIntel ? .intelBCLM : .silicon,
+                    hardwareModel: hardwareModel,
+                    osBuild: osBuild,
+                    requestedLimit: limit,
+                    originalRaw: raw,
+                    lastWrittenRaw: raw
+                )
+            }
+            let desired = try desiredRaw(session: session, limit: limit, full: false, current: current)
+            try apply(&session, desired: desired, current: current)
+            session.requestedLimit = limit
+            session.isTemporarilyOverridden = false
+            try persist(session)
+            return success(observedLimit: hardware.isIntel ? limit : nil)
+        }
+    }
+
     func legacyChargeToFullOnce(ownerID: UUID, withReply reply: @escaping (Reply?) -> Void) {
         perform(reply) {
             try requireEligible()

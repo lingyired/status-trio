@@ -84,7 +84,8 @@ enum LegacyChargeLimitPlatformEligibility {
     }
 
     static func isEligibleCurrent(hasInternalBattery: Bool) -> Bool {
-        isEligible(
+        if LegacyChargeLimitController.isDemoPreviewForced { return true }
+        return isEligible(
             architecture: LegacyRuntimeArchitecture.current,
             osBand: LegacyOSBand.current,
             hasInternalBattery: hasInternalBattery

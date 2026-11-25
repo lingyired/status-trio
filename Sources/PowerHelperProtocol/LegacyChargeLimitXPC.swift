@@ -146,6 +146,14 @@ public final class SMLegacyChargeLimitWriteReply: NSObject, NSSecureCoding {
         withReply reply: @escaping (SMLegacyChargeLimitWriteReply?) -> Void
     )
 
+    /// Reads the current ceiling, classifies it against the daemon's own record,
+    /// and re-applies the requested limit when the value drifted (system reset).
+    /// Returns an ownership conflict when a foreign writer changed it.
+    func reconcileLegacyChargeLimit(
+        _ limit: Int,
+        withReply reply: @escaping (SMLegacyChargeLimitWriteReply?) -> Void
+    )
+
     /// Temporarily lets the battery charge to 100% (one-time override).
     func legacyChargeToFullOnce(
         withReply reply: @escaping (SMLegacyChargeLimitWriteReply?) -> Void

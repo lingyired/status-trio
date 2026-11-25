@@ -688,6 +688,7 @@ final class AppEnvironment {
         // Legacy backend is independent of the native 26.4+ controller: it
         // only becomes visible on macOS 13–15 with an internal battery.
         let legacyChargeLimit = LegacyChargeLimitController()
+        legacyChargeLimit.sleepPolicyProvider = { [settings] in settings.legacySleepPolicy }
         let chargeToFullNow = ChargeToFullNowController(
             backend: PowerUIChargeController(),
             sessionStore: UserDefaultsChargeToFullNowSessionStore(

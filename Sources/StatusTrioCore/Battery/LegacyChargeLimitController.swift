@@ -11,10 +11,33 @@ import Foundation
 final class LegacyChargeLimitController: ObservableObject {
     static let limits = Array(stride(from: 80, through: 100, by: 5))
 
+    /// UI-preview only. A *development* build may set the
+    /// `STForceLegacyChargeUIPreview` user default (or the
+    /// STATUS_TRIO_FORCE_LEGACY_CHARGE_UI=1 env var) to render the legacy group
+    /// and card with a fabricated "holding 85%" state on any macOS version.
+    /// It never touches the helper or SMC and is inert in a release bundle.
+    nonisolated static let isDemoPreviewForced: Bool = {
+        let env = ProcessInfo.processInfo.environment["STATUS_TRIO_FORCE_LEGACY_CHARGE_UI"] == "1"
+        let prefersDemo = UserDefaults.standard.bool(forKey: "STForceLegacyChargeUIPreview")
+        guard env || prefersDemo else { return false }
+        let info = Bundle.main.infoDictionary ?? [:]
+        let codename = info["STDevelopmentCodename"] as? String ?? ""
+        let bundleID = info["CFBundleIdentifier"] as? String ?? ""
+        return !codename.isEmpty || bundleID.contains(".dev.")
+    }()
+
+    static let demoPreviewLimit = 85
+
     @Published private(set) var availability: LegacyChargeLimitAvailability = .unavailable(.helperUnavailable)
     @Published private(set) var status: LegacyChargeLimitStatus = .notEnabled
     @Published private(set) var selectedLimit: Int?
     @Published private(set) var isApplying = false
+
+    /// True while the user's temporary "charge to full" override is in effect.
+    var isTemporarilyCharging: Bool {
+        if case .temporarilyChargingToFull = status { return true }
+        return false
+    }
 
     private let client: any LegacyChargeLimitClienting
     private let sessionStore: any LegacyChargeLimitSessionStoring
@@ -36,6 +59,11 @@ final class LegacyChargeLimitController: ObservableObject {
     /// discards its result if a command landed while it was awaiting the helper,
     /// so a slow startup verify can never overwrite the user's newer action.
     private var commandGeneration = 0
+    /// Sleep behaviour while a ceiling is held; wired to SettingsStore.
+    var sleepPolicyProvider: () -> LegacySleepPolicy = { .pauseCharging }
+    private let sleepAssertion = LegacySleepAssertion()
+    private var lastBatteryLevel: Int?
+    private var lastWasOnAC: Bool?
 
     init(
         client: any LegacyChargeLimitClienting = XPCPrivilegedLegacyChargeClient(),
@@ -107,6 +135,9 @@ final class LegacyChargeLimitController: ObservableObject {
     /// Inhibits charging before sleep when a cap is held. A temporary full
     /// charge is an explicit user choice and is left alone by the helper.
     func prepareForSleep() async {
+        // "Keep awake until limit" never inhibits; it keeps the Mac awake so the
+        // ceiling can be reached first. "Pause charging" stops before sleep.
+        guard sleepPolicyProvider() == .pauseCharging else { return }
         guard isAvailable, session != nil, status != .temporarilyChargingToFull else { return }
         do {
             _ = try await client.prepareForSleep()
@@ -118,18 +149,39 @@ final class LegacyChargeLimitController: ObservableObject {
     }
 
     func handleBattery(level: Int, isOnAC: Bool) async {
-        // A temporary full charge ends when the battery is full, then the held
-        // ceiling is re-applied. Ordinary battery events never interrupt it.
+        lastBatteryLevel = level
+        // A temporary full charge ends when it expires (24h from the toggle) or,
+        // for older records without a deadline, when the battery is full. The
+        // held ceiling is then re-applied; ordinary events never interrupt it.
         if status == .temporarilyChargingToFull {
-            guard let session,
-                  !LegacyChargeLimitEngine.temporaryFullShouldContinue(batteryLevel: level) else {
-                return
+            let ended: Bool
+            if let until = session?.temporaryFullUntil {
+                ended = Date() >= until
+            } else if let session {
+                ended = !LegacyChargeLimitEngine.temporaryFullShouldContinue(batteryLevel: level)
+            } else {
+                ended = true
             }
-            _ = await cancelChargeToFull()
+            if ended { _ = await cancelChargeToFull() }
+            updateSleepAssertion(level: level, isOnAC: isOnAC)
             return
         }
         guard isAvailable, let session else { return }
         guard session.requestedLimit > 0 else { return }
+        // On AC plug-in (or the first event after launch), repair a value the
+        // system may have reset. A foreign owner is reported, never overwritten.
+        if isOnAC, lastWasOnAC != true {
+            lastWasOnAC = true
+            do {
+                let outcome = try await client.reconcile(session.requestedLimit)
+                applyReconcile(outcome, limit: session.requestedLimit)
+            } catch {
+                status = .failed
+            }
+            updateSleepAssertion(level: level, isOnAC: isOnAC)
+            return
+        }
+        lastWasOnAC = isOnAC
         if !isOnAC {
             // No AC means nothing to gate; do not touch the hardware.
             lastAppliedAllowsCharging = nil
@@ -149,6 +201,25 @@ final class LegacyChargeLimitController: ObservableObject {
             lastAppliedAllowsCharging = false
         }
         await reapply(limit: session.requestedLimit)
+        updateSleepAssertion(level: level, isOnAC: isOnAC)
+    }
+
+    /// Holds/releases the sleep assertion from the current state. Pure decision
+    /// lives on `LegacySleepPolicy`; this only applies it to IOKit.
+    private func updateSleepAssertion(level: Int, isOnAC: Bool) {
+        let target = status == .temporarilyChargingToFull ? 100 : (session?.requestedLimit ?? 100)
+        let keep = LegacySleepPolicy.shouldStayAwake(
+            level: level,
+            target: target,
+            isOnAC: isOnAC,
+            hasSession: session != nil && status != .notEnabled,
+            policy: sleepPolicyProvider()
+        )
+        if keep {
+            sleepAssertion.acquire(reason: "Status Trio is charging to the charge limit")
+        } else {
+            sleepAssertion.release()
+        }
     }
 
     /// Called when the battery Settings pane becomes visible. This is the only
@@ -162,12 +233,20 @@ final class LegacyChargeLimitController: ObservableObject {
         cancellables.removeAll()
         batteries = nil
         lastAppliedAllowsCharging = nil
+        sleepAssertion.release()
+        lastWasOnAC = nil
         client.releaseConnection()
     }
 
     // MARK: - Commands
 
     func refresh() async {
+        if Self.isDemoPreviewForced {
+            availability = .available(.siliconLegacyInhibit)
+            selectedLimit = Self.demoPreviewLimit
+            status = .holding(at: Self.demoPreviewLimit)
+            return
+        }
         guard osBand.allowsLegacyLimiter else {
             availability = .unavailable(.unsupportedOS)
             status = .notEnabled
@@ -199,24 +278,44 @@ final class LegacyChargeLimitController: ObservableObject {
             client.releaseConnection()
             return
         }
+        if loaded.isTemporarilyOverridden {
+            // A still-running temporary full charge survives relaunch: it has a
+            // durable 24h deadline rather than a live timer.
+            if let until = loaded.temporaryFullUntil, Date() < until {
+                session = loaded
+                selectedLimit = loaded.requestedLimit
+                status = .temporarilyChargingToFull
+                return
+            }
+            var cleared = loaded
+            cleared.isTemporarilyOverridden = false
+            cleared.temporaryFullUntil = nil
+            session = cleared
+            saveSession(cleared)
+        }
         session = loaded
         selectedLimit = loaded.requestedLimit
         status = .checkingHardware
-        let outcome = try? await client.verify(loaded.requestedLimit)
+        let outcome = try? await client.reconcile(loaded.requestedLimit)
         guard generation == commandGeneration else { return }
-        if let outcome, outcome.verified {
-            status = .holding(at: loaded.requestedLimit)
-        } else {
-            status = .unverified
-        }
+        applyReconcile(outcome, limit: loaded.requestedLimit)
     }
 
     @discardableResult
     func setLimit(_ limit: Int) async -> Bool {
+        if Self.isDemoPreviewForced {
+            guard Self.limits.contains(limit) else { return false }
+            selectedLimit = limit
+            status = .holding(at: limit)
+            return true
+        }
         guard isAvailable else {
             status = .unsupported
             return false
         }
+        // A 100% ceiling is the same as no ceiling: turn limiting off instead of
+        // writing an inhibit that can never bind.
+        if limit >= 100 { return await disable() }
         guard Self.limits.contains(limit) else { return false }
         commandGeneration &+= 1
         isApplying = true
@@ -235,6 +334,7 @@ final class LegacyChargeLimitController: ObservableObject {
             selectedLimit = limit
             status = .holding(at: limit)
             onHelperDemandChanged?(true)
+            updateSleepAssertion(level: lastBatteryLevel ?? limit, isOnAC: true)
             return true
         } catch LegacyChargeLimitClientError.helperUnavailable {
             availability = .unavailable(.helperUnavailable)
@@ -248,6 +348,11 @@ final class LegacyChargeLimitController: ObservableObject {
 
     @discardableResult
     func disable() async -> Bool {
+        if Self.isDemoPreviewForced {
+            selectedLimit = nil
+            status = .notEnabled
+            return true
+        }
         guard isAvailable else {
             status = .unsupported
             return false
@@ -267,6 +372,7 @@ final class LegacyChargeLimitController: ObservableObject {
             saveSession(nil)
             selectedLimit = nil
             status = .notEnabled
+            sleepAssertion.release()
             client.releaseConnection()
             onHelperDemandChanged?(false)
             return true
@@ -278,6 +384,10 @@ final class LegacyChargeLimitController: ObservableObject {
 
     @discardableResult
     func chargeToFullOnce() async -> Bool {
+        if Self.isDemoPreviewForced {
+            status = .temporarilyChargingToFull
+            return true
+        }
         guard isAvailable, session != nil else { return false }
         commandGeneration &+= 1
         isApplying = true
@@ -288,7 +398,13 @@ final class LegacyChargeLimitController: ObservableObject {
                 status = .failed
                 return false
             }
+            if var updated = session {
+                updated.isTemporarilyOverridden = true
+                updated.temporaryFullUntil = Date().addingTimeInterval(24 * 60 * 60)
+                saveSession(updated)
+            }
             status = .temporarilyChargingToFull
+            updateSleepAssertion(level: lastBatteryLevel ?? 0, isOnAC: true)
             return true
         } catch {
             status = .failed
@@ -298,6 +414,10 @@ final class LegacyChargeLimitController: ObservableObject {
 
     @discardableResult
     func cancelChargeToFull() async -> Bool {
+        if Self.isDemoPreviewForced {
+            status = .holding(at: selectedLimit ?? Self.demoPreviewLimit)
+            return true
+        }
         guard isAvailable, let session else { return false }
         commandGeneration &+= 1
         isApplying = true
@@ -308,7 +428,12 @@ final class LegacyChargeLimitController: ObservableObject {
                 status = .restoreFailed
                 return false
             }
+            var updated = session
+            updated.isTemporarilyOverridden = false
+            updated.temporaryFullUntil = nil
+            saveSession(updated)
             status = .holding(at: session.requestedLimit)
+            updateSleepAssertion(level: lastBatteryLevel ?? session.requestedLimit, isOnAC: true)
             return true
         } catch {
             status = .restoreFailed
@@ -326,15 +451,21 @@ final class LegacyChargeLimitController: ObservableObject {
         // The previous gate is untrusted after sleep; re-evaluate from scratch.
         lastAppliedAllowsCharging = nil
         do {
-            let outcome = try await client.setLimit(session.requestedLimit, expectedLimit: session.requestedLimit)
-            if outcome.succeeded {
-                status = .holding(at: session.requestedLimit)
-            } else if outcome.error == .ownershipConflict {
-                status = .externalChange
-            } else {
-                status = .failed
-            }
+            let outcome = try await client.reconcile(session.requestedLimit)
+            applyReconcile(outcome, limit: session.requestedLimit)
         } catch {
+            status = .failed
+        }
+    }
+
+    /// Maps a reconcile result to the visible status. `nil` means the call threw.
+    private func applyReconcile(_ outcome: LegacyChargeLimitWriteOutcome?, limit: Int) {
+        guard let outcome else { status = .failed; return }
+        if outcome.succeeded {
+            status = .holding(at: limit)
+        } else if outcome.error == .ownershipConflict {
+            status = .externalChange
+        } else {
             status = .failed
         }
     }

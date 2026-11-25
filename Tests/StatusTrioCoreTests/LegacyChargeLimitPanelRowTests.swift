@@ -20,6 +20,7 @@ private final class PanelFakeClient: LegacyChargeLimitClienting, @unchecked Send
     func setLimit(_ limit: Int, expectedLimit: Int?) async throws -> LegacyChargeLimitWriteOutcome {
         try setLimitResult.get()
     }
+    func reconcile(_ limit: Int) async throws -> LegacyChargeLimitWriteOutcome { .success }
     func chargeToFullOnce() async throws -> LegacyChargeLimitWriteOutcome { try chargeToFullResult.get() }
     func cancelChargeToFull() async throws -> LegacyChargeLimitWriteOutcome { try cancelResult.get() }
     func disable(expectedLimit: Int?) async throws -> LegacyChargeLimitWriteOutcome { .success }
@@ -112,13 +113,28 @@ final class LegacyChargeLimitPanelRowTests: XCTestCase {
         XCTAssertGreaterThan(cardHeight(controller), cardHeight(nil) + 20)
     }
 
-    private func cardHeight(_ controller: LegacyChargeLimitController?) -> CGFloat {
+    func testLegacyPanelActionIsHiddenWithoutPower() async {
+        let controller = makeController()
+        await controller.refresh()
+        _ = await controller.setLimit(85)
+        let onBattery = cardHeight(controller, isConnectedToPower: false)
+        XCTAssertEqual(onBattery, cardHeight(nil, isConnectedToPower: false), accuracy: 1,
+                       "The full-charge button only shows while connected to power")
+        XCTAssertGreaterThan(cardHeight(controller, isConnectedToPower: true), onBattery + 20)
+    }
+
+    private func cardHeight(
+        _ controller: LegacyChargeLimitController?,
+        isConnectedToPower: Bool = true
+    ) -> CGFloat {
         let status = BatteryStatus(rawPercentage: 78, isPresent: true, isCharging: false,
-                                   isLowPowerMode: false, isConnectedToPower: true)
+                                   isLowPowerMode: false, isConnectedToPower: isConnectedToPower)
         let view = BatteryStatusView(
             state: PanelPresentationMapper.battery(status, localization: makeLocalization(.english)),
             onOpenBatteryDetails: {}, onOpenBatterySettings: {},
-            legacyChargeAction: controller
+            isConnectedToPower: isConnectedToPower,
+            legacyChargeAction: controller,
+            showsLegacyChargeFullButton: true
         )
         let hosting = NSHostingView(rootView: view.frame(width: 330)
             .environmentObject(makeLocalization(.english)))
@@ -173,7 +189,8 @@ final class LegacyChargeLimitPanelRowTests: XCTestCase {
         return BatteryStatusView(
             state: PanelPresentationMapper.battery(status, localization: makeLocalization(language)),
             onOpenBatteryDetails: {}, onOpenBatterySettings: {},
-            legacyChargeAction: controller
+            legacyChargeAction: controller,
+            showsLegacyChargeFullButton: true
         )
         .frame(width: 330)
         .environmentObject(makeLocalization(language))
@@ -197,6 +214,39 @@ final class LegacyChargeLimitPanelRowTests: XCTestCase {
             errorText: nil,
             explanation: nil
         )
+    }
+
+    /// Opt-in snapshot of the legacy Settings group, so the redesigned rows can
+    /// be reviewed without a Mac on macOS 13–15.
+    func testWritesOptInLegacySettingsGroupSnapshots() async throws {
+        guard let raw = ProcessInfo.processInfo.environment["STATUS_TRIO_BATTERY_SNAPSHOTS"] else {
+            throw XCTSkip("Set STATUS_TRIO_BATTERY_SNAPSHOTS to write settings previews")
+        }
+        let directory = URL(fileURLWithPath: raw, isDirectory: true)
+        let controller = makeController()
+        await controller.refresh()
+        _ = await controller.setLimit(85)
+        for language in [AppLanguage.simplifiedChinese, .english] {
+            let view = LocalizedRootView(localization: makeLocalization(language)) {
+                LegacyChargeLimitSettingsView(controller: controller, showsPanelButton: .constant(true), sleepPolicy: .constant(.pauseCharging), openBatterySettings: {})
+                    .padding(16)
+                    .frame(width: 460)
+                    .background(Color(nsColor: .windowBackgroundColor))
+            }
+            .environmentObject(makeLocalization(language))
+            try writeSnapshot(view, to: directory.appendingPathComponent("settings-group-\(language.rawValue).png"))
+        }
+        _ = await controller.chargeToFullOnce()
+        for language in [AppLanguage.simplifiedChinese, .english] {
+            let view = LocalizedRootView(localization: makeLocalization(language)) {
+                LegacyChargeLimitSettingsView(controller: controller, showsPanelButton: .constant(true), sleepPolicy: .constant(.pauseCharging), openBatterySettings: {})
+                    .padding(16)
+                    .frame(width: 460)
+                    .background(Color(nsColor: .windowBackgroundColor))
+            }
+            .environmentObject(makeLocalization(language))
+            try writeSnapshot(view, to: directory.appendingPathComponent("settings-group-tempfull-\(language.rawValue).png"))
+        }
     }
 
     private func writeSnapshot(_ view: some View, to url: URL) throws {

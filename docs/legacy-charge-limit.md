@@ -315,3 +315,53 @@ If the limiter cannot be turned off normally:
 
 This procedure is a design requirement for release; it has **not** been
 exercised on hardware.
+
+## 10. Lifetime policy (decided 2026-11-26, not yet implemented)
+
+The limiter is **only in force while the Status Trio app is running**. There is
+no resident boot-time enforcement and no "keep after quit" toggle. This was a
+deliberate product choice: simplest semantics and zero risk of a stale cap if
+the app is deleted.
+
+Behaviour by event:
+
+| Event | Behaviour |
+| --- | --- |
+| Running | Event-driven ceiling with hysteresis (unchanged) |
+| Sleep (lid close) | Existing two-way choice: pause charging, or stay awake until the ceiling is reached (screen still turns off) |
+| App quit / crash | Helper restores the journaled stock values on client loss (existing behaviour, kept) |
+| Reboot / shutdown | Nothing is kept. If the user wants the ceiling after a reboot, they enable the app's existing **Launch at Login** setting; on launch the app re-applies the last requested ceiling |
+| Uninstall | Quit already restored the stock value; no special uninstall step (documented only) |
+
+Required follow-up work (agreed, not written yet):
+
+1. **Launch re-apply (P0-2 A):** on app launch, if the local session still has
+   a requested ceiling but the hardware no longer matches, *re-apply it*
+   automatically instead of only showing "unverified".
+2. **Self-heal (P0-3):** on wake and on AC plug-in, read the hardware; if it has
+   drifted off our value, rewrite the ceiling. Only a value that is neither the
+   stock value nor our written value is reported as an `externalChange`
+   (a real foreign owner) and left alone.
+3. **Hint in the low-version group:** tell the user that post-boot auto-restore
+   needs the existing "Launch at Login" setting (link to it).
+
+Abandoned approach: an earlier experiment added a `keepAfterQuit` flag to the
+journal/XPC and a "keep after quit" setting so the daemon re-applied at boot.
+That is **not** the chosen design and its partial code must be reverted.
+
+### 10.1 Optimized Battery Charging hint (decided 2026-11-26)
+
+"Optimized Battery Charging" exists on macOS 11+ (including 13–15) and can pause
+charging around 80%, which looks like our ceiling failing. No public API exposes
+its toggle state, and AlDente/batt/Battery Toolkit only instruct users to turn it
+off (no detection). Decision: add a **fixed, clickable hint** in the low-version group — "Recommended:
+turn off Optimized Battery Charging in System Settings → Battery → Battery
+Health so it does not fight this limit." It is always shown (no condition, no
+detection). Clicking opens the
+Battery pane via the existing route (`com.apple.Battery-Settings.extension`,
+fallback `com.apple.preference.battery`); a deep link into the ⓘ sheet is not
+reliable, so the user taps ⓘ themselves. No runtime detection is implemented.
+The whole group is low-version only, so no macOS 26.4+ handling is needed here.
+
+Above the ceiling the app only stops charging; it never actively discharges the
+battery toward the target.

@@ -772,3 +772,49 @@ private final class StickyGateSMC: LegacySMCExecuting {
     func readKey(_ key: String) -> Data? { store[key] }
     func writeKey(_ key: String, data: Data) -> Bool { true }
 }
+// MARK: - Reconcile
+
+final class LegacyChargeLimitReconcileTests: XCTestCase {
+    func testReconcileRepairsASystemReset() {
+        let executor = intelExecutor(100)
+        let journal = MemoryJournal()
+        let service = makeService(executor, journal: journal)
+        var set: SMLegacyChargeLimitWriteReply?
+        service.setLegacyChargeLimit(85, expectedLimit: nil, ownerID: testOwner) { set = $0 }
+        XCTAssertEqual(set?.succeeded, true)
+
+        // The system reset BCLM back to the stock 100 between our writes.
+        executor.store["BCLM"] = Data([100])
+        var reply: SMLegacyChargeLimitWriteReply?
+        service.reconcileLegacyChargeLimit(ownerID: testOwner, limit: 85) { reply = $0 }
+        XCTAssertEqual(reply?.succeeded, true)
+        XCTAssertEqual(executor.readKey("BCLM"), Data([85]))
+    }
+
+    func testReconcileReportsaForeignWriterWithoutOverwriting() {
+        let executor = intelExecutor(100)
+        let journal = MemoryJournal()
+        let service = makeService(executor, journal: journal)
+        var set: SMLegacyChargeLimitWriteReply?
+        service.setLegacyChargeLimit(85, expectedLimit: nil, ownerID: testOwner) { set = $0 }
+        let writesBefore = executor.writes.count
+
+        executor.store["BCLM"] = Data([70]) // neither stock nor ours
+        var reply: SMLegacyChargeLimitWriteReply?
+        service.reconcileLegacyChargeLimit(ownerID: testOwner, limit: 85) { reply = $0 }
+        XCTAssertEqual(reply?.errorCode, .ownershipConflict)
+        XCTAssertEqual(executor.writes.count, writesBefore, "A foreign owner is never overwritten")
+        XCTAssertEqual(executor.readKey("BCLM"), Data([70]))
+    }
+
+    func testReconcileWithoutAJournalAppliesTheCeiling() {
+        let executor = intelExecutor(100)
+        let journal = MemoryJournal()
+        let service = makeService(executor, journal: journal)
+        var reply: SMLegacyChargeLimitWriteReply?
+        service.reconcileLegacyChargeLimit(ownerID: testOwner, limit: 85) { reply = $0 }
+        XCTAssertEqual(reply?.succeeded, true)
+        XCTAssertEqual(executor.readKey("BCLM"), Data([85]))
+        XCTAssertEqual(journal.saved?.requestedLimit, 85)
+    }
+}

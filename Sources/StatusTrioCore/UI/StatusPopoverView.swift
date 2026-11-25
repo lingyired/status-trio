@@ -281,7 +281,8 @@ struct StatusPopoverView: View {
                 onChargeToFullNow: {
                     panel.actions.requestChargeToFullNow()
                 },
-                legacyChargeAction: legacyChargeLimit
+                legacyChargeAction: legacyChargeLimit,
+                showsLegacyChargeFullButton: panel.settings.showsLegacyChargeToFullButton
             )
         case .quickActions:
             QuickActionsCardView(

@@ -99,6 +99,8 @@ final class SettingsStore: ObservableObject {
     static let highEnergyAppsRefreshIntervalRange: ClosedRange<Double> = 10...60
     static let defaultHighEnergyAppsRefreshIntervalSeconds: Double = 10
     static let showsChargeToFullNowButtonDefaultsKey = "showsChargeToFullNowButton"
+    static let showsLegacyChargeToFullButtonDefaultsKey = "showsLegacyChargeToFullButton"
+    static let legacySleepPolicyDefaultsKey = "legacySleepPolicy"
     static let showsChargingIndicatorDefaultsKey = "showsChargingIndicator"
     /// Legacy single-surface preference retained only for migration.
     static let showsChargingEffectDefaultsKey = "showsChargingEffect"
@@ -673,6 +675,27 @@ final class SettingsStore: ObservableObject {
             defaults.set(
                 showsChargeToFullNowButton,
                 forKey: Self.showsChargeToFullNowButtonDefaultsKey
+            )
+        }
+    }
+
+    /// Low versions (macOS 13–15): whether the battery panel shows the
+    /// "立即充满电" button for the legacy limiter.
+    @Published var showsLegacyChargeToFullButton: Bool {
+        didSet {
+            defaults.set(
+                showsLegacyChargeToFullButton,
+                forKey: Self.showsLegacyChargeToFullButtonDefaultsKey
+            )
+        }
+    }
+
+    /// Low versions (macOS 13–15): sleep behaviour while a ceiling is held.
+    @Published var legacySleepPolicy: LegacySleepPolicy {
+        didSet {
+            defaults.set(
+                legacySleepPolicy.rawValue,
+                forKey: Self.legacySleepPolicyDefaultsKey
             )
         }
     }
@@ -2866,6 +2889,11 @@ final class SettingsStore: ObservableObject {
         self.showsChargeToFullNowButton = defaults.object(
             forKey: Self.showsChargeToFullNowButtonDefaultsKey
         ) as? Bool ?? true
+        self.showsLegacyChargeToFullButton = defaults.object(
+            forKey: Self.showsLegacyChargeToFullButtonDefaultsKey
+        ) as? Bool ?? false
+        self.legacySleepPolicy = (defaults.string(forKey: Self.legacySleepPolicyDefaultsKey)
+            .flatMap(LegacySleepPolicy.init(rawValue:))) ?? .pauseCharging
         let legacyShowsCharging = defaults.object(forKey: Self.showsChargingIndicatorDefaultsKey) as? Bool ?? true
         let legacyChargingEffect = defaults.object(
             forKey: Self.showsChargingEffectDefaultsKey
