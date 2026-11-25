@@ -344,6 +344,42 @@ detailed release and recovery rules.
 - `swiftui-pro` and `swift-testing-pro` are updated by hand because their
   upstream folders contain two same-named skills.
 
+## Development Test Profile
+
+Every worktree can carry a local `.dev-profile.json` (git-ignored; sample in
+`.dev-profile.example.json`) that the development build applies at launch so the
+task's feature is testable immediately. Use the `status-trio-settings` skill
+(`.agents/skills/status-trio-settings/`) for ids, features, dependencies and the
+profile schema.
+
+For any feature, bug-fix, UI, data-collection or monitoring task:
+
+- Decide whether the target feature is enabled by default. If it needs extra
+  configuration, use the `status-trio-settings` skill.
+- Create or update `.dev-profile.json` in the current worktree. Declare a
+  **Feature** before editing raw preferences; enable only what the task needs and
+  let safe parent modules be added automatically.
+- Do not enable unrelated monitoring, background history or extra sampling.
+- Do not change production defaults for a dev task.
+- Never use `defaults write` to bypass this architecture.
+- Never put a setting whose `accessPolicy.developmentProfile` is `false` (helper,
+  login item, power automation, privacy/telemetry consent, shortcuts, device
+  identities) into a profile — it is rejected, not auto-applied.
+- Before delivery, verify the dev build starts with the target feature directly
+  testable. Deleting `.dev-profile.json` stops auto-application next launch; it
+  does not reset settings already changed.
+
+When adding or changing a user-visible setting:
+
+- Add or update its descriptor in `SettingsSemanticCatalog` (id, title, category,
+  type, options, defaults, `requires`, `conflictsWith`, `constraints`, `onChange`,
+  `effectiveWhen`/`visibleWhen`/`enabledWhen`/`availableWhen`, `accessPolicy`,
+  `performanceImpact`).
+- Record whether it belongs in `SettingsPreferenceCatalog` (export/import) — a new
+  `@Published` setting is not transferable just because it exists.
+- Regenerate the schema and skill artifacts (`SettingsSchemaExporter`) and keep
+  `docs/settings/settings-inventory.md` current.
+
 ## References
 
 - [Swift toolchain CI compatibility](docs/swift-ci-compatibility.md)

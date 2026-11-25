@@ -52,11 +52,11 @@ This document is the authoritative inventory of every persisted / user-visible s
 
 | Item | Phase 0 baseline | Target |
 |---|---|---|
-| User-visible settings with a semantic descriptor | 0 / 128 | 128 / 128 |
+| User-visible settings with a semantic descriptor | 47 / 128 | 128 / 128 |
 | Persisted properties with an explicit class | 152 / 152 (this doc) | 152 / 152 |
 | Exclusions documented with reason | 100% listed below | 100% |
 
-> The `0 / N` semantic-descriptor row is the Phase 1 target. Each descriptor added to `SettingsSemanticRegistry` must reference an `id` here; Phase 10 asserts the counts match.
+> `SettingsSemanticCatalog` currently describes 47 preferences (see `.agents/skills/status-trio-settings/references/settings-schema.json`). The remaining user-visible settings are the coverage backlog tracked by this inventory. See `docs/settings/settings-semantic-infrastructure.md` for the phase report.
 
 ## General / 通用
 
