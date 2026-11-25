@@ -10,6 +10,7 @@ Generated from `SettingsSemanticCatalog`. Do not edit by hand.
 | `hardware.network.uploadCapMbps` | 上传速度上限（Mbps） | `number` | — | hardwareUploadCapMbps |
 | `hardware.refresh.intervalSeconds` | 刷新频率（秒） | `integer` | — | hardwarePanelRefreshSeconds |
 | `hardware.rings.enabled` | 显示硬件圆环 | `boolean` | true | showsHardwareRings |
+| `hardware.ssd.includeExternalInPercent` | 外置磁盘计入百分比 | `boolean` | — | hardwareSSDIncludeExternalInPercentV1 |
 | `hardware.summary.enabled` | 显示硬件摘要行 | `boolean` | true | showsHardwareSummaryRow |
 | `hardware.temperature.enabled` | 温度监控 | `boolean` | true | hardwareTemperatureMonitoringEnabledV1 |
 | `hardware.topApps.enabled` | 显示占用最高的 App | `boolean` | true | showsHardwareTopApps |

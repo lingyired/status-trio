@@ -52,11 +52,11 @@ This document is the authoritative inventory of every persisted / user-visible s
 
 | Item | Phase 0 baseline | Target |
 |---|---|---|
-| User-visible settings with a semantic descriptor | 85 / 128 | 128 / 128 |
+| User-visible settings with a semantic descriptor | 96 / 128 | 128 / 128 |
 | Persisted properties with an explicit class | 152 / 152 (this doc) | 152 / 152 |
 | Exclusions documented with reason | 100% listed below | 100% |
 
-> `SettingsSemanticCatalog` currently describes 85 preferences (see `.agents/skills/status-trio-settings/references/settings-schema.json`). The remaining user-visible settings are the coverage backlog tracked by this inventory. See `docs/settings/settings-semantic-infrastructure.md` for the phase report.
+> `SettingsSemanticCatalog` currently describes 96 preferences (see `.agents/skills/status-trio-settings/references/settings-schema.json`). The remaining user-visible settings are the coverage backlog tracked by this inventory. See `docs/settings/settings-semantic-infrastructure.md` for the phase report.
 
 ## General / 通用
 

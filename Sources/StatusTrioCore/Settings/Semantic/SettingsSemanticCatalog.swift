@@ -673,6 +673,52 @@ enum SettingsSemanticCatalog {
             d.uiPath = "设置 › 亮度 › 滑块粗细"
             d.storageKey = "panelLevelSliderMatchesBrightnessThickness"; d.accessPolicy = .profileSafe; d.provider = "core"
         },
+
+        // ---- Refresh intervals / SSD / remaining scalars ----
+        pref("battery.refreshInterval.onBattery", "电池供电刷新间隔", "battery", .number, "电池供电时状态刷新间隔（秒）。") { d in
+            d.uiPath = "设置 › 电池 › 刷新间隔"; d.unit = "s"
+            d.storageKey = "statusRefreshIntervalOnBatterySeconds"; d.accessPolicy = .profileSafe; d.provider = "core"
+        },
+        pref("battery.refreshInterval.onPower", "接电源刷新间隔", "battery", .number, "接电源时状态刷新间隔（秒）。") { d in
+            d.uiPath = "设置 › 电池 › 刷新间隔"; d.unit = "s"
+            d.storageKey = "statusRefreshIntervalOnPowerSeconds"; d.accessPolicy = .profileSafe; d.provider = "core"
+        },
+        pref("battery.appleBattery.refreshIntervalMinutes", "Apple 设备电量刷新间隔", "battery", .integer, "后台读取 Apple 设备电量的间隔（分钟）。") { d in
+            d.uiPath = "设置 › 电池 › Apple 设备 › 刷新间隔"; d.unit = "min"
+            d.storageKey = "appleBatteryRefreshIntervalMinutes"; d.accessPolicy = .profileSafe; d.provider = "core"
+        },
+        pref("bluetooth.maxVisibleDevices", "蓝牙设备最大显示数量", "bluetooth", .integer, "蓝牙设备列表最多显示的数量。") { d in
+            d.uiPath = "设置 › 蓝牙 › 最大数量"; d.range = SettingsNumericRange(min: 1, max: 20)
+            d.storageKey = "maxVisibleBluetoothDevices"; d.accessPolicy = .profileSafe; d.provider = "core"
+        },
+        pref("bluetooth.listeningMode.enabled", "显示聆听模式", "bluetooth", .boolean, "显示 AirPods 聆听模式控制。") { d in
+            d.uiPath = "设置 › 蓝牙 › 聆听模式"
+            d.storageKey = "showsBluetoothListeningMode"; d.accessPolicy = .profileSafe; d.provider = "core"
+        },
+        pref("bluetooth.listeningMode.previewEnabled", "预览聆听模式", "bluetooth", .boolean, "在设置页预览聆听模式控件。") { d in
+            d.uiPath = "设置 › 蓝牙 › 聆听模式预览"
+            d.storageKey = "previewsBluetoothListeningMode"; d.accessPolicy = .profileSafe; d.provider = "core"
+        },
+        pref("bluetooth.listeningMode.previewDeviceCount", "预览设备数量", "bluetooth", .integer, "聆听模式预览使用的设备数量。") { d in
+            d.uiPath = "设置 › 蓝牙 › 聆听模式预览"
+            d.storageKey = "bluetoothListeningModePreviewDeviceCount"; d.accessPolicy = .profileSafe; d.provider = "core"
+        },
+        pref("bluetooth.listeningMode.previewDeviceName", "预览设备名称", "bluetooth", .string, "聆听模式预览使用的设备名称。") { d in
+            d.uiPath = "设置 › 蓝牙 › 聆听模式预览"
+            d.storageKey = "bluetoothListeningModePreviewDeviceName"; d.accessPolicy = .profileSafe; d.provider = "core"
+        },
+        pref("bluetooth.listeningMode.previewLanguage", "预览语言", "bluetooth", .string, "聆听模式预览使用的语言。") { d in
+            d.uiPath = "设置 › 蓝牙 › 聆听模式预览"
+            d.storageKey = "bluetoothListeningModePreviewLanguage"; d.accessPolicy = .profileSafe; d.provider = "core"
+        },
+        pref("bluetooth.conversationAwarenessControls.enabled", "显示对话感知控件", "bluetooth", .boolean, "显示 AirPods 对话感知（Conversation Awareness）控件。") { d in
+            d.uiPath = "设置 › 蓝牙 › 对话感知"
+            d.storageKey = "showsConversationAwarenessControls"; d.accessPolicy = .profileSafe; d.provider = "core"
+        },
+        pref("hardware.ssd.includeExternalInPercent", "外置磁盘计入百分比", "hardware", .boolean, "SSD 占用百分比时计入外置磁盘。") { d in
+            d.uiPath = "设置 › 监控 › SSD › 外置磁盘"
+            d.storageKey = "hardwareSSDIncludeExternalInPercentV1"; d.accessPolicy = .profileSafe; d.provider = "core"
+        },
     ]
 
     // MARK: - Features

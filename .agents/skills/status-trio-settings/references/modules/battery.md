@@ -4,6 +4,7 @@ Generated from `SettingsSemanticCatalog`. Do not edit by hand.
 
 | id | title | type | default | storage key |
 |---|---|---|---|---|
+| `battery.appleBattery.refreshIntervalMinutes` | Apple 设备电量刷新间隔 | `integer` | — | appleBatteryRefreshIntervalMinutes |
 | `battery.appleDevicesAndBattery.enabled` | 显示 Apple 设备与电量 | `boolean` | — | showsAppleDevicesAndBattery |
 | `battery.automation.autoLowPower` | 自动开启低电量模式 | `boolean` | — | autoEnablesLowPowerMode |
 | `battery.automation.controlsLowPowerMode` | 允许控制低电量模式 | `boolean` | — | controlsLowPowerMode |
@@ -23,6 +24,8 @@ Generated from `SettingsSemanticCatalog`. Do not edit by hand.
 | `battery.marker.onBattery` | 电池百分比标记 | `enumeration` | — | batteryOnBatteryMarker |
 | `battery.powerFlow.enabled` | 显示电量流向 | `boolean` | — | showsBatteryPowerFlow |
 | `battery.powerInfoBar.enabled` | 功率信息条 | `boolean` | — | showsBatteryPowerInfoBar |
+| `battery.refreshInterval.onBattery` | 电池供电刷新间隔 | `number` | — | statusRefreshIntervalOnBatterySeconds |
+| `battery.refreshInterval.onPower` | 接电源刷新间隔 | `number` | — | statusRefreshIntervalOnPowerSeconds |
 | `battery.simulateNoBattery` | 模拟无电池 | `boolean` | — | simulatesNoBattery |
 | `battery.splitGapProgress` | 电量环断口进度 | `boolean` | — | batterySplitGapProgress |
 | `battery.statusColors.enabled` | 使用电池状态颜色 | `boolean` | — | usesBatteryStatusColors |
