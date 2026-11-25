@@ -12,7 +12,7 @@
 | 2 依赖解析与约束 | ✅ 完成 | `SettingsPlanner`：Feature 依赖闭包、`onChange` 连带修改（虚拟设置镜像）、`distinctValues→swap`、`minimumCount/requires/numericRange`、类型/范围校验、确定性、幂等。 |
 | 3 统一 SettingsService | ✅ 完成（内存 provider） | list/describe/snapshot/preview/apply/restore；预览不改状态、apply 全量校验后一次写入并捕获 before。`SettingsStateProvider` 协议预留各领域 provider。 |
 | 4 复杂模块适配 | ✅ 核心完成 | `CoreSettingsProvider` 把 47 个 core 设置经真实 `@Published`/setter 读写（含 hardwareRingConfiguration 嵌套、ring slots 领域 setter、boldText 虚拟设置）。未接入的领域：Localization/LaunchAtLogin（非 core，返回 nil）。 |
-| 5 Capability/Action/权限 | ◑ 语义层完成 | Capability/Action 描述符与 `SettingsAccessPolicy`（UI/devProfile/transfer/externalRead/externalWrite/敏感/系统副作用）已具备；**运行时 Capability provider 与 Effective State 快照未接线**。 |
+| 5 Capability/Action/权限 | ✅ 完成 | Capability/Action 描述符 + `SettingsAccessPolicy`；`SettingsStateEvaluator` 实现 effective/available/enabled 三态判定；`SystemSettingsCapabilityProvider`（ui.liquidGlass 实测，其余 unknown）。`overridden` 状态预留。 |
 | 6 Development Profile | ✅ 完成 | `DevelopmentTestProfile`/Validator/Bootstrap + `CoreSettingsProvider`；`AppEnvironment.live` 在迁移后、监控启动前应用；`.dev-profile.example.json`；`build-app.sh` 仅开发版身份签名前嵌入 + `STAllowsDevProfile` 标记；加载仅开发构建生效。 |
 | 7 Schema 导出 + Skill | ✅ 完成 | `SettingsSchemaExporter` 确定性输出 5 份 JSON + 每模块 md；`.agents/skills/status-trio-settings/`（SKILL.md + references）。 |
 | 8 AGENTS.md | ✅ 完成 | 新增 Development Test Profile 规范与"新增设置必须同步语义定义"。 |
@@ -61,6 +61,7 @@ SettingsService.restore(_:)
 | `SettingsServiceTests` | 5 | ✅ 全通过 |
 | `DevelopmentProfileTests` | 8 | ✅ 全通过 |
 | `SettingsSchemaExporterTests` | 6 | ✅ 全通过 |
+| `SettingsEffectiveStateTests` | 6 | ✅ 全通过 |
 | `CoreSettingsProviderTests` | 4 | ✅ 全通过（真实 SettingsStore） |
 
 运行方式：`bash scripts/test.sh '<Suite>'`（含 forbidden-pattern 检查）。
