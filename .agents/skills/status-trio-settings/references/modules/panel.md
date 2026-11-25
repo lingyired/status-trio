@@ -14,4 +14,5 @@ Generated from `SettingsSemanticCatalog`. Do not edit by hand.
 | `panel.behavior.showOnHover` | 悬停展开状态面板 | `boolean` | — | showsPanelOnHover |
 | `panel.levelSliderColor` | 面板滑块颜色 | `taggedUnion` | — | panelLevelSliderColor |
 | `panel.modules.enabled` | 启用的面板模块 | `set` | — | enabledPopupSections |
+| `panel.modules.hardwareMonitor` | 面板显示系统监控模块 | `boolean` | — | — |
 | `panel.sectionOrder` | 面板模块顺序 | `orderedList` | — | popupSectionOrder |

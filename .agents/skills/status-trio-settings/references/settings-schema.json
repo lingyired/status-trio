@@ -3142,6 +3142,25 @@
     {
       "accessPolicy" : {
         "containsSensitiveInfo" : false,
+        "developmentProfile" : true,
+        "externalRead" : true,
+        "externalWrite" : false,
+        "requiresConfirmation" : false,
+        "systemSideEffect" : false,
+        "transferable" : false,
+        "uiAccessible" : true
+      },
+      "category" : "panel",
+      "description" : "在状态面板显示系统监控模块（CPU/GPU/内存/SSD 等）。",
+      "id" : "panel.modules.hardwareMonitor",
+      "provider" : "core",
+      "title" : "面板显示系统监控模块",
+      "type" : "boolean",
+      "uiPath" : "设置 › 状态面板 › 模块 › 系统监控"
+    },
+    {
+      "accessPolicy" : {
+        "containsSensitiveInfo" : false,
         "developmentProfile" : false,
         "externalRead" : true,
         "externalWrite" : false,

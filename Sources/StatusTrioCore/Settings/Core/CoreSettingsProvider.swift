@@ -140,6 +140,8 @@ final class CoreSettingsProvider: SettingsStateProvider {
             return .array(store.hardwareSSDExternalVolumePaths.sorted().map { .string($0) })
         case "hardware.summaryMetrics":
             return .array(store.enabledHardwareSummaryMetrics.map(\.rawValue).sorted().map { .string($0) })
+        case "panel.modules.hardwareMonitor":
+            return .bool(store.enabledPopupSections.contains(.hardwareMonitor))
         default:
             return nil
         }
@@ -295,6 +297,8 @@ final class CoreSettingsProvider: SettingsStateProvider {
             store.hardwareSSDExternalVolumePaths = Set(Self.strings(value))
         case "hardware.summaryMetrics":
             store.setEnabledHardwareSummaryMetrics(Set(Self.strings(value).compactMap { HardwareSummaryMetric(rawValue: $0) }))
+        case "panel.modules.hardwareMonitor":
+            if case .bool(let flag) = value { store.setPopupSection(.hardwareMonitor, enabled: flag) }
         default:
             break
         }

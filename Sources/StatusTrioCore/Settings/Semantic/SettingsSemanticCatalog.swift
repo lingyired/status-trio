@@ -876,6 +876,9 @@ enum SettingsSemanticCatalog {
         pref("panel.sectionOrder", "面板模块顺序", "panel", .orderedList, "状态面板模块的显示顺序。") { d in
             d.uiPath = "设置 › 状态面板 › 模块顺序"; d.storageKey = "popupSectionOrder"; d.accessPolicy = describedNotWritable
         },
+        pref("panel.modules.hardwareMonitor", "面板显示系统监控模块", "panel", .boolean, "在状态面板显示系统监控模块（CPU/GPU/内存/SSD 等）。") { d in
+            d.uiPath = "设置 › 状态面板 › 模块 › 系统监控"; d.accessPolicy = .profileSafe; d.provider = "core"
+        },
     ]
 
     // MARK: - Features

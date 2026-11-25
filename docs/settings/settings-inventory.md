@@ -56,7 +56,7 @@ This document is the authoritative inventory of every persisted / user-visible s
 | Persisted properties with an explicit class | 152 / 152 (this doc) | 152 / 152 |
 | Exclusions documented with reason | 100% listed below | 100% |
 
-> `SettingsSemanticCatalog` describes 128 preferences = all public user-visible settings (the residual 2 are `internalState` and excluded; `menuBarRightClickAction` is covered by `general.menuBarRightClickAction`) (see `.agents/skills/status-trio-settings/references/settings-schema.json`). The remaining user-visible settings are the coverage backlog tracked by this inventory. See `docs/settings/settings-semantic-infrastructure.md` for the phase report.
+> `SettingsSemanticCatalog` describes 129 preferences = all public user-visible settings (the residual 2 are `internalState` and excluded; `menuBarRightClickAction` is covered by `general.menuBarRightClickAction`) (see `.agents/skills/status-trio-settings/references/settings-schema.json`). The remaining user-visible settings are the coverage backlog tracked by this inventory. See `docs/settings/settings-semantic-infrastructure.md` for the phase report.
 
 ## General / 通用
 
