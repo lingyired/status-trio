@@ -16,8 +16,8 @@
 | 6 Development Profile | ✅ 完成 | `DevelopmentTestProfile`/Validator/Bootstrap + `CoreSettingsProvider`；`AppEnvironment.live` 在迁移后、监控启动前应用；`.dev-profile.example.json`；`build-app.sh` 仅开发版身份签名前嵌入 + `STAllowsDevProfile` 标记；加载仅开发构建生效。 |
 | 7 Schema 导出 + Skill | ✅ 完成 | `SettingsSchemaExporter` 确定性输出 5 份 JSON + 每模块 md；`.agents/skills/status-trio-settings/`（SKILL.md + references）。 |
 | 8 AGENTS.md | ✅ 完成 | 新增 Development Test Profile 规范与"新增设置必须同步语义定义"。 |
-| 9 性能/体积 | ◑ 静态测量 | 见 §5；运行时/包体/冷启动为 NOT RUN。 |
-| 10 测试 | ◑ 部分 | 新增 8 个测试套件 / 51 项（见 §4），含语义层监控生命周期不变量；运行时监控生命周期、真实硬件、完整 UI 回归仍 NOT RUN。 |
+| 9 性能/体积 | ◑ 静态+绝对值 | 见 §5：语义层新增约 0.7MB（上界），ad-hoc app bundle 23MB（单架构实测）；idle CPU/内存/冷启动 NOT RUN。 |
+| 10 测试 | ✅ 本地 full 通过 | `verify-local.sh full` PASS（1330 Swift Testing + 4023 XCTest，0 失败，含 Release 构建与 bundle 契约）；新增 8 套件/51 项含监控生命周期不变量。运行时监控/真实硬件 NOT RUN。 |
 
 ## 2. 架构
 
@@ -68,19 +68,22 @@ SettingsService.restore(_:)
 运行方式：`bash scripts/test.sh '<Suite>'`（含 forbidden-pattern 检查）。
 `swift build -c release --target StatusTrioCore` 通过（116s）。
 
-## 5. 性能与体积（静态测量）
+## 5. 性能与体积（实测）
 
 | 指标 | 结果 | 说明 |
 |---|---|---|
-| 语义层 release 单架构 dylib（`-O`，未 strip，含全部 4 个目录） | ≈ 0.7 MB（723,120 bytes） | 上界估计，已低于 1 MB 目标 |
-| standalone exporter 可执行（含 model+catalog+export） | ≈ 0.56 MB | 上界 |
+| 语义层新增 release 单架构 dylib（`-O`，未 strip，含 Semantic+Service+Development+Schema 全部新文件） | ≈ 0.7 MB（723,120 bytes） | 新增代码+数据上界，低于 1 MB 目标。新增文件无删除，故约等于净增。 |
+| standalone exporter 可执行（model+catalog+export） | ≈ 0.56 MB | 上界 |
+| 新增语义层源码 | 3,133 行 | 纯 Swift，Foundation-only，无第三方运行时 |
+| ad-hoc 单架构 app bundle（`verify-local.sh full` 产出 `dist/StatusTrio.app`） | 23 MB | 当前绝对值；未与 main 基线做同构建对比 |
 | 新增后台进程 / 定时器 / 轮询 | 0 | 纯数据与服务，无运行时常驻 |
 | 正式版默认值变化 | 0 | 未改任何 SettingsStore 默认或存储格式 |
-| 未使用配置服务时是否生成完整 Schema | 否 | 导出为离线工具，不在启动路径 |
+| 未使用配置服务时生成完整 Schema | 否 | 导出为离线工具，不在启动路径 |
 
-**NOT RUN（需真实签名 App Bundle 与运行环境）**：App 包体增量、可执行/Core 库
-增量、DMG/ZIP 压缩体积、空闲 CPU、常驻内存/physical footprint、冷启动时间、打开
-设置页面性能。方法论见计划 §12.3，须在同一工具链/配置/架构/签名下对比重构前后。
+**NOT RUN（需签名 App 与真实运行环境）**：包体相对 main 的增量、DMG/ZIP 压缩体积、
+空闲 CPU、常驻内存/physical footprint、冷启动时间、打开设置页面性能。方法论见计划
+§12.3，须在同一工具链/配置/架构/签名下对比重构前后。计划明确这些是工程目标而非
+保证值。可复用的测量脚本：`scripts/measure-memory.py` 等。
 
 ## 6. 明确未完成 / 后续
 
