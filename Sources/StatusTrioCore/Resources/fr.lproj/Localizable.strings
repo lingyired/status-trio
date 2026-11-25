@@ -244,7 +244,8 @@
 "settings.battery.simulateNoBattery" = "Simuler l’absence de batterie";
 "settings.battery.simulateNoBatteryDescription" = "Affiche cette page comme sur un Mac sans batterie. Compilations de développement uniquement.";
 "settings.battery.noBatteryHiddenOptions" = "Ce Mac n’a pas de batterie : le pourcentage et l’indicateur de charge ne s’appliquent pas. L’anneau est noir et blanc par défaut ; désactivez-le ci-dessus pour la couleur secteur. Les modes économie d’énergie et haute performance gardent leurs couleurs.";
-"settings.battery.colors.charging" = "Charge / alimentation secteur";
+"settings.battery.colors.charging" = "En charge";
+"settings.battery.colors.connected" = "Connecté (ne charge pas)";
 "settings.battery.colors.lowPower" = "Mode économie d’énergie";
 "settings.battery.colors.critical" = "Batterie très faible";
 "settings.battery.colors.system" = "Valeur par défaut du système";

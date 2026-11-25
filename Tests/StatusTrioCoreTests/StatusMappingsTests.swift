@@ -155,7 +155,31 @@ final class StatusMappingsTests: XCTestCase {
             isLowPowerMode: false,
             isConnectedToPower: true
         )
-        XCTAssertEqual(StatusMappings.batteryColorRole(connectedOnly), .charging)
+        XCTAssertEqual(StatusMappings.batteryColorRole(connectedOnly), .connected)
+    }
+
+    /// #389: charging and connected-to-power resolve separate roles, so each can
+    /// carry its own colour. `monochromeCharging` still collapses both to the
+    /// plain foreground.
+    func testChargingAndConnectedSplitAndMonochromeCoversBoth() {
+        let charging = BatteryStatus(
+            rawPercentage: 100, isPresent: true, isCharging: true,
+            isLowPowerMode: false, isConnectedToPower: true
+        )
+        let connected = BatteryStatus(
+            rawPercentage: 100, isPresent: true, isCharging: false,
+            isLowPowerMode: false, isConnectedToPower: true
+        )
+        XCTAssertEqual(StatusMappings.batteryColorRole(charging), .charging)
+        XCTAssertEqual(StatusMappings.batteryColorRole(connected), .connected)
+        XCTAssertEqual(StatusMappings.batteryColorRole(charging, monochromeCharging: true), .foreground)
+        XCTAssertEqual(StatusMappings.batteryColorRole(connected, monochromeCharging: true), .foreground)
+        // A battery-less Mac treats its decorative ring as connected.
+        let noBattery = BatteryStatus(
+            rawPercentage: 0, isPresent: false, isCharging: false,
+            isLowPowerMode: false, isConnectedToPower: false
+        )
+        XCTAssertEqual(StatusMappings.batteryColorRole(noBattery, treatAsConnected: true), .connected)
     }
 
     func testBatteryCriticalThreshold() {
