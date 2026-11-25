@@ -175,7 +175,7 @@ struct AppIconRingView: View {
         }
     }
 
-    /// AirPods arc layout (single vs left/right dual).
+    /// AirPods arc layout (single vs left/right dual) and its arc colours.
     private var airPodsArcGroup: some View {
         SettingsGroup(localization.string(.settingsHardwareRingGroupArc)) {
             SettingsToggleRow(
@@ -184,6 +184,26 @@ struct AppIconRingView: View {
                 title: localization.string(.settingsRingAirPodsDualRing),
                 subtitle: localization.string(.settingsRingAirPodsDualRingDescription),
                 isOn: $store.airPodsRingUsesDualRing
+            )
+            if store.airPodsRingUsesDualRing {
+                SettingsDivider()
+                AirPodsArcColorRow(
+                    titleKey: .settingsRingAirPodsLeftArcColor,
+                    subtitleKey: .settingsRingAirPodsLeftArcColorDescription,
+                    selection: $store.airPodsLeftArcColor
+                )
+                SettingsDivider()
+                AirPodsArcColorRow(
+                    titleKey: .settingsRingAirPodsRightArcColor,
+                    subtitleKey: .settingsRingAirPodsRightArcColorDescription,
+                    selection: $store.airPodsRightArcColor
+                )
+            }
+            SettingsDivider()
+            AirPodsArcColorRow(
+                titleKey: .settingsRingAirPodsSingleArcColor,
+                subtitleKey: .settingsRingAirPodsSingleArcColorDescription,
+                selection: $store.airPodsSingleArcColor
             )
         }
     }

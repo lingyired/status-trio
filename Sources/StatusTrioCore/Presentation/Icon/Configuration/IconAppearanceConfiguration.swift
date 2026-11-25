@@ -8,6 +8,30 @@ struct IconRGBA: Codable, Equatable, Hashable, Sendable {
 
     static let white = Self(red: 1, green: 1, blue: 1, alpha: 1)
 
+    /// Converts the picker's HSB components into a drawable RGB colour. Used by
+    /// the icon ring, which paints a concrete colour rather than carrying the
+    /// appearance-dependent visibility floor the menu-bar glyph applies.
+    static func hsb(hue: Double, saturation: Double, brightness: Double, alpha: Double = 1) -> Self {
+        func clamp(_ value: Double) -> Double { value.isFinite ? min(1, max(0, value)) : 0 }
+        let h = (clamp(hue) * 6).truncatingRemainder(dividingBy: 6)
+        let s = clamp(saturation)
+        let v = clamp(brightness)
+        let sector = Int(floor(h))
+        let f = h - floor(h)
+        let p = v * (1 - s)
+        let q = v * (1 - s * f)
+        let t = v * (1 - s * (1 - f))
+        let rgb: (Double, Double, Double) = switch sector % 6 {
+        case 0: (v, t, p)
+        case 1: (q, v, p)
+        case 2: (p, v, t)
+        case 3: (p, q, v)
+        case 4: (t, p, v)
+        default: (v, p, q)
+        }
+        return Self(red: rgb.0, green: rgb.1, blue: rgb.2, alpha: clamp(alpha))
+    }
+
     func normalized() -> Self {
         func component(_ value: Double, fallback: Double) -> Double {
             value.isFinite ? min(1, max(0, value)) : fallback
@@ -120,10 +144,16 @@ struct IconAppearanceConfiguration: Codable, Equatable, Sendable {
     var bluetoothSymbolScale: Double
     /// User colour overrides for battery status roles (#235 palette).
     var batteryStatusColors: BatteryStatusColorsConfiguration
+    /// AirPods ring arc colours: left ear, right ear, and the single-arc view.
+    /// Defaults keep the historical look (left blue, right/single primary).
+    var airPodsLeftArcColor: BluetoothIconColorConfiguration
+    var airPodsRightArcColor: BluetoothIconColorConfiguration
+    var airPodsSingleArcColor: BluetoothIconColorConfiguration
 
     enum CodingKeys: String, CodingKey {
         case outerRing, center, footer, bluetoothIconColor, inputSourceMarkerStyle, bluetoothSymbolScale
         case batteryStatusColors
+        case airPodsLeftArcColor, airPodsRightArcColor, airPodsSingleArcColor
     }
 
     static let classic = Self(
@@ -133,7 +163,10 @@ struct IconAppearanceConfiguration: Codable, Equatable, Sendable {
         bluetoothIconColor: .classic,
         inputSourceMarkerStyle: .systemIcon,
         bluetoothSymbolScale: BluetoothAudioIconOptions.defaultSymbolScale,
-        batteryStatusColors: .classic
+        batteryStatusColors: .classic,
+        airPodsLeftArcColor: .init(storageValue: "blue"),
+        airPodsRightArcColor: .init(storageValue: "primary"),
+        airPodsSingleArcColor: .init(storageValue: "primary")
     )
 
     init(
@@ -143,7 +176,10 @@ struct IconAppearanceConfiguration: Codable, Equatable, Sendable {
         bluetoothIconColor: BluetoothIconColorConfiguration = .classic,
         inputSourceMarkerStyle: InputSourceMarkerStyle = .systemIcon,
         bluetoothSymbolScale: Double = BluetoothAudioIconOptions.defaultSymbolScale,
-        batteryStatusColors: BatteryStatusColorsConfiguration = .classic
+        batteryStatusColors: BatteryStatusColorsConfiguration = .classic,
+        airPodsLeftArcColor: BluetoothIconColorConfiguration = .init(storageValue: "blue"),
+        airPodsRightArcColor: BluetoothIconColorConfiguration = .init(storageValue: "primary"),
+        airPodsSingleArcColor: BluetoothIconColorConfiguration = .init(storageValue: "primary")
     ) {
         self.outerRing = outerRing
         self.center = center
@@ -152,6 +188,9 @@ struct IconAppearanceConfiguration: Codable, Equatable, Sendable {
         self.inputSourceMarkerStyle = inputSourceMarkerStyle
         self.bluetoothSymbolScale = bluetoothSymbolScale
         self.batteryStatusColors = batteryStatusColors
+        self.airPodsLeftArcColor = airPodsLeftArcColor
+        self.airPodsRightArcColor = airPodsRightArcColor
+        self.airPodsSingleArcColor = airPodsSingleArcColor
     }
 
     init(from decoder: Decoder) throws {
@@ -171,6 +210,15 @@ struct IconAppearanceConfiguration: Codable, Equatable, Sendable {
         batteryStatusColors = try container.decodeIfPresent(
             BatteryStatusColorsConfiguration.self, forKey: .batteryStatusColors
         ) ?? .classic
+        airPodsLeftArcColor = try container.decodeIfPresent(
+            BluetoothIconColorConfiguration.self, forKey: .airPodsLeftArcColor
+        ) ?? .init(storageValue: "blue")
+        airPodsRightArcColor = try container.decodeIfPresent(
+            BluetoothIconColorConfiguration.self, forKey: .airPodsRightArcColor
+        ) ?? .init(storageValue: "primary")
+        airPodsSingleArcColor = try container.decodeIfPresent(
+            BluetoothIconColorConfiguration.self, forKey: .airPodsSingleArcColor
+        ) ?? .init(storageValue: "primary")
     }
 
     func resetting(_ slot: IconSlot) -> Self {

@@ -196,6 +196,12 @@
 "settings.ringContent.airPodsGroup" = "AirPodsリング";
 "settings.ringContent.airPodsDualRing" = "2分割レイアウト";
 "settings.ringContent.airPodsDualRing.description" = "左右のイヤホン残量をそれぞれの弧で描きます。片側の残量しか取得できない場合は両方の弧に同じ値を表示し、充電ケースは含みません。";
+"settings.ringContent.airPodsLeftArcColor" = "左イヤホンの弧の色";
+"settings.ringContent.airPodsLeftArcColor.description" = "2分割レイアウトで左イヤホンの残量を示す弧の色。";
+"settings.ringContent.airPodsRightArcColor" = "右イヤホンの弧の色";
+"settings.ringContent.airPodsRightArcColor.description" = "2分割レイアウトで右イヤホンの残量を示す弧の色。";
+"settings.ringContent.airPodsSingleArcColor" = "単一弧の色";
+"settings.ringContent.airPodsSingleArcColor.description" = "単一弧レイアウトの色。全体の残量しか取得できない場合にも使われます。";
 "settings.ringContent.airPodsTopSymbol" = "AirPodsシンボルを表示";
 "settings.ringContent.airPodsTopSymbol.description" = "リング上部に小さなAirPodsアイコンを描画します。";
 "settings.ringContent.airPodsFallback" = "AirPods 未接続時のフォールバック";
