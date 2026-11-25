@@ -39,7 +39,11 @@ enum BluetoothBatteryLevelText {
                             height: 11
                         )
                     }
-                    return run + Text(Image(nsImage: small))
+                    // A `Text(Image(...))` sits on the text baseline by its bottom
+                    // edge; the battery is taller than a digit, so it reads high.
+                    // A small negative baseline offset drops it to be vertically
+                    // centred with the percentage beside it.
+                    return run + Text(Image(nsImage: small)).baselineOffset(-1)
                 }
                 return run + Text(Image(systemName: name))
             }
