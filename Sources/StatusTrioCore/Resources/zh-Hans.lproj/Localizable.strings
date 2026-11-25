@@ -1433,3 +1433,12 @@
 "settings.localPlugins.unauthorized" = "本地 JSON 包需要已授权的目录。";
 "settings.localPlugins.loadFailed" = "无法读取包目录。";
 "settings.localPlugins.reload" = "重新加载";
+
+"hardware.monitor.settings.refresh.cpuUsage" = "CPU 占用";
+"hardware.monitor.settings.refresh.gpuUsage" = "GPU 占用";
+"hardware.monitor.settings.refresh.memory" = "内存";
+"hardware.monitor.settings.refresh.network" = "网络";
+"hardware.monitor.settings.refresh.temperature" = "温度";
+"hardware.monitor.settings.refresh.disk" = "磁盘读写";
+"hardware.monitor.settings.refresh.topApps" = "高占用应用刷新间隔";
+"hardware.monitor.settings.refresh.topApps.description" = "内存列表受自身 6 秒下限限制，实际不会快于 6 秒。";

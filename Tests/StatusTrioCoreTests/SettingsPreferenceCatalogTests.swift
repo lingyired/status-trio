@@ -49,7 +49,7 @@ final class SettingsPreferenceCatalogTests: XCTestCase {
                 "autoEnablesLowPowerMode", "showsAppleDevicesAndBattery",
                 "refreshesAppleBatteriesInBackground", "appleBatteryRefreshIntervalMinutes",
                 "showsBluetoothListeningMode", "bluetoothAudioIconChoiceRawValue", "wifiSymbolScale",
-                "volumeDisplayStyle", "ringStrokeStyle", "hardwareBackgroundHistoryEnabled", "hardwarePanelRefreshSeconds", "hardwareHistoryWindowMinutes", "hardwareDownloadCapMbps", "hardwareUploadCapMbps", "hardwareNetworkChartFixedScale", "showsHardwareRings", "showsHardwareSummaryRow", "showsHardwareTopApps", "enabledHardwareRingSlots", "enabledHardwareSummaryMetrics", "memoryRingDisplayMode", "ssdRingDisplayMode", "hardwareRingSplitGapProgress", "hardwareTemperatureMonitoringEnabled", "cpuRingCenterContent", "gpuRingCenterContent", "refreshIntervalOnBatterySeconds",
+                "volumeDisplayStyle", "ringStrokeStyle", "hardwareBackgroundHistoryEnabled", "hardwareCPUUsageRefreshSeconds", "hardwareGPUUsageRefreshSeconds", "hardwareMemoryRefreshSeconds", "hardwareNetworkRefreshSeconds", "hardwareTemperatureRefreshSeconds", "hardwareDiskRefreshSeconds", "hardwareTopAppsRefreshSeconds", "hardwareHistoryWindowMinutes", "hardwareDownloadCapMbps", "hardwareUploadCapMbps", "hardwareNetworkChartFixedScale", "showsHardwareRings", "showsHardwareSummaryRow", "showsHardwareTopApps", "enabledHardwareRingSlots", "enabledHardwareSummaryMetrics", "memoryRingDisplayMode", "ssdRingDisplayMode", "hardwareRingSplitGapProgress", "hardwareTemperatureMonitoringEnabled", "cpuRingCenterContent", "gpuRingCenterContent", "refreshIntervalOnBatterySeconds",
                 "refreshIntervalOnPowerSeconds", "maxVisibleOutputDevices", "alwaysShowsAllOutputDevices",
                 "maxVisibleInputDevices", "alwaysShowsAllInputDevices", "showsBluetoothDeviceList",
                 "maxVisibleBluetoothDevices", "hidesGhostBluetoothDevices", "popupSectionOrder",
@@ -130,19 +130,27 @@ final class SettingsPreferenceCatalogTests: XCTestCase {
         }
     }
 
-    func testHardwarePanelRefreshValidatesOptionsAndRoundTrips() {
+    func testHardwarePerGroupRefreshValidatesOptionsAndRoundTrips() {
         withStore { store, defaults in
-            XCTAssertEqual(store.hardwarePanelRefreshSeconds, 1)
-            for value in [2, 3, 4, 5, 6, 7, 8] {
-                store.hardwarePanelRefreshSeconds = value
-                XCTAssertEqual(SettingsStore(defaults: defaults).hardwarePanelRefreshSeconds, value)
+            XCTAssertEqual(store.hardwareCPUUsageRefreshSeconds, 2)
+            for value in [3, 4, 5, 6, 7, 8] {
+                store.hardwareCPUUsageRefreshSeconds = value
+                XCTAssertEqual(SettingsStore(defaults: defaults).hardwareCPUUsageRefreshSeconds, value)
             }
-            for invalid in [0, 9, 11, -1] {
-                store.hardwarePanelRefreshSeconds = invalid
-                XCTAssertEqual(store.hardwarePanelRefreshSeconds, 1, "only shipped options are accepted")
+            for invalid in [0, 1, 9, 11, -1] {
+                store.hardwareCPUUsageRefreshSeconds = invalid
+                XCTAssertEqual(store.hardwareCPUUsageRefreshSeconds, 2, "only shipped options are accepted")
             }
-            store.hardwarePanelRefreshSeconds = 5
-            XCTAssertEqual(SettingsPreferenceCatalog.snapshot(store)["hardwarePanelRefreshSeconds"], .number(5))
+            store.hardwareCPUUsageRefreshSeconds = 5
+            XCTAssertEqual(SettingsPreferenceCatalog.snapshot(store)["hardwareCPUUsageRefreshSeconds"], .number(5))
+
+            XCTAssertEqual(store.hardwareTopAppsRefreshSeconds, 4)
+            store.hardwareTopAppsRefreshSeconds = 30
+            XCTAssertEqual(SettingsStore(defaults: defaults).hardwareTopAppsRefreshSeconds, 30)
+            store.hardwareTopAppsRefreshSeconds = 0
+            XCTAssertEqual(store.hardwareTopAppsRefreshSeconds, 4)
+            store.hardwareTopAppsRefreshSeconds = 9
+            XCTAssertEqual(SettingsPreferenceCatalog.snapshot(store)["hardwareTopAppsRefreshSeconds"], .number(9))
         }
     }
 

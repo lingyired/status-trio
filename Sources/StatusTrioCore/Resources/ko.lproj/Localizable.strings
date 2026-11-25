@@ -1433,3 +1433,12 @@
 "settings.localPlugins.loadFailed" = "패키지 폴더를 읽을 수 없습니다.";
 "settings.localPlugins.reload" = "다시 로드";
 "settings.battery.colors.discharging" = "방전 중 (전원 미연결)";
+
+"hardware.monitor.settings.refresh.cpuUsage" = "CPU 사용량";
+"hardware.monitor.settings.refresh.gpuUsage" = "GPU 사용량";
+"hardware.monitor.settings.refresh.memory" = "메모리";
+"hardware.monitor.settings.refresh.network" = "네트워크";
+"hardware.monitor.settings.refresh.temperature" = "온도";
+"hardware.monitor.settings.refresh.disk" = "디스크 I/O";
+"hardware.monitor.settings.refresh.topApps" = "상위 앱 새로 고침";
+"hardware.monitor.settings.refresh.topApps.description" = "메모리 목록은 자체 6초 하한을 유지하므로 그보다 빠르게 갱신되지 않습니다.";

@@ -27,7 +27,7 @@ struct HardwareMonitorCardView: View {
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
 
     var body: some View {
-        let tiles = HardwareMetricTilePresentation.tiles(metrics: metrics, snapshot: model.snapshot,
+        let tiles = HardwareMetricTilePresentation.tiles(metrics: metrics, snapshot: model.panelSnapshot,
                                                           localization: localization, colors: metricColors,
                                                           speedCapsMbps: speedCapsMbps)
         VStack(spacing: 12) {

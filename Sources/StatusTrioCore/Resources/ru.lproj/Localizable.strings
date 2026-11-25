@@ -1433,3 +1433,12 @@
 "settings.localPlugins.unauthorized" = "Для локальных JSON-пакетов нужна разрешённая папка.";
 "settings.localPlugins.loadFailed" = "Не удалось прочитать папку пакета.";
 "settings.localPlugins.reload" = "Перезагрузить";
+
+"hardware.monitor.settings.refresh.cpuUsage" = "Загрузка ЦП";
+"hardware.monitor.settings.refresh.gpuUsage" = "Загрузка ГП";
+"hardware.monitor.settings.refresh.memory" = "Память";
+"hardware.monitor.settings.refresh.network" = "Сеть";
+"hardware.monitor.settings.refresh.temperature" = "Температура";
+"hardware.monitor.settings.refresh.disk" = "Дисковый ввод-вывод";
+"hardware.monitor.settings.refresh.topApps" = "Обновление топ-приложений";
+"hardware.monitor.settings.refresh.topApps.description" = "Список памяти сохраняет свой минимум 6 с и не будет обновляться чаще.";

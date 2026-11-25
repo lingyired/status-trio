@@ -103,25 +103,27 @@ struct HardwareMonitorSectionView: View {
     /// closed. Grouped together because they trade freshness against readings.
     private var samplingGroup: some View {
         SettingsGroup(localization.string(.hardwareMonitorSettingsGroupSampling)) {
-            SettingsRow(
-                "speedometer",
-                tint: .blue,
-                title: localization.string(.hardwareMonitorSettingsPanelRefresh),
-                subtitle: localization.string(.hardwareMonitorSettingsPanelRefreshDescription)
-            ) {
-                Picker(localization.string(.hardwareMonitorSettingsPanelRefresh),
-                       selection: Binding(
-                        get: { store.hardwarePanelRefreshSeconds },
-                        set: { store.hardwarePanelRefreshSeconds = $0 })) {
-                    ForEach(SettingsStore.hardwarePanelRefreshOptions, id: \.self) { seconds in
-                        Text(localization.format(.hardwareMonitorBackgroundSeconds, seconds))
-                            .tag(seconds)
+            ForEach(HardwareRefreshGroup.allCases, id: \.self) { group in
+                SettingsRow(
+                    "speedometer",
+                    tint: .blue,
+                    title: localization.string(group.titleKey),
+                    subtitle: nil
+                ) {
+                    Picker(localization.string(group.titleKey),
+                           selection: Binding(
+                            get: { store.hardwareRefreshSeconds(for: group) },
+                            set: { setHardwareRefresh(group, $0) })) {
+                        ForEach(group.options, id: \.self) { seconds in
+                            Text(localization.format(.hardwareMonitorBackgroundSeconds, seconds))
+                                .tag(seconds)
+                        }
                     }
+                    .labelsHidden()
+                    .settingsMenuPickerWidth()
                 }
-                .labelsHidden()
-                .settingsMenuPickerWidth()
+                SettingsDivider()
             }
-            SettingsDivider()
             SettingsRow(
                 "chart.line.uptrend.xyaxis",
                 tint: .teal,
@@ -162,6 +164,39 @@ struct HardwareMonitorSectionView: View {
                     set: { store.showsHardwareTopApps = $0 }
                 )
             )
+
+            SettingsDivider()
+            SettingsRow(
+                "timer",
+                tint: .orange,
+                title: localization.string(.hardwareMonitorSettingsRefreshTopApps),
+                subtitle: localization.string(.hardwareMonitorSettingsRefreshTopAppsDescription)
+            ) {
+                Picker(localization.string(.hardwareMonitorSettingsRefreshTopApps),
+                       selection: Binding(
+                        get: { store.hardwareTopAppsRefreshSeconds },
+                        set: { store.hardwareTopAppsRefreshSeconds = $0 })) {
+                    ForEach(SettingsStore.hardwareTopAppsRefreshOptions, id: \.self) { seconds in
+                        Text(localization.format(.hardwareMonitorBackgroundSeconds, seconds))
+                            .tag(seconds)
+                    }
+                }
+                .labelsHidden()
+                .settingsMenuPickerWidth()
+            }
+        }
+    }
+
+    /// Writes one group's cadence back through its published setter so the panel
+    /// and background providers pick the new value up.
+    private func setHardwareRefresh(_ group: HardwareRefreshGroup, _ seconds: Int) {
+        switch group {
+        case .cpuUsage: store.hardwareCPUUsageRefreshSeconds = seconds
+        case .gpuUsage: store.hardwareGPUUsageRefreshSeconds = seconds
+        case .memory: store.hardwareMemoryRefreshSeconds = seconds
+        case .network: store.hardwareNetworkRefreshSeconds = seconds
+        case .temperature: store.hardwareTemperatureRefreshSeconds = seconds
+        case .disk: store.hardwareDiskRefreshSeconds = seconds
         }
     }
 

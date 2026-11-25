@@ -85,11 +85,13 @@ final class HardwareMonitorPanelDemandTests: XCTestCase {
         fixture.store.setPopoverVisible(false)
         RunLoop.main.run(until: Date().addingTimeInterval(0.05))
         XCTAssertEqual(service.demands[.background], expectedBackground)
-        XCTAssertEqual(service.backgroundIntervalSeconds, TimeInterval(fixture.settings.hardwarePanelRefreshSeconds))
+        XCTAssertEqual(service.backgroundCadenceProvider(.cpuUsage),
+                       TimeInterval(fixture.settings.hardwareRefreshSeconds(for: .cpuUsage)))
 
-        fixture.settings.hardwarePanelRefreshSeconds = 5
+        fixture.settings.hardwareMemoryRefreshSeconds = 5
         RunLoop.main.run(until: Date().addingTimeInterval(0.05))
-        XCTAssertEqual(service.backgroundIntervalSeconds, 5, "background history follows the panel cadence")
+        XCTAssertEqual(service.backgroundCadenceProvider(.memory), 5,
+                       "background history follows the per-group cadence")
 
         fixture.store.setPopoverVisible(true)
         RunLoop.main.run(until: Date().addingTimeInterval(0.05))

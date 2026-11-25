@@ -1433,3 +1433,12 @@
 "settings.localPlugins.unauthorized" = "Les paquets JSON locaux nécessitent un dossier autorisé.";
 "settings.localPlugins.loadFailed" = "Impossible de lire le dossier du paquet.";
 "settings.localPlugins.reload" = "Recharger";
+
+"hardware.monitor.settings.refresh.cpuUsage" = "Utilisation CPU";
+"hardware.monitor.settings.refresh.gpuUsage" = "Utilisation GPU";
+"hardware.monitor.settings.refresh.memory" = "Mémoire";
+"hardware.monitor.settings.refresh.network" = "Réseau";
+"hardware.monitor.settings.refresh.temperature" = "Température";
+"hardware.monitor.settings.refresh.disk" = "E/S disque";
+"hardware.monitor.settings.refresh.topApps" = "Actualisation des applis principales";
+"hardware.monitor.settings.refresh.topApps.description" = "La liste mémoire conserve son plancher de 6 s et ne s'actualisera pas plus vite.";

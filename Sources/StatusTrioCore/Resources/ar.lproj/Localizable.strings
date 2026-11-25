@@ -1433,3 +1433,12 @@
 "settings.localPlugins.unauthorized" = "تتطلب حزم JSON المحلية مجلدًا مصرحًا به.";
 "settings.localPlugins.loadFailed" = "تعذر قراءة مجلد الحزمة.";
 "settings.localPlugins.reload" = "إعادة تحميل";
+
+"hardware.monitor.settings.refresh.cpuUsage" = "استخدام المعالج";
+"hardware.monitor.settings.refresh.gpuUsage" = "استخدام وحدة الرسوميات";
+"hardware.monitor.settings.refresh.memory" = "الذاكرة";
+"hardware.monitor.settings.refresh.network" = "الشبكة";
+"hardware.monitor.settings.refresh.temperature" = "الحرارة";
+"hardware.monitor.settings.refresh.disk" = "إدخال/إخراج القرص";
+"hardware.monitor.settings.refresh.topApps" = "تحديث التطبيقات الأعلى";
+"hardware.monitor.settings.refresh.topApps.description" = "تحتفظ قائمة الذاكرة بحدها الأدنى البالغ 6 ثوانٍ ولن يتم تحديثها أسرع من ذلك.";

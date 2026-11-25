@@ -1433,3 +1433,12 @@
 "settings.localPlugins.unauthorized" = "ローカル JSON パッケージには許可されたフォルダーが必要です。";
 "settings.localPlugins.loadFailed" = "パッケージフォルダーを読み取れませんでした。";
 "settings.localPlugins.reload" = "再読み込み";
+
+"hardware.monitor.settings.refresh.cpuUsage" = "CPU使用率";
+"hardware.monitor.settings.refresh.gpuUsage" = "GPU使用率";
+"hardware.monitor.settings.refresh.memory" = "メモリ";
+"hardware.monitor.settings.refresh.network" = "ネットワーク";
+"hardware.monitor.settings.refresh.temperature" = "温度";
+"hardware.monitor.settings.refresh.disk" = "ディスクI/O";
+"hardware.monitor.settings.refresh.topApps" = "上位アプリの更新";
+"hardware.monitor.settings.refresh.topApps.description" = "メモリのリストは独自の下限6秒を保つため、それより速く更新されません。";

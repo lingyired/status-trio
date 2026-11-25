@@ -1433,3 +1433,12 @@
 "settings.localPlugins.unauthorized" = "本機 JSON 套件需要已授權的目錄。";
 "settings.localPlugins.loadFailed" = "無法讀取套件目錄。";
 "settings.localPlugins.reload" = "重新載入";
+
+"hardware.monitor.settings.refresh.cpuUsage" = "CPU 佔用";
+"hardware.monitor.settings.refresh.gpuUsage" = "GPU 佔用";
+"hardware.monitor.settings.refresh.memory" = "記憶體";
+"hardware.monitor.settings.refresh.network" = "網路";
+"hardware.monitor.settings.refresh.temperature" = "溫度";
+"hardware.monitor.settings.refresh.disk" = "磁碟讀寫";
+"hardware.monitor.settings.refresh.topApps" = "高佔用應用程式更新間隔";
+"hardware.monitor.settings.refresh.topApps.description" = "記憶體清單受自身 6 秒下限限制，實際不會快於 6 秒。";

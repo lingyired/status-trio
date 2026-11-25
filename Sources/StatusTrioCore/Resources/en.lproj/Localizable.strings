@@ -1432,3 +1432,12 @@
 "settings.localPlugins.unauthorized" = "Local JSON packages require an authorized folder.";
 "settings.localPlugins.loadFailed" = "Could not read the package folder.";
 "settings.localPlugins.reload" = "Reload";
+
+"hardware.monitor.settings.refresh.cpuUsage" = "CPU Usage";
+"hardware.monitor.settings.refresh.gpuUsage" = "GPU Usage";
+"hardware.monitor.settings.refresh.memory" = "Memory";
+"hardware.monitor.settings.refresh.network" = "Network";
+"hardware.monitor.settings.refresh.temperature" = "Temperature";
+"hardware.monitor.settings.refresh.disk" = "Disk I/O";
+"hardware.monitor.settings.refresh.topApps" = "Top Apps Refresh";
+"hardware.monitor.settings.refresh.topApps.description" = "The memory list keeps its own 6 s floor, so it won't refresh faster than that.";

@@ -1433,3 +1433,12 @@
 "settings.localPlugins.unauthorized" = "Lokale JSON-Pakete benötigen einen autorisierten Ordner.";
 "settings.localPlugins.loadFailed" = "Der Paketordner konnte nicht gelesen werden.";
 "settings.localPlugins.reload" = "Neu laden";
+
+"hardware.monitor.settings.refresh.cpuUsage" = "CPU-Auslastung";
+"hardware.monitor.settings.refresh.gpuUsage" = "GPU-Auslastung";
+"hardware.monitor.settings.refresh.memory" = "Speicher";
+"hardware.monitor.settings.refresh.network" = "Netzwerk";
+"hardware.monitor.settings.refresh.temperature" = "Temperatur";
+"hardware.monitor.settings.refresh.disk" = "Datenträger-E/A";
+"hardware.monitor.settings.refresh.topApps" = "Aktualisierung der Top-Apps";
+"hardware.monitor.settings.refresh.topApps.description" = "Die Speicherliste behält ihre eigene Untergrenze von 6 s und wird nicht schneller aktualisiert.";

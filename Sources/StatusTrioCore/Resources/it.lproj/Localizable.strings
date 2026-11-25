@@ -1433,3 +1433,12 @@
 "settings.localPlugins.unauthorized" = "I pacchetti JSON locali richiedono una cartella autorizzata.";
 "settings.localPlugins.loadFailed" = "Impossibile leggere la cartella del pacchetto.";
 "settings.localPlugins.reload" = "Ricarica";
+
+"hardware.monitor.settings.refresh.cpuUsage" = "Utilizzo CPU";
+"hardware.monitor.settings.refresh.gpuUsage" = "Utilizzo GPU";
+"hardware.monitor.settings.refresh.memory" = "Memoria";
+"hardware.monitor.settings.refresh.network" = "Rete";
+"hardware.monitor.settings.refresh.temperature" = "Temperatura";
+"hardware.monitor.settings.refresh.disk" = "I/O disco";
+"hardware.monitor.settings.refresh.topApps" = "Aggiornamento app principali";
+"hardware.monitor.settings.refresh.topApps.description" = "L'elenco memoria mantiene il suo limite di 6 s e non si aggiornerà più velocemente.";

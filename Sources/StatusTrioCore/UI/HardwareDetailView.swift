@@ -58,7 +58,7 @@ struct HardwareDetailView: View {
                                                                         historyWindow: historyWindowSeconds))
     }
 
-    private var snapshot: HardwareMetricsSnapshot { hardware.snapshot }
+    private var snapshot: HardwareMetricsSnapshot { hardware.panelSnapshot }
     private var now: Date { Date() }
 
     var body: some View {

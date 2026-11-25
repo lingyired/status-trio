@@ -1433,3 +1433,12 @@
 "settings.localPlugins.unauthorized" = "Los paquetes JSON locales requieren una carpeta autorizada.";
 "settings.localPlugins.loadFailed" = "No se pudo leer la carpeta del paquete.";
 "settings.localPlugins.reload" = "Recargar";
+
+"hardware.monitor.settings.refresh.cpuUsage" = "Uso de CPU";
+"hardware.monitor.settings.refresh.gpuUsage" = "Uso de GPU";
+"hardware.monitor.settings.refresh.memory" = "Memoria";
+"hardware.monitor.settings.refresh.network" = "Red";
+"hardware.monitor.settings.refresh.temperature" = "Temperatura";
+"hardware.monitor.settings.refresh.disk" = "E/S de disco";
+"hardware.monitor.settings.refresh.topApps" = "Actualización de apps principales";
+"hardware.monitor.settings.refresh.topApps.description" = "La lista de memoria mantiene su límite de 6 s y no se actualizará más rápido.";

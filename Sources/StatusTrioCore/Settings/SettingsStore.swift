@@ -219,6 +219,13 @@ final class SettingsStore: ObservableObject {
     static let hardwareUploadCapMbpsDefaultsKey = "hardwareUploadCapMbps"
     static let hardwareBackgroundHistoryEnabledDefaultsKey = "hardwareBackgroundHistoryEnabled"
     static let hardwarePanelRefreshSecondsDefaultsKey = "hardwarePanelRefreshSeconds"
+    static let hardwareCPUUsageRefreshSecondsDefaultsKey = "hardwareCPUUsageRefreshSeconds"
+    static let hardwareGPUUsageRefreshSecondsDefaultsKey = "hardwareGPUUsageRefreshSeconds"
+    static let hardwareMemoryRefreshSecondsDefaultsKey = "hardwareMemoryRefreshSeconds"
+    static let hardwareNetworkRefreshSecondsDefaultsKey = "hardwareNetworkRefreshSeconds"
+    static let hardwareTemperatureRefreshSecondsDefaultsKey = "hardwareTemperatureRefreshSeconds"
+    static let hardwareDiskRefreshSecondsDefaultsKey = "hardwareDiskRefreshSeconds"
+    static let hardwareTopAppsRefreshSecondsDefaultsKey = "hardwareTopAppsRefreshSeconds"
     static let hardwareHistoryWindowMinutesDefaultsKey = "hardwareHistoryWindowMinutes"
     static let showsHardwareTopAppsDefaultsKey = "showsHardwareTopApps"
     static let hardwareNetworkChartFixedScaleDefaultsKey = "hardwareNetworkChartFixedScale"
@@ -242,11 +249,13 @@ final class SettingsStore: ObservableObject {
     /// Default on; turning it off leaves only what the menu-bar or Dock icon
     /// already samples.
     static let defaultHardwareBackgroundHistoryEnabled: Bool = false
-    /// Refresh cadence for the status-panel hardware summary while it is open.
-    /// 1 s preserves the historical fastest cadence; slower options trade
-    /// freshness for fewer reads.
-    static let hardwarePanelRefreshOptions: [Int] = Array(1...8)
-    static let defaultHardwarePanelRefreshSeconds: Int = 1
+    /// Legacy single panel refresh cadence key, read only to migrate old installs
+    /// onto the per-group settings; no longer has a UI or export entry.
+    /// (defaults-key constant lives with the other keys above.)
+    /// Cadence for the high-usage app list; one value drives every list and is
+    /// independent of the per-group panel card cadence. 1–30 s, default 4 s.
+    static let hardwareTopAppsRefreshOptions: [Int] = Array(1...30)
+    static let defaultHardwareTopAppsRefreshSeconds: Int = 4
     /// Detail-chart history window in whole minutes. Bounded to 1–5 minutes so
     /// the in-memory buffer stays small; three minutes matches the previous
     /// fixed default.
@@ -1384,15 +1393,98 @@ final class SettingsStore: ObservableObject {
         }
     }
 
-    /// Panel-open refresh cadence in whole seconds; one of the shipped options.
-    @Published var hardwarePanelRefreshSeconds: Int = SettingsStore.defaultHardwarePanelRefreshSeconds {
+    /// Per-group panel/background refresh cadence in whole seconds; each is one
+    /// of its group's shipped options (its metric floor … 8 s). A slower value
+    /// only slows the panel-side consumer; icons keep their own fast cadence.
+    @Published var hardwareCPUUsageRefreshSeconds: Int = HardwareRefreshGroup.cpuUsage.defaultSeconds {
         didSet {
-            guard Self.hardwarePanelRefreshOptions.contains(hardwarePanelRefreshSeconds) else {
-                hardwarePanelRefreshSeconds = Self.defaultHardwarePanelRefreshSeconds
+            guard HardwareRefreshGroup.cpuUsage.options.contains(hardwareCPUUsageRefreshSeconds) else {
+                hardwareCPUUsageRefreshSeconds = HardwareRefreshGroup.cpuUsage.defaultSeconds
                 return
             }
-            defaults.set(hardwarePanelRefreshSeconds, forKey: Self.hardwarePanelRefreshSecondsDefaultsKey)
+            defaults.set(hardwareCPUUsageRefreshSeconds, forKey: Self.hardwareCPUUsageRefreshSecondsDefaultsKey)
         }
+    }
+
+    @Published var hardwareGPUUsageRefreshSeconds: Int = HardwareRefreshGroup.gpuUsage.defaultSeconds {
+        didSet {
+            guard HardwareRefreshGroup.gpuUsage.options.contains(hardwareGPUUsageRefreshSeconds) else {
+                hardwareGPUUsageRefreshSeconds = HardwareRefreshGroup.gpuUsage.defaultSeconds
+                return
+            }
+            defaults.set(hardwareGPUUsageRefreshSeconds, forKey: Self.hardwareGPUUsageRefreshSecondsDefaultsKey)
+        }
+    }
+
+    @Published var hardwareMemoryRefreshSeconds: Int = HardwareRefreshGroup.memory.defaultSeconds {
+        didSet {
+            guard HardwareRefreshGroup.memory.options.contains(hardwareMemoryRefreshSeconds) else {
+                hardwareMemoryRefreshSeconds = HardwareRefreshGroup.memory.defaultSeconds
+                return
+            }
+            defaults.set(hardwareMemoryRefreshSeconds, forKey: Self.hardwareMemoryRefreshSecondsDefaultsKey)
+        }
+    }
+
+    @Published var hardwareNetworkRefreshSeconds: Int = HardwareRefreshGroup.network.defaultSeconds {
+        didSet {
+            guard HardwareRefreshGroup.network.options.contains(hardwareNetworkRefreshSeconds) else {
+                hardwareNetworkRefreshSeconds = HardwareRefreshGroup.network.defaultSeconds
+                return
+            }
+            defaults.set(hardwareNetworkRefreshSeconds, forKey: Self.hardwareNetworkRefreshSecondsDefaultsKey)
+        }
+    }
+
+    @Published var hardwareTemperatureRefreshSeconds: Int = HardwareRefreshGroup.temperature.defaultSeconds {
+        didSet {
+            guard HardwareRefreshGroup.temperature.options.contains(hardwareTemperatureRefreshSeconds) else {
+                hardwareTemperatureRefreshSeconds = HardwareRefreshGroup.temperature.defaultSeconds
+                return
+            }
+            defaults.set(hardwareTemperatureRefreshSeconds, forKey: Self.hardwareTemperatureRefreshSecondsDefaultsKey)
+        }
+    }
+
+    @Published var hardwareDiskRefreshSeconds: Int = HardwareRefreshGroup.disk.defaultSeconds {
+        didSet {
+            guard HardwareRefreshGroup.disk.options.contains(hardwareDiskRefreshSeconds) else {
+                hardwareDiskRefreshSeconds = HardwareRefreshGroup.disk.defaultSeconds
+                return
+            }
+            defaults.set(hardwareDiskRefreshSeconds, forKey: Self.hardwareDiskRefreshSecondsDefaultsKey)
+        }
+    }
+
+    /// Cadence for the high-usage app list; one value drives every list and is
+    /// decoupled from the per-group panel card cadence.
+    @Published var hardwareTopAppsRefreshSeconds: Int = SettingsStore.defaultHardwareTopAppsRefreshSeconds {
+        didSet {
+            guard Self.hardwareTopAppsRefreshOptions.contains(hardwareTopAppsRefreshSeconds) else {
+                hardwareTopAppsRefreshSeconds = Self.defaultHardwareTopAppsRefreshSeconds
+                return
+            }
+            defaults.set(hardwareTopAppsRefreshSeconds, forKey: Self.hardwareTopAppsRefreshSecondsDefaultsKey)
+        }
+    }
+
+    /// Convenience accessor for the current value of one group.
+    func hardwareRefreshSeconds(for group: HardwareRefreshGroup) -> Int {
+        switch group {
+        case .cpuUsage: return hardwareCPUUsageRefreshSeconds
+        case .gpuUsage: return hardwareGPUUsageRefreshSeconds
+        case .memory: return hardwareMemoryRefreshSeconds
+        case .network: return hardwareNetworkRefreshSeconds
+        case .temperature: return hardwareTemperatureRefreshSeconds
+        case .disk: return hardwareDiskRefreshSeconds
+        }
+    }
+
+    /// Panel/background cadence for a sampled metric, or `nil` for metrics the
+    /// hardware sampler never reads.
+    func hardwarePanelCadence(for id: HardwareMetricID) -> TimeInterval? {
+        guard let group = HardwareRefreshGroup.group(for: id) else { return nil }
+        return TimeInterval(hardwareRefreshSeconds(for: group))
     }
 
     /// How many minutes of hardware history the detail trend keeps. One of the
@@ -3416,10 +3508,35 @@ final class SettingsStore: ObservableObject {
         self.hardwareBackgroundHistoryEnabled =
             defaults.object(forKey: Self.hardwareBackgroundHistoryEnabledDefaultsKey) as? Bool
             ?? Self.defaultHardwareBackgroundHistoryEnabled
-        let storedPanel = defaults.object(forKey: Self.hardwarePanelRefreshSecondsDefaultsKey) as? Int
-            ?? Self.defaultHardwarePanelRefreshSeconds
-        self.hardwarePanelRefreshSeconds = Self.hardwarePanelRefreshOptions.contains(storedPanel)
-            ? storedPanel : Self.defaultHardwarePanelRefreshSeconds
+        let storedTopApps = defaults.object(forKey: Self.hardwareTopAppsRefreshSecondsDefaultsKey) as? Int
+            ?? Self.defaultHardwareTopAppsRefreshSeconds
+        self.hardwareTopAppsRefreshSeconds = Self.hardwareTopAppsRefreshOptions.contains(storedTopApps)
+            ? storedTopApps : Self.defaultHardwareTopAppsRefreshSeconds
+        // Per-group cadences. A legacy single panel interval seeds each group on
+        // first run so an existing user keeps their slower choice; otherwise the
+        // group default (its metric floor) applies.
+        let legacyPanelSeconds = defaults.object(forKey: Self.hardwarePanelRefreshSecondsDefaultsKey) as? Int
+        func seedGroup(_ group: HardwareRefreshGroup, _ key: String) -> Int {
+            if let stored = defaults.object(forKey: key) as? Int, group.options.contains(stored) {
+                return stored
+            }
+            if let legacyPanelSeconds, legacyPanelSeconds > group.defaultSeconds {
+                return min(max(legacyPanelSeconds, group.defaultSeconds), 8)
+            }
+            return group.defaultSeconds
+        }
+        self.hardwareCPUUsageRefreshSeconds =
+            seedGroup(.cpuUsage, Self.hardwareCPUUsageRefreshSecondsDefaultsKey)
+        self.hardwareGPUUsageRefreshSeconds =
+            seedGroup(.gpuUsage, Self.hardwareGPUUsageRefreshSecondsDefaultsKey)
+        self.hardwareMemoryRefreshSeconds =
+            seedGroup(.memory, Self.hardwareMemoryRefreshSecondsDefaultsKey)
+        self.hardwareNetworkRefreshSeconds =
+            seedGroup(.network, Self.hardwareNetworkRefreshSecondsDefaultsKey)
+        self.hardwareTemperatureRefreshSeconds =
+            seedGroup(.temperature, Self.hardwareTemperatureRefreshSecondsDefaultsKey)
+        self.hardwareDiskRefreshSeconds =
+            seedGroup(.disk, Self.hardwareDiskRefreshSecondsDefaultsKey)
         let storedHistoryWindow = defaults.object(forKey: Self.hardwareHistoryWindowMinutesDefaultsKey) as? Int
             ?? Self.defaultHardwareHistoryWindowMinutes
         self.hardwareHistoryWindowMinutes = Self.hardwareHistoryWindowOptions.contains(storedHistoryWindow)
