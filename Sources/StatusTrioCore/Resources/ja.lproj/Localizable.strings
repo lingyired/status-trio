@@ -1296,7 +1296,7 @@
 
 /* Status-panel per-item visibility */
 "hardware.monitor.settings.group.rings" = "リング指標";
-"hardware.monitor.settings.group.sampling" = "更新頻度";
+"hardware.monitor.settings.group.sampling" = "パネルの更新頻度";
 "hardware.monitor.settings.group.bottomBar" = "下部バー";
 "hardware.monitor.settings.item.diskCapacity" = "ディスク容量";
 "hardware.monitor.settings.showSummaryRow.description" = "リングの下にダウンロード・アップロード・ファン・ディスク I/O を表示します。";

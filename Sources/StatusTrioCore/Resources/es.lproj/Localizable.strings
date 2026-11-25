@@ -1296,7 +1296,7 @@
 
 /* Status-panel per-item visibility */
 "hardware.monitor.settings.group.rings" = "Indicadores de anillo";
-"hardware.monitor.settings.group.sampling" = "Frecuencia de actualización";
+"hardware.monitor.settings.group.sampling" = "Frecuencia de actualización del panel";
 "hardware.monitor.settings.group.bottomBar" = "Barra inferior";
 "hardware.monitor.settings.item.diskCapacity" = "Capacidad del disco";
 "hardware.monitor.settings.showSummaryRow.description" = "Muestra descarga, subida, ventilador y E/S de disco bajo los anillos.";

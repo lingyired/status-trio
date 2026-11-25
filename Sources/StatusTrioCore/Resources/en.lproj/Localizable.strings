@@ -1295,7 +1295,7 @@
 
 /* Status-panel per-item visibility */
 "hardware.monitor.settings.group.rings" = "Rings";
-"hardware.monitor.settings.group.sampling" = "Update Frequency";
+"hardware.monitor.settings.group.sampling" = "Panel Update Frequency";
 "hardware.monitor.settings.group.bottomBar" = "Bottom bar";
 "hardware.monitor.settings.item.diskCapacity" = "Disk capacity";
 "hardware.monitor.settings.showSummaryRow.description" = "Show download, upload, fan speed and disk I/O below the rings; each can be turned off independently.";

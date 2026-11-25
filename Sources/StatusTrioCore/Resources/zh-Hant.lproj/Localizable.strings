@@ -1296,7 +1296,7 @@
 
 /* Status-panel per-item visibility */
 "hardware.monitor.settings.group.rings" = "圓環指標";
-"hardware.monitor.settings.group.sampling" = "更新頻率";
+"hardware.monitor.settings.group.sampling" = "面板更新頻率";
 "hardware.monitor.settings.group.bottomBar" = "底部資訊列";
 "hardware.monitor.settings.item.diskCapacity" = "磁碟容量";
 "hardware.monitor.settings.showSummaryRow.description" = "在圓環下方顯示下載、上傳、風扇與磁碟 I/O。";

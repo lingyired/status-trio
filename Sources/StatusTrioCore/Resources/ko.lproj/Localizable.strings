@@ -1295,7 +1295,7 @@
 
 /* Status-panel per-item visibility */
 "hardware.monitor.settings.group.rings" = "링 지표";
-"hardware.monitor.settings.group.sampling" = "업데이트 주기";
+"hardware.monitor.settings.group.sampling" = "패널 업데이트 주기";
 "hardware.monitor.settings.group.bottomBar" = "하단 표시줄";
 "hardware.monitor.settings.item.diskCapacity" = "디스크 용량";
 "hardware.monitor.settings.showSummaryRow.description" = "링 아래에 다운로드, 업로드, 팬, 디스크 I/O를 표시합니다.";

@@ -1296,7 +1296,7 @@
 
 /* Status-panel per-item visibility */
 "hardware.monitor.settings.group.rings" = "Indicatori ad anello";
-"hardware.monitor.settings.group.sampling" = "Frequenza di aggiornamento";
+"hardware.monitor.settings.group.sampling" = "Frequenza di aggiornamento del pannello";
 "hardware.monitor.settings.group.bottomBar" = "Barra inferiore";
 "hardware.monitor.settings.item.diskCapacity" = "Capacità del disco";
 "hardware.monitor.settings.showSummaryRow.description" = "Mostra download, upload, ventola e I/O disco sotto gli anelli.";

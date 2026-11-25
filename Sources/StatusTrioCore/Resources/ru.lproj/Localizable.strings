@@ -1296,7 +1296,7 @@
 
 /* Status-panel per-item visibility */
 "hardware.monitor.settings.group.rings" = "Показатели колец";
-"hardware.monitor.settings.group.sampling" = "Частота обновления";
+"hardware.monitor.settings.group.sampling" = "Частота обновления панели";
 "hardware.monitor.settings.group.bottomBar" = "Нижняя панель";
 "hardware.monitor.settings.item.diskCapacity" = "Ёмкость диска";
 "hardware.monitor.settings.showSummaryRow.description" = "Показывать загрузку, отдачу, вентилятор и диск I/O под кольцами.";

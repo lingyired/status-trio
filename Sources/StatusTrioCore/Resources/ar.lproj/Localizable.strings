@@ -1296,7 +1296,7 @@
 
 /* Status-panel per-item visibility */
 "hardware.monitor.settings.group.rings" = "مؤشرات الحلقات";
-"hardware.monitor.settings.group.sampling" = "معدل التحديث";
+"hardware.monitor.settings.group.sampling" = "معدل تحديث اللوحة";
 "hardware.monitor.settings.group.bottomBar" = "الشريط السفلي";
 "hardware.monitor.settings.item.diskCapacity" = "سعة القرص";
 "hardware.monitor.settings.showSummaryRow.description" = "إظهار التنزيل والرفع والمروحة وإدخال/إخراج القرص أسفل الحلقات.";

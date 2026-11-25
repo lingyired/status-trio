@@ -1296,7 +1296,7 @@
 
 /* Status-panel per-item visibility */
 "hardware.monitor.settings.group.rings" = "Ring-Metriken";
-"hardware.monitor.settings.group.sampling" = "Aktualisierungsrate";
+"hardware.monitor.settings.group.sampling" = "Panel-Aktualisierungsrate";
 "hardware.monitor.settings.group.bottomBar" = "Untere Leiste";
 "hardware.monitor.settings.item.diskCapacity" = "Speicherplatz";
 "hardware.monitor.settings.showSummaryRow.description" = "Zeigt Download, Upload, Lüfter und Festplatten-E/A unter den Ringen.";

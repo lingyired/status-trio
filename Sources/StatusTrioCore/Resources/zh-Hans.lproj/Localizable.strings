@@ -1296,7 +1296,7 @@
 
 /* Status-panel per-item visibility */
 "hardware.monitor.settings.group.rings" = "圆环指标";
-"hardware.monitor.settings.group.sampling" = "更新频率";
+"hardware.monitor.settings.group.sampling" = "面板更新频率";
 "hardware.monitor.settings.group.bottomBar" = "底部信息栏";
 "hardware.monitor.settings.item.diskCapacity" = "磁盘容量";
 "hardware.monitor.settings.showSummaryRow.description" = "在圆环下方显示下载、上传、风扇转速和磁盘 I/O，可单独关闭某一项。";
