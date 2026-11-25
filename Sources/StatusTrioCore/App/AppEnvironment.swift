@@ -565,6 +565,15 @@ final class AppEnvironment {
         if ChargingEffectTestMode.shouldForceChargingInput() {
             settings.setChargingEffectTestInputEnabled(true)
         }
+        // Apply a per-worktree development test profile after settings migration
+        // and before controllers/monitoring start, so a dev build boots already in
+        // the state the task needs. Release/App Store builds never load one.
+        if DevelopmentProfileLoader.isDevelopmentBuild() {
+            let appVersion = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String
+            let profileService = SettingsServiceFactory.make(for: settings, appVersion: appVersion)
+            let run = DevelopmentProfileBootstrap.runAtLaunch(service: profileService)
+            NSLog("StatusTrio development profile: %@", run.log.joined(separator: " | "))
+        }
         let store = makeStore(
             batteryMonitor: BatteryMonitor(),
             wifiMonitor: WiFiMonitor(),

@@ -1,0 +1,268 @@
+import Foundation
+
+/// Bridges the core `SettingsStore` into the semantic `SettingsStateProvider`.
+///
+/// Reads and writes go through the store's real `@Published` properties (and
+/// domain methods such as `setEnabledHardwareRingSlots`), so persistence,
+/// side effects and the menu-bar/Dock/live-update path stay on the normal code
+/// path. Only settings whose `provider == "core"` are handled; other domains
+/// (Localization, LaunchAtLogin, ...) return `nil` and ignore writes.
+@MainActor
+final class CoreSettingsProvider: SettingsStateProvider {
+    private let store: SettingsStore
+
+    init(store: SettingsStore) {
+        self.store = store
+    }
+
+    // MARK: - Read
+
+    func value(for id: String) -> SettingsTransferValue? {
+        switch id {
+        case "general.menuBarRightClickAction":
+            return .string(store.menuBarRightClickAction.rawValue)
+        case "general.iconSize":
+            return .number(store.iconSize)
+        case "panel.appearance.backgroundStyle":
+            return .string(store.panelBackgroundStyle.rawValue)
+        case "panel.appearance.boldText":
+            return .bool(store.statusPanelBoldTextEnabled)
+        case "panel.appearance.boldText.titleWeight":
+            return .bool(store.statusPanelBoldTextEnabled)
+        case "panel.appearance.boldText.mediumWeight":
+            return .bool(store.statusPanelMediumTextEnabled)
+        case "panel.behavior.showOnHover":
+            return .bool(store.showsPanelOnHover)
+        case "panel.behavior.keepOpenWhenOpeningSettings":
+            return .bool(store.keepsPanelOpenWhenOpeningSettings)
+        case "icon.outerRing.source":
+            return .string(store.outerRingContent.rawValue)
+        case "icon.outerRing.hardware.layout":
+            return .string(store.hardwareRingConfiguration.layout.rawValue)
+        case "icon.outerRing.hardware.primaryMetric":
+            return .string(store.hardwareRingConfiguration.primaryMetric.rawValue)
+        case "icon.outerRing.hardware.secondaryMetric":
+            return store.hardwareRingConfiguration.secondaryMetric.map { .string($0.rawValue) }
+        case "icon.outerRing.hardware.ringSlots":
+            let values = store.enabledHardwareRingSlots.map(\.rawValue).sorted().map { SettingsTransferValue.string($0) }
+            return .array(values)
+        case "icon.center.source":
+            return .string(store.connectionCenterSource.rawValue)
+        case "icon.footer.source":
+            return .string(store.bottomIndicatorSource.rawValue)
+        case "icon.footer.metric":
+            return .string(store.bottomIndicatorMetric.rawValue)
+        case "hardware.rings.enabled":
+            return .bool(store.showsHardwareRings)
+        case "hardware.summary.enabled":
+            return .bool(store.showsHardwareSummaryRow)
+        case "hardware.topApps.enabled":
+            return .bool(store.showsHardwareTopApps)
+        case "hardware.temperature.enabled":
+            return .bool(store.hardwareTemperatureMonitoringEnabled)
+        case "hardware.history.backgroundEnabled":
+            return .bool(store.hardwareBackgroundHistoryEnabled)
+        case "hardware.refresh.intervalSeconds":
+            return .number(Double(store.hardwarePanelRefreshSeconds))
+        case "hardware.history.windowMinutes":
+            return .number(Double(store.hardwareHistoryWindowMinutes))
+        case "hardware.network.downloadCapMbps":
+            return .number(store.hardwareDownloadCapMbps)
+        case "hardware.network.uploadCapMbps":
+            return .number(store.hardwareUploadCapMbps)
+        case "battery.thresholds.critical":
+            return .number(store.batteryCriticalThreshold)
+        case "battery.thresholds.full":
+            return .number(store.batteryFullThreshold)
+        case "battery.automation.autoLowPower":
+            return .bool(store.autoEnablesLowPowerMode)
+        case "battery.automation.lowPowerThreshold":
+            return .number(store.autoLowPowerThreshold)
+        case "battery.powerFlow.enabled":
+            return .bool(store.showsBatteryPowerFlow)
+        case "battery.highEnergyApps.enabled":
+            return .bool(store.showsHighEnergyApps)
+        case "keepAwake.displayControl":
+            return .bool(store.showsKeepScreenButton)
+        case "keepAwake.lidControl":
+            return .bool(store.showsLidSleepButton)
+        case "keepAwake.allowLidSleepOnBattery":
+            return .bool(store.allowLidSleepOnBattery)
+        case "keepAwake.autoDisableOnLowBattery":
+            return .bool(store.autoDisableLidSleepOnLowBattery)
+        case "bluetooth.deviceList.enabled":
+            return .bool(store.showsBluetoothDeviceList)
+        case "bluetooth.batteryLevels.enabled":
+            return .bool(store.showsBluetoothBatteryLevels)
+        case "bluetooth.appleBattery.backgroundRefresh":
+            return .bool(store.refreshesAppleBatteriesInBackground)
+        case "bluetooth.devices.hidden":
+            return .array(store.hiddenBluetoothDeviceAddresses.sorted().map { .string($0) })
+        case "audio.output.maxVisibleDevices":
+            return .number(Double(store.maxVisibleOutputDevices))
+        case "audio.output.showAllDevices":
+            return .bool(store.alwaysShowsAllOutputDevices)
+        case "audio.input.maxVisibleDevices":
+            return .number(Double(store.maxVisibleInputDevices))
+        case "audio.input.showAllDevices":
+            return .bool(store.alwaysShowsAllInputDevices)
+        case "brightness.betterDisplay.combined":
+            return .bool(store.useBetterDisplayCombinedBrightness)
+        default:
+            return nil
+        }
+    }
+
+    // MARK: - Write
+
+    func setValue(_ value: SettingsTransferValue, for id: String) {
+        switch id {
+        case "general.menuBarRightClickAction":
+            if case .string(let raw) = value, let parsed = MenuBarRightClickAction(rawValue: raw) {
+                store.menuBarRightClickAction = parsed
+            }
+        case "general.iconSize":
+            if let number = Self.number(value) { store.iconSize = number }
+        case "panel.appearance.backgroundStyle":
+            if case .string(let raw) = value, let parsed = PanelBackgroundStyle(rawValue: raw) {
+                store.panelBackgroundStyle = parsed
+            }
+        case "panel.appearance.boldText":
+            if case .bool(let flag) = value { store.applyPanelBoldTextToggle(flag) }
+        case "panel.appearance.boldText.titleWeight":
+            if case .bool(let flag) = value { store.statusPanelBoldTextEnabled = flag }
+        case "panel.appearance.boldText.mediumWeight":
+            if case .bool(let flag) = value { store.statusPanelMediumTextEnabled = flag }
+        case "panel.behavior.showOnHover":
+            if case .bool(let flag) = value { store.showsPanelOnHover = flag }
+        case "panel.behavior.keepOpenWhenOpeningSettings":
+            if case .bool(let flag) = value { store.keepsPanelOpenWhenOpeningSettings = flag }
+        case "icon.outerRing.source":
+            if case .string(let raw) = value, let parsed = OuterRingContent(rawValue: raw) {
+                store.outerRingContent = parsed
+            }
+        case "icon.outerRing.hardware.layout":
+            if case .string(let raw) = value, let parsed = HardwareRingLayout(rawValue: raw) {
+                var configuration = store.hardwareRingConfiguration
+                configuration.layout = parsed
+                if parsed == .single { configuration.secondaryMetric = nil }
+                store.hardwareRingConfiguration = configuration
+            }
+        case "icon.outerRing.hardware.primaryMetric":
+            if case .string(let raw) = value, let parsed = HardwareMonitorMetric(rawValue: raw) {
+                var configuration = store.hardwareRingConfiguration
+                configuration.primaryMetric = parsed
+                store.hardwareRingConfiguration = configuration
+            }
+        case "icon.outerRing.hardware.secondaryMetric":
+            if case .string(let raw) = value, let parsed = HardwareMonitorMetric(rawValue: raw) {
+                var configuration = store.hardwareRingConfiguration
+                configuration.secondaryMetric = parsed
+                store.hardwareRingConfiguration = configuration
+            }
+        case "icon.outerRing.hardware.ringSlots":
+            let slots = Set(Self.strings(value).compactMap { HardwareRingSlot(rawValue: $0) })
+            store.setEnabledHardwareRingSlots(slots)
+        case "icon.center.source":
+            if case .string(let raw) = value, let parsed = ConnectionCenterSource(rawValue: raw) {
+                store.connectionCenterSource = parsed
+            }
+        case "icon.footer.source":
+            if case .string(let raw) = value, let parsed = BottomIndicatorSource(rawValue: raw) {
+                store.bottomIndicatorSource = parsed
+            }
+        case "icon.footer.metric":
+            if case .string(let raw) = value, let parsed = BottomIndicatorMetric(rawValue: raw) {
+                store.bottomIndicatorMetric = parsed
+            }
+        case "hardware.rings.enabled":
+            if case .bool(let flag) = value { store.showsHardwareRings = flag }
+        case "hardware.summary.enabled":
+            if case .bool(let flag) = value { store.showsHardwareSummaryRow = flag }
+        case "hardware.topApps.enabled":
+            if case .bool(let flag) = value { store.showsHardwareTopApps = flag }
+        case "hardware.temperature.enabled":
+            if case .bool(let flag) = value { store.hardwareTemperatureMonitoringEnabled = flag }
+        case "hardware.history.backgroundEnabled":
+            if case .bool(let flag) = value { store.hardwareBackgroundHistoryEnabled = flag }
+        case "hardware.refresh.intervalSeconds":
+            if let number = Self.number(value) { store.hardwarePanelRefreshSeconds = Int(number) }
+        case "hardware.history.windowMinutes":
+            if let number = Self.number(value) { store.hardwareHistoryWindowMinutes = Int(number) }
+        case "hardware.network.downloadCapMbps":
+            if let number = Self.number(value) { store.hardwareDownloadCapMbps = number }
+        case "hardware.network.uploadCapMbps":
+            if let number = Self.number(value) { store.hardwareUploadCapMbps = number }
+        case "battery.thresholds.critical":
+            if let number = Self.number(value) { store.batteryCriticalThreshold = number }
+        case "battery.thresholds.full":
+            if let number = Self.number(value) { store.batteryFullThreshold = number }
+        case "battery.automation.autoLowPower":
+            if case .bool(let flag) = value { store.autoEnablesLowPowerMode = flag }
+        case "battery.automation.lowPowerThreshold":
+            if let number = Self.number(value) { store.autoLowPowerThreshold = number }
+        case "battery.powerFlow.enabled":
+            if case .bool(let flag) = value { store.showsBatteryPowerFlow = flag }
+        case "battery.highEnergyApps.enabled":
+            if case .bool(let flag) = value { store.showsHighEnergyApps = flag }
+        case "keepAwake.displayControl":
+            if case .bool(let flag) = value { store.showsKeepScreenButton = flag }
+        case "keepAwake.lidControl":
+            if case .bool(let flag) = value { store.showsLidSleepButton = flag }
+        case "keepAwake.allowLidSleepOnBattery":
+            if case .bool(let flag) = value { store.allowLidSleepOnBattery = flag }
+        case "keepAwake.autoDisableOnLowBattery":
+            if case .bool(let flag) = value { store.autoDisableLidSleepOnLowBattery = flag }
+        case "bluetooth.deviceList.enabled":
+            if case .bool(let flag) = value { store.showsBluetoothDeviceList = flag }
+        case "bluetooth.batteryLevels.enabled":
+            if case .bool(let flag) = value { store.showsBluetoothBatteryLevels = flag }
+        case "bluetooth.appleBattery.backgroundRefresh":
+            if case .bool(let flag) = value { store.refreshesAppleBatteriesInBackground = flag }
+        case "bluetooth.devices.hidden":
+            store.hiddenBluetoothDeviceAddresses = Set(Self.strings(value))
+        case "audio.output.maxVisibleDevices":
+            if let number = Self.number(value) { store.maxVisibleOutputDevices = Int(number) }
+        case "audio.output.showAllDevices":
+            if case .bool(let flag) = value { store.alwaysShowsAllOutputDevices = flag }
+        case "audio.input.maxVisibleDevices":
+            if let number = Self.number(value) { store.maxVisibleInputDevices = Int(number) }
+        case "audio.input.showAllDevices":
+            if case .bool(let flag) = value { store.alwaysShowsAllInputDevices = flag }
+        case "brightness.betterDisplay.combined":
+            if case .bool(let flag) = value { store.useBetterDisplayCombinedBrightness = flag }
+        default:
+            break
+        }
+    }
+
+    func removeValue(for id: String) {
+        // Core settings have typed defaults; there is no "unset" semantic here.
+        // Restoring an absent value is a no-op and the store keeps its default.
+    }
+
+    func isFeatureEnabled(_ id: String) -> Bool { false }
+
+    // MARK: - Value helpers
+
+    private static func number(_ value: SettingsTransferValue) -> Double? {
+        if case .number(let number) = value { return number }
+        return nil
+    }
+
+    private static func strings(_ value: SettingsTransferValue) -> [String] {
+        if case .array(let items) = value {
+            return items.compactMap { if case .string(let s) = $0 { return s } else { return nil } }
+        }
+        return []
+    }
+}
+
+/// Builds a `SettingsService` backed by the live `SettingsStore`.
+@MainActor
+enum SettingsServiceFactory {
+    static func make(for store: SettingsStore, appVersion: String? = nil) -> SettingsService {
+        let registry = SettingsSemanticCatalog.makeRegistry(appVersion: appVersion)
+        return SettingsService(registry: registry, provider: CoreSettingsProvider(store: store))
+    }
+}
