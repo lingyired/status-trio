@@ -1,0 +1,117 @@
+{
+  "actions" : [
+    {
+      "accessPolicy" : {
+        "containsSensitiveInfo" : true,
+        "developmentProfile" : false,
+        "externalRead" : false,
+        "externalWrite" : false,
+        "requiresConfirmation" : true,
+        "systemSideEffect" : true,
+        "transferable" : false,
+        "uiAccessible" : true
+      },
+      "description" : "通过 Helper 立即把充电上限设为 100%。",
+      "id" : "action.chargeToFullNow",
+      "systemSideEffect" : true,
+      "title" : "立即充满电"
+    },
+    {
+      "accessPolicy" : {
+        "containsSensitiveInfo" : false,
+        "developmentProfile" : false,
+        "externalRead" : false,
+        "externalWrite" : false,
+        "requiresConfirmation" : false,
+        "systemSideEffect" : false,
+        "transferable" : false,
+        "uiAccessible" : true
+      },
+      "description" : "触发一次 Sparkle 更新检查。",
+      "id" : "action.checkForUpdates",
+      "systemSideEffect" : false,
+      "title" : "检查更新"
+    },
+    {
+      "accessPolicy" : {
+        "containsSensitiveInfo" : true,
+        "developmentProfile" : false,
+        "externalRead" : false,
+        "externalWrite" : false,
+        "requiresConfirmation" : true,
+        "systemSideEffect" : true,
+        "transferable" : false,
+        "uiAccessible" : true
+      },
+      "description" : "通过 Helper 开启合盖不睡眠。",
+      "id" : "action.enableLidSleep",
+      "systemSideEffect" : true,
+      "title" : "启用盒盖不睡眠"
+    },
+    {
+      "accessPolicy" : {
+        "containsSensitiveInfo" : true,
+        "developmentProfile" : false,
+        "externalRead" : false,
+        "externalWrite" : false,
+        "requiresConfirmation" : true,
+        "systemSideEffect" : true,
+        "transferable" : false,
+        "uiAccessible" : true
+      },
+      "description" : "安装特权 Helper。",
+      "id" : "action.installHelper",
+      "systemSideEffect" : true,
+      "title" : "安装 Helper"
+    },
+    {
+      "accessPolicy" : {
+        "containsSensitiveInfo" : false,
+        "developmentProfile" : false,
+        "externalRead" : false,
+        "externalWrite" : false,
+        "requiresConfirmation" : false,
+        "systemSideEffect" : false,
+        "transferable" : false,
+        "uiAccessible" : true
+      },
+      "description" : "读取当前系统充电上限。",
+      "id" : "action.readChargeLimit",
+      "systemSideEffect" : false,
+      "title" : "读取系统充电上限"
+    },
+    {
+      "accessPolicy" : {
+        "containsSensitiveInfo" : true,
+        "developmentProfile" : false,
+        "externalRead" : false,
+        "externalWrite" : false,
+        "requiresConfirmation" : true,
+        "systemSideEffect" : true,
+        "transferable" : false,
+        "uiAccessible" : true
+      },
+      "description" : "弹出系统蓝牙授权提示。",
+      "id" : "action.requestBluetoothPermission",
+      "systemSideEffect" : true,
+      "title" : "请求蓝牙权限"
+    },
+    {
+      "accessPolicy" : {
+        "containsSensitiveInfo" : false,
+        "developmentProfile" : false,
+        "externalRead" : false,
+        "externalWrite" : false,
+        "requiresConfirmation" : false,
+        "systemSideEffect" : false,
+        "transferable" : false,
+        "uiAccessible" : true
+      },
+      "description" : "把图标外观恢复为默认配置。",
+      "id" : "action.resetIcon",
+      "systemSideEffect" : false,
+      "title" : "重置图标"
+    }
+  ],
+  "schemaVersion" : 1
+}

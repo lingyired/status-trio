@@ -102,8 +102,12 @@ struct HardwareMonitorIconPlugin: IconContentPlugin {
     private static func auxiliarySamples(from snapshot: StatusSnapshot, now: Date) -> [HardwareMonitorMetric: HardwareMetricSample] {
         var samples: [HardwareMonitorMetric: HardwareMetricSample] = [:]
 
+        // A manual system mute leaves the output scalar at its previous level, so
+        // the raw percentage would make the ring arc and top marker look "on"
+        // while the Mac is silent. Mirror the footer's mute handling (#393) and
+        // read as silent: value 0, no arc fill. The scalar itself is untouched.
         let volumePercent: Double? = snapshot.volume.scalar.map { scalar in
-            min(100, max(0, (scalar * 100).rounded()))
+            snapshot.volume.isMuted ? 0 : min(100, max(0, (scalar * 100).rounded()))
         }
         samples[.volume] = HardwareMetricSample(
             value: volumePercent,
