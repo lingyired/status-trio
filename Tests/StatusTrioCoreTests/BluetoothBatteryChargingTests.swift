@@ -279,7 +279,9 @@ struct BluetoothBatteryChargingTests {
 
     private func boltCount(_ segments: [BluetoothBatterySegment]) -> Int {
         segments.filter { segment in
-            if case .symbol(let name, _) = segment { return name == "bolt.fill" }
+            if case .symbol(let name, _) = segment {
+                return name == BluetoothBatteryLevel.chargingSymbolName
+            }
             return false
         }.count
     }

@@ -263,7 +263,8 @@ it was meant to complete.
 The charging state is a separate field the report never supplies. `Is Charging`
 is read only when it is a real boolean — an integer or a string stays unknown —
 and each part carries its own state, so the left bud, the right bud, and the case
-are never given one another's. It is a bolt beside the percentage; a channel with
+are never given one another's. It is a small battery-with-bolt mark before the
+percentage; a channel with
 no level is not given a state, and unknown or expired state shows no bolt.
 
 The `pmset` subcommand is undocumented, so a macOS that stops answering it must

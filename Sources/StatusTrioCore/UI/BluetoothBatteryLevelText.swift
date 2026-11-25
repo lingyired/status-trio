@@ -25,16 +25,20 @@ enum BluetoothBatteryLevelText {
                 guard let image = symbolImage(name) else {
                     return run + Text(verbatim: label)
                 }
-                // The bolt is decoration, not a digit: at the level font it reads
-                // as tall as the percentage and crowds it. A smaller symbol image
-                // keeps it visibly smaller; the row's outer `.font(...)` cannot
-                // shrink a `Text(Image(systemName:))` run, so the size lives in
-                // the image itself.
+                // The charging mark is decoration, not a digit, and the battery
+                // glyph is wider than tall: a fixed 11pt symbol image keeps its
+                // own aspect (no square stretch) and its own size, because the
+                // row's outer `.font(...)` cannot shrink a `Text(Image)` run.
                 if name == BluetoothBatteryLevel.chargingSymbolName {
                     let small = image.withSymbolConfiguration(
-                        NSImage.SymbolConfiguration(pointSize: 8, weight: .semibold)
+                        NSImage.SymbolConfiguration(pointSize: 11, weight: .regular)
                     ) ?? image
-                    small.size = NSSize(width: 8, height: 8)
+                    if small.size.height > 0 {
+                        small.size = NSSize(
+                            width: 11 * (small.size.width / small.size.height),
+                            height: 11
+                        )
+                    }
                     return run + Text(Image(nsImage: small))
                 }
                 return run + Text(Image(systemName: name))

@@ -144,9 +144,10 @@ struct BluetoothBatteryLevel: Equatable, Sendable {
     /// the floor.
     static let caseSymbolName = "airpods.chargingcase"
 
-    /// The charging bolt, drawn beside a channel that reports charging. `bolt.fill`
-    /// ships with every macOS the app supports, so it needs no availability gate.
-    static let chargingSymbolName = "bolt.fill"
+    /// The charging mark, drawn beside a channel that reports charging. A battery
+    /// with a bolt inside states "charging" plainly; it ships with every macOS the
+    /// app supports, so it needs no availability gate.
+    static let chargingSymbolName = "battery.100.bolt"
 
     /// What the text-only rendering says where the row draws the glyph.
     static let caseTextLabel = "Case"
