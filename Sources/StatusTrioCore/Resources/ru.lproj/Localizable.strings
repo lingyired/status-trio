@@ -1296,7 +1296,7 @@
 
 /* Status-panel per-item visibility */
 "hardware.monitor.settings.group.rings" = "Показатели колец";
-"hardware.monitor.settings.group.sampling" = "Обновление и история";
+"hardware.monitor.settings.group.sampling" = "Частота обновления";
 "hardware.monitor.settings.group.bottomBar" = "Нижняя панель";
 "hardware.monitor.settings.item.diskCapacity" = "Ёмкость диска";
 "hardware.monitor.settings.showSummaryRow.description" = "Показывать загрузку, отдачу, вентилятор и диск I/O под кольцами.";
@@ -1443,4 +1443,3 @@
 "hardware.monitor.settings.refresh.topApps" = "Обновление топ-приложений";
 "hardware.monitor.settings.refresh.topApps.description" = "Как часто обновляется список на странице деталей. Список памяти сохраняет свой минимум 6 с.";
 "hardware.monitor.settings.group.sampling.footnote" = "Панель и значки строки меню/Dock используют одну и ту же выборку оборудования. Эти интервалы задают только частоту обновления панели; значки остаются отзывчивыми, оборудование не читается дважды.";
-"hardware.monitor.settings.refresh.subtitle" = "Как часто этот показатель обновляется на панели.";

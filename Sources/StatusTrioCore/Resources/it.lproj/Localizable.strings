@@ -1296,7 +1296,7 @@
 
 /* Status-panel per-item visibility */
 "hardware.monitor.settings.group.rings" = "Indicatori ad anello";
-"hardware.monitor.settings.group.sampling" = "Aggiornamento e cronologia";
+"hardware.monitor.settings.group.sampling" = "Frequenza di aggiornamento";
 "hardware.monitor.settings.group.bottomBar" = "Barra inferiore";
 "hardware.monitor.settings.item.diskCapacity" = "Capacità del disco";
 "hardware.monitor.settings.showSummaryRow.description" = "Mostra download, upload, ventola e I/O disco sotto gli anelli.";
@@ -1443,4 +1443,3 @@
 "hardware.monitor.settings.refresh.topApps" = "Aggiornamento app principali";
 "hardware.monitor.settings.refresh.topApps.description" = "Ogni quanto si aggiorna l'elenco nella pagina di dettaglio. L'elenco memoria mantiene il suo limite di 6 s.";
 "hardware.monitor.settings.group.sampling.footnote" = "Il pannello e le icone della barra dei menu/Dock condividono un unico campione hardware. Questi intervalli regolano solo la frequenza di aggiornamento del pannello; le icone restano reattive e nulla viene letto due volte.";
-"hardware.monitor.settings.refresh.subtitle" = "Ogni quanto si aggiorna questa metrica nel pannello.";

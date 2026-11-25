@@ -1296,7 +1296,7 @@
 
 /* Status-panel per-item visibility */
 "hardware.monitor.settings.group.rings" = "Ring-Metriken";
-"hardware.monitor.settings.group.sampling" = "Aktualisierung & Verlauf";
+"hardware.monitor.settings.group.sampling" = "Aktualisierungsrate";
 "hardware.monitor.settings.group.bottomBar" = "Untere Leiste";
 "hardware.monitor.settings.item.diskCapacity" = "Speicherplatz";
 "hardware.monitor.settings.showSummaryRow.description" = "Zeigt Download, Upload, Lüfter und Festplatten-E/A unter den Ringen.";
@@ -1443,4 +1443,3 @@
 "hardware.monitor.settings.refresh.topApps" = "Aktualisierung der Top-Apps";
 "hardware.monitor.settings.refresh.topApps.description" = "Wie oft die Liste auf der Detailseite aktualisiert wird. Die Speicherliste behält ihre eigene Untergrenze von 6 s.";
 "hardware.monitor.settings.group.sampling.footnote" = "Panel und Menüleisten-/Dock-Symbole teilen sich eine Hardware-Messung. Die Intervalle steuern nur, wie oft das Panel aktualisiert; Symbole bleiben reaktionsschnell, nichts wird doppelt gelesen.";
-"hardware.monitor.settings.refresh.subtitle" = "Wie oft diese Metrik im Panel aktualisiert wird.";

@@ -1296,7 +1296,7 @@
 
 /* Status-panel per-item visibility */
 "hardware.monitor.settings.group.rings" = "مؤشرات الحلقات";
-"hardware.monitor.settings.group.sampling" = "التحديث والسجل";
+"hardware.monitor.settings.group.sampling" = "معدل التحديث";
 "hardware.monitor.settings.group.bottomBar" = "الشريط السفلي";
 "hardware.monitor.settings.item.diskCapacity" = "سعة القرص";
 "hardware.monitor.settings.showSummaryRow.description" = "إظهار التنزيل والرفع والمروحة وإدخال/إخراج القرص أسفل الحلقات.";
@@ -1443,4 +1443,3 @@
 "hardware.monitor.settings.refresh.topApps" = "تحديث التطبيقات الأعلى";
 "hardware.monitor.settings.refresh.topApps.description" = "كم مرة يتم تحديث قائمة صفحة التفاصيل. تحتفظ قائمة الذاكرة بحدها الأدنى البالغ 6 ثوانٍ.";
 "hardware.monitor.settings.group.sampling.footnote" = "تتشارك اللوحة وأيقونات شريط القوائم/Dock العينة نفسها من العتاد. تحدد هذه الفواصل وتيرة تحديث اللوحة فقط؛ وتبقى الأيقونات سريعة الاستجابة دون قراءة العتاد مرتين.";
-"hardware.monitor.settings.refresh.subtitle" = "كم مرة يتم تحديث هذا المقياس في اللوحة.";

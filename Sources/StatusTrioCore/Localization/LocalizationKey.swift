@@ -125,7 +125,6 @@ enum LocalizationKey: String, CaseIterable, Hashable, Sendable {
     case hardwareMonitorSettingsRefreshDisk = "hardware.monitor.settings.refresh.disk"
     case hardwareMonitorSettingsRefreshTopApps = "hardware.monitor.settings.refresh.topApps"
     case hardwareMonitorSettingsRefreshTopAppsDescription = "hardware.monitor.settings.refresh.topApps.description"
-    case hardwareMonitorSettingsRefreshSubtitle = "hardware.monitor.settings.refresh.subtitle"
     case hardwareMonitorSettingsGroupSamplingFootnote = "hardware.monitor.settings.group.sampling.footnote"
     case hardwareMonitorSettingsColorTitle = "hardware.monitor.settings.colorTitle"
     case hardwareMonitorSettingsResetColors = "hardware.monitor.settings.resetColors"

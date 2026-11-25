@@ -1296,7 +1296,7 @@
 
 /* Status-panel per-item visibility */
 "hardware.monitor.settings.group.rings" = "圓環指標";
-"hardware.monitor.settings.group.sampling" = "重新整理與歷史";
+"hardware.monitor.settings.group.sampling" = "更新頻率";
 "hardware.monitor.settings.group.bottomBar" = "底部資訊列";
 "hardware.monitor.settings.item.diskCapacity" = "磁碟容量";
 "hardware.monitor.settings.showSummaryRow.description" = "在圓環下方顯示下載、上傳、風扇與磁碟 I/O。";
@@ -1443,4 +1443,3 @@
 "hardware.monitor.settings.refresh.topApps" = "高佔用應用程式更新間隔";
 "hardware.monitor.settings.refresh.topApps.description" = "詳情頁底部清單的重新整理間隔。記憶體清單受自身 6 秒下限限制，不會更快。";
 "hardware.monitor.settings.group.sampling.footnote" = "面板與選單列/Dock 圖示共用同一次硬體取樣。下面的間隔只決定面板多久重新整理一次，圖示仍保持靈敏，不會重複讀取硬體。";
-"hardware.monitor.settings.refresh.subtitle" = "面板上這個指標多久重新整理一次。";

@@ -1296,7 +1296,7 @@
 
 /* Status-panel per-item visibility */
 "hardware.monitor.settings.group.rings" = "リング指標";
-"hardware.monitor.settings.group.sampling" = "更新と履歴";
+"hardware.monitor.settings.group.sampling" = "更新頻度";
 "hardware.monitor.settings.group.bottomBar" = "下部バー";
 "hardware.monitor.settings.item.diskCapacity" = "ディスク容量";
 "hardware.monitor.settings.showSummaryRow.description" = "リングの下にダウンロード・アップロード・ファン・ディスク I/O を表示します。";
@@ -1443,4 +1443,3 @@
 "hardware.monitor.settings.refresh.topApps" = "上位アプリの更新";
 "hardware.monitor.settings.refresh.topApps.description" = "詳細ページ下部のリストの更新間隔。メモリのリストは独自の下限6秒を保ちます。";
 "hardware.monitor.settings.group.sampling.footnote" = "パネルとメニューバー/Dockのアイコンは同じハードウェアサンプルを共有します。この間隔はパネルの更新頻度だけを決め、アイコンは機敏なまま、ハードウェアを二重に読みません。";
-"hardware.monitor.settings.refresh.subtitle" = "パネルでこの指標を更新する間隔。";

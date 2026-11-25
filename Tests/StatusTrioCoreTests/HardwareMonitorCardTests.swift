@@ -191,8 +191,8 @@ struct HardwareMonitorPresentationTests {
         // Sampling & Trends group title adds one (79 → 80); the SSD external
         // drive group adds five (80 → 85); the six per-group refresh rows plus
         // the high-usage app refresh row and its note add eight (85 → 93); the
-        // group footnote and shared row subtitle add two more (93 → 95).
-        #expect(keys.count == 95)
+        // group footnote adds one more (93 → 94).
+        #expect(keys.count == 94)
         for language in AppLanguage.allCases {
             let bundle = try #require(Localization.resourceBundle(for: language))
             for key in keys {

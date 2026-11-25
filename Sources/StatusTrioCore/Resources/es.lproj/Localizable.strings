@@ -1296,7 +1296,7 @@
 
 /* Status-panel per-item visibility */
 "hardware.monitor.settings.group.rings" = "Indicadores de anillo";
-"hardware.monitor.settings.group.sampling" = "Actualización e historial";
+"hardware.monitor.settings.group.sampling" = "Frecuencia de actualización";
 "hardware.monitor.settings.group.bottomBar" = "Barra inferior";
 "hardware.monitor.settings.item.diskCapacity" = "Capacidad del disco";
 "hardware.monitor.settings.showSummaryRow.description" = "Muestra descarga, subida, ventilador y E/S de disco bajo los anillos.";
@@ -1443,4 +1443,3 @@
 "hardware.monitor.settings.refresh.topApps" = "Actualización de apps principales";
 "hardware.monitor.settings.refresh.topApps.description" = "Cada cuánto se actualiza la lista de la página de detalle. La lista de memoria conserva su límite de 6 s.";
 "hardware.monitor.settings.group.sampling.footnote" = "El panel y los iconos de la barra de menús/Dock comparten una misma muestra de hardware. Estos intervalos solo controlan cada cuánto se actualiza el panel; los iconos siguen ágiles y nada se lee dos veces.";
-"hardware.monitor.settings.refresh.subtitle" = "Cada cuánto se actualiza esta métrica en el panel.";

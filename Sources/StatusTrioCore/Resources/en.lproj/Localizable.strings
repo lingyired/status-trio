@@ -1295,7 +1295,7 @@
 
 /* Status-panel per-item visibility */
 "hardware.monitor.settings.group.rings" = "Rings";
-"hardware.monitor.settings.group.sampling" = "Refresh & History";
+"hardware.monitor.settings.group.sampling" = "Update Frequency";
 "hardware.monitor.settings.group.bottomBar" = "Bottom bar";
 "hardware.monitor.settings.item.diskCapacity" = "Disk capacity";
 "hardware.monitor.settings.showSummaryRow.description" = "Show download, upload, fan speed and disk I/O below the rings; each can be turned off independently.";
@@ -1442,4 +1442,3 @@
 "hardware.monitor.settings.refresh.topApps" = "Top Apps Refresh";
 "hardware.monitor.settings.refresh.topApps.description" = "How often the detail-page list refreshes. The memory list keeps its own 6 s floor and won't go faster.";
 "hardware.monitor.settings.group.sampling.footnote" = "The panel and the menu bar/Dock icons share one hardware sample. These intervals only control how often the panel refreshes; icons stay responsive and nothing is read twice.";
-"hardware.monitor.settings.refresh.subtitle" = "How often this metric refreshes on the panel.";

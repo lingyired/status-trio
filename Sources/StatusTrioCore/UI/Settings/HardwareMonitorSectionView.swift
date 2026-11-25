@@ -111,7 +111,7 @@ struct HardwareMonitorSectionView: View {
                     "speedometer",
                     tint: .blue,
                     title: localization.string(group.titleKey),
-                    subtitle: localization.string(.hardwareMonitorSettingsRefreshSubtitle)
+                    subtitle: nil
                 ) {
                     Picker(localization.string(group.titleKey),
                            selection: Binding(

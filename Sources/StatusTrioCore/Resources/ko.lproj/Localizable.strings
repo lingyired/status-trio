@@ -1295,7 +1295,7 @@
 
 /* Status-panel per-item visibility */
 "hardware.monitor.settings.group.rings" = "링 지표";
-"hardware.monitor.settings.group.sampling" = "새로 고침 및 기록";
+"hardware.monitor.settings.group.sampling" = "업데이트 주기";
 "hardware.monitor.settings.group.bottomBar" = "하단 표시줄";
 "hardware.monitor.settings.item.diskCapacity" = "디스크 용량";
 "hardware.monitor.settings.showSummaryRow.description" = "링 아래에 다운로드, 업로드, 팬, 디스크 I/O를 표시합니다.";
@@ -1443,4 +1443,3 @@
 "hardware.monitor.settings.refresh.topApps" = "상위 앱 새로 고침";
 "hardware.monitor.settings.refresh.topApps.description" = "상세 페이지 하단 목록의 새로 고침 간격입니다. 메모리 목록은 자체 6초 하한을 유지합니다.";
 "hardware.monitor.settings.group.sampling.footnote" = "패널과 메뉴 막대/Dock 아이콘은 하나의 하드웨어 샘플을 공유합니다. 이 간격은 패널 새로 고침 빈도만 결정하며, 아이콘은 계속 빠르게 반응하고 하드웨어를 두 번 읽지 않습니다.";
-"hardware.monitor.settings.refresh.subtitle" = "패널에서 이 지표를 새로 고치는 간격입니다.";

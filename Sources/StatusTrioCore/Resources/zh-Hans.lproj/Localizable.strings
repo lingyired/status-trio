@@ -1296,7 +1296,7 @@
 
 /* Status-panel per-item visibility */
 "hardware.monitor.settings.group.rings" = "圆环指标";
-"hardware.monitor.settings.group.sampling" = "刷新与历史";
+"hardware.monitor.settings.group.sampling" = "更新频率";
 "hardware.monitor.settings.group.bottomBar" = "底部信息栏";
 "hardware.monitor.settings.item.diskCapacity" = "磁盘容量";
 "hardware.monitor.settings.showSummaryRow.description" = "在圆环下方显示下载、上传、风扇转速和磁盘 I/O，可单独关闭某一项。";
@@ -1443,4 +1443,3 @@
 "hardware.monitor.settings.refresh.topApps" = "高占用应用刷新间隔";
 "hardware.monitor.settings.refresh.topApps.description" = "详情页底部列表的刷新间隔。内存列表受自身 6 秒下限限制，不会更快。";
 "hardware.monitor.settings.group.sampling.footnote" = "面板与菜单栏/Dock 图标共用同一次硬件采样。下面的间隔只决定面板多久刷新一次，图标仍保持灵敏，不会重复读取硬件。";
-"hardware.monitor.settings.refresh.subtitle" = "面板上这个指标多久刷新一次。";
