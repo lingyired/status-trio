@@ -17,7 +17,7 @@
 | 7 Schema 导出 + Skill | ✅ 完成 | `SettingsSchemaExporter` 确定性输出 5 份 JSON + 每模块 md；`.agents/skills/status-trio-settings/`（SKILL.md + references）。 |
 | 8 AGENTS.md | ✅ 完成 | 新增 Development Test Profile 规范与"新增设置必须同步语义定义"。 |
 | 9 性能/体积 | ◑ 静态测量 | 见 §5；运行时/包体/冷启动为 NOT RUN。 |
-| 10 测试 | ◑ 部分 | 新增 5 个测试套件（见 §4）；§13.4 监控生命周期、真实硬件、完整 UI 回归未覆盖。 |
+| 10 测试 | ◑ 部分 | 新增 8 个测试套件 / 51 项（见 §4），含语义层监控生命周期不变量；运行时监控生命周期、真实硬件、完整 UI 回归仍 NOT RUN。 |
 
 ## 2. 架构
 
@@ -62,6 +62,7 @@ SettingsService.restore(_:)
 | `DevelopmentProfileTests` | 8 | ✅ 全通过 |
 | `SettingsSchemaExporterTests` | 6 | ✅ 全通过 |
 | `SettingsEffectiveStateTests` | 6 | ✅ 全通过 |
+| `SettingsMonitoringLifecycleTests` | 4 | ✅ 全通过 |
 | `CoreSettingsProviderTests` | 4 | ✅ 全通过（真实 SettingsStore） |
 
 运行方式：`bash scripts/test.sh '<Suite>'`（含 forbidden-pattern 检查）。
@@ -89,7 +90,7 @@ SettingsService.restore(_:)
 2. **运行时 Capability provider 与 Effective State**：用现有缓存/系统信息给出
    available/unavailable/unknown（unknown≠不支持），不为查 Schema 启动采集。
 3. **真实性能/体积测量**：需签名 App Bundle 与运行环境，按 §12.3 对比前后。
-4. **§13.4 监控生命周期测试**：验证父模块自动开启不无条件启动全部采集等。
+4. **§13.4 运行时监控生命周期测试**：已在语义层验证（feature 不启动后台历史/无关采集）；运行时实际采集需求仍需真机测试。
 
 已完成的启动闭环：dev build 启动 → `AppEnvironment.live` 在迁移后、控制器/监控
 启动前 → `DevelopmentProfileBootstrap` 校验→预览→经 `CoreSettingsProvider` 写入
