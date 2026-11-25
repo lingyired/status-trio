@@ -225,7 +225,14 @@ struct SystemPmsetRunner: PmsetRunning {
         case .value(let value):
             return .value(value)
         case .keyMissing:
-            return .failure(.readKeyMissing, "SleepDisabled not found in `pmset -g`")
+            // `pmset -g` only prints `SleepDisabled` after the setting has been
+            // written at least once. On a Mac where nobody ever ran
+            // `pmset -a disablesleep`, the line is absent and the value is off
+            // (a machine with it on always prints `SleepDisabled 1`). Treating
+            // "absent" as off — instead of a DS-R4 read failure — matches how
+            // `pmset` behaves and stops the card from failing on untouched Macs.
+            // See docs/issue-383-lid-sleep-diagnostics.md (DS-R4 follow-up).
+            return .value(false)
         case .unparseable(let raw):
             return .failure(.readValueUnparseable, "unexpected SleepDisabled value: \(raw)")
         }
