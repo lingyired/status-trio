@@ -1272,17 +1272,17 @@
 "hardware.monitor.mbps" = "MB/s";
 "hardware.monitor.gbps" = "GB/s";
 "hardware.monitor.settings.topApps" = "高負荷アプリを表示";
-"hardware.monitor.settings.topApps.description" = "詳細ページ下部に最も負荷の高いプロセスを表示します。オフにすると CPU を節約できます。";
+"hardware.monitor.settings.topApps.description" = "詳細ページ下部に最も使用率の高いプロセスを表示します。オフにするとCPUを節約できます。";
 "hardware.monitor.settings.speedCaps.title" = "ネットワーク速度上限";
 "hardware.monitor.settings.speedCaps.description" = "アイコンリングのダウンロード/アップロード弧は常にこの上限を使い、速度トレンドは「固定ネットワークスケール」がオンのときだけ満点として使います。";
 "hardware.monitor.settings.networkScale" = "ネットワーク目盛り固定";
 "hardware.monitor.settings.networkScale.description" = "オフ：ウィンドウ内のピークに自動スケール（15%余白）。オン：ダウンロード/アップロード上限を満点にします。";
 "hardware.monitor.settings.background" = "バックグラウンド履歴を保持";
-"hardware.monitor.settings.background.description" = "パネルを閉じている間も上の更新頻度で最大5分のハードウェア履歴を保持し、詳細ページを傾向付きで開けるようにします。";
+"hardware.monitor.settings.background.description" = "パネルを閉じても記録を続け、詳細ページで推移を見られるようにします。保持期間は「グラフの長さ」までです。";
 "hardware.monitor.background.off" = "オフ";
 "hardware.monitor.background.seconds" = "%d 秒";
-"hardware.monitor.settings.historyWindow" = "履歴の長さ";
-"hardware.monitor.settings.historyWindow.description" = "詳細ページの傾向をどこまで保持するか。";
+"hardware.monitor.settings.historyWindow" = "グラフの長さ";
+"hardware.monitor.settings.historyWindow.description" = "詳細ページのグラフを何分保持するか。グラフの長さだけに影響し、サンプリング頻度は変わりません。";
 "hardware.monitor.settings.historyWindow.minutes" = "%d 分";
 "hardware.monitor.settings.panelRefresh" = "ハードウェアデータの更新間隔";
 "hardware.monitor.settings.panelRefresh.description" = "ハードウェアデータの更新頻度です。バックグラウンド履歴をオンにすると、閉じたパネルでも同じ頻度で記録します。速いほどリアルタイムですが読み取りが増え、遅いほど省電力です。";
@@ -1296,7 +1296,7 @@
 
 /* Status-panel per-item visibility */
 "hardware.monitor.settings.group.rings" = "リング指標";
-"hardware.monitor.settings.group.sampling" = "サンプリングとトレンド";
+"hardware.monitor.settings.group.sampling" = "更新と履歴";
 "hardware.monitor.settings.group.bottomBar" = "下部バー";
 "hardware.monitor.settings.item.diskCapacity" = "ディスク容量";
 "hardware.monitor.settings.showSummaryRow.description" = "リングの下にダウンロード・アップロード・ファン・ディスク I/O を表示します。";
@@ -1441,4 +1441,6 @@
 "hardware.monitor.settings.refresh.temperature" = "温度";
 "hardware.monitor.settings.refresh.disk" = "ディスクI/O";
 "hardware.monitor.settings.refresh.topApps" = "上位アプリの更新";
-"hardware.monitor.settings.refresh.topApps.description" = "メモリのリストは独自の下限6秒を保つため、それより速く更新されません。";
+"hardware.monitor.settings.refresh.topApps.description" = "詳細ページ下部のリストの更新間隔。メモリのリストは独自の下限6秒を保ちます。";
+"hardware.monitor.settings.group.sampling.footnote" = "パネルとメニューバー/Dockのアイコンは同じハードウェアサンプルを共有します。この間隔はパネルの更新頻度だけを決め、アイコンは機敏なまま、ハードウェアを二重に読みません。";
+"hardware.monitor.settings.refresh.subtitle" = "パネルでこの指標を更新する間隔。";

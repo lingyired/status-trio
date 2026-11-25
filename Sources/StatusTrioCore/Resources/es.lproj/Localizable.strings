@@ -1272,17 +1272,17 @@
 "hardware.monitor.mbps" = "MB/s";
 "hardware.monitor.gbps" = "GB/s";
 "hardware.monitor.settings.topApps" = "Mostrar apps exigentes";
-"hardware.monitor.settings.topApps.description" = "Muestra los procesos más activos al final de las páginas de detalle. Desactívalo para ahorrar CPU.";
+"hardware.monitor.settings.topApps.description" = "Mostrar los procesos de mayor uso al pie de la página de detalle. Desactívalo para ahorrar CPU.";
 "hardware.monitor.settings.speedCaps.title" = "Límite de velocidad de red";
 "hardware.monitor.settings.speedCaps.description" = "Los arcos de descarga/subida del anillo siempre usan estos límites; la tendencia de velocidad solo los usa como escala completa con la escala de red fija activada.";
 "hardware.monitor.settings.networkScale" = "Escala de red fija";
 "hardware.monitor.settings.networkScale.description" = "Desactivado: escala automática al pico de la ventana con 15 % de margen. Activado: límites de descarga/subida como escala completa.";
-"hardware.monitor.settings.background" = "Mantener historial";
-"hardware.monitor.settings.background.description" = "Guarda hasta 5 minutos del historial de hardware con el panel cerrado al ritmo indicado arriba, para que el detalle se abra con tendencia.";
+"hardware.monitor.settings.background" = "Conservar historial en segundo plano";
+"hardware.monitor.settings.background.description" = "Seguir registrando con el panel cerrado para que la página de detalle muestre su tendencia; limitado a la duración de la tendencia.";
 "hardware.monitor.background.off" = "Desactivado";
 "hardware.monitor.background.seconds" = "%d s";
-"hardware.monitor.settings.historyWindow" = "Duración del historial";
-"hardware.monitor.settings.historyWindow.description" = "Hasta dónde llega la tendencia del detalle.";
+"hardware.monitor.settings.historyWindow" = "Duración de la tendencia";
+"hardware.monitor.settings.historyWindow.description" = "Cuántos minutos de la gráfica de detalle se conservan. Solo afecta a la longitud de la gráfica, no a la frecuencia de muestreo.";
 "hardware.monitor.settings.historyWindow.minutes" = "%d min";
 "hardware.monitor.settings.panelRefresh" = "Intervalo de actualización de datos de hardware";
 "hardware.monitor.settings.panelRefresh.description" = "Con qué frecuencia se actualizan los datos de hardware. Con el historial en segundo plano activo, el panel cerrado mantiene el mismo ritmo. Más rápido es más inmediato pero lee más; más lento ahorra energía.";
@@ -1296,7 +1296,7 @@
 
 /* Status-panel per-item visibility */
 "hardware.monitor.settings.group.rings" = "Indicadores de anillo";
-"hardware.monitor.settings.group.sampling" = "Muestreo y tendencias";
+"hardware.monitor.settings.group.sampling" = "Actualización e historial";
 "hardware.monitor.settings.group.bottomBar" = "Barra inferior";
 "hardware.monitor.settings.item.diskCapacity" = "Capacidad del disco";
 "hardware.monitor.settings.showSummaryRow.description" = "Muestra descarga, subida, ventilador y E/S de disco bajo los anillos.";
@@ -1441,4 +1441,6 @@
 "hardware.monitor.settings.refresh.temperature" = "Temperatura";
 "hardware.monitor.settings.refresh.disk" = "E/S de disco";
 "hardware.monitor.settings.refresh.topApps" = "Actualización de apps principales";
-"hardware.monitor.settings.refresh.topApps.description" = "La lista de memoria mantiene su límite de 6 s y no se actualizará más rápido.";
+"hardware.monitor.settings.refresh.topApps.description" = "Cada cuánto se actualiza la lista de la página de detalle. La lista de memoria conserva su límite de 6 s.";
+"hardware.monitor.settings.group.sampling.footnote" = "El panel y los iconos de la barra de menús/Dock comparten una misma muestra de hardware. Estos intervalos solo controlan cada cuánto se actualiza el panel; los iconos siguen ágiles y nada se lee dos veces.";
+"hardware.monitor.settings.refresh.subtitle" = "Cada cuánto se actualiza esta métrica en el panel.";

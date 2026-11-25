@@ -102,13 +102,16 @@ struct HardwareMonitorSectionView: View {
     /// Sampling cadence and how much history survives while the panel is
     /// closed. Grouped together because they trade freshness against readings.
     private var samplingGroup: some View {
-        SettingsGroup(localization.string(.hardwareMonitorSettingsGroupSampling)) {
+        SettingsGroup(
+            localization.string(.hardwareMonitorSettingsGroupSampling),
+            footnote: localization.string(.hardwareMonitorSettingsGroupSamplingFootnote)
+        ) {
             ForEach(HardwareRefreshGroup.allCases, id: \.self) { group in
                 SettingsRow(
                     "speedometer",
                     tint: .blue,
                     title: localization.string(group.titleKey),
-                    subtitle: nil
+                    subtitle: localization.string(.hardwareMonitorSettingsRefreshSubtitle)
                 ) {
                     Picker(localization.string(group.titleKey),
                            selection: Binding(

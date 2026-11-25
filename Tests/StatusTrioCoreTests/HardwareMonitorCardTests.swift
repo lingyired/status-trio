@@ -190,8 +190,9 @@ struct HardwareMonitorPresentationTests {
         // the four-ring split-gap option adds two more (77 → 79); the
         // Sampling & Trends group title adds one (79 → 80); the SSD external
         // drive group adds five (80 → 85); the six per-group refresh rows plus
-        // the high-usage app refresh row and its note add eight (85 → 93).
-        #expect(keys.count == 93)
+        // the high-usage app refresh row and its note add eight (85 → 93); the
+        // group footnote and shared row subtitle add two more (93 → 95).
+        #expect(keys.count == 95)
         for language in AppLanguage.allCases {
             let bundle = try #require(Localization.resourceBundle(for: language))
             for key in keys {

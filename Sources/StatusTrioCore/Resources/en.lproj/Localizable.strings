@@ -1271,17 +1271,17 @@
 "hardware.monitor.mbps" = "MB/s";
 "hardware.monitor.gbps" = "GB/s";
 "hardware.monitor.settings.topApps" = "Show top apps";
-"hardware.monitor.settings.topApps.description" = "Lists the busiest processes at the bottom of detail pages. Turn off to save CPU.";
+"hardware.monitor.settings.topApps.description" = "Show the highest-usage processes at the bottom of a detail page. Turn off to save some CPU.";
 "hardware.monitor.settings.speedCaps.title" = "Network speed cap";
 "hardware.monitor.settings.speedCaps.description" = "The icon ring's download/upload arcs always use these caps; the speed trend uses them as full scale only with \"Fixed network scale\" on.";
 "hardware.monitor.settings.networkScale" = "Fixed network scale";
 "hardware.monitor.settings.networkScale.description" = "Off: auto-scale to the window peak with 15% headroom. On: use the download/upload caps as the full scale.";
-"hardware.monitor.settings.background" = "Keep background history";
-"hardware.monitor.settings.background.description" = "Keeps up to 5 minutes of hardware history while the panel is closed at the refresh rate above, so a detail page opens with a trend.";
+"hardware.monitor.settings.background" = "Keep Background History";
+"hardware.monitor.settings.background.description" = "Keep recording while the panel is closed so a detail page still shows its trend; limited to the trend window.";
 "hardware.monitor.background.off" = "Off";
 "hardware.monitor.background.seconds" = "%d s";
-"hardware.monitor.settings.historyWindow" = "History window";
-"hardware.monitor.settings.historyWindow.description" = "How far back the detail trend goes.";
+"hardware.monitor.settings.historyWindow" = "Trend Window";
+"hardware.monitor.settings.historyWindow.description" = "How many minutes of the detail chart to keep. Affects only the chart length, not the sampling rate.";
 "hardware.monitor.settings.historyWindow.minutes" = "%d min";
 "hardware.monitor.settings.panelRefresh" = "Hardware data refresh interval";
 "hardware.monitor.settings.panelRefresh.description" = "How often hardware data refreshes. With background history on, the closed panel keeps the same rate. Faster is more live but reads more; slower saves power.";
@@ -1295,7 +1295,7 @@
 
 /* Status-panel per-item visibility */
 "hardware.monitor.settings.group.rings" = "Rings";
-"hardware.monitor.settings.group.sampling" = "Sampling & Trends";
+"hardware.monitor.settings.group.sampling" = "Refresh & History";
 "hardware.monitor.settings.group.bottomBar" = "Bottom bar";
 "hardware.monitor.settings.item.diskCapacity" = "Disk capacity";
 "hardware.monitor.settings.showSummaryRow.description" = "Show download, upload, fan speed and disk I/O below the rings; each can be turned off independently.";
@@ -1440,4 +1440,6 @@
 "hardware.monitor.settings.refresh.temperature" = "Temperature";
 "hardware.monitor.settings.refresh.disk" = "Disk I/O";
 "hardware.monitor.settings.refresh.topApps" = "Top Apps Refresh";
-"hardware.monitor.settings.refresh.topApps.description" = "The memory list keeps its own 6 s floor, so it won't refresh faster than that.";
+"hardware.monitor.settings.refresh.topApps.description" = "How often the detail-page list refreshes. The memory list keeps its own 6 s floor and won't go faster.";
+"hardware.monitor.settings.group.sampling.footnote" = "The panel and the menu bar/Dock icons share one hardware sample. These intervals only control how often the panel refreshes; icons stay responsive and nothing is read twice.";
+"hardware.monitor.settings.refresh.subtitle" = "How often this metric refreshes on the panel.";

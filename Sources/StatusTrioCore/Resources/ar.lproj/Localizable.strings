@@ -1272,17 +1272,17 @@
 "hardware.monitor.mbps" = "MB/s";
 "hardware.monitor.gbps" = "GB/s";
 "hardware.monitor.settings.topApps" = "إظهار التطبيقات الأكثر استهلاكًا";
-"hardware.monitor.settings.topApps.description" = "يعرض العمليات الأكثر نشاطًا أسفل صفحات التفاصيل. أوقفه لتوفير المعالج.";
+"hardware.monitor.settings.topApps.description" = "عرض العمليات الأعلى استخدامًا أسفل صفحة التفاصيل. أوقفه لتوفير بعض المعالج.";
 "hardware.monitor.settings.speedCaps.title" = "حد سرعة الشبكة";
 "hardware.monitor.settings.speedCaps.description" = "تستخدم أقواس التنزيل/الرفع في حلقة الأيقونة هذه الحدود دائمًا؛ ويستخدمها مخطط السرعة كمقياس كامل فقط عند تفعيل مقياس الشبكة الثابت.";
 "hardware.monitor.settings.networkScale" = "مقياس الشبكة الثابت";
 "hardware.monitor.settings.networkScale.description" = "إيقاف: تحجيم تلقائي حسب ذروة النافذة بهامش 15%. تشغيل: حدود التنزيل/الرفع كمقياس كامل.";
-"hardware.monitor.settings.background" = "الاحتفاظ بالسجل";
-"hardware.monitor.settings.background.description" = "يحتفظ بما يصل إلى 5 دقائق من سجل العتاد أثناء إغلاق اللوحة بالمعدل أعلاه، لتُفتح صفحة التفاصيل مع اتجاه.";
+"hardware.monitor.settings.background" = "الاحتفاظ بالسجل في الخلفية";
+"hardware.monitor.settings.background.description" = "متابعة التسجيل أثناء إغلاق اللوحة كي تعرض صفحة التفاصيل اتجاهها؛ بحدود مدة المخطط.";
 "hardware.monitor.background.off" = "إيقاف";
 "hardware.monitor.background.seconds" = "%d ث";
-"hardware.monitor.settings.historyWindow" = "مدة السجل";
-"hardware.monitor.settings.historyWindow.description" = "إلى أي مدى يُحفظ اتجاه صفحة التفاصيل.";
+"hardware.monitor.settings.historyWindow" = "مدة المخطط";
+"hardware.monitor.settings.historyWindow.description" = "عدد دقائق مخطط صفحة التفاصيل التي يتم الاحتفاظ بها. يؤثر فقط في طول المخطط لا في وتيرة أخذ العينات.";
 "hardware.monitor.settings.historyWindow.minutes" = "%d د";
 "hardware.monitor.settings.panelRefresh" = "فترة تحديث بيانات العتاد";
 "hardware.monitor.settings.panelRefresh.description" = "معدل تحديث بيانات العتاد. عند تفعيل السجل في الخلفية، تحتفظ اللوحة المغلقة بالمعدل نفسه. الأسرع أكثر حيوية لكنه يقرأ أكثر، والأبطأ يوفر الطاقة.";
@@ -1296,7 +1296,7 @@
 
 /* Status-panel per-item visibility */
 "hardware.monitor.settings.group.rings" = "مؤشرات الحلقات";
-"hardware.monitor.settings.group.sampling" = "الاستعيان والاتجاهات";
+"hardware.monitor.settings.group.sampling" = "التحديث والسجل";
 "hardware.monitor.settings.group.bottomBar" = "الشريط السفلي";
 "hardware.monitor.settings.item.diskCapacity" = "سعة القرص";
 "hardware.monitor.settings.showSummaryRow.description" = "إظهار التنزيل والرفع والمروحة وإدخال/إخراج القرص أسفل الحلقات.";
@@ -1441,4 +1441,6 @@
 "hardware.monitor.settings.refresh.temperature" = "الحرارة";
 "hardware.monitor.settings.refresh.disk" = "إدخال/إخراج القرص";
 "hardware.monitor.settings.refresh.topApps" = "تحديث التطبيقات الأعلى";
-"hardware.monitor.settings.refresh.topApps.description" = "تحتفظ قائمة الذاكرة بحدها الأدنى البالغ 6 ثوانٍ ولن يتم تحديثها أسرع من ذلك.";
+"hardware.monitor.settings.refresh.topApps.description" = "كم مرة يتم تحديث قائمة صفحة التفاصيل. تحتفظ قائمة الذاكرة بحدها الأدنى البالغ 6 ثوانٍ.";
+"hardware.monitor.settings.group.sampling.footnote" = "تتشارك اللوحة وأيقونات شريط القوائم/Dock العينة نفسها من العتاد. تحدد هذه الفواصل وتيرة تحديث اللوحة فقط؛ وتبقى الأيقونات سريعة الاستجابة دون قراءة العتاد مرتين.";
+"hardware.monitor.settings.refresh.subtitle" = "كم مرة يتم تحديث هذا المقياس في اللوحة.";

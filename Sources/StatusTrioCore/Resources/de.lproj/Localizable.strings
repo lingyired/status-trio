@@ -1272,17 +1272,17 @@
 "hardware.monitor.mbps" = "MB/s";
 "hardware.monitor.gbps" = "GB/s";
 "hardware.monitor.settings.topApps" = "Top-Apps anzeigen";
-"hardware.monitor.settings.topApps.description" = "Zeigt die aktivsten Prozesse unten auf Detailseiten. Ausschalten spart CPU.";
+"hardware.monitor.settings.topApps.description" = "Die Prozesse mit der höchsten Auslastung unten auf einer Detailseite anzeigen. Ausschalten spart etwas CPU.";
 "hardware.monitor.settings.speedCaps.title" = "Netzwerkgeschwindigkeitslimit";
 "hardware.monitor.settings.speedCaps.description" = "Die Download-/Upload-Bögen des Icon-Rings nutzen diese Grenzen immer; der Geschwindigkeitsverlauf nutzt sie nur bei aktivierter fester Netzwerkskala als Vollausschlag.";
 "hardware.monitor.settings.networkScale" = "Feste Netzwerkskala";
 "hardware.monitor.settings.networkScale.description" = "Aus: automatische Skalierung auf den Fenster-Peak mit 15 % Reserve. An: Download-/Upload-Limit als Vollausschlag.";
 "hardware.monitor.settings.background" = "Hintergrundverlauf behalten";
-"hardware.monitor.settings.background.description" = "Behält bei geschlossenem Panel im oben gewählten Tempo bis zu 5 Minuten Hardware-Verlauf, damit eine Detailseite mit Trend öffnet.";
+"hardware.monitor.settings.background.description" = "Auch bei geschlossenem Panel weiter aufzeichnen, damit eine Detailseite ihren Verlauf zeigt; begrenzt auf das Verlaufsfenster.";
 "hardware.monitor.background.off" = "Aus";
 "hardware.monitor.background.seconds" = "%d s";
-"hardware.monitor.settings.historyWindow" = "Verlaufsdauer";
-"hardware.monitor.settings.historyWindow.description" = "Wie weit der Detailverlauf zurückreicht.";
+"hardware.monitor.settings.historyWindow" = "Verlaufsfenster";
+"hardware.monitor.settings.historyWindow.description" = "Wie viele Minuten der Detailkurve behalten werden. Beeinflusst nur die Kurvenlänge, nicht die Messrate.";
 "hardware.monitor.settings.historyWindow.minutes" = "%d Min.";
 "hardware.monitor.settings.panelRefresh" = "Aktualisierungsintervall der Hardwaredaten";
 "hardware.monitor.settings.panelRefresh.description" = "Wie oft Hardware-Daten aktualisiert werden. Mit aktiver Hintergrundhistorie behält das geschlossene Panel dasselbe Tempo. Schneller ist liveer, liest aber mehr; langsamer spart Energie.";
@@ -1296,7 +1296,7 @@
 
 /* Status-panel per-item visibility */
 "hardware.monitor.settings.group.rings" = "Ring-Metriken";
-"hardware.monitor.settings.group.sampling" = "Abtastung & Trends";
+"hardware.monitor.settings.group.sampling" = "Aktualisierung & Verlauf";
 "hardware.monitor.settings.group.bottomBar" = "Untere Leiste";
 "hardware.monitor.settings.item.diskCapacity" = "Speicherplatz";
 "hardware.monitor.settings.showSummaryRow.description" = "Zeigt Download, Upload, Lüfter und Festplatten-E/A unter den Ringen.";
@@ -1441,4 +1441,6 @@
 "hardware.monitor.settings.refresh.temperature" = "Temperatur";
 "hardware.monitor.settings.refresh.disk" = "Datenträger-E/A";
 "hardware.monitor.settings.refresh.topApps" = "Aktualisierung der Top-Apps";
-"hardware.monitor.settings.refresh.topApps.description" = "Die Speicherliste behält ihre eigene Untergrenze von 6 s und wird nicht schneller aktualisiert.";
+"hardware.monitor.settings.refresh.topApps.description" = "Wie oft die Liste auf der Detailseite aktualisiert wird. Die Speicherliste behält ihre eigene Untergrenze von 6 s.";
+"hardware.monitor.settings.group.sampling.footnote" = "Panel und Menüleisten-/Dock-Symbole teilen sich eine Hardware-Messung. Die Intervalle steuern nur, wie oft das Panel aktualisiert; Symbole bleiben reaktionsschnell, nichts wird doppelt gelesen.";
+"hardware.monitor.settings.refresh.subtitle" = "Wie oft diese Metrik im Panel aktualisiert wird.";

@@ -1272,17 +1272,17 @@
 "hardware.monitor.mbps" = "МБ/с";
 "hardware.monitor.gbps" = "ГБ/с";
 "hardware.monitor.settings.topApps" = "Показывать топ-приложения";
-"hardware.monitor.settings.topApps.description" = "Показывает самые активные процессы внизу страниц деталей. Отключите, чтобы экономить CPU.";
+"hardware.monitor.settings.topApps.description" = "Показывать самые нагруженные процессы внизу страницы деталей. Отключите, чтобы сэкономить ЦП.";
 "hardware.monitor.settings.speedCaps.title" = "Предел скорости сети";
 "hardware.monitor.settings.speedCaps.description" = "Дуги загрузки/отправки на кольце всегда используют эти пределы; график скорости использует их как полную шкалу только при включённой фиксированной шкале сети.";
 "hardware.monitor.settings.networkScale" = "Фиксированная шкала сети";
 "hardware.monitor.settings.networkScale.description" = "Выкл.: авто-масштаб по пику окна с запасом 15 %. Вкл.: пределы загрузки/отправки как полная шкала.";
-"hardware.monitor.settings.background" = "Хранить историю";
-"hardware.monitor.settings.background.description" = "Сохраняет историю оборудования до 5 минут при закрытой панели с указанным выше темпом, чтобы детали открывались с трендом.";
+"hardware.monitor.settings.background" = "Хранить историю в фоне";
+"hardware.monitor.settings.background.description" = "Продолжать запись при закрытой панели, чтобы на странице деталей был график; ограничено длиной графика.";
 "hardware.monitor.background.off" = "Выкл.";
 "hardware.monitor.background.seconds" = "%d с";
-"hardware.monitor.settings.historyWindow" = "Длина истории";
-"hardware.monitor.settings.historyWindow.description" = "Насколько глубоко хранится тренд на странице деталей.";
+"hardware.monitor.settings.historyWindow" = "Длина графика";
+"hardware.monitor.settings.historyWindow.description" = "Сколько минут графика на странице деталей хранить. Влияет только на длину графика, не на частоту опроса.";
 "hardware.monitor.settings.historyWindow.minutes" = "%d мин";
 "hardware.monitor.settings.panelRefresh" = "Интервал обновления данных оборудования";
 "hardware.monitor.settings.panelRefresh.description" = "Как часто обновляются данные оборудования. При включённой фоновой истории закрытая панель сохраняет тот же темп. Быстрее — нагляднее, но больше чтений; медленнее — экономит энергию.";
@@ -1296,7 +1296,7 @@
 
 /* Status-panel per-item visibility */
 "hardware.monitor.settings.group.rings" = "Показатели колец";
-"hardware.monitor.settings.group.sampling" = "Сэмплинг и тренды";
+"hardware.monitor.settings.group.sampling" = "Обновление и история";
 "hardware.monitor.settings.group.bottomBar" = "Нижняя панель";
 "hardware.monitor.settings.item.diskCapacity" = "Ёмкость диска";
 "hardware.monitor.settings.showSummaryRow.description" = "Показывать загрузку, отдачу, вентилятор и диск I/O под кольцами.";
@@ -1441,4 +1441,6 @@
 "hardware.monitor.settings.refresh.temperature" = "Температура";
 "hardware.monitor.settings.refresh.disk" = "Дисковый ввод-вывод";
 "hardware.monitor.settings.refresh.topApps" = "Обновление топ-приложений";
-"hardware.monitor.settings.refresh.topApps.description" = "Список памяти сохраняет свой минимум 6 с и не будет обновляться чаще.";
+"hardware.monitor.settings.refresh.topApps.description" = "Как часто обновляется список на странице деталей. Список памяти сохраняет свой минимум 6 с.";
+"hardware.monitor.settings.group.sampling.footnote" = "Панель и значки строки меню/Dock используют одну и ту же выборку оборудования. Эти интервалы задают только частоту обновления панели; значки остаются отзывчивыми, оборудование не читается дважды.";
+"hardware.monitor.settings.refresh.subtitle" = "Как часто этот показатель обновляется на панели.";
