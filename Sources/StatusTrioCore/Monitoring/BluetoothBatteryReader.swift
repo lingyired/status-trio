@@ -39,34 +39,88 @@ struct BluetoothBatteryLevel: Equatable, Sendable {
     let right: Int?
     let caseLevel: Int?
 
+    /// Each channel's explicit charging state, or `nil` when unknown. The primary
+    /// report never supplies this; the accessory power sources add it after the
+    /// level is published, and the four fields are merged independently so one
+    /// bud's state is never inferred from another's.
+    var mainIsCharging: Bool? = nil
+    var leftIsCharging: Bool? = nil
+    var rightIsCharging: Bool? = nil
+    var caseIsCharging: Bool? = nil
+
     /// The level as the pieces a row draws, or `nil` when the report carries no
     /// channel for this device at all.
     ///
     /// The charging case is a glyph rather than the word "Case"; the percentage
-    /// beside it stays text, because the word was the part with no room.
+    /// beside it stays text, because the word was the part with no room. A channel
+    /// that is charging draws a bolt between its label and its percentage. A
+    /// channel with no level is not drawn at all, so a charging flag never becomes
+    /// an empty bolt with no charge to point at.
     var segments: [BluetoothBatterySegment]? {
-        var pieces: [BluetoothBatterySegment] = []
-        func append(_ piece: BluetoothBatterySegment) {
-            if !pieces.isEmpty {
-                pieces.append(.text(Self.separator))
-            }
-            pieces.append(piece)
-        }
-
+        var channels: [[BluetoothBatterySegment]] = []
         if let main {
-            append(.text("\(main)%"))
+            channels.append(Self.channel(prefix: nil, value: main, isCharging: mainIsCharging))
         }
         if let left {
-            append(.text("L \(left)%"))
+            channels.append(Self.channel(prefix: "L ", value: left, isCharging: leftIsCharging))
         }
         if let right {
-            append(.text("R \(right)%"))
+            channels.append(Self.channel(prefix: "R ", value: right, isCharging: rightIsCharging))
         }
         if let caseLevel {
-            append(.symbol(name: Self.caseSymbolName, label: Self.caseTextLabel))
-            pieces.append(.text(" \(caseLevel)%"))
+            channels.append(Self.caseChannel(value: caseLevel, isCharging: caseIsCharging))
         }
-        return pieces.isEmpty ? nil : pieces
+        guard !channels.isEmpty else { return nil }
+        var pieces: [BluetoothBatterySegment] = []
+        for (index, channel) in channels.enumerated() {
+            if index > 0 { pieces.append(.text(Self.separator)) }
+            pieces.append(contentsOf: channel)
+        }
+        return pieces
+    }
+
+    /// Whether any channel that is actually drawn is charging. The drawn text
+    /// hides its glyph from accessibility, so the row asks this to add the
+    /// localized word a screen reader otherwise misses.
+    var hasVisibleCharging: Bool {
+        (main != nil && mainIsCharging == true)
+            || (left != nil && leftIsCharging == true)
+            || (right != nil && rightIsCharging == true)
+            || (caseLevel != nil && caseIsCharging == true)
+    }
+
+    /// One labelled channel's pieces: optional "L "/"R " prefix, a bolt when it is
+    /// charging, then the percentage. The bolt's text label is empty on purpose —
+    /// it is decoration, and the spelling a text surface needs is added once for
+    /// the whole row by `hasVisibleCharging`, in the localized UI layer.
+    private static func channel(
+        prefix: String?,
+        value: Int,
+        isCharging: Bool?
+    ) -> [BluetoothBatterySegment] {
+        // Not charging (or unknown) keeps the original single text piece, so the
+        // existing wording and its pinned segments do not change.
+        guard isCharging == true else {
+            return [.text("\(prefix ?? "")\(value)%")]
+        }
+        var pieces: [BluetoothBatterySegment] = []
+        if let prefix { pieces.append(.text(prefix)) }
+        pieces.append(.symbol(name: chargingSymbolName, label: ""))
+        pieces.append(.text("\(value)%"))
+        return pieces
+    }
+
+    /// The charging-case channel: its glyph stands in for the word "Case", the
+    /// bolt follows it when charging, then the percentage.
+    private static func caseChannel(value: Int, isCharging: Bool?) -> [BluetoothBatterySegment] {
+        var pieces: [BluetoothBatterySegment] = [
+            .symbol(name: caseSymbolName, label: caseTextLabel)
+        ]
+        if isCharging == true {
+            pieces.append(.symbol(name: chargingSymbolName, label: ""))
+        }
+        pieces.append(.text(" \(value)%"))
+        return pieces
     }
 
     /// The same level as one sentence, glyphs spelled out by their labels. This
@@ -85,11 +139,32 @@ struct BluetoothBatteryLevel: Equatable, Sendable {
     /// the floor.
     static let caseSymbolName = "airpods.chargingcase"
 
+    /// The charging bolt, drawn beside a channel that reports charging. `bolt.fill`
+    /// ships with every macOS the app supports, so it needs no availability gate.
+    static let chargingSymbolName = "bolt.fill"
+
     /// What the text-only rendering says where the row draws the glyph.
     static let caseTextLabel = "Case"
 
     /// Between two channels of one device.
     private static let separator = " · "
+}
+
+extension BluetoothBatteryLevel {
+    /// This level with the charging fields the accessory source supplies, filling
+    /// only channels that already carry a level here and whose state is still
+    /// unknown. The percentages are never touched: this can add a bolt, never a
+    /// number, and a channel with no level is not given a state the row cannot
+    /// draw anyway.
+    func fillingCharging(from supplement: BluetoothBatteryLevel?) -> BluetoothBatteryLevel {
+        guard let supplement else { return self }
+        var result = self
+        if main != nil, mainIsCharging == nil { result.mainIsCharging = supplement.mainIsCharging }
+        if left != nil, leftIsCharging == nil { result.leftIsCharging = supplement.leftIsCharging }
+        if right != nil, rightIsCharging == nil { result.rightIsCharging = supplement.rightIsCharging }
+        if caseLevel != nil, caseIsCharging == nil { result.caseIsCharging = supplement.caseIsCharging }
+        return result
+    }
 }
 
 protocol BluetoothBatteryReading: AnyObject {

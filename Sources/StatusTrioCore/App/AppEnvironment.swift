@@ -561,10 +561,12 @@ final class AppEnvironment {
             refreshInterval: refreshInterval,
             bluetoothDevices: BluetoothDeviceController(
                 // The accessory power sources are the second battery source, read
-                // only for the devices the paired-device report carries no level
-                // for; accessory notifications are what make a level refresh
-                // between the safety-net polls.
-                accessoryBatteryReader: PmsetAccessoryBatteryWorker(),
+                // only for a level the paired-device report cannot supply and for
+                // the charging state the summary rows draw. IOKit is the cheap
+                // path; `pmset` stays as the fallback when the private symbol or
+                // its coverage is not there. Accessory notifications are what
+                // make a refresh happen between the safety-net polls.
+                accessoryBatteryReader: SystemAccessoryBatteryWorker(),
                 connectionEvents: IOBluetoothConnectionEventMonitor(),
                 accessoryBatteryEvents: AccessoryPowerNotifyEventMonitor(),
                 // Constructing the adapter is inert; its CBCentralManager is

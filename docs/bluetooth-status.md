@@ -218,12 +218,14 @@ already overrides its label and needs no change.
 
 The report stays the only source of every level the panel shows, and no second
 source may change one. macOS also exposes the same accessory batteries through
-the power manager, whose only command-line form is `pmset -g accps`, and that
-view is consulted for exactly one purpose: a connected device the report carries
-no level for. It can never take a level away and never overwrite one, because the
-merge copies the report's levels through untouched and only adds an entry for an
-address that has none. A device macOS can already read is therefore never
-described by the other source.
+the power manager, and that view is consulted for two purposes: a connected
+device the report carries no level for, and the charging state the report never
+carries. `IOPSCopyPowerSourcesByType` (resolved with `dlsym`) returns the same
+description dictionaries directly; `pmset -g accps -xml` is kept as the fallback
+for when that private symbol is missing or reports nothing. It can never take a
+level away and never overwrite one, because the merge copies the report's levels
+through untouched and only adds an entry for an address that has none, or fills
+the charging fields of a level that already exists.
 
 The XML form is asked for rather than the plain-text one, because the text form
 prints an accessory it cannot resolve with an empty name — the Mac this was
@@ -246,9 +248,11 @@ reading resolves uniquely keeps its level. An unresolvable accessory therefore
 cannot suppress the levels of unrelated devices — the case that hid a mouse and
 keyboard merely because a set of AirPods reported its case and combined level
 under two identifiers (#328). This conservative rule is not a
-UUID-to-Bluetooth-address mapping. Real AirPods L/R/Case samples are still
-needed to establish whether their parts share this identifier; do not substitute
-`Group Identifier` without that evidence.
+UUID-to-Bluetooth-address mapping. A real AirPods part sample shows its
+`Group Identifier` equal to its `Accessory Identifier`, and `Combined Parts`
+nested under one parent, so a parent's `Group Identifier` is used as the
+identity only for parts that carry no `Accessory Identifier` of their own; a
+part's own capacity and charging state are never inherited from the parent.
 
 A reading is written to the channel its part names, and a part never writes the
 device-wide level: `Part Identifier = Left` fills `left`, and only a reading with
@@ -256,14 +260,21 @@ no part can fill the device-wide slot. Without that rule one bud's charge could 
 reported as the whole device's, and a merge would be less accurate than the report
 it was meant to complete.
 
-The subcommand is undocumented, so a macOS that stops answering it must cost
-coverage and nothing else: a failed read reports no accessory, which leaves the
-report as the only source, exactly as before. On a Mac where both sources agree —
-measured here, byte for byte — the second source costs nothing at all, because it
-is never consulted: with a level present for every connected device, no `pmset`
-process is started. A failed read of the report keeps its line under the list
-unless the second source actually supplied a level, so a report that failed
-outright is never quietly replaced by a partial answer.
+The charging state is a separate field the report never supplies. `Is Charging`
+is read only when it is a real boolean — an integer or a string stays unknown —
+and each part carries its own state, so the left bud, the right bud, and the case
+are never given one another's. It is a bolt beside the percentage; a channel with
+no level is not given a state, and unknown or expired state shows no bolt.
+
+The `pmset` subcommand is undocumented, so a macOS that stops answering it must
+cost coverage and nothing else: a failed read reports no accessory, which leaves
+the report as the only source, exactly as before. On the machine this was
+measured on, IOKit and `pmset` carry the same accessory readings; when IOKit
+reports an accessory, no `pmset` process is started, and `pmset` runs only when
+the private symbol is missing or IOKit reports no accessory. A failed read of the
+report keeps its line under the list unless the second source actually supplied a
+level, so a report that failed outright is never quietly replaced by a partial
+answer.
 
 ## Levels refresh on the system's own notifications
 
