@@ -195,7 +195,14 @@
 "settings.ringContent.airPodsBattery" = "AirPods 電量";
 "settings.ringContent.airPodsGroup" = "AirPods 環";
 "settings.ringContent.airPodsDualRing" = "雙弧版面";
-"settings.ringContent.airPodsDualRing.description" = "把左右耳電量各畫成一段弧。";
+"settings.ringContent.airPodsDualRing.description" = "左右耳各用一條弧顯示電量。只有一隻耳有電量時，兩條弧都顯示該值；充電盒不參與計算。";
+"settings.ringContent.airPodsLeftArcColor" = "左耳弧顏色";
+"settings.ringContent.airPodsLeftArcColor.description" = "雙弧版面下左耳電量的弧顏色。";
+"settings.ringContent.airPodsRightArcColor" = "右耳弧顏色";
+"settings.ringContent.airPodsRightArcColor.description" = "雙弧版面下右耳電量的弧顏色。";
+"settings.ringContent.airPodsSingleArcColor" = "單弧顏色";
+"settings.ringContent.airPodsSingleArcColor.description" = "單弧版面的顏色，也用於只回報整體電量時。";
+"settings.ringContent.airPodsRequirementsHint" = "在「藍牙」設定裡開啟「顯示藍牙裝置電量」才能讀取 AirPods 電量。";
 "settings.ringContent.airPodsTopSymbol" = "顯示 AirPods 符號";
 "settings.ringContent.airPodsTopSymbol.description" = "在環頂部繪製小的 AirPods 符號。";
 "settings.ringContent.airPodsFallback" = "無 AirPods 時回退";

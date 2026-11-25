@@ -43,15 +43,15 @@ final class AppEnvironmentTelemetryLifecycleTests: VisibleUITestCase {
         XCTAssertEqual(volume.stopCount, 1)
     }
 
-    func testQueuedSettingsEnableThenOptOutDoesNotStartBatteryRead() async throws {
+    func testQueuedEnableThenDisableDoesNotStartBatteryRead() async throws {
         try await assertRevokedSettingsTupleDoesNotStartBatteryRead { settings in
-            settings.refreshesAirPodsBatteryForIcon = false
+            settings.outerRingContent = .systemBattery
         }
     }
 
-    func testQueuedSettingsEnableThenClassicDoesNotStartBatteryRead() async throws {
+    func testQueuedEnableThenHardwareRingDoesNotStartBatteryRead() async throws {
         try await assertRevokedSettingsTupleDoesNotStartBatteryRead { settings in
-            settings.updateIconConfiguration { $0 = .classic }
+            settings.outerRingContent = .hardwareMonitor
         }
     }
 
@@ -64,7 +64,7 @@ final class AppEnvironmentTelemetryLifecycleTests: VisibleUITestCase {
         let settings = SettingsStore(defaults: defaults)
         settings.hasCompletedIconGuideOnboarding = true
         settings.completeTelemetryConsent(sharesAnalytics: false)
-        settings.updateIconConfiguration { $0 = .classic }
+        settings.outerRingContent = .systemBattery
         settings.refreshesAirPodsBatteryForIcon = false
         let batteryReader = QueuedDemandBatteryReader()
         let batteryEvents = QueuedDemandBatteryEvents()
@@ -109,12 +109,10 @@ final class AppEnvironmentTelemetryLifecycleTests: VisibleUITestCase {
         XCTAssertEqual(readsBefore, 0)
         XCTAssertEqual(claimsBefore, 0)
 
-        var airPodsConfiguration = IconConfigurationV1.classic
-        airPodsConfiguration.composition.outerRing.primary = .airPodsBattery
-        // These are real @Published SettingsStore updates in one main-actor
-        // turn. The production subscriptions have not drained when revoked.
-        settings.updateIconConfiguration { $0 = airPodsConfiguration }
-        settings.refreshesAirPodsBatteryForIcon = true
+        // Real @Published SettingsStore updates in one main-actor turn: the
+        // production subscription has not drained when the ring is switched
+        // away again.
+        settings.outerRingContent = .airPodsBattery
         revoke(settings)
         await drainMainQueue()
         await drainMainQueue()
@@ -126,8 +124,7 @@ final class AppEnvironmentTelemetryLifecycleTests: VisibleUITestCase {
 
         // Positive control: keeping the opt-in committed must still exercise
         // the real AppEnvironment subscription and controller read path.
-        settings.updateIconConfiguration { $0 = airPodsConfiguration }
-        settings.refreshesAirPodsBatteryForIcon = true
+        settings.outerRingContent = .airPodsBattery
         await drainMainQueue()
         await drainMainQueue()
         XCTAssertTrue(bluetooth.isActive, "the icon source must claim connection monitoring")

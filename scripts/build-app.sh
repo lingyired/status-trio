@@ -267,6 +267,20 @@ if [[ -n "$DEVELOPMENT_CODENAME" ]]; then
     /usr/libexec/PlistBuddy -c "Add :STDevelopmentCodename string $DEVELOPMENT_CODENAME" "$CONTENTS/Info.plist"
 fi
 
+# Embed a per-worktree development test profile before signing. Only a
+# development identity may receive the resource and its opt-in marker; a release
+# build (no codename / production bundle id) never copies it, so the release
+# contract "no dev profile, no dev-profile marker" holds by construction.
+if [[ -n "$DEVELOPMENT_CODENAME" && "$BUNDLE_ID" == com.lingsmbp.StatusTrio.dev.* ]]; then
+    DEV_PROFILE_SOURCE="${STATUS_TRIO_DEV_PROFILE_SOURCE:-$ROOT/.dev-profile.json}"
+    if [[ -f "$DEV_PROFILE_SOURCE" ]]; then
+        cp "$DEV_PROFILE_SOURCE" "$CONTENTS/Resources/dev-profile.json"
+        /usr/libexec/PlistBuddy -c "Add :STAllowsDevProfile bool true" "$CONTENTS/Info.plist"
+        /usr/libexec/PlistBuddy -c "Add :STDevProfileEmbedded bool true" "$CONTENTS/Info.plist"
+        echo "Embedded development profile: $DEV_PROFILE_SOURCE"
+    fi
+fi
+
 if [[ -n "$SU_FEED_URL" ]]; then
     /usr/libexec/PlistBuddy -c "Set :SUFeedURL $SU_FEED_URL" "$CONTENTS/Info.plist"
 fi

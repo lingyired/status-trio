@@ -25,3 +25,7 @@ dist-dev/
 # Issue #30 alignment evidence (screenshots/logs) stays local, not in Git.
 artifacts/
 ISSUE30-WORK-LEDGER.md
+
+# Per-worktree development test profile (local, not committed). See
+# .dev-profile.example.json and .agents/skills/status-trio-settings/.
+.dev-profile.json

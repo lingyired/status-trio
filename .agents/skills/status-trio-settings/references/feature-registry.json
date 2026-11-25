@@ -1,0 +1,239 @@
+{
+  "features" : [
+    {
+      "description" : "面板电池模块的高耗能 App 列表。",
+      "id" : "battery.highEnergyApps",
+      "mutations" : [
+        {
+          "id" : "battery.highEnergyApps.enabled",
+          "operation" : "set",
+          "value" : true
+        }
+      ],
+      "preferences" : [
+
+      ],
+      "requires" : [
+
+      ],
+      "title" : "高耗能 App"
+    },
+    {
+      "description" : "面板电池模块的功率流向图。",
+      "id" : "battery.powerFlow",
+      "mutations" : [
+        {
+          "id" : "battery.powerFlow.enabled",
+          "operation" : "set",
+          "value" : true
+        }
+      ],
+      "preferences" : [
+
+      ],
+      "requires" : [
+
+      ],
+      "title" : "电量流向"
+    },
+    {
+      "description" : "显示 CPU 指标的硬件圆环。",
+      "id" : "hardware.panel.cpu",
+      "mutations" : [
+        {
+          "id" : "icon.outerRing.source",
+          "operation" : "set",
+          "value" : "hardwareMonitor"
+        },
+        {
+          "id" : "icon.outerRing.hardware.layout",
+          "operation" : "set",
+          "value" : "single"
+        },
+        {
+          "id" : "icon.outerRing.hardware.primaryMetric",
+          "operation" : "set",
+          "value" : "cpuUsage"
+        }
+      ],
+      "preferences" : [
+
+      ],
+      "requires" : [
+        "panel.hardware",
+        "hardware.panel.rings"
+      ],
+      "title" : "CPU 圆环"
+    },
+    {
+      "description" : "显示 GPU 指标的硬件圆环。",
+      "id" : "hardware.panel.gpu",
+      "mutations" : [
+        {
+          "id" : "icon.outerRing.source",
+          "operation" : "set",
+          "value" : "hardwareMonitor"
+        },
+        {
+          "id" : "icon.outerRing.hardware.layout",
+          "operation" : "set",
+          "value" : "single"
+        },
+        {
+          "id" : "icon.outerRing.hardware.primaryMetric",
+          "operation" : "set",
+          "value" : "gpuUsage"
+        }
+      ],
+      "preferences" : [
+
+      ],
+      "requires" : [
+        "panel.hardware",
+        "hardware.panel.rings"
+      ],
+      "title" : "GPU 圆环"
+    },
+    {
+      "description" : "在 GPU 圆环中显示 GPU 温度；需要先开启 GPU 圆环。",
+      "id" : "hardware.panel.gpu.temperature",
+      "mutations" : [
+        {
+          "id" : "hardware.temperature.enabled",
+          "operation" : "set",
+          "value" : true
+        }
+      ],
+      "performanceImpact" : {
+        "activation" : "onDemand",
+        "resources" : [
+          "temperatureSampling"
+        ]
+      },
+      "preferences" : [
+
+      ],
+      "requires" : [
+        "panel.hardware",
+        "hardware.panel.rings",
+        "hardware.panel.gpu"
+      ],
+      "title" : "GPU 温度显示"
+    },
+    {
+      "description" : "硬件监控圆环区域。",
+      "id" : "hardware.panel.rings",
+      "mutations" : [
+        {
+          "id" : "hardware.rings.enabled",
+          "operation" : "set",
+          "value" : true
+        }
+      ],
+      "preferences" : [
+
+      ],
+      "requires" : [
+        "panel.hardware"
+      ],
+      "title" : "硬件圆环"
+    },
+    {
+      "description" : "面板中的屏幕常亮控件。",
+      "id" : "keepAwake.displayControl",
+      "mutations" : [
+        {
+          "id" : "keepAwake.displayControl",
+          "operation" : "set",
+          "value" : true
+        }
+      ],
+      "preferences" : [
+
+      ],
+      "requires" : [
+
+      ],
+      "title" : "屏幕常亮控制"
+    },
+    {
+      "description" : "面板中的盒盖不睡眠控件。",
+      "id" : "keepAwake.lidControl",
+      "mutations" : [
+        {
+          "id" : "keepAwake.lidControl",
+          "operation" : "set",
+          "value" : true
+        }
+      ],
+      "preferences" : [
+
+      ],
+      "requires" : [
+
+      ],
+      "title" : "盒盖不睡眠控制"
+    },
+    {
+      "description" : "状态面板的输入设备模块。",
+      "id" : "panel.audio.input",
+      "mutations" : [
+        {
+          "id" : "audio.input.maxVisibleDevices",
+          "operation" : "set",
+          "value" : 3
+        }
+      ],
+      "preferences" : [
+
+      ],
+      "requires" : [
+
+      ],
+      "title" : "麦克风输入模块"
+    },
+    {
+      "description" : "状态面板蓝牙模块。",
+      "id" : "panel.bluetooth",
+      "mutations" : [
+        {
+          "id" : "bluetooth.deviceList.enabled",
+          "operation" : "set",
+          "value" : true
+        }
+      ],
+      "preferences" : [
+
+      ],
+      "requires" : [
+
+      ],
+      "title" : "蓝牙面板"
+    },
+    {
+      "description" : "状态面板中的系统监控模块父功能。",
+      "id" : "panel.hardware",
+      "mutations" : [
+        {
+          "id" : "hardware.rings.enabled",
+          "operation" : "set",
+          "value" : true
+        }
+      ],
+      "performanceImpact" : {
+        "activation" : "onDemand",
+        "resources" : [
+          "hardwareSampling"
+        ]
+      },
+      "preferences" : [
+
+      ],
+      "requires" : [
+
+      ],
+      "title" : "系统监控面板"
+    }
+  ],
+  "schemaVersion" : 1
+}

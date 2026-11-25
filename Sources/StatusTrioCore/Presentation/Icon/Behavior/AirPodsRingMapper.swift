@@ -12,15 +12,18 @@ enum AirPodsRingMapper {
         now: Date = .now,
         isHeld: Bool = false,
         showsTopSymbol: Bool = false,
-        topSymbolScale: Double = 1.8
+        topSymbolScale: Double = 1.8,
+        leftColor: IconColorRole = .bluetooth,
+        rightColor: IconColorRole = .primary,
+        singleColor: IconColorRole = .primary
     ) -> OuterRingState? {
         guard isHeld || isFresh(snapshot, at: now), hasRenderableBattery(snapshot) else { return nil }
 
         if behavior == .dual, let left = valid(snapshot.left), let right = valid(snapshot.right) {
             return OuterRingState(
                 segments: [
-                    RingSegmentState(progress: Double(left) / 100, color: .bluetooth, position: .left),
-                    RingSegmentState(progress: Double(right) / 100, color: .primary, position: .right)
+                    RingSegmentState(progress: Double(left) / 100, color: leftColor, position: .left),
+                    RingSegmentState(progress: Double(right) / 100, color: rightColor, position: .right)
                 ],
                 gap: .closed,
                 layout: .leftRight,
@@ -36,8 +39,8 @@ enum AirPodsRingMapper {
             let progress = Double(onlyKnownEar) / 100
             return OuterRingState(
                 segments: [
-                    RingSegmentState(progress: progress, color: .bluetooth, position: .left),
-                    RingSegmentState(progress: progress, color: .primary, position: .right)
+                    RingSegmentState(progress: progress, color: leftColor, position: .left),
+                    RingSegmentState(progress: progress, color: rightColor, position: .right)
                 ],
                 gap: .closed,
                 layout: .leftRight,
@@ -60,7 +63,7 @@ enum AirPodsRingMapper {
         }
         guard let value else { return nil }
         return OuterRingState(
-            segments: [RingSegmentState(progress: value / 100, color: .primary)],
+            segments: [RingSegmentState(progress: value / 100, color: singleColor)],
             gap: .closed,
             isPartial: behavior == .dual && ((valid(snapshot.left) == nil) != (valid(snapshot.right) == nil))
         )

@@ -15,10 +15,27 @@ struct AirPodsBatteryIconPlugin: IconContentPlugin {
         guard let snapshot = context.inputs.sources.airPodsBattery,
               held || AirPodsRingMapper.isFresh(snapshot, at: context.now),
               AirPodsRingMapper.hasRenderableBattery(snapshot) else { return .unavailable(.temporarilyStale) }
+        let appearance = context.configuration.appearance
         return .available(.outerRing(AirPodsRingMapper.resolve(snapshot: snapshot,
             behavior: context.configuration.behaviors.airPodsRing, now: context.now, isHeld: held,
             showsTopSymbol: context.configuration.behaviors.showsAirPodsTopSymbol,
-            topSymbolScale: context.configuration.behaviors.systemBatteryRing.textScale)))
+            topSymbolScale: context.configuration.behaviors.systemBatteryRing.textScale,
+            leftColor: Self.colorRole(appearance.airPodsLeftArcColor.selection),
+            rightColor: Self.colorRole(appearance.airPodsRightArcColor.selection),
+            singleColor: Self.colorRole(appearance.airPodsSingleArcColor.selection))))
+    }
+
+    private static func colorRole(_ selection: BluetoothIconColorSelection) -> IconColorRole {
+        switch selection {
+        case .systemBlue: .bluetooth
+        case .primary: .primary
+        case let .custom(components):
+            .custom(IconRGBA.hsb(
+                hue: components.hue,
+                saturation: components.saturation,
+                brightness: components.brightness
+            ))
+        }
     }
 
     func dependencies(presentationID: String, context: IconContentDependencyContext) -> IconContentDependencies {

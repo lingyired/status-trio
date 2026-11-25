@@ -17,6 +17,7 @@ private enum BluetoothDemandSource: Hashable {
     case popover
     case settings
     case selectedDeviceIcon
+    case iconBluetoothSource
     case backgroundRefresh
     case audioListeningModes
     case legacyToggle
@@ -333,6 +334,7 @@ final class SystemStatusStore: ObservableObject {
     private var bluetoothSettingsDemandTokens: Set<BluetoothSettingsDemandToken> = []
     private var legacyBluetoothSettingsDemandClaimCount = 0
     private var isLegacyBluetoothDemandEnabled = false
+    private var isIconBluetoothDemandActive = false
     private var isBluetoothAuthorizationRequestPending = false
     private var isReconcilingBluetoothDemand = false
     private var needsBluetoothDemandReconciliation = false
@@ -731,6 +733,7 @@ final class SystemStatusStore: ObservableObject {
         bluetoothAuthorizationCancellable = nil
         bluetoothSettingsDemandTokens.removeAll()
         legacyBluetoothSettingsDemandClaimCount = 0
+        isIconBluetoothDemandActive = false
         boundBluetoothSettings = nil
         inputUpdateTask?.cancel()
         inputUpdateTask = nil
@@ -953,6 +956,19 @@ final class SystemStatusStore: ObservableObject {
         reconcileBluetoothDemand()
     }
 
+    /// Marks the icon's Bluetooth source (an AirPods ring, or a Bluetooth
+    /// centre) as an owning consumer of the controller. The menu bar icon is
+    /// always visible, so its source needs the device rows and live levels in
+    /// the background. Without a demand source here the ordinary empty-demand
+    /// path calls `releaseTransientState()`, which resets availability and
+    /// drops the rows the icon reads — leaving the icon and the panel stuck on
+    /// their loading placeholder. Called by the icon demand wiring.
+    func setIconBluetoothDemand(_ active: Bool) {
+        guard !hasStopped, isIconBluetoothDemandActive != active else { return }
+        isIconBluetoothDemandActive = active
+        reconcileBluetoothDemand()
+    }
+
     /// The Bluetooth page owns a consumer only while it is actually visible.
     /// Merely opening Settings on another page must not start CoreBluetooth.
     func setBluetoothSettingsVisible(_ visible: Bool) {
@@ -1070,6 +1086,10 @@ final class SystemStatusStore: ObservableObject {
 
     private func currentBluetoothDemandSources() -> Set<BluetoothDemandSource> {
         var sources: Set<BluetoothDemandSource> = []
+
+        if isIconBluetoothDemandActive {
+            sources.insert(.iconBluetoothSource)
+        }
 
         let isPopoverBluetoothVisible: Bool
         if hasBluetoothSettingsBinding {

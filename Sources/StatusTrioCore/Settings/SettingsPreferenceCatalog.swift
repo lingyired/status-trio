@@ -119,6 +119,10 @@ enum SettingsPreferenceCatalog {
             enumeration("inputSourceMarkerStyle", \.inputSourceMarkerStyle, default: .systemIcon),
             boolean("prioritizesNetworkErrors", \.prioritizesNetworkErrors, default: true),
             bluetoothColorPreference,
+            // Deliberately excluded: the AirPods ring arc colours (left / right /
+            // single) are part of the icon appearance rebuilt from the settings
+            // surface, like the ring source, dual layout and fallback, so they
+            // stay out of the transfer document.
             mapped("bluetoothAudioIconChoiceRawValue", \.bluetoothAudioIconChoiceRawValue,
                    default: BluetoothAudioIconChoice.automatic.rawValue,
                    decode: { value in

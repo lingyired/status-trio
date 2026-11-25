@@ -212,6 +212,9 @@ final class SettingsStore: ObservableObject {
     static let airPodsRingUsesDualRingDefaultsKey = "airPodsRingUsesDualRing"
     static let showsAirPodsTopSymbolInRingDefaultsKey = "showsAirPodsTopSymbolInRing"
     static let airPodsRingFallbackDefaultsKey = "airPodsRingFallback"
+    static let airPodsLeftArcColorDefaultsKey = "airPodsLeftArcColor"
+    static let airPodsRightArcColorDefaultsKey = "airPodsRightArcColor"
+    static let airPodsSingleArcColorDefaultsKey = "airPodsSingleArcColor"
     static let hardwareRingConfigurationDefaultsKey = "hardwareRingConfigurationV1"
     static let hardwareMonitorMetricColorsDefaultsKey = "hardwareMonitorMetricColorsV1"
     static let hardwareDiskRingColorDefaultsKey = "hardwareDiskRingColorV1"
@@ -1309,6 +1312,18 @@ final class SettingsStore: ObservableObject {
             defaults.set(airPodsRingFallback.rawValue, forKey: Self.airPodsRingFallbackDefaultsKey)
             synchronizeSlotBindingFromLegacySettings(for: .outerRing)
         }
+    }
+
+    /// AirPods ring arc colours (#388): left ear, right ear, and the single-arc
+    /// view. Defaults keep the historical look (left blue, right/single primary).
+    @Published var airPodsLeftArcColor: BluetoothIconColorSelection = .systemBlue {
+        didSet { defaults.set(airPodsLeftArcColor.storageValue, forKey: Self.airPodsLeftArcColorDefaultsKey) }
+    }
+    @Published var airPodsRightArcColor: BluetoothIconColorSelection = .primary {
+        didSet { defaults.set(airPodsRightArcColor.storageValue, forKey: Self.airPodsRightArcColorDefaultsKey) }
+    }
+    @Published var airPodsSingleArcColor: BluetoothIconColorSelection = .primary {
+        didSet { defaults.set(airPodsSingleArcColor.storageValue, forKey: Self.airPodsSingleArcColorDefaultsKey) }
     }
 
     /// Internal configuration of the "System Monitoring" (`hardwareMonitor`)
@@ -3473,6 +3488,12 @@ final class SettingsStore: ObservableObject {
         self.showsAirPodsTopSymbolInRing = defaults.object(
             forKey: Self.showsAirPodsTopSymbolInRingDefaultsKey
         ) as? Bool ?? true
+        self.airPodsLeftArcColor = defaults.string(forKey: Self.airPodsLeftArcColorDefaultsKey)
+            .map(BluetoothIconColorSelection.init(storageValue:)) ?? .systemBlue
+        self.airPodsRightArcColor = defaults.string(forKey: Self.airPodsRightArcColorDefaultsKey)
+            .map(BluetoothIconColorSelection.init(storageValue:)) ?? .primary
+        self.airPodsSingleArcColor = defaults.string(forKey: Self.airPodsSingleArcColorDefaultsKey)
+            .map(BluetoothIconColorSelection.init(storageValue:)) ?? .primary
         if let rawFallback = defaults.string(forKey: Self.airPodsRingFallbackDefaultsKey),
            let fallback = AirPodsRingFallback(rawValue: rawFallback) {
             self.airPodsRingFallback = fallback

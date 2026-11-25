@@ -43,6 +43,11 @@ private enum HardwareTopReading: Hashable, Identifiable {
 /// (temporary full charge, restore limit) stay in Battery → Charging.
 struct AppIconRingView: View {
     @ObservedObject var store: SettingsStore
+    @ObservedObject var statusStore: SystemStatusStore
+    /// Observed directly: `SystemStatusStore` holds the controller as a plain
+    /// `let`, so the Bluetooth permission banner would otherwise not react to a
+    /// grant made while this pane is open.
+    @ObservedObject var bluetoothDevices: BluetoothDeviceController
     /// Whether the Mac actually has a battery. A desktop (e.g. Mac mini) has no
     /// real level, so the ring controls collapse to a decorative top marker.
     var hasBattery: Bool = true
@@ -67,6 +72,9 @@ struct AppIconRingView: View {
         LocalIconPluginSlotPicker(slot: .outerRing, store: store)
         LocalIconPluginPackageSettings(store: store)
         if store.outerRingContent == .airPodsBattery {
+            if bluetoothDevices.authorizationStatus != .allowed {
+                airPodsPermissionBanner
+            }
             airPodsTopMarkerGroup
             airPodsArcGroup
             airPodsFallbackGroup
@@ -175,9 +183,10 @@ struct AppIconRingView: View {
         }
     }
 
-    /// AirPods arc layout (single vs left/right dual).
+    /// AirPods arc layout (single vs left/right dual) and its arc colours.
     private var airPodsArcGroup: some View {
         SettingsGroup(localization.string(.settingsHardwareRingGroupArc)) {
+            airPodsPrerequisiteRows
             SettingsToggleRow(
                 symbol: "airpods",
                 tint: .blue,
@@ -185,6 +194,60 @@ struct AppIconRingView: View {
                 subtitle: localization.string(.settingsRingAirPodsDualRingDescription),
                 isOn: $store.airPodsRingUsesDualRing
             )
+            if store.airPodsRingUsesDualRing {
+                SettingsDivider()
+                AirPodsArcColorRow(
+                    titleKey: .settingsRingAirPodsLeftArcColor,
+                    subtitleKey: .settingsRingAirPodsLeftArcColorDescription,
+                    selection: $store.airPodsLeftArcColor
+                )
+                SettingsDivider()
+                AirPodsArcColorRow(
+                    titleKey: .settingsRingAirPodsRightArcColor,
+                    subtitleKey: .settingsRingAirPodsRightArcColorDescription,
+                    selection: $store.airPodsRightArcColor
+                )
+            }
+            SettingsDivider()
+            AirPodsArcColorRow(
+                titleKey: .settingsRingAirPodsSingleArcColor,
+                subtitleKey: .settingsRingAirPodsSingleArcColorDescription,
+                selection: $store.airPodsSingleArcColor
+            )
+        }
+    }
+
+    /// The Bluetooth permission notice sits at the very top of the page, like the
+    /// Bluetooth pane, so a missing grant is the first thing the user sees.
+    @ViewBuilder
+    private var airPodsPermissionBanner: some View {
+        switch bluetoothDevices.authorizationStatus {
+        case .allowed:
+            EmptyView()
+        case .notDetermined:
+            SettingsPermissionNotice(
+                title: localization.string(.settingsBluetoothPermissionRequired),
+                description: .settingsBluetoothPermissionNotDeterminedDescription,
+                buttonKey: .bluetoothActionRequestAuthorization,
+                action: { statusStore.requestBluetoothAuthorization() }
+            )
+        case .denied, .restricted:
+            SettingsPermissionNotice(
+                title: localization.string(.settingsBluetoothPermissionRequired),
+                description: .settingsBluetoothPermissionDeniedDescription,
+                buttonKey: .bluetoothActionOpenPermissionSettings,
+                action: { statusStore.openBluetoothPermissionSettings() }
+            )
+        }
+    }
+
+    /// The battery-levels prerequisite, shown inside the arc group. The
+    /// permission notice above already covers a missing Bluetooth grant.
+    @ViewBuilder
+    private var airPodsPrerequisiteRows: some View {
+        if bluetoothDevices.authorizationStatus == .allowed && !store.showsBluetoothBatteryLevels {
+            SettingsHintRow(text: localization.string(.settingsRingAirPodsRequirementsHint))
+            SettingsDivider()
         }
     }
 
