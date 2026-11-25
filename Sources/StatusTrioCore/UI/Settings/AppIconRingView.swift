@@ -65,10 +65,6 @@ struct AppIconRingView: View {
     }
 
     var body: some View {
-        if store.outerRingContent == .airPodsBattery,
-           bluetoothDevices.authorizationStatus != .allowed {
-            airPodsPermissionBanner
-        }
         if !effectiveHasBattery {
             noBatteryHintGroup
         }
@@ -76,6 +72,9 @@ struct AppIconRingView: View {
         LocalIconPluginSlotPicker(slot: .outerRing, store: store)
         LocalIconPluginPackageSettings(store: store)
         if store.outerRingContent == .airPodsBattery {
+            if bluetoothDevices.authorizationStatus != .allowed {
+                airPodsPermissionBanner
+            }
             airPodsTopMarkerGroup
             airPodsArcGroup
             airPodsFallbackGroup
