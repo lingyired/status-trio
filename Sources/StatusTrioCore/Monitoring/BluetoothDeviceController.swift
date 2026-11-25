@@ -1299,7 +1299,15 @@ final class BluetoothDeviceController: ObservableObject {
         levels: [String: BluetoothBatteryLevel]?
     ) {
         guard let accessoryBatteryReader else { return }
-        guard BluetoothBatteryLevelFallback.isNeeded(levels: levels, devices: devices) else {
+        // The summary rows are the only surface that draws the charging bolt, so
+        // they are the only thing that makes the accessory state worth reading
+        // for a device whose level the primary report already carries. A menu-bar
+        // icon that only needs levels must not start this second read.
+        guard BluetoothBatteryLevelFallback.isNeeded(
+            levels: levels,
+            devices: devices,
+            needsChargingState: hasBluetoothSummarySurface
+        ) else {
             return
         }
         accessoryBatteryReader.read { [weak self] accessories in

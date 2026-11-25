@@ -22,8 +22,28 @@ enum BluetoothBatteryLevelText {
                 // A symbol Apple drops in a later release must not take the
                 // meaning with it: the label stands in for the glyph, the way
                 // the row's other icon lookups fall back rather than draw blank.
-                guard symbolImage(name) != nil else {
+                guard let image = symbolImage(name) else {
                     return run + Text(verbatim: label)
+                }
+                // The charging mark is decoration, not a digit, and the battery
+                // glyph is wider than tall: a fixed 11pt symbol image keeps its
+                // own aspect (no square stretch) and its own size, because the
+                // row's outer `.font(...)` cannot shrink a `Text(Image)` run.
+                if name == BluetoothBatteryLevel.chargingSymbolName {
+                    let small = image.withSymbolConfiguration(
+                        NSImage.SymbolConfiguration(pointSize: 11, weight: .regular)
+                    ) ?? image
+                    if small.size.height > 0 {
+                        small.size = NSSize(
+                            width: 11 * (small.size.width / small.size.height),
+                            height: 11
+                        )
+                    }
+                    // A `Text(Image(...))` sits on the text baseline by its bottom
+                    // edge; the battery is taller than a digit, so it reads high.
+                    // A small negative baseline offset drops it to be vertically
+                    // centred with the percentage beside it.
+                    return run + Text(Image(nsImage: small)).baselineOffset(-2)
                 }
                 return run + Text(Image(systemName: name))
             }
