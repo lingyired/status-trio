@@ -251,7 +251,8 @@
 "settings.battery.simulateNoBattery" = "バッテリーなしをシミュレート";
 "settings.battery.simulateNoBatteryDescription" = "バッテリーのない Mac での表示を再現します。開発ビルドのみ。";
 "settings.battery.noBatteryHiddenOptions" = "この Mac にはバッテリーがありません。残量パーセントと充電インジケーターは適用されません。リングは既定で白黒です。上でオフにすると電源接続色になります。低電力モードと高電力モードはそれぞれの色を保ちます。";
-"settings.battery.colors.charging" = "充電中 / 電源接続中";
+"settings.battery.colors.charging" = "充電中";
+"settings.battery.colors.connected" = "電源接続（充電していません）";
 "settings.battery.colors.lowPower" = "低電力モード";
 "settings.battery.colors.critical" = "バッテリー残量がわずか";
 "settings.battery.colors.system" = "システムのデフォルト";

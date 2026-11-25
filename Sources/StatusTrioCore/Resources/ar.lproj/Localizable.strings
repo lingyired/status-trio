@@ -234,7 +234,8 @@
 "settings.battery.simulateNoBattery" = "محاكاة عدم وجود بطارية";
 "settings.battery.simulateNoBatteryDescription" = "يعرض هذه الصفحة كما تظهر على Mac بدون بطارية. في إصدارات التطوير فقط.";
 "settings.battery.noBatteryHiddenOptions" = "لا توجد بطارية في هذا الـ Mac: النسبة المئوية ومؤشر الشحن لا ينطبقان. الحلقة أبيض وأسود افتراضيًا؛ أوقفه أعلى لاستخدام لون توصيل الطاقة. يحتفظ وضعا الطاقة المنخفضة والعالية بألوانهما.";
-"settings.battery.colors.charging" = "الشحن / الاتصال بالطاقة";
+"settings.battery.colors.charging" = "يشحن";
+"settings.battery.colors.connected" = "موصول بالطاقة (لا يشحن)";
 "settings.battery.colors.lowPower" = "وضع الطاقة المنخفضة";
 "settings.battery.colors.critical" = "انخفاض حرج في البطارية";
 "settings.battery.colors.system" = "إعداد النظام الافتراضي";

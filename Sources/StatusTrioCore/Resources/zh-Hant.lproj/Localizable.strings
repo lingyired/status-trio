@@ -251,7 +251,8 @@
 "settings.battery.simulateNoBattery" = "模擬無電池";
 "settings.battery.simulateNoBatteryDescription" = "依 Mac 沒有電池時的樣子顯示本頁。僅開發版可用。";
 "settings.battery.noBatteryHiddenOptions" = "這台 Mac 沒有電池：電量百分比與充電指示不適用。圓環預設黑/白，可在上面關閉以使用連接電源色；低電量與高電量模式仍用各自顏色。";
-"settings.battery.colors.charging" = "充電 / 連接電源";
+"settings.battery.colors.charging" = "充電中";
+"settings.battery.colors.connected" = "已連接電源（未充電）";
 "settings.battery.colors.lowPower" = "低耗電模式";
 "settings.battery.colors.critical" = "臨界低電量";
 "settings.battery.colors.system" = "系統預設";

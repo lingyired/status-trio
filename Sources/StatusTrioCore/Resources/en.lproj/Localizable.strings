@@ -251,7 +251,8 @@
 "settings.battery.simulateNoBattery" = "Simulate no battery";
 "settings.battery.simulateNoBatteryDescription" = "Show this page as it looks on a Mac with no battery. Development builds only.";
 "settings.battery.noBatteryHiddenOptions" = "This Mac has no battery: the percentage and charging indicator do not apply. The ring is black and white by default; turn it off above to use the connected-power colour. Low Power Mode and High Power Mode keep their colours.";
-"settings.battery.colors.charging" = "Charging / connected power";
+"settings.battery.colors.charging" = "Charging";
+"settings.battery.colors.connected" = "Connected (not charging)";
 "settings.battery.colors.lowPower" = "Low Power Mode";
 "settings.battery.colors.critical" = "Critically low battery";
 "settings.battery.colors.system" = "System default";

@@ -406,6 +406,16 @@ enum SettingsPreferenceCatalog {
                                  case let .string(raw) = value, validBatteryColor(raw) else { continue }
                            colors.setSelection(BatteryStatusColorSelection(storageValue: raw), for: role)
                        }
+                       // #389: an export from before the connected role existed
+                       // carries only the merged charging colour. Inherit it for
+                       // connected so importing an old file keeps the same look
+                       // instead of resetting the new role to system.
+                       if !roles.keys.contains(BatteryStatusColorRole.connected.rawValue),
+                          let chargingRaw = roles[BatteryStatusColorRole.charging.rawValue],
+                          case let .string(raw) = chargingRaw, validBatteryColor(raw) {
+                           colors.setSelection(
+                               BatteryStatusColorSelection(storageValue: raw), for: .connected)
+                       }
                        if colors != store.batteryStatusColors {
                            store.batteryStatusColors = colors
                        }
@@ -420,6 +430,8 @@ enum SettingsPreferenceCatalog {
 
     /// A color object may be sparse just like the top-level preferences. Invalid
     /// roles reset only that role, and absent roles preserve the current palette.
+    /// The one intentional exception is handled in the write closure above: a
+    /// pre-#389 export with no connected role inherits its charging colour.
     private static func prepareBatteryColors(_ roles: [String: Value]) -> (values: [String: Value], warnings: [String]) {
         var result: [String: Value] = [:]
         var warnings: [String] = []
