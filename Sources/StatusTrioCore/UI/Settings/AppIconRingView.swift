@@ -65,6 +65,10 @@ struct AppIconRingView: View {
     }
 
     var body: some View {
+        if store.outerRingContent == .airPodsBattery,
+           bluetoothDevices.authorizationStatus != .allowed {
+            airPodsPermissionBanner
+        }
         if !effectiveHasBattery {
             noBatteryHintGroup
         }
@@ -214,18 +218,13 @@ struct AppIconRingView: View {
         }
     }
 
-    /// The Bluetooth prerequisites an AirPods ring needs. The permission notice
-    /// mirrors the Bluetooth pane so a missing grant is actionable here; the
-    /// battery-levels hint appears when that switch would keep the level from
-    /// being read.
+    /// The Bluetooth permission notice sits at the very top of the page, like the
+    /// Bluetooth pane, so a missing grant is the first thing the user sees.
     @ViewBuilder
-    private var airPodsPrerequisiteRows: some View {
+    private var airPodsPermissionBanner: some View {
         switch bluetoothDevices.authorizationStatus {
         case .allowed:
-            if !store.showsBluetoothBatteryLevels {
-                SettingsHintRow(text: localization.string(.settingsRingAirPodsRequirementsHint))
-                SettingsDivider()
-            }
+            EmptyView()
         case .notDetermined:
             SettingsPermissionNotice(
                 title: localization.string(.settingsBluetoothPermissionRequired),
@@ -233,7 +232,6 @@ struct AppIconRingView: View {
                 buttonKey: .bluetoothActionRequestAuthorization,
                 action: { statusStore.requestBluetoothAuthorization() }
             )
-            SettingsDivider()
         case .denied, .restricted:
             SettingsPermissionNotice(
                 title: localization.string(.settingsBluetoothPermissionRequired),
@@ -241,6 +239,15 @@ struct AppIconRingView: View {
                 buttonKey: .bluetoothActionOpenPermissionSettings,
                 action: { statusStore.openBluetoothPermissionSettings() }
             )
+        }
+    }
+
+    /// The battery-levels prerequisite, shown inside the arc group. The
+    /// permission notice above already covers a missing Bluetooth grant.
+    @ViewBuilder
+    private var airPodsPrerequisiteRows: some View {
+        if bluetoothDevices.authorizationStatus == .allowed && !store.showsBluetoothBatteryLevels {
+            SettingsHintRow(text: localization.string(.settingsRingAirPodsRequirementsHint))
             SettingsDivider()
         }
     }
