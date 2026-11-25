@@ -43,6 +43,11 @@ private enum HardwareTopReading: Hashable, Identifiable {
 /// (temporary full charge, restore limit) stay in Battery → Charging.
 struct AppIconRingView: View {
     @ObservedObject var store: SettingsStore
+    @ObservedObject var statusStore: SystemStatusStore
+    /// Observed directly: `SystemStatusStore` holds the controller as a plain
+    /// `let`, so the Bluetooth permission banner would otherwise not react to a
+    /// grant made while this pane is open.
+    @ObservedObject var bluetoothDevices: BluetoothDeviceController
     /// Whether the Mac actually has a battery. A desktop (e.g. Mac mini) has no
     /// real level, so the ring controls collapse to a decorative top marker.
     var hasBattery: Bool = true
@@ -178,8 +183,7 @@ struct AppIconRingView: View {
     /// AirPods arc layout (single vs left/right dual) and its arc colours.
     private var airPodsArcGroup: some View {
         SettingsGroup(localization.string(.settingsHardwareRingGroupArc)) {
-            SettingsHintRow(text: localization.string(.settingsRingAirPodsRequirementsHint))
-            SettingsDivider()
+            airPodsPrerequisiteRows
             SettingsToggleRow(
                 symbol: "airpods",
                 tint: .blue,
@@ -207,6 +211,37 @@ struct AppIconRingView: View {
                 subtitleKey: .settingsRingAirPodsSingleArcColorDescription,
                 selection: $store.airPodsSingleArcColor
             )
+        }
+    }
+
+    /// The Bluetooth prerequisites an AirPods ring needs. The permission notice
+    /// mirrors the Bluetooth pane so a missing grant is actionable here; the
+    /// battery-levels hint appears when that switch would keep the level from
+    /// being read.
+    @ViewBuilder
+    private var airPodsPrerequisiteRows: some View {
+        switch bluetoothDevices.authorizationStatus {
+        case .allowed:
+            if !store.showsBluetoothBatteryLevels {
+                SettingsHintRow(text: localization.string(.settingsRingAirPodsRequirementsHint))
+                SettingsDivider()
+            }
+        case .notDetermined:
+            SettingsPermissionNotice(
+                title: localization.string(.settingsBluetoothPermissionRequired),
+                description: .settingsBluetoothPermissionNotDeterminedDescription,
+                buttonKey: .bluetoothActionRequestAuthorization,
+                action: { statusStore.requestBluetoothAuthorization() }
+            )
+            SettingsDivider()
+        case .denied, .restricted:
+            SettingsPermissionNotice(
+                title: localization.string(.settingsBluetoothPermissionRequired),
+                description: .settingsBluetoothPermissionDeniedDescription,
+                buttonKey: .bluetoothActionOpenPermissionSettings,
+                action: { statusStore.openBluetoothPermissionSettings() }
+            )
+            SettingsDivider()
         }
     }
 
