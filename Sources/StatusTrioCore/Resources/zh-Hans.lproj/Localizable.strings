@@ -195,7 +195,7 @@
 "settings.ringContent.airPodsBattery" = "AirPods 电量";
 "settings.ringContent.airPodsGroup" = "AirPods 环";
 "settings.ringContent.airPodsDualRing" = "双弧布局";
-"settings.ringContent.airPodsDualRing.description" = "把左右耳电量各画成一段弧。";
+"settings.ringContent.airPodsDualRing.description" = "左右耳各用一条弧显示电量。只有一只耳有电量时，两条弧都显示该值；充电盒不参与计算。";
 "settings.ringContent.airPodsTopSymbol" = "显示 AirPods 符号";
 "settings.ringContent.airPodsTopSymbol.description" = "在环顶部绘制小的 AirPods 符号。";
 "settings.ringContent.airPodsFallback" = "无 AirPods 时回退";

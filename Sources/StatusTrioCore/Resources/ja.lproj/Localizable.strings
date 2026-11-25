@@ -195,7 +195,7 @@
 "settings.ringContent.airPodsBattery" = "AirPodsバッテリー";
 "settings.ringContent.airPodsGroup" = "AirPodsリング";
 "settings.ringContent.airPodsDualRing" = "2分割レイアウト";
-"settings.ringContent.airPodsDualRing.description" = "左右のイヤホン残量をそれぞれの弧で描画します。";
+"settings.ringContent.airPodsDualRing.description" = "左右のイヤホン残量をそれぞれの弧で描きます。片側の残量しか取得できない場合は両方の弧に同じ値を表示し、充電ケースは含みません。";
 "settings.ringContent.airPodsTopSymbol" = "AirPodsシンボルを表示";
 "settings.ringContent.airPodsTopSymbol.description" = "リング上部に小さなAirPodsアイコンを描画します。";
 "settings.ringContent.airPodsFallback" = "AirPods 未接続時のフォールバック";
