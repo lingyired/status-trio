@@ -81,15 +81,16 @@ struct AirPodsArcColorRow: View {
     private var customColorBinding: Binding<Color> {
         Binding(
             get: {
-                let components = selection.customComponents
-                    ?? BatteryStatusColorResolver.customComponents(
-                        from: NSColor(cgColor: BluetoothIconColorResolver.resolve(
-                            .systemBlue,
-                            foreground: labelInk,
-                            darkAppearance: colorScheme == .dark
-                        )) ?? .systemBlue
-                    )
-                return Color(nsColor: BatteryStatusColorResolver.nsColor(from: components))
+                // Show the colour that is actually in effect: the picked custom
+                // value, the adaptive primary ink, or the Bluetooth blue. Falling
+                // back to blue here made a `.primary` default look blue in the
+                // picker even though the arc drew white.
+                let resolved = BluetoothIconColorResolver.resolve(
+                    selection,
+                    foreground: labelInk,
+                    darkAppearance: colorScheme == .dark
+                )
+                return Color(cgColor: resolved)
             },
             set: {
                 selection = .custom(
