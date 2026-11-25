@@ -3,6 +3,44 @@
   "preferences" : [
     {
       "accessPolicy" : {
+        "containsSensitiveInfo" : true,
+        "developmentProfile" : false,
+        "externalRead" : false,
+        "externalWrite" : false,
+        "requiresConfirmation" : false,
+        "systemSideEffect" : false,
+        "transferable" : false,
+        "uiAccessible" : true
+      },
+      "category" : "audio",
+      "description" : "按设备 UID 隐藏的输入设备（设备标识属敏感信息）。",
+      "id" : "audio.hiddenInputDevices",
+      "storageKey" : "hiddenInputDeviceUIDs",
+      "title" : "隐藏的输入设备",
+      "type" : "set",
+      "uiPath" : "设置 › 麦克风 › 隐藏设备"
+    },
+    {
+      "accessPolicy" : {
+        "containsSensitiveInfo" : true,
+        "developmentProfile" : false,
+        "externalRead" : false,
+        "externalWrite" : false,
+        "requiresConfirmation" : false,
+        "systemSideEffect" : false,
+        "transferable" : false,
+        "uiAccessible" : true
+      },
+      "category" : "audio",
+      "description" : "按设备 UID 隐藏的输出设备（设备标识属敏感信息）。",
+      "id" : "audio.hiddenOutputDevices",
+      "storageKey" : "hiddenOutputDeviceUIDs",
+      "title" : "隐藏的输出设备",
+      "type" : "set",
+      "uiPath" : "设置 › 音量 › 隐藏设备"
+    },
+    {
+      "accessPolicy" : {
         "containsSensitiveInfo" : false,
         "developmentProfile" : true,
         "externalRead" : true,
@@ -813,6 +851,25 @@
     {
       "accessPolicy" : {
         "containsSensitiveInfo" : false,
+        "developmentProfile" : false,
+        "externalRead" : true,
+        "externalWrite" : false,
+        "requiresConfirmation" : false,
+        "systemSideEffect" : false,
+        "transferable" : false,
+        "uiAccessible" : true
+      },
+      "category" : "battery",
+      "description" : "各电量状态的自定义颜色（放电/充电/低电量/高电量/严重）。",
+      "id" : "battery.statusColors",
+      "storageKey" : "batteryStatusColors.discharging",
+      "title" : "电池状态颜色",
+      "type" : "object",
+      "uiPath" : "设置 › 电池 › 状态颜色"
+    },
+    {
+      "accessPolicy" : {
+        "containsSensitiveInfo" : false,
         "developmentProfile" : true,
         "externalRead" : true,
         "externalWrite" : false,
@@ -1008,6 +1065,25 @@
     },
     {
       "accessPolicy" : {
+        "containsSensitiveInfo" : false,
+        "developmentProfile" : false,
+        "externalRead" : true,
+        "externalWrite" : false,
+        "requiresConfirmation" : false,
+        "systemSideEffect" : false,
+        "transferable" : false,
+        "uiAccessible" : true
+      },
+      "category" : "bluetooth",
+      "description" : "蓝牙设备列表的显示顺序。",
+      "id" : "bluetooth.deviceOrder",
+      "storageKey" : "bluetoothDeviceOrder",
+      "title" : "蓝牙设备排序",
+      "type" : "orderedList",
+      "uiPath" : "设置 › 蓝牙 › 排序"
+    },
+    {
+      "accessPolicy" : {
         "containsSensitiveInfo" : true,
         "developmentProfile" : false,
         "externalRead" : false,
@@ -1152,6 +1228,63 @@
     },
     {
       "accessPolicy" : {
+        "containsSensitiveInfo" : true,
+        "developmentProfile" : false,
+        "externalRead" : false,
+        "externalWrite" : false,
+        "requiresConfirmation" : false,
+        "systemSideEffect" : false,
+        "transferable" : false,
+        "uiAccessible" : true
+      },
+      "category" : "bluetooth",
+      "description" : "附近蓝牙电量设备的显式选择（设备标识属敏感信息）。",
+      "id" : "bluetooth.nearbySelections",
+      "storageKey" : "nearbyBLEConsent.v1",
+      "title" : "附近蓝牙设备选择",
+      "type" : "orderedList",
+      "uiPath" : "设置 › 蓝牙 › 附近设备"
+    },
+    {
+      "accessPolicy" : {
+        "containsSensitiveInfo" : true,
+        "developmentProfile" : false,
+        "externalRead" : false,
+        "externalWrite" : false,
+        "requiresConfirmation" : false,
+        "systemSideEffect" : false,
+        "transferable" : false,
+        "uiAccessible" : true
+      },
+      "category" : "bluetooth",
+      "description" : "已记录的受信任 Apple 设备元数据（设备标识属敏感信息）。",
+      "id" : "bluetooth.trustedAppleDevices",
+      "storageKey" : "trustedAppleDeviceMetadata.v1",
+      "title" : "受信任的 Apple 设备",
+      "type" : "orderedList",
+      "uiPath" : "设置 › 蓝牙 › 受信任设备"
+    },
+    {
+      "accessPolicy" : {
+        "containsSensitiveInfo" : false,
+        "developmentProfile" : false,
+        "externalRead" : true,
+        "externalWrite" : false,
+        "requiresConfirmation" : false,
+        "systemSideEffect" : false,
+        "transferable" : false,
+        "uiAccessible" : true
+      },
+      "category" : "bluetooth",
+      "description" : "蓝牙音量指示颜色（自动或自定义）。",
+      "id" : "bluetooth.volumeColor",
+      "storageKey" : "bluetoothVolumeColor",
+      "title" : "蓝牙音量颜色",
+      "type" : "taggedUnion",
+      "uiPath" : "设置 › 蓝牙 › 音量颜色"
+    },
+    {
+      "accessPolicy" : {
         "containsSensitiveInfo" : false,
         "developmentProfile" : true,
         "externalRead" : true,
@@ -1173,6 +1306,25 @@
         "capability" : "integration.betterDisplay",
         "type" : "capability"
       }
+    },
+    {
+      "accessPolicy" : {
+        "containsSensitiveInfo" : true,
+        "developmentProfile" : false,
+        "externalRead" : false,
+        "externalWrite" : false,
+        "requiresConfirmation" : false,
+        "systemSideEffect" : false,
+        "transferable" : false,
+        "uiAccessible" : true
+      },
+      "category" : "brightness",
+      "description" : "按显示器 ID 隐藏的亮度设备（设备标识属敏感信息）。",
+      "id" : "brightness.hiddenDisplays",
+      "storageKey" : "hiddenBrightnessDisplayIDs",
+      "title" : "隐藏的显示器",
+      "type" : "set",
+      "uiPath" : "设置 › 亮度 › 隐藏显示器"
     },
     {
       "accessPolicy" : {
@@ -1427,6 +1579,25 @@
     {
       "accessPolicy" : {
         "containsSensitiveInfo" : false,
+        "developmentProfile" : false,
+        "externalRead" : true,
+        "externalWrite" : false,
+        "requiresConfirmation" : false,
+        "systemSideEffect" : false,
+        "transferable" : false,
+        "uiAccessible" : true
+      },
+      "category" : "hardware",
+      "description" : "各硬件指标的自定义颜色映射。",
+      "id" : "hardware.metricColors",
+      "storageKey" : "hardwareMonitorMetricColorsV1",
+      "title" : "硬件指标颜色",
+      "type" : "map",
+      "uiPath" : "设置 › 监控 › 指标颜色"
+    },
+    {
+      "accessPolicy" : {
+        "containsSensitiveInfo" : false,
         "developmentProfile" : true,
         "externalRead" : true,
         "externalWrite" : false,
@@ -1647,6 +1818,27 @@
         "uiAccessible" : true
       },
       "category" : "hardware",
+      "description" : "状态面板硬件摘要行启用的指标集合。",
+      "id" : "hardware.summaryMetrics",
+      "optionsProvider" : "HardwareSummaryMetric",
+      "provider" : "core",
+      "storageKey" : "enabledHardwareSummaryMetricsV1",
+      "title" : "启用的硬件摘要指标",
+      "type" : "set",
+      "uiPath" : "设置 › 监控 › 摘要指标"
+    },
+    {
+      "accessPolicy" : {
+        "containsSensitiveInfo" : false,
+        "developmentProfile" : true,
+        "externalRead" : true,
+        "externalWrite" : false,
+        "requiresConfirmation" : false,
+        "systemSideEffect" : false,
+        "transferable" : false,
+        "uiAccessible" : true
+      },
+      "category" : "hardware",
       "defaultValue" : true,
       "description" : "采集并显示温度指标。关闭后相关温度读取停止，外环/底部温度指标会被替换。",
       "id" : "hardware.temperature.enabled",
@@ -1795,6 +1987,44 @@
     {
       "accessPolicy" : {
         "containsSensitiveInfo" : false,
+        "developmentProfile" : false,
+        "externalRead" : true,
+        "externalWrite" : false,
+        "requiresConfirmation" : false,
+        "systemSideEffect" : false,
+        "transferable" : false,
+        "uiAccessible" : true
+      },
+      "category" : "icon",
+      "description" : "蓝牙图标的颜色（系统蓝/主色/自定义）。",
+      "id" : "icon.bluetoothIconColor",
+      "storageKey" : "bluetoothIconColor",
+      "title" : "蓝牙图标颜色",
+      "type" : "taggedUnion",
+      "uiPath" : "设置 › 图标 › 蓝牙颜色"
+    },
+    {
+      "accessPolicy" : {
+        "containsSensitiveInfo" : true,
+        "developmentProfile" : false,
+        "externalRead" : false,
+        "externalWrite" : false,
+        "requiresConfirmation" : false,
+        "systemSideEffect" : false,
+        "transferable" : false,
+        "uiAccessible" : true
+      },
+      "category" : "icon",
+      "description" : "用作网络图标的蓝牙设备地址（设备标识属敏感信息）。",
+      "id" : "icon.bluetoothNetworkIconDevice",
+      "storageKey" : "bluetoothNetworkIconDeviceAddress",
+      "title" : "蓝牙网络图标设备",
+      "type" : "deviceReference",
+      "uiPath" : "设置 › 图标 › 蓝牙网络设备"
+    },
+    {
+      "accessPolicy" : {
+        "containsSensitiveInfo" : false,
         "developmentProfile" : true,
         "externalRead" : true,
         "externalWrite" : false,
@@ -1934,6 +2164,7 @@
       "id" : "icon.footer.metric",
       "optionsProvider" : "hardware.ringMetrics",
       "provider" : "core",
+      "storageKey" : "bottomIndicatorMetric",
       "title" : "底部指标的具体指标",
       "type" : "enumeration",
       "uiPath" : "设置 › 图标 › 底部指标 › 指标"
@@ -2016,6 +2247,44 @@
       "title" : "GPU 环中心内容",
       "type" : "enumeration",
       "uiPath" : "设置 › 图标 › 硬件环 › GPU 中心"
+    },
+    {
+      "accessPolicy" : {
+        "containsSensitiveInfo" : false,
+        "developmentProfile" : false,
+        "externalRead" : true,
+        "externalWrite" : false,
+        "requiresConfirmation" : false,
+        "systemSideEffect" : false,
+        "transferable" : false,
+        "uiAccessible" : true
+      },
+      "category" : "icon",
+      "description" : "硬件磁盘环的自定义颜色。",
+      "id" : "icon.hardwareDiskRingColor",
+      "storageKey" : "hardwareDiskRingColorV1",
+      "title" : "硬件磁盘环颜色",
+      "type" : "color",
+      "uiPath" : "设置 › 图标 › 磁盘环颜色"
+    },
+    {
+      "accessPolicy" : {
+        "containsSensitiveInfo" : false,
+        "developmentProfile" : false,
+        "externalRead" : true,
+        "externalWrite" : false,
+        "requiresConfirmation" : false,
+        "systemSideEffect" : false,
+        "transferable" : false,
+        "uiAccessible" : true
+      },
+      "category" : "icon",
+      "description" : "硬件外环的结构化配置（布局/主副指标/顶部内容/颜色/覆盖项）；语义层另以嵌套 id 暴露常用字段。",
+      "id" : "icon.hardwareRingConfiguration",
+      "storageKey" : "hardwareRingConfigurationV1",
+      "title" : "硬件外环配置",
+      "type" : "object",
+      "uiPath" : "设置 › 图标 › 硬件外环"
     },
     {
       "accessPolicy" : {
@@ -2432,6 +2701,24 @@
       "accessPolicy" : {
         "containsSensitiveInfo" : false,
         "developmentProfile" : false,
+        "externalRead" : true,
+        "externalWrite" : false,
+        "requiresConfirmation" : false,
+        "systemSideEffect" : false,
+        "transferable" : false,
+        "uiAccessible" : true
+      },
+      "category" : "icon",
+      "description" : "图标各槽位的绑定配置（IconSlotBindingsV1 编码）。",
+      "id" : "icon.slotBindings",
+      "title" : "图标槽位绑定",
+      "type" : "object",
+      "uiPath" : "设置 › 图标 › 槽位绑定"
+    },
+    {
+      "accessPolicy" : {
+        "containsSensitiveInfo" : false,
+        "developmentProfile" : false,
         "externalRead" : false,
         "externalWrite" : false,
         "requiresConfirmation" : true,
@@ -2815,6 +3102,25 @@
     {
       "accessPolicy" : {
         "containsSensitiveInfo" : false,
+        "developmentProfile" : false,
+        "externalRead" : true,
+        "externalWrite" : false,
+        "requiresConfirmation" : false,
+        "systemSideEffect" : false,
+        "transferable" : false,
+        "uiAccessible" : true
+      },
+      "category" : "panel",
+      "description" : "面板音量/亮度滑块的颜色（自动或自定义）。",
+      "id" : "panel.levelSliderColor",
+      "storageKey" : "panelLevelSliderColor",
+      "title" : "面板滑块颜色",
+      "type" : "taggedUnion",
+      "uiPath" : "设置 › 状态面板 › 滑块颜色"
+    },
+    {
+      "accessPolicy" : {
+        "containsSensitiveInfo" : false,
         "developmentProfile" : true,
         "externalRead" : true,
         "externalWrite" : false,
@@ -2832,6 +3138,25 @@
       "title" : "启用的面板模块",
       "type" : "set",
       "uiPath" : "设置 › 状态面板 › 模块"
+    },
+    {
+      "accessPolicy" : {
+        "containsSensitiveInfo" : false,
+        "developmentProfile" : false,
+        "externalRead" : true,
+        "externalWrite" : false,
+        "requiresConfirmation" : false,
+        "systemSideEffect" : false,
+        "transferable" : false,
+        "uiAccessible" : true
+      },
+      "category" : "panel",
+      "description" : "状态面板模块的显示顺序。",
+      "id" : "panel.sectionOrder",
+      "storageKey" : "popupSectionOrder",
+      "title" : "面板模块顺序",
+      "type" : "orderedList",
+      "uiPath" : "设置 › 状态面板 › 模块顺序"
     }
   ],
   "schemaVersion" : 1

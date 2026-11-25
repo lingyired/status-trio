@@ -47,6 +47,27 @@ enum SettingsSemanticCatalog {
         externalWrite: false
     )
 
+    /// Described but not yet wired to a provider adapter: visible in the UI and
+    /// in the schema, but not writable by a development profile or externally.
+    private static let describedNotWritable = SettingsAccessPolicy(
+        uiAccessible: true,
+        developmentProfile: false,
+        transferable: false,
+        externalRead: true,
+        externalWrite: false
+    )
+
+    /// Described, sensitive (device identity / paths), and not writable by a
+    /// profile or externally.
+    private static let sensitiveDescribed = SettingsAccessPolicy(
+        uiAccessible: true,
+        developmentProfile: false,
+        transferable: false,
+        externalRead: false,
+        externalWrite: false,
+        containsSensitiveInfo: true
+    )
+
     /// A setting with a real system side effect (login item, helper, power).
     private static let systemRestricted = SettingsAccessPolicy(
         uiAccessible: true,
@@ -289,6 +310,7 @@ enum SettingsSemanticCatalog {
             d.uiPath = "设置 › 图标 › 底部指标 › 指标"
             d.optionsProvider = "hardware.ringMetrics"
             d.effectiveWhen = .equals(preference: "icon.footer.source", value: s("metric"))
+            d.storageKey = "bottomIndicatorMetric"
             d.accessPolicy = .profileSafe
             d.provider = "core"
         },
@@ -797,6 +819,62 @@ enum SettingsSemanticCatalog {
             d.storageKey = "hardwareSSDExternalVolumePathsV1"
             d.accessPolicy = SettingsAccessPolicy(uiAccessible: true, developmentProfile: false, transferable: false, externalRead: false, externalWrite: false, requiresConfirmation: false, containsSensitiveInfo: true, systemSideEffect: false)
             d.provider = "core"
+        },
+
+        // ---- Complex / composite / sensitive settings ----
+        // Described for coverage; live write adapters for these composite/colour
+        // blobs are deliberately not wired yet (see the implementation report).
+        pref("audio.hiddenOutputDevices", "隐藏的输出设备", "audio", .set, "按设备 UID 隐藏的输出设备（设备标识属敏感信息）。") { d in
+            d.uiPath = "设置 › 音量 › 隐藏设备"; d.storageKey = "hiddenOutputDeviceUIDs"; d.accessPolicy = sensitiveDescribed
+        },
+        pref("audio.hiddenInputDevices", "隐藏的输入设备", "audio", .set, "按设备 UID 隐藏的输入设备（设备标识属敏感信息）。") { d in
+            d.uiPath = "设置 › 麦克风 › 隐藏设备"; d.storageKey = "hiddenInputDeviceUIDs"; d.accessPolicy = sensitiveDescribed
+        },
+        pref("brightness.hiddenDisplays", "隐藏的显示器", "brightness", .set, "按显示器 ID 隐藏的亮度设备（设备标识属敏感信息）。") { d in
+            d.uiPath = "设置 › 亮度 › 隐藏显示器"; d.storageKey = "hiddenBrightnessDisplayIDs"; d.accessPolicy = sensitiveDescribed
+        },
+        pref("battery.statusColors", "电池状态颜色", "battery", .object, "各电量状态的自定义颜色（放电/充电/低电量/高电量/严重）。") { d in
+            d.uiPath = "设置 › 电池 › 状态颜色"; d.storageKey = "batteryStatusColors.discharging"; d.accessPolicy = describedNotWritable
+        },
+        pref("bluetooth.deviceOrder", "蓝牙设备排序", "bluetooth", .orderedList, "蓝牙设备列表的显示顺序。") { d in
+            d.uiPath = "设置 › 蓝牙 › 排序"; d.storageKey = "bluetoothDeviceOrder"; d.accessPolicy = describedNotWritable
+        },
+        pref("bluetooth.volumeColor", "蓝牙音量颜色", "bluetooth", .taggedUnion, "蓝牙音量指示颜色（自动或自定义）。") { d in
+            d.uiPath = "设置 › 蓝牙 › 音量颜色"; d.storageKey = "bluetoothVolumeColor"; d.accessPolicy = describedNotWritable
+        },
+        pref("bluetooth.nearbySelections", "附近蓝牙设备选择", "bluetooth", .orderedList, "附近蓝牙电量设备的显式选择（设备标识属敏感信息）。") { d in
+            d.uiPath = "设置 › 蓝牙 › 附近设备"; d.storageKey = "nearbyBLEConsent.v1"; d.accessPolicy = sensitiveDescribed
+        },
+        pref("bluetooth.trustedAppleDevices", "受信任的 Apple 设备", "bluetooth", .orderedList, "已记录的受信任 Apple 设备元数据（设备标识属敏感信息）。") { d in
+            d.uiPath = "设置 › 蓝牙 › 受信任设备"; d.storageKey = "trustedAppleDeviceMetadata.v1"; d.accessPolicy = sensitiveDescribed
+        },
+        pref("hardware.summaryMetrics", "启用的硬件摘要指标", "hardware", .set, "状态面板硬件摘要行启用的指标集合。") { d in
+            d.uiPath = "设置 › 监控 › 摘要指标"; d.optionsProvider = "HardwareSummaryMetric"
+            d.storageKey = "enabledHardwareSummaryMetricsV1"; d.accessPolicy = .profileSafe; d.provider = "core"
+        },
+        pref("hardware.metricColors", "硬件指标颜色", "hardware", .map, "各硬件指标的自定义颜色映射。") { d in
+            d.uiPath = "设置 › 监控 › 指标颜色"; d.storageKey = "hardwareMonitorMetricColorsV1"; d.accessPolicy = describedNotWritable
+        },
+        pref("icon.bluetoothIconColor", "蓝牙图标颜色", "icon", .taggedUnion, "蓝牙图标的颜色（系统蓝/主色/自定义）。") { d in
+            d.uiPath = "设置 › 图标 › 蓝牙颜色"; d.storageKey = "bluetoothIconColor"; d.accessPolicy = describedNotWritable
+        },
+        pref("icon.bluetoothNetworkIconDevice", "蓝牙网络图标设备", "icon", .deviceReference, "用作网络图标的蓝牙设备地址（设备标识属敏感信息）。") { d in
+            d.uiPath = "设置 › 图标 › 蓝牙网络设备"; d.storageKey = "bluetoothNetworkIconDeviceAddress"; d.accessPolicy = sensitiveDescribed
+        },
+        pref("icon.hardwareDiskRingColor", "硬件磁盘环颜色", "icon", .color, "硬件磁盘环的自定义颜色。") { d in
+            d.uiPath = "设置 › 图标 › 磁盘环颜色"; d.storageKey = "hardwareDiskRingColorV1"; d.accessPolicy = describedNotWritable
+        },
+        pref("icon.hardwareRingConfiguration", "硬件外环配置", "icon", .object, "硬件外环的结构化配置（布局/主副指标/顶部内容/颜色/覆盖项）；语义层另以嵌套 id 暴露常用字段。") { d in
+            d.uiPath = "设置 › 图标 › 硬件外环"; d.storageKey = "hardwareRingConfigurationV1"; d.accessPolicy = describedNotWritable
+        },
+        pref("icon.slotBindings", "图标槽位绑定", "icon", .object, "图标各槽位的绑定配置（IconSlotBindingsV1 编码）。") { d in
+            d.uiPath = "设置 › 图标 › 槽位绑定"; d.accessPolicy = describedNotWritable
+        },
+        pref("panel.levelSliderColor", "面板滑块颜色", "panel", .taggedUnion, "面板音量/亮度滑块的颜色（自动或自定义）。") { d in
+            d.uiPath = "设置 › 状态面板 › 滑块颜色"; d.storageKey = "panelLevelSliderColor"; d.accessPolicy = describedNotWritable
+        },
+        pref("panel.sectionOrder", "面板模块顺序", "panel", .orderedList, "状态面板模块的显示顺序。") { d in
+            d.uiPath = "设置 › 状态面板 › 模块顺序"; d.storageKey = "popupSectionOrder"; d.accessPolicy = describedNotWritable
         },
     ]
 

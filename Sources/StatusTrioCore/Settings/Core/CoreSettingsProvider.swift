@@ -138,6 +138,8 @@ final class CoreSettingsProvider: SettingsStateProvider {
             return .array(store.localIconPluginDirectories.map { .string($0) })
         case "hardware.ssd.externalVolumePaths":
             return .array(store.hardwareSSDExternalVolumePaths.sorted().map { .string($0) })
+        case "hardware.summaryMetrics":
+            return .array(store.enabledHardwareSummaryMetrics.map(\.rawValue).sorted().map { .string($0) })
         default:
             return nil
         }
@@ -291,6 +293,8 @@ final class CoreSettingsProvider: SettingsStateProvider {
             store.localIconPluginDirectories = Self.strings(value)
         case "hardware.ssd.externalVolumePaths":
             store.hardwareSSDExternalVolumePaths = Set(Self.strings(value))
+        case "hardware.summaryMetrics":
+            store.setEnabledHardwareSummaryMetrics(Set(Self.strings(value).compactMap { HardwareSummaryMetric(rawValue: $0) }))
         default:
             break
         }

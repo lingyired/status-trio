@@ -12,4 +12,6 @@ Generated from `SettingsSemanticCatalog`. Do not edit by hand.
 | `panel.behavior.keepOpenWhenOpeningSettings` | 打开设置时保持面板 | `boolean` | — | keepsStatusPanelOpenWhenOpeningSettings |
 | `panel.behavior.scrollWheelStepPercent` | 滚轮步进百分比 | `number` | — | popupScrollWheelStepPercent |
 | `panel.behavior.showOnHover` | 悬停展开状态面板 | `boolean` | — | showsPanelOnHover |
+| `panel.levelSliderColor` | 面板滑块颜色 | `taggedUnion` | — | panelLevelSliderColor |
 | `panel.modules.enabled` | 启用的面板模块 | `set` | — | enabledPopupSections |
+| `panel.sectionOrder` | 面板模块顺序 | `orderedList` | — | popupSectionOrder |

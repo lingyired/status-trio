@@ -29,6 +29,7 @@ Generated from `SettingsSemanticCatalog`. Do not edit by hand.
 | `battery.refreshInterval.onPower` | 接电源刷新间隔 | `number` | — | statusRefreshIntervalOnPowerSeconds |
 | `battery.simulateNoBattery` | 模拟无电池 | `boolean` | — | simulatesNoBattery |
 | `battery.splitGapProgress` | 电量环断口进度 | `boolean` | — | batterySplitGapProgress |
+| `battery.statusColors` | 电池状态颜色 | `object` | — | batteryStatusColors.discharging |
 | `battery.statusColors.enabled` | 使用电池状态颜色 | `boolean` | — | usesBatteryStatusColors |
 | `battery.symbolScale` | 电池符号缩放 | `number` | — | batterySymbolScale |
 | `battery.thresholds.critical` | 低电量颜色阈值 | `number` | — | batteryCriticalThreshold |
