@@ -78,6 +78,16 @@ final class SettingsService {
         planner.plan(mutations: mutations, snapshot: snapshot())
     }
 
+    /// Preview a combined development-profile style change (features + explicit
+    /// preference values + collection mutations).
+    func preview(
+        features: [String],
+        preferences: [String: SettingsTransferValue],
+        mutations: [SettingsMutationDescriptor]
+    ) -> SettingsChangePlan {
+        planner.plan(features: features, preferences: preferences, mutations: mutations, snapshot: snapshot())
+    }
+
     // MARK: - Apply / restore
 
     @discardableResult

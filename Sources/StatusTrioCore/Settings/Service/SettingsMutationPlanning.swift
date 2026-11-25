@@ -103,6 +103,33 @@ struct SettingsPlanner {
         finalize(requests: mutations.map { ($0, .requested) }, snapshot: state)
     }
 
+    /// Plan a combined change: enable features (with their dependency closure),
+    /// set individual preferences, and apply explicit collection mutations.
+    /// This is the entry point a development profile uses.
+    func plan(
+        features: [String],
+        preferences: [String: SettingsTransferValue],
+        mutations: [SettingsMutationDescriptor],
+        snapshot state: SettingsSnapshot
+    ) -> SettingsChangePlan {
+        var requests: [(SettingsMutationDescriptor, SettingsOperationSource)] = []
+        var seenFeatures = Set<String>()
+        for root in features {
+            for featureID in featureClosure(target: root) {
+                guard seenFeatures.insert(featureID).inserted else { continue }
+                guard let feature = registry.feature(featureID) else { continue }
+                let source: SettingsOperationSource = featureID == root ? .requested : .dependency
+                for mutation in feature.mutations { requests.append((mutation, source)) }
+            }
+        }
+        for id in preferences.keys.sorted() {
+            let value = preferences[id]!
+            requests.append((SettingsMutationDescriptor(id: id, operation: .set, value: value), .requested))
+        }
+        for mutation in mutations { requests.append((mutation, .requested)) }
+        return finalize(requests: requests, snapshot: state)
+    }
+
     // MARK: - Feature dependency closure
 
     /// Parents before children, deduplicated, cycle-tolerant.
