@@ -719,6 +719,85 @@ enum SettingsSemanticCatalog {
             d.uiPath = "设置 › 监控 › SSD › 外置磁盘"
             d.storageKey = "hardwareSSDIncludeExternalInPercentV1"; d.accessPolicy = .profileSafe; d.provider = "core"
         },
+
+        // ---- Enumerated appearance & placement (scalar, provider-wired) ----
+        pref("icon.appIconPlacement", "图标显示位置", "icon", .enumeration, "图标显示在菜单栏、Dock 或两者（Menu Bar 与 Dock 渲染同源）。") { d in
+            d.uiPath = "设置 › 图标 › 位置"
+            d.options = [opt("menuBar", "菜单栏"), opt("dock", "Dock"), opt("both", "两者")]
+            d.storageKey = "appIconPlacement"; d.accessPolicy = .profileSafe; d.provider = "core"
+        },
+        pref("icon.dockIconBackground", "Dock 图标背景", "icon", .enumeration, "Dock 图标背景明暗。") { d in
+            d.uiPath = "设置 › 图标 › Dock 背景"
+            d.options = [opt("system", "跟随系统"), opt("dark", "深色"), opt("light", "浅色")]
+            d.storageKey = "dockIconBackgroundPreference"; d.accessPolicy = .profileSafe; d.provider = "core"
+        },
+        pref("icon.airPodsRingFallback", "AirPods 环回退来源", "icon", .enumeration, "AirPods 环无数据时回退显示的内容。") { d in
+            d.uiPath = "设置 › 图标 › AirPods › 回退"
+            d.options = [opt("battery", "Mac 电池"), opt("hardwareMonitor", "系统监控")]
+            d.storageKey = "airPodsRingFallback"; d.accessPolicy = .profileSafe; d.provider = "core"
+        },
+        pref("icon.cpuRingCenterContent", "CPU 环中心内容", "icon", .enumeration, "CPU 圆环中心显示温度或频率。") { d in
+            d.uiPath = "设置 › 图标 › 硬件环 › CPU 中心"
+            d.options = [opt("temperature", "温度"), opt("frequency", "频率")]
+            d.storageKey = "cpuRingCenterContentV1"; d.accessPolicy = .profileSafe; d.provider = "core"
+        },
+        pref("icon.gpuRingCenterContent", "GPU 环中心内容", "icon", .enumeration, "GPU 圆环中心显示温度或频率。") { d in
+            d.uiPath = "设置 › 图标 › 硬件环 › GPU 中心"
+            d.options = [opt("temperature", "温度"), opt("frequency", "频率")]
+            d.storageKey = "gpuRingCenterContentV1"; d.accessPolicy = .profileSafe; d.provider = "core"
+        },
+        pref("icon.ringStrokeStyle", "圆环描边粗细", "icon", .enumeration, "圆环描边粗细样式。") { d in
+            d.uiPath = "设置 › 图标 › 描边"
+            d.options = [opt("light", "细"), opt("regular", "标准"), opt("bold", "粗")]
+            d.storageKey = "ringStrokeStyle"; d.accessPolicy = .profileSafe; d.provider = "core"
+        },
+        pref("icon.inputSourceMarkerStyle", "输入源标记样式", "icon", .enumeration, "输入源指示的样式。") { d in
+            d.uiPath = "设置 › 图标 › 输入源标记"
+            d.options = [opt("systemIcon", "系统图标"), opt("script", "脚本"), opt("zhong", "中")]
+            d.storageKey = "inputSourceMarkerStyle"; d.accessPolicy = .profileSafe; d.provider = "core"
+        },
+        pref("icon.localPluginDirectories", "本地图标插件目录", "icon", .orderedList, "用户显式启用的本地图标包目录（路径属敏感信息）。") { d in
+            d.uiPath = "设置 › 图标 › 插件"
+            d.storageKey = "localIconPluginDirectories.v1"
+            d.accessPolicy = SettingsAccessPolicy(uiAccessible: true, developmentProfile: false, transferable: false, externalRead: false, externalWrite: false, requiresConfirmation: false, containsSensitiveInfo: true, systemSideEffect: false)
+            d.provider = "core"
+        },
+        pref("audio.volumeDisplayStyle", "音量指示样式", "audio", .enumeration, "底部音量指示使用点阵或弧线。") { d in
+            d.uiPath = "设置 › 音量 › 指示样式"
+            d.options = [opt("dots", "点阵"), opt("arc", "弧线")]
+            d.storageKey = "volumeDisplayStyle"; d.accessPolicy = .profileSafe; d.provider = "core"
+        },
+        pref("battery.bottomIndicatorStyle", "电池底部指示样式", "battery", .enumeration, "底部电池指示使用点阵或弧线。") { d in
+            d.uiPath = "设置 › 电池 › 指示样式"
+            d.options = [opt("dots", "点阵"), opt("arc", "弧线")]
+            d.storageKey = "batteryBottomIndicatorStyle"; d.accessPolicy = .profileSafe; d.provider = "core"
+        },
+        pref("hardware.metricBottomIndicatorStyle", "硬件指标底部样式", "hardware", .enumeration, "底部硬件指标使用点阵或弧线。") { d in
+            d.uiPath = "设置 › 监控 › 底部指标样式"
+            d.options = [opt("dots", "点阵"), opt("arc", "弧线")]
+            d.storageKey = "metricBottomIndicatorStyle"; d.accessPolicy = .profileSafe; d.provider = "core"
+        },
+        pref("network.wifiBottomIndicatorStyle", "Wi-Fi 底部样式", "network", .enumeration, "底部 Wi-Fi 指示使用点阵或弧线。") { d in
+            d.uiPath = "设置 › 网络 › 底部样式"
+            d.options = [opt("dots", "点阵"), opt("arc", "弧线")]
+            d.storageKey = "wifiBottomIndicatorStyle"; d.accessPolicy = .profileSafe; d.provider = "core"
+        },
+        pref("hardware.ring.memoryDisplayMode", "内存环显示模式", "hardware", .enumeration, "内存环显示已用或剩余。") { d in
+            d.uiPath = "设置 › 监控 › 内存环"
+            d.optionsProvider = "RingValueDisplayMode"
+            d.storageKey = "memoryRingDisplayModeV1"; d.accessPolicy = .profileSafe; d.provider = "core"
+        },
+        pref("hardware.ring.ssdDisplayMode", "SSD 环显示模式", "hardware", .enumeration, "SSD 环显示已用或剩余。") { d in
+            d.uiPath = "设置 › 监控 › SSD 环"
+            d.optionsProvider = "RingValueDisplayMode"
+            d.storageKey = "ssdRingDisplayModeV1"; d.accessPolicy = .profileSafe; d.provider = "core"
+        },
+        pref("hardware.ssd.externalVolumePaths", "外置磁盘卷路径", "hardware", .set, "计入 SSD 统计的外置磁盘卷路径（路径属敏感信息）。") { d in
+            d.uiPath = "设置 › 监控 › SSD › 外置卷"
+            d.storageKey = "hardwareSSDExternalVolumePathsV1"
+            d.accessPolicy = SettingsAccessPolicy(uiAccessible: true, developmentProfile: false, transferable: false, externalRead: false, externalWrite: false, requiresConfirmation: false, containsSensitiveInfo: true, systemSideEffect: false)
+            d.provider = "core"
+        },
     ]
 
     // MARK: - Features

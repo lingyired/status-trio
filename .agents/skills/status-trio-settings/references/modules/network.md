@@ -8,3 +8,4 @@ Generated from `SettingsSemanticCatalog`. Do not edit by hand.
 | `network.prioritizeErrors` | 优先显示网络错误 | `boolean` | — | prioritizesNetworkErrors |
 | `network.showLocalIPAddress` | 显示本地 IP | `boolean` | — | showsLocalIPAddress |
 | `network.symbolScale` | Wi-Fi 符号缩放 | `number` | — | wifiSymbolScale |
+| `network.wifiBottomIndicatorStyle` | Wi-Fi 底部样式 | `enumeration` | — | wifiBottomIndicatorStyle |

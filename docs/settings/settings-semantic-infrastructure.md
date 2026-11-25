@@ -8,7 +8,7 @@
 | Phase | 状态 | 交付 |
 |---|---|---|
 | 0 设置盘点 | ✅ 完成 | `docs/settings/settings-inventory.md`：152 个 `@Published`、169 个存储键、49 legacy-only 键、50 计算属性；128 个 UI 绑定（user-visible）作为覆盖目标，含分类与排除原因。 |
-| 1 语义注册表 | ✅ 完成 | `Semantic/` 下 ValueType / Condition / Constraint / AccessPolicy / PerformanceImpact / Option / Mutation / PreferenceDescriptor / FeatureDescriptor / Capability / Action / Registry。注册表确定性排序、结构校验、Feature 环检测。`SettingsSemanticCatalog` 收录 96 个设置（覆盖 8 个模块及计划中的复杂案例）。 |
+| 1 语义注册表 | ✅ 完成 | `Semantic/` 下 ValueType / Condition / Constraint / AccessPolicy / PerformanceImpact / Option / Mutation / PreferenceDescriptor / FeatureDescriptor / Capability / Action / Registry。注册表确定性排序、结构校验、Feature 环检测。`SettingsSemanticCatalog` 收录 111 个设置（覆盖 8 个模块及计划中的复杂案例）。 |
 | 2 依赖解析与约束 | ✅ 完成 | `SettingsPlanner`：Feature 依赖闭包、`onChange` 连带修改（虚拟设置镜像）、`distinctValues→swap`、`minimumCount/requires/numericRange`、类型/范围校验、确定性、幂等。 |
 | 3 统一 SettingsService | ✅ 完成（内存 provider） | list/describe/snapshot/preview/apply/restore；预览不改状态、apply 全量校验后一次写入并捕获 before。`SettingsStateProvider` 协议预留各领域 provider。 |
 | 4 复杂模块适配 | ✅ 核心完成 | `CoreSettingsProvider` 把 47 个 core 设置经真实 `@Published`/setter 读写（含 hardwareRingConfiguration 嵌套、ring slots 领域 setter、boldText 虚拟设置）。未接入的领域：Localization/LaunchAtLogin（非 core，返回 nil）。 |
@@ -83,7 +83,7 @@ SettingsService.restore(_:)
 
 ## 6. 明确未完成 / 后续
 
-1. **覆盖率到 100%**：当前 `SettingsSemanticCatalog` 描述 96/128 个 user-visible 设置。
+1. **覆盖率到 100%**：当前 `SettingsSemanticCatalog` 描述 111/128 个 user-visible 设置。
    其余（大量电池标记/颜色、音频设备排序、图标子来源、蓝牙设备级等）需补进目录；
    每补一个都要在 `docs/settings/settings-inventory.md` 对上。
 2. **运行时 Capability provider 与 Effective State**：用现有缓存/系统信息给出

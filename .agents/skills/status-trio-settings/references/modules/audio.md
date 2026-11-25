@@ -11,3 +11,4 @@ Generated from `SettingsSemanticCatalog`. Do not edit by hand.
 | `audio.popup.naturalScrolling` | 自然滚动方向 | `boolean` | — | popupVolumeNaturalScrolling |
 | `audio.popup.scrollAdjustsVolume` | 滚轮调整音量 | `boolean` | — | popupPanelScrollAdjustsVolume |
 | `audio.spatialControls.enabled` | 显示空间音频控件 | `boolean` | — | showsSpatialAudioControls |
+| `audio.volumeDisplayStyle` | 音量指示样式 | `enumeration` | — | volumeDisplayStyle |

@@ -108,6 +108,36 @@ final class CoreSettingsProvider: SettingsStateProvider {
             return .bool(store.alwaysShowsAllInputDevices)
         case "brightness.betterDisplay.combined":
             return .bool(store.useBetterDisplayCombinedBrightness)
+        case "icon.appIconPlacement":
+            return .string(store.appIconPlacement.rawValue)
+        case "icon.dockIconBackground":
+            return .string(store.dockIconBackgroundPreference.rawValue)
+        case "icon.airPodsRingFallback":
+            return .string(store.airPodsRingFallback.rawValue)
+        case "icon.cpuRingCenterContent":
+            return .string(store.cpuRingCenterContent.rawValue)
+        case "icon.gpuRingCenterContent":
+            return .string(store.gpuRingCenterContent.rawValue)
+        case "icon.ringStrokeStyle":
+            return .string(store.ringStrokeStyle.rawValue)
+        case "icon.inputSourceMarkerStyle":
+            return .string(store.inputSourceMarkerStyle.rawValue)
+        case "audio.volumeDisplayStyle":
+            return .string(store.volumeDisplayStyle.rawValue)
+        case "battery.bottomIndicatorStyle":
+            return .string(store.batteryBottomIndicatorStyle.rawValue)
+        case "hardware.metricBottomIndicatorStyle":
+            return .string(store.metricBottomIndicatorStyle.rawValue)
+        case "network.wifiBottomIndicatorStyle":
+            return .string(store.wifiBottomIndicatorStyle.rawValue)
+        case "hardware.ring.memoryDisplayMode":
+            return .string(store.memoryRingDisplayMode.rawValue)
+        case "hardware.ring.ssdDisplayMode":
+            return .string(store.ssdRingDisplayMode.rawValue)
+        case "icon.localPluginDirectories":
+            return .array(store.localIconPluginDirectories.map { .string($0) })
+        case "hardware.ssd.externalVolumePaths":
+            return .array(store.hardwareSSDExternalVolumePaths.sorted().map { .string($0) })
         default:
             return nil
         }
@@ -231,6 +261,36 @@ final class CoreSettingsProvider: SettingsStateProvider {
             if case .bool(let flag) = value { store.alwaysShowsAllInputDevices = flag }
         case "brightness.betterDisplay.combined":
             if case .bool(let flag) = value { store.useBetterDisplayCombinedBrightness = flag }
+        case "icon.appIconPlacement":
+            if case .string(let raw) = value, let parsed = AppIconPlacement(rawValue: raw) { store.appIconPlacement = parsed }
+        case "icon.dockIconBackground":
+            if case .string(let raw) = value, let parsed = DockIconBackgroundPreference(rawValue: raw) { store.dockIconBackgroundPreference = parsed }
+        case "icon.airPodsRingFallback":
+            if case .string(let raw) = value, let parsed = AirPodsRingFallback(rawValue: raw) { store.airPodsRingFallback = parsed }
+        case "icon.cpuRingCenterContent":
+            if case .string(let raw) = value, let parsed = HardwareRingCenterContent(rawValue: raw) { store.cpuRingCenterContent = parsed }
+        case "icon.gpuRingCenterContent":
+            if case .string(let raw) = value, let parsed = HardwareRingCenterContent(rawValue: raw) { store.gpuRingCenterContent = parsed }
+        case "icon.ringStrokeStyle":
+            if case .string(let raw) = value, let parsed = RingStrokeStyle(rawValue: raw) { store.ringStrokeStyle = parsed }
+        case "icon.inputSourceMarkerStyle":
+            if case .string(let raw) = value, let parsed = InputSourceMarkerStyle(rawValue: raw) { store.inputSourceMarkerStyle = parsed }
+        case "audio.volumeDisplayStyle":
+            if case .string(let raw) = value, let parsed = VolumeDisplayStyle(rawValue: raw) { store.volumeDisplayStyle = parsed }
+        case "battery.bottomIndicatorStyle":
+            if case .string(let raw) = value, let parsed = VolumeDisplayStyle(rawValue: raw) { store.batteryBottomIndicatorStyle = parsed }
+        case "hardware.metricBottomIndicatorStyle":
+            if case .string(let raw) = value, let parsed = VolumeDisplayStyle(rawValue: raw) { store.metricBottomIndicatorStyle = parsed }
+        case "network.wifiBottomIndicatorStyle":
+            if case .string(let raw) = value, let parsed = VolumeDisplayStyle(rawValue: raw) { store.wifiBottomIndicatorStyle = parsed }
+        case "hardware.ring.memoryDisplayMode":
+            if case .string(let raw) = value, let parsed = RingValueDisplayMode(rawValue: raw) { store.memoryRingDisplayMode = parsed }
+        case "hardware.ring.ssdDisplayMode":
+            if case .string(let raw) = value, let parsed = RingValueDisplayMode(rawValue: raw) { store.ssdRingDisplayMode = parsed }
+        case "icon.localPluginDirectories":
+            store.localIconPluginDirectories = Self.strings(value)
+        case "hardware.ssd.externalVolumePaths":
+            store.hardwareSSDExternalVolumePaths = Set(Self.strings(value))
         default:
             break
         }

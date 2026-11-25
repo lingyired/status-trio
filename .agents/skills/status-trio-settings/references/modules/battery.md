@@ -10,6 +10,7 @@ Generated from `SettingsSemanticCatalog`. Do not edit by hand.
 | `battery.automation.controlsLowPowerMode` | 允许控制低电量模式 | `boolean` | — | controlsLowPowerMode |
 | `battery.automation.lowPowerThreshold` | 自动低电量模式阈值 | `number` | 20.0 | autoLowPowerThreshold |
 | `battery.bluetoothPowerControl.enabled` | 显示蓝牙开关控件 | `boolean` | — | showsBluetoothPowerControl |
+| `battery.bottomIndicatorStyle` | 电池底部指示样式 | `enumeration` | — | batteryBottomIndicatorStyle |
 | `battery.chargeToFullButton.enabled` | 显示立即充满按钮 | `boolean` | — | showsChargeToFullNowButton |
 | `battery.chargeToFullRestoreLimit` | 充满后恢复的充电上限 | `number` | — | chargeToFullRestoreLimit |
 | `battery.charging.boltHeartbeat` | 充电闪电心跳动画 | `boolean` | — | showsChargingBoltHeartbeat |

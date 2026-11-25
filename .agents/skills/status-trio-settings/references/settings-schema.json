@@ -160,6 +160,38 @@
         "transferable" : false,
         "uiAccessible" : true
       },
+      "category" : "audio",
+      "description" : "底部音量指示使用点阵或弧线。",
+      "id" : "audio.volumeDisplayStyle",
+      "options" : [
+        {
+          "id" : "dots",
+          "title" : "点阵",
+          "value" : "dots"
+        },
+        {
+          "id" : "arc",
+          "title" : "弧线",
+          "value" : "arc"
+        }
+      ],
+      "provider" : "core",
+      "storageKey" : "volumeDisplayStyle",
+      "title" : "音量指示样式",
+      "type" : "enumeration",
+      "uiPath" : "设置 › 音量 › 指示样式"
+    },
+    {
+      "accessPolicy" : {
+        "containsSensitiveInfo" : false,
+        "developmentProfile" : true,
+        "externalRead" : true,
+        "externalWrite" : false,
+        "requiresConfirmation" : false,
+        "systemSideEffect" : false,
+        "transferable" : false,
+        "uiAccessible" : true
+      },
       "category" : "battery",
       "description" : "后台读取 Apple 设备电量的间隔（分钟）。",
       "id" : "battery.appleBattery.refreshIntervalMinutes",
@@ -283,6 +315,38 @@
       "title" : "显示蓝牙开关控件",
       "type" : "boolean",
       "uiPath" : "设置 › 电池 › 蓝牙开关"
+    },
+    {
+      "accessPolicy" : {
+        "containsSensitiveInfo" : false,
+        "developmentProfile" : true,
+        "externalRead" : true,
+        "externalWrite" : false,
+        "requiresConfirmation" : false,
+        "systemSideEffect" : false,
+        "transferable" : false,
+        "uiAccessible" : true
+      },
+      "category" : "battery",
+      "description" : "底部电池指示使用点阵或弧线。",
+      "id" : "battery.bottomIndicatorStyle",
+      "options" : [
+        {
+          "id" : "dots",
+          "title" : "点阵",
+          "value" : "dots"
+        },
+        {
+          "id" : "arc",
+          "title" : "弧线",
+          "value" : "arc"
+        }
+      ],
+      "provider" : "core",
+      "storageKey" : "batteryBottomIndicatorStyle",
+      "title" : "电池底部指示样式",
+      "type" : "enumeration",
+      "uiPath" : "设置 › 电池 › 指示样式"
     },
     {
       "accessPolicy" : {
@@ -1336,6 +1400,38 @@
         "externalWrite" : false,
         "requiresConfirmation" : false,
         "systemSideEffect" : false,
+        "transferable" : false,
+        "uiAccessible" : true
+      },
+      "category" : "hardware",
+      "description" : "底部硬件指标使用点阵或弧线。",
+      "id" : "hardware.metricBottomIndicatorStyle",
+      "options" : [
+        {
+          "id" : "dots",
+          "title" : "点阵",
+          "value" : "dots"
+        },
+        {
+          "id" : "arc",
+          "title" : "弧线",
+          "value" : "arc"
+        }
+      ],
+      "provider" : "core",
+      "storageKey" : "metricBottomIndicatorStyle",
+      "title" : "硬件指标底部样式",
+      "type" : "enumeration",
+      "uiPath" : "设置 › 监控 › 底部指标样式"
+    },
+    {
+      "accessPolicy" : {
+        "containsSensitiveInfo" : false,
+        "developmentProfile" : true,
+        "externalRead" : true,
+        "externalWrite" : false,
+        "requiresConfirmation" : false,
+        "systemSideEffect" : false,
         "transferable" : true,
         "uiAccessible" : true
       },
@@ -1417,6 +1513,48 @@
         "externalWrite" : false,
         "requiresConfirmation" : false,
         "systemSideEffect" : false,
+        "transferable" : false,
+        "uiAccessible" : true
+      },
+      "category" : "hardware",
+      "description" : "内存环显示已用或剩余。",
+      "id" : "hardware.ring.memoryDisplayMode",
+      "optionsProvider" : "RingValueDisplayMode",
+      "provider" : "core",
+      "storageKey" : "memoryRingDisplayModeV1",
+      "title" : "内存环显示模式",
+      "type" : "enumeration",
+      "uiPath" : "设置 › 监控 › 内存环"
+    },
+    {
+      "accessPolicy" : {
+        "containsSensitiveInfo" : false,
+        "developmentProfile" : true,
+        "externalRead" : true,
+        "externalWrite" : false,
+        "requiresConfirmation" : false,
+        "systemSideEffect" : false,
+        "transferable" : false,
+        "uiAccessible" : true
+      },
+      "category" : "hardware",
+      "description" : "SSD 环显示已用或剩余。",
+      "id" : "hardware.ring.ssdDisplayMode",
+      "optionsProvider" : "RingValueDisplayMode",
+      "provider" : "core",
+      "storageKey" : "ssdRingDisplayModeV1",
+      "title" : "SSD 环显示模式",
+      "type" : "enumeration",
+      "uiPath" : "设置 › 监控 › SSD 环"
+    },
+    {
+      "accessPolicy" : {
+        "containsSensitiveInfo" : false,
+        "developmentProfile" : true,
+        "externalRead" : true,
+        "externalWrite" : false,
+        "requiresConfirmation" : false,
+        "systemSideEffect" : false,
         "transferable" : true,
         "uiAccessible" : true
       },
@@ -1435,6 +1573,26 @@
       "title" : "显示硬件圆环",
       "type" : "boolean",
       "uiPath" : "设置 › 监控 › 显示圆环"
+    },
+    {
+      "accessPolicy" : {
+        "containsSensitiveInfo" : true,
+        "developmentProfile" : false,
+        "externalRead" : false,
+        "externalWrite" : false,
+        "requiresConfirmation" : false,
+        "systemSideEffect" : false,
+        "transferable" : false,
+        "uiAccessible" : true
+      },
+      "category" : "hardware",
+      "description" : "计入 SSD 统计的外置磁盘卷路径（路径属敏感信息）。",
+      "id" : "hardware.ssd.externalVolumePaths",
+      "provider" : "core",
+      "storageKey" : "hardwareSSDExternalVolumePathsV1",
+      "title" : "外置磁盘卷路径",
+      "type" : "set",
+      "uiPath" : "设置 › 监控 › SSD › 外置卷"
     },
     {
       "accessPolicy" : {
@@ -1573,6 +1731,75 @@
         "externalWrite" : false,
         "requiresConfirmation" : false,
         "systemSideEffect" : false,
+        "transferable" : false,
+        "uiAccessible" : true
+      },
+      "category" : "icon",
+      "description" : "AirPods 环无数据时回退显示的内容。",
+      "id" : "icon.airPodsRingFallback",
+      "options" : [
+        {
+          "id" : "battery",
+          "title" : "Mac 电池",
+          "value" : "battery"
+        },
+        {
+          "id" : "hardwareMonitor",
+          "title" : "系统监控",
+          "value" : "hardwareMonitor"
+        }
+      ],
+      "provider" : "core",
+      "storageKey" : "airPodsRingFallback",
+      "title" : "AirPods 环回退来源",
+      "type" : "enumeration",
+      "uiPath" : "设置 › 图标 › AirPods › 回退"
+    },
+    {
+      "accessPolicy" : {
+        "containsSensitiveInfo" : false,
+        "developmentProfile" : true,
+        "externalRead" : true,
+        "externalWrite" : false,
+        "requiresConfirmation" : false,
+        "systemSideEffect" : false,
+        "transferable" : false,
+        "uiAccessible" : true
+      },
+      "category" : "icon",
+      "description" : "图标显示在菜单栏、Dock 或两者（Menu Bar 与 Dock 渲染同源）。",
+      "id" : "icon.appIconPlacement",
+      "options" : [
+        {
+          "id" : "menuBar",
+          "title" : "菜单栏",
+          "value" : "menuBar"
+        },
+        {
+          "id" : "dock",
+          "title" : "Dock",
+          "value" : "dock"
+        },
+        {
+          "id" : "both",
+          "title" : "两者",
+          "value" : "both"
+        }
+      ],
+      "provider" : "core",
+      "storageKey" : "appIconPlacement",
+      "title" : "图标显示位置",
+      "type" : "enumeration",
+      "uiPath" : "设置 › 图标 › 位置"
+    },
+    {
+      "accessPolicy" : {
+        "containsSensitiveInfo" : false,
+        "developmentProfile" : true,
+        "externalRead" : true,
+        "externalWrite" : false,
+        "requiresConfirmation" : false,
+        "systemSideEffect" : false,
         "transferable" : true,
         "uiAccessible" : true
       },
@@ -1616,6 +1843,75 @@
       "title" : "中间槽来源",
       "type" : "enumeration",
       "uiPath" : "设置 › 图标 › 中间来源"
+    },
+    {
+      "accessPolicy" : {
+        "containsSensitiveInfo" : false,
+        "developmentProfile" : true,
+        "externalRead" : true,
+        "externalWrite" : false,
+        "requiresConfirmation" : false,
+        "systemSideEffect" : false,
+        "transferable" : false,
+        "uiAccessible" : true
+      },
+      "category" : "icon",
+      "description" : "CPU 圆环中心显示温度或频率。",
+      "id" : "icon.cpuRingCenterContent",
+      "options" : [
+        {
+          "id" : "temperature",
+          "title" : "温度",
+          "value" : "temperature"
+        },
+        {
+          "id" : "frequency",
+          "title" : "频率",
+          "value" : "frequency"
+        }
+      ],
+      "provider" : "core",
+      "storageKey" : "cpuRingCenterContentV1",
+      "title" : "CPU 环中心内容",
+      "type" : "enumeration",
+      "uiPath" : "设置 › 图标 › 硬件环 › CPU 中心"
+    },
+    {
+      "accessPolicy" : {
+        "containsSensitiveInfo" : false,
+        "developmentProfile" : true,
+        "externalRead" : true,
+        "externalWrite" : false,
+        "requiresConfirmation" : false,
+        "systemSideEffect" : false,
+        "transferable" : false,
+        "uiAccessible" : true
+      },
+      "category" : "icon",
+      "description" : "Dock 图标背景明暗。",
+      "id" : "icon.dockIconBackground",
+      "options" : [
+        {
+          "id" : "system",
+          "title" : "跟随系统",
+          "value" : "system"
+        },
+        {
+          "id" : "dark",
+          "title" : "深色",
+          "value" : "dark"
+        },
+        {
+          "id" : "light",
+          "title" : "浅色",
+          "value" : "light"
+        }
+      ],
+      "provider" : "core",
+      "storageKey" : "dockIconBackgroundPreference",
+      "title" : "Dock 图标背景",
+      "type" : "enumeration",
+      "uiPath" : "设置 › 图标 › Dock 背景"
     },
     {
       "accessPolicy" : {
@@ -1688,6 +1984,95 @@
       "title" : "底部指标来源",
       "type" : "enumeration",
       "uiPath" : "设置 › 图标 › 底部指标"
+    },
+    {
+      "accessPolicy" : {
+        "containsSensitiveInfo" : false,
+        "developmentProfile" : true,
+        "externalRead" : true,
+        "externalWrite" : false,
+        "requiresConfirmation" : false,
+        "systemSideEffect" : false,
+        "transferable" : false,
+        "uiAccessible" : true
+      },
+      "category" : "icon",
+      "description" : "GPU 圆环中心显示温度或频率。",
+      "id" : "icon.gpuRingCenterContent",
+      "options" : [
+        {
+          "id" : "temperature",
+          "title" : "温度",
+          "value" : "temperature"
+        },
+        {
+          "id" : "frequency",
+          "title" : "频率",
+          "value" : "frequency"
+        }
+      ],
+      "provider" : "core",
+      "storageKey" : "gpuRingCenterContentV1",
+      "title" : "GPU 环中心内容",
+      "type" : "enumeration",
+      "uiPath" : "设置 › 图标 › 硬件环 › GPU 中心"
+    },
+    {
+      "accessPolicy" : {
+        "containsSensitiveInfo" : false,
+        "developmentProfile" : true,
+        "externalRead" : true,
+        "externalWrite" : false,
+        "requiresConfirmation" : false,
+        "systemSideEffect" : false,
+        "transferable" : false,
+        "uiAccessible" : true
+      },
+      "category" : "icon",
+      "description" : "输入源指示的样式。",
+      "id" : "icon.inputSourceMarkerStyle",
+      "options" : [
+        {
+          "id" : "systemIcon",
+          "title" : "系统图标",
+          "value" : "systemIcon"
+        },
+        {
+          "id" : "script",
+          "title" : "脚本",
+          "value" : "script"
+        },
+        {
+          "id" : "zhong",
+          "title" : "中",
+          "value" : "zhong"
+        }
+      ],
+      "provider" : "core",
+      "storageKey" : "inputSourceMarkerStyle",
+      "title" : "输入源标记样式",
+      "type" : "enumeration",
+      "uiPath" : "设置 › 图标 › 输入源标记"
+    },
+    {
+      "accessPolicy" : {
+        "containsSensitiveInfo" : true,
+        "developmentProfile" : false,
+        "externalRead" : false,
+        "externalWrite" : false,
+        "requiresConfirmation" : false,
+        "systemSideEffect" : false,
+        "transferable" : false,
+        "uiAccessible" : true
+      },
+      "category" : "icon",
+      "description" : "用户显式启用的本地图标包目录（路径属敏感信息）。",
+      "id" : "icon.localPluginDirectories",
+      "provider" : "core",
+      "storageKey" : "localIconPluginDirectories.v1",
+      "title" : "本地图标插件目录",
+      "type" : "orderedList",
+      "uiPath" : "设置 › 图标 › 插件"
     },
     {
       "accessPolicy" : {
@@ -2009,6 +2394,43 @@
     {
       "accessPolicy" : {
         "containsSensitiveInfo" : false,
+        "developmentProfile" : true,
+        "externalRead" : true,
+        "externalWrite" : false,
+        "requiresConfirmation" : false,
+        "systemSideEffect" : false,
+        "transferable" : false,
+        "uiAccessible" : true
+      },
+      "category" : "icon",
+      "description" : "圆环描边粗细样式。",
+      "id" : "icon.ringStrokeStyle",
+      "options" : [
+        {
+          "id" : "light",
+          "title" : "细",
+          "value" : "light"
+        },
+        {
+          "id" : "regular",
+          "title" : "标准",
+          "value" : "regular"
+        },
+        {
+          "id" : "bold",
+          "title" : "粗",
+          "value" : "bold"
+        }
+      ],
+      "provider" : "core",
+      "storageKey" : "ringStrokeStyle",
+      "title" : "圆环描边粗细",
+      "type" : "enumeration",
+      "uiPath" : "设置 › 图标 › 描边"
+    },
+    {
+      "accessPolicy" : {
+        "containsSensitiveInfo" : false,
         "developmentProfile" : false,
         "externalRead" : false,
         "externalWrite" : false,
@@ -2165,6 +2587,38 @@
       "title" : "Wi-Fi 符号缩放",
       "type" : "number",
       "uiPath" : "设置 › 网络 › 符号缩放"
+    },
+    {
+      "accessPolicy" : {
+        "containsSensitiveInfo" : false,
+        "developmentProfile" : true,
+        "externalRead" : true,
+        "externalWrite" : false,
+        "requiresConfirmation" : false,
+        "systemSideEffect" : false,
+        "transferable" : false,
+        "uiAccessible" : true
+      },
+      "category" : "network",
+      "description" : "底部 Wi-Fi 指示使用点阵或弧线。",
+      "id" : "network.wifiBottomIndicatorStyle",
+      "options" : [
+        {
+          "id" : "dots",
+          "title" : "点阵",
+          "value" : "dots"
+        },
+        {
+          "id" : "arc",
+          "title" : "弧线",
+          "value" : "arc"
+        }
+      ],
+      "provider" : "core",
+      "storageKey" : "wifiBottomIndicatorStyle",
+      "title" : "Wi-Fi 底部样式",
+      "type" : "enumeration",
+      "uiPath" : "设置 › 网络 › 底部样式"
     },
     {
       "accessPolicy" : {

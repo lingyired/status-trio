@@ -6,9 +6,16 @@ Generated from `SettingsSemanticCatalog`. Do not edit by hand.
 |---|---|---|---|---|
 | `icon.airPods.ringUsesDualRing` | AirPods 使用双环 | `boolean` | — | airPodsRingUsesDualRing |
 | `icon.airPods.topSymbolInRing` | AirPods 顶部符号 | `boolean` | — | showsAirPodsTopSymbolInRing |
+| `icon.airPodsRingFallback` | AirPods 环回退来源 | `enumeration` | — | airPodsRingFallback |
+| `icon.appIconPlacement` | 图标显示位置 | `enumeration` | — | appIconPlacement |
 | `icon.center.source` | 中间槽来源 | `enumeration` | — | connectionCenterSource |
+| `icon.cpuRingCenterContent` | CPU 环中心内容 | `enumeration` | — | cpuRingCenterContentV1 |
+| `icon.dockIconBackground` | Dock 图标背景 | `enumeration` | — | dockIconBackgroundPreference |
 | `icon.footer.metric` | 底部指标的具体指标 | `enumeration` | — | — |
 | `icon.footer.source` | 底部指标来源 | `enumeration` | — | bottomIndicatorSource |
+| `icon.gpuRingCenterContent` | GPU 环中心内容 | `enumeration` | — | gpuRingCenterContentV1 |
+| `icon.inputSourceMarkerStyle` | 输入源标记样式 | `enumeration` | — | inputSourceMarkerStyle |
+| `icon.localPluginDirectories` | 本地图标插件目录 | `orderedList` | — | localIconPluginDirectories.v1 |
 | `icon.network.wifiIconForEthernet` | 以太网用 Wi-Fi 图标 | `boolean` | — | showsWiFiIconForEthernet |
 | `icon.network.wifiIconForHotspot` | 热点用 Wi-Fi 图标 | `boolean` | — | showsWiFiIconForHotspot |
 | `icon.network.wifiIconForInternetSharing` | 共享用 Wi-Fi 图标 | `boolean` | — | showsWiFiIconForInternetSharing |
@@ -20,3 +27,4 @@ Generated from `SettingsSemanticCatalog`. Do not edit by hand.
 | `icon.outerRing.hardware.splitGapProgress` | 硬件环断口进度 | `boolean` | — | hardwareRingSplitGapProgress |
 | `icon.outerRing.source` | 外环来源 | `enumeration` | — | outerRingContent |
 | `icon.ring.monochromeCharging` | 单色充电环 | `boolean` | — | monochromeChargingRing |
+| `icon.ringStrokeStyle` | 圆环描边粗细 | `enumeration` | — | ringStrokeStyle |
