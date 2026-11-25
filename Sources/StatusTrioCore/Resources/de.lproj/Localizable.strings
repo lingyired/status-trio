@@ -244,7 +244,8 @@
 "settings.battery.simulateNoBattery" = "Keine Batterie simulieren";
 "settings.battery.simulateNoBatteryDescription" = "Zeigt diese Seite so, wie sie auf einem Mac ohne Batterie aussieht. Nur Entwicklungsbuilds.";
 "settings.battery.noBatteryHiddenOptions" = "Dieser Mac hat keine Batterie: Prozentwert und Ladeanzeige gelten nicht. Der Ring ist standardmäßig schwarz-weiß; oben ausschalten für die Netzfarbe. Energiespar- und Hohe-Leistung-Modus behalten ihre Farben.";
-"settings.battery.colors.charging" = "Laden / Netzbetrieb";
+"settings.battery.colors.charging" = "Wird geladen";
+"settings.battery.colors.connected" = "Verbunden (lädt nicht)";
 "settings.battery.colors.lowPower" = "Stromsparmodus";
 "settings.battery.colors.critical" = "Kritisch niedriger Ladestand";
 "settings.battery.colors.system" = "Systemstandard";

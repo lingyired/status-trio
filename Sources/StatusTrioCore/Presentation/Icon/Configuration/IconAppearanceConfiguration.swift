@@ -214,26 +214,30 @@ extension InputSourceMarkerStyle: Codable {}
 struct BatteryStatusColorsConfiguration: Codable, Equatable, Sendable {
     var discharging: String
     var charging: String
+    var connected: String
     var lowPower: String
     var highPower: String
     var critical: String
 
     enum CodingKeys: String, CodingKey {
-        case discharging, charging, lowPower, highPower, critical
+        case discharging, charging, connected, lowPower, highPower, critical
     }
 
     static let classic = Self(
         discharging: "system",
         charging: "system",
+        connected: "system",
         lowPower: "system",
         highPower: "system",
         critical: "system"
     )
 
-    init(discharging: String = "system", charging: String = "system", lowPower: String = "system",
+    init(discharging: String = "system", charging: String = "system", connected: String = "system",
+         lowPower: String = "system",
          highPower: String = "system", critical: String = "system") {
         self.discharging = discharging
         self.charging = charging
+        self.connected = connected
         self.lowPower = lowPower
         self.highPower = highPower
         self.critical = critical
@@ -241,10 +245,14 @@ struct BatteryStatusColorsConfiguration: Codable, Equatable, Sendable {
 
     // Configurations saved before the discharging role existed lack its key, so
     // decode it with a system default instead of failing the whole document.
+    // Configurations saved before the connected role existed (#389) inherit the
+    // old merged charging colour, so an upgrade never changes the connected look.
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         discharging = try container.decodeIfPresent(String.self, forKey: .discharging) ?? "system"
-        charging = try container.decodeIfPresent(String.self, forKey: .charging) ?? "system"
+        let storedCharging = try container.decodeIfPresent(String.self, forKey: .charging) ?? "system"
+        charging = storedCharging
+        connected = try container.decodeIfPresent(String.self, forKey: .connected) ?? storedCharging
         lowPower = try container.decodeIfPresent(String.self, forKey: .lowPower) ?? "system"
         highPower = try container.decodeIfPresent(String.self, forKey: .highPower) ?? "system"
         critical = try container.decodeIfPresent(String.self, forKey: .critical) ?? "system"
@@ -254,6 +262,7 @@ struct BatteryStatusColorsConfiguration: Codable, Equatable, Sendable {
         self.init(
             discharging: colors.discharging.storageValue,
             charging: colors.charging.storageValue,
+            connected: colors.connected.storageValue,
             lowPower: colors.lowPower.storageValue,
             highPower: colors.highPower.storageValue,
             critical: colors.critical.storageValue
@@ -264,6 +273,7 @@ struct BatteryStatusColorsConfiguration: Codable, Equatable, Sendable {
         BatteryStatusColors(
             discharging: BatteryStatusColorSelection(storageValue: discharging),
             charging: BatteryStatusColorSelection(storageValue: charging),
+            connected: BatteryStatusColorSelection(storageValue: connected),
             lowPower: BatteryStatusColorSelection(storageValue: lowPower),
             highPower: BatteryStatusColorSelection(storageValue: highPower),
             critical: BatteryStatusColorSelection(storageValue: critical)

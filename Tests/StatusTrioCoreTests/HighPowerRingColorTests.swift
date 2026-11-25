@@ -55,7 +55,7 @@ final class HighPowerRingColorTests: XCTestCase {
             StatusMappings.batteryColorRole(
                 battery(percentage: 80, connectedToPower: true)
             ),
-            .charging
+            .connected
         )
     }
 

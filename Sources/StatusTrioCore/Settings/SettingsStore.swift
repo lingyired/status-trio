@@ -120,6 +120,7 @@ final class SettingsStore: ObservableObject {
     static let monochromeChargingRingDefaultsKey = "monochromeChargingRing"
     static let batteryStatusColorsDischargingDefaultsKey = "batteryStatusColors.discharging"
     static let batteryStatusColorsChargingDefaultsKey = "batteryStatusColors.charging"
+    static let batteryStatusColorsConnectedDefaultsKey = "batteryStatusColors.connected"
     static let batteryStatusColorsLowPowerDefaultsKey = "batteryStatusColors.lowPower"
     static let batteryStatusColorsHighPowerDefaultsKey = "batteryStatusColors.highPower"
     static let batteryStatusColorsCriticalDefaultsKey = "batteryStatusColors.critical"
@@ -820,6 +821,10 @@ final class SettingsStore: ObservableObject {
             defaults.set(
                 batteryStatusColors.charging.storageValue,
                 forKey: Self.batteryStatusColorsChargingDefaultsKey
+            )
+            defaults.set(
+                batteryStatusColors.connected.storageValue,
+                forKey: Self.batteryStatusColorsConnectedDefaultsKey
             )
             defaults.set(
                 batteryStatusColors.lowPower.storageValue,
@@ -2977,13 +2982,20 @@ final class SettingsStore: ObservableObject {
         self.monochromeChargingRing =
             defaults.object(forKey: Self.monochromeChargingRingDefaultsKey) as? Bool
         self.simulatesNoBattery = defaults.object(forKey: Self.simulatesNoBatteryDefaultsKey) as? Bool ?? false
+        // #389: `connected` used to share the charging colour. When the key is
+        // absent (an upgrade from a build that merged them), inherit the saved
+        // charging selection instead of jumping back to system, then persist it
+        // so later reads stay stable.
+        let storedChargingColor = defaults.string(forKey: Self.batteryStatusColorsChargingDefaultsKey) ?? "system"
+        let storedConnectedColor =
+            defaults.string(forKey: Self.batteryStatusColorsConnectedDefaultsKey) ?? storedChargingColor
+        let connectedSelection = BatteryStatusColorSelection(storageValue: storedConnectedColor)
         self.batteryStatusColors = BatteryStatusColors(
             discharging: BatteryStatusColorSelection(
                 storageValue: defaults.string(forKey: Self.batteryStatusColorsDischargingDefaultsKey) ?? "system"
             ),
-            charging: BatteryStatusColorSelection(
-                storageValue: defaults.string(forKey: Self.batteryStatusColorsChargingDefaultsKey) ?? "system"
-            ),
+            charging: BatteryStatusColorSelection(storageValue: storedChargingColor),
+            connected: connectedSelection,
             lowPower: BatteryStatusColorSelection(
                 storageValue: defaults.string(forKey: Self.batteryStatusColorsLowPowerDefaultsKey) ?? "system"
             ),
@@ -2994,6 +3006,12 @@ final class SettingsStore: ObservableObject {
                 storageValue: defaults.string(forKey: Self.batteryStatusColorsCriticalDefaultsKey) ?? "system"
             )
         )
+        if defaults.object(forKey: Self.batteryStatusColorsConnectedDefaultsKey) == nil {
+            defaults.set(
+                connectedSelection.storageValue,
+                forKey: Self.batteryStatusColorsConnectedDefaultsKey
+            )
+        }
         self.batterySymbolScale = Self.clampedBatterySymbolScale(
             storedBatterySymbolScale ?? Self.defaultBatterySymbolScale
         )

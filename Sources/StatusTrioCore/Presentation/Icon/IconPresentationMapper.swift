@@ -432,6 +432,7 @@ enum IconPresentationMapper {
         case .lowPower: .lowPower
         case .highPower: .highPower
         case .charging: .powered
+        case .connected: .connected
         }
         return (role, color)
     }

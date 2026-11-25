@@ -57,6 +57,22 @@ struct BatteryStatusColorsTests {
         #expect(SettingsStore(defaults: defaults).batteryStatusColors == .standard)
     }
 
+    @Test func connectedColourInheritsLegacyChargingOnUpgrade() throws {
+        let suite = "BatteryStatusColorsTests.\(UUID().uuidString)"
+        let defaults = try #require(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+        // #389: a build before the split stored one merged colour under charging.
+        defaults.set("preset:amber", forKey: SettingsStore.batteryStatusColorsChargingDefaultsKey)
+        let store = SettingsStore(defaults: defaults)
+        #expect(store.batteryStatusColors.charging == .preset(.amber))
+        #expect(store.batteryStatusColors.connected == .preset(.amber))
+        #expect(defaults.string(forKey: SettingsStore.batteryStatusColorsConnectedDefaultsKey) == "preset:amber")
+        // After the upgrade the two roles are independent.
+        store.batteryStatusColors.setSelection(.preset(.sky), for: .connected)
+        #expect(SettingsStore(defaults: defaults).batteryStatusColors.connected == .preset(.sky))
+        #expect(SettingsStore(defaults: defaults).batteryStatusColors.charging == .preset(.amber))
+    }
+
     @Test func sceneCopiesAndBothRenderKeysKeepColorsAndMonochromeIgnoresThem() throws {
         let colors = BatteryStatusColors(charging: .preset(.lavender), lowPower: .preset(.sky), critical: .preset(.rose))
         let scene = makeScene(colors: colors)

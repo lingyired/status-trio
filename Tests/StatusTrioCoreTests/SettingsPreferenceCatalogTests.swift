@@ -378,8 +378,11 @@ final class SettingsPreferenceCatalogTests: XCTestCase {
             XCTAssertEqual(prepared.warnings.count, 1)
             XCTAssertEqual(prepared.values["batteryStatusColors"], .object(["charging": .string("preset:amber")]))
             SettingsPreferenceCatalog.apply(prepared.values, to: store)
+            // #389: an object without a connected role inherits the imported
+            // charging colour, so an old export keeps the merged look.
             XCTAssertEqual(store.batteryStatusColors, BatteryStatusColors(
-                charging: .preset(.amber), lowPower: .preset(.mint), highPower: .preset(.sky), critical: .preset(.rose)
+                charging: .preset(.amber), connected: .preset(.amber),
+                lowPower: .preset(.mint), highPower: .preset(.sky), critical: .preset(.rose)
             ))
             let invalid = SettingsPreferenceCatalog.prepare(["batteryStatusColors": .object(["charging": .bool(true)])])
             XCTAssertEqual(invalid.warnings.count, 1)
@@ -408,7 +411,7 @@ final class SettingsPreferenceCatalogTests: XCTestCase {
         XCTAssertEqual(SettingsPreferenceCatalog.prepare(valid).values, valid)
         XCTAssertTrue(SettingsPreferenceCatalog.prepare(valid).warnings.isEmpty)
         let malformed: SettingsTransferValue = .object([
-            "discharging": .string("system"),
+            "discharging": .string("system"), "connected": .string("system"),
             "charging": .string("custom:0.2,0.3,2"), "lowPower": .string("system"),
             "highPower": .string("system"), "critical": .string("system")
         ])

@@ -13,6 +13,9 @@ enum IconColorRole: Equatable, Hashable, Sendable {
     /// High Power Mode ring colour (#235).
     case highPower
     case powered
+    /// Connected to power without charging (#389). Resolves to the user-chosen
+    /// connected colour; `.system` keeps the same green baseline as `powered`.
+    case connected
     /// The volume footer's Bluetooth tint.
     case bluetooth
     case custom(IconRGBA)

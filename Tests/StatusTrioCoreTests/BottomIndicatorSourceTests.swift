@@ -271,11 +271,11 @@ final class BottomIndicatorSourceTests: XCTestCase {
 
     func testBatteryFooterUsesTheSharedStatusColour() {
         // Same status → same colour as the top ring: critical, low power, and
-        // the charging / connected colour all come through the shared field.
+        // the charging / connected colours all come through the shared field.
         XCTAssertEqual(batteryFooterColor(batteryStatus(10)), .critical)
         XCTAssertEqual(batteryFooterColor(batteryStatus(50, lowPower: true)), .lowPower)
         XCTAssertEqual(batteryFooterColor(batteryStatus(50, charging: true)), .powered)
-        XCTAssertEqual(batteryFooterColor(batteryStatus(50, connectedToPower: true)), .powered)
+        XCTAssertEqual(batteryFooterColor(batteryStatus(50, connectedToPower: true)), .connected)
         XCTAssertEqual(batteryFooterColor(batteryStatus(50)), .discharging)
     }
 
