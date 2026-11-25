@@ -178,6 +178,8 @@ struct AppIconRingView: View {
     /// AirPods arc layout (single vs left/right dual) and its arc colours.
     private var airPodsArcGroup: some View {
         SettingsGroup(localization.string(.settingsHardwareRingGroupArc)) {
+            SettingsHintRow(text: localization.string(.settingsRingAirPodsRequirementsHint))
+            SettingsDivider()
             SettingsToggleRow(
                 symbol: "airpods",
                 tint: .blue,

@@ -202,6 +202,7 @@
 "settings.ringContent.airPodsRightArcColor.description" = "Colour of the right earbud's arc in the two-arc layout.";
 "settings.ringContent.airPodsSingleArcColor" = "Single-Arc Colour";
 "settings.ringContent.airPodsSingleArcColor.description" = "Colour of the single ring, also used when only an overall battery is reported.";
+"settings.ringContent.airPodsRequirementsHint" = "Reading AirPods battery needs Bluetooth permission for this app and “Show Bluetooth battery levels” enabled in Bluetooth settings.";
 "settings.ringContent.airPodsTopSymbol" = "Show AirPods Symbol";
 "settings.ringContent.airPodsTopSymbol.description" = "Draw the small AirPods glyph at the top of the ring.";
 "settings.ringContent.airPodsFallback" = "Respaldo sin AirPods";

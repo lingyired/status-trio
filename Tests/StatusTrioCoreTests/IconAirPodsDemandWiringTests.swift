@@ -89,6 +89,30 @@ final class IconAirPodsDemandWiringTests: XCTestCase {
         wiring.stop()
     }
 
+    /// Turning off Bluetooth battery levels must stop the AirPods read, but the
+    /// connection monitor stays claimed so re-enabling starts reading again.
+    func testBluetoothBatteryDisplayOffKeepsMonitorWithoutRead() async {
+        let (settings, defaults) = makeSettings()
+        defer { defaults.removePersistentDomain(forName: defaultsSuiteName) }
+        settings.outerRingContent = .airPodsBattery
+        settings.showsBluetoothBatteryLevels = false
+
+        let bluetooth = SpyBluetoothDemandSource()
+        bluetooth.setDevices([connectedAirPods])
+        let wiring = IconAirPodsDemandWiring(settings: settings, bluetooth: bluetooth)
+        wiring.start()
+        await settle()
+
+        XCTAssertEqual(bluetooth.activationRequests, [IconSourceDemandBridge.batteryLevelsToken])
+        XCTAssertTrue(bluetooth.batteryRequests.isEmpty)
+
+        settings.showsBluetoothBatteryLevels = true
+        await settle()
+        XCTAssertEqual(bluetooth.batteryRequests, [IconSourceDemandBridge.batteryLevelsToken])
+
+        wiring.stop()
+    }
+
     /// Without connected AirPods the lightweight connection monitor is still
     /// claimed so a later connection can start the read, but no battery read is.
     func testDisconnectedAirPodsKeepsMonitorWithoutBatteryRead() async {

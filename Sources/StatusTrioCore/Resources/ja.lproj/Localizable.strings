@@ -202,6 +202,7 @@
 "settings.ringContent.airPodsRightArcColor.description" = "2分割レイアウトで右イヤホンの残量を示す弧の色。";
 "settings.ringContent.airPodsSingleArcColor" = "単一弧の色";
 "settings.ringContent.airPodsSingleArcColor.description" = "単一弧レイアウトの色。全体の残量しか取得できない場合にも使われます。";
+"settings.ringContent.airPodsRequirementsHint" = "AirPods の残量を読み取るには、この App の Bluetooth 使用許可と、Bluetooth 設定の「Bluetooth デバイスのバッテリー残量を表示」を有効にする必要があります。";
 "settings.ringContent.airPodsTopSymbol" = "AirPodsシンボルを表示";
 "settings.ringContent.airPodsTopSymbol.description" = "リング上部に小さなAirPodsアイコンを描画します。";
 "settings.ringContent.airPodsFallback" = "AirPods 未接続時のフォールバック";

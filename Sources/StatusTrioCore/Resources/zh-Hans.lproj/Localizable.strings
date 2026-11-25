@@ -202,6 +202,7 @@
 "settings.ringContent.airPodsRightArcColor.description" = "双弧布局下右耳电量的弧颜色。";
 "settings.ringContent.airPodsSingleArcColor" = "单弧颜色";
 "settings.ringContent.airPodsSingleArcColor.description" = "单弧布局的颜色，也用于只上报整体电量时。";
+"settings.ringContent.airPodsRequirementsHint" = "读取 AirPods 电量需要允许本 App 使用蓝牙，并在「蓝牙」设置里开启「显示蓝牙设备电量」。";
 "settings.ringContent.airPodsTopSymbol" = "显示 AirPods 符号";
 "settings.ringContent.airPodsTopSymbol.description" = "在环顶部绘制小的 AirPods 符号。";
 "settings.ringContent.airPodsFallback" = "无 AirPods 时回退";

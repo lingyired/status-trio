@@ -88,6 +88,7 @@ final class IconAirPodsDemandWiring {
         Publishers.MergeMany([
             settings.$_refreshesAirPodsBatteryForIcon.map { _ in () }.eraseToAnyPublisher(),
             settings.$_airPodsIconDeviceAddress.map { _ in () }.eraseToAnyPublisher(),
+            settings.$showsBluetoothBatteryLevels.map { _ in () }.eraseToAnyPublisher(),
             bluetooth.devicesPublisher.map { _ in () }.eraseToAnyPublisher(),
             bluetooth.batteryLevelsPublisher.map { _ in () }.eraseToAnyPublisher(),
             bluetooth.batteryLevelsUpdatedAtPublisher.map { _ in () }.eraseToAnyPublisher(),
@@ -143,7 +144,11 @@ final class IconAirPodsDemandWiring {
         onBluetoothDemandChange(IconSourceDemandPolicy.requiresBluetoothMonitor(in: configuration))
         bridge.reconcile(
             configuration: configuration,
-            userOptedInToBackgroundBattery: settings.refreshesAirPodsBatteryForIcon || needsAirPods,
+            // A selected ring is not enough on its own: the Bluetooth battery
+            // display must be on, otherwise no level is read and the ring would
+            // fall back silently. The settings pane tells the user this.
+            userOptedInToBackgroundBattery: settings.refreshesAirPodsBatteryForIcon
+                || (needsAirPods && settings.showsBluetoothBatteryLevels),
             bluetoothDevices: bluetooth.devices,
             selectedAirPodsAddress: settings.airPodsIconDeviceAddress,
             requestActivation: { [weak self] token in

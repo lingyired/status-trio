@@ -896,6 +896,7 @@ enum LocalizationKey: String, CaseIterable, Hashable, Sendable {
     case settingsRingAirPodsRightArcColorDescription = "settings.ringContent.airPodsRightArcColor.description"
     case settingsRingAirPodsSingleArcColor = "settings.ringContent.airPodsSingleArcColor"
     case settingsRingAirPodsSingleArcColorDescription = "settings.ringContent.airPodsSingleArcColor.description"
+    case settingsRingAirPodsRequirementsHint = "settings.ringContent.airPodsRequirementsHint"
     case settingsRingAirPodsTopSymbol = "settings.ringContent.airPodsTopSymbol"
     case settingsRingAirPodsTopSymbolDescription = "settings.ringContent.airPodsTopSymbol.description"
     case settingsRingAirPodsFallback = "settings.ringContent.airPodsFallback"
