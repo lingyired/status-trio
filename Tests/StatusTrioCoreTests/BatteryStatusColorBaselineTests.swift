@@ -29,6 +29,7 @@ struct BatteryStatusColorBaselineTests {
             appearance.performAsCurrentDrawingAppearance {
                 let green = NSColor.systemGreen.usingColorSpace(.deviceRGB)
                 #expect(palette.charging == green?.cgColor, "\(name.rawValue)")
+                #expect(palette.connected == green?.cgColor, "\(name.rawValue)")
                 #expect(palette.lowPower == NSColor.systemYellow.usingColorSpace(.deviceRGB)?.cgColor)
                 #expect(palette.critical == NSColor.systemRed.usingColorSpace(.deviceRGB)?.cgColor)
             }

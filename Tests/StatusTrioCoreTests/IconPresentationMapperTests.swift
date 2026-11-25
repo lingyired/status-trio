@@ -106,7 +106,7 @@ final class IconPresentationMapperTests: XCTestCase {
             monochromeCharging: false
         )
         let connectedRing = scene(snapshot: snapshot(battery: plain), batteryOptions: connectedOptions).outerRing
-        XCTAssertEqual(connectedRing?.segments, [RingSegmentState(progress: 1, color: .powered)])
+        XCTAssertEqual(connectedRing?.segments, [RingSegmentState(progress: 1, color: .connected)])
     }
 
     func testABatteryLessMacCanShowTheChosenBoltMarker() {

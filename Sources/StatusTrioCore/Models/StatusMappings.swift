@@ -13,7 +13,11 @@ enum BatteryColorRole: Equatable, Sendable {
     /// `lowPower`; it wins over `charging` because High Power Mode is itself a
     /// connected-power state.
     case highPower
+    /// Actively charging (gaining charge).
     case charging
+    /// Connected to power without charging (#389). Split from `charging` so the
+    /// two states resolve independent colours.
+    case connected
 }
 
 /// What fills the battery arc's top gap.
@@ -62,17 +66,21 @@ enum StatusMappings {
         /// reflects the "connected to power" colour (#309). Charging and
         /// Low/High Power Mode keep their usual precedence.
         treatAsConnected: Bool = false,
-        /// When on, the charging / connected-to-power state draws in the plain
-        /// foreground colour instead of the charging colour (#309). Low, High
-        /// Power Mode and critical keep their own colours.
+        /// When on, the charging / connected-to-power states draw in the plain
+        /// foreground colour instead of their own colour (#309). Low, High
+        /// Power Mode and critical keep their own colours. It covers both
+        /// `charging` and `connected`.
         monochromeCharging: Bool = false
     ) -> BatteryColorRole {
         let threshold = min(100, max(0, criticalThreshold))
         if battery.percentage < threshold { return .critical }
         if battery.isLowPowerMode { return .lowPower }
         if isHighPowerMode { return .highPower }
-        if battery.isCharging || battery.isConnectedToPower || treatAsConnected {
+        if battery.isCharging {
             return monochromeCharging ? .foreground : .charging
+        }
+        if battery.isConnectedToPower || treatAsConnected {
+            return monochromeCharging ? .foreground : .connected
         }
         return .discharging
     }
