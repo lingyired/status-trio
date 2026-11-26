@@ -66,11 +66,21 @@ public final class SMLegacyChargeLimitProbeReply: NSObject, NSSecureCoding {
         intelBCLMPresent = coder.decodeBool(forKey: "intelBCLMPresent")
         siliconPairPresent = coder.decodeBool(forKey: "siliconPairPresent")
         siliconCHTEPresent = coder.decodeBool(forKey: "siliconCHTEPresent")
-        architectureName = coder.decodeObject(forKey: "architectureName") as? String ?? ""
-        osBandName = coder.decodeObject(forKey: "osBandName") as? String ?? ""
+        // Use the typed secure-decoding API for the nested objects. NSXPC's
+        // secure decoder only allows `SMLegacyChargeLimitProbeReply` itself for
+        // the reply argument; the insecure `decodeObject(forKey:)` then fails
+        // class validation for the nested `NSString` and the whole reply is
+        // dropped ("Exception caught during decoding of reply … allowed classes
+        // are 'SMLegacyChargeLimitProbeReply'"), which the app then surfaces as
+        // "helper required". `decodeObject(of:forKey:)` supplies the class
+        // explicitly and decodes correctly.
+        architectureName =
+            (coder.decodeObject(of: NSString.self, forKey: "architectureName") as String?) ?? ""
+        osBandName = (coder.decodeObject(of: NSString.self, forKey: "osBandName") as String?) ?? ""
         let raw = coder.decodeInteger(forKey: "errorCode")
         errorCode = SMLegacyChargeLimitErrorCode(rawValue: raw) ?? .unknown
-        errorDescription = coder.decodeObject(forKey: "errorDescription") as? String
+        errorDescription =
+            coder.decodeObject(of: NSString.self, forKey: "errorDescription") as String?
     }
 
     public func encode(with coder: NSCoder) {
@@ -116,7 +126,10 @@ public final class SMLegacyChargeLimitWriteReply: NSObject, NSSecureCoding {
         verified = coder.decodeBool(forKey: "verified")
         let raw = coder.decodeInteger(forKey: "errorCode")
         errorCode = SMLegacyChargeLimitErrorCode(rawValue: raw) ?? .unknown
-        errorDescription = coder.decodeObject(forKey: "errorDescription") as? String
+        // Typed secure decoding for the nested string, for the same NSXPC
+        // reply-decoding reason as `SMLegacyChargeLimitProbeReply`.
+        errorDescription =
+            coder.decodeObject(of: NSString.self, forKey: "errorDescription") as String?
     }
 
     public func encode(with coder: NSCoder) {
