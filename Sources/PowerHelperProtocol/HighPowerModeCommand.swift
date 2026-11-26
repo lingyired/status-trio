@@ -91,4 +91,14 @@ public enum HighPowerModeCommand {
         }
         return sawPowerModeKey ? false : nil
     }
+
+    /// Whether `pmset -g` reports the unified `powermode` key. Present on
+    /// macOS 26+ and on later 15.x firmware (e.g. 15.8) — the accepted write key
+    /// follows the running system, not the marketing version alone. Detected
+    /// live so the write never guesses wrong on back-ported firmware.
+    public static func usesUnifiedPowerModeKey(fromPmsetOutput output: String) -> Bool {
+        output.split(whereSeparator: \.isNewline).contains { line in
+            line.split(whereSeparator: { $0 == " " || $0 == "\t" }).first == "powermode"
+        }
+    }
 }

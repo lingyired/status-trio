@@ -133,19 +133,34 @@ struct SystemPmsetRunner: PmsetRunning {
 
     private let timeout: Duration
     private let executableURL: URL
-    /// Which `pmset` key the High Power Mode write uses: `powermode` on
-    /// macOS 26+, `highpowermode` before that. Injected so the daemon and its
-    /// tests agree regardless of the host's macOS version.
-    private let usesUnifiedPowerModeKey: Bool
+    /// Optional override for which `pmset` key the High Power Mode write uses:
+    /// `powermode` (unified switch) vs `highpowermode` (legacy). `nil` — the
+    /// production default — detects it from `pmset -g`, because the accepted key
+    /// follows the running system/firmware, not just the version (e.g. macOS
+    /// 15.8 already reports `powermode`). Tests inject an explicit value.
+    private let usesUnifiedPowerModeKeyOverride: Bool?
 
     init(
         timeout: Duration = SystemPmsetRunner.defaultTimeout,
         executableURL: URL = URL(fileURLWithPath: LowPowerModeCommand.pmsetPath),
-        usesUnifiedPowerModeKey: Bool = HighPowerModeCommand.runningOSUsesUnifiedPowerModeKey
+        usesUnifiedPowerModeKey: Bool? = nil
     ) {
         self.timeout = timeout
         self.executableURL = executableURL
-        self.usesUnifiedPowerModeKey = usesUnifiedPowerModeKey
+        self.usesUnifiedPowerModeKeyOverride = usesUnifiedPowerModeKey
+    }
+
+    /// Uses the injected override when present; otherwise detects which key the
+    /// running system actually exposes in `pmset -g` (a `powermode` line means
+    /// the unified switch), falling back to the OS-based guess.
+    private func resolvedUsesUnifiedPowerModeKey() async -> Bool {
+        if let override = usesUnifiedPowerModeKeyOverride { return override }
+        if let outcome = try? await run(arguments: ["-g"], capturesOutput: true),
+           outcome.status == 0,
+           HighPowerModeCommand.usesUnifiedPowerModeKey(fromPmsetOutput: outcome.output) {
+            return true
+        }
+        return HighPowerModeCommand.runningOSUsesUnifiedPowerModeKey
     }
 
     func setLowPowerMode(enabled: Bool) async throws {
@@ -160,7 +175,7 @@ struct SystemPmsetRunner: PmsetRunning {
             // `powermode 0` is Automatic: it clears High Power Mode. Pass the
             // OS-appropriate key (the legacy `highpowermode` on older macOS).
             _ = try? await runWrite(arguments: HighPowerModeCommand.arguments(
-                enabled: false, usesUnifiedPowerModeKey: usesUnifiedPowerModeKey
+                enabled: false, usesUnifiedPowerModeKey: await resolvedUsesUnifiedPowerModeKey()
             ))
         }
         try await runWrite(arguments: LowPowerModeCommand.arguments(enabled: enabled))
@@ -203,7 +218,7 @@ struct SystemPmsetRunner: PmsetRunning {
             _ = try? await runWrite(arguments: LowPowerModeCommand.arguments(enabled: false))
         }
         try await runWrite(arguments: HighPowerModeCommand.arguments(
-            enabled: enabled, usesUnifiedPowerModeKey: usesUnifiedPowerModeKey
+            enabled: enabled, usesUnifiedPowerModeKey: await resolvedUsesUnifiedPowerModeKey()
         ))
     }
 
