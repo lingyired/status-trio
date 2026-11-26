@@ -33,6 +33,7 @@ final class AppEnvironment {
     private var chargingEffectCancellables = Set<AnyCancellable>()
     private var inputSourceLifecycleCancellables = Set<AnyCancellable>()
     private var hardwareRingDemandWiring: IconHardwareDemandWiring?
+    private var airPodsDemandWiring: IconAirPodsDemandWiring?
     private var hardwareSamplingSettingsCancellables = Set<AnyCancellable>()
     private var localIconDemandWiring: IconLiveDemandWiring?
     private var localIconPluginCancellables = Set<AnyCancellable>()
@@ -110,6 +111,7 @@ final class AppEnvironment {
         memoryPressureMonitor.start()
         iconPresentation.start()
         startHardwareRingDemand()
+        startAirPodsDemand()
         startHardwareSamplingSettings()
         startLocalIconPluginRuntime()
         hardwareBackgroundDemandController.start()
@@ -218,6 +220,8 @@ final class AppEnvironment {
         inputSourceController.stop()
         appIconController.stop()
         mainMenuController.stop()
+        airPodsDemandWiring?.stop()
+        airPodsDemandWiring = nil
         store.stop()
         hardwareBackgroundDemandController.stop()
         hardwareRingDemandWiring?.stop()
@@ -304,6 +308,24 @@ final class AppEnvironment {
             demands: iconPresentation.$demand.eraseToAnyPublisher(),
             placements: settings.$appIconPlacement.eraseToAnyPublisher()
         )
+    }
+
+    /// Keeps the AirPods battery ring fed while it is the outer-ring source.
+    /// The claim is driven by the live icon configuration, and every battery
+    /// update triggers a repaint so the menu bar and Dock show the new level.
+    private func startAirPodsDemand() {
+        let wiring = IconAirPodsDemandWiring(
+            settings: settings,
+            bluetooth: store.bluetoothDevices,
+            onBluetoothDemandChange: { [weak self] active in
+                self?.store.setIconBluetoothDemand(active)
+            },
+            onRefresh: { [weak self] in
+                self?.iconPresentation.refresh()
+            }
+        )
+        airPodsDemandWiring = wiring
+        wiring.start()
     }
 
     /// Applies the temperature-monitoring switch to the shared sampler. Keeping
@@ -554,10 +576,12 @@ final class AppEnvironment {
             refreshInterval: refreshInterval,
             bluetoothDevices: BluetoothDeviceController(
                 // The accessory power sources are the second battery source, read
-                // only for the devices the paired-device report carries no level
-                // for; accessory notifications are what make a level refresh
-                // between the safety-net polls.
-                accessoryBatteryReader: PmsetAccessoryBatteryWorker(),
+                // only for a level the paired-device report cannot supply and for
+                // the charging state the summary rows draw. IOKit is the cheap
+                // path; `pmset` stays as the fallback when the private symbol or
+                // its coverage is not there. Accessory notifications are what
+                // make a refresh happen between the safety-net polls.
+                accessoryBatteryReader: SystemAccessoryBatteryWorker(),
                 connectionEvents: IOBluetoothConnectionEventMonitor(),
                 accessoryBatteryEvents: AccessoryPowerNotifyEventMonitor(),
                 // Constructing the adapter is inert; its CBCentralManager is
@@ -579,6 +603,15 @@ final class AppEnvironment {
         // animation can be compared on and off on a machine that is not charging.
         if ChargingEffectTestMode.shouldForceChargingInput() {
             settings.setChargingEffectTestInputEnabled(true)
+        }
+        // Apply a per-worktree development test profile after settings migration
+        // and before controllers/monitoring start, so a dev build boots already in
+        // the state the task needs. Release/App Store builds never load one.
+        if DevelopmentProfileLoader.isDevelopmentBuild() {
+            let appVersion = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String
+            let profileService = SettingsServiceFactory.make(for: settings, appVersion: appVersion)
+            let run = DevelopmentProfileBootstrap.runAtLaunch(service: profileService)
+            NSLog("StatusTrio development profile: %@", run.log.joined(separator: " | "))
         }
         let store = makeStore(
             batteryMonitor: BatteryMonitor(),
@@ -657,7 +690,8 @@ final class AppEnvironment {
                     batteryLevels: store.bluetoothDevices.batteryLevels,
                     batteryLevelsUpdatedAt: store.bluetoothDevices.batteryLevelsUpdatedAt,
                     selectedAirPodsAddress: settings.airPodsIconDeviceAddress,
-                    selectedConnectedDeviceAddress: settings.bluetoothNetworkIconDeviceAddress
+                    selectedConnectedDeviceAddress: settings.bluetoothNetworkIconDeviceAddress,
+                    holdsAirPodsBattery: settings.outerRingContent == .airPodsBattery
                 )
                 let hardwareSnapshot = store.hardwareMetrics.observable.snapshot
                 inputs.sources.hardwareMetrics = hardwareSnapshot

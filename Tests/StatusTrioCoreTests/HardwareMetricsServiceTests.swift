@@ -580,7 +580,7 @@ final class HardwareMetricsServiceTests: XCTestCase {
     func testPanelDemandUsesConfiguredCadence() async {
         let clock = Clock()
         let service = HardwareMetricsService(automaticScheduling: false, now: { clock.date }, reader: { _, _ in .empty })
-        service.panelIntervalSeconds = 5
+        service.panelCadenceProvider = { _ in 5 }
         service.begin(.panel, metrics: [.networkDownload])
         XCTAssertEqual(service.currentTickIntervalForTesting, 5, "panel-open cadence is configurable")
         service.begin(.menuBarArc, metrics: [.networkDownload])
@@ -593,7 +593,7 @@ final class HardwareMetricsServiceTests: XCTestCase {
     func testBackgroundDemandUsesConfiguredCadence() async {
         let clock = Clock()
         let service = HardwareMetricsService(automaticScheduling: false, now: { clock.date }, reader: { _, _ in .empty })
-        service.backgroundIntervalSeconds = 30
+        service.backgroundCadenceProvider = { _ in 30 }
         service.begin(.background, metrics: [.networkDownload])
         XCTAssertEqual(service.currentTickIntervalForTesting, 30)
         service.begin(.panel, metrics: [.networkDownload])
@@ -679,7 +679,7 @@ final class HardwareMetricsServiceTests: XCTestCase {
         let recorder = Recorder()
         let service = HardwareMetricsService(automaticScheduling: false, now: { clock.date },
                                              reader: recorder.countingReader(usage: 10))
-        service.panelIntervalSeconds = 5
+        service.panelCadenceProvider = { _ in 5 }
         service.begin(.menuBarArc, metrics: [.cpuUsage])
         service.begin(.dock, metrics: [.cpuUsage])
         service.begin(.panel, metrics: [.cpuUsage, .diskRead, .diskWrite])
@@ -693,7 +693,7 @@ final class HardwareMetricsServiceTests: XCTestCase {
 
         // A slow panel sensor that no icon needs stays at the panel cadence even
         // while an unrelated fast metric is also demanded.
-        service.panelIntervalSeconds = 3
+        service.panelCadenceProvider = { _ in 3 }
         service.begin(.panel, metrics: [.cpuTemperature])
         service.begin(.menuBarCenter, metrics: [.networkDownload])
         XCTAssertEqual(service.intervalForTesting(.cpuTemperature), 4,

@@ -14,6 +14,7 @@ extension IconPresentationResourceResolver {
         selectedAirPodsAddress: String? = nil,
         selectedConnectedDeviceAddress: String? = nil,
         bluetoothAvailability: BluetoothAvailability? = nil,
+        holdsAirPodsBattery: Bool = false,
         now: Date = .now
     ) -> IconSourceSnapshot {
         let networkAvailability: IconSourceAvailability
@@ -56,8 +57,14 @@ extension IconPresentationResourceResolver {
         case let .selected(value):
             let age = now.timeIntervalSince(value.observedAt)
             let isFresh = (0...AirPodsBatteryIconSnapshot.freshnessInterval).contains(age)
-            airPodsBattery = isFresh ? value : nil
-            airPodsAvailability = isFresh ? .available : .unavailable(.temporarilyStale)
+            // While the icon holds the AirPods battery (it is the ring source),
+            // keep the last reading on screen past the freshness window instead
+            // of dropping to the fallback ring. The background claim keeps the
+            // reading current; the hold only stops a quiet interval from
+            // flickering the level away.
+            let isUsable = isFresh || holdsAirPodsBattery
+            airPodsBattery = isUsable ? value : nil
+            airPodsAvailability = isUsable ? .available : .unavailable(.temporarilyStale)
         case .needsSelection:
             airPodsBattery = nil
             airPodsAvailability = .unavailable(.unknown)
@@ -108,6 +115,7 @@ extension IconPresentationResourceResolver {
             RingSource.airPodsBattery.rawValue: airPodsAvailability,
             FooterSource.systemVolume.rawValue: volumeAvailability
         ], airPodsBattery: airPodsBattery, connectedBluetoothDeviceSymbol: connectedDeviceSymbol,
-           connectedBluetoothDeviceIsAudio: connectedDeviceIsAudio)
+           connectedBluetoothDeviceIsAudio: connectedDeviceIsAudio,
+           holdingSourceIDs: holdsAirPodsBattery ? [RingSource.airPodsBattery.rawValue] : [])
     }
 }

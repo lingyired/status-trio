@@ -50,13 +50,21 @@ enum BluetoothBatteryLevelFallback {
     /// A report that could not be read is the other case this covers: with no
     /// levels to compare against, the only way to show anything is to ask the
     /// second source.
+    ///
+    /// `needsChargingState` adds the other reason to read: a surface that draws
+    /// the bolt wants the accessory state for devices whose level the primary
+    /// report already carries. It must be driven by an actual consumer (the
+    /// panel/detail rows), never by the mere fact that a level exists, so a
+    /// menu-bar-only demand does not start a second read.
     static func isNeeded(
         levels: [String: BluetoothBatteryLevel]?,
-        devices: [BluetoothDevice]
+        devices: [BluetoothDevice],
+        needsChargingState: Bool = false
     ) -> Bool {
         let connected = devices.filter(\.isConnected)
         guard !connected.isEmpty else { return false }
         guard let levels else { return true }
+        if needsChargingState { return true }
         return connected.contains {
             levels[BluetoothBatteryReader.normalizedAddress($0.id)] == nil
         }
@@ -68,6 +76,12 @@ enum BluetoothBatteryLevelFallback {
     ///
     /// A disconnected device is never given a level here: it has no live session,
     /// so an accessory source that still names it is stale, not a reading.
+    ///
+    /// The accessory source also owns the charging state the primary report never
+    /// carries. For a device that already has a level, only the four charging
+    /// fields are filled in, and only where they are still unknown: the level
+    /// itself is never changed or removed, and a channel without a level is not
+    /// given a state the row could not draw.
     static func merged(
         levels: [String: BluetoothBatteryLevel],
         accessories: [BluetoothAccessoryBatteryLevel],
@@ -77,10 +91,13 @@ enum BluetoothBatteryLevelFallback {
         let attributed = attributedReadings(accessories: accessories, devices: devices)
         for device in devices where device.isConnected {
             let address = BluetoothBatteryReader.normalizedAddress(device.id)
-            guard !address.isEmpty, merged[address] == nil else { continue }
-            guard let readings = attributed[address] else { continue }
-            guard let level = channelLevel(for: device, readings: readings) else { continue }
-            merged[address] = level
+            guard !address.isEmpty, let readings = attributed[address] else { continue }
+            guard let accessoryLevel = channelLevel(for: device, readings: readings) else { continue }
+            if let existing = merged[address] {
+                merged[address] = existing.fillingCharging(from: accessoryLevel)
+            } else {
+                merged[address] = accessoryLevel
+            }
         }
         return merged
     }
@@ -391,21 +408,44 @@ enum BluetoothBatteryLevelFallback {
         var left: Int?
         var right: Int?
         var caseLevel: Int?
+        var mainIsCharging: Bool?
+        var leftIsCharging: Bool?
+        var rightIsCharging: Bool?
+        var caseIsCharging: Bool?
         for accessory in readings {
             switch accessory.part {
-            case .none: main = main ?? accessory.percentage
-            case .left: left = left ?? accessory.percentage
-            case .right: right = right ?? accessory.percentage
-            case .caseLevel: caseLevel = caseLevel ?? accessory.percentage
+            case .none:
+                main = main ?? accessory.percentage
+                mainIsCharging = mainIsCharging ?? accessory.isCharging
+            case .left:
+                left = left ?? accessory.percentage
+                leftIsCharging = leftIsCharging ?? accessory.isCharging
+            case .right:
+                right = right ?? accessory.percentage
+                rightIsCharging = rightIsCharging ?? accessory.isCharging
+            case .caseLevel:
+                caseLevel = caseLevel ?? accessory.percentage
+                caseIsCharging = caseIsCharging ?? accessory.isCharging
             }
         }
-        guard main != nil || left != nil || right != nil || caseLevel != nil else { return nil }
+        // A charging-only reading is a valid result: it can add the bolt to a
+        // level the primary report already carries, so only a reading with neither
+        // a capacity nor a state is discarded.
+        guard main != nil || left != nil || right != nil || caseLevel != nil
+            || mainIsCharging != nil || leftIsCharging != nil
+            || rightIsCharging != nil || caseIsCharging != nil else {
+            return nil
+        }
         return BluetoothBatteryLevel(
             deviceAddress: device.id,
             main: main,
             left: left,
             right: right,
-            caseLevel: caseLevel
+            caseLevel: caseLevel,
+            mainIsCharging: mainIsCharging,
+            leftIsCharging: leftIsCharging,
+            rightIsCharging: rightIsCharging,
+            caseIsCharging: caseIsCharging
         )
     }
 

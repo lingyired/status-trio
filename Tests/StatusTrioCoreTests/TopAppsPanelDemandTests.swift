@@ -170,4 +170,28 @@ final class TopAppsPanelDemandTests: XCTestCase {
         XCTAssertTrue(service.isStopped)
         XCTAssertNil(service.demand)
     }
+
+    func testTopAppsRefreshIntervalIsIndependentOfPanelGroups() {
+        let (fixture, service) = makeFixture()
+        let panel = startVisible(fixture)
+        defer {
+            panel.showSummaryPage()
+            panel.stop()
+            fixture.store.setPopoverVisible(false)
+            fixture.store.stop()
+        }
+
+        fixture.settings.hardwareTopAppsRefreshSeconds = 9
+        panel.showHardwareDetail(.cpu)
+        XCTAssertEqual(service.demand, .cpu)
+        XCTAssertEqual(service.minimumIntervalSeconds, 9)
+
+        // The list follows its own setting, not the CPU group's panel cadence.
+        fixture.settings.hardwareCPUUsageRefreshSeconds = 3
+        XCTAssertEqual(service.minimumIntervalSeconds, 9)
+
+        // Changing the dedicated setting while the page is open updates it live.
+        fixture.settings.hardwareTopAppsRefreshSeconds = 30
+        XCTAssertEqual(service.minimumIntervalSeconds, 30)
+    }
 }

@@ -195,7 +195,14 @@
 "settings.ringContent.airPodsBattery" = "AirPods Battery";
 "settings.ringContent.airPodsGroup" = "AirPods Ring";
 "settings.ringContent.airPodsDualRing" = "Two-Arc Layout";
-"settings.ringContent.airPodsDualRing.description" = "Draw each earbud's battery as its own arc.";
+"settings.ringContent.airPodsDualRing.description" = "Draw each earbud's battery as its own arc. If only one earbud's level is reported, both arcs show that value; the charging case is not counted.";
+"settings.ringContent.airPodsLeftArcColor" = "Left Arc Colour";
+"settings.ringContent.airPodsLeftArcColor.description" = "Colour of the left earbud's arc in the two-arc layout.";
+"settings.ringContent.airPodsRightArcColor" = "Right Arc Colour";
+"settings.ringContent.airPodsRightArcColor.description" = "Colour of the right earbud's arc in the two-arc layout.";
+"settings.ringContent.airPodsSingleArcColor" = "Single-Arc Colour";
+"settings.ringContent.airPodsSingleArcColor.description" = "Colour of the single ring, also used when only an overall battery is reported.";
+"settings.ringContent.airPodsRequirementsHint" = "Turn on “Show Bluetooth battery levels” in Bluetooth settings to read the AirPods battery.";
 "settings.ringContent.airPodsTopSymbol" = "Show AirPods Symbol";
 "settings.ringContent.airPodsTopSymbol.description" = "Draw the small AirPods glyph at the top of the ring.";
 "settings.ringContent.airPodsFallback" = "Запасной вариант без AirPods";
@@ -244,7 +251,8 @@
 "settings.battery.simulateNoBattery" = "Имитировать отсутствие батареи";
 "settings.battery.simulateNoBatteryDescription" = "Показывает эту страницу так, как она выглядит на Mac без батареи. Только в сборках для разработки.";
 "settings.battery.noBatteryHiddenOptions" = "На этом Mac нет батареи: процент и индикатор зарядки не применяются. Кольцо по умолчанию чёрно-белое; выключите выше, чтобы использовать цвет питания. Режимы энергосбережения и высокой мощности сохраняют цвета.";
-"settings.battery.colors.charging" = "Зарядка / питание от сети";
+"settings.battery.colors.charging" = "Заряжается";
+"settings.battery.colors.connected" = "Подключено (не заряжается)";
 "settings.battery.colors.lowPower" = "Режим энергосбережения";
 "settings.battery.colors.critical" = "Критически низкий заряд";
 "settings.battery.colors.system" = "По умолчанию системы";
@@ -1320,17 +1328,17 @@
 "hardware.monitor.mbps" = "МБ/с";
 "hardware.monitor.gbps" = "ГБ/с";
 "hardware.monitor.settings.topApps" = "Показывать топ-приложения";
-"hardware.monitor.settings.topApps.description" = "Показывает самые активные процессы внизу страниц деталей. Отключите, чтобы экономить CPU.";
+"hardware.monitor.settings.topApps.description" = "Показывать самые нагруженные процессы внизу страницы деталей. Отключите, чтобы сэкономить ЦП.";
 "hardware.monitor.settings.speedCaps.title" = "Предел скорости сети";
 "hardware.monitor.settings.speedCaps.description" = "Дуги загрузки/отправки на кольце всегда используют эти пределы; график скорости использует их как полную шкалу только при включённой фиксированной шкале сети.";
 "hardware.monitor.settings.networkScale" = "Фиксированная шкала сети";
 "hardware.monitor.settings.networkScale.description" = "Выкл.: авто-масштаб по пику окна с запасом 15 %. Вкл.: пределы загрузки/отправки как полная шкала.";
-"hardware.monitor.settings.background" = "Хранить историю";
-"hardware.monitor.settings.background.description" = "Сохраняет историю оборудования до 5 минут при закрытой панели с указанным выше темпом, чтобы детали открывались с трендом.";
+"hardware.monitor.settings.background" = "Хранить историю в фоне";
+"hardware.monitor.settings.background.description" = "Продолжать запись при закрытой панели, чтобы на странице деталей был график; ограничено длиной графика.";
 "hardware.monitor.background.off" = "Выкл.";
 "hardware.monitor.background.seconds" = "%d с";
-"hardware.monitor.settings.historyWindow" = "Длина истории";
-"hardware.monitor.settings.historyWindow.description" = "Насколько глубоко хранится тренд на странице деталей.";
+"hardware.monitor.settings.historyWindow" = "Длина графика";
+"hardware.monitor.settings.historyWindow.description" = "Сколько минут графика на странице деталей хранить. Влияет только на длину графика, не на частоту опроса.";
 "hardware.monitor.settings.historyWindow.minutes" = "%d мин";
 "hardware.monitor.settings.panelRefresh" = "Интервал обновления данных оборудования";
 "hardware.monitor.settings.panelRefresh.description" = "Как часто обновляются данные оборудования. При включённой фоновой истории закрытая панель сохраняет тот же темп. Быстрее — нагляднее, но больше чтений; медленнее — экономит энергию.";
@@ -1344,7 +1352,7 @@
 
 /* Status-panel per-item visibility */
 "hardware.monitor.settings.group.rings" = "Показатели колец";
-"hardware.monitor.settings.group.sampling" = "Сэмплинг и тренды";
+"hardware.monitor.settings.group.sampling" = "Частота обновления панели";
 "hardware.monitor.settings.group.bottomBar" = "Нижняя панель";
 "hardware.monitor.settings.item.diskCapacity" = "Ёмкость диска";
 "hardware.monitor.settings.showSummaryRow.description" = "Показывать загрузку, отдачу, вентилятор и диск I/O под кольцами.";
@@ -1481,3 +1489,14 @@
 "settings.localPlugins.unauthorized" = "Для локальных JSON-пакетов нужна разрешённая папка.";
 "settings.localPlugins.loadFailed" = "Не удалось прочитать папку пакета.";
 "settings.localPlugins.reload" = "Перезагрузить";
+
+"hardware.monitor.settings.refresh.cpuUsage" = "Загрузка ЦП";
+"hardware.monitor.settings.refresh.gpuUsage" = "Загрузка ГП";
+"hardware.monitor.settings.refresh.memory" = "Память";
+"hardware.monitor.settings.refresh.network" = "Сеть";
+"hardware.monitor.settings.refresh.temperature" = "Температура";
+"hardware.monitor.settings.refresh.disk" = "Дисковый ввод-вывод";
+"hardware.monitor.settings.refresh.topApps" = "Обновление топ-приложений";
+"hardware.monitor.settings.refresh.topApps.description" = "Как часто обновляется список на странице деталей. Список памяти сохраняет свой минимум 6 с.";
+"hardware.monitor.settings.group.sampling.footnote" = "Панель и значки строки меню/Dock используют одну и ту же выборку оборудования. Эти интервалы задают только частоту обновления панели; значки остаются отзывчивыми, оборудование не читается дважды.";
+"settings.hardwareRing.iconRefreshNote" = "Значок обновляется с самой высокой частотой каждой метрики (ЦП/ГП около 2 с, сеть/диск около 1 с, температура около 4 с) и перерисовывается только при изменении содержимого, чтобы оставаться отзывчивым. Частота обновления панели на него не влияет.";

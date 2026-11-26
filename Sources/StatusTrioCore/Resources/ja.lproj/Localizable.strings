@@ -195,7 +195,14 @@
 "settings.ringContent.airPodsBattery" = "AirPodsバッテリー";
 "settings.ringContent.airPodsGroup" = "AirPodsリング";
 "settings.ringContent.airPodsDualRing" = "2分割レイアウト";
-"settings.ringContent.airPodsDualRing.description" = "左右のイヤホン残量をそれぞれの弧で描画します。";
+"settings.ringContent.airPodsDualRing.description" = "左右のイヤホン残量をそれぞれの弧で描きます。片側の残量しか取得できない場合は両方の弧に同じ値を表示し、充電ケースは含みません。";
+"settings.ringContent.airPodsLeftArcColor" = "左イヤホンの弧の色";
+"settings.ringContent.airPodsLeftArcColor.description" = "2分割レイアウトで左イヤホンの残量を示す弧の色。";
+"settings.ringContent.airPodsRightArcColor" = "右イヤホンの弧の色";
+"settings.ringContent.airPodsRightArcColor.description" = "2分割レイアウトで右イヤホンの残量を示す弧の色。";
+"settings.ringContent.airPodsSingleArcColor" = "単一弧の色";
+"settings.ringContent.airPodsSingleArcColor.description" = "単一弧レイアウトの色。全体の残量しか取得できない場合にも使われます。";
+"settings.ringContent.airPodsRequirementsHint" = "Bluetooth 設定の「Bluetooth デバイスのバッテリー残量を表示」を有効にすると AirPods の残量を読み取れます。";
 "settings.ringContent.airPodsTopSymbol" = "AirPodsシンボルを表示";
 "settings.ringContent.airPodsTopSymbol.description" = "リング上部に小さなAirPodsアイコンを描画します。";
 "settings.ringContent.airPodsFallback" = "AirPods 未接続時のフォールバック";
@@ -244,7 +251,8 @@
 "settings.battery.simulateNoBattery" = "バッテリーなしをシミュレート";
 "settings.battery.simulateNoBatteryDescription" = "バッテリーのない Mac での表示を再現します。開発ビルドのみ。";
 "settings.battery.noBatteryHiddenOptions" = "この Mac にはバッテリーがありません。残量パーセントと充電インジケーターは適用されません。リングは既定で白黒です。上でオフにすると電源接続色になります。低電力モードと高電力モードはそれぞれの色を保ちます。";
-"settings.battery.colors.charging" = "充電中 / 電源接続中";
+"settings.battery.colors.charging" = "充電中";
+"settings.battery.colors.connected" = "電源接続（充電していません）";
 "settings.battery.colors.lowPower" = "低電力モード";
 "settings.battery.colors.critical" = "バッテリー残量がわずか";
 "settings.battery.colors.system" = "システムのデフォルト";
@@ -1320,17 +1328,17 @@
 "hardware.monitor.mbps" = "MB/s";
 "hardware.monitor.gbps" = "GB/s";
 "hardware.monitor.settings.topApps" = "高負荷アプリを表示";
-"hardware.monitor.settings.topApps.description" = "詳細ページ下部に最も負荷の高いプロセスを表示します。オフにすると CPU を節約できます。";
+"hardware.monitor.settings.topApps.description" = "詳細ページ下部に最も使用率の高いプロセスを表示します。オフにするとCPUを節約できます。";
 "hardware.monitor.settings.speedCaps.title" = "ネットワーク速度上限";
 "hardware.monitor.settings.speedCaps.description" = "アイコンリングのダウンロード/アップロード弧は常にこの上限を使い、速度トレンドは「固定ネットワークスケール」がオンのときだけ満点として使います。";
 "hardware.monitor.settings.networkScale" = "ネットワーク目盛り固定";
 "hardware.monitor.settings.networkScale.description" = "オフ：ウィンドウ内のピークに自動スケール（15%余白）。オン：ダウンロード/アップロード上限を満点にします。";
 "hardware.monitor.settings.background" = "バックグラウンド履歴を保持";
-"hardware.monitor.settings.background.description" = "パネルを閉じている間も上の更新頻度で最大5分のハードウェア履歴を保持し、詳細ページを傾向付きで開けるようにします。";
+"hardware.monitor.settings.background.description" = "パネルを閉じても記録を続け、詳細ページで推移を見られるようにします。保持期間は「グラフの長さ」までです。";
 "hardware.monitor.background.off" = "オフ";
 "hardware.monitor.background.seconds" = "%d 秒";
-"hardware.monitor.settings.historyWindow" = "履歴の長さ";
-"hardware.monitor.settings.historyWindow.description" = "詳細ページの傾向をどこまで保持するか。";
+"hardware.monitor.settings.historyWindow" = "グラフの長さ";
+"hardware.monitor.settings.historyWindow.description" = "詳細ページのグラフを何分保持するか。グラフの長さだけに影響し、サンプリング頻度は変わりません。";
 "hardware.monitor.settings.historyWindow.minutes" = "%d 分";
 "hardware.monitor.settings.panelRefresh" = "ハードウェアデータの更新間隔";
 "hardware.monitor.settings.panelRefresh.description" = "ハードウェアデータの更新頻度です。バックグラウンド履歴をオンにすると、閉じたパネルでも同じ頻度で記録します。速いほどリアルタイムですが読み取りが増え、遅いほど省電力です。";
@@ -1344,7 +1352,7 @@
 
 /* Status-panel per-item visibility */
 "hardware.monitor.settings.group.rings" = "リング指標";
-"hardware.monitor.settings.group.sampling" = "サンプリングとトレンド";
+"hardware.monitor.settings.group.sampling" = "パネルの更新頻度";
 "hardware.monitor.settings.group.bottomBar" = "下部バー";
 "hardware.monitor.settings.item.diskCapacity" = "ディスク容量";
 "hardware.monitor.settings.showSummaryRow.description" = "リングの下にダウンロード・アップロード・ファン・ディスク I/O を表示します。";
@@ -1481,3 +1489,14 @@
 "settings.localPlugins.unauthorized" = "ローカル JSON パッケージには許可されたフォルダーが必要です。";
 "settings.localPlugins.loadFailed" = "パッケージフォルダーを読み取れませんでした。";
 "settings.localPlugins.reload" = "再読み込み";
+
+"hardware.monitor.settings.refresh.cpuUsage" = "CPU使用率";
+"hardware.monitor.settings.refresh.gpuUsage" = "GPU使用率";
+"hardware.monitor.settings.refresh.memory" = "メモリ";
+"hardware.monitor.settings.refresh.network" = "ネットワーク";
+"hardware.monitor.settings.refresh.temperature" = "温度";
+"hardware.monitor.settings.refresh.disk" = "ディスクI/O";
+"hardware.monitor.settings.refresh.topApps" = "上位アプリの更新";
+"hardware.monitor.settings.refresh.topApps.description" = "詳細ページ下部のリストの更新間隔。メモリのリストは独自の下限6秒を保ちます。";
+"hardware.monitor.settings.group.sampling.footnote" = "パネルとメニューバー/Dockのアイコンは同じハードウェアサンプルを共有します。この間隔はパネルの更新頻度だけを決め、アイコンは機敏なまま、ハードウェアを二重に読みません。";
+"settings.hardwareRing.iconRefreshNote" = "アイコンは各指標の最も速い周期で更新され（CPU/GPU 約2秒、ネットワーク/ディスク約1秒、温度約4秒）、表示内容が変わったときだけ再描画して機敏さを保ちます。「パネルの更新頻度」の影響は受けません。";

@@ -545,6 +545,38 @@ final class BluetoothDemandLifecycleTests: XCTestCase {
         XCTAssertEqual(cache.storedEntryCount, 0)
     }
 
+    /// The always-visible menu-bar ring is an owning Bluetooth consumer: while
+    /// the AirPods ring is selected the store must keep the controller active
+    /// and its rows loaded, so the empty-demand path cannot reset availability
+    /// and leave the icon/panel stuck on their loading placeholder.
+    func testIconBluetoothDemandKeepsBluetoothRowsLoadedUntilReleased() async {
+        let fixture = makeFixture(authorization: .allowed)
+        fixture.store.bindBluetoothSettings(fixture.settings)
+        fixture.store.start()
+
+        fixture.store.setIconBluetoothDemand(true)
+        await waitUntil { fixture.reader.readCount == 1 }
+        fixture.reader.complete(.success([
+            BluetoothDevice(
+                id: "AA:BB:CC:DD:EE:FF",
+                name: "机灵的AirPods",
+                kind: .audio,
+                isConnected: true,
+                airPodsModel: .airPodsPro
+            )
+        ]))
+        await waitUntil { fixture.store.bluetoothDevices.devices.count == 1 }
+        await settle()
+
+        XCTAssertEqual(fixture.store.bluetoothDevices.availability, .available)
+        XCTAssertEqual(fixture.store.bluetoothDevices.devices.count, 1)
+
+        fixture.store.setIconBluetoothDemand(false)
+        await waitUntil { fixture.store.bluetoothDevices.devices.isEmpty }
+        XCTAssertEqual(fixture.store.bluetoothDevices.availability, .idle)
+        fixture.store.stop()
+    }
+
     private func makeFixture(
         authorization: BluetoothAuthorizationStatus
     ) -> DemandFixture {

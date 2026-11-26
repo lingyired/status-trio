@@ -195,7 +195,14 @@
 "settings.ringContent.airPodsBattery" = "AirPods 电量";
 "settings.ringContent.airPodsGroup" = "AirPods 环";
 "settings.ringContent.airPodsDualRing" = "双弧布局";
-"settings.ringContent.airPodsDualRing.description" = "把左右耳电量各画成一段弧。";
+"settings.ringContent.airPodsDualRing.description" = "左右耳各用一条弧显示电量。只有一只耳有电量时，两条弧都显示该值；充电盒不参与计算。";
+"settings.ringContent.airPodsLeftArcColor" = "左耳弧颜色";
+"settings.ringContent.airPodsLeftArcColor.description" = "双弧布局下左耳电量的弧颜色。";
+"settings.ringContent.airPodsRightArcColor" = "右耳弧颜色";
+"settings.ringContent.airPodsRightArcColor.description" = "双弧布局下右耳电量的弧颜色。";
+"settings.ringContent.airPodsSingleArcColor" = "单弧颜色";
+"settings.ringContent.airPodsSingleArcColor.description" = "单弧布局的颜色，也用于只上报整体电量时。";
+"settings.ringContent.airPodsRequirementsHint" = "在「蓝牙」设置里开启「显示蓝牙设备电量」才能读取 AirPods 电量。";
 "settings.ringContent.airPodsTopSymbol" = "显示 AirPods 符号";
 "settings.ringContent.airPodsTopSymbol.description" = "在环顶部绘制小的 AirPods 符号。";
 "settings.ringContent.airPodsFallback" = "无 AirPods 时回退";
@@ -244,7 +251,8 @@
 "settings.battery.simulateNoBattery" = "模拟无电池";
 "settings.battery.simulateNoBatteryDescription" = "按 Mac 没有电池时的样子显示本页。仅开发版可用。";
 "settings.battery.noBatteryHiddenOptions" = "这台 Mac 没有电池：电量百分比和充电指示不适用。圆环默认黑白，可在上面关闭以使用连接电源色；低电量和高电量模式仍用各自颜色。";
-"settings.battery.colors.charging" = "充电 / 连接电源";
+"settings.battery.colors.charging" = "充电中";
+"settings.battery.colors.connected" = "已连接电源（未充电）";
 "settings.battery.colors.lowPower" = "低电量模式";
 "settings.battery.colors.critical" = "临界低电量";
 "settings.battery.colors.system" = "系统默认";
@@ -1326,11 +1334,11 @@
 "hardware.monitor.settings.networkScale" = "固定网络趋势刻度";
 "hardware.monitor.settings.networkScale.description" = "关闭：按窗口峰值自动缩放（留 15% 余量）；开启：以下载/上传上限为满格。";
 "hardware.monitor.settings.background" = "保留后台历史";
-"hardware.monitor.settings.background.description" = "面板关闭时按上面的刷新频率保留最多 5 分钟的硬件历史，打开详情页即可看到趋势。";
+"hardware.monitor.settings.background.description" = "面板关闭时也继续记录，打开详情页就能看到之前的趋势；最多保留「趋势时长」那么长。";
 "hardware.monitor.background.off" = "关闭";
 "hardware.monitor.background.seconds" = "%d 秒";
-"hardware.monitor.settings.historyWindow" = "历史时长";
-"hardware.monitor.settings.historyWindow.description" = "详情页趋势保留多久。";
+"hardware.monitor.settings.historyWindow" = "趋势时长";
+"hardware.monitor.settings.historyWindow.description" = "详情页曲线最多回看几分钟的数据；只影响曲线长度，不影响采样频率。";
 "hardware.monitor.settings.historyWindow.minutes" = "%d 分钟";
 "hardware.monitor.settings.panelRefresh" = "硬件数据刷新间隔";
 "hardware.monitor.settings.panelRefresh.description" = "硬件数据的刷新频率。开启后台历史后，关闭面板也按同样频率记录。越快越实时但读取更多，越慢越省电。";
@@ -1344,7 +1352,7 @@
 
 /* Status-panel per-item visibility */
 "hardware.monitor.settings.group.rings" = "圆环指标";
-"hardware.monitor.settings.group.sampling" = "采样与趋势";
+"hardware.monitor.settings.group.sampling" = "面板更新频率";
 "hardware.monitor.settings.group.bottomBar" = "底部信息栏";
 "hardware.monitor.settings.item.diskCapacity" = "磁盘容量";
 "hardware.monitor.settings.showSummaryRow.description" = "在圆环下方显示下载、上传、风扇转速和磁盘 I/O，可单独关闭某一项。";
@@ -1481,3 +1489,14 @@
 "settings.localPlugins.unauthorized" = "本地 JSON 包需要已授权的目录。";
 "settings.localPlugins.loadFailed" = "无法读取包目录。";
 "settings.localPlugins.reload" = "重新加载";
+
+"hardware.monitor.settings.refresh.cpuUsage" = "CPU 占用";
+"hardware.monitor.settings.refresh.gpuUsage" = "GPU 占用";
+"hardware.monitor.settings.refresh.memory" = "内存";
+"hardware.monitor.settings.refresh.network" = "网络";
+"hardware.monitor.settings.refresh.temperature" = "温度";
+"hardware.monitor.settings.refresh.disk" = "磁盘读写";
+"hardware.monitor.settings.refresh.topApps" = "高占用应用刷新间隔";
+"hardware.monitor.settings.refresh.topApps.description" = "详情页底部列表的刷新间隔。内存列表受自身 6 秒下限限制，不会更快。";
+"hardware.monitor.settings.group.sampling.footnote" = "面板与菜单栏/Dock 图标共用同一次硬件采样。下面的间隔只决定面板多久刷新一次，图标仍保持灵敏，不会重复读取硬件。";
+"settings.hardwareRing.iconRefreshNote" = "图标按各指标的最快节奏刷新（CPU/GPU 约 2 秒，网络/磁盘约 1 秒，温度约 4 秒），仅在显示内容变化时重绘，以保持灵敏；不受「面板更新频率」影响。";

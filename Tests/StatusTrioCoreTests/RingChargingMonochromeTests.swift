@@ -73,7 +73,7 @@ final class RingChargingMonochromeTests: XCTestCase {
         )
     }
 
-    func testChargingAndConnectedUseChargingColourWhenOff() {
+    func testChargingAndConnectedUseOwnColourWhenOff() {
         XCTAssertEqual(
             ringColor(battery(percentage: 80, charging: true, connectedToPower: true),
                       options: options(monochromeCharging: false)),
@@ -82,7 +82,7 @@ final class RingChargingMonochromeTests: XCTestCase {
         XCTAssertEqual(
             ringColor(battery(percentage: 80, connectedToPower: true),
                       options: options(monochromeCharging: false)),
-            .powered
+            .connected
         )
     }
 
@@ -96,7 +96,7 @@ final class RingChargingMonochromeTests: XCTestCase {
     func testBatteryLessExplicitOffUsesConnectedColour() {
         XCTAssertEqual(
             ringColor(.absent, options: options(monochromeCharging: false)),
-            .powered
+            .connected
         )
     }
 

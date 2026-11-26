@@ -195,7 +195,14 @@
 "settings.ringContent.airPodsBattery" = "AirPods Battery";
 "settings.ringContent.airPodsGroup" = "AirPods Ring";
 "settings.ringContent.airPodsDualRing" = "Two-Arc Layout";
-"settings.ringContent.airPodsDualRing.description" = "Draw each earbud's battery as its own arc.";
+"settings.ringContent.airPodsDualRing.description" = "Draw each earbud's battery as its own arc. If only one earbud's level is reported, both arcs show that value; the charging case is not counted.";
+"settings.ringContent.airPodsLeftArcColor" = "Left Arc Colour";
+"settings.ringContent.airPodsLeftArcColor.description" = "Colour of the left earbud's arc in the two-arc layout.";
+"settings.ringContent.airPodsRightArcColor" = "Right Arc Colour";
+"settings.ringContent.airPodsRightArcColor.description" = "Colour of the right earbud's arc in the two-arc layout.";
+"settings.ringContent.airPodsSingleArcColor" = "Single-Arc Colour";
+"settings.ringContent.airPodsSingleArcColor.description" = "Colour of the single ring, also used when only an overall battery is reported.";
+"settings.ringContent.airPodsRequirementsHint" = "Turn on “Show Bluetooth battery levels” in Bluetooth settings to read the AirPods battery.";
 "settings.ringContent.airPodsTopSymbol" = "Show AirPods Symbol";
 "settings.ringContent.airPodsTopSymbol.description" = "Draw the small AirPods glyph at the top of the ring.";
 "settings.ringContent.airPodsFallback" = "AirPods 미연결 시 대체";
@@ -244,7 +251,8 @@
 "settings.battery.simulateNoBattery" = "배터리 없음 시뮬레이션";
 "settings.battery.simulateNoBatteryDescription" = "배터리가 없는 Mac에서의 모습으로 이 페이지를 표시합니다. 개발 빌드 전용입니다.";
 "settings.battery.noBatteryHiddenOptions" = "이 Mac에는 배터리가 없습니다. 잔량 퍼센트와 충전 표시기는 적용되지 않습니다. 링은 기본적으로 흑백이며, 위에서 끄면 전원 연결 색을 사용합니다. 저전력·고전력 모드는 각자의 색을 유지합니다.";
-"settings.battery.colors.charging" = "충전 중 / 전원 연결";
+"settings.battery.colors.charging" = "충전 중";
+"settings.battery.colors.connected" = "전원 연결됨 (충전 중 아님)";
 "settings.battery.colors.lowPower" = "저전력 모드";
 "settings.battery.colors.critical" = "배터리 잔량 매우 부족";
 "settings.battery.colors.system" = "시스템 기본값";
@@ -1319,17 +1327,17 @@
 "hardware.monitor.mbps" = "MB/s";
 "hardware.monitor.gbps" = "GB/s";
 "hardware.monitor.settings.topApps" = "고부하 앱 표시";
-"hardware.monitor.settings.topApps.description" = "세부 페이지 하단에 가장 부하가 큰 프로세스를 표시합니다. 끄면 CPU를 절약합니다.";
+"hardware.monitor.settings.topApps.description" = "상세 페이지 하단에 사용량이 가장 높은 프로세스를 표시합니다. 끄면 CPU를 절약합니다.";
 "hardware.monitor.settings.speedCaps.title" = "네트워크 속도 상한";
 "hardware.monitor.settings.speedCaps.description" = "아이콘 링의 다운로드/업로드 호는 항상 이 상한을 사용하며, 속도 추세 그래프는 ‘고정 네트워크 눈금’이 켜졌을 때만 최대 눈금으로 사용합니다.";
 "hardware.monitor.settings.networkScale" = "네트워크 눈금 고정";
 "hardware.monitor.settings.networkScale.description" = "끔: 창 최대값에 맞춰 자동 조정(15% 여유). 켬: 다운로드/업로드 상한을 최대 눈금으로 사용합니다.";
 "hardware.monitor.settings.background" = "백그라운드 기록 유지";
-"hardware.monitor.settings.background.description" = "패널이 닫혀 있어도 위 갱신 주기로 최대 5분간 하드웨어 기록을 유지하여, 세부 페이지를 추세와 함께 엽니다.";
+"hardware.monitor.settings.background.description" = "패널을 닫아도 계속 기록하여 상세 페이지에서 추세를 볼 수 있습니다. 보관 기간은 '그래프 길이'까지입니다.";
 "hardware.monitor.background.off" = "끔";
 "hardware.monitor.background.seconds" = "%d초";
-"hardware.monitor.settings.historyWindow" = "기록 길이";
-"hardware.monitor.settings.historyWindow.description" = "세부 페이지 추세를 어디까지 보관할지.";
+"hardware.monitor.settings.historyWindow" = "그래프 길이";
+"hardware.monitor.settings.historyWindow.description" = "상세 페이지 그래프를 몇 분 동안 보관할지입니다. 그래프 길이에만 영향을 주며 샘플링 빈도는 바뀌지 않습니다.";
 "hardware.monitor.settings.historyWindow.minutes" = "%d분";
 "hardware.monitor.settings.panelRefresh" = "하드웨어 데이터 새로 고침 간격";
 "hardware.monitor.settings.panelRefresh.description" = "하드웨어 데이터 갱신 빈도입니다. 배경 기록을 켜면 닫힌 패널도 같은 주기로 기록합니다. 빠를수록 실시간에 가깝지만 더 많이 읽고, 느릴수록 전력을 아낍니다.";
@@ -1343,7 +1351,7 @@
 
 /* Status-panel per-item visibility */
 "hardware.monitor.settings.group.rings" = "링 지표";
-"hardware.monitor.settings.group.sampling" = "샘플링 및 추세";
+"hardware.monitor.settings.group.sampling" = "패널 업데이트 주기";
 "hardware.monitor.settings.group.bottomBar" = "하단 표시줄";
 "hardware.monitor.settings.item.diskCapacity" = "디스크 용량";
 "hardware.monitor.settings.showSummaryRow.description" = "링 아래에 다운로드, 업로드, 팬, 디스크 I/O를 표시합니다.";
@@ -1481,3 +1489,14 @@
 "settings.localPlugins.loadFailed" = "패키지 폴더를 읽을 수 없습니다.";
 "settings.localPlugins.reload" = "다시 로드";
 "settings.battery.colors.discharging" = "방전 중 (전원 미연결)";
+
+"hardware.monitor.settings.refresh.cpuUsage" = "CPU 사용량";
+"hardware.monitor.settings.refresh.gpuUsage" = "GPU 사용량";
+"hardware.monitor.settings.refresh.memory" = "메모리";
+"hardware.monitor.settings.refresh.network" = "네트워크";
+"hardware.monitor.settings.refresh.temperature" = "온도";
+"hardware.monitor.settings.refresh.disk" = "디스크 I/O";
+"hardware.monitor.settings.refresh.topApps" = "상위 앱 새로 고침";
+"hardware.monitor.settings.refresh.topApps.description" = "상세 페이지 하단 목록의 새로 고침 간격입니다. 메모리 목록은 자체 6초 하한을 유지합니다.";
+"hardware.monitor.settings.group.sampling.footnote" = "패널과 메뉴 막대/Dock 아이콘은 하나의 하드웨어 샘플을 공유합니다. 이 간격은 패널 새로 고침 빈도만 결정하며, 아이콘은 계속 빠르게 반응하고 하드웨어를 두 번 읽지 않습니다.";
+"settings.hardwareRing.iconRefreshNote" = "아이콘은 각 지표의 가장 빠른 주기로 갱신되며(CPU/GPU 약 2초, 네트워크/디스크 약 1초, 온도 약 4초), 표시 내용이 바뀔 때만 다시 그려 빠르게 반응합니다. '패널 업데이트 주기'의 영향을 받지 않습니다.";

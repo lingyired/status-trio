@@ -178,7 +178,14 @@
 "settings.ringContent.airPodsBattery" = "AirPods Battery";
 "settings.ringContent.airPodsGroup" = "AirPods Ring";
 "settings.ringContent.airPodsDualRing" = "Two-Arc Layout";
-"settings.ringContent.airPodsDualRing.description" = "Draw each earbud's battery as its own arc.";
+"settings.ringContent.airPodsDualRing.description" = "Draw each earbud's battery as its own arc. If only one earbud's level is reported, both arcs show that value; the charging case is not counted.";
+"settings.ringContent.airPodsLeftArcColor" = "Left Arc Colour";
+"settings.ringContent.airPodsLeftArcColor.description" = "Colour of the left earbud's arc in the two-arc layout.";
+"settings.ringContent.airPodsRightArcColor" = "Right Arc Colour";
+"settings.ringContent.airPodsRightArcColor.description" = "Colour of the right earbud's arc in the two-arc layout.";
+"settings.ringContent.airPodsSingleArcColor" = "Single-Arc Colour";
+"settings.ringContent.airPodsSingleArcColor.description" = "Colour of the single ring, also used when only an overall battery is reported.";
+"settings.ringContent.airPodsRequirementsHint" = "Turn on “Show Bluetooth battery levels” in Bluetooth settings to read the AirPods battery.";
 "settings.ringContent.airPodsTopSymbol" = "Show AirPods Symbol";
 "settings.ringContent.airPodsTopSymbol.description" = "Draw the small AirPods glyph at the top of the ring.";
 "settings.ringContent.airPodsFallback" = "البديل عند غياب AirPods";
@@ -227,7 +234,8 @@
 "settings.battery.simulateNoBattery" = "محاكاة عدم وجود بطارية";
 "settings.battery.simulateNoBatteryDescription" = "يعرض هذه الصفحة كما تظهر على Mac بدون بطارية. في إصدارات التطوير فقط.";
 "settings.battery.noBatteryHiddenOptions" = "لا توجد بطارية في هذا الـ Mac: النسبة المئوية ومؤشر الشحن لا ينطبقان. الحلقة أبيض وأسود افتراضيًا؛ أوقفه أعلى لاستخدام لون توصيل الطاقة. يحتفظ وضعا الطاقة المنخفضة والعالية بألوانهما.";
-"settings.battery.colors.charging" = "الشحن / الاتصال بالطاقة";
+"settings.battery.colors.charging" = "يشحن";
+"settings.battery.colors.connected" = "موصول بالطاقة (لا يشحن)";
 "settings.battery.colors.lowPower" = "وضع الطاقة المنخفضة";
 "settings.battery.colors.critical" = "انخفاض حرج في البطارية";
 "settings.battery.colors.system" = "إعداد النظام الافتراضي";
@@ -1320,17 +1328,17 @@
 "hardware.monitor.mbps" = "MB/s";
 "hardware.monitor.gbps" = "GB/s";
 "hardware.monitor.settings.topApps" = "إظهار التطبيقات الأكثر استهلاكًا";
-"hardware.monitor.settings.topApps.description" = "يعرض العمليات الأكثر نشاطًا أسفل صفحات التفاصيل. أوقفه لتوفير المعالج.";
+"hardware.monitor.settings.topApps.description" = "عرض العمليات الأعلى استخدامًا أسفل صفحة التفاصيل. أوقفه لتوفير بعض المعالج.";
 "hardware.monitor.settings.speedCaps.title" = "حد سرعة الشبكة";
 "hardware.monitor.settings.speedCaps.description" = "تستخدم أقواس التنزيل/الرفع في حلقة الأيقونة هذه الحدود دائمًا؛ ويستخدمها مخطط السرعة كمقياس كامل فقط عند تفعيل مقياس الشبكة الثابت.";
 "hardware.monitor.settings.networkScale" = "مقياس الشبكة الثابت";
 "hardware.monitor.settings.networkScale.description" = "إيقاف: تحجيم تلقائي حسب ذروة النافذة بهامش 15%. تشغيل: حدود التنزيل/الرفع كمقياس كامل.";
-"hardware.monitor.settings.background" = "الاحتفاظ بالسجل";
-"hardware.monitor.settings.background.description" = "يحتفظ بما يصل إلى 5 دقائق من سجل العتاد أثناء إغلاق اللوحة بالمعدل أعلاه، لتُفتح صفحة التفاصيل مع اتجاه.";
+"hardware.monitor.settings.background" = "الاحتفاظ بالسجل في الخلفية";
+"hardware.monitor.settings.background.description" = "متابعة التسجيل أثناء إغلاق اللوحة كي تعرض صفحة التفاصيل اتجاهها؛ بحدود مدة المخطط.";
 "hardware.monitor.background.off" = "إيقاف";
 "hardware.monitor.background.seconds" = "%d ث";
-"hardware.monitor.settings.historyWindow" = "مدة السجل";
-"hardware.monitor.settings.historyWindow.description" = "إلى أي مدى يُحفظ اتجاه صفحة التفاصيل.";
+"hardware.monitor.settings.historyWindow" = "مدة المخطط";
+"hardware.monitor.settings.historyWindow.description" = "عدد دقائق مخطط صفحة التفاصيل التي يتم الاحتفاظ بها. يؤثر فقط في طول المخطط لا في وتيرة أخذ العينات.";
 "hardware.monitor.settings.historyWindow.minutes" = "%d د";
 "hardware.monitor.settings.panelRefresh" = "فترة تحديث بيانات العتاد";
 "hardware.monitor.settings.panelRefresh.description" = "معدل تحديث بيانات العتاد. عند تفعيل السجل في الخلفية، تحتفظ اللوحة المغلقة بالمعدل نفسه. الأسرع أكثر حيوية لكنه يقرأ أكثر، والأبطأ يوفر الطاقة.";
@@ -1344,7 +1352,7 @@
 
 /* Status-panel per-item visibility */
 "hardware.monitor.settings.group.rings" = "مؤشرات الحلقات";
-"hardware.monitor.settings.group.sampling" = "الاستعيان والاتجاهات";
+"hardware.monitor.settings.group.sampling" = "معدل تحديث اللوحة";
 "hardware.monitor.settings.group.bottomBar" = "الشريط السفلي";
 "hardware.monitor.settings.item.diskCapacity" = "سعة القرص";
 "hardware.monitor.settings.showSummaryRow.description" = "إظهار التنزيل والرفع والمروحة وإدخال/إخراج القرص أسفل الحلقات.";
@@ -1481,3 +1489,14 @@
 "settings.localPlugins.unauthorized" = "تتطلب حزم JSON المحلية مجلدًا مصرحًا به.";
 "settings.localPlugins.loadFailed" = "تعذر قراءة مجلد الحزمة.";
 "settings.localPlugins.reload" = "إعادة تحميل";
+
+"hardware.monitor.settings.refresh.cpuUsage" = "استخدام المعالج";
+"hardware.monitor.settings.refresh.gpuUsage" = "استخدام وحدة الرسوميات";
+"hardware.monitor.settings.refresh.memory" = "الذاكرة";
+"hardware.monitor.settings.refresh.network" = "الشبكة";
+"hardware.monitor.settings.refresh.temperature" = "الحرارة";
+"hardware.monitor.settings.refresh.disk" = "إدخال/إخراج القرص";
+"hardware.monitor.settings.refresh.topApps" = "تحديث التطبيقات الأعلى";
+"hardware.monitor.settings.refresh.topApps.description" = "كم مرة يتم تحديث قائمة صفحة التفاصيل. تحتفظ قائمة الذاكرة بحدها الأدنى البالغ 6 ثوانٍ.";
+"hardware.monitor.settings.group.sampling.footnote" = "تتشارك اللوحة وأيقونات شريط القوائم/Dock العينة نفسها من العتاد. تحدد هذه الفواصل وتيرة تحديث اللوحة فقط؛ وتبقى الأيقونات سريعة الاستجابة دون قراءة العتاد مرتين.";
+"settings.hardwareRing.iconRefreshNote" = "تتحدث الأيقونة بأسرع وتيرة لكل مقياس (المعالج/الرسوميات نحو ثانيتين، الشبكة/القرص نحو ثانية، الحرارة نحو 4 ثوانٍ)، ولا يُعاد رسمها إلا عند تغيّر المحتوى لتبقى سريعة الاستجابة. لا تتأثر بمعدل تحديث اللوحة.";

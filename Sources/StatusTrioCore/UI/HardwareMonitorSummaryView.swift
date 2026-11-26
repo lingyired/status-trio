@@ -49,7 +49,7 @@ struct HardwareMonitorSummaryView: View {
 
     private var visibleItems: [HardwareSummaryMetricPresentation] {
         HardwareMonitorSummaryPresentation.items(
-            snapshot: model.summarySnapshot, localization: localization
+            snapshot: model.panelSummarySnapshot, localization: localization
         ).filter { summaryMetrics.contains($0.metric) }
     }
 

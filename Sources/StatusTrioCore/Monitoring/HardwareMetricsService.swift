@@ -24,6 +24,15 @@ final class HardwareMonitorObservable: ObservableObject {
     /// Last measured (valued) sample per metric, retained across close/stale so
     /// the panel can show the previous reading instead of flashing an em dash.
     private var lastKnown: [HardwareMetricID: HardwareMetricSample] = [:]
+    /// Panel-facing throttle state. The physical sampler stays live (`stored`) so
+    /// icons keep their fast cadence; the panel reads a copy that only adopts a
+    /// group's latest values once that group's cadence has elapsed ("到点取最近
+    /// 样本"). Disabled (all zero) means the panel copy tracks live.
+    private var panelStored: HardwareMetricsSnapshot
+    private var panelLastEmit: [HardwareRefreshGroup: Date] = [:]
+    /// Cadence the panel view should adopt each group at, in seconds. Zero
+    /// disables throttling for that group. Set from settings by the view model.
+    var panelDisplayCadence: @MainActor (HardwareRefreshGroup) -> TimeInterval = { _ in 0 }
     private let snapshotSubject = PassthroughSubject<HardwareMetricsSnapshot, Never>()
     /// Panel-session history of the primary hardware metrics, kept to the
     /// largest selectable detail window (5 minutes). The detail page trims its
@@ -35,9 +44,20 @@ final class HardwareMonitorObservable: ObservableObject {
         .networkDownload, .networkUpload, .diskRead, .diskWrite
     ]
 
-    init(snapshot: HardwareMetricsSnapshot = .empty) { self.stored = snapshot }
+    init(snapshot: HardwareMetricsSnapshot = .empty) {
+        self.stored = snapshot
+        self.panelStored = snapshot
+    }
 
     var snapshot: HardwareMetricsSnapshot { stored }
+
+    /// Panel-facing snapshot: the live samples filtered down to each group's
+    /// configured cadence. Icons keep reading `snapshot` at full speed.
+    var panelSnapshot: HardwareMetricsSnapshot { panelStored }
+
+    /// Summary variant of `panelSnapshot`, filling missing summary values from
+    /// the retained last reading exactly like `summarySnapshot`.
+    var panelSummarySnapshot: HardwareMetricsSnapshot { summarySnapshot(filling: panelStored, at: Date()) }
 
     /// Snapshot for the status-panel summary: fills any missing/valued-less
     /// summary metric from the retained last reading (marked stale/dimmed), so a
@@ -48,7 +68,13 @@ final class HardwareMonitorObservable: ObservableObject {
     /// while that reading is within `cacheLifetime`; older caches are dropped so
     /// a long-closed panel does not show an ancient number as if current.
     func summarySnapshot(at now: Date) -> HardwareMetricsSnapshot {
-        var copy = stored
+        summarySnapshot(filling: stored, at: now)
+    }
+
+    /// Same fill logic applied to an arbitrary base snapshot, so the panel's
+    /// throttled copy gets the identical stale-value fallback.
+    func summarySnapshot(filling base: HardwareMetricsSnapshot, at now: Date) -> HardwareMetricsSnapshot {
+        var copy = base
         for id in HardwareMetricsService.hardwareSummaryMetricIDs {
             if copy.samples[id]?.value == nil, let known = lastKnown[id] {
                 let age = now.timeIntervalSince(known.sampledAt)
@@ -71,11 +97,63 @@ final class HardwareMonitorObservable: ObservableObject {
         for (id, sample) in next.samples where sample.availability == .measured {
             if let value = sample.value, value.isFinite { lastKnown[id] = sample }
         }
-        guard next != stored else { return }
-        objectWillChange.send()
-        stored = next
-        snapshotSubject.send(next)
-        recordHistory(from: next)
+        if next != stored {
+            stored = next
+            snapshotSubject.send(next)
+            recordHistory(from: next)
+        }
+        // Panel-facing copy: adopt each group's latest values only when that
+        // group's cadence has elapsed, so a slow panel does not redraw on every
+        // fast icon sample. Icons read `stored`/`snapshotPublisher` above and are
+        // never delayed by this.
+        let panelNext = throttledPanelSnapshot(from: next, now: now)
+        if panelNext != panelStored {
+            objectWillChange.send()
+            panelStored = panelNext
+        }
+    }
+
+    /// Applies the per-group display cadence, returning the panel copy with due
+    /// groups refreshed from `live` ("到点取最近样本") and others carried over.
+    private func throttledPanelSnapshot(from live: HardwareMetricsSnapshot,
+                                        now: Date) -> HardwareMetricsSnapshot {
+        var merged = panelStored
+        for group in HardwareRefreshGroup.allCases {
+            let cadence = panelDisplayCadence(group)
+            if cadence > 0, let last = panelLastEmit[group],
+               now.timeIntervalSince(last) < cadence {
+                continue
+            }
+            panelLastEmit[group] = now
+            Self.merge(group: group, from: live, into: &merged)
+        }
+        return merged
+    }
+
+    /// Copies one group's sampled values and its structured detail fields from a
+    /// live snapshot into a target snapshot.
+    private static func merge(group: HardwareRefreshGroup,
+                              from live: HardwareMetricsSnapshot,
+                              into target: inout HardwareMetricsSnapshot) {
+        for (id, sample) in live.samples where HardwareRefreshGroup.group(for: id) == group {
+            target.samples[id] = sample
+        }
+        switch group {
+        case .cpuUsage:
+            target.cpuDetail = live.cpuDetail
+            target.cpuFrequency = live.cpuFrequency
+        case .gpuUsage:
+            target.gpuDetail = live.gpuDetail
+        case .memory:
+            target.memoryDetail = live.memoryDetail
+            target.memoryPressure = live.memoryPressure
+        case .network:
+            target.networkDetail = live.networkDetail
+        case .disk:
+            target.diskDetail = live.diskDetail
+        case .temperature:
+            target.fanCount = live.fanCount
+        }
     }
 
     /// Records measured primary samples once per timestamp. Shared by every
@@ -122,11 +200,14 @@ final class HardwareMonitorObservable: ObservableObject {
         guard next != stored else { return }
         objectWillChange.send()
         stored = next
+        panelStored = panelStored.expiring(at: now)
         snapshotSubject.send(next)
     }
 
     func clear() {
         historyRows.removeAll()
+        panelStored = .empty
+        panelLastEmit.removeAll()
         guard stored != .empty else { return }
         objectWillChange.send()
         stored = .empty
@@ -140,6 +221,7 @@ final class HardwareMonitorObservable: ObservableObject {
         var changed = false
         for id in ids {
             if stored.samples.removeValue(forKey: id) != nil { changed = true }
+            panelStored.samples.removeValue(forKey: id)
             if lastKnown.removeValue(forKey: id) != nil { changed = true }
         }
         guard changed else { return }
@@ -151,6 +233,7 @@ final class HardwareMonitorObservable: ObservableObject {
     func clearCPUFrequency(now: Date) {
         guard stored.cpuFrequency != nil else { return }
         stored.cpuFrequency = nil
+        panelStored.cpuFrequency = nil
         objectWillChange.send()
         snapshotSubject.send(stored)
     }
@@ -163,10 +246,12 @@ final class HardwareMonitorObservable: ObservableObject {
         var changed = false
         if ids.contains(.memoryPressure), stored.memoryPressure != nil {
             stored.memoryPressure = nil
+            panelStored.memoryPressure = nil
             changed = true
         }
         for id in ids {
             if stored.samples.removeValue(forKey: id) != nil { changed = true }
+            panelStored.samples.removeValue(forKey: id)
         }
         for id in ids {
             guard var known = lastKnown[id] else { continue }
@@ -204,14 +289,14 @@ final class HardwareMetricsService: ObservableObject {
         case background
     }
 
-    /// Background cadence in seconds (0 = disabled). Only consulted when the
-    /// background demand is the sole consumer, so an open panel still refreshes
-    /// at the fast metric cadence. Set by the panel view model from settings.
-    var backgroundIntervalSeconds: TimeInterval = 0
-    /// Panel-open cadence in seconds (0 = metric default). Applied only when the
-    /// panel is the sole non-background consumer, so icon/dock consumers keep
-    /// their own fast needs.
-    var panelIntervalSeconds: TimeInterval = 0
+    /// Background cadence per group (0 = metric default). Only consulted when
+    /// the background demand is a consumer, so an open panel or a fast icon
+    /// still refreshes at the fastest effective cadence. Set from settings.
+    var backgroundCadenceProvider: @MainActor (HardwareRefreshGroup) -> TimeInterval = { _ in 0 }
+    /// Panel-open cadence per group (0 = metric default). Applied only when the
+    /// panel is a consumer, so icon/dock consumers keep their own fast needs; a
+    /// metric's effective interval is the fastest of all active consumers.
+    var panelCadenceProvider: @MainActor (HardwareRefreshGroup) -> TimeInterval = { _ in 0 }
 
     /// Master switch for CPU/GPU temperature sampling. When false, temperature
     /// IDs are removed from every demand set so no SMC or HID temperature read
@@ -621,6 +706,7 @@ final class HardwareMetricsService: ObservableObject {
     /// fast icon never speeds up a metric only the slow panel asked for.
     private func interval(for id: HardwareMetricID) -> TimeInterval {
         let base = defaultMetricInterval(for: id)
+        guard let group = HardwareRefreshGroup.group(for: id) else { return base }
         var result: TimeInterval?
         for (demand, metrics) in demands {
             let owns = metrics.contains(id)
@@ -628,8 +714,8 @@ final class HardwareMetricsService: ObservableObject {
             guard owns else { continue }
             let cadence: TimeInterval
             switch demand {
-            case .panel: cadence = panelIntervalSeconds
-            case .background: cadence = backgroundIntervalSeconds
+            case .panel: cadence = panelCadenceProvider(group)
+            case .background: cadence = backgroundCadenceProvider(group)
             default: cadence = 0
             }
             // A consumer's cadence can slow a metric down but never speed it

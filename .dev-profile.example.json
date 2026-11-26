@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 1,
+  "features": [
+    "hardware.panel.gpu.temperature"
+  ],
+  "preferences": {
+    "panel.appearance.backgroundStyle": "solid",
+    "panel.behavior.keepOpenWhenOpeningSettings": true
+  },
+  "mutations": [
+    {
+      "id": "icon.outerRing.hardware.ringSlots",
+      "operation": "add",
+      "value": "gpu"
+    }
+  ],
+  "applyMode": "onLaunch"
+}

@@ -43,7 +43,12 @@ struct AppIconSectionView: View {
         statusIconGroup
         MiddleIconSettingsGroup(store: store, statusStore: statusStore)
         dockGroup
-        AppIconRingView(store: store, hasBattery: statusStore.snapshot.battery.isPresent)
+        AppIconRingView(
+            store: store,
+            statusStore: statusStore,
+            bluetoothDevices: statusStore.bluetoothDevices,
+            hasBattery: statusStore.snapshot.battery.isPresent
+        )
         AppIconBottomIndicatorView(
             store: store,
             statusStore: statusStore,
@@ -65,6 +70,8 @@ struct AppIconSectionView: View {
         case .appIconRing:
             AppIconRingView(
                 store: store,
+                statusStore: statusStore,
+                bluetoothDevices: statusStore.bluetoothDevices,
                 hasBattery: statusStore.snapshot.battery.isPresent,
                 showsRingContentTitle: false
             )

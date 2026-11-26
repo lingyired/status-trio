@@ -195,7 +195,14 @@
 "settings.ringContent.airPodsBattery" = "AirPods Battery";
 "settings.ringContent.airPodsGroup" = "AirPods Ring";
 "settings.ringContent.airPodsDualRing" = "Two-Arc Layout";
-"settings.ringContent.airPodsDualRing.description" = "Draw each earbud's battery as its own arc.";
+"settings.ringContent.airPodsDualRing.description" = "Draw each earbud's battery as its own arc. If only one earbud's level is reported, both arcs show that value; the charging case is not counted.";
+"settings.ringContent.airPodsLeftArcColor" = "Left Arc Colour";
+"settings.ringContent.airPodsLeftArcColor.description" = "Colour of the left earbud's arc in the two-arc layout.";
+"settings.ringContent.airPodsRightArcColor" = "Right Arc Colour";
+"settings.ringContent.airPodsRightArcColor.description" = "Colour of the right earbud's arc in the two-arc layout.";
+"settings.ringContent.airPodsSingleArcColor" = "Single-Arc Colour";
+"settings.ringContent.airPodsSingleArcColor.description" = "Colour of the single ring, also used when only an overall battery is reported.";
+"settings.ringContent.airPodsRequirementsHint" = "Turn on “Show Bluetooth battery levels” in Bluetooth settings to read the AirPods battery.";
 "settings.ringContent.airPodsTopSymbol" = "Show AirPods Symbol";
 "settings.ringContent.airPodsTopSymbol.description" = "Draw the small AirPods glyph at the top of the ring.";
 "settings.ringContent.airPodsFallback" = "Repli sans AirPods";
@@ -244,7 +251,8 @@
 "settings.battery.simulateNoBattery" = "Simuler l’absence de batterie";
 "settings.battery.simulateNoBatteryDescription" = "Affiche cette page comme sur un Mac sans batterie. Compilations de développement uniquement.";
 "settings.battery.noBatteryHiddenOptions" = "Ce Mac n’a pas de batterie : le pourcentage et l’indicateur de charge ne s’appliquent pas. L’anneau est noir et blanc par défaut ; désactivez-le ci-dessus pour la couleur secteur. Les modes économie d’énergie et haute performance gardent leurs couleurs.";
-"settings.battery.colors.charging" = "Charge / alimentation secteur";
+"settings.battery.colors.charging" = "En charge";
+"settings.battery.colors.connected" = "Connecté (ne charge pas)";
 "settings.battery.colors.lowPower" = "Mode économie d’énergie";
 "settings.battery.colors.critical" = "Batterie très faible";
 "settings.battery.colors.system" = "Valeur par défaut du système";
@@ -1320,17 +1328,17 @@
 "hardware.monitor.mbps" = "Mo/s";
 "hardware.monitor.gbps" = "Go/s";
 "hardware.monitor.settings.topApps" = "Afficher les applis gourmandes";
-"hardware.monitor.settings.topApps.description" = "Affiche les processus les plus actifs en bas des pages détaillées. Désactiver économise le CPU.";
+"hardware.monitor.settings.topApps.description" = "Afficher les processus les plus gourmands en bas d'une page de détail. Désactivez pour économiser du CPU.";
 "hardware.monitor.settings.speedCaps.title" = "Plafond de débit réseau";
 "hardware.monitor.settings.speedCaps.description" = "Les arcs téléchargement/envoi de l’anneau utilisent toujours ces plafonds ; le graphe de débit ne les utilise comme échelle pleine qu’avec l’échelle réseau fixe activée.";
 "hardware.monitor.settings.networkScale" = "Échelle réseau fixe";
 "hardware.monitor.settings.networkScale.description" = "Désactivé : échelle auto sur le pic de la fenêtre avec 15 % de marge. Activé : plafonds téléchargement/envoi comme échelle pleine.";
-"hardware.monitor.settings.background" = "Conserver l’historique";
-"hardware.monitor.settings.background.description" = "Conserve jusqu’à 5 minutes d’historique matériel panneau fermé, au rythme ci-dessus, pour ouvrir une page de détail avec une tendance.";
+"hardware.monitor.settings.background" = "Conserver l'historique en arrière-plan";
+"hardware.monitor.settings.background.description" = "Continuer d'enregistrer panneau fermé pour que la page de détail affiche sa courbe ; limité à la durée de la courbe.";
 "hardware.monitor.background.off" = "Désactivé";
 "hardware.monitor.background.seconds" = "%d s";
-"hardware.monitor.settings.historyWindow" = "Durée de l’historique";
-"hardware.monitor.settings.historyWindow.description" = "Jusqu’où remonte la tendance du détail.";
+"hardware.monitor.settings.historyWindow" = "Durée de la courbe";
+"hardware.monitor.settings.historyWindow.description" = "Nombre de minutes de la courbe de détail conservées. Affecte seulement la longueur de la courbe, pas la fréquence d'échantillonnage.";
 "hardware.monitor.settings.historyWindow.minutes" = "%d min";
 "hardware.monitor.settings.panelRefresh" = "Intervalle d’actualisation des données matérielles";
 "hardware.monitor.settings.panelRefresh.description" = "Fréquence de rafraîchissement des données matérielles. Avec l’historique en arrière-plan, le panneau fermé garde le même rythme. Plus rapide est plus réactif mais lit davantage ; plus lent économise l’énergie.";
@@ -1344,7 +1352,7 @@
 
 /* Status-panel per-item visibility */
 "hardware.monitor.settings.group.rings" = "Indicateurs en anneau";
-"hardware.monitor.settings.group.sampling" = "Échantillonnage et tendances";
+"hardware.monitor.settings.group.sampling" = "Fréquence d'actualisation du panneau";
 "hardware.monitor.settings.group.bottomBar" = "Barre inférieure";
 "hardware.monitor.settings.item.diskCapacity" = "Capacité du disque";
 "hardware.monitor.settings.showSummaryRow.description" = "Affiche téléchargement, envoi, ventilateur et E/S disque sous les anneaux.";
@@ -1481,3 +1489,14 @@
 "settings.localPlugins.unauthorized" = "Les paquets JSON locaux nécessitent un dossier autorisé.";
 "settings.localPlugins.loadFailed" = "Impossible de lire le dossier du paquet.";
 "settings.localPlugins.reload" = "Recharger";
+
+"hardware.monitor.settings.refresh.cpuUsage" = "Utilisation CPU";
+"hardware.monitor.settings.refresh.gpuUsage" = "Utilisation GPU";
+"hardware.monitor.settings.refresh.memory" = "Mémoire";
+"hardware.monitor.settings.refresh.network" = "Réseau";
+"hardware.monitor.settings.refresh.temperature" = "Température";
+"hardware.monitor.settings.refresh.disk" = "E/S disque";
+"hardware.monitor.settings.refresh.topApps" = "Actualisation des applis principales";
+"hardware.monitor.settings.refresh.topApps.description" = "Fréquence d'actualisation de la liste de la page de détail. La liste mémoire conserve son plancher de 6 s.";
+"hardware.monitor.settings.group.sampling.footnote" = "Le panneau et les icônes de la barre des menus/Dock partagent un même échantillon matériel. Ces intervalles ne règlent que la fréquence d'actualisation du panneau ; les icônes restent réactives, rien n'est lu deux fois.";
+"settings.hardwareRing.iconRefreshNote" = "L'icône s'actualise au rythme le plus rapide de chaque métrique (CPU/GPU env. 2 s, réseau/disque env. 1 s, température env. 4 s) et n'est redessinée que lorsque le contenu change, pour rester réactive. Elle n'est pas affectée par la fréquence d'actualisation du panneau.";

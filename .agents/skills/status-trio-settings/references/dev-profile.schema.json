@@ -1,0 +1,45 @@
+{
+  "$schema" : "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties" : false,
+  "description" : "Per-worktree development test profile applied at launch.",
+  "properties" : {
+    "applyMode" : {
+      "description" : "When to apply; only onLaunch is implemented in this phase.",
+      "enum" : [
+        "onLaunch",
+        "firstLaunch",
+        "manual"
+      ],
+      "type" : "string"
+    },
+    "features" : {
+      "description" : "Feature ids to enable (parents are enabled automatically).",
+      "items" : {
+        "type" : "string"
+      },
+      "type" : "array"
+    },
+    "mutations" : {
+      "description" : "Collection/local mutations: {id, operation, value}.",
+      "items" : {
+        "type" : "object"
+      },
+      "type" : "array"
+    },
+    "preferences" : {
+      "additionalProperties" : true,
+      "description" : "Exact preference overrides keyed by logical id.",
+      "type" : "object"
+    },
+    "schemaVersion" : {
+      "description" : "Profile schema version; must be <= the app's supported version.",
+      "minimum" : 1,
+      "type" : "integer"
+    }
+  },
+  "required" : [
+    "schemaVersion"
+  ],
+  "title" : "Status Trio Development Test Profile",
+  "type" : "object"
+}

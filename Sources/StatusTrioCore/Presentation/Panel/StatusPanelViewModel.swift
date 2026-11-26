@@ -505,9 +505,20 @@ final class StatusPanelViewModel: ObservableObject {
             }
             .store(in: &cancellables)
 
-        settings.$hardwarePanelRefreshSeconds
-            .removeDuplicates()
-            .sink { [weak self] seconds in self?.updateHardwareMetricsDemand(panelSeconds: seconds) }
+        let refreshTriggers: [AnyPublisher<Void, Never>] = [
+            settings.$hardwareCPUUsageRefreshSeconds.map { _ in () }.eraseToAnyPublisher(),
+            settings.$hardwareGPUUsageRefreshSeconds.map { _ in () }.eraseToAnyPublisher(),
+            settings.$hardwareMemoryRefreshSeconds.map { _ in () }.eraseToAnyPublisher(),
+            settings.$hardwareNetworkRefreshSeconds.map { _ in () }.eraseToAnyPublisher(),
+            settings.$hardwareTemperatureRefreshSeconds.map { _ in () }.eraseToAnyPublisher(),
+            settings.$hardwareDiskRefreshSeconds.map { _ in () }.eraseToAnyPublisher()
+        ]
+        Publishers.MergeMany(refreshTriggers)
+            .sink { [weak self] in self?.updateHardwareMetricsDemand() }
+            .store(in: &cancellables)
+
+        settings.$hardwareTopAppsRefreshSeconds
+            .sink { [weak self] seconds in self?.updateHardwareMetricsDemand(topAppsSeconds: seconds) }
             .store(in: &cancellables)
 
         settings.$showsHardwareRings
@@ -1211,7 +1222,7 @@ final class StatusPanelViewModel: ObservableObject {
     /// closing the panel ends the demand immediately, so a closed panel never
     /// keeps a hardware timer alive.
     private func updateHardwareMetricsDemand(popoverVisible: Bool? = nil,
-                                             panelSeconds: Int? = nil) {
+                                             topAppsSeconds: Int? = nil) {
         // `@Published` publishes in willSet, so a subscriber must pass the new
         // value in rather than read `store.isPopoverVisible` (still the old one).
         let sectionOn = visiblePopupSections.contains(.hardwareMonitor)
@@ -1219,11 +1230,25 @@ final class StatusPanelViewModel: ObservableObject {
         let detailKind = activeDetailKind
         let summaryVisible = panelOpen && isSummaryVisible
         let detailVisible = panelOpen && detailKind != nil
-        let panelRefresh = panelSeconds ?? settings.hardwarePanelRefreshSeconds
-        store.hardwareMetrics.panelIntervalSeconds = TimeInterval(panelRefresh)
+        // Per-group panel cadence: a metric is sampled at the fastest of all
+        // active consumers, so icons stay fast and a panel-only metric slows to
+        // its group's setting.
+        store.hardwareMetrics.panelCadenceProvider = { [settings] group in
+            TimeInterval(settings.hardwareRefreshSeconds(for: group))
+        }
+        // Same cadences drive the panel's display throttle: the physical sample
+        // stays shared, but the panel only adopts a group's latest value once
+        // that group's cadence has elapsed.
+        store.hardwareMetrics.observable.panelDisplayCadence = { [settings] group in
+            TimeInterval(settings.hardwareRefreshSeconds(for: group))
+        }
         // Only the visible detail page pays for its structured payload and the
         // per-page expensive work (frequency for CPU, session totals for network).
         store.hardwareMetrics.setDetailDemand(detailVisible ? detailKind : nil)
+        // The top-app list uses its own cadence so it never outruns the panel and
+        // can be tuned independently of the card refresh.
+        store.topApps.minimumIntervalSeconds =
+            TimeInterval(topAppsSeconds ?? settings.hardwareTopAppsRefreshSeconds)
         store.topApps.setDemand(detailVisible && showsHardwareTopApps ? detailKind?.topAppMetric : nil)
         // Background history belongs to the app-lifetime controller, so closing
         // the panel (which stops this view model's subscriptions) cannot kill it.

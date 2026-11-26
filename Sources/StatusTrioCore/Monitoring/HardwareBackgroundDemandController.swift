@@ -31,7 +31,12 @@ final class HardwareBackgroundDemandController {
             settings.$showsHardwareSummaryRow.map { _ in () }.eraseToAnyPublisher(),
             settings.$enabledHardwareRingSlots.map { _ in () }.eraseToAnyPublisher(),
             settings.$enabledHardwareSummaryMetrics.map { _ in () }.eraseToAnyPublisher(),
-            settings.$hardwarePanelRefreshSeconds.map { _ in () }.eraseToAnyPublisher(),
+            settings.$hardwareCPUUsageRefreshSeconds.map { _ in () }.eraseToAnyPublisher(),
+            settings.$hardwareGPUUsageRefreshSeconds.map { _ in () }.eraseToAnyPublisher(),
+            settings.$hardwareMemoryRefreshSeconds.map { _ in () }.eraseToAnyPublisher(),
+            settings.$hardwareNetworkRefreshSeconds.map { _ in () }.eraseToAnyPublisher(),
+            settings.$hardwareTemperatureRefreshSeconds.map { _ in () }.eraseToAnyPublisher(),
+            settings.$hardwareDiskRefreshSeconds.map { _ in () }.eraseToAnyPublisher(),
             store.$isPopoverVisible.map { _ in () }.eraseToAnyPublisher()
         ]
         Publishers.MergeMany(triggers)
@@ -66,7 +71,9 @@ final class HardwareBackgroundDemandController {
         guard isStarted else { return }
         let sectionOn = settings.enabledPopupSections.contains(.hardwareMonitor)
         let panelOpen = store.isPopoverVisible
-        store.hardwareMetrics.backgroundIntervalSeconds = TimeInterval(settings.hardwarePanelRefreshSeconds)
+        store.hardwareMetrics.backgroundCadenceProvider = { [settings] group in
+            TimeInterval(settings.hardwareRefreshSeconds(for: group))
+        }
         guard sectionOn, !panelOpen, settings.hardwareBackgroundHistoryEnabled else {
             store.hardwareMetrics.end(.background)
             return

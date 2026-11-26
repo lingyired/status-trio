@@ -64,6 +64,62 @@ struct IconContentPluginResolutionTests {
         #expect(text.text == "N")
     }
 
+    private func ringContext(samples: IconPreviewSampleValues,
+                             configuration: IconConfigurationV1) -> IconContentContext {
+        .init(inputs: IconPreviewInputBuilder.simulated(
+                  samples: samples, configuration: configuration,
+                  target: .currentAudioOutput, now: now),
+              configuration: configuration,
+              legacy: configuration.compositionLegacyPresentationConfiguration,
+              now: now)
+    }
+
+    /// #393: a system mute leaves the output scalar at its previous level. The
+    /// hardware ring's volume arc and top marker must read as silent instead of
+    /// showing that stale level.
+    @Test func mutedSystemVolumeReadsAsSilentInRingArcAndTopMarker() {
+        var configuration = IconDesignerDefaults.configuration()
+        configuration.behaviors.hardwareRing = HardwareRingConfiguration(
+            layout: .single, primaryMetric: .volume, topContent: .value(.volume))
+        var samples = IconPreviewSampleValues()
+        samples.systemVolume.percentage = 50
+        samples.systemVolume.isMuted = true
+
+        let result = HardwareMonitorIconPlugin().resolve(
+            presentationID: "ring", context: ringContext(samples: samples, configuration: configuration))
+        guard case let .available(.outerRing(state)) = result, let state else {
+            Issue.record("expected an outer ring"); return
+        }
+        guard case let .text(text)? = state.accessory else {
+            Issue.record("expected a top value marker"); return
+        }
+        #expect(text.text == "0")
+        #expect(state.segments.first?.progress == 0)
+    }
+
+    @Test func unmutedSystemVolumeShowsActualLevelInRingArcAndTopMarker() {
+        var configuration = IconDesignerDefaults.configuration()
+        configuration.behaviors.hardwareRing = HardwareRingConfiguration(
+            layout: .single, primaryMetric: .volume, topContent: .value(.volume))
+        var samples = IconPreviewSampleValues()
+        samples.systemVolume.percentage = 50
+        samples.systemVolume.isMuted = false
+
+        let result = HardwareMonitorIconPlugin().resolve(
+            presentationID: "ring", context: ringContext(samples: samples, configuration: configuration))
+        guard case let .available(.outerRing(state)) = result, let state else {
+            Issue.record("expected an outer ring"); return
+        }
+        guard case let .text(text)? = state.accessory else {
+            Issue.record("expected a top value marker"); return
+        }
+        #expect(text.text == "50")
+        guard let progress = state.segments.first?.progress else {
+            Issue.record("expected an arc segment"); return
+        }
+        #expect(abs(progress - 0.5) < 0.0001)
+    }
+
     @Test func networkAlertStillDrawsWhenNormalNetworkSourceIsUnavailable() {
         var configuration = IconDesignerDefaults.configuration()
         configuration.composition.center = SlotSelection(primary: .inputSource)

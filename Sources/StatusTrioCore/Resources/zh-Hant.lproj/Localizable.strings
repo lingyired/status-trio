@@ -195,7 +195,14 @@
 "settings.ringContent.airPodsBattery" = "AirPods 電量";
 "settings.ringContent.airPodsGroup" = "AirPods 環";
 "settings.ringContent.airPodsDualRing" = "雙弧版面";
-"settings.ringContent.airPodsDualRing.description" = "把左右耳電量各畫成一段弧。";
+"settings.ringContent.airPodsDualRing.description" = "左右耳各用一條弧顯示電量。只有一隻耳有電量時，兩條弧都顯示該值；充電盒不參與計算。";
+"settings.ringContent.airPodsLeftArcColor" = "左耳弧顏色";
+"settings.ringContent.airPodsLeftArcColor.description" = "雙弧版面下左耳電量的弧顏色。";
+"settings.ringContent.airPodsRightArcColor" = "右耳弧顏色";
+"settings.ringContent.airPodsRightArcColor.description" = "雙弧版面下右耳電量的弧顏色。";
+"settings.ringContent.airPodsSingleArcColor" = "單弧顏色";
+"settings.ringContent.airPodsSingleArcColor.description" = "單弧版面的顏色，也用於只回報整體電量時。";
+"settings.ringContent.airPodsRequirementsHint" = "在「藍牙」設定裡開啟「顯示藍牙裝置電量」才能讀取 AirPods 電量。";
 "settings.ringContent.airPodsTopSymbol" = "顯示 AirPods 符號";
 "settings.ringContent.airPodsTopSymbol.description" = "在環頂部繪製小的 AirPods 符號。";
 "settings.ringContent.airPodsFallback" = "無 AirPods 時回退";
@@ -244,7 +251,8 @@
 "settings.battery.simulateNoBattery" = "模擬無電池";
 "settings.battery.simulateNoBatteryDescription" = "依 Mac 沒有電池時的樣子顯示本頁。僅開發版可用。";
 "settings.battery.noBatteryHiddenOptions" = "這台 Mac 沒有電池：電量百分比與充電指示不適用。圓環預設黑/白，可在上面關閉以使用連接電源色；低電量與高電量模式仍用各自顏色。";
-"settings.battery.colors.charging" = "充電 / 連接電源";
+"settings.battery.colors.charging" = "充電中";
+"settings.battery.colors.connected" = "已連接電源（未充電）";
 "settings.battery.colors.lowPower" = "低耗電模式";
 "settings.battery.colors.critical" = "臨界低電量";
 "settings.battery.colors.system" = "系統預設";
@@ -1320,17 +1328,17 @@
 "hardware.monitor.mbps" = "MB/s";
 "hardware.monitor.gbps" = "GB/s";
 "hardware.monitor.settings.topApps" = "顯示高佔用應用";
-"hardware.monitor.settings.topApps.description" = "在詳情頁底部顯示佔用最高的處理程序；關閉可減少 CPU 佔用。";
+"hardware.monitor.settings.topApps.description" = "在詳情頁底部顯示佔用最高的程序；關閉可減少 CPU 使用。";
 "hardware.monitor.settings.speedCaps.title" = "網路速率上限";
 "hardware.monitor.settings.speedCaps.description" = "圖示外環的上傳/下載弧線一律使用這兩個上限；速度趨勢圖僅在開啟「固定網路趨勢刻度」時以它們為滿值。";
 "hardware.monitor.settings.networkScale" = "固定網路趨勢刻度";
 "hardware.monitor.settings.networkScale.description" = "關閉：依視窗峰值自動縮放（留 15% 餘量）；開啟：以下載/上傳上限為滿格。";
-"hardware.monitor.settings.background" = "保留後台歷史";
-"hardware.monitor.settings.background.description" = "面板關閉時按上方的更新頻率保留最多 5 分鐘的硬體歷史，開啟詳情頁即可看到趨勢。";
+"hardware.monitor.settings.background" = "保留背景歷史";
+"hardware.monitor.settings.background.description" = "面板關閉時也繼續記錄，開啟詳情頁就能看到先前的趨勢；最多保留「趨勢時長」那麼長。";
 "hardware.monitor.background.off" = "關閉";
 "hardware.monitor.background.seconds" = "%d 秒";
-"hardware.monitor.settings.historyWindow" = "歷史時長";
-"hardware.monitor.settings.historyWindow.description" = "詳情頁趨勢保留多久。";
+"hardware.monitor.settings.historyWindow" = "趨勢時長";
+"hardware.monitor.settings.historyWindow.description" = "詳情頁曲線最多回看幾分鐘的資料；只影響曲線長度，不影響取樣頻率。";
 "hardware.monitor.settings.historyWindow.minutes" = "%d 分鐘";
 "hardware.monitor.settings.panelRefresh" = "硬體資料重新整理間隔";
 "hardware.monitor.settings.panelRefresh.description" = "硬體資料的更新頻率。開啟背景歷史後，關閉面板也按同樣頻率記錄。越快越即時但讀取更多，越慢越省電。";
@@ -1344,7 +1352,7 @@
 
 /* Status-panel per-item visibility */
 "hardware.monitor.settings.group.rings" = "圓環指標";
-"hardware.monitor.settings.group.sampling" = "取樣與趨勢";
+"hardware.monitor.settings.group.sampling" = "面板更新頻率";
 "hardware.monitor.settings.group.bottomBar" = "底部資訊列";
 "hardware.monitor.settings.item.diskCapacity" = "磁碟容量";
 "hardware.monitor.settings.showSummaryRow.description" = "在圓環下方顯示下載、上傳、風扇與磁碟 I/O。";
@@ -1481,3 +1489,14 @@
 "settings.localPlugins.unauthorized" = "本機 JSON 套件需要已授權的目錄。";
 "settings.localPlugins.loadFailed" = "無法讀取套件目錄。";
 "settings.localPlugins.reload" = "重新載入";
+
+"hardware.monitor.settings.refresh.cpuUsage" = "CPU 佔用";
+"hardware.monitor.settings.refresh.gpuUsage" = "GPU 佔用";
+"hardware.monitor.settings.refresh.memory" = "記憶體";
+"hardware.monitor.settings.refresh.network" = "網路";
+"hardware.monitor.settings.refresh.temperature" = "溫度";
+"hardware.monitor.settings.refresh.disk" = "磁碟讀寫";
+"hardware.monitor.settings.refresh.topApps" = "高佔用應用程式更新間隔";
+"hardware.monitor.settings.refresh.topApps.description" = "詳情頁底部清單的重新整理間隔。記憶體清單受自身 6 秒下限限制，不會更快。";
+"hardware.monitor.settings.group.sampling.footnote" = "面板與選單列/Dock 圖示共用同一次硬體取樣。下面的間隔只決定面板多久重新整理一次，圖示仍保持靈敏，不會重複讀取硬體。";
+"settings.hardwareRing.iconRefreshNote" = "圖示按各指標最快的節奏更新（CPU/GPU 約 2 秒，網路/磁碟約 1 秒，溫度約 4 秒），只在顯示內容變化時重繪，以保持靈敏；不受「面板更新頻率」影響。";

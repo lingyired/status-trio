@@ -1696,6 +1696,8 @@ extension StatusIconRenderer {
             statusPalette.highPower
         case .powered:
             statusPalette.charging
+        case .connected:
+            statusPalette.connected
         case .bluetooth:
             bluetoothColor(foreground: foreground)
         case .bluetoothIcon:

@@ -195,7 +195,14 @@
 "settings.ringContent.airPodsBattery" = "AirPods Battery";
 "settings.ringContent.airPodsGroup" = "AirPods Ring";
 "settings.ringContent.airPodsDualRing" = "Two-Arc Layout";
-"settings.ringContent.airPodsDualRing.description" = "Draw each earbud's battery as its own arc.";
+"settings.ringContent.airPodsDualRing.description" = "Draw each earbud's battery as its own arc. If only one earbud's level is reported, both arcs show that value; the charging case is not counted.";
+"settings.ringContent.airPodsLeftArcColor" = "Left Arc Colour";
+"settings.ringContent.airPodsLeftArcColor.description" = "Colour of the left earbud's arc in the two-arc layout.";
+"settings.ringContent.airPodsRightArcColor" = "Right Arc Colour";
+"settings.ringContent.airPodsRightArcColor.description" = "Colour of the right earbud's arc in the two-arc layout.";
+"settings.ringContent.airPodsSingleArcColor" = "Single-Arc Colour";
+"settings.ringContent.airPodsSingleArcColor.description" = "Colour of the single ring, also used when only an overall battery is reported.";
+"settings.ringContent.airPodsRequirementsHint" = "Turn on “Show Bluetooth battery levels” in Bluetooth settings to read the AirPods battery.";
 "settings.ringContent.airPodsTopSymbol" = "Show AirPods Symbol";
 "settings.ringContent.airPodsTopSymbol.description" = "Draw the small AirPods glyph at the top of the ring.";
 "settings.ringContent.airPodsFallback" = "Fallback without AirPods";
@@ -244,7 +251,8 @@
 "settings.battery.simulateNoBattery" = "Simulate no battery";
 "settings.battery.simulateNoBatteryDescription" = "Show this page as it looks on a Mac with no battery. Development builds only.";
 "settings.battery.noBatteryHiddenOptions" = "This Mac has no battery: the percentage and charging indicator do not apply. The ring is black and white by default; turn it off above to use the connected-power colour. Low Power Mode and High Power Mode keep their colours.";
-"settings.battery.colors.charging" = "Charging / connected power";
+"settings.battery.colors.charging" = "Charging";
+"settings.battery.colors.connected" = "Connected (not charging)";
 "settings.battery.colors.lowPower" = "Low Power Mode";
 "settings.battery.colors.critical" = "Critically low battery";
 "settings.battery.colors.system" = "System default";
@@ -1319,17 +1327,17 @@
 "hardware.monitor.mbps" = "MB/s";
 "hardware.monitor.gbps" = "GB/s";
 "hardware.monitor.settings.topApps" = "Show top apps";
-"hardware.monitor.settings.topApps.description" = "Lists the busiest processes at the bottom of detail pages. Turn off to save CPU.";
+"hardware.monitor.settings.topApps.description" = "Show the highest-usage processes at the bottom of a detail page. Turn off to save some CPU.";
 "hardware.monitor.settings.speedCaps.title" = "Network speed cap";
 "hardware.monitor.settings.speedCaps.description" = "The icon ring's download/upload arcs always use these caps; the speed trend uses them as full scale only with \"Fixed network scale\" on.";
 "hardware.monitor.settings.networkScale" = "Fixed network scale";
 "hardware.monitor.settings.networkScale.description" = "Off: auto-scale to the window peak with 15% headroom. On: use the download/upload caps as the full scale.";
-"hardware.monitor.settings.background" = "Keep background history";
-"hardware.monitor.settings.background.description" = "Keeps up to 5 minutes of hardware history while the panel is closed at the refresh rate above, so a detail page opens with a trend.";
+"hardware.monitor.settings.background" = "Keep Background History";
+"hardware.monitor.settings.background.description" = "Keep recording while the panel is closed so a detail page still shows its trend; limited to the trend window.";
 "hardware.monitor.background.off" = "Off";
 "hardware.monitor.background.seconds" = "%d s";
-"hardware.monitor.settings.historyWindow" = "History window";
-"hardware.monitor.settings.historyWindow.description" = "How far back the detail trend goes.";
+"hardware.monitor.settings.historyWindow" = "Trend Window";
+"hardware.monitor.settings.historyWindow.description" = "How many minutes of the detail chart to keep. Affects only the chart length, not the sampling rate.";
 "hardware.monitor.settings.historyWindow.minutes" = "%d min";
 "hardware.monitor.settings.panelRefresh" = "Hardware data refresh interval";
 "hardware.monitor.settings.panelRefresh.description" = "How often hardware data refreshes. With background history on, the closed panel keeps the same rate. Faster is more live but reads more; slower saves power.";
@@ -1343,7 +1351,7 @@
 
 /* Status-panel per-item visibility */
 "hardware.monitor.settings.group.rings" = "Rings";
-"hardware.monitor.settings.group.sampling" = "Sampling & Trends";
+"hardware.monitor.settings.group.sampling" = "Panel Update Frequency";
 "hardware.monitor.settings.group.bottomBar" = "Bottom bar";
 "hardware.monitor.settings.item.diskCapacity" = "Disk capacity";
 "hardware.monitor.settings.showSummaryRow.description" = "Show download, upload, fan speed and disk I/O below the rings; each can be turned off independently.";
@@ -1480,3 +1488,14 @@
 "settings.localPlugins.unauthorized" = "Local JSON packages require an authorized folder.";
 "settings.localPlugins.loadFailed" = "Could not read the package folder.";
 "settings.localPlugins.reload" = "Reload";
+
+"hardware.monitor.settings.refresh.cpuUsage" = "CPU Usage";
+"hardware.monitor.settings.refresh.gpuUsage" = "GPU Usage";
+"hardware.monitor.settings.refresh.memory" = "Memory";
+"hardware.monitor.settings.refresh.network" = "Network";
+"hardware.monitor.settings.refresh.temperature" = "Temperature";
+"hardware.monitor.settings.refresh.disk" = "Disk I/O";
+"hardware.monitor.settings.refresh.topApps" = "Top Apps Refresh";
+"hardware.monitor.settings.refresh.topApps.description" = "How often the detail-page list refreshes. The memory list keeps its own 6 s floor and won't go faster.";
+"hardware.monitor.settings.group.sampling.footnote" = "The panel and the menu bar/Dock icons share one hardware sample. These intervals only control how often the panel refreshes; icons stay responsive and nothing is read twice.";
+"settings.hardwareRing.iconRefreshNote" = "The icon refreshes at each metric's fastest cadence (CPU/GPU about 2 s, network/disk about 1 s, temperature about 4 s) and only redraws when its displayed content changes, so it stays responsive. It is not affected by the panel update frequency.";

@@ -126,6 +126,7 @@ private extension IconColorRole {
         case .critical: .critical
         case .lowPower: .lowPower
         case .powered: .powered
+        case .connected: .powered
         case .bluetooth: .bluetooth
         case .bluetoothIcon: .bluetooth
         case .highPower: .powered

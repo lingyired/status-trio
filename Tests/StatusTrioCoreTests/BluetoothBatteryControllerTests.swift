@@ -317,6 +317,41 @@ struct BluetoothBatteryControllerTests {
         #expect(controller.batteryLevels.isEmpty)
     }
 
+    /// The charging state is only read for a surface that draws it. A menu-bar
+    /// icon that needs levels, with every device already carrying one, must not
+    /// start the accessory read; the summary rows do.
+    @Test func chargingStateReadOnlyWhenTheSummarySurfaceShows() async {
+        let address = "AC:90:85:C2:9C:1F"
+        let key = BluetoothBatteryReader.normalizedAddress(address)
+        let batteryReader = BluetoothBatteryReaderStub(result: [
+            key: BluetoothBatteryLevel(
+                deviceAddress: address, main: 80, left: nil, right: nil, caseLevel: nil
+            )
+        ])
+        let accessory = CountingAccessoryBatteryReaderStub()
+        let controller = BluetoothDeviceController(
+            worker: BluetoothPairedDeviceReaderStub(result: .success([
+                BluetoothDevice(id: address, name: "AirPods Pro", kind: .audio, isConnected: true)
+            ])),
+            stateMonitor: BluetoothBatteryStateMonitorStub(),
+            batteryReader: batteryReader,
+            accessoryBatteryReader: accessory,
+            notificationCenter: NotificationCenter(),
+            workspaceNotificationCenter: NotificationCenter()
+        )
+
+        controller.activate()
+        controller.requestBatteryLevels("icon.only")
+        await waitUntil { batteryReader.readCount >= 1 }
+        try? await Task.sleep(for: .milliseconds(30))
+        #expect(accessory.readCount == 0)
+
+        controller.holdVisibleSurface(BluetoothDeviceController.bluetoothSummarySurfaceToken)
+        controller.requestBatteryLevels("summary")
+        await waitUntil { accessory.readCount >= 1 }
+        #expect(accessory.readCount >= 1)
+    }
+
     /// Only the reader's answer differs between these cases.
     private func makeController(
         batteryReader: BluetoothBatteryReaderStub
@@ -389,6 +424,15 @@ private final class BluetoothAccessoryBatteryReaderStub: BluetoothAccessoryBatte
             identifier: "airpods", name: "AirPods", vendorID: nil, productID: nil,
             part: nil, percentage: 90
         )])
+    }
+}
+
+private final class CountingAccessoryBatteryReaderStub: BluetoothAccessoryBatteryReading {
+    private(set) var readCount = 0
+
+    func read(completion: @escaping @Sendable ([BluetoothAccessoryBatteryLevel]?) -> Void) {
+        readCount += 1
+        completion([])
     }
 }
 

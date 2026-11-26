@@ -195,7 +195,14 @@
 "settings.ringContent.airPodsBattery" = "AirPods Battery";
 "settings.ringContent.airPodsGroup" = "AirPods Ring";
 "settings.ringContent.airPodsDualRing" = "Two-Arc Layout";
-"settings.ringContent.airPodsDualRing.description" = "Draw each earbud's battery as its own arc.";
+"settings.ringContent.airPodsDualRing.description" = "Draw each earbud's battery as its own arc. If only one earbud's level is reported, both arcs show that value; the charging case is not counted.";
+"settings.ringContent.airPodsLeftArcColor" = "Left Arc Colour";
+"settings.ringContent.airPodsLeftArcColor.description" = "Colour of the left earbud's arc in the two-arc layout.";
+"settings.ringContent.airPodsRightArcColor" = "Right Arc Colour";
+"settings.ringContent.airPodsRightArcColor.description" = "Colour of the right earbud's arc in the two-arc layout.";
+"settings.ringContent.airPodsSingleArcColor" = "Single-Arc Colour";
+"settings.ringContent.airPodsSingleArcColor.description" = "Colour of the single ring, also used when only an overall battery is reported.";
+"settings.ringContent.airPodsRequirementsHint" = "Turn on “Show Bluetooth battery levels” in Bluetooth settings to read the AirPods battery.";
 "settings.ringContent.airPodsTopSymbol" = "Show AirPods Symbol";
 "settings.ringContent.airPodsTopSymbol.description" = "Draw the small AirPods glyph at the top of the ring.";
 "settings.ringContent.airPodsFallback" = "Rückfall ohne AirPods";
@@ -244,7 +251,8 @@
 "settings.battery.simulateNoBattery" = "Keine Batterie simulieren";
 "settings.battery.simulateNoBatteryDescription" = "Zeigt diese Seite so, wie sie auf einem Mac ohne Batterie aussieht. Nur Entwicklungsbuilds.";
 "settings.battery.noBatteryHiddenOptions" = "Dieser Mac hat keine Batterie: Prozentwert und Ladeanzeige gelten nicht. Der Ring ist standardmäßig schwarz-weiß; oben ausschalten für die Netzfarbe. Energiespar- und Hohe-Leistung-Modus behalten ihre Farben.";
-"settings.battery.colors.charging" = "Laden / Netzbetrieb";
+"settings.battery.colors.charging" = "Wird geladen";
+"settings.battery.colors.connected" = "Verbunden (lädt nicht)";
 "settings.battery.colors.lowPower" = "Stromsparmodus";
 "settings.battery.colors.critical" = "Kritisch niedriger Ladestand";
 "settings.battery.colors.system" = "Systemstandard";
@@ -1320,17 +1328,17 @@
 "hardware.monitor.mbps" = "MB/s";
 "hardware.monitor.gbps" = "GB/s";
 "hardware.monitor.settings.topApps" = "Top-Apps anzeigen";
-"hardware.monitor.settings.topApps.description" = "Zeigt die aktivsten Prozesse unten auf Detailseiten. Ausschalten spart CPU.";
+"hardware.monitor.settings.topApps.description" = "Die Prozesse mit der höchsten Auslastung unten auf einer Detailseite anzeigen. Ausschalten spart etwas CPU.";
 "hardware.monitor.settings.speedCaps.title" = "Netzwerkgeschwindigkeitslimit";
 "hardware.monitor.settings.speedCaps.description" = "Die Download-/Upload-Bögen des Icon-Rings nutzen diese Grenzen immer; der Geschwindigkeitsverlauf nutzt sie nur bei aktivierter fester Netzwerkskala als Vollausschlag.";
 "hardware.monitor.settings.networkScale" = "Feste Netzwerkskala";
 "hardware.monitor.settings.networkScale.description" = "Aus: automatische Skalierung auf den Fenster-Peak mit 15 % Reserve. An: Download-/Upload-Limit als Vollausschlag.";
 "hardware.monitor.settings.background" = "Hintergrundverlauf behalten";
-"hardware.monitor.settings.background.description" = "Behält bei geschlossenem Panel im oben gewählten Tempo bis zu 5 Minuten Hardware-Verlauf, damit eine Detailseite mit Trend öffnet.";
+"hardware.monitor.settings.background.description" = "Auch bei geschlossenem Panel weiter aufzeichnen, damit eine Detailseite ihren Verlauf zeigt; begrenzt auf das Verlaufsfenster.";
 "hardware.monitor.background.off" = "Aus";
 "hardware.monitor.background.seconds" = "%d s";
-"hardware.monitor.settings.historyWindow" = "Verlaufsdauer";
-"hardware.monitor.settings.historyWindow.description" = "Wie weit der Detailverlauf zurückreicht.";
+"hardware.monitor.settings.historyWindow" = "Verlaufsfenster";
+"hardware.monitor.settings.historyWindow.description" = "Wie viele Minuten der Detailkurve behalten werden. Beeinflusst nur die Kurvenlänge, nicht die Messrate.";
 "hardware.monitor.settings.historyWindow.minutes" = "%d Min.";
 "hardware.monitor.settings.panelRefresh" = "Aktualisierungsintervall der Hardwaredaten";
 "hardware.monitor.settings.panelRefresh.description" = "Wie oft Hardware-Daten aktualisiert werden. Mit aktiver Hintergrundhistorie behält das geschlossene Panel dasselbe Tempo. Schneller ist liveer, liest aber mehr; langsamer spart Energie.";
@@ -1344,7 +1352,7 @@
 
 /* Status-panel per-item visibility */
 "hardware.monitor.settings.group.rings" = "Ring-Metriken";
-"hardware.monitor.settings.group.sampling" = "Abtastung & Trends";
+"hardware.monitor.settings.group.sampling" = "Panel-Aktualisierungsrate";
 "hardware.monitor.settings.group.bottomBar" = "Untere Leiste";
 "hardware.monitor.settings.item.diskCapacity" = "Speicherplatz";
 "hardware.monitor.settings.showSummaryRow.description" = "Zeigt Download, Upload, Lüfter und Festplatten-E/A unter den Ringen.";
@@ -1481,3 +1489,14 @@
 "settings.localPlugins.unauthorized" = "Lokale JSON-Pakete benötigen einen autorisierten Ordner.";
 "settings.localPlugins.loadFailed" = "Der Paketordner konnte nicht gelesen werden.";
 "settings.localPlugins.reload" = "Neu laden";
+
+"hardware.monitor.settings.refresh.cpuUsage" = "CPU-Auslastung";
+"hardware.monitor.settings.refresh.gpuUsage" = "GPU-Auslastung";
+"hardware.monitor.settings.refresh.memory" = "Speicher";
+"hardware.monitor.settings.refresh.network" = "Netzwerk";
+"hardware.monitor.settings.refresh.temperature" = "Temperatur";
+"hardware.monitor.settings.refresh.disk" = "Datenträger-E/A";
+"hardware.monitor.settings.refresh.topApps" = "Aktualisierung der Top-Apps";
+"hardware.monitor.settings.refresh.topApps.description" = "Wie oft die Liste auf der Detailseite aktualisiert wird. Die Speicherliste behält ihre eigene Untergrenze von 6 s.";
+"hardware.monitor.settings.group.sampling.footnote" = "Panel und Menüleisten-/Dock-Symbole teilen sich eine Hardware-Messung. Die Intervalle steuern nur, wie oft das Panel aktualisiert; Symbole bleiben reaktionsschnell, nichts wird doppelt gelesen.";
+"settings.hardwareRing.iconRefreshNote" = "Das Symbol aktualisiert sich im schnellsten Takt der jeweiligen Metrik (CPU/GPU ca. 2 s, Netzwerk/Datenträger ca. 1 s, Temperatur ca. 4 s) und zeichnet nur bei geändertem Inhalt neu, um reaktionsschnell zu bleiben. Die Panel-Aktualisierungsrate beeinflusst es nicht.";

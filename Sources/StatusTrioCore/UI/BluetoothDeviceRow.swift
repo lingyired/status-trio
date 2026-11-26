@@ -316,13 +316,18 @@ struct BluetoothDeviceRow: View {
             )
         }
         let state = stateAccessibilityValue
-        guard let level = BluetoothDevicePresentation.batteryLevelSegments(
-            for: device,
-            batteryLevels: batteryLevels
-        )?.plainText else {
+        guard let level = BluetoothDevicePresentation.batteryLevel(for: device, batteryLevels: batteryLevels) else {
             return state
         }
-        return "\(state), \(level)"
+        guard let text = level.segments?.plainText else { return state }
+        // The bolt is drawn inside the text run but carries no word of its own, so
+        // the charging state is announced here, localized, instead of leaving a
+        // silent glyph. Non-charging and unknown levels read exactly as before.
+        guard level.hasVisibleCharging else {
+            return "\(state), \(text)"
+        }
+        let charging = localization.string(.settingsBatteryMarkerCharging)
+        return "\(state), \(text), \(charging)"
     }
 
     /// What this row's status says, for the accessibility value that replaced the

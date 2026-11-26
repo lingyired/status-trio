@@ -513,7 +513,7 @@ final class IconSceneRendererParityTests: XCTestCase {
             ("charging bolt", battery(percentage: 43, charging: true, connected: true), .standard,
              ring(progress: 0.43, color: .powered, gap: .indicator, accessory: .symbol(IconSymbolState(source: .primitive(.bolt), color: .primary, scale: 1.8)), effect: RingEffectState(pulsesAccessory: true, tintsAccessory: true))),
             ("connected plug", battery(percentage: 73, connected: true), .standard,
-             ring(progress: 0.73, color: .powered, gap: .indicator, accessory: .symbol(IconSymbolState(source: .primitive(.plug), color: .primary, scale: 1.8)))),
+             ring(progress: 0.73, color: .connected, gap: .indicator, accessory: .symbol(IconSymbolState(source: .primitive(.plug), color: .primary, scale: 1.8)))),
             ("present battery closed ring", battery(percentage: 68), BatteryIconOptions(
                 showsPercentage: false, showsChargingIndicator: false, usesStatusColors: false
             ), ring(progress: 0.68, color: .primary, gap: .closed, accessory: nil)),
