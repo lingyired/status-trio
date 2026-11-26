@@ -225,3 +225,4 @@ Review 残留项与处理：
 - 注意：只会对**包含本看门狗之后**的 helper 生效。当前正在跑的旧 helper（无看门狗）仍需**手动重启一次**（`sudo launchctl kickstart -k system/com.lingsmbp.StatusTrio.PowerHelper` 或重启电脑）；之后每次 rebuild/更新都会自动换新，不再需要手动。
 - 已知取舍：更新/重启时若正持有上限，新 daemon 启动 `reconcileAtStartup` 会先还原（`bfF0=0`），随后 App 重新应用上次上限，存在一次短暂“关→开”。
 - helper 侧编译通过。
+- 开销：仅在**新建连接时**检查，且对“磁盘上的 App 构建号”做 **5 秒缓存**（构建号只在更新时变）；**无**常驻线程/定时器/轮询，空闲时零额外 CPU。
