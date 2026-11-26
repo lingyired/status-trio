@@ -55,6 +55,11 @@ final class LegacyChargeLimitController: ObservableObject {
     /// polled. The environment wires this to `PrivilegedHelperManager`, so an
     /// idle app with no cap never keeps the daemon alive.
     var onHelperDemandChanged: ((Bool) -> Void)?
+    /// Fired after a charge command succeeds so the app can force a battery
+    /// re-read. A legacy/firmware write can change the charging state without an
+    /// IOPS power-source notification, which would leave the panel subtitle
+    /// ("已连接电源" vs "预计…充满") stale until the fallback poll.
+    var onCommandCompleted: (() -> Void)?
     /// Bumped by every user command. A launch reconcile captures this and
     /// discards its result if a command landed while it was awaiting the helper,
     /// so a slow startup verify can never overwrite the user's newer action.
@@ -343,6 +348,7 @@ final class LegacyChargeLimitController: ObservableObject {
             status = .holding(at: limit)
             onHelperDemandChanged?(true)
             updateSleepAssertion(level: lastBatteryLevel ?? limit, isOnAC: true)
+            onCommandCompleted?()
             return true
         } catch LegacyChargeLimitClientError.helperUnavailable {
             availability = .unavailable(.helperUnavailable)
@@ -383,6 +389,7 @@ final class LegacyChargeLimitController: ObservableObject {
             sleepAssertion.release()
             client.releaseConnection()
             onHelperDemandChanged?(false)
+            onCommandCompleted?()
             return true
         } catch {
             status = .restoreFailed
@@ -413,6 +420,7 @@ final class LegacyChargeLimitController: ObservableObject {
             }
             status = .temporarilyChargingToFull
             updateSleepAssertion(level: lastBatteryLevel ?? 0, isOnAC: true)
+            onCommandCompleted?()
             return true
         } catch {
             status = .failed
@@ -442,6 +450,7 @@ final class LegacyChargeLimitController: ObservableObject {
             saveSession(updated)
             status = .holding(at: session.requestedLimit)
             updateSleepAssertion(level: lastBatteryLevel ?? session.requestedLimit, isOnAC: true)
+            onCommandCompleted?()
             return true
         } catch {
             status = .restoreFailed

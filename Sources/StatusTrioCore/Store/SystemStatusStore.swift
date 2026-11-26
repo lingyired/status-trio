@@ -206,6 +206,7 @@ final class SystemStatusStore: ObservableObject {
     private let helperReadiness: any HelperReadinessProviding
 
     private let batteryMonitor: any BatteryMonitoring
+    private var batteryBurstTask: Task<Void, Never>?
     private let wifiMonitor: any WiFiMonitoring
     private let connectionMonitor: (any NetworkConnectionMonitoring)?
     private let vpnMonitor: (any VPNMonitoring)?
@@ -1240,6 +1241,24 @@ final class SystemStatusStore: ObservableObject {
 
     func refreshForPopoverOpening() {
         setPopoverVisible(true)
+    }
+
+    /// Re-reads the battery immediately and twice more shortly after. A legacy
+    /// (firmware) charge command can change the charging state without an IOPS
+    /// power-source notification, so the panel subtitle would otherwise stay on
+    /// "已连接电源" until the fallback poll. The short burst covers the moment the
+    /// hardware actually flips between charging and not charging.
+    func refreshBatteryBurst() {
+        batteryMonitor.refresh()
+        batteryBurstTask?.cancel()
+        batteryBurstTask = Task { @MainActor [weak self] in
+            try? await Task.sleep(for: .milliseconds(700))
+            guard !Task.isCancelled, let self, !self.hasStopped else { return }
+            self.batteryMonitor.refresh()
+            try? await Task.sleep(for: .milliseconds(1300))
+            guard !Task.isCancelled, let self, !self.hasStopped else { return }
+            self.batteryMonitor.refresh()
+        }
     }
 
     func bindExternalVolumeSettings(_ settings: SettingsStore) {

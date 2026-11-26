@@ -185,6 +185,12 @@ final class AppEnvironment {
                 PrivilegedHelperManager.shared.releaseSharedHelperDemand()
             }
         }
+        // A legacy charge command can change the charging state without an IOPS
+        // notification; refresh the battery snapshot so the panel subtitle
+        // (charging vs "已连接电源") updates promptly.
+        legacyChargeLimit?.onCommandCompleted = { [weak self] in
+            self?.store.refreshBatteryBurst()
+        }
         legacyChargeLimit?.start(
             batteries: store.$snapshot.dropFirst().map { $0.battery }
                 .removeDuplicates().eraseToAnyPublisher()
