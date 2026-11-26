@@ -45,4 +45,33 @@ enum StatusMenuPresentationPolicy {
         // branch in practice.
         return attempt < maximumRetries ? .retry : .present
     }
+
+    /// The screen point for the menu's top-left corner: just below the status
+    /// item, never inside the menu bar.
+    ///
+    /// The menu used to be anchored in the status button's own coordinates at
+    /// `button.bounds.maxY + 4`. The status item is vertically centred inside
+    /// the menu bar, so on macOS 15 (a 38pt notched bar) that point still fell
+    /// inside the bar: the menu's top edge started under the menu bar, its first
+    /// row (the version line) was clipped, and AppKit turned the menu into a
+    /// scrollable one with a chevron — the "version only appears after hovering,
+    /// and the menu drops down" bug. macOS 26/27's menu-bar geometry differs, so
+    /// the same offset happened to land below the bar. Screen coordinates plus a
+    /// clamp to the bar bottom are geometry-independent.
+    static func anchorPoint(
+        for statusItemScreenRect: NSRect,
+        gap: CGFloat = 4,
+        menuBarBottom: CGFloat? = nil
+    ) -> NSPoint {
+        var y = statusItemScreenRect.minY - max(0, gap)
+        // Never let the menu's top edge start inside the menu bar strip. The
+        // status item is vertically centred in the bar, so "a few points below
+        // its bottom" can still land above the bar's lower edge (macOS 15's
+        // 38pt bar with a notch). Clamping to the bar bottom guarantees the
+        // first row — the version line — is never clipped into a scroll menu.
+        if let menuBarBottom {
+            y = min(y, menuBarBottom)
+        }
+        return NSPoint(x: statusItemScreenRect.minX, y: y)
+    }
 }

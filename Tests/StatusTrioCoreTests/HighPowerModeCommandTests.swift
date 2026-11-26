@@ -2,17 +2,30 @@ import XCTest
 @testable import PowerHelperProtocol
 
 final class HighPowerModeCommandTests: XCTestCase {
-    func testArgumentsApplyToEveryPowerProfile() {
+    func testArgumentsUseTheUnifiedKeyOnMacOS26AndLater() {
         // High Power Mode is system-wide, so the write has to use `-a` like the
         // Low Power Mode write instead of only the active profile. macOS 26
         // unified the switch: `powermode 2` is High, `0` is Automatic.
         XCTAssertEqual(
-            HighPowerModeCommand.arguments(enabled: true),
+            HighPowerModeCommand.arguments(enabled: true, usesUnifiedPowerModeKey: true),
             ["-a", "powermode", "2"]
         )
         XCTAssertEqual(
-            HighPowerModeCommand.arguments(enabled: false),
+            HighPowerModeCommand.arguments(enabled: false, usesUnifiedPowerModeKey: true),
             ["-a", "powermode", "0"]
+        )
+    }
+
+    func testArgumentsUseTheDedicatedHighPowerKeyBeforeMacOS26() {
+        // Before macOS 26 the dedicated `highpowermode` key is the write key:
+        // `1` is High, `0` returns to Automatic.
+        XCTAssertEqual(
+            HighPowerModeCommand.arguments(enabled: true, usesUnifiedPowerModeKey: false),
+            ["-a", "highpowermode", "1"]
+        )
+        XCTAssertEqual(
+            HighPowerModeCommand.arguments(enabled: false, usesUnifiedPowerModeKey: false),
+            ["-a", "highpowermode", "0"]
         )
     }
 

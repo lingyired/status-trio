@@ -133,13 +133,19 @@ struct SystemPmsetRunner: PmsetRunning {
 
     private let timeout: Duration
     private let executableURL: URL
+    /// Which `pmset` key the High Power Mode write uses: `powermode` on
+    /// macOS 26+, `highpowermode` before that. Injected so the daemon and its
+    /// tests agree regardless of the host's macOS version.
+    private let usesUnifiedPowerModeKey: Bool
 
     init(
         timeout: Duration = SystemPmsetRunner.defaultTimeout,
-        executableURL: URL = URL(fileURLWithPath: LowPowerModeCommand.pmsetPath)
+        executableURL: URL = URL(fileURLWithPath: LowPowerModeCommand.pmsetPath),
+        usesUnifiedPowerModeKey: Bool = HighPowerModeCommand.runningOSUsesUnifiedPowerModeKey
     ) {
         self.timeout = timeout
         self.executableURL = executableURL
+        self.usesUnifiedPowerModeKey = usesUnifiedPowerModeKey
     }
 
     func setLowPowerMode(enabled: Bool) async throws {
@@ -151,9 +157,11 @@ struct SystemPmsetRunner: PmsetRunning {
         // deliberately not consulted here: it is a separate child process and
         // this path only needs the write itself.
         if enabled {
-            // `powermode 0` is Automatic: it clears High Power Mode. The old
-            // `highpowermode` argument is no longer accepted on macOS 26+.
-            _ = try? await runWrite(arguments: HighPowerModeCommand.arguments(enabled: false))
+            // `powermode 0` is Automatic: it clears High Power Mode. Pass the
+            // OS-appropriate key (the legacy `highpowermode` on older macOS).
+            _ = try? await runWrite(arguments: HighPowerModeCommand.arguments(
+                enabled: false, usesUnifiedPowerModeKey: usesUnifiedPowerModeKey
+            ))
         }
         try await runWrite(arguments: LowPowerModeCommand.arguments(enabled: enabled))
     }
@@ -194,7 +202,9 @@ struct SystemPmsetRunner: PmsetRunning {
         if enabled {
             _ = try? await runWrite(arguments: LowPowerModeCommand.arguments(enabled: false))
         }
-        try await runWrite(arguments: HighPowerModeCommand.arguments(enabled: enabled))
+        try await runWrite(arguments: HighPowerModeCommand.arguments(
+            enabled: enabled, usesUnifiedPowerModeKey: usesUnifiedPowerModeKey
+        ))
     }
 
     func currentDisableSleep() async -> Bool? {
