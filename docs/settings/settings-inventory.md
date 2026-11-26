@@ -333,3 +333,9 @@ These keys are still read for migration/data continuity but are **not** the auth
 - `Sources/StatusTrioCore/Settings/SettingsTransferSession.swift`
 - `Sources/StatusTrioCore/Settings/SettingsTransferValue.swift`
 
+
+## Menu Bar Instances (2026-11-27)
+
+| Setting | Storage key | Type | Semantic id | Transfer | Notes |
+|---|---|---|---|---|---|
+| `menuBarInstances` | `menuBarInstances.v1` | ordered list of instance objects | `menubar.instances` | yes | User-defined menu-bar status items. Menu-bar only; independent of the main icon and never touches the Dock. Persisted as versioned JSON (`schemaVersion`), validated on load/import against the shipped limits (cap 20). |
