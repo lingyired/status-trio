@@ -25,10 +25,10 @@ cd /Users/lingsmbp/Documents/aiwork/status-trio/.agents/worktrees/fix/207-charge
 
 | 项 | 值 |
 | --- | --- |
-| 版本 / 构建号 | 1.10.6 / 75（Helper 授权修复版） |
-| 源 SHA | `55d7ea89` |
-| GitHub Actions run | `45763420846`（build-candidate.yml，`fast`，`publishable=false`） |
-| 本机目录 | `~/Downloads/StatusTrio-candidate-1.10.6-b75/` |
+| 版本 / 构建号 | 1.10.6 / 76（Helper 授权 + 状态刷新修复版） |
+| 源 SHA | `2796ff8c` |
+| GitHub Actions run | `45765965524`（build-candidate.yml，`fast`，`publishable=false`） |
+| 本机目录 | `~/Downloads/StatusTrio-candidate-1.10.6-b76/` |
 | 安装包 | `StatusTrio-1.10.6-充电上限.dmg`（用户已改名；同目录另有 `StatusTrio-1.10.6.zip`、sha256、`release-manifest.json`） |
 | 签名/公证 | Developer ID + `accepted_and_stapled`，Universal `arm64 + x86_64` |
 
@@ -140,3 +140,5 @@ gh run list --workflow=build-candidate.yml --limit=1
 旧候选（build 74）里，低版本组的授权按钮只请求注册，不会打开批准入口，看起来没反应。修复后（build 75 起）点击会：
 请求注册 Helper，并**直接打开「系统设置 → 通用 → 登录项与扩展」**，在列表里允许 Status Trio 的后台项即可。
 若按钮仍无反应，请确认 App 已从 DMG 拷到「应用程序」再运行（不要在 DMG 里直接跑），并在系统设置里检查该后台项是否被允许。
+
+> build 76 追加：在登录项里批准 Helper 后，App 会自动重新探测，状态不再需要重启才更新。
