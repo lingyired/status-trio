@@ -18,6 +18,8 @@ final class MenuBarInstancesRuntime: NSObject {
     private var configuration = MenuBarInstancesConfiguration.empty
     private var latestHardware = HardwareMetricsSnapshot()
     private var latestStatus: StatusSnapshot = .placeholder
+    private var trackedButtons = Set<ObjectIdentifier>()
+    private var buttonByInstance: [UUID: NSStatusBarButton] = [:]
 
     init(
         store: SystemStatusStore,
@@ -73,6 +75,8 @@ final class MenuBarInstancesRuntime: NSObject {
             button.action = #selector(handleClick(_:))
             button.sendAction(on: [.leftMouseUp, .rightMouseUp])
             button.identifier = NSUserInterfaceItemIdentifier(id.uuidString)
+            buttonByInstance[id] = button
+            installHoverTracking(button: button, id: id)
         }
         updateDemand(config)
         renderAll()
@@ -114,6 +118,32 @@ final class MenuBarInstancesRuntime: NSObject {
     }
 
     // MARK: - Clicks
+
+    private func installHoverTracking(button: NSStatusBarButton, id: UUID) {
+        let oid = ObjectIdentifier(button)
+        guard !trackedButtons.contains(oid) else { return }
+        trackedButtons.insert(oid)
+        let area = NSTrackingArea(
+            rect: .zero,
+            options: [.mouseEnteredAndExited, .activeAlways, .inVisibleRect],
+            owner: self,
+            userInfo: ["id": id.uuidString]
+        )
+        button.addTrackingArea(area)
+    }
+
+    /// Hover-opens the configured panel (never external actions). The panel stays
+    /// open until the user clicks elsewhere; exiting the item does not auto-close,
+    /// so the pointer can travel into the panel.
+    @objc func mouseEntered(with event: NSEvent) {
+        guard let idString = event.trackingArea?.userInfo?["id"] as? String,
+              let id = UUID(uuidString: idString),
+              let instance = configuration.instances.first(where: { $0.id == id }),
+              let button = buttonByInstance[id],
+              !statusBarController.isStatusPanelShown else { return }
+        guard case .showPanel(let raw) = MenuBarInstanceActivationResolver.resolve(instance.hoverAction, forHover: true) else { return }
+        statusBarController.presentInstancePanel(routeRaw: raw, anchorButton: button, presentedByHover: true)
+    }
 
     @objc private func handleClick(_ sender: NSStatusBarButton) {
         guard let idString = sender.identifier?.rawValue,

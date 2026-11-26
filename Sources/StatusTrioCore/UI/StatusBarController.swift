@@ -1121,6 +1121,9 @@ final class StatusBarController: NSObject {
         }
     }
 
+    /// Whether the shared status panel is currently visible.
+    var isStatusPanelShown: Bool { popover.isShown }
+
     /// Opens the shared status panel anchored to a custom instance's button.
     func presentInstancePanel(routeRaw: String, anchorButton: NSStatusBarButton, presentedByHover: Bool) {
         applyInstanceRoute(routeRaw)
