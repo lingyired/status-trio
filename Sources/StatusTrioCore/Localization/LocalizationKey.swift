@@ -304,6 +304,8 @@ enum LocalizationKey: String, CaseIterable, Hashable, Sendable {
     case hardwareMonitorDownload = "hardware.monitor.download"
     case hardwareMonitorUpload = "hardware.monitor.upload"
     case hardwareMonitorVolume = "hardware.monitor.volume"
+    case menuBarMetricWifiConnected = "menubar.metric.wifiConnected"
+    case menuBarMetricWifiDisconnected = "menubar.metric.wifiDisconnected"
     case hardwareMonitorSignalStrength = "hardware.monitor.signalStrength"
     case hardwareMonitorSettingsGroupSampling = "hardware.monitor.settings.group.sampling"
     case hardwareMonitorSettingsGroupRings = "hardware.monitor.settings.group.rings"
