@@ -214,3 +214,14 @@ Review 残留项与处理：
 - B：退出还原 / 重启自愈依赖 helper 常驻 + journal，需真机多测“退出→重启→插拔电”。
 - C：app 侧改动本机无法整包编译（CLT SDK 缺 `glassEffect`），需 Xcode 27/CI 编译验证；helper 侧已编译通过。
 - D：当前机器实际 `bfF0=0`（限充已关、正常充放）；“无法恢复”是旧包（build 80）的显示 bug，含 `a0fee4b0` 的包即正常。
+
+## 17. 旧 Helper 常驻 / 更新后仍是旧 helper —— 机制与修复
+
+现象：重装/更新 App 后，正在运行的 `StatusTrioPowerHelper`（LaunchDaemon）仍是被替换前的旧二进制，新 App 连到旧 helper（旧逻辑）→ 仍报“无法恢复”。实测：运行中的 helper pid 启动于 17:37，而新 App/新 helper 是 19:13。
+
+**为何这次才有**：替换 App 不会重启已运行的 daemon；而 legacy 充电上限为“保护/还原上限”会抬升 `recoveryDemand` 让 daemon 常驻、不空闲退出。早期版本（LPM/高功率/disable-sleep）不常驻，所以“以前正常”。本例还被“还原失败 bug”进一步卡住导致 daemon 一直不退出；还原修好（`a0fee4b0`）后，正常情况下 App 退出 daemon 会空闲退出。
+
+**修复（`HelperBuildWatchdog`）**：helper 启动时记录所在 `.app` 的 `CFBundleVersion`；每当有新连接，若磁盘上的 App 构建号已变（说明自己被更新覆盖），就记录并 **`exit(0)` 自我退出**，launchd 下次连接时用注册路径（新安装的二进制）重启。helper-only、无需新 XPC 方法、无需重新审批。
+- 注意：只会对**包含本看门狗之后**的 helper 生效。当前正在跑的旧 helper（无看门狗）仍需**手动重启一次**（`sudo launchctl kickstart -k system/com.lingsmbp.StatusTrio.PowerHelper` 或重启电脑）；之后每次 rebuild/更新都会自动换新，不再需要手动。
+- 已知取舍：更新/重启时若正持有上限，新 daemon 启动 `reconcileAtStartup` 会先还原（`bfF0=0`），随后 App 重新应用上次上限，存在一次短暂“关→开”。
+- helper 侧编译通过。
