@@ -1256,7 +1256,7 @@ final class SystemStatusStore: ObservableObject {
             guard !Task.isCancelled, let self, !self.hasStopped else { return }
             self.batteryMonitor.refresh()
             try? await Task.sleep(for: .milliseconds(1300))
-            guard !Task.isCancelled, let self, !self.hasStopped else { return }
+            guard !Task.isCancelled, !self.hasStopped else { return }
             self.batteryMonitor.refresh()
         }
     }

@@ -14,10 +14,12 @@ final class ChargeToFullNowLayoutTests: XCTestCase {
         XCTAssertGreaterThan(available.height, hidden.height + 20)
     }
 
-    func testUnavailableExplainsInsteadOfReservingEmptySpace() throws {
+    func testUnavailableRendersNothingInsteadOfReservingSpace() throws {
+        // Deliberate product change (190ba19a): an unavailable action shows no
+        // row at all, so the popover must not grow for it.
         let hidden = try render(.hidden)
         let unavailable = try render(.unavailable)
-        XCTAssertGreaterThan(unavailable.height, hidden.height + 10)
+        XCTAssertEqual(unavailable.height, hidden.height, accuracy: 1)
     }
 
     func testApplyingAndFailureStatesRemainInsideThePopoverWidth() throws {
