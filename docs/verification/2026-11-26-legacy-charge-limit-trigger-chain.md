@@ -193,3 +193,12 @@ Allowed classes are: 'SMLegacyChargeLimitProbeReply'
 - 清单：`source_sha=c16a29eb…`，`version 1.10.6 build 78`，`publishable=false`，`developer_id`，`notarization=accepted_and_stapled`。
 - 产物（已下载）：`~/Downloads/StatusTrio-candidate-1.10.6-b78/StatusTrio-1.10.6.dmg`（sha256 与清单一致）。
 - 下一步：装到 macOS 15.8.3 真机，打开「管理充电上限」并设 85%，插电观察是否停在 85% 附近；退出 App 应还原（`bfF0=0`）。真机物理行为仍为 **NOT RUN**。
+
+## 15. 面板「预计…充满」改为「预计…充到 N%」（固件上限生效时）
+
+现象：设 80% 上限后面板仍显示「预计 58 分钟充满」（到 100%），误导。
+修复（无打包，仅提交）：把活动中的 legacy 上限并入 `BatteryStatus.chargeLimitPercent`，复用既有 `chargeTimeEstimate` / `batteryTimeToChargeLimit*` 文案：当 `LegacyChargeLimitController.status` 为 `.holding(L)` 时，`BatteryMonitor.currentChargeLimit()` 返回 `L`（绕过系统 plist 缓存，切换即时生效）；`PanelPresentationMapper.chargeTimeEstimate` 已按上限缩放时间并输出「预计 … 充到 N%」。`chargeToFullOnce`/`.temporarilyChargingToFull` 时 provider 返回 nil，仍显示「充满」（正确）。
+
+- `Macos` 实测：55%→62% 时系统「剩余时间」变化更符合“到 100%”的速率，故按 100%→上限缩放是合理的。
+- 改动文件：`Monitoring/BatteryMonitor.swift`、`App/AppEnvironment.swift`。
+- 未打包；需下次经你同意构建后验证。

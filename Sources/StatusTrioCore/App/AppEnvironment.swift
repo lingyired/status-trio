@@ -613,8 +613,9 @@ final class AppEnvironment {
             let run = DevelopmentProfileBootstrap.runAtLaunch(service: profileService)
             NSLog("StatusTrio development profile: %@", run.log.joined(separator: " | "))
         }
+        let batteryMonitor = BatteryMonitor()
         let store = makeStore(
-            batteryMonitor: BatteryMonitor(),
+            batteryMonitor: batteryMonitor,
             wifiMonitor: WiFiMonitor(),
             connectionMonitor: NetworkConnectionMonitor(),
             vpnMonitor: VPNMonitor(),
@@ -723,6 +724,13 @@ final class AppEnvironment {
         // only becomes visible on macOS 13–15 with an internal battery.
         let legacyChargeLimit = LegacyChargeLimitController()
         legacyChargeLimit.sleepPolicyProvider = { [settings] in settings.legacySleepPolicy }
+        // Let the battery panel's "time to full" copy target the live legacy
+        // limit (e.g. "58 min to 80%") instead of 100% while it is held.
+        batteryMonitor.setLegacyChargeLimitPercentProvider { [weak legacyChargeLimit] in
+            guard let legacyChargeLimit else { return nil }
+            if case let .holding(limit) = legacyChargeLimit.status { return limit }
+            return nil
+        }
         let chargeToFullNow = ChargeToFullNowController(
             backend: PowerUIChargeController(),
             sessionStore: UserDefaultsChargeToFullNowSessionStore(

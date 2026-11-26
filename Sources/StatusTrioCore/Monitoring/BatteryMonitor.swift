@@ -111,6 +111,10 @@ final class BatteryMonitor: BatteryMonitoring {
     /// limit changes only when the user edits it, while refreshes arrive every
     /// few seconds during charging.
     private let chargeLimitProvider: () -> Int?
+    /// Optional provider for the active legacy (Apple-Silicon firmware) charge
+    /// limit. When it returns a percentage the panel's "time to full" copy
+    /// targets that limit instead of 100%. Read on the main actor.
+    private var legacyChargeLimitPercentProvider: (@MainActor () -> Int?)?
     private let chargeLimitMaxAge: TimeInterval
     private var chargeLimitCache: (value: Int?, readAt: Date)?
     nonisolated(unsafe) private var runLoopSource: CFRunLoopSource?
@@ -252,8 +256,11 @@ final class BatteryMonitor: BatteryMonitoring {
 
     /// The effective charge limit, memoized for chargeLimitMaxAge so a
     /// charging battery's frequent refreshes do not re-decode the private plist
-    /// on every notification. A failed read stays nil (no limit).
+    /// on every notification. A failed read stays nil (no limit). The live
+    /// legacy limit (if any) wins and bypasses the cache so toggling it is
+    /// reflected immediately.
     private func currentChargeLimit(now: Date = Date()) -> Int? {
+        if let legacy = legacyChargeLimitPercentProvider?() { return legacy }
         if let cache = chargeLimitCache,
            now.timeIntervalSince(cache.readAt) < chargeLimitMaxAge {
             return cache.value
@@ -261,6 +268,10 @@ final class BatteryMonitor: BatteryMonitoring {
         let value = chargeLimitProvider()
         chargeLimitCache = (value, now)
         return value
+    }
+
+    func setLegacyChargeLimitPercentProvider(_ provider: (@MainActor () -> Int?)?) {
+        legacyChargeLimitPercentProvider = provider
     }
 
     private func teardownNotifications() {
