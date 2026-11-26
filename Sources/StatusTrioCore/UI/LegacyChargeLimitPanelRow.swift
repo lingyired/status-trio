@@ -43,32 +43,28 @@ struct LegacyChargeLimitPanelRow: View {
         let busy = controller.isApplying
         return Group {
             if busy {
-                ProgressView()
-                    .controlSize(.small)
-                    .accessibilityLabel(localization.string(.settingsBatteryChargeLimitApplying))
+                // Same 28pt shell as the button so the row height never changes
+                // while a command applies; the spinner is centered inside it.
+                actionBox {
+                    ProgressView()
+                        .controlSize(.small)
+                        .accessibilityLabel(localization.string(.settingsBatteryChargeLimitApplying))
+                }
             } else if showsActions, let key = LegacyChargeLimitPanelMapper.actionTitleKey(for: action) {
                 Button {
                     perform(action)
                 } label: {
-                    HStack(spacing: 7) {
-                        Image(systemName: action == .cancelFullCharge ? "xmark" : "bolt.fill")
-                            .frame(width: 14, height: 14)
-                        Text(localization.string(key))
-                            .font(.caption.weight(.medium))
-                            .lineLimit(1)
-                            .minimumScaleFactor(0.7)
-                        Spacer(minLength: 0)
-                    }
-                    .foregroundStyle(.primary)
-                    .padding(.horizontal, 10)
-                    .frame(maxWidth: .infinity, minHeight: 28)
-                    .background(
-                        RoundedRectangle(cornerRadius: 7, style: .continuous)
-                            .fill(Color.secondary.opacity(0.08))
-                    )
-                    .overlay {
-                        RoundedRectangle(cornerRadius: 7, style: .continuous)
-                            .strokeBorder(Color.secondary.opacity(0.12))
+                    actionBox {
+                        HStack(spacing: 7) {
+                            Image(systemName: action == .cancelFullCharge ? "xmark" : "bolt.fill")
+                                .frame(width: 14, height: 14)
+                            Text(localization.string(key))
+                                .font(.caption.weight(.medium))
+                                .lineLimit(1)
+                                .minimumScaleFactor(0.7)
+                            Spacer(minLength: 0)
+                        }
+                        .foregroundStyle(.primary)
                     }
                     .contentShape(Rectangle())
                 }
@@ -76,6 +72,23 @@ struct LegacyChargeLimitPanelRow: View {
                 .accessibilityLabel(localization.string(key))
             }
         }
+    }
+
+    /// Identical shell for the action button and its in-place loading state so
+    /// the row height never changes while a command is applying (the loading
+    /// indicator stays centered inside the same 28pt box).
+    private func actionBox<Content: View>(@ViewBuilder _ content: () -> Content) -> some View {
+        content()
+            .padding(.horizontal, 10)
+            .frame(maxWidth: .infinity, minHeight: 28)
+            .background(
+                RoundedRectangle(cornerRadius: 7, style: .continuous)
+                    .fill(Color.secondary.opacity(0.08))
+            )
+            .overlay {
+                RoundedRectangle(cornerRadius: 7, style: .continuous)
+                    .strokeBorder(Color.secondary.opacity(0.12))
+            }
     }
 
     @ViewBuilder
