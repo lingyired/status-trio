@@ -93,6 +93,21 @@ struct LegacyChargeLimitSettingsView: View {
                 }
             }
 
+            // Low versions only (macOS 13–15): a toggle that decides whether the
+            // battery panel shows the "立即充满电" button. The button itself does
+            // the same job as the high-version one; only its backing logic is the
+            // legacy limiter (temporary lift, restored the next day).
+            if controller.selectedLimit != nil, !needsHelperApproval {
+                SettingsDivider()
+                SettingsToggleRow(
+                    symbol: "bolt.badge.clock.fill",
+                    tint: .orange,
+                    title: localization.string(.settingsBatteryLegacyChargeLimitShowPanelButton),
+                    subtitle: localization.string(.settingsBatteryLegacyChargeLimitTemporaryNote),
+                    isOn: $showsPanelButton
+                )
+            }
+
             SettingsDivider()
 
             SettingsRow(
@@ -114,21 +129,6 @@ struct LegacyChargeLimitSettingsView: View {
                     }
                     .controlSize(.small)
                 }
-            }
-
-            // Low versions only (macOS 13–15): a toggle that decides whether the
-            // battery panel shows the "立即充满电" button. The button itself does
-            // the same job as the high-version one; only its backing logic is the
-            // legacy limiter (temporary lift, restored the next day).
-            if controller.selectedLimit != nil, !needsHelperApproval {
-                SettingsDivider()
-                SettingsToggleRow(
-                    symbol: "bolt.badge.clock.fill",
-                    tint: .orange,
-                    title: localization.string(.settingsBatteryLegacyChargeLimitShowPanelButton),
-                    subtitle: localization.string(.settingsBatteryLegacyChargeLimitTemporaryNote),
-                    isOn: $showsPanelButton
-                )
             }
 
             SettingsDivider()

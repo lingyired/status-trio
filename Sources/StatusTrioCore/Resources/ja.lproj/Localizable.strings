@@ -1156,7 +1156,7 @@
 "settings.battery.legacyChargeLimit.sleepPolicyDescription" = "フタを閉じたときの充電の扱い。";
 "settings.battery.legacyChargeLimit.sleepPause" = "充電を一時停止";
 "settings.battery.legacyChargeLimit.sleepKeepAwake" = "上限までスリープしない";
-"settings.battery.legacyChargeLimit.status" = "状態";
+"settings.battery.legacyChargeLimit.status" = "現在のバッテリー最適化状態";
 "settings.battery.legacyChargeLimit.notEnabled" = "未有効";
 "settings.battery.legacyChargeLimit.helperRequired" = "電源ヘルパーの承認が必要";
 "settings.battery.legacyChargeLimit.checking" = "ハードウェアを確認中…";

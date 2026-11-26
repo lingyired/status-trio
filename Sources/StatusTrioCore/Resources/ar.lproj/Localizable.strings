@@ -1156,7 +1156,7 @@
 "settings.battery.legacyChargeLimit.sleepPolicyDescription" = "ما يحدث للشحن عند إغلاق الغطاء.";
 "settings.battery.legacyChargeLimit.sleepPause" = "إيقاف الشحن مؤقتًا";
 "settings.battery.legacyChargeLimit.sleepKeepAwake" = "البقاء مستيقظًا حتى الحد";
-"settings.battery.legacyChargeLimit.status" = "الحالة";
+"settings.battery.legacyChargeLimit.status" = "حالة تحسين البطارية الحالية";
 "settings.battery.legacyChargeLimit.notEnabled" = "غير مفعّل";
 "settings.battery.legacyChargeLimit.helperRequired" = "يلزم اعتماد مساعد الطاقة";
 "settings.battery.legacyChargeLimit.checking" = "جارٍ فحص الأجهزة…";

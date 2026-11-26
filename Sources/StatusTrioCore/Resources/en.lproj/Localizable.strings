@@ -1155,7 +1155,7 @@
 "settings.battery.legacyChargeLimit.sleepPolicyDescription" = "What happens to charging when the lid closes.";
 "settings.battery.legacyChargeLimit.sleepPause" = "Pause charging";
 "settings.battery.legacyChargeLimit.sleepKeepAwake" = "Stay awake until the limit";
-"settings.battery.legacyChargeLimit.status" = "Status";
+"settings.battery.legacyChargeLimit.status" = "Current battery optimization status";
 "settings.battery.legacyChargeLimit.notEnabled" = "Not enabled";
 "settings.battery.legacyChargeLimit.helperRequired" = "Power helper approval required";
 "settings.battery.legacyChargeLimit.checking" = "Checking hardware…";

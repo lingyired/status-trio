@@ -1156,7 +1156,7 @@
 "settings.battery.legacyChargeLimit.sleepPolicyDescription" = "Was beim Zuklappen mit dem Laden passiert.";
 "settings.battery.legacyChargeLimit.sleepPause" = "Laden pausieren";
 "settings.battery.legacyChargeLimit.sleepKeepAwake" = "Wach bleiben bis zum Limit";
-"settings.battery.legacyChargeLimit.status" = "Status";
+"settings.battery.legacyChargeLimit.status" = "Aktueller Batterieoptimierungs-Status";
 "settings.battery.legacyChargeLimit.notEnabled" = "Nicht aktiviert";
 "settings.battery.legacyChargeLimit.helperRequired" = "Genehmigung des Energie-Helfers erforderlich";
 "settings.battery.legacyChargeLimit.checking" = "Hardware wird geprüft…";

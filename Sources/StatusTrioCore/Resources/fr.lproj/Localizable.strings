@@ -1156,7 +1156,7 @@
 "settings.battery.legacyChargeLimit.sleepPolicyDescription" = "Ce qui arrive à la charge quand le capot se ferme.";
 "settings.battery.legacyChargeLimit.sleepPause" = "Suspendre la charge";
 "settings.battery.legacyChargeLimit.sleepKeepAwake" = "Rester éveillé jusqu'à la limite";
-"settings.battery.legacyChargeLimit.status" = "État";
+"settings.battery.legacyChargeLimit.status" = "État actuel de l’optimisation de la batterie";
 "settings.battery.legacyChargeLimit.notEnabled" = "Non activé";
 "settings.battery.legacyChargeLimit.helperRequired" = "Approbation de l’assistant d’alimentation requise";
 "settings.battery.legacyChargeLimit.checking" = "Vérification du matériel…";

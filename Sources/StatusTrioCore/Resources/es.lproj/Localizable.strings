@@ -1156,7 +1156,7 @@
 "settings.battery.legacyChargeLimit.sleepPolicyDescription" = "Qué ocurre con la carga al cerrar la tapa.";
 "settings.battery.legacyChargeLimit.sleepPause" = "Pausar carga";
 "settings.battery.legacyChargeLimit.sleepKeepAwake" = "Permanecer despierto hasta el límite";
-"settings.battery.legacyChargeLimit.status" = "Estado";
+"settings.battery.legacyChargeLimit.status" = "Estado actual de optimización de la batería";
 "settings.battery.legacyChargeLimit.notEnabled" = "No activado";
 "settings.battery.legacyChargeLimit.helperRequired" = "Se requiere aprobación del asistente de energía";
 "settings.battery.legacyChargeLimit.checking" = "Comprobando hardware…";

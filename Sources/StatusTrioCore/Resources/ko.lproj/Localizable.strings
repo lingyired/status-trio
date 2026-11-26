@@ -1156,7 +1156,7 @@
 "settings.battery.legacyChargeLimit.sleepPolicyDescription" = "뚜껑을 닫을 때 충전 처리 방식.";
 "settings.battery.legacyChargeLimit.sleepPause" = "충전 일시 중지";
 "settings.battery.legacyChargeLimit.sleepKeepAwake" = "상한까지 잠자지 않음";
-"settings.battery.legacyChargeLimit.status" = "상태";
+"settings.battery.legacyChargeLimit.status" = "현재 배터리 최적화 상태";
 "settings.battery.legacyChargeLimit.notEnabled" = "활성화되지 않음";
 "settings.battery.legacyChargeLimit.helperRequired" = "전원 도우미 승인 필요";
 "settings.battery.legacyChargeLimit.checking" = "하드웨어 확인 중…";

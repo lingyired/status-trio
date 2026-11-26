@@ -1156,7 +1156,7 @@
 "settings.battery.legacyChargeLimit.sleepPolicyDescription" = "Что делать с зарядкой при закрытии крышки.";
 "settings.battery.legacyChargeLimit.sleepPause" = "Приостановить зарядку";
 "settings.battery.legacyChargeLimit.sleepKeepAwake" = "Не спать до предела";
-"settings.battery.legacyChargeLimit.status" = "Состояние";
+"settings.battery.legacyChargeLimit.status" = "Текущее состояние оптимизации аккумулятора";
 "settings.battery.legacyChargeLimit.notEnabled" = "Не включено";
 "settings.battery.legacyChargeLimit.helperRequired" = "Требуется одобрение помощника питания";
 "settings.battery.legacyChargeLimit.checking" = "Проверка оборудования…";

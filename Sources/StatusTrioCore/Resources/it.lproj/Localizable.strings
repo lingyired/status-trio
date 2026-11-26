@@ -1156,7 +1156,7 @@
 "settings.battery.legacyChargeLimit.sleepPolicyDescription" = "Cosa succede alla carica quando chiudi il coperchio.";
 "settings.battery.legacyChargeLimit.sleepPause" = "Sospendi la carica";
 "settings.battery.legacyChargeLimit.sleepKeepAwake" = "Resta sveglio fino al limite";
-"settings.battery.legacyChargeLimit.status" = "Stato";
+"settings.battery.legacyChargeLimit.status" = "Stato attuale di ottimizzazione della batteria";
 "settings.battery.legacyChargeLimit.notEnabled" = "Non attivato";
 "settings.battery.legacyChargeLimit.helperRequired" = "Approvazione dell’assistente energetico richiesta";
 "settings.battery.legacyChargeLimit.checking" = "Verifica dell’hardware…";

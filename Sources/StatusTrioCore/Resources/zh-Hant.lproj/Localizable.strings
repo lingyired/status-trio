@@ -1156,7 +1156,7 @@
 "settings.battery.legacyChargeLimit.sleepPolicyDescription" = "闔蓋後充電怎麼處理。";
 "settings.battery.legacyChargeLimit.sleepPause" = "暫停充電";
 "settings.battery.legacyChargeLimit.sleepKeepAwake" = "充到上限前不睡眠";
-"settings.battery.legacyChargeLimit.status" = "狀態";
+"settings.battery.legacyChargeLimit.status" = "目前電池優化狀態";
 "settings.battery.legacyChargeLimit.notEnabled" = "未啟用";
 "settings.battery.legacyChargeLimit.helperRequired" = "需要核准電源 Helper";
 "settings.battery.legacyChargeLimit.checking" = "正在檢查硬體…";
