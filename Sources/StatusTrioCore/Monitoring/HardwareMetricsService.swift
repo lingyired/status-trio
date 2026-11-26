@@ -265,16 +265,29 @@ final class HardwareMonitorObservable: ObservableObject {
 
     /// Drops every detail payload that does not belong to the page now on screen,
     /// so switching pages cannot show another page's stale per-core/breakdown data.
+    /// Both snapshots are cleared: the panel renders `panelStored`, so clearing
+    /// only the live copy would leave a previous page's payload to be shown as
+    /// cached data (it has no freshness expiry of its own) until the next merge.
     func clearDetailPayloads(except kind: HardwareDetailKind?) {
-        var changed = false
-        if kind != .cpu, stored.cpuDetail != nil { stored.cpuDetail = nil; changed = true }
-        if kind != .gpu, stored.gpuDetail != nil { stored.gpuDetail = nil; changed = true }
-        if kind != .memory, stored.memoryDetail != nil { stored.memoryDetail = nil; changed = true }
-        if kind != .network, stored.networkDetail != nil { stored.networkDetail = nil; changed = true }
-        if kind != .disk, stored.diskDetail != nil { stored.diskDetail = nil; changed = true }
-        guard changed else { return }
+        func clear(in snapshot: inout HardwareMetricsSnapshot) -> Bool {
+            var didChange = false
+            func drop<Value>(_ keyPath: WritableKeyPath<HardwareMetricsSnapshot, Value?>) {
+                guard snapshot[keyPath: keyPath] != nil else { return }
+                snapshot[keyPath: keyPath] = nil
+                didChange = true
+            }
+            if kind != .cpu { drop(\.cpuDetail) }
+            if kind != .gpu { drop(\.gpuDetail) }
+            if kind != .memory { drop(\.memoryDetail) }
+            if kind != .network { drop(\.networkDetail) }
+            if kind != .disk { drop(\.diskDetail) }
+            return didChange
+        }
+        let liveChanged = clear(in: &stored)
+        let panelChanged = clear(in: &panelStored)
+        guard liveChanged || panelChanged else { return }
         objectWillChange.send()
-        snapshotSubject.send(stored)
+        if liveChanged { snapshotSubject.send(stored) }
     }
 }
 

@@ -35,7 +35,9 @@ enum IconAppearanceColorEditing {
         case let .fixed(color):
             color
         case let .semanticOverrides(colors):
-            colors[role] ?? colors[.primary] ?? .white
+            colors[role]
+                ?? (role == .connected ? colors[.powered] : nil)
+                ?? colors[.primary] ?? .white
         }
     }
 

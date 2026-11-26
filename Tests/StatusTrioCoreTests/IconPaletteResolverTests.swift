@@ -20,6 +20,24 @@ final class IconPaletteResolverTests: XCTestCase {
         XCTAssertEqual(IconPaletteResolver.resolve(role: .lowPower, style: style), .lowPower)
     }
 
+    func testConnectedAndPoweredCanCarryIndependentSemanticOverrides() {
+        let connected = IconRGBA(red: 0.1, green: 0.2, blue: 0.9, alpha: 1)
+        let powered = IconRGBA(red: 0.9, green: 0.6, blue: 0.1, alpha: 1)
+        let style = SlotColorStyle.semanticOverrides([.connected: connected, .powered: powered])
+
+        XCTAssertEqual(IconPaletteResolver.resolve(role: .connected, style: style), .custom(connected))
+        XCTAssertEqual(IconPaletteResolver.resolve(role: .powered, style: style), .custom(powered))
+    }
+
+    func testConnectedSemanticOverrideFallsBackToPoweredForOlderConfigurations() {
+        let powered = IconRGBA(red: 0.9, green: 0.6, blue: 0.1, alpha: 1)
+        let style = SlotColorStyle.semanticOverrides([.powered: powered])
+
+        // Before #389 split connected from powered, an override that only set
+        // `powered` also coloured the connected state; keep that look.
+        XCTAssertEqual(IconPaletteResolver.resolve(role: .connected, style: style), .custom(powered))
+    }
+
     func testOnlySlotBeingStyledChangesAndColorParticipatesInSceneIdentity() {
         let red = IconRGBA(red: 1, green: 0, blue: 0, alpha: 1)
         let blue = IconRGBA(red: 0, green: 0, blue: 1, alpha: 1)
