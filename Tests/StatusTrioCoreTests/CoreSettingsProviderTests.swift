@@ -26,6 +26,16 @@ struct CoreSettingsProviderTests {
         #expect(provider.value(for: "panel.behavior.showOnHover") == .bool(false))
     }
 
+    @Test("Power info bar preference reaches the store, so a dev profile can enable it")
+    func powerInfoBarRoundTrip() {
+        let (store, _) = makeStore()
+        let provider = CoreSettingsProvider(store: store)
+        #expect(store.showsBatteryPowerInfoBar == false)
+        provider.setValue(.bool(true), for: "battery.powerInfoBar.enabled")
+        #expect(store.showsBatteryPowerInfoBar == true)
+        #expect(provider.value(for: "battery.powerInfoBar.enabled") == .bool(true))
+    }
+
     @Test("Hardware ring layout writes the nested configuration")
     func hardwareRingLayout() {
         let (store, _) = makeStore()

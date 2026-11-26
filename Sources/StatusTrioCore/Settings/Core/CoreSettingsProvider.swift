@@ -92,6 +92,8 @@ final class CoreSettingsProvider: SettingsStateProvider {
             return .number(store.autoLowPowerThreshold)
         case "battery.powerFlow.enabled":
             return .bool(store.showsBatteryPowerFlow)
+        case "battery.powerInfoBar.enabled":
+            return .bool(store.showsBatteryPowerInfoBar)
         case "battery.highEnergyApps.enabled":
             return .bool(store.showsHighEnergyApps)
         case "keepAwake.displayControl":
@@ -261,6 +263,8 @@ final class CoreSettingsProvider: SettingsStateProvider {
             if let number = Self.number(value) { store.autoLowPowerThreshold = number }
         case "battery.powerFlow.enabled":
             if case .bool(let flag) = value { store.showsBatteryPowerFlow = flag }
+        case "battery.powerInfoBar.enabled":
+            if case .bool(let flag) = value { store.showsBatteryPowerInfoBar = flag }
         case "battery.highEnergyApps.enabled":
             if case .bool(let flag) = value { store.showsHighEnergyApps = flag }
         case "keepAwake.displayControl":
