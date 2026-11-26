@@ -63,6 +63,42 @@ struct StatusMenuPresentationPolicyTests {
         #expect(decision(rect: empty, visible: true, attempt: 0) == .retry)
     }
 
+    @Test func theMenuAnchorsJustBelowTheStatusItemInScreenCoordinates() {
+        // macOS 15 regression: anchoring with `button.bounds.maxY` put the
+        // menu's top edge above the icon, clipping the version row into a
+        // scrollable menu. The anchor is now the icon's lower edge minus the
+        // gap, in screen coordinates, so the button's flipped state cannot
+        // matter.
+        let point = StatusMenuPresentationPolicy.anchorPoint(for: statusItemRect, gap: 4)
+        #expect(point.x == statusItemRect.minX)
+        #expect(point.y == statusItemRect.minY - 4)
+    }
+
+    @Test func aNegativeGapNeverPushesTheMenuOntoTheIcon() {
+        let point = StatusMenuPresentationPolicy.anchorPoint(for: statusItemRect, gap: -10)
+        #expect(point.y == statusItemRect.minY)
+    }
+
+    @Test func theMenuNeverStartsInsideTheMenuBar() {
+        // The status item is centred in the menu bar, so its bottom can sit more
+        // than `gap` points above the bar's lower edge. Clamp to that edge so
+        // the first row (the version line) is never clipped into a scroll menu.
+        let clamped = StatusMenuPresentationPolicy.anchorPoint(
+            for: statusItemRect,
+            gap: 4,
+            menuBarBottom: statusItemRect.minY - 10
+        )
+        #expect(clamped.y == statusItemRect.minY - 10)
+
+        // A bar bottom below the natural anchor leaves it unchanged.
+        let natural = StatusMenuPresentationPolicy.anchorPoint(
+            for: statusItemRect,
+            gap: 4,
+            menuBarBottom: statusItemRect.minY - 1
+        )
+        #expect(natural.y == statusItemRect.minY - 4)
+    }
+
     private func decision(
         rect: NSRect?,
         visible: Bool,
