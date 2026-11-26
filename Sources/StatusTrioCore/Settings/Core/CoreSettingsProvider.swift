@@ -378,6 +378,8 @@ final class CoreSettingsProvider: SettingsStateProvider {
         case "panel.modules.enabled":
             return .array(store.enabledPopupSections.map(\.rawValue).sorted().map { .string($0) })
         default:
+            // A handled id reaching this branch means the switch is missing a case.
+            assert(!Self.handledPreferenceIDs.contains(id), "handled core id missing get case: \(id)")
             return nil
         }
     }
@@ -648,6 +650,7 @@ final class CoreSettingsProvider: SettingsStateProvider {
             let desired = Set(Self.strings(value).compactMap { PopupSection(rawValue: $0) })
             for section in PopupSection.allCases { store.setPopupSection(section, enabled: desired.contains(section)) }
         default:
+            assert(!Self.handledPreferenceIDs.contains(id), "handled core id missing set case: \(id)")
             break
         }
     }

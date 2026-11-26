@@ -215,11 +215,18 @@ enum SettingsSemanticCatalog {
             d.accessPolicy = .transferable
             d.provider = "core"
         },
-        pref("panel.modules.enabled", "启用的面板模块", "panel", .set, "状态面板中启用的模块集合及顺序。") { d in
+        pref("panel.modules.enabled", "启用的面板模块", "panel", .set, "状态面板中启用的模块集合及顺序。整体替换集合；开发 Profile 请改用逐模块开关或 add/remove，以免关掉未列出的模块。") { d in
             d.uiPath = "设置 › 状态面板 › 模块"
             d.optionsProvider = "panel.sections"
             d.storageKey = "enabledPopupSections"
-            d.accessPolicy = .transferable
+            // 整体替换会删除未列出的模块；保留 transfer 能力，但不允许开发 Profile 自动替换。
+            d.accessPolicy = SettingsAccessPolicy(
+                uiAccessible: true,
+                developmentProfile: false,
+                transferable: true,
+                externalRead: true,
+                externalWrite: false
+            )
             d.provider = "core"
         },
 
@@ -653,7 +660,7 @@ enum SettingsSemanticCatalog {
             d.uiPath = "设置 › 电池 › 高耗能 App › 刷新间隔"
             d.unit = "s"; d.storageKey = "highEnergyAppsRefreshIntervalSeconds"; d.accessPolicy = .profileSafe; d.provider = "core"
         },
-        pref("battery.marker.onBattery", "电池百分比标记", "battery", .enumeration, "使用电池时电量环顶部的标记样式。") { d in
+        pref("battery.marker.onBattery", "使用电池时标记", "battery", .enumeration, "使用电池时电量环顶部的标记样式。") { d in
             d.uiPath = "设置 › 电池 › 标记 › 使用电池"
             d.options = [opt("percentage", "百分比"), opt("bolt", "闪电"), opt("plug", "插头"), opt("hidden", "隐藏")]
             d.storageKey = "batteryOnBatteryMarker"; d.accessPolicy = .profileSafe; d.provider = "core"
@@ -905,6 +912,7 @@ enum SettingsSemanticCatalog {
         pref("hardware.summaryMetrics", "启用的硬件摘要指标", "hardware", .set, "状态面板硬件摘要行启用的指标集合。") { d in
             d.uiPath = "设置 › 监控 › 摘要指标"; d.optionsProvider = "HardwareSummaryMetric"
             d.storageKey = "enabledHardwareSummaryMetricsV1"; d.accessPolicy = .profileSafe; d.provider = "core"
+            d.constraints = [SettingsConstraint(kind: .minimumCount, resolution: .reject, message: "至少保留一个硬件摘要指标。", min: 1)]
         },
         pref("hardware.metricColors", "硬件指标颜色", "hardware", .map, "各硬件指标的自定义颜色映射。") { d in
             d.uiPath = "设置 › 监控 › 指标颜色"; d.storageKey = "hardwareMonitorMetricColorsV1"; d.accessPolicy = describedNotWritable

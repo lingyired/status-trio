@@ -123,4 +123,19 @@ struct DevelopmentProfileTests {
             return
         }
     }
+
+    @Test("Whole panel-module replacement is not allowed in a profile")
+    func panelModulesReplacementRejected() throws {
+        let (service, provider) = service()
+        let url = try writeTemp(#"{"schemaVersion":1,"preferences":{"panel.modules.enabled":[]}}"#)
+        defer { try? FileManager.default.removeItem(at: url) }
+        let result = DevelopmentProfileBootstrap.run(profileURL: url, service: service)
+        guard case .rejected(let issues) = result.outcome else {
+            Issue.record("expected rejection")
+            return
+        }
+        #expect(issues.contains { $0.kind == .preferenceNotAllowedInProfile })
+        #expect(provider.values.isEmpty)
+    }
+
 }
