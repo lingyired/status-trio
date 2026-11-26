@@ -51,3 +51,32 @@ final class NativeChargeToFullVersionGateTests: XCTestCase {
         )
     }
 }
+
+
+/// The native "Charging" group is visible from macOS 26 onward; the legacy
+/// group covers 13–15 (see LegacyChargeLimitPlatformEligibility).
+final class NativeChargingGroupVisibilityTests: XCTestCase {
+    private func v(_ major: Int, _ minor: Int = 0) -> OperatingSystemVersion {
+        OperatingSystemVersion(majorVersion: major, minorVersion: minor, patchVersion: 0)
+    }
+
+    func testShownFromMacOS26() {
+        XCTAssertFalse(ChargeLimitSystemVersionGate.showsNativeChargingGroup(version: v(13)))
+        XCTAssertFalse(ChargeLimitSystemVersionGate.showsNativeChargingGroup(version: v(15, 7)))
+        XCTAssertFalse(ChargeLimitSystemVersionGate.showsNativeChargingGroup(version: v(25)))
+        XCTAssertTrue(ChargeLimitSystemVersionGate.showsNativeChargingGroup(version: v(26, 0)))
+        XCTAssertTrue(ChargeLimitSystemVersionGate.showsNativeChargingGroup(version: v(26, 3)))
+        XCTAssertTrue(ChargeLimitSystemVersionGate.showsNativeChargingGroup(version: v(27)))
+    }
+
+    func testLegacyEligibilityIsThirteenThroughFifteen() {
+        XCTAssertTrue(LegacyChargeLimitPlatformEligibility.isEligible(
+            architecture: .intel, osBand: .thirteenToFourteen, hasInternalBattery: true))
+        XCTAssertTrue(LegacyChargeLimitPlatformEligibility.isEligible(
+            architecture: .intel, osBand: .fifteen, hasInternalBattery: true))
+        XCTAssertFalse(LegacyChargeLimitPlatformEligibility.isEligible(
+            architecture: .intel, osBand: .sixteenToTahoeLegacy, hasInternalBattery: true))
+        XCTAssertFalse(LegacyChargeLimitPlatformEligibility.isEligible(
+            architecture: .intel, osBand: .tahoe, hasInternalBattery: true))
+    }
+}

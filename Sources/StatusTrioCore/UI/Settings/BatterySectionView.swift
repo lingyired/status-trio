@@ -42,7 +42,7 @@ struct BatterySectionView: View {
         panelVisibilityGroup
         // The "Charging" group (native charge-to-full) belongs to macOS 26.4+.
         // macOS 13–15 get their own limiter group; 16–26.3 show neither.
-        if ChargeLimitSystemVersionGate.prefersSystemBatteryOptimization() {
+        if ChargeLimitSystemVersionGate.showsNativeChargingGroup() {
             chargeManagementGroup
         }
         chargeLimitGroup

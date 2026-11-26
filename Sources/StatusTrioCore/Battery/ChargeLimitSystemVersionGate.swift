@@ -15,4 +15,13 @@ enum ChargeLimitSystemVersionGate {
     static func prefersSystemBatteryOptimization() -> Bool {
         prefersSystemBatteryOptimization(version: ProcessInfo.processInfo.operatingSystemVersion)
     }
+
+    /// The native "Charging" group (charge-to-full / system limit) is shown on
+    /// macOS 26 and later only; the legacy limiter group covers 13–15 and
+    /// 16–25 shows neither.
+    static func showsNativeChargingGroup(
+        version: OperatingSystemVersion = ProcessInfo.processInfo.operatingSystemVersion
+    ) -> Bool {
+        version.majorVersion >= 26
+    }
 }
