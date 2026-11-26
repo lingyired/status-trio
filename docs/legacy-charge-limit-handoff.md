@@ -25,10 +25,10 @@ cd /Users/lingsmbp/Documents/aiwork/status-trio/.agents/worktrees/fix/207-charge
 
 | 项 | 值 |
 | --- | --- |
-| 版本 / 构建号 | 1.10.6 / 74 |
-| 源 SHA | `4b1a2063` |
-| GitHub Actions run | `45734163807`（build-candidate.yml，`fast`，`publishable=false`） |
-| 本机目录 | `~/Downloads/StatusTrio-candidate-1.10.6-b74/` |
+| 版本 / 构建号 | 1.10.6 / 75（Helper 授权修复版） |
+| 源 SHA | `55d7ea89` |
+| GitHub Actions run | `45763420846`（build-candidate.yml，`fast`，`publishable=false`） |
+| 本机目录 | `~/Downloads/StatusTrio-candidate-1.10.6-b75/` |
 | 安装包 | `StatusTrio-1.10.6-充电上限.dmg`（用户已改名；同目录另有 `StatusTrio-1.10.6.zip`、sha256、`release-manifest.json`） |
 | 签名/公证 | Developer ID + `accepted_and_stapled`，Universal `arm64 + x86_64` |
 
@@ -134,3 +134,9 @@ gh run list --workflow=build-candidate.yml --limit=1
 - 退出还原、启动重设、开机自启后的自动恢复。
 - 与系统「优化电池充电」的实际冲突与提示效果。
 - 真实 Helper 安装/批准、XPC 握手、Developer ID 包在 13–15 的安装。
+
+## 10. 已知修复：Helper 授权按钮“没反应”（2026-11-26）
+
+旧候选（build 74）里，低版本组的授权按钮只请求注册，不会打开批准入口，看起来没反应。修复后（build 75 起）点击会：
+请求注册 Helper，并**直接打开「系统设置 → 通用 → 登录项与扩展」**，在列表里允许 Status Trio 的后台项即可。
+若按钮仍无反应，请确认 App 已从 DMG 拷到「应用程序」再运行（不要在 DMG 里直接跑），并在系统设置里检查该后台项是否被允许。
