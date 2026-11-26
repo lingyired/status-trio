@@ -262,6 +262,39 @@ final class LegacyChargeLimitControllerTests: XCTestCase {
         XCTAssertEqual(client.probeCalls, 1)
     }
 
+    /// The low-version group probes when the pane appears. Before the daemon is
+    /// approved that probe fails and the group shows "helper required"; the user
+    /// then approves it in Login Items and the view re-probes (activation and
+    /// helper-ready triggers). This pins that a later probe resolves availability
+    /// from the fresh facts instead of leaving the stale "helper required" state
+    /// until relaunch — the trigger-chain gap that `fix(battery): re-probe the
+    /// legacy limiter once the helper is approved` closes at the view layer.
+    func testRefreshAvailabilityRecoversAfterTheHelperIsApproved() async {
+        let client = FakeLegacyClient()
+        client.probeResult = .failure(LegacyChargeLimitClientError.helperUnavailable)
+        let controller = makeController(client: client)
+
+        await controller.refreshAvailability()
+        XCTAssertEqual(controller.availability, .unavailable(.helperUnavailable))
+        XCTAssertFalse(controller.isAvailable)
+        XCTAssertEqual(client.probeCalls, 1)
+
+        // Approval succeeded: the shared helper now answers the read-only probe.
+        client.probeResult = .success(
+            LegacyChargeLimitProbeFacts(
+                hasInternalBattery: true,
+                intelBCLMPresent: true,
+                siliconPairPresent: false,
+                siliconCHTEPresent: false
+            )
+        )
+
+        await controller.refreshAvailability()
+        XCTAssertEqual(client.probeCalls, 2, "Each pane probe must re-read the helper")
+        XCTAssertEqual(controller.availability, .available(.intelBCLM))
+        XCTAssertTrue(controller.isAvailable)
+    }
+
     func testDisableReleasesTheHelperConnection() async {
         let client = FakeLegacyClient()
         let controller = makeController(client: client)
