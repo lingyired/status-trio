@@ -3009,7 +3009,7 @@
         "菜单栏",
         "实例"
       ],
-      "provider" : "core",
+      "provider" : "menubar",
       "storageKey" : "menuBarInstances.v1",
       "title" : "菜单栏实例",
       "type" : "object",

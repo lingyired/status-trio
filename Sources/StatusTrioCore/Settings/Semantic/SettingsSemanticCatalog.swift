@@ -946,7 +946,7 @@ enum SettingsSemanticCatalog {
             d.keywords = ["menu bar", "instance", "菜单栏", "实例"]
             d.storageKey = "menuBarInstances.v1"
             d.accessPolicy = .profileSafe
-            d.provider = "core"
+            d.provider = "menubar"
         },
     ]
 
