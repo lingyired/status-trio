@@ -19,6 +19,7 @@ struct LegacyChargeLimitSettingsView: View {
     /// Battery Charging. No detection is attempted.
     var openBatterySettings: () -> Void = {}
     @EnvironmentObject private var localization: Localization
+    @ObservedObject private var helper: PrivilegedHelperManager = .shared
 
     var body: some View {
         SettingsGroup(
@@ -123,8 +124,12 @@ struct LegacyChargeLimitSettingsView: View {
                             localization.string(.settingsBatteryLegacyChargeLimitChecking)
                         )
                 } else if needsHelperApproval {
-                    Button(localization.string(.settingsBatteryLegacyChargeLimitHelperRequired)) {
+                    Button(localization.string(.settingsBatteryFullThresholdOpenSystemSettings)) {
+                        // Requesting registration is not enough on its own: macOS
+                        // asks the user to approve the daemon under Login Items,
+                        // so open that pane instead of appearing to do nothing.
                         requestHelperApproval()
+                        helper.openLoginItemsSettings()
                         run { await controller.refresh() }
                     }
                     .controlSize(.small)
