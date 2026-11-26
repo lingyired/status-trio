@@ -25,6 +25,7 @@ Generated from `SettingsSemanticCatalog`. Do not edit by hand.
 | `icon.network.wifiIconForInternetSharing` | 共享用 Wi-Fi 图标 | `boolean` | — | showsWiFiIconForInternetSharing |
 | `icon.network.wifiIconForTemporaryConnection` | 临时连接用 Wi-Fi 图标 | `boolean` | — | showsWiFiIconForTemporaryConnection |
 | `icon.outerRing.hardware.layout` | 硬件外环布局 | `enumeration` | `single` | — |
+| `icon.outerRing.hardware.memoryPressureColors` | 内存压力颜色 | `map` | — | hardwareRingConfigurationV1 |
 | `icon.outerRing.hardware.primaryMetric` | 硬件外环主要指标 | `enumeration` | — | — |
 | `icon.outerRing.hardware.ringSlots` | 启用的硬件圆环 | `set` | — | enabledHardwareRingSlotsV1 |
 | `icon.outerRing.hardware.secondaryMetric` | 硬件外环次要指标 | `enumeration` | — | — |

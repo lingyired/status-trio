@@ -31,6 +31,10 @@ enum HardwareRingTopContent: Codable, Equatable, Hashable, Sendable {
     /// A battery power-state marker that follows the battery page's per-state
     /// `BatteryTopMarker` choice (bolt / plug / percentage / hidden).
     case chargingIndicator
+    /// The system memory-pressure level (#398), drawn as a status glyph coloured
+    /// by the shared pressure colours. It is top-marker-only: pressure has no
+    /// numeric progress, so it is never offered as a ring arc or hardware metric.
+    case memoryPressure
     case hidden
 
     /// The metric whose sample the top marker depends on, if any. `automatic`
@@ -38,7 +42,7 @@ enum HardwareRingTopContent: Codable, Equatable, Hashable, Sendable {
     /// own; the resolver combines it with the ring metrics.
     var referencedMetric: HardwareMonitorMetric? {
         switch self {
-        case .automatic, .hidden, .batteryPercentage, .chargingIndicator: return nil
+        case .automatic, .hidden, .batteryPercentage, .chargingIndicator, .memoryPressure: return nil
         case let .symbol(metric), let .value(metric): return metric
         }
     }
@@ -49,7 +53,7 @@ enum HardwareRingTopContent: Codable, Equatable, Hashable, Sendable {
     var usesBatteryStatus: Bool {
         switch self {
         case .batteryPercentage, .chargingIndicator: return true
-        case .automatic, .symbol, .value, .hidden: return false
+        case .automatic, .symbol, .value, .memoryPressure, .hidden: return false
         }
     }
 
@@ -58,7 +62,7 @@ enum HardwareRingTopContent: Codable, Equatable, Hashable, Sendable {
     private enum CodingKeys: String, CodingKey { case kind, metric }
 
     private enum Kind: String {
-        case automatic, symbol, value, batteryPercentage, chargingIndicator, hidden
+        case automatic, symbol, value, batteryPercentage, chargingIndicator, memoryPressure, hidden
     }
 
     func encode(to encoder: Encoder) throws {
@@ -70,6 +74,8 @@ enum HardwareRingTopContent: Codable, Equatable, Hashable, Sendable {
             try container.encode(Kind.batteryPercentage.rawValue, forKey: .kind)
         case .chargingIndicator:
             try container.encode(Kind.chargingIndicator.rawValue, forKey: .kind)
+        case .memoryPressure:
+            try container.encode(Kind.memoryPressure.rawValue, forKey: .kind)
         case .hidden:
             try container.encode(Kind.hidden.rawValue, forKey: .kind)
         case let .symbol(metric):
@@ -93,6 +99,8 @@ enum HardwareRingTopContent: Codable, Equatable, Hashable, Sendable {
             self = .batteryPercentage
         case .chargingIndicator:
             self = .chargingIndicator
+        case .memoryPressure:
+            self = .memoryPressure
         case .hidden:
             self = .hidden
         case .symbol:
@@ -209,10 +217,26 @@ struct HardwareMetricRingOptions: Codable, Equatable, Hashable, Sendable {
 struct HardwareRingColorConfiguration: Codable, Equatable, Hashable, Sendable {
     var monochrome: Bool
     var thresholdColors: Bool
+    /// The three memory-pressure status colours (#398). Shared by the top marker
+    /// and the bottom indicator so both surfaces always agree. Stored here
+    /// because they are part of the same hardware-monitor colour identity; the
+    /// defaults keep the pre-#398 green / orange / red look for existing users.
+    var memoryPressureNormalColor: IconRGBA
+    var memoryPressureWarningColor: IconRGBA
+    var memoryPressureCriticalColor: IconRGBA
 
-    init(monochrome: Bool = false, thresholdColors: Bool = false) {
+    init(
+        monochrome: Bool = false,
+        thresholdColors: Bool = false,
+        memoryPressureNormalColor: IconRGBA = HardwareRingColorConfiguration.defaultMemoryPressureNormalColor,
+        memoryPressureWarningColor: IconRGBA = HardwareRingColorConfiguration.warningColor,
+        memoryPressureCriticalColor: IconRGBA = HardwareRingColorConfiguration.criticalColor
+    ) {
         self.monochrome = monochrome
         self.thresholdColors = thresholdColors
+        self.memoryPressureNormalColor = memoryPressureNormalColor
+        self.memoryPressureWarningColor = memoryPressureWarningColor
+        self.memoryPressureCriticalColor = memoryPressureCriticalColor
     }
 
     func normalized() -> HardwareRingColorConfiguration { self }
@@ -221,6 +245,7 @@ struct HardwareRingColorConfiguration: Codable, Equatable, Hashable, Sendable {
 
     private enum CodingKeys: String, CodingKey {
         case monochrome, thresholdColors, mode
+        case memoryPressureNormalColor, memoryPressureWarningColor, memoryPressureCriticalColor
     }
 
     init(from decoder: Decoder) throws {
@@ -228,27 +253,41 @@ struct HardwareRingColorConfiguration: Codable, Equatable, Hashable, Sendable {
         if let monochrome = try container.decodeIfPresent(Bool.self, forKey: .monochrome) {
             self.monochrome = monochrome
             self.thresholdColors = (try container.decodeIfPresent(Bool.self, forKey: .thresholdColors)) ?? true
-            return
+        } else {
+            // Legacy payload: status / fixed / monochrome.
+            let rawMode = (try container.decodeIfPresent(String.self, forKey: .mode)) ?? "status"
+            switch rawMode {
+            case "monochrome":
+                self.monochrome = true
+                self.thresholdColors = false
+            case "fixed":
+                self.monochrome = false
+                self.thresholdColors = false
+            default:
+                self.monochrome = false
+                self.thresholdColors = true
+            }
         }
-        // Legacy payload: status / fixed / monochrome.
-        let rawMode = (try container.decodeIfPresent(String.self, forKey: .mode)) ?? "status"
-        switch rawMode {
-        case "monochrome":
-            self.monochrome = true
-            self.thresholdColors = false
-        case "fixed":
-            self.monochrome = false
-            self.thresholdColors = false
-        default:
-            self.monochrome = false
-            self.thresholdColors = true
-        }
+        // Payloads written before #398 have no pressure colours: keep the
+        // historical green / orange / red instead of failing or blanking them.
+        self.memoryPressureNormalColor =
+            (try container.decodeIfPresent(IconRGBA.self, forKey: .memoryPressureNormalColor))
+            ?? Self.defaultMemoryPressureNormalColor
+        self.memoryPressureWarningColor =
+            (try container.decodeIfPresent(IconRGBA.self, forKey: .memoryPressureWarningColor))
+            ?? Self.warningColor
+        self.memoryPressureCriticalColor =
+            (try container.decodeIfPresent(IconRGBA.self, forKey: .memoryPressureCriticalColor))
+            ?? Self.criticalColor
     }
 
     func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(monochrome, forKey: .monochrome)
         try container.encode(thresholdColors, forKey: .thresholdColors)
+        try container.encode(memoryPressureNormalColor, forKey: .memoryPressureNormalColor)
+        try container.encode(memoryPressureWarningColor, forKey: .memoryPressureWarningColor)
+        try container.encode(memoryPressureCriticalColor, forKey: .memoryPressureCriticalColor)
     }
 
     // MARK: - Apple-Silicon cool-glass palette (default identity colours)
@@ -288,6 +327,11 @@ struct HardwareRingColorConfiguration: Codable, Equatable, Hashable, Sendable {
     /// Fixed warning / critical tints shared by every metric (whole-arc recolor).
     static let warningColor = IconRGBA(red: 0.960784, green: 0.647059, blue: 0.141176, alpha: 1)  // #F5A524
     static let criticalColor = IconRGBA(red: 0.894118, green: 0.329412, blue: 0.329412, alpha: 1) // #E45454
+
+    /// Historical memory-pressure "normal" green (#398). Kept as the default so
+    /// upgrading users see the same colour they had before the setting existed.
+    static let defaultMemoryPressureNormalColor =
+        IconRGBA(red: 52.0 / 255, green: 199.0 / 255, blue: 89.0 / 255, alpha: 1)
 }
 
 /// The complete internal configuration of the `hardwareMonitor` outer-ring
@@ -344,7 +388,7 @@ struct HardwareRingConfiguration: Codable, Equatable, Hashable, Sendable {
             copy.topContent = .symbol(metric.withoutCPUGPUTemperature)
         case .value(let metric):
             copy.topContent = .value(metric.withoutCPUGPUTemperature)
-        case .automatic, .batteryPercentage, .chargingIndicator, .hidden:
+        case .automatic, .batteryPercentage, .chargingIndicator, .memoryPressure, .hidden:
             break
         }
         return copy.normalized()
@@ -360,7 +404,7 @@ struct HardwareRingConfiguration: Codable, Equatable, Hashable, Sendable {
             copy.topContent = .value(copy.primaryMetric)
         case let .symbol(metric):
             copy.topContent = .value(metric)
-        case .value, .hidden, .batteryPercentage, .chargingIndicator:
+        case .value, .hidden, .batteryPercentage, .chargingIndicator, .memoryPressure:
             break
         }
         return copy

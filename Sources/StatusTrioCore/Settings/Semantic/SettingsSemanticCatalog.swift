@@ -279,6 +279,12 @@ enum SettingsSemanticCatalog {
             d.accessPolicy = .profileSafe
             d.provider = "core"
         },
+        pref("icon.outerRing.hardware.memoryPressureColors", "内存压力颜色", "icon", .map, "顶部标识与底部指示器共用的内存压力三档颜色（正常/警告/严重）；默认沿用历史绿/橙/红，改一处两处同时生效。") { d in
+            d.uiPath = "设置 › 图标 › 硬件外环 › 内存压力颜色"
+            d.storageKey = "hardwareRingConfigurationV1"
+            d.accessPolicy = describedNotWritable
+            d.provider = "core"
+        },
         pref("icon.center.source", "中间槽来源", "icon", .enumeration, "菜单栏与 Dock 共享的中间槽内容来源。") { d in
             d.uiPath = "设置 › 图标 › 中间来源"
             d.options = [
@@ -918,7 +924,7 @@ enum SettingsSemanticCatalog {
         pref("icon.hardwareDiskRingColor", "硬件磁盘环颜色", "icon", .color, "硬件磁盘环的自定义颜色。") { d in
             d.uiPath = "设置 › 图标 › 磁盘环颜色"; d.storageKey = "hardwareDiskRingColorV1"; d.accessPolicy = describedNotWritable
         },
-        pref("icon.hardwareRingConfiguration", "硬件外环配置", "icon", .object, "硬件外环的结构化配置（布局/主副指标/顶部内容/颜色/覆盖项）；语义层另以嵌套 id 暴露常用字段。") { d in
+        pref("icon.hardwareRingConfiguration", "硬件外环配置", "icon", .object, "硬件外环的结构化配置（布局/主副指标/顶部内容/颜色/覆盖项）；含顶部标识与底部指示器共用的内存压力三档颜色（#398）；语义层另以嵌套 id 暴露常用字段。") { d in
             d.uiPath = "设置 › 图标 › 硬件外环"; d.storageKey = "hardwareRingConfigurationV1"; d.accessPolicy = describedNotWritable
         },
         pref("icon.slotBindings", "图标槽位绑定", "icon", .object, "图标各槽位的绑定配置（IconSlotBindingsV1 编码）。") { d in

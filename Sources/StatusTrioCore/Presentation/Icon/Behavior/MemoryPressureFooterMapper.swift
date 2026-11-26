@@ -1,14 +1,23 @@
 import Foundation
 
+/// Maps the system memory-pressure level to the footer dots/arc and to the
+/// shared three-level colours (#398).
+///
+/// The colours live in `HardwareRingColorConfiguration` so the bottom indicator
+/// and the top marker always draw the same level in the same colour. `unknown`
+/// has no colour: callers draw the inactive track instead of inventing a level.
 enum MemoryPressureFooterMapper {
     static func state(reading: MemoryPressureReading?, now: Date,
-                      style: VolumeDisplayStyle, strokeScale: Double) -> FooterState {
+                      style: VolumeDisplayStyle, strokeScale: Double,
+                      colors: HardwareRingColorConfiguration = HardwareRingColorConfiguration()) -> FooterState {
         let level = reading.flatMap { $0.isFresh(at: now) ? $0.level : nil } ?? .unknown
-        return state(level: level, style: style, strokeScale: strokeScale)
+        return state(level: level, style: style, strokeScale: strokeScale,
+                     colors: colors)
     }
 
     static func state(level: MemoryPressureLevel, style: VolumeDisplayStyle,
-                      strokeScale: Double) -> FooterState {
+                      strokeScale: Double,
+                      colors: HardwareRingColorConfiguration = HardwareRingColorConfiguration()) -> FooterState {
         let count: Int
         switch level {
         case .normal: count = 2
@@ -16,7 +25,7 @@ enum MemoryPressureFooterMapper {
         case .critical: count = 4
         case .unknown: count = 0
         }
-        let color = color(for: level).map(IconColorRole.custom) ?? .inactive
+        let color = color(for: level, colors: colors).map(IconColorRole.custom) ?? .inactive
         switch style {
         case .dots:
             return .dots(DotsState(count: 4, activeCount: count, color: color, strokeScale: strokeScale))
@@ -25,12 +34,14 @@ enum MemoryPressureFooterMapper {
         }
     }
 
-    static func color(for level: MemoryPressureLevel) -> IconRGBA? {
+    /// The configured colour for a pressure level, or `nil` for `unknown`.
+    static func color(for level: MemoryPressureLevel,
+                      colors: HardwareRingColorConfiguration = HardwareRingColorConfiguration()) -> IconRGBA? {
         switch level {
-        case .normal: IconRGBA(red: 52.0 / 255, green: 199.0 / 255, blue: 89.0 / 255, alpha: 1)
-        case .warning: HardwareRingColorConfiguration.warningColor
-        case .critical: HardwareRingColorConfiguration.criticalColor
-        case .unknown: nil
+        case .normal: return colors.memoryPressureNormalColor
+        case .warning: return colors.memoryPressureWarningColor
+        case .critical: return colors.memoryPressureCriticalColor
+        case .unknown: return nil
         }
     }
 }

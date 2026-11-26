@@ -2465,7 +2465,7 @@
         "uiAccessible" : true
       },
       "category" : "icon",
-      "description" : "硬件外环的结构化配置（布局/主副指标/顶部内容/颜色/覆盖项）；语义层另以嵌套 id 暴露常用字段。",
+      "description" : "硬件外环的结构化配置（布局/主副指标/顶部内容/颜色/覆盖项）；含顶部标识与底部指示器共用的内存压力三档颜色（#398）；语义层另以嵌套 id 暴露常用字段。",
       "id" : "icon.hardwareRingConfiguration",
       "storageKey" : "hardwareRingConfigurationV1",
       "title" : "硬件外环配置",
@@ -2645,6 +2645,26 @@
       "title" : "硬件外环布局",
       "type" : "enumeration",
       "uiPath" : "设置 › 图标 › 硬件外环 › 布局"
+    },
+    {
+      "accessPolicy" : {
+        "containsSensitiveInfo" : false,
+        "developmentProfile" : false,
+        "externalRead" : true,
+        "externalWrite" : false,
+        "requiresConfirmation" : false,
+        "systemSideEffect" : false,
+        "transferable" : false,
+        "uiAccessible" : true
+      },
+      "category" : "icon",
+      "description" : "顶部标识与底部指示器共用的内存压力三档颜色（正常/警告/严重）；默认沿用历史绿/橙/红，改一处两处同时生效。",
+      "id" : "icon.outerRing.hardware.memoryPressureColors",
+      "provider" : "core",
+      "storageKey" : "hardwareRingConfigurationV1",
+      "title" : "内存压力颜色",
+      "type" : "map",
+      "uiPath" : "设置 › 图标 › 硬件外环 › 内存压力颜色"
     },
     {
       "accessPolicy" : {

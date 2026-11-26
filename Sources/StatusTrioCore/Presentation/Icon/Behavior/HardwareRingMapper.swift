@@ -155,7 +155,8 @@ enum HardwareRingMapper {
     ) -> FooterState? {
         guard let metric = selection.hardwareMetric else {
             return MemoryPressureFooterMapper.state(reading: snapshot.memoryPressure, now: now,
-                                                    style: style, strokeScale: strokeScale)
+                                                    style: style, strokeScale: strokeScale,
+                                                    colors: configuration.color)
         }
         let options = configuration.options(for: metric)
         let sample = sample(for: metric, in: snapshot, auxiliary: [:])
@@ -303,6 +304,10 @@ enum HardwareRingMapper {
                 configuration: configuration,
                 batteryOptions: batteryOptions
             )
+        case .memoryPressure:
+            return memoryPressureAccessory(configuration: configuration,
+                                           snapshot: snapshot,
+                                           now: now)
         }
     }
 
@@ -336,6 +341,45 @@ enum HardwareRingMapper {
         let base = metricColors[metric]
             ?? HardwareRingColorConfiguration.recommendedBaseColor(for: metric)
         return .custom(base)
+    }
+
+    /// Memory pressure is a status, not a number (#398). The top gap therefore
+    /// shows a level-coloured dot instead of text: it keeps the ring's gap
+    /// geometry stable, works in every language, and stays legible at menu-bar
+    /// size. `unknown`/stale uses an inactive dash so the slot never collapses.
+    private static func memoryPressureAccessory(
+        configuration: HardwareRingConfiguration,
+        snapshot: HardwareMetricsSnapshot,
+        now: Date
+    ) -> RingAccessoryState {
+        let level = snapshot.memoryPressure.flatMap { $0.isFresh(at: now) ? $0.level : nil } ?? .unknown
+        let base = configuration.layout == .single ? Self.singleTopSymbolScale : Self.topSymbolScale
+        let scale = base * configuration.topMarkerScale
+        let color: IconColorRole
+        switch level {
+        case .normal:
+            color = topPressureColor(configuration.color.memoryPressureNormalColor,
+                                     configuration: configuration)
+        case .warning:
+            color = topPressureColor(configuration.color.memoryPressureWarningColor,
+                                     configuration: configuration)
+        case .critical:
+            color = topPressureColor(configuration.color.memoryPressureCriticalColor,
+                                     configuration: configuration)
+        case .unknown:
+            return .symbol(symbolState(name: "minus", color: .inactive, scale: scale))
+        }
+        return .symbol(symbolState(
+            name: SymbolFallback.name("circle.fill", "circle"),
+            color: color,
+            scale: scale))
+    }
+
+    private static func topPressureColor(
+        _ rgba: IconRGBA,
+        configuration: HardwareRingConfiguration
+    ) -> IconColorRole {
+        configuration.color.monochrome ? .primary : .custom(rgba)
     }
 
     /// Simpler, higher-contrast glyphs for the tiny ring top marker. The list and

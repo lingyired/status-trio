@@ -19,11 +19,15 @@ private enum HardwareTopMode: String, CaseIterable, Identifiable {
 private enum HardwareTopReading: Hashable, Identifiable {
     case metric(HardwareMonitorMetric)
     case batteryLevel
+    /// System memory pressure (#398). It is a status, not a numeric metric, so
+    /// it only exists as a top-marker reading — never as a ring arc.
+    case memoryPressure
 
     var id: String {
         switch self {
         case let .metric(metric): return metric.rawValue
         case .batteryLevel: return "batteryLevel"
+        case .memoryPressure: return "memoryPressure"
         }
     }
 
@@ -31,6 +35,7 @@ private enum HardwareTopReading: Hashable, Identifiable {
         switch self {
         case let .metric(metric): return metric.systemImage
         case .batteryLevel: return "battery.100"
+        case .memoryPressure: return "memorychip"
         }
     }
 }
@@ -285,6 +290,11 @@ struct AppIconRingView: View {
         hardwareTopGroup
         hardwareArcGroup
         hardwareColorGroup
+        // #398: pressure colours are a shared status palette for the top marker
+        // and the bottom indicator, so they sit beside the other ring colours.
+        SettingsGroup(localization.string(.hardwareDetailPressure)) {
+            MemoryPressureColorRows(store: store)
+        }
         hardwareAdvancedGroup
     }
 
@@ -620,7 +630,7 @@ struct AppIconRingView: View {
         switch store.hardwareRingConfiguration.topContent {
         case .hidden: return .hidden
         case .chargingIndicator: return .chargingIndicator
-        case .value, .batteryPercentage, .automatic, .symbol: return .value
+        case .memoryPressure, .value, .batteryPercentage, .automatic, .symbol: return .value
         }
     }
 
@@ -630,6 +640,7 @@ struct AppIconRingView: View {
     private var hardwareTopReading: HardwareTopReading {
         switch store.hardwareRingConfiguration.topContent {
         case .batteryPercentage: return .batteryLevel
+        case .memoryPressure: return .memoryPressure
         case let .value(metric), let .symbol(metric): return .metric(effectiveRingMetric(metric))
         case .automatic, .hidden, .chargingIndicator:
             return .metric(effectiveRingMetric(store.hardwareRingConfiguration.primaryMetric))
@@ -685,6 +696,7 @@ struct AppIconRingView: View {
         var configuration = store.hardwareRingConfiguration
         switch reading {
         case .batteryLevel: configuration.topContent = .batteryPercentage
+        case .memoryPressure: configuration.topContent = .memoryPressure
         case let .metric(metric): configuration.topContent = .value(metric)
         }
         store.hardwareRingConfiguration = configuration
@@ -788,7 +800,9 @@ struct AppIconRingView: View {
                 .map { HardwareTopReading.metric($0) }
             // Put battery level at the top of the Other group.
             if group.options.contains(.memoryUsage) {
-                return (group.title, [.batteryLevel] + options)
+                // Battery level and memory pressure are top-marker-only readings,
+                // so they sit with the memory metrics in the Other group.
+                return (group.title, [.batteryLevel, .memoryPressure] + options)
             }
             return (group.title, options)
         }
@@ -802,6 +816,7 @@ struct AppIconRingView: View {
         switch reading {
         case let .metric(metric): return metricLabel(metric)
         case .batteryLevel: return localization.string(.settingsHardwareRingTopBatteryPercentage)
+        case .memoryPressure: return localization.string(.hardwareDetailPressure)
         }
     }
 

@@ -298,9 +298,10 @@ enum SettingsPreferenceCatalog {
                         default: .temperature, allowed: HardwareRingCenterContent.allCases),
             enumeration("gpuRingCenterContent", \.gpuRingCenterContent,
                         default: .temperature, allowed: HardwareRingCenterContent.allCases)
-            // Appearance-only ring colours (hardwareMonitorMetricColors and
-            // hardwareDiskRingColor) are intentionally excluded from settings
-            // transfer: they are per-surface cosmetics, not portable preferences.
+            // Appearance-only ring colours (hardwareMonitorMetricColors,
+            // hardwareDiskRingColor and the #398 memory-pressure colours) are
+            // intentionally excluded from settings transfer: they are
+            // per-surface cosmetics, not portable preferences.
         ]
     }
 

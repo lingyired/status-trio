@@ -35,6 +35,11 @@ struct AppIconBottomIndicatorView: View {
                 } else {
                     SettingsDivider()
                     memoryPressureLegend
+                    // #398: the three pressure colours are editable here too, so
+                    // the footer is configurable even when the outer ring is not
+                    // the hardware monitor.
+                    SettingsDivider()
+                    MemoryPressureColorRows(store: store)
                 }
             }
 
@@ -263,7 +268,9 @@ struct AppIconBottomIndicatorView: View {
     private func pressureLabel(_ level: MemoryPressureLevel, title: LocalizationKey) -> some View {
         HStack(spacing: 4) {
             Circle()
-                .fill(MemoryPressureFooterMapper.color(for: level)
+                .fill(MemoryPressureFooterMapper.color(
+                    for: level,
+                    colors: store.hardwareRingConfiguration.color)
                     .map { IconAppearanceColorConversion.color(from: $0) } ?? Color.secondary)
                 .frame(width: 7, height: 7)
                 .accessibilityHidden(true)
