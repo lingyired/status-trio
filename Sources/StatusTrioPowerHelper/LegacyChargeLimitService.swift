@@ -207,7 +207,14 @@ final class LegacyChargeLimitService: NSObject, @unchecked Sendable {
                     }
                     raw[key] = value
                 }
-                if raw == previous.lastWrittenRaw {
+                if previous.backend == .firmwareLimit {
+                    // The firmware owns bfD0/bfE0/bfF0 and may clear bfF0
+                    // (disable) after reaching the limit, across reboot, or on
+                    // app relaunch; bfD0/bfE0 can then differ from both the
+                    // last write and the original. Any readable state is drift
+                    // we repair, so the saved limit self-heals instead of being
+                    // reported as a foreign change.
+                } else if raw == previous.lastWrittenRaw {
                     // Still ours; a level or AC change may still need a rewrite.
                 } else if raw == previous.originalRaw {
                     // The system reset the keys; this is drift we repair.
