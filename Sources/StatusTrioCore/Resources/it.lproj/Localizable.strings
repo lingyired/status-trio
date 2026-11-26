@@ -1451,3 +1451,7 @@
 "hardware.monitor.settings.refresh.topApps.description" = "Ogni quanto si aggiorna l'elenco nella pagina di dettaglio. L'elenco memoria mantiene il suo limite di 6 s.";
 "hardware.monitor.settings.group.sampling.footnote" = "Il pannello e le icone della barra dei menu/Dock condividono un unico campione hardware. Questi intervalli regolano solo la frequenza di aggiornamento del pannello; le icone restano reattive e nulla viene letto due volte.";
 "settings.hardwareRing.iconRefreshNote" = "L'icona si aggiorna al ritmo più rapido di ogni metrica (CPU/GPU circa 2 s, rete/disco circa 1 s, temperatura circa 4 s) e viene ridisegnata solo quando il contenuto cambia, per restare reattiva. Non è influenzata dalla frequenza di aggiornamento del pannello.";
+"menubar.metric.wifiConnected" = "Connected";
+"menubar.metric.wifiDisconnected" = "Disconnected";
+"menubar.instance.disable" = "Disable This Instance";
+"settings.tab.menuBarInstances" = "Menu Bar Instances";
