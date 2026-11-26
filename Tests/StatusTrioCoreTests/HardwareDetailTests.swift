@@ -317,6 +317,32 @@ final class HardwareDetailTests: XCTestCase {
         XCTAssertTrue(observable.historyRowsForDetail.isEmpty)
     }
 
+    /// The panel renders `panelSnapshot`, so clearing only the live copy would
+    /// leave a previous page's detail payload to reappear as cached data.
+    @MainActor
+    func testClearDetailPayloadsAlsoClearsPanelSnapshot() {
+        let observable = HardwareMonitorObservable(snapshot: .empty)
+        var snapshot = HardwareMetricsSnapshot.empty
+        snapshot.cpuDetail = CPUDetailReading(
+            usage: 42,
+            breakdown: CPUTimeBreakdown(user: 20, system: 5, idle: 75, nice: 0),
+            perCoreUsage: [40, 44],
+            topology: nil,
+            groupUsage: nil,
+            frequency: nil,
+            sampledAt: start)
+        snapshot.samples[.cpuUsage] = HardwareMetricSample(value: 42, unit: .percent,
+                                                           sampledAt: start, source: .mach, availability: .measured)
+        observable.update(snapshot, now: start)
+        XCTAssertNotNil(observable.snapshot.cpuDetail)
+        XCTAssertNotNil(observable.panelSnapshot.cpuDetail)
+
+        observable.clearDetailPayloads(except: nil)
+
+        XCTAssertNil(observable.snapshot.cpuDetail)
+        XCTAssertNil(observable.panelSnapshot.cpuDetail)
+    }
+
     // MARK: - Chart geometry
 
     private func geometryPoints(_ offsets: [TimeInterval], now: Date) -> [HardwareDetailHistoryPoint] {

@@ -51,6 +51,10 @@ enum IconSemanticColorRole: String, Codable, CaseIterable, Hashable, Sendable {
     case critical
     case lowPower
     case powered
+    /// Connected to power without charging (#389). Separate from `powered` so a
+    /// slot using semantic overrides can colour the two states differently,
+    /// matching the battery-status palette.
+    case connected
     case bluetooth
 }
 

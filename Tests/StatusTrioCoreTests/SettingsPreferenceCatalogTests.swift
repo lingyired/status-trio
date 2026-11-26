@@ -537,6 +537,51 @@ final class SettingsPreferenceCatalogTests: XCTestCase {
         }
     }
 
+    func testLegacyPanelRefreshImportsIntoPerGroupCadences() {
+        withStore { target, _ in
+            let prepared = SettingsPreferenceCatalog.prepare([
+                "hardwarePanelRefreshSeconds": .number(5),
+            ])
+            XCTAssertTrue(prepared.warnings.isEmpty)
+            // 5 s is above every group's floor, so each group adopts it.
+            for key in [
+                "hardwareCPUUsageRefreshSeconds", "hardwareGPUUsageRefreshSeconds",
+                "hardwareMemoryRefreshSeconds", "hardwareNetworkRefreshSeconds",
+                "hardwareTemperatureRefreshSeconds", "hardwareDiskRefreshSeconds",
+            ] {
+                XCTAssertEqual(prepared.values[key], .number(5), key)
+            }
+
+            SettingsPreferenceCatalog.apply(prepared.values, to: target)
+            XCTAssertEqual(target.hardwareCPUUsageRefreshSeconds, 5)
+            XCTAssertEqual(target.hardwareGPUUsageRefreshSeconds, 5)
+            XCTAssertEqual(target.hardwareMemoryRefreshSeconds, 5)
+            XCTAssertEqual(target.hardwareNetworkRefreshSeconds, 5)
+            XCTAssertEqual(target.hardwareTemperatureRefreshSeconds, 5)
+            XCTAssertEqual(target.hardwareDiskRefreshSeconds, 5)
+        }
+    }
+
+    func testLegacyPanelRefreshRespectsExplicitNewKeysAndGroupFloors() {
+        let prepared = SettingsPreferenceCatalog.prepare([
+            "hardwarePanelRefreshSeconds": .number(1),
+            "hardwareCPUUsageRefreshSeconds": .number(3),
+        ])
+        // Explicit new value wins over the legacy seed.
+        XCTAssertEqual(prepared.values["hardwareCPUUsageRefreshSeconds"], .number(3))
+        // A legacy 1 s cannot go below a group's floor (CPU 2 s, temperature 4 s).
+        XCTAssertEqual(prepared.values["hardwareGPUUsageRefreshSeconds"], .number(2))
+        XCTAssertEqual(prepared.values["hardwareTemperatureRefreshSeconds"], .number(4))
+    }
+
+    func testLegacyPanelRefreshOutsideRangeWarnsAndDoesNotMutate() {
+        let prepared = SettingsPreferenceCatalog.prepare([
+            "hardwarePanelRefreshSeconds": .number(0),
+        ])
+        XCTAssertEqual(prepared.warnings.count, 1)
+        XCTAssertNil(prepared.values["hardwareCPUUsageRefreshSeconds"])
+    }
+
     private func withStore(_ body: (SettingsStore, UserDefaults) -> Void) {
         let name = "SettingsPreferenceCatalogTests.\(UUID().uuidString)"
         let defaults = UserDefaults(suiteName: name)!

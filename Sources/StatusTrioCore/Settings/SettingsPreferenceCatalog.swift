@@ -32,6 +32,10 @@ enum SettingsPreferenceCatalog {
         var result: [String: Value] = [:]
         var warnings: [String] = []
         for key in values.keys.sorted() {
+            if key == Self.legacyPanelRefreshKey {
+                warnings.append(contentsOf: Self.migrateLegacyPanelRefresh(values[key], into: &result, existing: values))
+                continue
+            }
             guard let preference = catalog[key] else {
                 warnings.append("Unknown preference: \(key)")
                 continue
@@ -64,6 +68,40 @@ enum SettingsPreferenceCatalog {
     private static var preferences: [Preference] {
         generalPreferences + iconPreferences + batteryPreferences + networkAndAudioPreferences
             + bluetoothPreferences + brightnessPreferences + panelPreferences
+    }
+
+    /// The single pre-#392 hardware refresh interval, retired in favour of the
+    /// six per-group settings. An export made before the split still carries it;
+    /// fold it into the group settings instead of reporting it as unknown.
+    private static let legacyPanelRefreshKey = "hardwarePanelRefreshSeconds"
+
+    private static let refreshGroupStorageKeys: [(group: HardwareRefreshGroup, key: String)] = [
+        (.cpuUsage, "hardwareCPUUsageRefreshSeconds"),
+        (.gpuUsage, "hardwareGPUUsageRefreshSeconds"),
+        (.memory, "hardwareMemoryRefreshSeconds"),
+        (.network, "hardwareNetworkRefreshSeconds"),
+        (.temperature, "hardwareTemperatureRefreshSeconds"),
+        (.disk, "hardwareDiskRefreshSeconds"),
+    ]
+
+    /// Seeds each group the document does not set explicitly, clamped to the
+    /// group's own floor and the shared 8 s cap — the same rule the store applies
+    /// when it seeds a legacy value on first launch. Explicit new keys win.
+    private static func migrateLegacyPanelRefresh(
+        _ value: Value?, into result: inout [String: Value], existing: [String: Value]
+    ) -> [String] {
+        guard let value, case let .number(seconds) = value, seconds.isFinite else {
+            return ["Invalid preference; using default: \(legacyPanelRefreshKey)"]
+        }
+        let rounded = Int(seconds.rounded())
+        guard (1...8).contains(rounded) else {
+            return ["Invalid preference; using default: \(legacyPanelRefreshKey)"]
+        }
+        for entry in refreshGroupStorageKeys where existing[entry.key] == nil {
+            let seeded = min(max(rounded, entry.group.defaultSeconds), 8)
+            result[entry.key] = .number(Double(seeded))
+        }
+        return []
     }
 
     private static var brightnessPreferences: [Preference] {
