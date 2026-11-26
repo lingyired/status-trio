@@ -187,6 +187,14 @@ final class LegacyChargeLimitController: ObservableObject {
             lastAppliedAllowsCharging = nil
             return
         }
+        // The firmware charge-limit backend enforces its own upper/lower band;
+        // do not run the legacy allow/inhibit engine (or rewrite the keys) on
+        // every battery tick. Plug-in, wake and launch already reconcile, and
+        // those paths keep the limit self-healed.
+        if availability == .available(.firmwareLimit) {
+            updateSleepAssertion(level: level, isOnAC: isOnAC)
+            return
+        }
         let decision = LegacyChargeLimitEngine(limit: session.requestedLimit).decide(
             batteryLevel: level,
             isOnAC: isOnAC,

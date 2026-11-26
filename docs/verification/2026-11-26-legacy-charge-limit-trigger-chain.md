@@ -202,3 +202,15 @@ Allowed classes are: 'SMLegacyChargeLimitProbeReply'
 - `Macos` 实测：55%→62% 时系统「剩余时间」变化更符合“到 100%”的速率，故按 100%→上限缩放是合理的。
 - 改动文件：`Monitoring/BatteryMonitor.swift`、`App/AppEnvironment.swift`。
 - 未打包；需下次经你同意构建后验证。
+
+## 16. 端到端 Review 结论 + 固件后端跳过逐 tick 引擎
+
+端到端链路（App ⇄ XPC ⇄ Helper ⇄ AppleSMC `bfD0/bfE0/bfF0`）已自洽，关键两个误报已修：
+- `72c48eda`：`reconcile` 对“半复位（`bfF0=0`、`bfD0/bfE0` 仍在）”不再误报 externalChange，视为可修复漂移自愈。
+- `a0fee4b0`：`disable`/`verify`/`restore` 的 `readOwned` 对固件后端容忍固件改写；关闭只写 `bfF0=0`（`bfD0/bfE0` 保持，disabled 时无效），不再误报“无法恢复原始充电行为”。
+
+Review 残留项与处理：
+- **A（本次改，提交见下）**：固件后端下 `handleBattery` 不再每个电池 tick 跑 legacy 反应式引擎 / XPC 重写；仅在 插电首次 / 唤醒(`handleWake` 已用 reconcile) / 启动 时 reconcile 自愈，减少无谓 XPC/写入与潜在抖动。
+- B：退出还原 / 重启自愈依赖 helper 常驻 + journal，需真机多测“退出→重启→插拔电”。
+- C：app 侧改动本机无法整包编译（CLT SDK 缺 `glassEffect`），需 Xcode 27/CI 编译验证；helper 侧已编译通过。
+- D：当前机器实际 `bfF0=0`（限充已关、正常充放）；“无法恢复”是旧包（build 80）的显示 bug，含 `a0fee4b0` 的包即正常。
