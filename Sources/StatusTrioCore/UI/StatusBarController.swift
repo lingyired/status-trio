@@ -2541,8 +2541,9 @@ final class StatusBarController: NSObject {
         let screens = NSScreen.screens.map {
             StatusPanelShortcutScreen(frame: $0.frame, visibleFrame: $0.visibleFrame)
         }
+        let anchor = visibleMenuBarAnchor()
         let decision = StatusMenuPresentationPolicy.decision(
-            menuBarRect: visibleMenuBarAnchor()?.screenRect,
+            menuBarRect: anchor?.screenRect,
             isStatusItemVisible: isStatusItemVisible,
             screens: screens,
             attempt: attempt
@@ -2562,11 +2563,24 @@ final class StatusBarController: NSObject {
             updateTarget: self,
             updateAction: #selector(handleCheckForUpdates)
         )
-        guard let button = statusItem.button else { return }
+        guard let anchor else { return }
+        // Anchor the menu's top-left just below the status item in screen
+        // coordinates, clamped to the menu bar's lower edge. The previous
+        // `button.bounds.maxY + 4` in the button's own coordinates did not
+        // account for the status item being centred inside the menu bar: on
+        // macOS 15 the menu's top edge started inside the 38pt (notched) bar,
+        // so its first row (the version line) was clipped and AppKit turned the
+        // menu into a scrollable one with a chevron. Screen coordinates plus the
+        // clamp are independent of the button's orientation and bar height.
+        let statusCenter = NSPoint(x: anchor.screenRect.midX, y: anchor.screenRect.midY)
+        let hostScreen = screens.first { $0.frame.contains(statusCenter) } ?? screens.first
         menu.popUp(
             positioning: nil,
-            at: NSPoint(x: 0, y: button.bounds.maxY + 4),
-            in: button
+            at: StatusMenuPresentationPolicy.anchorPoint(
+                for: anchor.screenRect,
+                menuBarBottom: hostScreen?.visibleFrame.maxY
+            ),
+            in: nil
         )
     }
 }

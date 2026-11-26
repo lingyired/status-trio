@@ -58,7 +58,9 @@ final class HighPowerModeRunnerTests: XCTestCase {
             """
         )
         defer { try? FileManager.default.removeItem(at: script) }
-        let runner = SystemPmsetRunner(timeout: .seconds(15), executableURL: script)
+        let runner = SystemPmsetRunner(
+            timeout: .seconds(15), executableURL: script, usesUnifiedPowerModeKey: true
+        )
 
         try await runner.setHighPowerMode(enabled: true)
 
@@ -78,7 +80,9 @@ final class HighPowerModeRunnerTests: XCTestCase {
             """
         )
         defer { try? FileManager.default.removeItem(at: script) }
-        let runner = SystemPmsetRunner(timeout: .seconds(15), executableURL: script)
+        let runner = SystemPmsetRunner(
+            timeout: .seconds(15), executableURL: script, usesUnifiedPowerModeKey: true
+        )
 
         try await runner.setHighPowerMode(enabled: false)
 
@@ -88,13 +92,43 @@ final class HighPowerModeRunnerTests: XCTestCase {
         XCTAssertEqual(lines, ["-a powermode 0"])
     }
 
+    func testLegacyMacOSUsesTheDedicatedHighPowerKey() async throws {
+        // Before macOS 26 the daemon must write the dedicated `highpowermode`
+        // key (`1` = High, `0` = Automatic) instead of the unified `powermode`.
+        let log = FileManager.default.temporaryDirectory
+            .appendingPathComponent("pmset-args-\(UUID().uuidString).log")
+        defer { try? FileManager.default.removeItem(at: log) }
+        let script = try makeScript(
+            """
+            printf '%s\\n' "$*" >> '\(log.path)'
+            """
+        )
+        defer { try? FileManager.default.removeItem(at: script) }
+        let runner = SystemPmsetRunner(
+            timeout: .seconds(15), executableURL: script, usesUnifiedPowerModeKey: false
+        )
+
+        try await runner.setHighPowerMode(enabled: true)
+        try await runner.setHighPowerMode(enabled: false)
+
+        let lines = try String(contentsOf: log, encoding: .utf8)
+            .split(separator: "\n")
+            .map(String.init)
+        XCTAssertEqual(
+            lines,
+            ["-a lowpowermode 0", "-a highpowermode 1", "-a highpowermode 0"]
+        )
+    }
+
     func testEnablingLowPowerModeClearsHighPowerModeFirst() async throws {
         let log = FileManager.default.temporaryDirectory
             .appendingPathComponent("pmset-args-\(UUID().uuidString).log")
         defer { try? FileManager.default.removeItem(at: log) }
         let script = try makeScript("printf '%s\\n' \"$*\" >> '\(log.path)'")
         defer { try? FileManager.default.removeItem(at: script) }
-        let runner = SystemPmsetRunner(timeout: .seconds(15), executableURL: script)
+        let runner = SystemPmsetRunner(
+            timeout: .seconds(15), executableURL: script, usesUnifiedPowerModeKey: true
+        )
         try await runner.setLowPowerMode(enabled: true)
         let lines = try String(contentsOf: log, encoding: .utf8)
             .split(separator: "\n").map(String.init)
