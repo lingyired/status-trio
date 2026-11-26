@@ -1,11 +1,11 @@
 import SwiftUI
 
 extension ChargeToFullNowPresentation {
-    /// Whether the action area should occupy space at all. `unavailable` has no
-    /// button but still explains why the action cannot run; a restored limit
-    /// stays visible while the battery charges up to it.
+    /// Whether the action area should occupy space at all. An unavailable action
+    /// shows no button and no explanation — it is hidden entirely rather than
+    /// occupying a row with an "unavailable" notice.
     var showsActionArea: Bool {
-        showsButton || self == .unavailable
+        showsButton
     }
 }
 
@@ -77,11 +77,9 @@ struct ChargeToFullNowActionView: View {
             case .failed:
                 notice(.batteryActionChargeToFullNowFailed)
             case .unavailable:
-                notice(
-                    localization.string(.batteryActionChargeToFullNowUnavailable),
-                    color: .secondary,
-                    showsIcon: false
-                )
+                // Unavailable actions are hidden entirely (see showsActionArea);
+                // no explanatory notice is rendered.
+                EmptyView()
             case .cancelConfirmationRequired:
                 notice(
                     localization.string(
