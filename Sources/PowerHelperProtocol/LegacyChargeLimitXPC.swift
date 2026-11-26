@@ -36,6 +36,8 @@ public final class SMLegacyChargeLimitProbeReply: NSObject, NSSecureCoding {
     public let intelBCLMPresent: Bool
     public let siliconPairPresent: Bool
     public let siliconCHTEPresent: Bool
+    /// macOS 15.7+/26 firmware charge limit (bfD0/bfE0/bfF0) is present.
+    public let firmwareLimitPresent: Bool
     public let architectureName: String
     public let osBandName: String
     public let errorCode: SMLegacyChargeLimitErrorCode
@@ -46,6 +48,7 @@ public final class SMLegacyChargeLimitProbeReply: NSObject, NSSecureCoding {
         intelBCLMPresent: Bool,
         siliconPairPresent: Bool,
         siliconCHTEPresent: Bool,
+        firmwareLimitPresent: Bool = false,
         architectureName: String,
         osBandName: String,
         errorCode: SMLegacyChargeLimitErrorCode,
@@ -55,6 +58,7 @@ public final class SMLegacyChargeLimitProbeReply: NSObject, NSSecureCoding {
         self.intelBCLMPresent = intelBCLMPresent
         self.siliconPairPresent = siliconPairPresent
         self.siliconCHTEPresent = siliconCHTEPresent
+        self.firmwareLimitPresent = firmwareLimitPresent
         self.architectureName = architectureName
         self.osBandName = osBandName
         self.errorCode = errorCode
@@ -66,6 +70,7 @@ public final class SMLegacyChargeLimitProbeReply: NSObject, NSSecureCoding {
         intelBCLMPresent = coder.decodeBool(forKey: "intelBCLMPresent")
         siliconPairPresent = coder.decodeBool(forKey: "siliconPairPresent")
         siliconCHTEPresent = coder.decodeBool(forKey: "siliconCHTEPresent")
+        firmwareLimitPresent = coder.decodeBool(forKey: "firmwareLimitPresent")
         // Use the typed secure-decoding API for the nested objects. NSXPC's
         // secure decoder only allows `SMLegacyChargeLimitProbeReply` itself for
         // the reply argument; the insecure `decodeObject(forKey:)` then fails
@@ -88,6 +93,7 @@ public final class SMLegacyChargeLimitProbeReply: NSObject, NSSecureCoding {
         coder.encode(intelBCLMPresent, forKey: "intelBCLMPresent")
         coder.encode(siliconPairPresent, forKey: "siliconPairPresent")
         coder.encode(siliconCHTEPresent, forKey: "siliconCHTEPresent")
+        coder.encode(firmwareLimitPresent, forKey: "firmwareLimitPresent")
         coder.encode(architectureName, forKey: "architectureName")
         coder.encode(osBandName, forKey: "osBandName")
         coder.encode(errorCode.rawValue, forKey: "errorCode")

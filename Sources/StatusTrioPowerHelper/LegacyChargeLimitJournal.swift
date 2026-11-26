@@ -8,6 +8,10 @@ struct LegacyChargeLimitJournal: Codable, Equatable, Sendable {
     enum Backend: String, Codable, Sendable {
         case intelBCLM
         case silicon
+        /// macOS 15.7+/26 firmware charge limit: bfD0 (upper %), bfE0 (lower %),
+        /// bfF0 (enable flag). The firmware enforces the limit; the app only
+        /// sets/clears it.
+        case firmwareLimit
     }
     var backend: Backend
     var hardwareModel: String

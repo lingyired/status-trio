@@ -84,7 +84,8 @@ final class XPCPrivilegedLegacyChargeClient: LegacyChargeLimitClienting, @unchec
                     hasInternalBattery: reply.hasInternalBattery,
                     intelBCLMPresent: reply.intelBCLMPresent,
                     siliconPairPresent: reply.siliconPairPresent,
-                    siliconCHTEPresent: reply.siliconCHTEPresent
+                    siliconCHTEPresent: reply.siliconCHTEPresent,
+                    firmwareLimitPresent: reply.firmwareLimitPresent
                 )))
             }
         }

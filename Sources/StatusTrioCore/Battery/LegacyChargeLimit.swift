@@ -147,6 +147,9 @@ struct LegacySMCKeyInfo: Equatable, Sendable {
 enum LegacyChargeBackend: Equatable, Sendable {
     case intelBCLM
     case siliconLegacyInhibit
+    /// macOS 15.7+/26 firmware charge limit (bfD0/bfE0/bfF0). Firmware enforces
+    /// the band; the app only sets/clears it.
+    case firmwareLimit
     case unsupported
 
     /// Chooses the backend strictly from injected capability facts. Does not
@@ -162,6 +165,11 @@ enum LegacyChargeBackend: Equatable, Sendable {
                 ? .intelBCLM
                 : .unsupported
         case .appleSilicon:
+            if caps.presentKeys.contains(LegacySMCKeys.firmwareUpper),
+               caps.presentKeys.contains(LegacySMCKeys.firmwareLower),
+               caps.presentKeys.contains(LegacySMCKeys.firmwareEnable) {
+                return .firmwareLimit
+            }
             return LegacySMCBytePolicy.siliconKeySet(presentKeys: caps.presentKeys) != nil
                 ? .siliconLegacyInhibit
                 : .unsupported
@@ -179,6 +187,9 @@ enum LegacySMCKeys {
     static let siliconCH0C = "CH0C"
     static let siliconCHTE = "CHTE"
     static let siliconCHWA = "CHWA"
+    static let firmwareUpper = "bfD0"
+    static let firmwareLower = "bfE0"
+    static let firmwareEnable = "bfF0"
 }
 
 // MARK: - Status

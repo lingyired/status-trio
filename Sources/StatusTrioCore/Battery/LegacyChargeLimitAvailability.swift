@@ -6,9 +6,11 @@ struct LegacyChargeLimitProbeFacts: Equatable, Sendable {
     var intelBCLMPresent: Bool
     var siliconPairPresent: Bool
     var siliconCHTEPresent: Bool
+    /// macOS 15.7+/26 firmware charge limit (bfD0/bfE0/bfF0) is present.
+    var firmwareLimitPresent: Bool = false
 
     var hasAnySupportedKey: Bool {
-        intelBCLMPresent || siliconPairPresent || siliconCHTEPresent
+        intelBCLMPresent || siliconPairPresent || siliconCHTEPresent || firmwareLimitPresent
     }
 }
 
@@ -54,16 +56,14 @@ enum LegacyChargeLimitAvailability: Equatable, Sendable {
         guard helperAvailable else {
             return .unavailable(.helperUnavailable)
         }
-        let backend = architecture == .intel ? LegacyChargeBackend.intelBCLM
-                                             : LegacyChargeBackend.siliconLegacyInhibit
-        switch backend {
-        case .intelBCLM where probe.intelBCLMPresent:
-            return .available(.intelBCLM)
-        case .siliconLegacyInhibit where probe.siliconPairPresent || probe.siliconCHTEPresent:
-            return .available(.siliconLegacyInhibit)
-        default:
-            return .unavailable(.noSupportedKeys)
+        if architecture == .intel {
+            return probe.intelBCLMPresent ? .available(.intelBCLM) : .unavailable(.noSupportedKeys)
         }
+        if probe.firmwareLimitPresent { return .available(.firmwareLimit) }
+        if probe.siliconPairPresent || probe.siliconCHTEPresent {
+            return .available(.siliconLegacyInhibit)
+        }
+        return .unavailable(.noSupportedKeys)
     }
 }
 /// Whether the Settings group may appear at all.

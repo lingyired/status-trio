@@ -51,7 +51,9 @@ static uint32_t fourcc(const char *key) {
 bool STSMIsWriteAllowlisted(const char *key) {
     if (key == NULL || strlen(key) != 4) return false;
     return strcmp(key, "BCLM") == 0 || strcmp(key, "CH0B") == 0
-        || strcmp(key, "CH0C") == 0 || strcmp(key, "CHTE") == 0;
+        || strcmp(key, "CH0C") == 0 || strcmp(key, "CHTE") == 0
+        || strcmp(key, "bfD0") == 0 || strcmp(key, "bfE0") == 0
+        || strcmp(key, "bfF0") == 0;
 }
 
 /* SMC type names are four bytes; the fourth is a space for three-character
@@ -64,6 +66,8 @@ static bool typeIs(const char *type, const char *name) {
 bool STSMValidateChargeKeyInfo(const char *key, const char *type, uint32_t size) {
     if (!STSMIsWriteAllowlisted(key) || type == NULL) return false;
     if (strcmp(key, "CHTE") == 0) return size == 4 && memcmp(type, "ui32", 4) == 0;
+    if (strcmp(key, "bfD0") == 0 || strcmp(key, "bfE0") == 0)
+        return size == 4 && memcmp(type, "ui32", 4) == 0;
     return size == 1 && typeIs(type, "ui8");
 }
 
@@ -72,6 +76,12 @@ bool STSMValidateChargeWrite(const char *key, const uint8_t *bytes, uint32_t siz
     if (strcmp(key, "BCLM") == 0) return size == 1 && bytes[0] >= 50 && bytes[0] <= 100;
     if (strcmp(key, "CHTE") == 0) {
         return size == 4 && (bytes[0] == 0 || bytes[0] == 1)
+            && bytes[1] == 0 && bytes[2] == 0 && bytes[3] == 0;
+    }
+    // Firmware charge-limit keys (macOS 15.7+/26): bfD0 = upper %, bfE0 =
+    // lower %, bfF0 = enable flag. Accept 0 for reads of the unset state.
+    if (strcmp(key, "bfD0") == 0 || strcmp(key, "bfE0") == 0) {
+        return size == 4 && bytes[0] <= 100
             && bytes[1] == 0 && bytes[2] == 0 && bytes[3] == 0;
     }
     return size == 1 && (bytes[0] == 0 || bytes[0] == 2);

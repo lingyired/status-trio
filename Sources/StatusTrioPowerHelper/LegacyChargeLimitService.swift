@@ -23,8 +23,18 @@ enum LegacyChargeSMCKeys {
     static let ch0b = "CH0B"
     static let ch0c = "CH0C"
     static let chte = "CHTE"
-    static let widths = [bclm: 1, ch0b: 1, ch0c: 1, chte: 4]
-    static let writeAllowlist: Set<String> = [bclm, ch0b, ch0c, chte]
+    // macOS 15.7+/26 firmware charge limit. The firmware enforces an upper/lower
+    // percentage band and an enable flag instead of the legacy CH0B/CH0C gate.
+    static let firmwareUpper = "bfD0"
+    static let firmwareLower = "bfE0"
+    static let firmwareEnable = "bfF0"
+    static let widths = [
+        bclm: 1, ch0b: 1, ch0c: 1, chte: 4,
+        firmwareUpper: 4, firmwareLower: 4, firmwareEnable: 1,
+    ]
+    static let writeAllowlist: Set<String> = [
+        bclm, ch0b, ch0c, chte, firmwareUpper, firmwareLower, firmwareEnable,
+    ]
 
     static func isValidValue(_ data: Data, for key: String) -> Bool {
         guard widths[key] == data.count else { return false }
@@ -32,6 +42,11 @@ enum LegacyChargeSMCKeys {
         case bclm: return (50...100).contains(Int(data[0]))
         case ch0b, ch0c: return data[0] == 0 || data[0] == 2
         case chte: return data == Data([0, 0, 0, 0]) || data == Data([1, 0, 0, 0])
+        // bfD0/bfE0 are little-endian percentages in the low byte; only the
+        // low byte is meaningful. 0 is the unset/disabled state.
+        case firmwareUpper, firmwareLower:
+            return data[1] == 0 && data[2] == 0 && data[3] == 0 && Int(data[0]) <= 100
+        case firmwareEnable: return data[0] == 0 || data[0] == 2
         default: return false
         }
     }
@@ -114,6 +129,9 @@ final class LegacyChargeLimitService: NSObject, @unchecked Sendable {
                 siliconPairPresent: eligible && !hardware.isIntel
                     && validRead("CH0B") != nil && validRead("CH0C") != nil,
                 siliconCHTEPresent: eligible && !hardware.isIntel && validRead("CHTE") != nil,
+                firmwareLimitPresent: eligible && !hardware.isIntel
+                    && validRead("bfD0") != nil && validRead("bfE0") != nil
+                    && validRead("bfF0") != nil,
                 architectureName: hardware.isIntel ? "intel" : "appleSilicon",
                 osBandName: hardware.allowsLegacyLimiter ? "legacy" : "unsupported",
                 errorCode: eligible ? .none : .unsupportedHardware,
@@ -150,7 +168,7 @@ final class LegacyChargeLimitService: NSObject, @unchecked Sendable {
                 }
             }
             var session = previous ?? Session(
-                backend: hardware.isIntel ? .intelBCLM : .silicon,
+                backend: Self.backend(isIntel: hardware.isIntel, keys: Set(raw.keys)),
                 hardwareModel: hardwareModel,
                 osBuild: osBuild,
                 requestedLimit: limit,
@@ -202,7 +220,7 @@ final class LegacyChargeLimitService: NSObject, @unchecked Sendable {
                 let raw = try discoverOriginal()
                 current = raw
                 session = Session(
-                    backend: hardware.isIntel ? .intelBCLM : .silicon,
+                    backend: Self.backend(isIntel: hardware.isIntel, keys: Set(raw.keys)),
                     hardwareModel: hardwareModel,
                     osBuild: osBuild,
                     requestedLimit: limit,
@@ -515,6 +533,17 @@ final class LegacyChargeLimitService: NSObject, @unchecked Sendable {
         }
     }
 
+    /// Picks the journal backend from the originally discovered key set so a
+    /// firmware-limit machine (bfD0/bfE0/bfF0) is not mislabeled as the legacy
+    /// CH0B/CH0C silicon gate.
+    private static func backend(
+        isIntel: Bool, keys: Set<String>
+    ) -> LegacyChargeLimitJournal.Backend {
+        if isIntel { return .intelBCLM }
+        if keys.contains(LegacyChargeSMCKeys.firmwareUpper) { return .firmwareLimit }
+        return .silicon
+    }
+
     private func loadOwnedJournal() throws -> Session? {
         guard let session = try journalStore.load() else { return nil }
         if let recordedBuild = session.osBuild, recordedBuild != osBuild {
@@ -526,8 +555,12 @@ final class LegacyChargeLimitService: NSObject, @unchecked Sendable {
             throw Failure(.ownershipConflict, "The recovery record belongs to different hardware.")
         }
         let keys = Set(session.originalRaw.keys)
-        let validKeys = session.backend == .intelBCLM ? keys == ["BCLM"]
-            : keys == ["CH0B", "CH0C"] || keys == ["CHTE"]
+        let validKeys: Bool
+        switch session.backend {
+        case .intelBCLM: validKeys = (keys == ["BCLM"])
+        case .firmwareLimit: validKeys = (keys == ["bfD0", "bfE0", "bfF0"])
+        case .silicon: validKeys = keys == ["CH0B", "CH0C"] || keys == ["CHTE"]
+        }
         guard validKeys, keys == Set(session.lastWrittenRaw.keys),
               session.originalRaw.allSatisfy({ LegacyChargeSMCKeys.isValidValue($0.value, for: $0.key) }),
               session.lastWrittenRaw.allSatisfy({ LegacyChargeSMCKeys.isValidValue($0.value, for: $0.key) }) else {
@@ -569,6 +602,9 @@ final class LegacyChargeLimitService: NSObject, @unchecked Sendable {
     private func discoverOriginal() throws -> [String: Data] {
         if hardware.isIntel, let ceiling = validRead("BCLM") { return ["BCLM": ceiling] }
         if !hardware.isIntel {
+            if let u = validRead("bfD0"), let l = validRead("bfE0"), let e = validRead("bfF0") {
+                return ["bfD0": u, "bfE0": l, "bfF0": e]
+            }
             if let b = validRead("CH0B"), let c = validRead("CH0C") { return ["CH0B": b, "CH0C": c] }
             if let t = validRead("CHTE") { return ["CHTE": t] }
         }
@@ -579,6 +615,19 @@ final class LegacyChargeLimitService: NSObject, @unchecked Sendable {
         session: Session, limit: Int, full: Bool, current: [String: Data]
     ) throws -> [String: Data] {
         if session.backend == .intelBCLM { return ["BCLM": Data([UInt8(limit)])] }
+        if session.backend == .firmwareLimit {
+            // The firmware enforces the band itself: bfD0 = upper, bfE0 = lower
+            // (hysteresis), bfF0 = 2 enables the limit. "Full"/100% disables it
+            // (bfF0 = 0) so the battery charges freely.
+            let upper = min(100, max(0, limit))
+            let lower = max(0, upper - LegacyGatePolicy.hysteresis)
+            let enabled: UInt8 = (full || limit >= 100) ? 0 : 2
+            return [
+                LegacyChargeSMCKeys.firmwareUpper: Data([UInt8(upper), 0, 0, 0]),
+                LegacyChargeSMCKeys.firmwareLower: Data([UInt8(lower), 0, 0, 0]),
+                LegacyChargeSMCKeys.firmwareEnable: Data([enabled]),
+            ]
+        }
         let allow: Bool
         if full || limit == 100 { allow = true }
         else {
