@@ -612,6 +612,19 @@ enum SettingsSemanticCatalog {
             d.uiPath = "设置 › 电池 › 立即充满按钮"
             d.storageKey = "showsChargeToFullNowButton"; d.accessPolicy = .profileSafe; d.provider = "core"
         },
+        pref("battery.legacyChargeLimit.panelButton", "面板显示立即充满按钮（13–15）", "battery", .boolean, "macOS 13–15 的充电上限限制组：是否在电池面板显示“立即充满电”按钮。") { d in
+            d.uiPath = "设置 › 电池 › 充电上限限制 › 在面板中显示按钮"
+            d.storageKey = "showsLegacyChargeToFullButton"; d.accessPolicy = .profileSafe; d.provider = "core"
+        },
+        pref("battery.legacyChargeLimit.sleepPolicy", "睡眠充电策略（13–15）", "battery", .enumeration, "macOS 13–15 持有上限时的睡眠行为：暂停充电，或充到上限前不睡眠。") { d in
+            d.uiPath = "设置 › 电池 › 充电上限限制 › 睡眠时"
+            d.storageKey = "legacySleepPolicy"
+            d.options = [
+                opt("pauseCharging", "暂停充电"),
+                opt("keepAwakeUntilLimit", "充到上限前不睡眠"),
+            ]
+            d.accessPolicy = .profileSafe; d.provider = "core"
+        },
         pref("battery.automation.controlsLowPowerMode", "允许控制低电量模式", "battery", .boolean, "允许 App 控制系统低电量模式。具有系统影响。") { d in
             d.uiPath = "设置 › 电池 › 低电量模式控制"
             d.storageKey = "controlsLowPowerMode"; d.accessPolicy = systemRestricted; d.provider = "core"
