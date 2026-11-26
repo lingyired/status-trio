@@ -294,7 +294,7 @@ final class LegacyChargeLimitService: NSObject, @unchecked Sendable {
                     throw Failure(.ownershipConflict, "The expected current limit changed.")
                 }
             }
-            try apply(&session, desired: session.originalRaw, current: current)
+            try apply(&session, desired: restoreRaw(session, current: current), current: current)
             // A failed clear is a failed disable; retain the verified restore
             // state in the journal so a retry remains safe.
             try journalStore.clear()
@@ -435,7 +435,7 @@ final class LegacyChargeLimitService: NSObject, @unchecked Sendable {
         do {
             var mutable = session
             let current = try readOwned(mutable, allowInterrupted: true)
-            try apply(&mutable, desired: mutable.originalRaw, current: current)
+            try apply(&mutable, desired: restoreRaw(mutable, current: current), current: current)
             try journalStore.clear()
             return .restored
         } catch {
@@ -598,12 +598,28 @@ final class LegacyChargeLimitService: NSObject, @unchecked Sendable {
             guard let current = validRead(key) else {
                 throw Failure(.verificationFailed, "A charge setting could not be read.")
             }
-            guard current == expected || (allowInterrupted && current == session.pendingRaw?[key]) else {
+            guard current == expected
+                || (allowInterrupted && current == session.pendingRaw?[key])
+                || session.backend == .firmwareLimit else {
                 throw Failure(.ownershipConflict, "Another controller changed a charge setting.")
             }
             raw[key] = current
         }
         return raw
+    }
+
+    /// Values that restore the stock charging behavior. For the firmware limit
+    /// that is disabling `bfF0`; `bfD0`/`bfE0` are inert while disabled and the
+    /// firmware may reject writing 0 into them, so keep the current values.
+    private func restoreRaw(_ session: Session, current: [String: Data]) -> [String: Data] {
+        guard session.backend == .firmwareLimit else { return session.originalRaw }
+        return [
+            LegacyChargeSMCKeys.firmwareUpper:
+                current[LegacyChargeSMCKeys.firmwareUpper] ?? Data([0, 0, 0, 0]),
+            LegacyChargeSMCKeys.firmwareLower:
+                current[LegacyChargeSMCKeys.firmwareLower] ?? Data([0, 0, 0, 0]),
+            LegacyChargeSMCKeys.firmwareEnable: Data([0]),
+        ]
     }
 
     private func discoverOriginal() throws -> [String: Data] {
