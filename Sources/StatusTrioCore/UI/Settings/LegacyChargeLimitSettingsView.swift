@@ -1,3 +1,4 @@
+import AppKit
 import SwiftUI
 
 /// Legacy charge limit (macOS 13–15). Experimental: the hardware backends have
@@ -148,6 +149,18 @@ struct LegacyChargeLimitSettingsView: View {
                 }
                 .controlSize(.small)
             }
+        }
+        // After the user approves the daemon in Login Items and returns, re-probe
+        // so the group stops showing "helper required" without a relaunch.
+        .onChange(of: helper.isSharedHelperReady) { ready in
+            if ready { run { await controller.refresh() } }
+        }
+        .onChange(of: helper.status) { _ in
+            if helper.isSharedHelperReady { run { await controller.refresh() } }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
+            helper.refreshForApprovalSettings()
+            run { await controller.refresh() }
         }
     }
 
