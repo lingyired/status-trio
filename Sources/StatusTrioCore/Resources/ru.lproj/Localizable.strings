@@ -1003,7 +1003,7 @@
 "power.infoBar.noInput" = "Нет питания";
 "power.infoBar.battery" = "Заряд батареи";
 "power.infoBar.discharging" = "Разряд аккумулятора";
-"power.infoBar.system" = "Мощность системы";
+"power.infoBar.system" = "Общая мощность";
 "power.infoBar.notCharging" = "Не заряжается";
 "battery.power.display" = "Дисплей";
 "battery.power.usb" = "USB-выход";

@@ -1003,7 +1003,7 @@
 "power.infoBar.noInput" = "電源未接続";
 "power.infoBar.battery" = "バッテリー充電";
 "power.infoBar.discharging" = "バッテリー放電";
-"power.infoBar.system" = "システム電力";
+"power.infoBar.system" = "本体全体の消費電力";
 "power.infoBar.notCharging" = "充電していません";
 "battery.power.display" = "ディスプレイ";
 "battery.power.usb" = "USB 出力";

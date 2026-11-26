@@ -990,7 +990,7 @@
 "settings.battery.powerInfoBar" = "功耗信息条";
 "settings.battery.powerFlowDiagram" = "功耗流向图";
 "settings.battery.powerFlowDiagramDescription" = "在电池详情页显示输入 / 电池 / 系统功耗流向图。";
-"settings.battery.powerInfoBarDescription" = "面板打开时，在电池模块下方显示输入、电池、系统功耗。默认关闭。";
+"settings.battery.powerInfoBarDescription" = "面板打开时，在电池模块下方显示输入、电池、整机功耗。默认关闭。";
 "settings.battery.energyRefreshInterval" = "后台采样间隔";
 "settings.battery.energyRefreshInterval.description" = "面板关闭时按此间隔采样；打开电池详情后仍每 5 秒刷新。";
 "battery.power.input" = "充电器输入";
@@ -1003,7 +1003,7 @@
 "power.infoBar.noInput" = "未接电源";
 "power.infoBar.battery" = "电池充电";
 "power.infoBar.discharging" = "电池放电";
-"power.infoBar.system" = "系统功耗";
+"power.infoBar.system" = "整机功耗";
 "power.infoBar.notCharging" = "未在充电";
 "battery.power.display" = "显示器";
 "battery.power.usb" = "USB 供电";

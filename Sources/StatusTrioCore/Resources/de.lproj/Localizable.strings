@@ -1003,7 +1003,7 @@
 "power.infoBar.noInput" = "Kein Netzteil";
 "power.infoBar.battery" = "Batterieladung";
 "power.infoBar.discharging" = "Batterieentladung";
-"power.infoBar.system" = "Systemleistung";
+"power.infoBar.system" = "Gesamtleistung";
 "power.infoBar.notCharging" = "Wird nicht geladen";
 "battery.power.display" = "Display";
 "battery.power.usb" = "USB-Ausgang";
