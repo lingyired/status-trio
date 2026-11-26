@@ -1121,6 +1121,35 @@ final class StatusBarController: NSObject {
         }
     }
 
+    /// Opens the shared status panel anchored to a custom instance's button.
+    func presentInstancePanel(routeRaw: String, anchorButton: NSStatusBarButton, presentedByHover: Bool) {
+        applyInstanceRoute(routeRaw)
+        presentPopover(
+            relativeTo: anchorButton.bounds,
+            of: anchorButton,
+            preferredEdge: .minY,
+            activatesApplication: false,
+            revealStyle: presentedByHover ? .hoverDrop : .fade,
+            presentedByHover: presentedByHover
+        )
+    }
+
+    private func applyInstanceRoute(_ raw: String) {
+        switch raw {
+        case "summary": panelViewModel.showSummaryPage()
+        case "battery": panelViewModel.showBatteryPage()
+        case "wifi": panelViewModel.showWiFiPage(showsDetailsInitially: false)
+        case "ethernet": panelViewModel.showWiredPage()
+        case "inputSource": panelViewModel.showInputSourcePage()
+        default:
+            if let kind = HardwareDetailKind(rawValue: raw) {
+                panelViewModel.showHardwareDetail(kind)
+            } else {
+                panelViewModel.showSummaryPage()
+            }
+        }
+    }
+
     /// Shortcut activation uses the same open/close contract as the status item.
     func openPopoverFromShortcut() {
         switch StatusPanelShortcutPresentationPolicy.action(

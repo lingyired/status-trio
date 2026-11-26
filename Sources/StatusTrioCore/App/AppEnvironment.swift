@@ -34,6 +34,7 @@ final class AppEnvironment {
     private var hardwareRingDemandWiring: IconHardwareDemandWiring?
     private var airPodsDemandWiring: IconAirPodsDemandWiring?
     private var hardwareSamplingSettingsCancellables = Set<AnyCancellable>()
+    private var menuBarInstancesRuntime: MenuBarInstancesRuntime?
     private var localIconDemandWiring: IconLiveDemandWiring?
     private var localIconPluginCancellables = Set<AnyCancellable>()
     private let localIconRefreshCoalescer = IconLiveResolutionCoalescer(
@@ -175,6 +176,15 @@ final class AppEnvironment {
         store.bindExternalVolumeSettings(settings)
         store.bindExternalBrightnessSettings(settings)
         store.start()
+        let menuBarRuntime = MenuBarInstancesRuntime(
+            store: store,
+            settings: settings,
+            statusBarController: statusBarController,
+            localization: localization,
+            openSettings: { [weak self] in self?.settingsWindowController.show() }
+        )
+        menuBarRuntime.start()
+        menuBarInstancesRuntime = menuBarRuntime
         telemetryReporter.start()
     }
 
