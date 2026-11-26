@@ -722,7 +722,7 @@
       ],
       "provider" : "core",
       "storageKey" : "batteryOnBatteryMarker",
-      "title" : "电池百分比标记",
+      "title" : "使用电池时标记",
       "type" : "enumeration",
       "uiPath" : "设置 › 电池 › 标记 › 使用电池"
     },
@@ -1973,6 +1973,14 @@
         "uiAccessible" : true
       },
       "category" : "hardware",
+      "constraints" : [
+        {
+          "kind" : "minimumCount",
+          "message" : "至少保留一个硬件摘要指标。",
+          "min" : 1,
+          "resolution" : "reject"
+        }
+      ],
       "description" : "状态面板硬件摘要行启用的指标集合。",
       "id" : "hardware.summaryMetrics",
       "optionsProvider" : "HardwareSummaryMetric",
@@ -3307,7 +3315,7 @@
     {
       "accessPolicy" : {
         "containsSensitiveInfo" : false,
-        "developmentProfile" : true,
+        "developmentProfile" : false,
         "externalRead" : true,
         "externalWrite" : false,
         "requiresConfirmation" : false,
@@ -3316,7 +3324,7 @@
         "uiAccessible" : true
       },
       "category" : "panel",
-      "description" : "状态面板中启用的模块集合及顺序。",
+      "description" : "状态面板中启用的模块集合及顺序。整体替换集合；开发 Profile 请改用逐模块开关或 add/remove，以免关掉未列出的模块。",
       "id" : "panel.modules.enabled",
       "optionsProvider" : "panel.sections",
       "provider" : "core",
