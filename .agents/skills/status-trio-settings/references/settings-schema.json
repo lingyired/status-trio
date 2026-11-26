@@ -570,6 +570,58 @@
         "uiAccessible" : true
       },
       "category" : "battery",
+      "description" : "macOS 13–15 的充电上限限制组：是否在电池面板显示“立即充满电”按钮。",
+      "id" : "battery.legacyChargeLimit.panelButton",
+      "provider" : "core",
+      "storageKey" : "showsLegacyChargeToFullButton",
+      "title" : "面板显示立即充满按钮（13–15）",
+      "type" : "boolean",
+      "uiPath" : "设置 › 电池 › 充电上限限制 › 在面板中显示按钮"
+    },
+    {
+      "accessPolicy" : {
+        "containsSensitiveInfo" : false,
+        "developmentProfile" : true,
+        "externalRead" : true,
+        "externalWrite" : false,
+        "requiresConfirmation" : false,
+        "systemSideEffect" : false,
+        "transferable" : false,
+        "uiAccessible" : true
+      },
+      "category" : "battery",
+      "description" : "macOS 13–15 持有上限时的睡眠行为：暂停充电，或充到上限前不睡眠。",
+      "id" : "battery.legacyChargeLimit.sleepPolicy",
+      "options" : [
+        {
+          "id" : "pauseCharging",
+          "title" : "暂停充电",
+          "value" : "pauseCharging"
+        },
+        {
+          "id" : "keepAwakeUntilLimit",
+          "title" : "充到上限前不睡眠",
+          "value" : "keepAwakeUntilLimit"
+        }
+      ],
+      "provider" : "core",
+      "storageKey" : "legacySleepPolicy",
+      "title" : "睡眠充电策略（13–15）",
+      "type" : "enumeration",
+      "uiPath" : "设置 › 电池 › 充电上限限制 › 睡眠时"
+    },
+    {
+      "accessPolicy" : {
+        "containsSensitiveInfo" : false,
+        "developmentProfile" : true,
+        "externalRead" : true,
+        "externalWrite" : false,
+        "requiresConfirmation" : false,
+        "systemSideEffect" : false,
+        "transferable" : false,
+        "uiAccessible" : true
+      },
+      "category" : "battery",
       "description" : "充电时电量环顶部的标记样式。",
       "id" : "battery.marker.charging",
       "options" : [

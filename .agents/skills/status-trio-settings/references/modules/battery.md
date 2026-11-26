@@ -19,6 +19,8 @@ Generated from `SettingsSemanticCatalog`. Do not edit by hand.
 | `battery.confirmWiFiPowerOff` | 关闭 Wi-Fi 前确认 | `boolean` | — | confirmsWiFiPowerOff |
 | `battery.highEnergyApps.enabled` | 显示高耗能 App | `boolean` | — | showsHighEnergyApps |
 | `battery.highEnergyApps.refreshIntervalSeconds` | 高耗能 App 刷新间隔 | `number` | — | highEnergyAppsRefreshIntervalSeconds |
+| `battery.legacyChargeLimit.panelButton` | 面板显示立即充满按钮（13–15） | `boolean` | — | showsLegacyChargeToFullButton |
+| `battery.legacyChargeLimit.sleepPolicy` | 睡眠充电策略（13–15） | `enumeration` | — | legacySleepPolicy |
 | `battery.marker.charging` | 充电标记 | `enumeration` | — | batteryChargingMarker |
 | `battery.marker.connected` | 已连接标记 | `enumeration` | — | batteryConnectedMarker |
 | `battery.marker.noBattery` | 无电池标记 | `enumeration` | — | batteryNoBatteryMarker |
