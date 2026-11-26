@@ -70,6 +70,7 @@ struct SettingsView: View {
         case monitor
         case popover
         case general
+        case menuBarInstances
         case about
 
         var id: String { rawValue }
@@ -91,6 +92,7 @@ struct SettingsView: View {
             case .monitor: return .symbol(SymbolFallback.name("gauge.with.dots.needle.bottom.50percent", "gauge"))
             case .popover: return .symbol("list.bullet.rectangle")
             case .general: return .symbol("gearshape.fill")
+            case .menuBarInstances: return .symbol("menubar.rectangle")
             case .about:   return .symbol("info.circle.fill")
             }
         }
@@ -109,6 +111,7 @@ struct SettingsView: View {
             case .monitor: return .teal
             case .popover: return .purple
             case .general: return .gray
+            case .menuBarInstances: return .teal
             case .about:   return .orange
             }
         }
@@ -126,6 +129,7 @@ struct SettingsView: View {
             case .monitor: return localization.string(.settingsTabMonitor)
             case .popover: return localization.string(.settingsTabPanel)
             case .general: return localization.string(.settingsPageGeneral)
+            case .menuBarInstances: return localization.string(.settingsTabMenuBarInstances)
             case .about:   return localization.string(.settingsTabAbout)
             }
         }
@@ -494,6 +498,8 @@ struct SettingsView: View {
                 chargeToFullNow: chargeToFullNow,
                 transferSession: transferSession
             )
+        case .menuBarInstances:
+            MenuBarInstancesSectionView(store: store)
         case .about:
             AboutSectionView()
         }

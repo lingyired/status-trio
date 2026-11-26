@@ -307,6 +307,7 @@ enum LocalizationKey: String, CaseIterable, Hashable, Sendable {
     case menuBarMetricWifiConnected = "menubar.metric.wifiConnected"
     case menuBarMetricWifiDisconnected = "menubar.metric.wifiDisconnected"
     case menuBarInstanceDisable = "menubar.instance.disable"
+    case settingsTabMenuBarInstances = "settings.tab.menuBarInstances"
     case hardwareMonitorSignalStrength = "hardware.monitor.signalStrength"
     case hardwareMonitorSettingsGroupSampling = "hardware.monitor.settings.group.sampling"
     case hardwareMonitorSettingsGroupRings = "hardware.monitor.settings.group.rings"

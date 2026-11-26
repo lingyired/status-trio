@@ -38,7 +38,7 @@ final class SettingsViewTests: XCTestCase {
     }
 
     func testSettingsViewDimensionsAndSections() {
-        XCTAssertEqual(SettingsView.Section.allCases.count, 11)
+        XCTAssertEqual(SettingsView.Section.allCases.count, 12)
         XCTAssertEqual(SettingsView.sidebarWidth, 196)
         XCTAssertEqual(SettingsView.width, 720)
         XCTAssertEqual(SettingsView.height, 600)
@@ -94,7 +94,7 @@ final class SettingsViewTests: XCTestCase {
     func testSidebarListsEveryStatusElementBeforeTheAppWidePanes() {
         XCTAssertEqual(
             SettingsView.Section.allCases,
-            [.appIcon, .battery, .keepAwake, .network, .bluetooth, .audio, .brightness, .monitor, .popover, .general, .about]
+            [.appIcon, .battery, .keepAwake, .network, .bluetooth, .audio, .brightness, .monitor, .popover, .general, .menuBarInstances, .about]
         )
         XCTAssertEqual(SettingsView.Section.allCases.first, .appIcon)
         // The brightness hub sits directly after the audio pane.
