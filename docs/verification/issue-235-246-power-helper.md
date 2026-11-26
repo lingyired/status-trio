@@ -19,10 +19,12 @@ API，只在 Apple 芯片 + macOS 26.4+ 可用；而它要解决的是旧系统�
 
 ## 交付内容
 
-- **#235 高电量模式**：helper XPC 协议 v2（版本握手）；`pmset -g cap` 能力探测；
-  `pmset -a powermode 2|0` 写入（macOS 26 起 `highpowermode` 参数已被拒绝）；
-  低/高互斥由 daemon 完成；旧 daemon 显示「需要更新」；Apple 芯片 + macOS 26.4+
-  才显示。状态面板电池行有高电量/低电量快捷按钮；详情页为三态分段选择器。
+- **#235 高电量模式**：helper XPC 协议 v2（版本握手）；`pmset -g cap` 能力探测
+  （是否显示只看这一项，不再按 macOS 版本硬门槛）；写入按系统分叉——macOS 26 起
+  用 `pmset -a powermode 2|0`，此前用 `pmset -a highpowermode 1|0`；低/高互斥由
+  daemon 完成；旧 daemon 显示「需要更新」。状态面板电池行有高电量/低电量快捷按钮；
+  详情页为三态分段选择器。（早前「Apple 芯片 + macOS 26.4+ 才显示」是误把 PowerUI
+  充电功能的 26.4 门槛套到高电量模式上，已修正：高电量不看系统版本，只看 `pmset -g cap`。）
 - **#246 自动开启低电量模式**：独立阈值 `autoLowPowerThreshold`（与临界颜色阈值
   `batteryCriticalThreshold` 分离），使用电池且低于阈值时自动开启，每段低电周期
   一次；需 helper 真正 `isReady` 且「电量模式控制」已开启。

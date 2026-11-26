@@ -38,6 +38,22 @@ final class HighPowerModeController: ObservableObject {
 
     private let platformSupported: Bool
 
+    /// High Power Mode is an Apple Silicon capability, and whether a particular
+    /// Mac can actually enter it is decided by the helper's `pmset -g cap`
+    /// probe, not by a macOS version. The write is version-aware in
+    /// `HighPowerModeCommand` (`highpowermode` before macOS 26, `powermode` on
+    /// 26+), so this only excludes architectures that can never support it.
+    static var supportsHighPowerMode: Bool {
+#if arch(arm64)
+        return true
+#else
+        return false
+#endif
+    }
+
+    /// The #246 low-battery automation gate. It stays at macOS 26.4+ for now
+    /// (see `docs/verification/1.9.3-release-gaps.md` A1); High Power Mode
+    /// itself no longer uses this property.
     static var supportsCurrentPlatform: Bool {
 #if arch(arm64)
         if #available(macOS 26.4, *) { return true }
@@ -47,7 +63,7 @@ final class HighPowerModeController: ObservableObject {
 
     init(
         client: any HighPowerModeClienting = XPCPrivilegedHighPowerClient(),
-        platformSupported: Bool = HighPowerModeController.supportsCurrentPlatform
+        platformSupported: Bool = HighPowerModeController.supportsHighPowerMode
     ) {
         self.client = client
         self.platformSupported = platformSupported
