@@ -1,3 +1,4 @@
+import AppKit
 import SwiftUI
 
 /// A chip in the menu-bar strip or the element library.
@@ -311,13 +312,13 @@ struct MenuBarLeadingIconPicker: View {
         // Arrows and navigation
         "arrow.up", "arrow.down", "arrow.left", "arrow.right",
         "arrow.up.circle", "arrow.down.circle", "arrow.left.arrow.right",
-        "arrow.up.arrow.down", "arrow.triangle.up", "arrow.triangle.down",
+        "arrow.up.arrow.down", "arrow.up.to.line", "arrow.down.to.line",
         "chevron.up", "chevron.down", "chevron.left", "chevron.right",
         "arrow.up.right", "arrow.down.left", "arrow.clockwise", "arrow.triangle.2.circlepath",
         // Network
         "wifi", "wifi.exclamationmark", "wifi.slash", "network", "globe",
         "antenna.radiowaves.left.and.right", "dot.radiowaves.left.and.right",
-        "ethernet", "cable.connector", "cloud", "cloud.fill",
+        "cable.connector", "cloud", "cloud.fill",
         // System and power
         "power", "bolt.fill", "bolt.slash", "sleep", "moon.fill", "sun.max.fill",
         "battery.100", "battery.75", "battery.50", "battery.25", "battery.0",
@@ -343,10 +344,17 @@ struct MenuBarLeadingIconPicker: View {
         "🕐", "📊", "📈", "⏰", "🚀", "⭐️", "✨", "🎯"
     ]
 
+    /// Symbols that this macOS version can actually draw. The curated list
+    /// spans several SF Symbols releases, so drop anything unavailable instead
+    /// of leaving blank tiles in the grid.
+    private static let availableSymbols: [String] = symbols.filter {
+        NSImage(systemSymbolName: $0, accessibilityDescription: nil) != nil
+    }
+
     private var filteredSymbols: [String] {
         let query = search.trimmingCharacters(in: .whitespaces)
-        guard !query.isEmpty else { return Self.symbols }
-        return Self.symbols.filter { $0.localizedCaseInsensitiveContains(query) }
+        guard !query.isEmpty else { return Self.availableSymbols }
+        return Self.availableSymbols.filter { $0.localizedCaseInsensitiveContains(query) }
     }
 
     var body: some View {
@@ -408,8 +416,13 @@ struct MenuBarLeadingIconPicker: View {
     private var currentIconPreview: some View {
         switch spec?.source {
         case .sfSymbol(let name):
-            Image(systemName: name)
-                .font(.system(size: 17))
+            if NSImage(systemSymbolName: name, accessibilityDescription: nil) != nil {
+                Image(systemName: name)
+                    .font(.system(size: 17))
+            } else {
+                Image(systemName: "questionmark.square.dashed")
+                    .font(.system(size: 17))
+            }
         case .emoji(let value):
             Text(value).font(.system(size: 19))
         case .asset:
