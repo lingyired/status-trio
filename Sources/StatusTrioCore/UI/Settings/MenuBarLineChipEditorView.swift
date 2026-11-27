@@ -301,14 +301,47 @@ struct MenuBarLeadingIconPicker: View {
     @Environment(\.dismiss) private var dismiss
     @State private var tab = 0
     @State private var search = ""
-    @State private var customSymbol = ""
     @State private var customEmoji = ""
     @State private var customAsset = ""
-    @State private var showsCustomSymbol = false
 
     private func L(_ key: LocalizationKey) -> String { localization.string(key) }
 
-    private static let symbols: [String] = [
+    /// All symbols shipped by the running macOS. `CoreGlyphs` is the system
+    /// bundle that also backs the SF Symbols app; reading its order list gives
+    /// the complete catalog without hard-coding a subset.
+    private static let systemSymbols: [String] = {
+        let path = "/System/Library/CoreServices/CoreGlyphs.bundle/Contents/Resources/symbol_order.plist"
+        guard let data = try? Data(contentsOf: URL(fileURLWithPath: path)),
+              let names = try? PropertyListSerialization.propertyList(from: data, format: nil) as? [String],
+              !names.isEmpty else {
+            return fallbackSymbols
+        }
+        // Drop localized variants and numeral-prefixed glyphs; they are valid
+        // system symbols but make the default grid noise.
+        let localizedSuffixes = [
+            ".ar", ".hi", ".he", ".th", ".ja", ".ko", ".ru", ".zh", ".my",
+            ".bn", ".gu", ".kn", ".ml", ".mr", ".or", ".pa", ".ta", ".te",
+            ".ur", ".vi"
+        ]
+        return names.filter { name in
+            guard let first = name.first, !first.isNumber else { return false }
+            return !localizedSuffixes.contains { name.hasSuffix($0) }
+        }
+    }()
+
+    /// Keep the familiar, task-relevant icons at the top of the grid, then
+    /// expose the rest of the system catalog alphabetically.
+    private static let orderedSymbols: [String] = {
+        var seen = Set<String>()
+        var result: [String] = []
+        for name in fallbackSymbols + systemSymbols.sorted() where seen.insert(name).inserted {
+            result.append(name)
+        }
+        return result
+    }()
+
+    /// Small safety net for systems where the CoreGlyphs bundle cannot be read.
+    private static let fallbackSymbols: [String] = [
         // Arrows and navigation
         "arrow.up", "arrow.down", "arrow.left", "arrow.right",
         "arrow.up.circle", "arrow.down.circle", "arrow.left.arrow.right",
@@ -344,17 +377,10 @@ struct MenuBarLeadingIconPicker: View {
         "🕐", "📊", "📈", "⏰", "🚀", "⭐️", "✨", "🎯"
     ]
 
-    /// Symbols that this macOS version can actually draw. The curated list
-    /// spans several SF Symbols releases, so drop anything unavailable instead
-    /// of leaving blank tiles in the grid.
-    private static let availableSymbols: [String] = symbols.filter {
-        NSImage(systemSymbolName: $0, accessibilityDescription: nil) != nil
-    }
-
     private var filteredSymbols: [String] {
         let query = search.trimmingCharacters(in: .whitespaces)
-        guard !query.isEmpty else { return Self.availableSymbols }
-        return Self.availableSymbols.filter { $0.localizedCaseInsensitiveContains(query) }
+        guard !query.isEmpty else { return Self.orderedSymbols }
+        return Self.orderedSymbols.filter { $0.localizedCaseInsensitiveContains(query) }
     }
 
     var body: some View {
@@ -477,20 +503,6 @@ struct MenuBarLeadingIconPicker: View {
             }
             .frame(height: 236)
 
-            DisclosureGroup(isExpanded: $showsCustomSymbol) {
-                HStack(spacing: 8) {
-                    TextField(L(.menuBarEditorIconSymbol), text: $customSymbol)
-                        .textFieldStyle(.roundedBorder)
-                        .onSubmit { addCustomSymbol() }
-                    Button(L(.menuBarEditorAdd)) { addCustomSymbol() }
-                        .disabled(customSymbol.trimmingCharacters(in: .whitespaces).isEmpty)
-                }
-                .padding(.top, 4)
-            } label: {
-                Text(L(.menuBarEditorIconSymbol))
-                    .font(.system(size: 10.5))
-                    .foregroundStyle(.secondary)
-            }
         }
     }
 
@@ -563,12 +575,6 @@ struct MenuBarLeadingIconPicker: View {
     private func apply(_ icon: MenuBarIconSpec) {
         onChange(icon)
         dismiss()
-    }
-
-    private func addCustomSymbol() {
-        let name = customSymbol.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !name.isEmpty else { return }
-        apply(MenuBarIconSpec(source: .sfSymbol(name)))
     }
 
     private func addCustomEmoji() {
