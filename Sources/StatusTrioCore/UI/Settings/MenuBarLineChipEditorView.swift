@@ -303,6 +303,9 @@ struct MenuBarLeadingIconPicker: View {
     @State private var search = ""
     @State private var customEmoji = ""
     @State private var customAsset = ""
+    @State private var visibleCount = 240
+
+    private static let pageSize = 240
 
     private func L(_ key: LocalizationKey) -> String { localization.string(key) }
 
@@ -381,6 +384,14 @@ struct MenuBarLeadingIconPicker: View {
         let query = search.trimmingCharacters(in: .whitespaces)
         guard !query.isEmpty else { return Self.orderedSymbols }
         return Self.orderedSymbols.filter { $0.localizedCaseInsensitiveContains(query) }
+    }
+
+    private var visibleSymbols: [String] {
+        Array(filteredSymbols.prefix(visibleCount))
+    }
+
+    private var hasMoreSymbols: Bool {
+        visibleCount < filteredSymbols.count
     }
 
     var body: some View {
@@ -487,7 +498,7 @@ struct MenuBarLeadingIconPicker: View {
                         .padding(.vertical, 18)
                 } else {
                     LazyVGrid(columns: gridColumns, spacing: 6) {
-                        ForEach(filteredSymbols, id: \.self) { name in
+                        ForEach(visibleSymbols, id: \.self) { name in
                             IconPickerTile(
                                 symbol: name,
                                 isSelected: isSelected(.sfSymbol(name))
@@ -499,9 +510,22 @@ struct MenuBarLeadingIconPicker: View {
                         }
                     }
                     .padding(2)
+
+                    if hasMoreSymbols {
+                        ProgressView()
+                            .controlSize(.small)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 8)
+                            .onAppear {
+                                visibleCount += Self.pageSize
+                            }
+                    }
                 }
             }
             .frame(height: 236)
+            .onChange(of: search) { _ in
+                visibleCount = Self.pageSize
+            }
 
         }
     }
