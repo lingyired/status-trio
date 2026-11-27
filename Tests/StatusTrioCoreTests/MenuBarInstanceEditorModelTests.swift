@@ -59,6 +59,17 @@ final class MenuBarInstanceEditorModelTests: XCTestCase {
         guard case .icon? = model.elements(slot: .top).first?.content else { return XCTFail("expected icon") }
     }
 
+    func testEditorKeepsVisibilityChangedFromTheList() {
+        let (model, store) = makeModel()
+        var latest = store.menuBarInstances.instances[0]
+        latest.isEnabled = false
+        store.updateMenuBarInstance(latest)
+
+        model.addTextElement("CPU ", slot: .top)
+
+        XCTAssertFalse(store.menuBarInstances.instances[0].isEnabled)
+    }
+
     func testPreviewUsesRenderer() {
         let (model, _) = makeModel()
         model.addMetricElement(.cpuUsage, slot: .top)

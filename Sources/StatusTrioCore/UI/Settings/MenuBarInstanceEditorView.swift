@@ -1,233 +1,190 @@
 import SwiftUI
 
+/// Edits the selected menu-bar instance.
+///
+/// The editor is a normal Settings page column: the item's basics, its two
+/// rows, the selected element, and the line-level styling and interaction
+/// settings. The live preview stays pinned above the page. Nothing here
+/// depends on a separate palette column or an implicit "selected row"; every
+/// control says which instance and which row it edits.
 struct MenuBarInstanceEditorView: View {
     @ObservedObject var model: MenuBarInstanceEditorModel
     let localization: Localization
-    @Binding var selectedSlot: MenuBarLineSlot
+
+    @State private var selectedSlot: MenuBarLineSlot = .top
     @State private var selectedElementID: UUID?
-    @State private var previewIsDark = true
 
     private func L(_ key: LocalizationKey) -> String { localization.string(key) }
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 14) {
-                SettingsGroup(L(.menuBarEditorName)) {
-                    TextField(L(.menuBarEditorUntitled), text: Binding(
-                        get: { model.instance.name },
-                        set: { model.setName($0) }
-                    ))
-                    .textFieldStyle(.roundedBorder)
-                    .padding(.horizontal, SettingsMetrics.rowPaddingH)
-                    .padding(.vertical, 8)
-                }
-
-                HStack {
-                    Text(L(.menuBarEditorLayout)).font(.headline)
-                    Picker("", selection: Binding(
-                        get: { model.instance.layoutMode },
-                        set: { model.setLayoutMode($0) }
-                    )) {
-                        Text(L(.menuBarEditorSingleLine)).tag(MenuBarLayoutMode.singleLine)
-                        Text(L(.menuBarEditorDoubleLine)).tag(MenuBarLayoutMode.doubleLine)
-                    }
-                    .pickerStyle(.segmented)
-                    .labelsHidden()
-                    .frame(maxWidth: 240)
-                    Spacer()
-                }
-
-                SettingsGroup(L(.menuBarEditorPreview)) {
-                    VStack(spacing: 8) {
-                        Picker("", selection: $previewIsDark) {
-                            Text(L(.settingsPreviewLight)).tag(false)
-                            Text(L(.settingsPreviewDark)).tag(true)
-                        }
-                        .pickerStyle(.segmented)
-                        .labelsHidden()
-                        .frame(width: 160)
-                        .padding(.top, 8)
-
-                        HStack(spacing: 6) {
-                            Image(systemName: "apple.logo").font(.system(size: 12))
-                            Text("Finder").font(.system(size: 12))
-                            Spacer()
-                            if let image = model.previewImage(dark: previewIsDark) {
-                                Image(nsImage: image).padding(.horizontal, 6)
-                            } else {
-                                Text(L(.menuBarEditorNoContent)).font(.caption)
-                            }
-                            Image(systemName: "battery.100").font(.system(size: 12))
-                            Text("9:41").font(.system(size: 12)).monospacedDigit()
-                        }
-                        .foregroundStyle(previewIsDark ? Color.white : Color.black)
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 6)
-                        .background(RoundedRectangle(cornerRadius: 6).fill(previewIsDark ? Color.black.opacity(0.85) : Color.white.opacity(0.96)))
-                        .overlay(RoundedRectangle(cornerRadius: 6).stroke(Color.secondary.opacity(0.25), lineWidth: 1))
-                        .padding(.horizontal, SettingsMetrics.rowPaddingH)
-                        .padding(.bottom, 8)
-                    }
-                }
-
-                MenuBarRowCanvasView(
-                    model: model, slot: .top, title: L(.menuBarEditorTopRow), localization: localization,
-                    selectedSlot: $selectedSlot, selectedElementID: $selectedElementID
-                )
-                if model.instance.layoutMode == .doubleLine {
-                    MenuBarRowCanvasView(
-                        model: model, slot: .bottom, title: L(.menuBarEditorBottomRow), localization: localization,
-                        selectedSlot: $selectedSlot, selectedElementID: $selectedElementID
-                    )
-                }
-
-                removeDropTarget
-                elementInspector
-                rowStyleControls
-                spacingAndInteraction
-            }
-            .padding(16)
+        Group {
+            basicsGroup
+            contentGroup
+            rowStyleGroup
+            spacingAndInteractionGroup
         }
     }
 
-    private var removeDropTarget: some View {
-        let hasSelection = selectedElementID != nil
-        return HStack(spacing: 6) {
-            Image(systemName: "trash")
-            Text(hasSelection ? L(.menuBarEditorRemoveSelected) : L(.menuBarEditorDragRemove))
-        }
-        .font(.caption)
-        .foregroundStyle(hasSelection ? Color.primary : Color.secondary)
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 5)
-        .background(RoundedRectangle(cornerRadius: 6, style: .continuous).fill(Color.secondary.opacity(hasSelection ? 0.12 : 0.06)))
-        .contentShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
-        .onTapGesture {
-            if let id = selectedElementID {
-                model.removeElement(id: id, slot: selectedSlot)
-                selectedElementID = nil
+    // MARK: - Basics
+
+    private var basicsGroup: some View {
+        SettingsGroup {
+            SettingsRow("tag", title: L(.menuBarEditorName)) {
+                TextField(L(.menuBarEditorUntitled), text: Binding(
+                    get: { model.instance.name },
+                    set: { model.setName($0) }
+                ))
+                .textFieldStyle(.roundedBorder)
+                .frame(width: 200)
+                .accessibilityLabel(L(.menuBarEditorName))
+            }
+
+            SettingsDivider()
+
+            SettingsRow("rectangle.split.2x1", title: L(.menuBarEditorLayout)) {
+                Picker("", selection: Binding(
+                    get: { model.instance.layoutMode },
+                    set: { mode in
+                        model.setLayoutMode(mode)
+                        if mode == .singleLine {
+                            selectedSlot = .top
+                            selectedElementID = nil
+                        }
+                    }
+                )) {
+                    Text(L(.menuBarEditorSingleLine)).tag(MenuBarLayoutMode.singleLine)
+                    Text(L(.menuBarEditorDoubleLine)).tag(MenuBarLayoutMode.doubleLine)
+                }
+                .pickerStyle(.segmented)
+                .labelsHidden()
+                .frame(width: 160)
             }
         }
-        .dropDestination(for: MenuBarElementDragPayload.self) { payloads, _ in
-            guard let payload = payloads.first, case let .placed(_, slot, id) = payload.source else { return false }
-            model.removeElement(id: id, slot: slot)
-            selectedElementID = nil
-            return true
+    }
+
+    // MARK: - Content
+
+    private var contentGroup: some View {
+        SettingsGroup(
+            L(.menuBarEditorElements),
+            footnote: selectedElement == nil ? L(.menuBarEditorSelectHint) : nil
+        ) {
+            MenuBarRowCanvasView(
+                model: model,
+                slot: .top,
+                title: L(.menuBarEditorTopRow),
+                localization: localization,
+                selectedSlot: $selectedSlot,
+                selectedElementID: $selectedElementID
+            )
+
+            if selectedSlot == .top, let element = selectedElement(in: .top) {
+                SettingsDivider()
+                elementInspector(element)
+            }
+
+            if model.instance.layoutMode == .doubleLine {
+                SettingsDivider()
+                MenuBarRowCanvasView(
+                    model: model,
+                    slot: .bottom,
+                    title: L(.menuBarEditorBottomRow),
+                    localization: localization,
+                    selectedSlot: $selectedSlot,
+                    selectedElementID: $selectedElementID
+                )
+
+                if selectedSlot == .bottom, let element = selectedElement(in: .bottom) {
+                    SettingsDivider()
+                    elementInspector(element)
+                }
+            }
         }
     }
 
     private var selectedElement: MenuBarElement? {
-        model.elements(slot: selectedSlot).first { $0.id == selectedElementID }
+        selectedElement(in: selectedSlot)
     }
 
-    @ViewBuilder
-    private var elementInspector: some View {
-        SettingsGroup(L(.menuBarEditorSelectedElement)) {
-            if let element = selectedElement {
-                switch element.content {
-                case .text:
-                    TextField(L(.menuBarEditorText), text: Binding(
-                        get: { if case .text(let value) = element.content { return value } else { return "" } },
-                        set: { model.updateText($0, elementID: element.id, slot: selectedSlot) }
-                    ))
-                    .textFieldStyle(.roundedBorder)
-                    .padding(.horizontal, SettingsMetrics.rowPaddingH)
-                    .padding(.vertical, 8)
-                case .metric(let metric):
-                    SettingsRow("chart.bar", title: localization.format(.menuBarEditorDataSourceFormat, L(MenuBarMetricRegistry.titleKey(for: metric)))) { EmptyView() }
-                case .icon(let icon):
-                    iconEditor(icon: icon, elementID: element.id)
-                }
-            } else {
-                SettingsHintRow(text: L(.menuBarEditorSelectHint))
-            }
-        }
+    private func selectedElement(in slot: MenuBarLineSlot) -> MenuBarElement? {
+        model.elements(slot: slot).first { $0.id == selectedElementID }
     }
 
-    @ViewBuilder
-    private var rowStyleControls: some View {
-        SettingsGroup(localization.format(.menuBarEditorRowStyleFormat, selectedSlot == .top ? L(.menuBarEditorTopRow) : L(.menuBarEditorBottomRow))) {
-            SettingsToggleRow(symbol: "bold", title: L(.menuBarEditorBold), isOn: Binding(
-                get: { (selectedSlot == .top ? model.instance.top : model.instance.bottom)?.isBold ?? false },
-                set: { model.setBold($0, slot: selectedSlot) }
-            ))
-            SettingsDivider()
-            SettingsToggleRow(symbol: "textformat.123", title: L(.menuBarEditorMonospaced), isOn: Binding(
-                get: { (selectedSlot == .top ? model.instance.top : model.instance.bottom)?.usesMonospacedDigits ?? true },
-                set: { model.setMonospacedDigits($0, slot: selectedSlot) }
-            ))
-            SettingsDivider()
-            SettingsRow("text.alignleft", title: L(.menuBarEditorAlignment)) {
-                Picker("", selection: Binding(
-                    get: { (selectedSlot == .top ? model.instance.top : model.instance.bottom)?.alignment ?? .leading },
-                    set: { model.setAlignment($0, slot: selectedSlot) }
-                )) {
-                    Text(L(.menuBarEditorLeading)).tag(LineAlignment.leading)
-                    Text(L(.menuBarEditorCenter)).tag(LineAlignment.center)
-                    Text(L(.menuBarEditorTrailing)).tag(LineAlignment.trailing)
+    private func elementInspector(_ element: MenuBarElement) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(spacing: 8) {
+                Text(L(.menuBarEditorSelectedElement))
+                    .font(.system(size: 11.5, weight: .semibold))
+                    .foregroundStyle(.secondary)
+
+                Spacer(minLength: 8)
+
+                Button {
+                    selectedElementID = nil
+                } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .font(.system(size: 12))
+                        .foregroundStyle(.tertiary)
                 }
-                .labelsHidden()
-                .frame(width: 120)
+                .buttonStyle(.plain)
+                .accessibilityLabel(L(.commonCloseDetail))
+                .help(L(.commonCloseDetail))
             }
-            SettingsDivider()
-            SettingsRow("paintpalette", title: L(.menuBarEditorColor)) {
-                Menu(L(.menuBarEditorColor)) {
-                    Button(L(.menuBarEditorInherit)) { model.setColor(.inheritSource, slot: selectedSlot) }
-                    Button(L(.menuBarEditorFixedBlue)) { model.setColor(.fixed(ColorValue(red: 0.2, green: 0.45, blue: 1)), slot: selectedSlot) }
-                    Button(L(.menuBarEditorFixedGreen)) { model.setColor(.fixed(ColorValue(red: 0.2, green: 0.75, blue: 0.35)), slot: selectedSlot) }
-                    Button(L(.menuBarEditorFixedRed)) { model.setColor(.fixed(ColorValue(red: 0.95, green: 0.25, blue: 0.2)), slot: selectedSlot) }
-                }
-                .menuStyle(.borderlessButton)
+
+            switch element.content {
+            case .text:
+                TextField(L(.menuBarEditorText), text: Binding(
+                    get: {
+                        if case .text(let value) = element.content { return value }
+                        return ""
+                    },
+                    set: { model.updateText($0, elementID: element.id, slot: selectedSlot) }
+                ))
+                .textFieldStyle(.roundedBorder)
+                .accessibilityLabel(L(.menuBarEditorText))
+
+            case .metric(let metric):
+                Text(localization.format(
+                    .menuBarEditorDataSourceFormat,
+                    L(MenuBarMetricRegistry.titleKey(for: metric))
+                ))
+                .font(.system(size: 12))
+                .foregroundStyle(.secondary)
+
+            case .icon(let icon):
+                iconEditor(icon: icon, elementID: element.id)
             }
+
+            elementActions(element)
         }
+        .padding(.horizontal, SettingsMetrics.rowPaddingH)
+        .padding(.vertical, 10)
     }
 
-    @ViewBuilder
-    private var spacingAndInteraction: some View {
-        SettingsGroup(L(.menuBarEditorSpacing)) {
-            SettingsRow("rectangle.inset.filled", title: L(.menuBarEditorInnerPadding)) {
-                HStack(spacing: 8) {
-                    Slider(value: Binding(
-                        get: { model.instance.innerPadding },
-                        set: { model.setPadding(inner: $0, outer: model.instance.outerMargin) }
-                    ), in: 0...24, step: 1).frame(width: 150)
-                    Text("\(Int(model.instance.innerPadding))").monospacedDigit().frame(width: 24, alignment: .trailing)
-                }
+    private func elementActions(_ element: MenuBarElement) -> some View {
+        let elements = model.elements(slot: selectedSlot)
+        let index = elements.firstIndex { $0.id == element.id } ?? 0
+        let selected = selectedElementID == element.id
+
+        return HStack(spacing: 8) {
+            Button(L(.menuBarEditorMoveLeft)) {
+                model.moveElement(id: element.id, to: index - 1, slot: selectedSlot)
             }
-            SettingsDivider()
-            SettingsRow("rectangle.expand.vertical", title: L(.menuBarEditorOuterMargin)) {
-                HStack(spacing: 8) {
-                    Slider(value: Binding(
-                        get: { model.instance.outerMargin },
-                        set: { model.setPadding(inner: model.instance.innerPadding, outer: $0) }
-                    ), in: 0...24, step: 1).frame(width: 150)
-                    Text("\(Int(model.instance.outerMargin))").monospacedDigit().frame(width: 24, alignment: .trailing)
-                }
+            .disabled(index == 0)
+
+            Button(L(.menuBarEditorMoveRight)) {
+                model.moveElement(id: element.id, to: index + 1, slot: selectedSlot)
             }
-            SettingsDivider()
-            SettingsRow("arrow.left.and.right", title: L(.menuBarEditorMinimumWidth)) {
-                HStack(spacing: 8) {
-                    Slider(value: Binding(
-                        get: { model.instance.minimumWidth ?? 0 },
-                        set: { model.setMinimumWidth($0) }
-                    ), in: 0...400, step: 10).frame(width: 150)
-                    Text(model.instance.minimumWidth.map { "\(Int($0))" } ?? "—")
-                        .monospacedDigit().frame(width: 34, alignment: .trailing)
-                }
-            }
-            SettingsDivider()
-            SettingsRow("cursorarrow.click", title: L(.menuBarEditorClick)) {
-                activationMenu(current: model.instance.clickAction, allowExternal: true) {
-                    model.setActivation(click: $0, hover: model.instance.hoverAction, rightClick: model.instance.rightClick)
-                }
-            }
-            SettingsDivider()
-            SettingsRow("cursorarrow.motionlines", title: L(.menuBarEditorHover)) {
-                activationMenu(current: model.instance.hoverAction, allowExternal: false) {
-                    model.setActivation(click: model.instance.clickAction, hover: $0, rightClick: model.instance.rightClick)
-                }
+            .disabled(index >= elements.count - 1)
+
+            Spacer(minLength: 8)
+
+            Button(L(.menuBarEditorDelete), role: .destructive) {
+                model.removeElement(id: element.id, slot: selectedSlot)
+                if selected { selectedElementID = nil }
             }
         }
+        .controlSize(.small)
     }
 
     @ViewBuilder
@@ -236,26 +193,34 @@ struct MenuBarInstanceEditorView: View {
             Picker("", selection: Binding(
                 get: { iconKind(icon) },
                 set: { kind in
-                    model.updateIcon(iconWithKind(kind, text: iconText(icon), tint: icon.tint), elementID: elementID, slot: selectedSlot)
+                    model.updateIcon(
+                        iconWithKind(kind, text: iconText(icon), tint: icon.tint),
+                        elementID: elementID,
+                        slot: selectedSlot
+                    )
                 }
             )) {
                 Text("SF Symbol").tag(0)
                 Text(L(.menuBarEditorIconEmoji)).tag(1)
-                Text("Asset").tag(2)
+                Text(L(.menuBarEditorIconAsset)).tag(2)
             }
             .pickerStyle(.segmented)
             .labelsHidden()
+            .accessibilityLabel(L(.menuBarEditorIconType))
 
             TextField(iconPlaceholder(icon), text: Binding(
                 get: { iconText(icon) },
                 set: { text in
-                    model.updateIcon(iconWithKind(iconKind(icon), text: text, tint: icon.tint), elementID: elementID, slot: selectedSlot)
+                    model.updateIcon(
+                        iconWithKind(iconKind(icon), text: text, tint: icon.tint),
+                        elementID: elementID,
+                        slot: selectedSlot
+                    )
                 }
             ))
             .textFieldStyle(.roundedBorder)
+            .accessibilityLabel(L(.menuBarEditorIconType))
         }
-        .padding(.horizontal, SettingsMetrics.rowPaddingH)
-        .padding(.vertical, 8)
     }
 
     private func iconKind(_ icon: MenuBarIconSpec) -> Int {
@@ -290,8 +255,169 @@ struct MenuBarInstanceEditorView: View {
         }
     }
 
+    // MARK: - Row style
+
+    private var rowStyleGroup: some View {
+        SettingsGroup(L(.menuBarEditorRowStyle)) {
+            if model.instance.layoutMode == .doubleLine {
+                SettingsRow("rectangle.split.2x1", title: L(.menuBarEditorApplyTo)) {
+                    Picker("", selection: Binding(
+                        get: { selectedSlot },
+                        set: { slot in
+                            selectedSlot = slot
+                            selectedElementID = nil
+                        }
+                    )) {
+                        Text(L(.menuBarEditorTopRow)).tag(MenuBarLineSlot.top)
+                        Text(L(.menuBarEditorBottomRow)).tag(MenuBarLineSlot.bottom)
+                    }
+                    .pickerStyle(.segmented)
+                    .labelsHidden()
+                    .frame(width: 160)
+                    .accessibilityLabel(L(.menuBarEditorApplyTo))
+                }
+
+                SettingsDivider()
+            }
+
+            SettingsToggleRow(symbol: "bold", title: L(.menuBarEditorBold), isOn: Binding(
+                get: { currentLine?.isBold ?? false },
+                set: { model.setBold($0, slot: selectedSlot) }
+            ))
+
+            SettingsDivider()
+
+            SettingsToggleRow(symbol: "textformat.123", title: L(.menuBarEditorMonospaced), isOn: Binding(
+                get: { currentLine?.usesMonospacedDigits ?? true },
+                set: { model.setMonospacedDigits($0, slot: selectedSlot) }
+            ))
+
+            SettingsDivider()
+
+            SettingsRow("text.alignleft", title: L(.menuBarEditorAlignment)) {
+                Picker("", selection: Binding(
+                    get: { currentLine?.alignment ?? .leading },
+                    set: { model.setAlignment($0, slot: selectedSlot) }
+                )) {
+                    Text(L(.menuBarEditorLeading)).tag(LineAlignment.leading)
+                    Text(L(.menuBarEditorCenter)).tag(LineAlignment.center)
+                    Text(L(.menuBarEditorTrailing)).tag(LineAlignment.trailing)
+                }
+                .labelsHidden()
+                .frame(width: 120)
+                .accessibilityLabel(L(.menuBarEditorAlignment))
+            }
+
+            SettingsDivider()
+
+            SettingsRow("paintpalette", title: L(.menuBarEditorColor)) {
+                Menu(L(.menuBarEditorColor)) {
+                    Button(L(.menuBarEditorInherit)) { model.setColor(.inheritSource, slot: selectedSlot) }
+                    Button(L(.menuBarEditorFixedBlue)) {
+                        model.setColor(.fixed(ColorValue(red: 0.2, green: 0.45, blue: 1)), slot: selectedSlot)
+                    }
+                    Button(L(.menuBarEditorFixedGreen)) {
+                        model.setColor(.fixed(ColorValue(red: 0.2, green: 0.75, blue: 0.35)), slot: selectedSlot)
+                    }
+                    Button(L(.menuBarEditorFixedRed)) {
+                        model.setColor(.fixed(ColorValue(red: 0.95, green: 0.25, blue: 0.2)), slot: selectedSlot)
+                    }
+                }
+                .menuStyle(.borderlessButton)
+                .frame(maxWidth: 150)
+            }
+        }
+    }
+
+    private var currentLine: MenuBarLine? {
+        switch selectedSlot {
+        case .top: return model.instance.top
+        case .bottom: return model.instance.bottom
+        }
+    }
+
+    // MARK: - Spacing and interaction
+
+    private var spacingAndInteractionGroup: some View {
+        SettingsGroup(L(.menuBarEditorSpacing)) {
+            SettingsRow("rectangle.inset.filled", title: L(.menuBarEditorInnerPadding)) {
+                HStack(spacing: 8) {
+                    Slider(value: Binding(
+                        get: { model.instance.innerPadding },
+                        set: { model.setPadding(inner: $0, outer: model.instance.outerMargin) }
+                    ), in: 0...24, step: 1)
+                    .frame(width: 150)
+                    .accessibilityLabel(L(.menuBarEditorInnerPadding))
+
+                    Text("\(Int(model.instance.innerPadding))")
+                        .monospacedDigit()
+                        .frame(width: 24, alignment: .trailing)
+                }
+            }
+
+            SettingsDivider()
+
+            SettingsRow("rectangle.expand.vertical", title: L(.menuBarEditorOuterMargin)) {
+                HStack(spacing: 8) {
+                    Slider(value: Binding(
+                        get: { model.instance.outerMargin },
+                        set: { model.setPadding(inner: model.instance.innerPadding, outer: $0) }
+                    ), in: 0...24, step: 1)
+                    .frame(width: 150)
+                    .accessibilityLabel(L(.menuBarEditorOuterMargin))
+
+                    Text("\(Int(model.instance.outerMargin))")
+                        .monospacedDigit()
+                        .frame(width: 24, alignment: .trailing)
+                }
+            }
+
+            SettingsDivider()
+
+            SettingsRow("arrow.left.and.right", title: L(.menuBarEditorMinimumWidth)) {
+                HStack(spacing: 8) {
+                    Slider(value: Binding(
+                        get: { model.instance.minimumWidth ?? 0 },
+                        set: { model.setMinimumWidth($0) }
+                    ), in: 0...400, step: 10)
+                    .frame(width: 150)
+                    .accessibilityLabel(L(.menuBarEditorMinimumWidth))
+
+                    Text("\(Int(model.instance.minimumWidth ?? 0))")
+                        .monospacedDigit()
+                        .frame(width: 28, alignment: .trailing)
+                }
+            }
+
+            SettingsDivider()
+
+            SettingsRow("cursorarrow.click", title: L(.menuBarEditorClick)) {
+                activationMenu(current: model.instance.clickAction, allowExternal: true) {
+                    model.setActivation(
+                        click: $0,
+                        hover: model.instance.hoverAction,
+                        rightClick: model.instance.rightClick
+                    )
+                }
+            }
+
+            SettingsDivider()
+
+            SettingsRow("cursorarrow.motionlines", title: L(.menuBarEditorHover)) {
+                activationMenu(current: model.instance.hoverAction, allowExternal: false) {
+                    model.setActivation(
+                        click: model.instance.clickAction,
+                        hover: $0,
+                        rightClick: model.instance.rightClick
+                    )
+                }
+            }
+        }
+    }
+
     private func activationMenu(
-        current: InstanceActivation, allowExternal: Bool,
+        current: InstanceActivation,
+        allowExternal: Bool,
         onSelect: @escaping (InstanceActivation) -> Void
     ) -> some View {
         Menu(activationLabel(current)) {
@@ -329,7 +455,8 @@ struct MenuBarInstanceEditorView: View {
             return localization.format(.menuBarEditorPanelFormat, name)
         case .openAppSettings: return L(.menuBarEditorAppSettings)
         case .openActivityMonitor: return L(.menuBarEditorActivityMonitor)
-        case .openSystemSettings(let pane): return localization.format(.menuBarEditorSystemSettingsFormat, pane.rawValue)
+        case .openSystemSettings(let pane):
+            return localization.format(.menuBarEditorSystemSettingsFormat, pane.rawValue)
         }
     }
 }

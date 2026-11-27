@@ -1478,7 +1478,13 @@
 "menubar.editor.rowStyleFormat" = "行样式（%@）";
 "menubar.editor.topRow" = "上行";
 "menubar.editor.bottomRow" = "下行";
-"menubar.editor.emptyRow" = "空行——把元素拖到这里";
+"menubar.editor.emptyRow" = "还没有元素，点“添加”加入。";
+"menubar.editor.add" = "添加";
+"menubar.editor.moveUp" = "上移";
+"menubar.editor.moveDown" = "下移";
+"menubar.editor.showInMenuBar" = "在菜单栏显示";
+"menubar.editor.applyTo" = "应用到";
+"menubar.editor.rowStyle" = "行样式";
 "menubar.editor.bold" = "粗体";
 "menubar.editor.monospaced" = "等宽数字";
 "menubar.editor.alignment" = "对齐";

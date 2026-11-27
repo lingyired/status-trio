@@ -36,23 +36,29 @@ Feature: `settings.tab.menuBarInstances` → 设置 › 菜单栏实例.
 | 21 | Hover action = Summary/CPU | Hovering the instance opens that panel; it stays until you click elsewhere |
 | 22 | Main icon untouched | Dock icon and main menu-bar icon behave exactly as before |
 
-## Editor (v2)
+## Editor (v3)
+
+The pane is one scrolling Settings column: an instance list, then the selected
+instance's preview, basics, rows, element inspector, row style, and interaction
+settings. There is no palette column; each row owns its own "添加" button.
 
 | # | Case | Expected |
 |---|---|---|
-| E1 | 设置页三栏 | 左实例列表 / 中布局画布 / 右元素库 |
-| E2 | 新建空白实例 | 不选预设也能建，随后从右侧拖元素 |
-| E3 | 拖指标进上行 | 只插入该指标的值（如 `35%`），不自动带指标名 |
-| E4 | 拖文字/图标元素 | 可插入任意行、可改文字、可拖动排序 |
-| E5 | 元素跨行移动 | 从上行拖到下行正确移动；同一位置拖动无变化 |
-| E6 | 单/双行切换 | 切单行时下行内容保留但不渲染 |
-| E7 | 选中元素编辑 | 选中文字可改内容；行样式可改颜色/粗体/等宽/对齐 |
-| E8 | 删除元素 | 可删到空行 |
+| E1 | 设置页布局 | 单列 Settings 卡片；实例列表在上，编辑区在下；默认窗口宽度（720）内不横向溢出，最小宽度（640）下也不裁切 |
+| E2 | 新建空白/预设实例 | “新建”菜单可建空白或预设；新建后自动选中并显示在编辑区 |
+| E3 | 行内添加指标 | 点该行的“添加”→指标→搜索→选中；只插入指标值（如 `35%`），不带指标名；新元素自动选中 |
+| E4 | 添加文字/图标 | 点“添加”→文字与图标；可加自定义文字、SF Symbol、Emoji、资源名 |
+| E5 | 拖动排序/跨行 | 同一行拖动排序；上行拖到下行正确移动；均有右键“左移/右移/删除”替代操作 |
+| E6 | 单/双行切换 | 切单行时下行内容保留但不渲染；选中下行元素时切单行，编辑焦点回到上行 |
+| E7 | 选中元素编辑 | 点 chip 选中并在该行下方出现“选中的元素”；可改文字/图标；可左移/右移/删除；再次点击取消选中 |
+| E8 | 行样式作用域 | “行样式”卡片顶部“应用到”明确选择上行/下行；颜色/粗体/等宽/对齐立即生效 |
+| E9 | 列表开关与编辑区一致 | 用列表开关隐藏实例后，再在编辑区改名称/元素，实例仍保持隐藏 |
 
 ## Known limitations in this build (to verify/finish)
 
 - **Hover** opens the configured panel (panel-type only) and leaves it open until you click elsewhere; there is no auto-close on leave yet.
 - Instance position/order across restarts is best-effort (macOS `autosaveName`), not guaranteed.
-- The new Settings UI uses English labels except the sidebar tab title.
+- The menu-bar instance editor's copy is translated for English and Simplified/Traditional Chinese; other languages still fall back to English for the strings added by this editor.
+- The list is capped at 20 instances; the “新建” menu is disabled at the cap.
 
 Record PASS/FAIL per row above; anything failing is a finding, not a retry.

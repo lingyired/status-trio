@@ -14,6 +14,13 @@ final class MenuBarInstanceEditorModel: ObservableObject {
     }
 
     func persist() {
+        // The instance list owns the visibility switch and writes straight to
+        // the store. The editor edits its own copy, so adopt that field before
+        // every write; otherwise renaming or adding an element would silently
+        // turn a hidden instance back on.
+        if let stored = store.menuBarInstances.instances.first(where: { $0.id == instance.id }) {
+            instance.isEnabled = stored.isEnabled
+        }
         store.updateMenuBarInstance(instance)
     }
 

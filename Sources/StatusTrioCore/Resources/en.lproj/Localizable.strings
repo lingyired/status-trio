@@ -1477,7 +1477,13 @@
 "menubar.editor.rowStyleFormat" = "Row style (%@)";
 "menubar.editor.topRow" = "Top row";
 "menubar.editor.bottomRow" = "Bottom row";
-"menubar.editor.emptyRow" = "Empty — drag an element here";
+"menubar.editor.emptyRow" = "No elements yet — use Add.";
+"menubar.editor.add" = "Add";
+"menubar.editor.moveUp" = "Move Up";
+"menubar.editor.moveDown" = "Move Down";
+"menubar.editor.showInMenuBar" = "Show in menu bar";
+"menubar.editor.applyTo" = "Apply to";
+"menubar.editor.rowStyle" = "Row style";
 "menubar.editor.bold" = "Bold";
 "menubar.editor.monospaced" = "Monospaced digits";
 "menubar.editor.alignment" = "Alignment";

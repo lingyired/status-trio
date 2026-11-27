@@ -1,194 +1,244 @@
 import SwiftUI
 
-/// Three-column editor: instance list | layout canvas | element palette.
+/// Settings page for the app's own menu-bar items.
+///
+/// The page follows the rest of Settings: one scrolling column of grouped
+/// cards. The instance list is a native, selectable `List`; the selected item
+/// is edited in the cards below instead of a bespoke three-column split that
+/// could not fit the Settings window.
 struct MenuBarInstancesSectionView: View {
     @ObservedObject var store: SettingsStore
     let localization: Localization
+    @Binding var previewIsDark: Bool
+
     @State private var selectedID: UUID?
     @State private var model: MenuBarInstanceEditorModel?
-    @State private var selectedSlot: MenuBarLineSlot = .top
-    @State private var search = ""
+    @State private var instancePendingDeletion: MenuBarInstance?
 
     private var listModel: MenuBarInstancesListModel { MenuBarInstancesListModel(store: store) }
+
     private func L(_ key: LocalizationKey) -> String { localization.string(key) }
 
-    private var filteredMetrics: [MenuBarMetricID] {
-        let query = search.trimmingCharacters(in: .whitespaces)
-        guard !query.isEmpty else { return MenuBarMetricID.allCases }
-        return MenuBarMetricID.allCases.filter {
-            L(MenuBarMetricRegistry.titleKey(for: $0)).localizedCaseInsensitiveContains(query)
-                || $0.rawValue.localizedCaseInsensitiveContains(query)
-        }
-    }
-
     var body: some View {
-        HSplitView {
-            instanceColumn.frame(minWidth: 170, idealWidth: 200, maxWidth: 260)
-            canvasColumn.frame(minWidth: 320)
-            paletteColumn.frame(minWidth: 220, idealWidth: 240, maxWidth: 300)
-        }
-        .onAppear { ensureSelection() }
-        .onChange(of: store.menuBarInstances) { _ in ensureSelection() }
-        .onChange(of: selectedID) { _ in rebuildModel() }
-    }
-
-    // MARK: - Left
-
-    private var instanceColumn: some View {
-        List {
-            Section(L(.menuBarEditorInstances)) {
-                ForEach(store.menuBarInstances.instances) { instance in
-                    HStack(spacing: 8) {
-                        Toggle("", isOn: Binding(
-                            get: { instance.isEnabled },
-                            set: { listModel.setEnabled($0, id: instance.id) }
-                        ))
-                        .toggleStyle(.switch)
-                        .controlSize(.small)
-                        .labelsHidden()
-                        VStack(alignment: .leading, spacing: 1) {
-                            Text(instance.name.isEmpty ? L(.menuBarEditorUntitled) : instance.name)
-                                .lineLimit(1)
-                            Text("\(instance.layoutMode == .doubleLine ? L(.menuBarEditorDoubleLine) : L(.menuBarEditorSingleLine)) · \(instance.allMetrics.count) \(L(.menuBarEditorItems))")
-                                .font(.caption2).foregroundStyle(.secondary)
-                        }
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .contentShape(Rectangle())
-                        .onTapGesture { selectedID = instance.id }
-                        .contextMenu {
-                            Button(L(.menuBarEditorDuplicate)) { listModel.duplicate(id: instance.id) }
-                            Button(L(.menuBarEditorDelete), role: .destructive) { listModel.delete(id: instance.id) }
-                        }
-                    }
-                    .listRowBackground(selectedID == instance.id ? Color.accentColor.opacity(0.12) : Color.clear)
-                }
-                .onMove { listModel.move(from: $0.first ?? 0, to: $1) }
-            }
-            Section(L(.menuBarEditorNew)) {
-                Button {
-                    let blank = MenuBarInstance(name: L(.menuBarEditorUntitled), layoutMode: .doubleLine, top: MenuBarLine())
-                    store.updateMenuBarInstance(blank)
-                    selectedID = blank.id
-                } label: {
-                    Label(L(.menuBarEditorBlankInstance), systemImage: "plus.rectangle")
-                }
-                .disabled(!listModel.canAdd)
-                ForEach(MenuBarPreset.allCases) { preset in
-                    Button {
-                        listModel.addPreset(preset)
-                        selectedID = store.menuBarInstances.instances.last?.id
-                    } label: {
-                        Label(L(preset.titleKey), systemImage: "square.grid.2x2")
-                    }
-                    .disabled(!listModel.canAdd)
-                }
-            }
-        }
-        .listStyle(.sidebar)
-    }
-
-    // MARK: - Middle
-
-    private var canvasColumn: some View {
-        Group {
+        SettingsPage(pinnedHeader: {
+            MenuBarInstancePreviewCard(
+                model: model,
+                isDarkBackground: $previewIsDark,
+                localization: localization
+            )
+        }) {
+            instancesGroup
             if let model {
-                MenuBarInstanceEditorView(model: model, localization: localization, selectedSlot: $selectedSlot)
+                MenuBarInstanceEditorView(model: model, localization: localization)
+                    .id(model.instance.id)
+            }
+        }
+        .onAppear { synchronizeSelection() }
+        .onChange(of: store.menuBarInstances) { _ in synchronizeSelection() }
+        .onChange(of: selectedID) { _ in rebuildModel() }
+        .alert(
+            L(.menuBarEditorDelete),
+            isPresented: Binding(
+                get: { instancePendingDeletion != nil },
+                set: { if !$0 { instancePendingDeletion = nil } }
+            ),
+            presenting: instancePendingDeletion
+        ) { instance in
+            Button(L(.commonCancel), role: .cancel) {
+                instancePendingDeletion = nil
+            }
+            Button(L(.menuBarEditorDelete), role: .destructive) {
+                listModel.delete(id: instance.id)
+                instancePendingDeletion = nil
+            }
+        } message: { instance in
+            Text(instance.name.isEmpty ? L(.menuBarEditorUntitled) : instance.name)
+        }
+    }
+
+    // MARK: - Instance list
+
+    private var instancesGroup: some View {
+        SettingsGroup(L(.menuBarEditorInstances)) {
+            if listModel.instances.isEmpty {
+                SettingsHintRow(text: L(.menuBarEditorAddOrSelect))
             } else {
-                VStack(spacing: 8) {
-                    Image(systemName: "menubar.rectangle").font(.largeTitle).foregroundStyle(.secondary)
-                    Text(L(.menuBarEditorAddOrSelect)).foregroundStyle(.secondary)
+                List(selection: $selectedID) {
+                    ForEach(listModel.instances) { instance in
+                        instanceRow(instance)
+                            .tag(instance.id)
+                    }
+                    .onMove { offsets, destination in
+                        guard let source = offsets.first else { return }
+                        listModel.move(from: source, to: destination)
+                    }
                 }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .listStyle(.inset)
+                .scrollContentBackground(.hidden)
+                .environment(\.defaultMinListRowHeight, 40)
+                .frame(height: listHeight)
             }
+
+            SettingsDivider()
+            addMenuRow
         }
     }
 
-    // MARK: - Right
+    private var listHeight: CGFloat {
+        let visibleRows = min(max(listModel.instances.count, 1), 4)
+        return CGFloat(visibleRows) * 44 + 16
+    }
 
-    private var paletteColumn: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text(L(.menuBarEditorElements)).font(.headline)
-            TextField(L(.menuBarEditorSearchPlaceholder), text: $search)
-                .textFieldStyle(.roundedBorder)
-            Text(L(.menuBarEditorPaletteHint)).font(.caption).foregroundStyle(.secondary)
+    private func instanceRow(_ instance: MenuBarInstance) -> some View {
+        HStack(spacing: 10) {
+            Toggle("", isOn: Binding(
+                get: { instance.isEnabled },
+                set: { listModel.setEnabled($0, id: instance.id) }
+            ))
+            .toggleStyle(.switch)
+            .controlSize(.small)
+            .labelsHidden()
+            .accessibilityLabel(L(.menuBarEditorShowInMenuBar))
+
+            VStack(alignment: .leading, spacing: 1) {
+                Text(instance.name.isEmpty ? L(.menuBarEditorUntitled) : instance.name)
+                    .font(.system(size: 12.5, weight: .medium))
+                    .lineLimit(1)
+
+                Text(summary(for: instance))
+                    .font(.system(size: 11))
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+            }
+
+            Spacer(minLength: 8)
+
+            instanceActions(instance)
+        }
+        .padding(.vertical, 1)
+    }
+
+    private func summary(for instance: MenuBarInstance) -> String {
+        let layout = instance.layoutMode == .doubleLine
+            ? L(.menuBarEditorDoubleLine)
+            : L(.menuBarEditorSingleLine)
+        let count = instance.renderedLines.flatMap { $0.line.elements }.count
+        return "\(layout) · \(count) \(L(.menuBarEditorItems))"
+    }
+
+    private func instanceActions(_ instance: MenuBarInstance) -> some View {
+        let index = listModel.instances.firstIndex { $0.id == instance.id } ?? 0
+        let lastIndex = listModel.instances.count - 1
+
+        return Menu {
+            Button(L(.menuBarEditorDuplicate)) {
+                duplicateInstance(instance)
+            }
             Divider()
-            ScrollView {
-                VStack(alignment: .leading, spacing: 10) {
-                    Text(L(.menuBarEditorMetrics)).font(.caption).foregroundStyle(.secondary)
-                    LazyVGrid(columns: [GridItem(.adaptive(minimum: 104), spacing: 4)], alignment: .leading, spacing: 6) {
-                        ForEach(filteredMetrics) { metric in
-                            paletteChip(label: L(MenuBarMetricRegistry.titleKey(for: metric)),
-                                        systemImage: symbol(for: metric),
-                                        content: .metric(metric))
-                        }
-                    }
-                    Text(L(.menuBarEditorTextIcons)).font(.caption).foregroundStyle(.secondary).padding(.top, 4)
-                    LazyVGrid(columns: [GridItem(.adaptive(minimum: 104), spacing: 4)], alignment: .leading, spacing: 6) {
-                        paletteChip(label: L(.menuBarEditorText), systemImage: "textformat", content: .text("Text"))
-                        paletteChip(label: "Emoji", systemImage: "face.smiling", content: .icon(MenuBarIconSpec(source: .emoji("🔥"))))
-                        ForEach(["cpu", "memorychip", "gauge", "thermometer", "fan"], id: \.self) { symbol in
-                            paletteChip(label: symbol, systemImage: symbol, content: .icon(MenuBarIconSpec(source: .sfSymbol(symbol))))
-                        }
-                    }
-                }
+            Button(L(.menuBarEditorMoveUp)) {
+                listModel.move(from: index, to: index - 1)
             }
+            .disabled(index == 0)
+            Button(L(.menuBarEditorMoveDown)) {
+                listModel.move(from: index, to: index + 1)
+            }
+            .disabled(index >= lastIndex)
+            Divider()
+            Button(L(.menuBarEditorDelete), role: .destructive) {
+                instancePendingDeletion = instance
+            }
+        } label: {
+            Image(systemName: "ellipsis.circle")
+                .font(.system(size: 14))
+                .foregroundStyle(.secondary)
         }
-        .padding(12)
+        .menuStyle(.borderlessButton)
+        .menuIndicator(.hidden)
+        .fixedSize()
+        .accessibilityLabel(L(.menuMore))
+        .help(L(.menuMore))
     }
 
-    private func paletteChip(label: String, systemImage: String, content: MenuBarElementContent) -> some View {
-        MenuBarEditorChipLabel(title: label, systemImage: systemImage, compact: true)
-            .draggable(MenuBarElementDragPayload(source: .palette(content)))
-            .onTapGesture { addToSlot(content) }
-            .help(label)
-            .accessibilityLabel(label)
+    private var addMenuRow: some View {
+        HStack(spacing: 8) {
+            Menu {
+                Button(L(.menuBarEditorBlankInstance)) { addBlankInstance() }
+                Divider()
+                ForEach(MenuBarPreset.allCases) { preset in
+                    Button(L(preset.titleKey)) { addPreset(preset) }
+                }
+            } label: {
+                Label(L(.menuBarEditorNew), systemImage: "plus")
+                    .font(.system(size: 12))
+            }
+            .menuStyle(.borderlessButton)
+            .menuIndicator(.hidden)
+            .fixedSize()
+            .disabled(!listModel.canAdd)
+
+            Spacer(minLength: 0)
+        }
+        .padding(.horizontal, SettingsMetrics.rowPaddingH)
+        .padding(.vertical, 8)
     }
 
-    private func symbol(for metric: MenuBarMetricID) -> String {
-        switch metric {
-        case .cpuUsage: return "cpu"
-        case .cpuTemperature: return "thermometer.medium"
-        case .gpuUsage: return "cpu.fill"
-        case .gpuTemperature: return "thermometer.high"
-        case .memoryUsage: return "memorychip"
-        case .diskReadSpeed, .diskWriteSpeed: return "internaldrive"
-        case .networkDownload: return "arrow.down.circle"
-        case .networkUpload: return "arrow.up.circle"
-        case .fanRPM: return "fan"
-        case .batteryLevel: return "battery.100"
-        case .wifiConnectionStatus: return "wifi"
-        case .outputVolume: return "speaker.wave.2"
-        case .screenBrightness: return "sun.max"
-        }
+    // MARK: - Mutations
+
+    private func addBlankInstance() {
+        guard listModel.canAdd else { return }
+        let blank = MenuBarInstance(
+            name: "",
+            layoutMode: .doubleLine,
+            top: MenuBarLine()
+        )
+        store.updateMenuBarInstance(blank)
+        selectedID = blank.id
     }
 
-    private func addToSlot(_ content: MenuBarElementContent) {
-        guard let model else { return }
-        var instance = model.instance
-        let slot: MenuBarLineSlot = (selectedSlot == .bottom && instance.layoutMode == .doubleLine) ? .bottom : .top
-        let index = MenuBarElementMutations.currentElements(instance, slot).count
-        if MenuBarElementMutations.apply(
-            payload: MenuBarElementDragPayload(source: .palette(content)),
-            to: &instance,
-            target: .line(instanceID: instance.id, slot: slot, index: index)
-        ) {
-            model.instance = instance
-            model.persist()
-        }
+    private func addPreset(_ preset: MenuBarPreset) {
+        guard listModel.canAdd else { return }
+        listModel.addPreset(preset)
+        guard var instance = store.menuBarInstances.instances.last else { return }
+        // The preset's factory name is English; show the localized preset title
+        // instead so a new item does not start with a half-translated name.
+        instance.name = L(preset.titleKey)
+        store.updateMenuBarInstance(instance)
+        selectedID = instance.id
+    }
+
+    private func duplicateInstance(_ instance: MenuBarInstance) {
+        guard listModel.canAdd else { return }
+        listModel.duplicate(id: instance.id)
+        guard let raw = store.menuBarInstances.instances.last, raw.id != instance.id else { return }
+
+        // The store-level copy carries a developer-oriented " copy" suffix; give
+        // it a name that reads in every shipped language instead.
+        var copy = raw
+        let base = instance.name.isEmpty ? L(.menuBarEditorUntitled) : instance.name
+        copy.name = "\(base) (\(L(.menuBarEditorDuplicate)))"
+        store.updateMenuBarInstance(copy)
+        selectedID = copy.id
     }
 
     // MARK: - Selection
 
-    private func ensureSelection() {
-        if let selectedID, store.menuBarInstances.instances.contains(where: { $0.id == selectedID }) { return }
+    private func synchronizeSelection() {
+        if let selectedID, store.menuBarInstances.instances.contains(where: { $0.id == selectedID }) {
+            if model == nil { rebuildModel() }
+            return
+        }
         selectedID = store.menuBarInstances.instances.first?.id
         rebuildModel()
     }
 
     private func rebuildModel() {
-        guard let id = selectedID, let instance = store.menuBarInstances.instances.first(where: { $0.id == id }) else {
-            model = nil; return
+        guard let id = selectedID,
+              let instance = store.menuBarInstances.instances.first(where: { $0.id == id })
+        else {
+            model = nil
+            return
         }
         model = MenuBarInstanceEditorModel(instance: instance, store: store)
     }
+
 }

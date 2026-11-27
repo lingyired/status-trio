@@ -499,7 +499,11 @@ struct SettingsView: View {
                 transferSession: transferSession
             )
         case .menuBarInstances:
-            MenuBarInstancesSectionView(store: store, localization: localization)
+            MenuBarInstancesSectionView(
+                store: store,
+                localization: localization,
+                previewIsDark: previewIsDarkBinding
+            )
         case .about:
             AboutSectionView()
         }
