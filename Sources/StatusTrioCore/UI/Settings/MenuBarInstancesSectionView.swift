@@ -6,6 +6,7 @@ struct MenuBarInstancesSectionView: View {
     let localization: Localization
     @State private var selectedID: UUID?
     @State private var model: MenuBarInstanceEditorModel?
+    @State private var selectedSlot: MenuBarLineSlot = .top
     @State private var search = ""
 
     private var listModel: MenuBarInstancesListModel { MenuBarInstancesListModel(store: store) }
@@ -65,7 +66,7 @@ struct MenuBarInstancesSectionView: View {
             }
             Section(L(.menuBarEditorNew)) {
                 Button {
-                    let blank = MenuBarInstance(name: L(.menuBarEditorUntitled), top: MenuBarLine())
+                    let blank = MenuBarInstance(name: L(.menuBarEditorUntitled), layoutMode: .doubleLine, top: MenuBarLine())
                     store.updateMenuBarInstance(blank)
                     selectedID = blank.id
                 } label: {
@@ -91,7 +92,7 @@ struct MenuBarInstancesSectionView: View {
     private var canvasColumn: some View {
         Group {
             if let model {
-                MenuBarInstanceEditorView(model: model, localization: localization)
+                MenuBarInstanceEditorView(model: model, localization: localization, selectedSlot: $selectedSlot)
             } else {
                 VStack(spacing: 8) {
                     Image(systemName: "menubar.rectangle").font(.largeTitle).foregroundStyle(.secondary)
@@ -138,7 +139,7 @@ struct MenuBarInstancesSectionView: View {
     private func paletteChip(label: String, systemImage: String, content: MenuBarElementContent) -> some View {
         MenuBarEditorChipLabel(title: label, systemImage: systemImage)
             .draggable(MenuBarElementDragPayload(source: .palette(content)))
-            .onTapGesture { addToTop(content) }
+            .onTapGesture { addToSlot(content) }
             .help(label)
             .accessibilityLabel(label)
     }
@@ -161,14 +162,15 @@ struct MenuBarInstancesSectionView: View {
         }
     }
 
-    private func addToTop(_ content: MenuBarElementContent) {
+    private func addToSlot(_ content: MenuBarElementContent) {
         guard let model else { return }
         var instance = model.instance
-        let index = instance.top?.elements.count ?? 0
+        let slot: MenuBarLineSlot = (selectedSlot == .bottom && instance.layoutMode == .doubleLine) ? .bottom : .top
+        let index = MenuBarElementMutations.currentElements(instance, slot).count
         if MenuBarElementMutations.apply(
             payload: MenuBarElementDragPayload(source: .palette(content)),
             to: &instance,
-            target: .line(instanceID: instance.id, slot: .top, index: index)
+            target: .line(instanceID: instance.id, slot: slot, index: index)
         ) {
             model.instance = instance
             model.persist()

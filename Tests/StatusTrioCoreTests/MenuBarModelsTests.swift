@@ -22,7 +22,7 @@ final class MenuBarModelsTests: XCTestCase {
 
     func testDefaultsForNewInstance() {
         let instance = MenuBarInstance.default()
-        XCTAssertEqual(instance.layoutMode, .singleLine)
+        XCTAssertEqual(instance.layoutMode, .doubleLine)
         XCTAssertEqual(instance.innerPadding, 0)
         XCTAssertEqual(instance.outerMargin, 4)
         XCTAssertEqual(instance.clickAction, .panel("summary"))

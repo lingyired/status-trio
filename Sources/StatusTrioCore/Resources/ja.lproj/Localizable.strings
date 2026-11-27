@@ -1462,7 +1462,7 @@
 "menubar.editor.delete" = "Delete";
 "menubar.editor.untitled" = "Untitled";
 "menubar.editor.elements" = "Elements";
-"menubar.editor.paletteHint" = "Drag a metric into a row, or click to add to the top row.";
+"menubar.editor.paletteHint" = "Drag a metric into any row, or click to add to the selected row.";
 "menubar.editor.metrics" = "Metrics";
 "menubar.editor.textIcons" = "Text & icons";
 "menubar.editor.text" = "Text";

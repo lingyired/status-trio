@@ -22,15 +22,15 @@ enum MenuBarPreset: String, CaseIterable, Identifiable, Sendable {
     func makeInstance() -> MenuBarInstance {
         switch self {
         case .cpu:
-            return MenuBarInstance(name: "CPU", top: MenuBarLine(elements: [MenuBarElement(content: .text("CPU ")), MenuBarElement(content: .metric(.cpuUsage))]))
+            return MenuBarInstance(name: "CPU", layoutMode: .doubleLine, top: MenuBarLine(elements: [MenuBarElement(content: .text("CPU ")), MenuBarElement(content: .metric(.cpuUsage))]))
         case .temperature:
-            return MenuBarInstance(name: "CPU Temp", top: MenuBarLine(elements: [MenuBarElement(content: .metric(.cpuTemperature))]))
+            return MenuBarInstance(name: "CPU Temp", layoutMode: .doubleLine, top: MenuBarLine(elements: [MenuBarElement(content: .metric(.cpuTemperature))]))
         case .memory:
-            return MenuBarInstance(name: "Memory", top: MenuBarLine(elements: [MenuBarElement(content: .metric(.memoryUsage))]))
+            return MenuBarInstance(name: "Memory", layoutMode: .doubleLine, top: MenuBarLine(elements: [MenuBarElement(content: .metric(.memoryUsage))]))
         case .network:
-            return MenuBarInstance(name: "Network", top: MenuBarLine(elements: [MenuBarElement(content: .metric(.networkDownload))]))
+            return MenuBarInstance(name: "Network", layoutMode: .doubleLine, top: MenuBarLine(elements: [MenuBarElement(content: .metric(.networkDownload))]))
         case .battery:
-            return MenuBarInstance(name: "Battery", top: MenuBarLine(elements: [MenuBarElement(content: .metric(.batteryLevel))]))
+            return MenuBarInstance(name: "Battery", layoutMode: .doubleLine, top: MenuBarLine(elements: [MenuBarElement(content: .metric(.batteryLevel))]))
         }
     }
 }

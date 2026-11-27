@@ -3,7 +3,7 @@ import SwiftUI
 struct MenuBarInstanceEditorView: View {
     @ObservedObject var model: MenuBarInstanceEditorModel
     let localization: Localization
-    @State private var selectedSlot: MenuBarLineSlot = .top
+    @Binding var selectedSlot: MenuBarLineSlot
     @State private var selectedElementID: UUID?
 
     private func L(_ key: LocalizationKey) -> String { localization.string(key) }

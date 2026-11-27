@@ -313,7 +313,7 @@ struct MenuBarInstance: Equatable, Identifiable, Sendable {
         id: UUID = UUID(),
         name: String = "",
         isEnabled: Bool = true,
-        layoutMode: MenuBarLayoutMode = .singleLine,
+        layoutMode: MenuBarLayoutMode = .doubleLine,
         top: MenuBarLine? = nil,
         bottom: MenuBarLine? = nil,
         leadingIcon: MenuBarIconSpec? = nil,
@@ -339,7 +339,7 @@ struct MenuBarInstance: Equatable, Identifiable, Sendable {
 
     static func `default`() -> MenuBarInstance {
         MenuBarInstance(
-            layoutMode: .singleLine,
+            layoutMode: .doubleLine,
             top: MenuBarLine(elements: [
                 MenuBarElement(content: .text("CPU ")),
                 MenuBarElement(content: .metric(.cpuUsage)),
