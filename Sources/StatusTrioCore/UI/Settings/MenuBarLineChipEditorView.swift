@@ -74,10 +74,23 @@ struct MenuBarRowCanvasView: View {
                 Button {
                     showingLeadingIconPicker = true
                 } label: {
-                    Image(systemName: leadingIconSymbol)
-                        .font(.system(size: 11, weight: .medium))
-                        .frame(width: 16, height: 16)
-                        .foregroundStyle(line?.leadingIcon == nil ? .tertiary : .secondary)
+                    HStack(spacing: 4) {
+                        Image(systemName: leadingIconSymbol)
+                            .font(.system(size: 10, weight: .medium))
+                        Text(L(.menuBarEditorLeadingIcon))
+                            .font(.system(size: 10.5))
+                    }
+                    .foregroundStyle(line?.leadingIcon == nil ? Color.secondary : Color.primary)
+                    .padding(.horizontal, 7)
+                    .padding(.vertical, 3)
+                    .background(
+                        RoundedRectangle(cornerRadius: 5, style: .continuous)
+                            .fill(Color.primary.opacity(0.06))
+                    )
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 5, style: .continuous)
+                            .strokeBorder(Color.primary.opacity(0.1), lineWidth: 1)
+                    )
                 }
                 .buttonStyle(.plain)
                 .help(L(.menuBarEditorLeadingIcon))
