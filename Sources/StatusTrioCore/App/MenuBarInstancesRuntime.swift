@@ -212,6 +212,24 @@ final class MenuBarInstancesRuntime: NSObject {
 
     private func showRightClickMenu(instance: MenuBarInstance, button: NSStatusBarButton) {
         let menu = NSMenu()
+
+        if let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String,
+           !version.isEmpty {
+            let versionItem = NSMenuItem(title: "Status Trio v\(version)", action: nil, keyEquivalent: "")
+            versionItem.isEnabled = false
+            menu.addItem(versionItem)
+            menu.addItem(.separator())
+        }
+
+        let settings = NSMenuItem(
+            title: localization.string(.menuBarEditorAppSettings),
+            action: #selector(openAppSettingsFromMenu(_:)),
+            keyEquivalent: ""
+        )
+        settings.target = self
+        menu.addItem(settings)
+        menu.addItem(.separator())
+
         let disable = NSMenuItem(
             title: localization.string(.menuBarInstanceDisable),
             action: #selector(disableInstance(_:)),
@@ -221,6 +239,10 @@ final class MenuBarInstancesRuntime: NSObject {
         disable.representedObject = instance.id.uuidString
         menu.addItem(disable)
         menu.popUp(positioning: nil, at: NSPoint(x: 0, y: button.bounds.height + 4), in: button)
+    }
+
+    @objc private func openAppSettingsFromMenu(_ sender: NSMenuItem) {
+        openSettings()
     }
 
     @objc private func disableInstance(_ sender: NSMenuItem) {

@@ -1474,6 +1474,7 @@
 "menubar.editor.iconSize" = "Icon size";
 "menubar.editor.iconColor" = "Icon color";
 "menubar.editor.matchTextColor" = "Match text color";
+"menubar.editor.assetHint" = "Asset catalog name, not a file path";
 "menubar.editor.paletteHint" = "Drag a metric into any row, or click to add to the selected row.";
 "menubar.editor.metrics" = "Metrics";
 "menubar.editor.textIcons" = "Text & icons";

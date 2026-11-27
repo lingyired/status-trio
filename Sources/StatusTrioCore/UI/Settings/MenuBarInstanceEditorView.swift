@@ -504,6 +504,9 @@ struct MenuBarInstanceEditorView: View {
             Button(L(.hardwareMonitorGPU)) { onSelect(.panel("gpu")) }
             Button(L(.hardwareMonitorMemory)) { onSelect(.panel("memory")) }
             Button(L(.hardwareMonitorBattery)) { onSelect(.panel("battery")) }
+            Button(L(.hardwareDetailTitleNetwork)) { onSelect(.panel("network")) }
+            Button(L(.hardwareDetailTitleDisk)) { onSelect(.panel("disk")) }
+            Button(L(.hardwareMonitorFan)) { onSelect(.panel("fan")) }
             if allowExternal {
                 Divider()
                 Button(L(.menuBarEditorAppSettings)) { onSelect(.openAppSettings) }
@@ -527,6 +530,9 @@ struct MenuBarInstanceEditorView: View {
             case "gpu": name = L(.hardwareMonitorGPU)
             case "memory": name = L(.hardwareMonitorMemory)
             case "battery": name = L(.hardwareMonitorBattery)
+            case "network": name = L(.hardwareDetailTitleNetwork)
+            case "disk": name = L(.hardwareDetailTitleDisk)
+            case "fan": name = L(.hardwareMonitorFan)
             default: name = raw
             }
             return localization.format(.menuBarEditorPanelFormat, name)

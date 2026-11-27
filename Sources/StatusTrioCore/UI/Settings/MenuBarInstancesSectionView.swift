@@ -54,11 +54,18 @@ struct MenuBarInstancesSectionView: View {
     // MARK: - Left column
 
     private var instanceColumn: some View {
-        List(selection: $selectedID) {
+        List {
             Section(L(.menuBarEditorInstances)) {
                 ForEach(listModel.instances) { instance in
                     instanceRow(instance)
                         .tag(instance.id)
+                        .contentShape(Rectangle())
+                        .onTapGesture { selectedID = instance.id }
+                        .listRowBackground(
+                            selectedID == instance.id
+                                ? Color.accentColor.opacity(0.14)
+                                : Color.clear
+                        )
                 }
                 .onMove { offsets, destination in
                     guard let source = offsets.first else { return }

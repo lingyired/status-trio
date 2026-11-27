@@ -134,13 +134,16 @@ struct MenuBarRowCanvasView: View {
 
     private var canvas: some View {
         Group {
-            if elements.isEmpty {
+            if elements.isEmpty && line?.leadingIcon == nil {
                 Text(L(.menuBarEditorEmptyRow))
                     .font(.system(size: 11))
                     .foregroundStyle(.secondary)
                     .frame(maxWidth: .infinity, alignment: .leading)
             } else {
                 WrappingHStack(spacing: 6, rowSpacing: 6) {
+                    if let leading = line?.leadingIcon {
+                        leadingIconChip(leading)
+                    }
                     ForEach(Array(elements.enumerated()), id: \.element.id) { index, element in
                         chip(element, at: index)
                     }
@@ -167,6 +170,52 @@ struct MenuBarRowCanvasView: View {
             drop(payloads.first, at: elements.count)
         } isTargeted: { targeted in
             isDropTargeted = targeted
+        }
+    }
+
+    /// The leading icon sits at the far left of the row and is intentionally
+    /// fixed: it has no drag payload and no reorder menu. Clicking it opens the
+    /// same icon picker as the header button.
+    private func leadingIconChip(_ icon: MenuBarIconSpec) -> some View {
+        Button {
+            showingLeadingIconPicker = true
+        } label: {
+            HStack(spacing: 0) {
+                leadingIconGlyph(icon)
+                    .frame(width: 14, height: 14)
+            }
+            .frame(width: 28, height: 24)
+            .background(
+                RoundedRectangle(cornerRadius: 5, style: .continuous)
+                    .fill(Color.primary.opacity(0.06))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 5, style: .continuous)
+                    .strokeBorder(Color.primary.opacity(0.1), lineWidth: 1)
+            )
+        }
+        .buttonStyle(.plain)
+        .help(L(.menuBarEditorLeadingIcon))
+        .accessibilityLabel(L(.menuBarEditorLeadingIcon))
+    }
+
+    @ViewBuilder
+    private func leadingIconGlyph(_ icon: MenuBarIconSpec) -> some View {
+        switch icon.source {
+        case .sfSymbol(let name):
+            if NSImage(systemSymbolName: name, accessibilityDescription: nil) != nil {
+                Image(systemName: name).font(.system(size: 12))
+            } else {
+                Image(systemName: "questionmark.square.dashed").font(.system(size: 12))
+            }
+        case .emoji(let emoji):
+            Text(emoji).font(.system(size: 13))
+        case .asset(let name):
+            if let image = NSImage(named: name) {
+                Image(nsImage: image).resizable().scaledToFit()
+            } else {
+                Image(systemName: "photo").font(.system(size: 12))
+            }
         }
     }
 

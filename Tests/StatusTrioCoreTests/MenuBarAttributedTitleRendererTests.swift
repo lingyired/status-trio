@@ -28,7 +28,10 @@ final class MenuBarAttributedTitleRendererTests: XCTestCase {
     }
 
     func testMetricCarriesInheritedColor() {
-        let instance = MenuBarInstance(top: MenuBarLine(elements: [MenuBarElement(content: .metric(.cpuUsage))]))
+        let instance = MenuBarInstance(top: MenuBarLine(
+            elements: [MenuBarElement(content: .metric(.cpuUsage))],
+            color: .inheritSource
+        ))
         let content = MenuBarAttributedTitleRenderer.render(input(instance, readings: [
             .cpuUsage: MenuBarMetricReading(text: "12%", value: 12, availability: .measured),
         ]), appearance: appearance)!

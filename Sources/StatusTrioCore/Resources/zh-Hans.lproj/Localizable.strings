@@ -1474,6 +1474,7 @@
 "menubar.editor.iconSize" = "图标大小";
 "menubar.editor.iconColor" = "图标颜色";
 "menubar.editor.matchTextColor" = "跟随文字颜色";
+"menubar.editor.assetHint" = "Assets.xcassets 里的资源名称，不是文件路径";
 "menubar.editor.paletteHint" = "把指标拖进任意一行，或点击添加到当前选中的行。";
 "menubar.editor.metrics" = "指标";
 "menubar.editor.textIcons" = "文字与图标";
