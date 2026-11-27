@@ -3,11 +3,13 @@ import Foundation
 /// The budget the Mac can split into measured branches.
 ///
 /// The source is whichever rail is actually feeding the machine: the adapter
-/// while it supplies power, otherwise the battery discharging into the load.
-/// The last branch is always a residual rather than a sensor: whatever the
-/// source delivers that the measured branches (battery charge, built-in
-/// display, USB output) do not account for. That covers the SoC, DRAM, display
-/// controllers and any other DC load the machine does not expose separately.
+/// while it supplies power, otherwise the battery discharging into the load. A
+/// maxed-out adapter and a discharging pack can feed the machine together; the
+/// pack's share is then `batterySupplement`, added to the adapter's budget. The
+/// last branch is always a residual rather than a sensor: whatever the source(s)
+/// deliver that the measured branches (battery charge, built-in display, USB
+/// output) do not account for. That covers the SoC, DRAM, display controllers
+/// and any other DC load the machine does not expose separately.
 ///
 /// Only produced when the readings share one measurement window and the
 /// residual stays physically plausible. A breakdown that cannot be computed
@@ -40,9 +42,15 @@ struct BatteryPowerBreakdown: Equatable, Sendable {
     /// Type of the port the adapter feeds ("MagSafe 3", "USB-C"); nil when the
     /// port could not be identified.
     var inputPortType: String? = nil
-    /// Everything else the source supplies: `source - charging - display - usb`.
+    /// Everything else the source supplies:
+    /// `source + supplement - charging - display - usb`.
     let system: Component
     let readAt: Date
+    /// The pack's share when it discharges to top up a maxed-out adapter. Both
+    /// rails feed the machine at once, so this is part of the budget the
+    /// branches split rather than a branch itself. Nil whenever a single rail
+    /// supplies the load (adapter only, or battery only).
+    var batterySupplement: Component? = nil
 
     var components: [Component] { [display, usb, system].compactMap { $0 } }
 
@@ -73,7 +81,16 @@ struct BatteryPowerBreakdown: Equatable, Sendable {
         if let adapterWatts, adapterWatts >= adapterFloor {
             // Unknown charge is enough to make the residual wrong.
             guard let charging, charging.isFinite, charging >= 0 else { return nil }
-            var split = make(source: .adapter, sourceWatts: adapterWatts, subtractCharging: charging,
+            // A maxed-out adapter cannot carry the whole load on its own: the
+            // pack keeps discharging to make up the difference. Both rails feed
+            // the machine, so the pack's share joins the budget the branches
+            // split. Below `batteryFloor` the discharge is rounding noise.
+            let supplementWatts: Double? = {
+                guard let discharge, discharge.isFinite, discharge >= batteryFloor else { return nil }
+                return discharge
+            }()
+            var split = make(source: .adapter, sourceWatts: adapterWatts,
+                             supplementWatts: supplementWatts, subtractCharging: charging,
                              display: display, usb: usb, now: now)
             split?.inputPortType = inputPortType
             return split
@@ -89,6 +106,7 @@ struct BatteryPowerBreakdown: Equatable, Sendable {
     private static func make(
         source: Source,
         sourceWatts: Double,
+        supplementWatts: Double? = nil,
         subtractCharging: Double,
         display: SystemPowerSample?,
         usb: USBOutputSample?,
@@ -99,7 +117,9 @@ struct BatteryPowerBreakdown: Equatable, Sendable {
 
         let displayWatts = display?.watts ?? 0
         let usbWatts = usb?.watts ?? 0
-        let residual = sourceWatts - subtractCharging - displayWatts - usbWatts
+        // A supplementing pack adds to the source; it is not subtracted.
+        let budget = sourceWatts + (supplementWatts ?? 0)
+        let residual = budget - subtractCharging - displayWatts - usbWatts
         if residual < -residualTolerance { return nil }
         return BatteryPowerBreakdown(
             source: source,
@@ -108,7 +128,8 @@ struct BatteryPowerBreakdown: Equatable, Sendable {
             usb: usb.map { Component(watts: $0.watts, readAt: $0.readAt) },
             usbPorts: usb?.ports ?? [],
             system: Component(watts: max(0, residual), readAt: now),
-            readAt: now
+            readAt: now,
+            batterySupplement: supplementWatts.map { Component(watts: $0, readAt: now) }
         )
     }
 }

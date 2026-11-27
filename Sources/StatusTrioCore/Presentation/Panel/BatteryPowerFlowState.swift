@@ -36,12 +36,18 @@ struct BatteryPowerFlowState: Equatable, Sendable {
     }
 
     let input: Metric?
+    /// The pack's share when it discharges to top up a maxed-out adapter. Both
+    /// rails feed the machine at once, so the left source node is drawn as two
+    /// proportional parts (adapter + pack) while the ribbons leave as one merged
+    /// stream. Nil whenever a single rail supplies the load.
+    let batterySupplement: Metric?
     /// Every branch drawn to the right of the input, top to bottom. One to
     /// five entries; a branch without a trustworthy reading is absent.
     let destinations: [Metric]
 
-    init(input: Metric?, destinations: [Metric]) {
+    init(input: Metric?, batterySupplement: Metric? = nil, destinations: [Metric]) {
         self.input = input
+        self.batterySupplement = batterySupplement
         self.destinations = destinations
     }
 
@@ -67,10 +73,15 @@ struct BatteryPowerFlowState: Equatable, Sendable {
 
     /// Use the same scale even when a destination is hidden. Independent
     /// readings can disagree; retain each value and bound the combined width.
+    /// The denominator is the whole supply (adapter plus any battery top-up),
+    /// so a supplementing pack keeps every branch's share honest even when a
+    /// measured branch is hidden.
     private func flowFraction(_ watts: Double?) -> Double? {
-        guard let input = input?.watts, input.isFinite, input > 0,
+        let supplyWatts = (input?.watts ?? 0) + (batterySupplement?.watts ?? 0)
+        guard (input != nil || batterySupplement != nil),
+              supplyWatts.isFinite, supplyWatts > 0,
               let watts, watts.isFinite, watts >= 0 else { return nil }
         let total = destinations.reduce(0) { $0 + max(0, $1.watts ?? 0) }
-        return watts / max(input, total)
+        return watts / max(supplyWatts, total)
     }
 }

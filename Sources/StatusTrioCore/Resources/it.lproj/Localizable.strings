@@ -1003,7 +1003,7 @@
 "power.infoBar.noInput" = "Nessun alimentatore";
 "power.infoBar.battery" = "Carica batteria";
 "power.infoBar.discharging" = "Scarica della batteria";
-"power.infoBar.system" = "Potenza sistema";
+"power.infoBar.system" = "Potenza totale";
 "power.infoBar.notCharging" = "Non in carica";
 "battery.power.display" = "Display";
 "battery.power.usb" = "Uscita USB";

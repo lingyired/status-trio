@@ -213,6 +213,14 @@ enum PanelDetailMapper {
         if !sourceIsBattery, options.showsBreakdown, let port = details.breakdown?.inputPortType {
             input?.detail = port
         }
+        // When the adapter is maxed out and the pack discharges to top it up,
+        // the left source has two rails. Show the pack's share beside the
+        // adapter's so the diagram's total matches the real load (issue #396).
+        let supplement: BatteryPowerFlowState.Metric? = {
+            guard !sourceIsBattery, options.showsInput,
+                  let component = details.breakdown?.batterySupplement else { return nil }
+            return metric(.batteryPowerBatterySource, component.watts, kind: .batterySource)
+        }()
         // A verified split replaces the single system node. Without one the
         // legacy two-branch diagram stays exactly as it was.
         if options.showsBreakdown, let split = details.breakdown {
@@ -248,7 +256,8 @@ enum PanelDetailMapper {
                 destinations.append(metric(.batteryPowerSystem, split.system.watts, kind: .system,
                                            help: .batteryPowerSystemHelp))
             }
-            return BatteryPowerFlowState(input: input, destinations: destinations)
+            return BatteryPowerFlowState(
+                input: input, batterySupplement: supplement, destinations: destinations)
         }
         return BatteryPowerFlowState(
             input: input,

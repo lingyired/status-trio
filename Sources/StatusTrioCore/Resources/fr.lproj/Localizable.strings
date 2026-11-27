@@ -1003,7 +1003,7 @@
 "power.infoBar.noInput" = "Aucun adaptateur";
 "power.infoBar.battery" = "Charge batterie";
 "power.infoBar.discharging" = "Décharge de la batterie";
-"power.infoBar.system" = "Puissance système";
+"power.infoBar.system" = "Puissance totale de la machine";
 "power.infoBar.notCharging" = "Ne se charge pas";
 "battery.power.display" = "Écran";
 "battery.power.usb" = "Sortie USB";

@@ -1003,7 +1003,7 @@
 "power.infoBar.noInput" = "لا يوجد محول طاقة";
 "power.infoBar.battery" = "شحن البطارية";
 "power.infoBar.discharging" = "تفريغ البطارية";
-"power.infoBar.system" = "طاقة النظام";
+"power.infoBar.system" = "طاقة الجهاز الكلية";
 "power.infoBar.notCharging" = "لا يتم الشحن";
 "battery.power.display" = "الشاشة";
 "battery.power.usb" = "خرج USB";

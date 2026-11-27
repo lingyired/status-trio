@@ -137,9 +137,12 @@ struct BatteryPowerFlowView: View {
             // is 94 wide at the right edge. Ribbons continue underneath their
             // original rounded outlines; the mask below cuts out card interiors
             // so the overlap cannot show through their translucent fills.
+            // The split source holds two stacked rows of "icon + wattage", so it
+            // is a little wider than the single-row source card.
+            let inputCardWidth: CGFloat = state.batterySupplement == nil ? 62 : 76
             let left: CGFloat = state.input == nil
                 ? 0
-                : PowerFlowCardGeometry.ribbonStartX(inputCardRight: 62)
+                : PowerFlowCardGeometry.ribbonStartX(inputCardRight: inputCardWidth)
             let right = PowerFlowCardGeometry.ribbonEndX(branchCardLeft: width - 94)
             let center = height / 2
             // A ribbon at or below the drawing floor is not drawn.
@@ -149,7 +152,7 @@ struct BatteryPowerFlowView: View {
             // Mask the ribbon layer with the exact card silhouettes. Drawing
             // the translucent cards above it is not enough to hide the overlap.
             let inputFrame = CGRect(x: 0, y: center - Self.inputCardHeight / 2,
-                                    width: 62, height: Self.inputCardHeight)
+                                    width: inputCardWidth, height: Self.inputCardHeight)
             let branchFrames = destinations.indices.map { index in
                 CGRect(x: width - 94, y: centerY(index) - rowHeight(index) / 2,
                        width: 94, height: rowHeight(index))
@@ -166,27 +169,37 @@ struct BatteryPowerFlowView: View {
                     .fill(style: FillStyle(eoFill: true))
             }
             if let input = state.input {
-                // The source node is the adapter (plug, primary) unless the pack
-                // is discharging, in which case it takes the outer bar's
-                // discharging card style (plain battery, orange).
-                let inputColor = Self.color(for: input.kind)
-                let inputSurface = Self.surface(for: input.kind)
-                metric(input, symbol: Self.symbol(for: input.kind), color: inputColor,
-                       height: Self.inputCardHeight, singleLine: false,
-                       iconSize: Self.iconSize(for: input.kind),
-                       iconLeading: false)
-                    .frame(width: destinations.isEmpty ? width : 62)
-                    // `Self.color(for:)` returns the explicit `.primary` colour,
-                    // not a bare `.primary` shape style: the leading-dot form
-                    // resolves to the hierarchical foreground, follows the vibrant
-                    // detail-page text and nearly vanishes over the glass.
-                    .panelCardSurface(
-                        inputSurface,
-                        tint: inputColor,
-                        cornerRadius: 12,
-                        cornerStyle: .circular
-                    )
-                    .position(x: destinations.isEmpty ? width / 2 : 31, y: center)
+                if let supplement = state.batterySupplement {
+                    // A maxed-out adapter plus a discharging pack feed the
+                    // machine together. The left source is one card split into
+                    // two parts whose heights follow their wattage, while the
+                    // ribbons still leave as one merged stream (issue #396).
+                    splitSourceCard(input: input, supplement: supplement)
+                        .frame(width: destinations.isEmpty ? width : inputCardWidth)
+                        .position(x: destinations.isEmpty ? width / 2 : inputCardWidth / 2, y: center)
+                } else {
+                    // The source node is the adapter (plug, primary) unless the
+                    // pack is discharging, in which case it takes the outer bar's
+                    // discharging card style (plain battery, orange).
+                    let inputColor = Self.color(for: input.kind)
+                    let inputSurface = Self.surface(for: input.kind)
+                    metric(input, symbol: Self.symbol(for: input.kind), color: inputColor,
+                           height: Self.inputCardHeight, singleLine: false,
+                           iconSize: Self.iconSize(for: input.kind),
+                           iconLeading: false)
+                        .frame(width: destinations.isEmpty ? width : 62)
+                        // `Self.color(for:)` returns the explicit `.primary` colour,
+                        // not a bare `.primary` shape style: the leading-dot form
+                        // resolves to the hierarchical foreground, follows the vibrant
+                        // detail-page text and nearly vanishes over the glass.
+                        .panelCardSurface(
+                            inputSurface,
+                            tint: inputColor,
+                            cornerRadius: 12,
+                            cornerStyle: .circular
+                        )
+                        .position(x: destinations.isEmpty ? width / 2 : 31, y: center)
+                }
             }
             ForEach(Array(destinations.enumerated()), id: \.offset) { index, item in
                 metric(item, symbol: Self.symbol(for: item.kind),
@@ -206,6 +219,89 @@ struct BatteryPowerFlowView: View {
             }
         }
         .frame(height: height)
+    }
+
+    /// The combined left source when the adapter and the pack feed the machine
+    /// at once: one card split into two parts whose heights follow their wattage.
+    /// The ribbons still leave from the whole card, so they read as one stream
+    /// made of two sources rather than assigning branches to a source.
+    private func splitSourceCard(input: BatteryPowerFlowState.Metric,
+                                 supplement: BatteryPowerFlowState.Metric) -> some View {
+        let (inputHeight, supplementHeight) = sourceHeights(
+            inputWatts: input.watts ?? 0, supplementWatts: supplement.watts ?? 0)
+        let shape = RoundedRectangle(cornerRadius: 12, style: .circular)
+        return VStack(spacing: 0) {
+            sourceRegion(input, height: inputHeight)
+            Rectangle()
+                .fill(Color.secondary.opacity(0.22))
+                .frame(height: 1)
+            sourceRegion(supplement, height: supplementHeight)
+                .background(Self.color(for: supplement.kind).opacity(0.12))
+        }
+        .frame(maxWidth: .infinity)
+        .frame(height: Self.inputCardHeight)
+        .clipShape(shape)
+        .panelCardSurface(.silver(.connected), tint: .primary,
+                          cornerRadius: 12, cornerStyle: .circular)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("\(input.label) \(input.value), \(supplement.label) \(supplement.value)")
+    }
+
+    /// Split the card's height in proportion to the two rails' watts, but keep a
+    /// readable minimum so a small top-up stays legible. The proportions win
+    /// whenever both parts are above the minimum.
+    private func sourceHeights(inputWatts: Double, supplementWatts: Double) -> (CGFloat, CGFloat) {
+        let available = Self.inputCardHeight - 1
+        let a = max(0, inputWatts)
+        let b = max(0, supplementWatts)
+        let total = a + b
+        guard total > 0 else { return (available / 2, available / 2) }
+        var inputHeight = available * CGFloat(a / total)
+        var supplementHeight = available * CGFloat(b / total)
+        let minimum: CGFloat = 30
+        if inputHeight < minimum {
+            supplementHeight -= (minimum - inputHeight)
+            inputHeight = minimum
+        }
+        if supplementHeight < minimum {
+            inputHeight -= (minimum - supplementHeight)
+            supplementHeight = minimum
+        }
+        return (max(0, inputHeight), max(0, supplementHeight))
+    }
+
+    /// One proportional part of the split source card: glyph and wattage on one
+    /// row, the rail name underneath only when the part is tall enough for it.
+    private func sourceRegion(_ item: BatteryPowerFlowState.Metric, height: CGFloat) -> some View {
+        let showsLabel = height >= 28
+        let large = height >= 44
+        return VStack(spacing: showsLabel ? 1 : 0) {
+            HStack(spacing: 4) {
+                Image(systemName: Self.symbol(for: item.kind))
+                    .font(.system(size: large ? 15 : 12, weight: .medium))
+                    .foregroundStyle(Self.color(for: item.kind))
+                    .accessibilityHidden(true)
+                Text(item.value)
+                    .font(.system(size: large ? 12.5 : 11,
+                                  weight: panelBoldText ? .semibold : .regular,
+                                  design: .rounded))
+                    .monospacedDigit()
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
+                    .foregroundStyle(.primary)
+            }
+            if showsLabel {
+                Text(item.label)
+                    .font(.system(size: 9.5))
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
+            }
+        }
+        .frame(maxWidth: .infinity)
+        .frame(height: height)
+        .padding(.horizontal, 3)
+        .clipped()
     }
 
     private static func symbol(for kind: BatteryPowerFlowState.Kind) -> String {

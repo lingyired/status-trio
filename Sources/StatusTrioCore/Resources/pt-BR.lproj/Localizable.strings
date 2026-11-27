@@ -1003,7 +1003,7 @@
 "power.infoBar.noInput" = "Sem adaptador";
 "power.infoBar.battery" = "Carga da bateria";
 "power.infoBar.discharging" = "Descarga da bateria";
-"power.infoBar.system" = "Potência do sistema";
+"power.infoBar.system" = "Potência total";
 "power.infoBar.notCharging" = "Não está carregando";
 "battery.power.display" = "Tela";
 "battery.power.usb" = "Saída USB";

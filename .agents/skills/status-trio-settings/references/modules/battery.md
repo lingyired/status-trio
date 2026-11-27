@@ -22,7 +22,7 @@ Generated from `SettingsSemanticCatalog`. Do not edit by hand.
 | `battery.marker.charging` | 充电标记 | `enumeration` | — | batteryChargingMarker |
 | `battery.marker.connected` | 已连接标记 | `enumeration` | — | batteryConnectedMarker |
 | `battery.marker.noBattery` | 无电池标记 | `enumeration` | — | batteryNoBatteryMarker |
-| `battery.marker.onBattery` | 电池百分比标记 | `enumeration` | — | batteryOnBatteryMarker |
+| `battery.marker.onBattery` | 使用电池时标记 | `enumeration` | — | batteryOnBatteryMarker |
 | `battery.powerFlow.enabled` | 显示电量流向 | `boolean` | — | showsBatteryPowerFlow |
 | `battery.powerInfoBar.enabled` | 功率信息条 | `boolean` | — | showsBatteryPowerInfoBar |
 | `battery.refreshInterval.onBattery` | 电池供电刷新间隔 | `number` | — | statusRefreshIntervalOnBatterySeconds |

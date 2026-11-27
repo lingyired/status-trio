@@ -102,4 +102,17 @@ struct SettingsMutationPlannerTests {
         let plan = planner().plan(setPreference: "panel.behavior.showOnHover", to: .bool(true), snapshot: snapshot)
         #expect(plan.operations.isEmpty)
     }
+
+    @Test("Removing the last hardware summary metric is rejected")
+    func minimumSummaryMetricRejected() {
+        let snapshot = SettingsSnapshot(values: [
+            "hardware.summaryMetrics": .array([.string("download")]),
+        ])
+        let plan = planner().plan(mutations: [
+            SettingsMutationDescriptor(id: "hardware.summaryMetrics", operation: .remove, value: .string("download")),
+        ], snapshot: snapshot)
+        #expect(!plan.isApplicable)
+        #expect(plan.errors.contains { $0.preferenceID == "hardware.summaryMetrics" })
+    }
+
 }

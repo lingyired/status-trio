@@ -1003,7 +1003,7 @@
 "power.infoBar.noInput" = "Sin adaptador";
 "power.infoBar.battery" = "Carga de batería";
 "power.infoBar.discharging" = "Descarga de la batería";
-"power.infoBar.system" = "Potencia del sistema";
+"power.infoBar.system" = "Potencia total del equipo";
 "power.infoBar.notCharging" = "No se está cargando";
 "battery.power.display" = "Pantalla";
 "battery.power.usb" = "Salida USB";

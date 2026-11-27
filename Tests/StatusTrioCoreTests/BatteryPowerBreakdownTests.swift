@@ -91,11 +91,28 @@ final class BatteryPowerBreakdownTests: XCTestCase {
     }
 
     func testPrefersTheAdapterWhileItSuppliesPower() throws {
+        // A sub-floor discharge reading is rounding noise, not a second source:
+        // the adapter still carries the whole load on its own.
         let split = try XCTUnwrap(BatteryPowerBreakdown.resolve(
-            adapterInput: sample(60, at: -1), charging: 0, discharge: 12,
+            adapterInput: sample(60, at: -1), charging: 0, discharge: 0.4,
             display: displaySample(8, at: -1), usb: nil, now: now))
         XCTAssertEqual(split.source, .adapter)
         XCTAssertEqual(split.sourceWatts, 60, accuracy: 0.0001)
+        XCTAssertNil(split.batterySupplement)
+        XCTAssertEqual(split.system.watts, 52, accuracy: 0.0001)
+    }
+
+    func testDischargingBatteryTopsUpAMaxedOutAdapter() throws {
+        // 52 W adapter cannot carry a load that also draws 8 W from the pack:
+        // both rails feed the machine, so the residual is computed from their
+        // sum, not from the adapter alone (issue #396).
+        let split = try XCTUnwrap(BatteryPowerBreakdown.resolve(
+            adapterInput: sample(52, at: -1), charging: 0, discharge: 8,
+            display: displaySample(5, at: -1), usb: nil, now: now))
+        XCTAssertEqual(split.source, .adapter)
+        XCTAssertEqual(split.sourceWatts, 52, accuracy: 0.0001)
+        XCTAssertEqual(split.batterySupplement?.watts ?? -1, 8, accuracy: 0.0001)
+        XCTAssertEqual(split.system.watts, 55, accuracy: 0.0001)
     }
 
     func testBatteryResidualThatCannotBeRoundingProducesNoSplit() {
@@ -356,6 +373,38 @@ final class BatteryPowerBreakdownPresentationTests: XCTestCase {
         XCTAssertEqual(flow.input?.label, "Battery")
         XCTAssertEqual(flow.input?.watts, 40)
         XCTAssertEqual(flow.destinations.map(\.kind), [.display, .usb, .system])
+    }
+
+    func testSupplementingBatteryAddsASecondLeftSource() throws {
+        let (localization, defaults, suite) = try localization()
+        defer { defaults.removeTestSuite(named: suite) }
+        let now = Date()
+        var maxed = BatteryPowerBreakdown(
+            source: .adapter, sourceWatts: 52,
+            display: .init(watts: 5, readAt: now), usb: nil,
+            system: .init(watts: 55, readAt: now), readAt: now)
+        maxed.batterySupplement = .init(watts: 8, readAt: now)
+        let details = BatteryDetails(
+            power: BatteryPowerSample(volts: 12, amps: -0.7, updatedAt: now),
+            systemPower: SystemPowerSample(watts: 60, readAt: now),
+            inputPower: SystemPowerSample(watts: 52, readAt: now),
+            breakdown: maxed)
+        let status = BatteryStatus(rawPercentage: 80, isPresent: true, isCharging: false,
+            isLowPowerMode: false, isConnectedToPower: true)
+        let state = PanelDetailMapper.battery(status: status, details: details,
+            localization: localization,
+            powerOptions: BatteryPowerDisplayOptions(showsInput: true, showsCharging: true,
+                showsSystem: true, showsBreakdown: true))
+        let flow = try XCTUnwrap(state.powerFlow)
+        XCTAssertEqual(flow.input?.label, "Charger")
+        XCTAssertEqual(flow.input?.watts, 52)
+        XCTAssertEqual(flow.batterySupplement?.label, "Battery")
+        XCTAssertEqual(flow.batterySupplement?.watts, 8)
+        XCTAssertEqual(flow.destinations.map(\.kind), [.display, .system])
+        let system = try XCTUnwrap(flow.destinations.first { $0.kind == .system })
+        XCTAssertEqual(system.watts, 55)
+        // 55 W of a 60 W supply (52 W adapter + 8 W pack), not of the adapter alone.
+        XCTAssertEqual(try XCTUnwrap(flow.flowFraction(for: system)), 55.0 / 60.0, accuracy: 0.0001)
     }
 
     func testSystemBranchCarriesTheLongerNameAsHelp() throws {

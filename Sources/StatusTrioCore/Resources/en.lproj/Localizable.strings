@@ -989,7 +989,7 @@
 "settings.battery.powerInfoBar" = "Power info bar";
 "settings.battery.powerFlowDiagram" = "Power Flow Diagram";
 "settings.battery.powerFlowDiagramDescription" = "Shows the input / battery / system power flow diagram in the battery details page.";
-"settings.battery.powerInfoBarDescription" = "Shows input, battery and system power below the battery module while the panel is open. Off by default.";
+"settings.battery.powerInfoBarDescription" = "Shows input, battery and whole-machine power below the battery module while the panel is open. Off by default.";
 "settings.battery.energyRefreshInterval" = "Background sampling interval";
 "settings.battery.energyRefreshInterval.description" = "Used while the panel is closed. The battery detail page still refreshes every 5 seconds.";
 "battery.power.input" = "Charger";
@@ -1002,7 +1002,7 @@
 "power.infoBar.noInput" = "No adapter";
 "power.infoBar.battery" = "Charging";
 "power.infoBar.discharging" = "Discharging";
-"power.infoBar.system" = "System power";
+"power.infoBar.system" = "Whole-machine power";
 "power.infoBar.notCharging" = "Not charging";
 "battery.power.display" = "Display";
 "battery.power.usb" = "USB out";
