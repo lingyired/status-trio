@@ -20,6 +20,8 @@ final class MenuBarInstancesRuntime: NSObject {
     private var latestStatus: StatusSnapshot = .placeholder
     private var trackedButtons = Set<ObjectIdentifier>()
     private var buttonByInstance: [UUID: NSStatusBarButton] = [:]
+    private var hoverWorkItems: [UUID: DispatchWorkItem] = [:]
+    private var hoverOpenID: UUID?
 
     init(
         store: SystemStatusStore,
@@ -136,13 +138,51 @@ final class MenuBarInstancesRuntime: NSObject {
     /// open until the user clicks elsewhere; exiting the item does not auto-close,
     /// so the pointer can travel into the panel.
     @objc func mouseEntered(with event: NSEvent) {
-        guard let idString = event.trackingArea?.userInfo?["id"] as? String,
-              let id = UUID(uuidString: idString),
-              let instance = configuration.instances.first(where: { $0.id == id }),
-              let button = buttonByInstance[id],
-              !statusBarController.isStatusPanelShown else { return }
-        guard case .showPanel(let raw) = MenuBarInstanceActivationResolver.resolve(instance.hoverAction, forHover: true) else { return }
-        statusBarController.presentInstancePanel(routeRaw: raw, anchorButton: button, presentedByHover: true)
+        guard let id = instanceID(from: event) else { return }
+        hoverWorkItems[id]?.cancel()
+        guard let instance = configuration.instances.first(where: { $0.id == id }),
+              case .showPanel(let raw) = MenuBarInstanceActivationResolver.resolve(instance.hoverAction, forHover: true),
+              let button = buttonByInstance[id] else { return }
+        let work = DispatchWorkItem { [weak self] in
+            guard let self, !self.statusBarController.isStatusPanelShown else { return }
+            self.statusBarController.presentInstancePanel(routeRaw: raw, anchorButton: button, presentedByHover: true)
+            self.hoverOpenID = id
+        }
+        hoverWorkItems[id] = work
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.35, execute: work)
+    }
+
+    @objc func mouseExited(with event: NSEvent) {
+        guard let id = instanceID(from: event) else { return }
+        hoverWorkItems[id]?.cancel()
+        hoverWorkItems[id] = nil
+        guard hoverOpenID == id else { return }
+        let work = DispatchWorkItem { [weak self] in
+            guard let self, self.hoverOpenID == id else { return }
+            self.statusBarController.dismissInstancePanel()
+            self.hoverOpenID = nil
+        }
+        hoverWorkItems[id] = work
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.45, execute: work)
+    }
+
+    private func instanceID(from event: NSEvent) -> UUID? {
+        guard let raw = event.trackingArea?.userInfo?["id"] as? String else { return nil }
+        return UUID(uuidString: raw)
+    }
+
+    func stop() {
+        cancelableRemoveAll()
+    }
+
+    private func cancelableRemoveAll() {
+        hoverWorkItems.values.forEach { $0.cancel() }
+        hoverWorkItems.removeAll()
+        trackedButtons.removeAll()
+        buttonByInstance.removeAll()
+        cancellables.removeAll()
+        items?.removeAll()
+        store.hardwareMetrics.end(.menuBarCenter)
     }
 
     @objc private func handleClick(_ sender: NSStatusBarButton) {

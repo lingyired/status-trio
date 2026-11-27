@@ -1121,6 +1121,9 @@ final class StatusBarController: NSObject {
         }
     }
 
+    /// Closes the shared status panel if visible.
+    func dismissInstancePanel() { if popover.isShown { closePopover() } }
+
     /// Whether the shared status panel is currently visible.
     var isStatusPanelShown: Bool { popover.isShown }
 

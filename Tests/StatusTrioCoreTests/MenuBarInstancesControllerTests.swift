@@ -12,6 +12,7 @@ final class MenuBarInstancesControllerTests: XCTestCase {
         var hasRemovalBehavior = false
         var image: NSImage?
         var button: NSStatusBarButton? { nil }
+        var onVisibilityChange: ((Bool) -> Void)?
     }
 
     @MainActor

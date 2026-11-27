@@ -189,6 +189,7 @@ final class AppEnvironment {
     }
 
     func stop() {
+        menuBarInstancesRuntime?.stop()
         settings.flushPendingPersists()
         memoryPressureMonitor.stop()
         memoryPressureMonitor.onPressure = nil

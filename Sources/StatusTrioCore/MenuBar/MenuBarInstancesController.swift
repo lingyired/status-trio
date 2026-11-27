@@ -10,6 +10,7 @@ protocol MenuBarStatusItemHandle: AnyObject {
     var hasRemovalBehavior: Bool { get set }
     var image: NSImage? { get set }
     var button: NSStatusBarButton? { get }
+    var onVisibilityChange: ((Bool) -> Void)? { get set }
 }
 
 @MainActor
@@ -64,6 +65,9 @@ final class MenuBarInstancesController {
                 handle = created
             }
             enabled[instance.id] = instance.isEnabled
+            handle.onVisibilityChange = { [weak self] newVisible in
+                self?.notifyExternalVisibilityChange(id: instance.id, newVisible: newVisible)
+            }
             setVisible(handle, instance.isEnabled, id: instance.id)
         }
     }
@@ -89,6 +93,18 @@ final class MenuBarInstancesController {
         if decision == .userRemoved {
             onUserRemoved(id)
         }
+    }
+
+    func removeAll() {
+        for (id, handle) in items {
+            tracker.setSelfInitiated(true)
+            handle.isVisible = false
+            tracker.setSelfInitiated(false)
+            _ = id
+        }
+        items.removeAll()
+        lastVisible.removeAll()
+        enabled.removeAll()
     }
 
     private func setVisible(_ handle: MenuBarStatusItemHandle, _ visible: Bool, id: UUID) {
@@ -134,6 +150,17 @@ final class SystemStatusItemHandle: MenuBarStatusItemHandle {
     }
 
     var button: NSStatusBarButton? { statusItem.button }
+
+    private var visibilityObservation: NSKeyValueObservation?
+    var onVisibilityChange: ((Bool) -> Void)? {
+        didSet {
+            guard onVisibilityChange != nil else { visibilityObservation = nil; return }
+            visibilityObservation = statusItem.observe(\.isVisible, options: [.new]) { [weak self] _, change in
+                guard let newValue = change.newValue else { return }
+                Task { @MainActor in self?.onVisibilityChange?(newValue) }
+            }
+        }
+    }
 }
 
 @MainActor
