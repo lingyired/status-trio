@@ -31,6 +31,21 @@ final class MenuBarInstanceEditorModel: ObservableObject {
         persist()
     }
 
+    /// Refresh cadence for a metric in this instance, when it comes from the
+    /// hardware sampler. Snapshot metrics return nil.
+    func refreshSeconds(for metric: MenuBarMetricID) -> Int? {
+        guard let hardware = MenuBarMetricRegistry.hardwareMetricID(for: metric),
+              let group = HardwareRefreshGroup.group(for: hardware) else { return nil }
+        switch group {
+        case .cpuUsage: return store.hardwareCPUUsageRefreshSeconds
+        case .gpuUsage: return store.hardwareGPUUsageRefreshSeconds
+        case .memory: return store.hardwareMemoryRefreshSeconds
+        case .network: return store.hardwareNetworkRefreshSeconds
+        case .temperature: return store.hardwareTemperatureRefreshSeconds
+        case .disk: return store.hardwareDiskRefreshSeconds
+        }
+    }
+
     // MARK: - Element editing
 
     @discardableResult
@@ -70,8 +85,8 @@ final class MenuBarInstanceEditorModel: ObservableObject {
         return element.id
     }
 
-    func moveElement(id: UUID, to destination: Int, slot: MenuBarLineSlot) {
-        mutateLine(slot) { line in
+    func moveElement(id: UUID, to destination: Int, slot: MenuBarLineSlot, persistImmediately: Bool = true) {
+        mutateLine(slot, persist: persistImmediately) { line in
             guard let current = line.elements.firstIndex(where: { $0.id == id }) else { return }
             let element = line.elements.remove(at: current)
             let target = min(max(0, destination), line.elements.count)
@@ -94,7 +109,13 @@ final class MenuBarInstanceEditorModel: ObservableObject {
     }
 
     /// Moves an element between lines (also used by cross-row drag/drop).
-    func moveElement(id: UUID, from: MenuBarLineSlot, to: MenuBarLineSlot, index: Int = Int.max) {
+    func moveElement(
+        id: UUID,
+        from: MenuBarLineSlot,
+        to: MenuBarLineSlot,
+        index: Int = Int.max,
+        persistImmediately: Bool = true
+    ) {
         guard from != to else { return }
         var moved: MenuBarElement?
         mutateLine(from, persist: false) { line in
@@ -102,7 +123,7 @@ final class MenuBarInstanceEditorModel: ObservableObject {
             moved = line.elements.remove(at: current)
         }
         guard let element = moved else { persist(); return }
-        mutateLine(to) { line in
+        mutateLine(to, persist: persistImmediately) { line in
             let target = min(max(0, index), line.elements.count)
             line.elements.insert(element, at: target)
         }
@@ -193,6 +214,21 @@ final class MenuBarInstanceEditorModel: ObservableObject {
     }
 
     // MARK: - Helpers
+
+    private var deferredPersistWorkItem: DispatchWorkItem?
+
+    /// Writes a drag/drop reorder after the interaction has settled, so the
+    /// chip strip updates immediately instead of waiting on the full settings
+    /// publish and status-item rerender.
+    func persistSoon(after delay: TimeInterval = 0.08) {
+        deferredPersistWorkItem?.cancel()
+        let work = DispatchWorkItem { [weak self] in
+            guard let self else { return }
+            self.persist()
+        }
+        deferredPersistWorkItem = work
+        DispatchQueue.main.asyncAfter(deadline: .now() + delay, execute: work)
+    }
 
     private func mutateLine(_ slot: MenuBarLineSlot, persist shouldPersist: Bool = true, _ body: (inout MenuBarLine) -> Void) {
         switch slot {

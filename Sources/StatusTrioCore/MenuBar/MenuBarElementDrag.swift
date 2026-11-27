@@ -32,7 +32,7 @@ enum MenuBarElementMutations {
     ) -> Bool {
         guard case let .line(instanceID, targetSlot, rawIndex) = target else { return false }
         guard instanceID == instance.id else { return false }
-        guard targetSlot == .top || instance.layoutMode == .doubleLine else { return false }
+        guard targetSlot == .top || instance.layoutMode.isDoubleLine else { return false }
 
         switch payload.source {
         case .palette(let content):
@@ -46,7 +46,7 @@ enum MenuBarElementMutations {
         case .placed(let sourceID, let sourceSlot, let elementID):
             guard sourceID == instance.id else { return false }
             // Single-line mode cannot hold a bottom row.
-            guard sourceSlot == .top || instance.layoutMode == .doubleLine else { return false }
+            guard sourceSlot == .top || instance.layoutMode.isDoubleLine else { return false }
             var sourceElements = currentElements(instance, sourceSlot)
             guard let currentIndex = sourceElements.firstIndex(where: { $0.id == elementID }) else { return false }
             let element = sourceElements[currentIndex]

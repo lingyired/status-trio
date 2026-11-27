@@ -132,6 +132,32 @@ final class MenuBarInstanceRendererTests: XCTestCase {
         XCTAssertEqual(measurement.totalWidth, measurement.lineWidths[0] + 16 + 3, accuracy: 0.6)
     }
 
+    func testLargeTopLayoutMakesTopRowTaller() {
+        let instance = MenuBarInstance(
+            layoutMode: .doubleLineLargeTop,
+            top: MenuBarLine(segments: [.text("CPU")]),
+            bottom: MenuBarLine(segments: [.metric(.cpuUsage)])
+        )
+        let result = MenuBarInstanceRenderer.measure(
+            MenuBarRenderInput(instance: instance, readings: [.cpuUsage: MenuBarMetricReading(text: "45%", value: 45, availability: .measured)]),
+            appearance: appearance
+        )
+        XCTAssertGreaterThan(result.lineHeights[0], result.lineHeights[1])
+    }
+
+    func testLargeBottomLayoutMakesBottomRowTaller() {
+        let instance = MenuBarInstance(
+            layoutMode: .doubleLineLargeBottom,
+            top: MenuBarLine(segments: [.text("CPU")]),
+            bottom: MenuBarLine(segments: [.metric(.cpuUsage)])
+        )
+        let result = MenuBarInstanceRenderer.measure(
+            MenuBarRenderInput(instance: instance, readings: [.cpuUsage: MenuBarMetricReading(text: "45%", value: 45, availability: .measured)]),
+            appearance: appearance
+        )
+        XCTAssertGreaterThan(result.lineHeights[1], result.lineHeights[0])
+    }
+
     func testCharacterIconMeasures() {
         let line = MenuBarLine(
             elements: [MenuBarElement(content: .icon(MenuBarIconSpec(source: .character("A"))))]

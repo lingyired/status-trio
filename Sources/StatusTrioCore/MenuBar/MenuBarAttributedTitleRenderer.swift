@@ -17,7 +17,7 @@ struct MenuBarRenderedContent {
 enum MenuBarAttributedTitleRenderer {
     static func render(_ input: MenuBarRenderInput, appearance: NSAppearance) -> MenuBarRenderedContent? {
         let instance = input.instance
-        let twoLine = instance.layoutMode == .doubleLine && instance.top != nil && instance.bottom != nil
+        let twoLine = instance.layoutMode.isDoubleLine && instance.top != nil && instance.bottom != nil
         let lines: [MenuBarLine] = twoLine ? [instance.top, instance.bottom].compactMap { $0 } : [instance.top].compactMap { $0 }
         guard !lines.isEmpty else { return nil }
 

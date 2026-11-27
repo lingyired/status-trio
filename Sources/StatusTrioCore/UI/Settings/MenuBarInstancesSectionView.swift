@@ -12,6 +12,7 @@ struct MenuBarInstancesSectionView: View {
     @ObservedObject var store: SettingsStore
     let localization: Localization
     @Binding var previewIsDark: Bool
+    var consumePendingMenuBarInstance: () -> UUID? = { nil }
 
     @State private var selectedID: UUID?
     @State private var model: MenuBarInstanceEditorModel?
@@ -30,7 +31,19 @@ struct MenuBarInstancesSectionView: View {
                 .frame(minWidth: 300)
         }
         .background(Color(nsColor: .windowBackgroundColor))
-        .onAppear { synchronizeSelection() }
+        .onAppear {
+            if let id = consumePendingMenuBarInstance(),
+               store.menuBarInstances.instances.contains(where: { $0.id == id }) {
+                selectedID = id
+            }
+            synchronizeSelection()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .settingsSelectSection)) { _ in
+            if let id = consumePendingMenuBarInstance(),
+               store.menuBarInstances.instances.contains(where: { $0.id == id }) {
+                selectedID = id
+            }
+        }
         .onChange(of: store.menuBarInstances) { _ in synchronizeSelection() }
         .onChange(of: selectedID) { _ in rebuildModel() }
         .alert(
@@ -141,9 +154,12 @@ struct MenuBarInstancesSectionView: View {
     }
 
     private func summary(for instance: MenuBarInstance) -> String {
-        instance.layoutMode == .doubleLine
-            ? L(.menuBarEditorDoubleLine)
-            : L(.menuBarEditorSingleLine)
+        switch instance.layoutMode {
+        case .singleLine: return L(.menuBarEditorSingleLine)
+        case .doubleLine: return L(.menuBarEditorDoubleLine)
+        case .doubleLineLargeTop: return L(.menuBarEditorDoubleLineLargeTop)
+        case .doubleLineLargeBottom: return L(.menuBarEditorDoubleLineLargeBottom)
+        }
     }
 
     private func instanceActions(_ instance: MenuBarInstance) -> some View {

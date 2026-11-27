@@ -11,6 +11,7 @@ final class MenuBarInstancesRuntime: NSObject {
     private let statusBarController: StatusBarController
     private let localization: Localization
     private let openSettings: () -> Void
+    private let openMenuBarInstanceSettings: (UUID) -> Void
 
     private var items: MenuBarInstancesController!
     private let provider: MenuBarMetricValueProvider
@@ -28,13 +29,15 @@ final class MenuBarInstancesRuntime: NSObject {
         settings: SettingsStore,
         statusBarController: StatusBarController,
         localization: Localization,
-        openSettings: @escaping () -> Void
+        openSettings: @escaping () -> Void,
+        openMenuBarInstanceSettings: @escaping (UUID) -> Void
     ) {
         self.store = store
         self.settings = settings
         self.statusBarController = statusBarController
         self.localization = localization
         self.openSettings = openSettings
+        self.openMenuBarInstanceSettings = openMenuBarInstanceSettings
         self.provider = MenuBarMetricValueProvider(localize: { localization.string($0) })
         super.init()
     }
@@ -138,10 +141,10 @@ final class MenuBarInstancesRuntime: NSObject {
     /// open until the user clicks elsewhere; exiting the item does not auto-close,
     /// so the pointer can travel into the panel.
     @objc func mouseEntered(with event: NSEvent) {
-        guard let id = instanceID(from: event) else { return }
+        guard settings.showsPanelOnHover, let id = instanceID(from: event) else { return }
         hoverWorkItems[id]?.cancel()
         guard let instance = configuration.instances.first(where: { $0.id == id }),
-              case .showPanel(let raw) = MenuBarInstanceActivationResolver.resolve(instance.hoverAction, forHover: true),
+              case .showPanel(let raw) = MenuBarInstanceActivationResolver.resolve(instance.clickAction, forHover: true),
               let button = buttonByInstance[id] else { return }
         let work = DispatchWorkItem { [weak self] in
             guard let self, !self.statusBarController.isStatusPanelShown else { return }
@@ -222,12 +225,21 @@ final class MenuBarInstancesRuntime: NSObject {
         }
 
         let settings = NSMenuItem(
-            title: localization.string(.menuBarEditorAppSettings),
+            title: localization.string(.menuSettings),
             action: #selector(openAppSettingsFromMenu(_:)),
             keyEquivalent: ""
         )
         settings.target = self
         menu.addItem(settings)
+
+        let editStyle = NSMenuItem(
+            title: localization.string(.menuBarInstanceEditStyle),
+            action: #selector(editInstanceStyle(_:)),
+            keyEquivalent: ""
+        )
+        editStyle.target = self
+        editStyle.representedObject = instance.id.uuidString
+        menu.addItem(editStyle)
         menu.addItem(.separator())
 
         let disable = NSMenuItem(
@@ -243,6 +255,12 @@ final class MenuBarInstancesRuntime: NSObject {
 
     @objc private func openAppSettingsFromMenu(_ sender: NSMenuItem) {
         openSettings()
+    }
+
+    @objc private func editInstanceStyle(_ sender: NSMenuItem) {
+        guard let idString = sender.representedObject as? String,
+              let id = UUID(uuidString: idString) else { return }
+        openMenuBarInstanceSettings(id)
     }
 
     @objc private func disableInstance(_ sender: NSMenuItem) {

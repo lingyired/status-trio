@@ -77,8 +77,24 @@ enum MenuBarMetricID: String, Codable, CaseIterable, Identifiable, Sendable {
 enum MenuBarLayoutMode: String, Codable, CaseIterable, Identifiable, Sendable {
     case singleLine
     case doubleLine
+    /// Two rows with a larger, heavier top row and a smaller bottom row.
+    case doubleLineLargeTop
+    /// Two rows with a smaller top row and a larger, heavier bottom row.
+    case doubleLineLargeBottom
 
     var id: String { rawValue }
+
+    var isDoubleLine: Bool { self != .singleLine }
+
+    /// Base point size when a line has no explicit `fontSize`.
+    func defaultFontSize(isTopRow: Bool) -> Double {
+        switch self {
+        case .singleLine: return 12
+        case .doubleLine: return 9
+        case .doubleLineLargeTop: return isTopRow ? 11 : 8
+        case .doubleLineLargeBottom: return isTopRow ? 8 : 11
+        }
+    }
 }
 
 enum MenuBarElementContent: Equatable, Sendable {
@@ -385,7 +401,7 @@ struct MenuBarInstance: Equatable, Identifiable, Sendable {
         switch layoutMode {
         case .singleLine:
             return top.map { [(.top, $0)] } ?? []
-        case .doubleLine:
+        case .doubleLine, .doubleLineLargeTop, .doubleLineLargeBottom:
             return [top, bottom].compactMap { $0 }.enumerated().map { index, line in
                 (index == 0 ? .top : .bottom, line)
             }

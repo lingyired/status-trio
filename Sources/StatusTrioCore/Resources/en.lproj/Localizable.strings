@@ -1453,6 +1453,7 @@
 "menubar.metric.wifiConnected" = "Connected";
 "menubar.metric.wifiDisconnected" = "Disconnected";
 "menubar.instance.disable" = "Disable This Instance";
+"menubar.instance.editStyle" = "Edit Style…";
 "settings.tab.menuBarInstances" = "Menu Bar Instances";
 "menubar.editor.instances" = "Instances";
 "menubar.editor.new" = "New";
@@ -1489,6 +1490,8 @@
 "menubar.editor.layout" = "Layout";
 "menubar.editor.singleLine" = "Single line";
 "menubar.editor.doubleLine" = "Double line";
+"menubar.editor.doubleLineLargeTop" = "Double (Large Top)";
+"menubar.editor.doubleLineLargeBottom" = "Double (Large Bottom)";
 "menubar.editor.preview" = "Preview";
 "menubar.editor.noContent" = "No content";
 "menubar.editor.selectedElement" = "Selected element";
@@ -1510,6 +1513,8 @@
 "menubar.editor.fontSize" = "Font Size";
 "menubar.editor.character" = "Character";
 "menubar.editor.characterHint" = "Enter one character to use as the icon";
+"menubar.editor.refreshSummary" = "Data refresh: %@";
+"menubar.editor.refreshSecondsFormat" = "%@ %d s";
 "menubar.editor.alignment" = "Alignment";
 "menubar.editor.leading" = "Leading";
 "menubar.editor.center" = "Center";

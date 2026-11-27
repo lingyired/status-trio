@@ -56,10 +56,12 @@ struct MenuBarInstanceEditorView: View {
                 )) {
                     Text(L(.menuBarEditorSingleLine)).tag(MenuBarLayoutMode.singleLine)
                     Text(L(.menuBarEditorDoubleLine)).tag(MenuBarLayoutMode.doubleLine)
+                    Text(L(.menuBarEditorDoubleLineLargeTop)).tag(MenuBarLayoutMode.doubleLineLargeTop)
+                    Text(L(.menuBarEditorDoubleLineLargeBottom)).tag(MenuBarLayoutMode.doubleLineLargeBottom)
                 }
-                .pickerStyle(.segmented)
+                .pickerStyle(.menu)
                 .labelsHidden()
-                .frame(width: 160, alignment: .trailing)
+                .frame(width: 170, alignment: .trailing)
             }
         }
     }
@@ -85,7 +87,7 @@ struct MenuBarInstanceEditorView: View {
                 elementInspector(element)
             }
 
-            if model.instance.layoutMode == .doubleLine {
+            if model.instance.layoutMode.isDoubleLine {
                 SettingsDivider()
                 MenuBarRowCanvasView(
                     model: model,
@@ -101,7 +103,27 @@ struct MenuBarInstanceEditorView: View {
                     elementInspector(element)
                 }
             }
+
+            if !refreshFrequencyText.isEmpty {
+                SettingsDivider()
+                SettingsHintRow(text: refreshFrequencyText)
+            }
         }
+    }
+
+    private var refreshFrequencyText: String {
+        var seen = Set<String>()
+        var parts: [String] = []
+        for metric in model.instance.allMetrics.sorted(by: { $0.rawValue < $1.rawValue }) {
+            guard let seconds = model.refreshSeconds(for: metric) else { continue }
+            let title = L(MenuBarMetricRegistry.titleKey(for: metric))
+            let entry = localization.format(.menuBarEditorRefreshSecondsFormat, title, seconds)
+            if seen.insert(entry).inserted {
+                parts.append(entry)
+            }
+        }
+        guard !parts.isEmpty else { return "" }
+        return localization.format(.menuBarEditorRefreshSummary, parts.joined(separator: " · "))
     }
 
     private var selectedElement: MenuBarElement? {
@@ -202,7 +224,7 @@ struct MenuBarInstanceEditorView: View {
 
     private var rowStyleGroup: some View {
         SettingsGroup(L(.menuBarEditorRowStyle)) {
-            if model.instance.layoutMode == .doubleLine {
+            if model.instance.layoutMode.isDoubleLine {
                 SettingsRow("rectangle.split.2x1", title: L(.menuBarEditorApplyTo)) {
                     Picker("", selection: Binding(
                         get: { selectedSlot },
@@ -315,7 +337,7 @@ struct MenuBarInstanceEditorView: View {
     }
 
     private var fontSizeValue: Double {
-        currentLine?.fontSize ?? (model.instance.layoutMode == .doubleLine ? 9 : 12)
+        currentLine?.fontSize ?? model.instance.layoutMode.defaultFontSize(isTopRow: selectedSlot == .top)
     }
 
     private var currentLine: MenuBarLine? {
@@ -417,17 +439,6 @@ struct MenuBarInstanceEditorView: View {
                 }
             }
 
-            SettingsDivider()
-
-            SettingsRow("cursorarrow.motionlines", title: L(.menuBarEditorHover)) {
-                activationMenu(current: model.instance.hoverAction, allowExternal: false) {
-                    model.setActivation(
-                        click: model.instance.clickAction,
-                        hover: $0,
-                        rightClick: model.instance.rightClick
-                    )
-                }
-            }
         }
     }
 

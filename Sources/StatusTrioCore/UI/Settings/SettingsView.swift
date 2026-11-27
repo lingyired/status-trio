@@ -24,6 +24,8 @@ struct SettingsView: View {
     /// The optional leaf within `consumePendingSection`'s tab, for deep links
     /// that target a specific subpage.
     var consumePendingSubtopic: () -> SettingsSubtopic? = { nil }
+    /// The instance to select when the menu-bar instances tab opens.
+    var consumePendingMenuBarInstance: () -> UUID? = { nil }
 
     @StateObject private var navigation = SettingsNavigationModel()
     /// Kept above the category switch so leaving General does not discard undo or preview.
@@ -38,7 +40,8 @@ struct SettingsView: View {
         chargeToFullNow: ChargeToFullNowController? = nil,
         onShowIconGuide: @escaping () -> Void,
         consumePendingSection: @escaping () -> Section? = { nil },
-        consumePendingSubtopic: @escaping () -> SettingsSubtopic? = { nil }
+        consumePendingSubtopic: @escaping () -> SettingsSubtopic? = { nil },
+        consumePendingMenuBarInstance: @escaping () -> UUID? = { nil }
     ) {
         self.store = store
         self.statusStore = statusStore
@@ -49,6 +52,7 @@ struct SettingsView: View {
         self.onShowIconGuide = onShowIconGuide
         self.consumePendingSection = consumePendingSection
         self.consumePendingSubtopic = consumePendingSubtopic
+        self.consumePendingMenuBarInstance = consumePendingMenuBarInstance
         _transferSession = StateObject(wrappedValue: SettingsTransferSession(store: store, localization: localization))
     }
     /// The live system appearance, so the menu bar preview starts in the same
@@ -502,7 +506,8 @@ struct SettingsView: View {
             MenuBarInstancesSectionView(
                 store: store,
                 localization: localization,
-                previewIsDark: previewIsDarkBinding
+                previewIsDark: previewIsDarkBinding,
+                consumePendingMenuBarInstance: consumePendingMenuBarInstance
             )
         case .about:
             AboutSectionView()

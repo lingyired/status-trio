@@ -333,10 +333,11 @@ struct MenuBarRowCanvasView: View {
         case .placed(let instanceID, let fromSlot, let elementID):
             guard instanceID == model.instance.id else { return false }
             if fromSlot == slot {
-                model.moveElement(id: elementID, to: index, slot: slot)
+                model.moveElement(id: elementID, to: index, slot: slot, persistImmediately: false)
             } else {
-                model.moveElement(id: elementID, from: fromSlot, to: slot, index: index)
+                model.moveElement(id: elementID, from: fromSlot, to: slot, index: index, persistImmediately: false)
             }
+            model.persistSoon()
             selectedSlot = slot
             selectedElementID = elementID
             return true
@@ -836,7 +837,7 @@ struct MenuBarElementPalette: View {
 
     private func L(_ key: LocalizationKey) -> String { localization.string(key) }
 
-    private var isDoubleLine: Bool { model.instance.layoutMode == .doubleLine }
+    private var isDoubleLine: Bool { model.instance.layoutMode.isDoubleLine }
     private var targetSlot: MenuBarLineSlot { isDoubleLine ? selectedSlot : .top }
 
     var body: some View {

@@ -1454,6 +1454,7 @@
 "menubar.metric.wifiConnected" = "已連線";
 "menubar.metric.wifiDisconnected" = "未連線";
 "menubar.instance.disable" = "停用此執行個體";
+"menubar.instance.editStyle" = "修改樣式…";
 "settings.tab.menuBarInstances" = "選單列執行個體";
 "menubar.editor.instances" = "实例";
 "menubar.editor.new" = "新建";
@@ -1490,6 +1491,8 @@
 "menubar.editor.layout" = "布局";
 "menubar.editor.singleLine" = "单行";
 "menubar.editor.doubleLine" = "双行";
+"menubar.editor.doubleLineLargeTop" = "雙行-上大下小";
+"menubar.editor.doubleLineLargeBottom" = "雙行-上小下大";
 "menubar.editor.preview" = "预览";
 "menubar.editor.noContent" = "暂无内容";
 "menubar.editor.selectedElement" = "选中的元素";
@@ -1511,6 +1514,8 @@
 "menubar.editor.fontSize" = "字體大小";
 "menubar.editor.character" = "字元";
 "menubar.editor.characterHint" = "輸入一個字元作為圖示";
+"menubar.editor.refreshSummary" = "資料刷新：%@";
+"menubar.editor.refreshSecondsFormat" = "%@ %d 秒";
 "menubar.editor.alignment" = "对齐";
 "menubar.editor.leading" = "左对齐";
 "menubar.editor.center" = "居中";

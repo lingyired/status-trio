@@ -182,7 +182,10 @@ final class AppEnvironment {
             statusBarController: statusBarController,
             localization: localization,
             openSettings: { [weak self] in
-                self?.settingsWindowController.show(section: .menuBarInstances)
+                self?.settingsWindowController.show()
+            },
+            openMenuBarInstanceSettings: { [weak self] id in
+                self?.settingsWindowController.show(section: .menuBarInstances, menuBarInstanceID: id)
             }
         )
         menuBarRuntime.start()

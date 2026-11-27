@@ -24,7 +24,10 @@ enum MenuBarInstanceRenderer {
     }
 
     static func style(for line: MenuBarLine?, twoLine: Bool) -> LineStyle {
-        let baseSize: CGFloat = twoLine ? 9 : 12
+        style(for: line, baseSize: twoLine ? 9 : 12)
+    }
+
+    static func style(for line: MenuBarLine?, baseSize: CGFloat) -> LineStyle {
         let size = CGFloat(line?.fontSize ?? Double(baseSize))
         let weight: NSFont.Weight = (line?.isBold ?? false) ? .bold : .regular
         let font: NSFont
@@ -40,12 +43,12 @@ enum MenuBarInstanceRenderer {
 
     static func measure(_ input: MenuBarRenderInput, appearance: NSAppearance) -> MenuBarInstanceMeasurement {
         let instance = input.instance
-        let twoLine = instance.layoutMode == .doubleLine && instance.top != nil && instance.bottom != nil
+        let twoLine = instance.layoutMode.isDoubleLine && instance.top != nil && instance.bottom != nil
         let lines: [MenuBarLine?] = twoLine ? [instance.top, instance.bottom] : [instance.top, nil]
         var lineWidths: [Double] = []
         var lineHeights: [Double] = []
 
-        for line in lines {
+        for (index, line) in lines.enumerated() {
             guard let line else {
                 lineWidths.append(0)
                 lineHeights.append(0)
@@ -56,7 +59,8 @@ enum MenuBarInstanceRenderer {
                 lineHeights.append(0)
                 continue
             }
-            let style = style(for: line, twoLine: twoLine)
+            let defaultSize = instance.layoutMode.defaultFontSize(isTopRow: index == 0)
+            let style = style(for: line, baseSize: CGFloat(defaultSize))
             let iconHeight = line.leadingIcon == nil ? 0 : CGFloat(line.leadingIconSize)
             lineWidths.append(Double(elementWidths(line: line, style: style, readings: input.readings).reduce(0, +)))
             lineHeights.append(Double(max(style.height, iconHeight)))
@@ -122,7 +126,7 @@ enum MenuBarInstanceRenderer {
         let size = NSSize(width: CGFloat(measurement.totalWidth), height: CGFloat(measurement.totalHeight))
         guard size.width > 0, size.height > 0 else { return nil }
         let instance = input.instance
-        let twoLine = instance.layoutMode == .doubleLine && instance.top != nil && instance.bottom != nil
+        let twoLine = instance.layoutMode.isDoubleLine && instance.top != nil && instance.bottom != nil
         let lines: [MenuBarLine?] = twoLine ? [instance.top, instance.bottom] : [instance.top, nil]
 
         let image = NSImage(size: size)
@@ -138,10 +142,11 @@ enum MenuBarInstanceRenderer {
             let contentX = inner + columnWidth
             let contentWidth = size.width - inner * 2 - columnWidth
             var y = size.height
-            for line in lines {
+            for (index, line) in lines.enumerated() {
                 guard let line else { continue }
                 if line.isEmpty && line.leadingIcon == nil { continue }
-                let style = style(for: line, twoLine: twoLine)
+                let defaultSize = instance.layoutMode.defaultFontSize(isTopRow: index == 0)
+                let style = style(for: line, baseSize: CGFloat(defaultSize))
                 let iconSize = line.leadingIcon == nil ? 0 : CGFloat(line.leadingIconSize)
                 let rowHeight = max(style.height, iconSize)
                 y -= rowHeight
