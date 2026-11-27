@@ -405,19 +405,6 @@ struct MenuBarInstanceEditorView: View {
             SettingsDivider()
 
             spacingSliderRow(
-                symbol: "rectangle.expand.vertical",
-                title: L(.menuBarEditorOuterMargin),
-                value: Binding(
-                    get: { model.instance.outerMargin },
-                    set: { model.setPadding(inner: model.instance.innerPadding, outer: $0.rounded()) }
-                ),
-                range: 0...24,
-                display: "\(Int(model.instance.outerMargin))"
-            )
-
-            SettingsDivider()
-
-            spacingSliderRow(
                 symbol: "arrow.left.and.right",
                 title: L(.menuBarEditorMinimumWidth),
                 value: Binding(
