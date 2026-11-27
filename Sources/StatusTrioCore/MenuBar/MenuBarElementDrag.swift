@@ -2,10 +2,6 @@ import CoreTransferable
 import Foundation
 import UniformTypeIdentifiers
 
-extension UTType {
-    static let menuBarElement = UTType(exportedAs: "com.lingsmbp.statustrio.menubarelement")
-}
-
 /// A drag payload for the menu-bar element editor. Palette items create a new
 /// element; placed items move an existing one (by stable id).
 struct MenuBarElementDragPayload: Codable, Transferable, Equatable {
@@ -17,7 +13,7 @@ struct MenuBarElementDragPayload: Codable, Transferable, Equatable {
     var source: Source
 
     static var transferRepresentation: some TransferRepresentation {
-        CodableRepresentation(contentType: .menuBarElement)
+        CodableRepresentation(contentType: .json)
     }
 }
 
