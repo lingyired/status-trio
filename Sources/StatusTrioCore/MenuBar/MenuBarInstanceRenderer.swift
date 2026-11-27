@@ -57,19 +57,25 @@ enum MenuBarInstanceRenderer {
                 continue
             }
             let style = style(for: line, twoLine: twoLine)
+            let iconHeight = line.leadingIcon == nil ? 0 : CGFloat(line.leadingIconSize)
             lineWidths.append(Double(elementWidths(line: line, style: style, readings: input.readings).reduce(0, +)))
-            lineHeights.append(Double(style.height))
+            lineHeights.append(Double(max(style.height, iconHeight)))
         }
 
         let hasLeadingIcon = lines.contains { $0?.leadingIcon != nil }
-        let columnWidth: CGFloat = hasLeadingIcon ? 18 + columnGap : 0
+        let maxIconSize = lines.compactMap { $0?.leadingIcon == nil ? nil : $0?.leadingIconSize }.max() ?? 18
+        let columnWidth: CGFloat = hasLeadingIcon ? CGFloat(max(18, maxIconSize)) + columnGap : 0
         let contentWidth = (lineWidths.max() ?? 0).cgFloat + columnWidth
         // `outerMargin` is no longer exposed in the editor: at render time it
         // only widened the item asymmetrically instead of separating it from
         // neighbouring status items. Keep the stored field for compatibility,
         // but do not let it inflate the measured width.
         var totalWidth = contentWidth + CGFloat(instance.innerPadding * 2)
-        if let minimum = instance.minimumWidth { totalWidth = max(totalWidth, CGFloat(minimum)) }
+        if let fixed = instance.minimumWidth {
+            // The editor labels this "固定宽度": use it verbatim so a changing
+            // memory/reading string cannot resize the status item.
+            totalWidth = CGFloat(fixed)
+        }
         let totalHeight = max(1, lineHeights.reduce(0, +))
         return MenuBarInstanceMeasurement(
             lineWidths: lineWidths,
@@ -126,7 +132,8 @@ enum MenuBarInstanceRenderer {
             guard let context = NSGraphicsContext.current else { return }
             context.imageInterpolation = .high
             let hasLeadingIcon = lines.contains { $0?.leadingIcon != nil }
-            let columnWidth: CGFloat = hasLeadingIcon ? 18 + columnGap : 0
+            let maxIconSize = lines.compactMap { $0?.leadingIcon == nil ? nil : $0?.leadingIconSize }.max() ?? 18
+            let columnWidth: CGFloat = hasLeadingIcon ? CGFloat(max(18, maxIconSize)) + columnGap : 0
             let inner = CGFloat(instance.innerPadding)
             let contentX = inner + columnWidth
             let contentWidth = size.width - inner * 2 - columnWidth
@@ -135,22 +142,38 @@ enum MenuBarInstanceRenderer {
                 guard let line else { continue }
                 if line.isEmpty && line.leadingIcon == nil { continue }
                 let style = style(for: line, twoLine: twoLine)
-                y -= style.height
+                let iconSize = line.leadingIcon == nil ? 0 : CGFloat(line.leadingIconSize)
+                let rowHeight = max(style.height, iconSize)
+                y -= rowHeight
 
                 if let leading = line.leadingIcon {
-                    let box = min(18, style.height)
                     let rect = NSRect(
                         x: inner,
-                        y: y + (style.height - box) / 2,
-                        width: box,
-                        height: box
+                        y: y + (rowHeight - iconSize) / 2,
+                        width: iconSize,
+                        height: iconSize
                     )
-                    let tint = nsColor(for: MenuBarMetricColorResolver.appliedColor(line: line.color, source: nil))
-                        ?? NSColor.labelColor
+                    let tint: NSColor
+                    if let fixed = line.leadingIconColor {
+                        tint = NSColor(
+                            srgbRed: CGFloat(fixed.red),
+                            green: CGFloat(fixed.green),
+                            blue: CGFloat(fixed.blue),
+                            alpha: CGFloat(fixed.alpha)
+                        )
+                    } else {
+                        tint = nsColor(for: MenuBarMetricColorResolver.appliedColor(line: line.color, source: nil))
+                            ?? NSColor.labelColor
+                    }
                     drawIcon(leading, in: rect, tintColor: tint)
                 }
 
-                let lineRect = NSRect(x: contentX, y: y, width: contentWidth, height: style.height)
+                let lineRect = NSRect(
+                    x: contentX,
+                    y: y + (rowHeight - style.height) / 2,
+                    width: contentWidth,
+                    height: style.height
+                )
                 draw(line: line, in: lineRect, style: style, input: input)
             }
         }

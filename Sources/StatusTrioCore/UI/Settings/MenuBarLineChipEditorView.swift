@@ -99,10 +99,19 @@ struct MenuBarRowCanvasView: View {
                 .popover(isPresented: $showingLeadingIconPicker, arrowEdge: .bottom) {
                     MenuBarLeadingIconPicker(
                         spec: line?.leadingIcon,
-                        localization: localization
-                    ) { icon in
-                        model.setLeadingIcon(icon, slot: slot)
-                    }
+                        size: line?.leadingIconSize ?? 18,
+                        color: line?.leadingIconColor,
+                        localization: localization,
+                        onChange: { icon in
+                            model.setLeadingIcon(icon, slot: slot)
+                        },
+                        onSizeChange: { size in
+                            model.setLeadingIconSize(size, slot: slot)
+                        },
+                        onColorChange: { color in
+                            model.setLeadingIconColor(color, slot: slot)
+                        }
+                    )
                 }
 
                 Text(title)
@@ -295,8 +304,12 @@ struct MenuBarRowCanvasView: View {
 /// field remains for symbols outside the curated list.
 struct MenuBarLeadingIconPicker: View {
     let spec: MenuBarIconSpec?
+    let size: Double
+    let color: ColorValue?
     let localization: Localization
     let onChange: (MenuBarIconSpec?) -> Void
+    let onSizeChange: (Double) -> Void
+    let onColorChange: (ColorValue?) -> Void
 
     @Environment(\.dismiss) private var dismiss
     @State private var tab = 0
@@ -411,6 +424,8 @@ struct MenuBarLeadingIconPicker: View {
             case 1: emojiGrid
             default: assetEntry
             }
+
+            iconOptions
 
             Divider()
 
@@ -571,6 +586,68 @@ struct MenuBarLeadingIconPicker: View {
         }
     }
 
+    private var iconOptions: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 8) {
+                Text(L(.menuBarEditorIconSize))
+                    .font(.system(size: 10.5))
+                    .foregroundStyle(.secondary)
+                    .frame(width: 44, alignment: .leading)
+                Slider(
+                    value: Binding(
+                        get: { size },
+                        set: { onSizeChange($0.rounded()) }
+                    ),
+                    in: 10...30
+                )
+                Text("\(Int(size))")
+                    .font(.system(size: 10.5))
+                    .monospacedDigit()
+                    .frame(width: 24, alignment: .trailing)
+            }
+
+            HStack(spacing: 8) {
+                Text(L(.menuBarEditorIconColor))
+                    .font(.system(size: 10.5))
+                    .foregroundStyle(.secondary)
+                    .frame(width: 44, alignment: .leading)
+                Menu {
+                    Button(L(.menuBarEditorMatchTextColor)) { onColorChange(nil) }
+                } label: {
+                    Text(color == nil ? L(.menuBarEditorMatchTextColor) : L(.menuBarEditorCustomColor))
+                }
+                .menuStyle(.borderlessButton)
+                .fixedSize()
+                ColorPicker("", selection: iconColorBinding, supportsOpacity: false)
+                    .labelsHidden()
+                    .frame(width: 36)
+                    .help(L(.menuBarEditorIconColor))
+            }
+        }
+        .disabled(spec == nil)
+        .opacity(spec == nil ? 0.45 : 1)
+    }
+
+    private var iconColorBinding: Binding<Color> {
+        Binding(
+            get: {
+                if let color {
+                    return Color(red: color.red, green: color.green, blue: color.blue, opacity: color.alpha)
+                }
+                return Color(nsColor: .labelColor)
+            },
+            set: { newColor in
+                let resolved = NSColor(newColor).usingColorSpace(.sRGB) ?? .systemBlue
+                onColorChange(ColorValue(
+                    red: Double(resolved.redComponent),
+                    green: Double(resolved.greenComponent),
+                    blue: Double(resolved.blueComponent),
+                    alpha: Double(resolved.alphaComponent)
+                ))
+            }
+        )
+    }
+
     private var searchField: some View {
         HStack(spacing: 6) {
             Image(systemName: "magnifyingglass")
@@ -597,8 +674,9 @@ struct MenuBarLeadingIconPicker: View {
     }
 
     private func apply(_ icon: MenuBarIconSpec) {
+        // Keep the popover open so the size/colour controls below the grid can
+        // be adjusted immediately after picking an icon.
         onChange(icon)
-        dismiss()
     }
 
     private func addCustomEmoji() {

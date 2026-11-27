@@ -145,6 +145,12 @@ struct MenuBarLine: Equatable, Sendable {
     /// arrow with a right-aligned value on the first row and a down arrow with
     /// a right-aligned value on the second.
     var leadingIcon: MenuBarIconSpec?
+    /// Point size of `leadingIcon`; the row grows vertically when the icon is
+    /// taller than its text.
+    var leadingIconSize: Double
+    /// Fixed colour for the leading icon. `nil` means it follows the line's
+    /// text colour.
+    var leadingIconColor: ColorValue?
     var color: LineColor
     var isBold: Bool
     var fontSize: Double?
@@ -154,6 +160,8 @@ struct MenuBarLine: Equatable, Sendable {
     init(
         elements: [MenuBarElement] = [],
         leadingIcon: MenuBarIconSpec? = nil,
+        leadingIconSize: Double = 18,
+        leadingIconColor: ColorValue? = nil,
         color: LineColor = .systemDefault,
         isBold: Bool = false,
         fontSize: Double? = nil,
@@ -162,6 +170,8 @@ struct MenuBarLine: Equatable, Sendable {
     ) {
         self.elements = elements
         self.leadingIcon = leadingIcon
+        self.leadingIconSize = leadingIconSize
+        self.leadingIconColor = leadingIconColor
         self.color = color
         self.isBold = isBold
         self.fontSize = fontSize
@@ -186,7 +196,7 @@ struct MenuBarLine: Equatable, Sendable {
 
 extension MenuBarLine: Codable {
     private enum CodingKeys: String, CodingKey {
-        case elements, leadingIcon, color, isBold, fontSize, usesMonospacedDigits, alignment
+        case elements, leadingIcon, leadingIconSize, leadingIconColor, color, isBold, fontSize, usesMonospacedDigits, alignment
     }
     // Legacy v1 keys.
     private enum LegacyKeys: String, CodingKey {
@@ -214,6 +224,8 @@ extension MenuBarLine: Codable {
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         self.leadingIcon = try container.decodeIfPresent(MenuBarIconSpec.self, forKey: .leadingIcon)
+        self.leadingIconSize = try container.decodeIfPresent(Double.self, forKey: .leadingIconSize) ?? 18
+        self.leadingIconColor = try container.decodeIfPresent(ColorValue.self, forKey: .leadingIconColor)
         self.color = try container.decodeIfPresent(LineColor.self, forKey: .color) ?? .systemDefault
         self.isBold = try container.decodeIfPresent(Bool.self, forKey: .isBold) ?? false
         self.fontSize = try container.decodeIfPresent(Double.self, forKey: .fontSize)
@@ -250,6 +262,8 @@ extension MenuBarLine: Codable {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(elements, forKey: .elements)
         try container.encodeIfPresent(leadingIcon, forKey: .leadingIcon)
+        try container.encode(leadingIconSize, forKey: .leadingIconSize)
+        try container.encodeIfPresent(leadingIconColor, forKey: .leadingIconColor)
         try container.encode(color, forKey: .color)
         try container.encode(isBold, forKey: .isBold)
         try container.encodeIfPresent(fontSize, forKey: .fontSize)

@@ -1470,6 +1470,10 @@
 "menubar.editor.systemDefault" = "系统默认";
 "menubar.editor.leadingIcon" = "行首图标";
 "menubar.editor.searchIcons" = "搜索图标";
+"menubar.editor.fixedWidth" = "固定宽度";
+"menubar.editor.iconSize" = "图标大小";
+"menubar.editor.iconColor" = "图标颜色";
+"menubar.editor.matchTextColor" = "跟随文字颜色";
 "menubar.editor.paletteHint" = "把指标拖进任意一行，或点击添加到当前选中的行。";
 "menubar.editor.metrics" = "指标";
 "menubar.editor.textIcons" = "文字与图标";

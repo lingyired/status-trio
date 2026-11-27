@@ -131,6 +131,14 @@ final class MenuBarInstanceEditorModel: ObservableObject {
         mutateLine(slot) { $0.leadingIcon = icon }
     }
 
+    func setLeadingIconSize(_ size: Double, slot: MenuBarLineSlot) {
+        mutateLine(slot) { $0.leadingIconSize = min(30, max(10, size)) }
+    }
+
+    func setLeadingIconColor(_ color: ColorValue?, slot: MenuBarLineSlot) {
+        mutateLine(slot) { $0.leadingIconColor = color }
+    }
+
     func setMinimumWidth(_ width: Double) {
         instance.minimumWidth = width <= 0 ? nil : min(400, max(20, width))
         persist()

@@ -106,6 +106,32 @@ final class MenuBarInstanceRendererTests: XCTestCase {
         XCTAssertGreaterThanOrEqual(measurement.totalWidth, 220)
     }
 
+    func testFixedWidthDoesNotGrowWithContent() {
+        var instance = MenuBarInstance(
+            top: MenuBarLine(segments: [.text("1234567890123456789012345678901234567890")])
+        )
+        instance.minimumWidth = 220
+        let measurement = MenuBarInstanceRenderer.measure(
+            MenuBarRenderInput(instance: instance, readings: [:]),
+            appearance: appearance
+        )
+        XCTAssertEqual(measurement.totalWidth, 220, accuracy: 0.001)
+    }
+
+    func testLeadingIconSizeGrowsTheRow() {
+        let line = MenuBarLine(
+            elements: [MenuBarElement(content: .text("13 KB/s"))],
+            leadingIcon: MenuBarIconSpec(source: .sfSymbol("arrow.up")),
+            leadingIconSize: 24
+        )
+        let measurement = MenuBarInstanceRenderer.measure(
+            input(top: line),
+            appearance: appearance
+        )
+        XCTAssertEqual(measurement.lineHeights[0], 24, accuracy: 0.001)
+        XCTAssertEqual(measurement.totalWidth, measurement.lineWidths[0] + 24 + 3, accuracy: 0.6)
+    }
+
     func testMetricShowsDashWhenMissing() {
         let result = MenuBarInstanceRenderer.measure(
             input(top: MenuBarLine(segments: [.metric(.gpuUsage)])),

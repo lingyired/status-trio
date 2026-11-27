@@ -434,7 +434,7 @@ struct MenuBarInstanceEditorView: View {
 
             spacingSliderRow(
                 symbol: "arrow.left.and.right",
-                title: L(.menuBarEditorMinimumWidth),
+                title: L(.menuBarEditorFixedWidth),
                 value: Binding(
                     get: { model.instance.minimumWidth ?? 0 },
                     set: { model.setMinimumWidth(($0 / 10).rounded() * 10) }
