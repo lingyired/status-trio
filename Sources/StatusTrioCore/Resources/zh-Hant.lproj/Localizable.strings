@@ -1513,3 +1513,7 @@
 "menubar.editor.removeSelected" = "删除选中元素";
 "menubar.editor.name" = "名称";
 "menubar.editor.minimumWidth" = "最小宽度";
+"menubar.editor.iconType" = "图标类型";
+"menubar.editor.iconSymbol" = "SF Symbol 名称";
+"menubar.editor.iconEmoji" = "Emoji";
+"menubar.editor.iconAsset" = "资源名称";

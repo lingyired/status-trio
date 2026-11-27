@@ -12,7 +12,7 @@ struct MenuBarEditorChipLabel: View {
     var body: some View {
         HStack(spacing: 4) {
             Image(systemName: systemImage).font(.caption2)
-            Text(title).font(compact ? .caption : .callout).lineLimit(1)
+            Text(title).font(.callout).lineLimit(1)
         }
         .padding(.horizontal, compact ? 6 : 8)
         .padding(.vertical, compact ? 3 : 4)

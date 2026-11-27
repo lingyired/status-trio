@@ -5,6 +5,7 @@ struct MenuBarInstanceEditorView: View {
     let localization: Localization
     @Binding var selectedSlot: MenuBarLineSlot
     @State private var selectedElementID: UUID?
+    @State private var previewIsDark = true
 
     private func L(_ key: LocalizationKey) -> String { localization.string(key) }
 
@@ -37,20 +38,36 @@ struct MenuBarInstanceEditorView: View {
                 }
 
                 SettingsGroup(L(.menuBarEditorPreview)) {
-                    HStack {
-                        HStack {
-                            if let image = model.previewImage() {
-                                Image(nsImage: image).padding(.horizontal, 10).padding(.vertical, 6)
-                            } else {
-                                Text(L(.menuBarEditorNoContent)).foregroundStyle(.secondary)
-                                    .padding(.horizontal, 10).padding(.vertical, 6)
-                            }
+                    VStack(spacing: 8) {
+                        Picker("", selection: $previewIsDark) {
+                            Text(L(.settingsPreviewLight)).tag(false)
+                            Text(L(.settingsPreviewDark)).tag(true)
                         }
-                        .background(RoundedRectangle(cornerRadius: 6).fill(Color.black.opacity(0.82)))
-                        Spacer()
+                        .pickerStyle(.segmented)
+                        .labelsHidden()
+                        .frame(width: 160)
+                        .padding(.top, 8)
+
+                        HStack(spacing: 6) {
+                            Image(systemName: "apple.logo").font(.system(size: 12))
+                            Text("Finder").font(.system(size: 12))
+                            Spacer()
+                            if let image = model.previewImage(dark: previewIsDark) {
+                                Image(nsImage: image).padding(.horizontal, 6)
+                            } else {
+                                Text(L(.menuBarEditorNoContent)).font(.caption)
+                            }
+                            Image(systemName: "battery.100").font(.system(size: 12))
+                            Text("9:41").font(.system(size: 12)).monospacedDigit()
+                        }
+                        .foregroundStyle(previewIsDark ? Color.white : Color.black)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 6)
+                        .background(RoundedRectangle(cornerRadius: 6).fill(previewIsDark ? Color.black.opacity(0.85) : Color.white.opacity(0.96)))
+                        .overlay(RoundedRectangle(cornerRadius: 6).stroke(Color.secondary.opacity(0.25), lineWidth: 1))
+                        .padding(.horizontal, SettingsMetrics.rowPaddingH)
+                        .padding(.bottom, 8)
                     }
-                    .padding(.horizontal, SettingsMetrics.rowPaddingH)
-                    .padding(.vertical, 8)
                 }
 
                 MenuBarRowCanvasView(
@@ -118,8 +135,8 @@ struct MenuBarInstanceEditorView: View {
                     .padding(.vertical, 8)
                 case .metric(let metric):
                     SettingsRow("chart.bar", title: localization.format(.menuBarEditorDataSourceFormat, L(MenuBarMetricRegistry.titleKey(for: metric)))) { EmptyView() }
-                case .icon:
-                    SettingsHintRow(text: L(.menuBarEditorIconHint))
+                case .icon(let icon):
+                    iconEditor(icon: icon, elementID: element.id)
                 }
             } else {
                 SettingsHintRow(text: L(.menuBarEditorSelectHint))
@@ -210,6 +227,66 @@ struct MenuBarInstanceEditorView: View {
                     model.setActivation(click: model.instance.clickAction, hover: $0, rightClick: model.instance.rightClick)
                 }
             }
+        }
+    }
+
+    @ViewBuilder
+    private func iconEditor(icon: MenuBarIconSpec, elementID: UUID) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Picker("", selection: Binding(
+                get: { iconKind(icon) },
+                set: { kind in
+                    model.updateIcon(iconWithKind(kind, text: iconText(icon), tint: icon.tint), elementID: elementID, slot: selectedSlot)
+                }
+            )) {
+                Text("SF Symbol").tag(0)
+                Text(L(.menuBarEditorIconEmoji)).tag(1)
+                Text("Asset").tag(2)
+            }
+            .pickerStyle(.segmented)
+            .labelsHidden()
+
+            TextField(iconPlaceholder(icon), text: Binding(
+                get: { iconText(icon) },
+                set: { text in
+                    model.updateIcon(iconWithKind(iconKind(icon), text: text, tint: icon.tint), elementID: elementID, slot: selectedSlot)
+                }
+            ))
+            .textFieldStyle(.roundedBorder)
+        }
+        .padding(.horizontal, SettingsMetrics.rowPaddingH)
+        .padding(.vertical, 8)
+    }
+
+    private func iconKind(_ icon: MenuBarIconSpec) -> Int {
+        switch icon.source {
+        case .sfSymbol: return 0
+        case .emoji: return 1
+        case .asset: return 2
+        }
+    }
+
+    private func iconText(_ icon: MenuBarIconSpec) -> String {
+        switch icon.source {
+        case .sfSymbol(let name): return name
+        case .emoji(let value): return value
+        case .asset(let name): return name
+        }
+    }
+
+    private func iconPlaceholder(_ icon: MenuBarIconSpec) -> String {
+        switch icon.source {
+        case .sfSymbol: return L(.menuBarEditorIconSymbol)
+        case .emoji: return L(.menuBarEditorIconEmoji)
+        case .asset: return L(.menuBarEditorIconAsset)
+        }
+    }
+
+    private func iconWithKind(_ kind: Int, text: String, tint: Bool) -> MenuBarIconSpec {
+        switch kind {
+        case 0: return MenuBarIconSpec(source: .sfSymbol(text), tint: tint)
+        case 1: return MenuBarIconSpec(source: .emoji(text), tint: false)
+        default: return MenuBarIconSpec(source: .asset(text), tint: tint)
         }
     }
 

@@ -25,7 +25,7 @@ struct MenuBarInstancesSectionView: View {
         HSplitView {
             instanceColumn.frame(minWidth: 170, idealWidth: 200, maxWidth: 260)
             canvasColumn.frame(minWidth: 320)
-            paletteColumn.frame(minWidth: 190, idealWidth: 210, maxWidth: 260)
+            paletteColumn.frame(minWidth: 220, idealWidth: 240, maxWidth: 300)
         }
         .onAppear { ensureSelection() }
         .onChange(of: store.menuBarInstances) { _ in ensureSelection() }
@@ -115,7 +115,7 @@ struct MenuBarInstancesSectionView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 10) {
                     Text(L(.menuBarEditorMetrics)).font(.caption).foregroundStyle(.secondary)
-                    LazyVGrid(columns: [GridItem(.adaptive(minimum: 92), spacing: 4)], alignment: .leading, spacing: 6) {
+                    LazyVGrid(columns: [GridItem(.adaptive(minimum: 104), spacing: 4)], alignment: .leading, spacing: 6) {
                         ForEach(filteredMetrics) { metric in
                             paletteChip(label: L(MenuBarMetricRegistry.titleKey(for: metric)),
                                         systemImage: symbol(for: metric),
@@ -123,7 +123,7 @@ struct MenuBarInstancesSectionView: View {
                         }
                     }
                     Text(L(.menuBarEditorTextIcons)).font(.caption).foregroundStyle(.secondary).padding(.top, 4)
-                    LazyVGrid(columns: [GridItem(.adaptive(minimum: 92), spacing: 4)], alignment: .leading, spacing: 6) {
+                    LazyVGrid(columns: [GridItem(.adaptive(minimum: 104), spacing: 4)], alignment: .leading, spacing: 6) {
                         paletteChip(label: L(.menuBarEditorText), systemImage: "textformat", content: .text("Text"))
                         paletteChip(label: "Emoji", systemImage: "face.smiling", content: .icon(MenuBarIconSpec(source: .emoji("🔥"))))
                         ForEach(["cpu", "memorychip", "gauge", "thermometer", "fan"], id: \.self) { symbol in

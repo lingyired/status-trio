@@ -1513,3 +1513,7 @@
 "menubar.editor.removeSelected" = "Remove selected element";
 "menubar.editor.name" = "Name";
 "menubar.editor.minimumWidth" = "Minimum width";
+"menubar.editor.iconType" = "Icon type";
+"menubar.editor.iconSymbol" = "SF Symbol name";
+"menubar.editor.iconEmoji" = "Emoji";
+"menubar.editor.iconAsset" = "Asset name";

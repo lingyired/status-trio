@@ -60,6 +60,13 @@ final class MenuBarInstanceEditorModel: ObservableObject {
         }
     }
 
+    func updateIcon(_ icon: MenuBarIconSpec, elementID: UUID, slot: MenuBarLineSlot) {
+        mutateLine(slot) { line in
+            guard let index = line.elements.firstIndex(where: { $0.id == elementID }) else { return }
+            line.elements[index].content = .icon(icon)
+        }
+    }
+
     func updateText(_ text: String, elementID: UUID, slot: MenuBarLineSlot) {
         mutateLine(slot) { line in
             guard let index = line.elements.firstIndex(where: { $0.id == elementID }) else { return }
@@ -126,7 +133,7 @@ final class MenuBarInstanceEditorModel: ObservableObject {
 
     // MARK: - Preview
 
-    func previewImage() -> NSImage? {
+    func previewImage(dark: Bool = true) -> NSImage? {
         var readings: [MenuBarMetricID: MenuBarMetricReading] = [:]
         for metric in instance.allMetrics {
             if metric == .wifiConnectionStatus {
@@ -144,7 +151,7 @@ final class MenuBarInstanceEditorModel: ObservableObject {
             readings: readings,
             colorOverrides: store.hardwareMonitorMetricColors
         )
-        let appearance = NSAppearance(named: .darkAqua) ?? NSAppearance(named: .aqua)!
+        let appearance = NSAppearance(named: dark ? .darkAqua : .aqua) ?? NSAppearance(named: .aqua)!
         return MenuBarInstanceRenderer.render(input, appearance: appearance, scale: 2)
     }
 

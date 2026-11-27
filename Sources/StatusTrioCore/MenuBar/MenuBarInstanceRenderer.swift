@@ -182,17 +182,34 @@ enum MenuBarInstanceRenderer {
         return NSColor(srgbRed: CGFloat(rgba.red), green: CGFloat(rgba.green), blue: CGFloat(rgba.blue), alpha: CGFloat(rgba.alpha))
     }
 
+    private static func tinted(_ image: NSImage, color: NSColor) -> NSImage {
+        let result = NSImage(size: image.size)
+        result.lockFocus()
+        let rect = NSRect(origin: .zero, size: image.size)
+        color.setFill()
+        rect.fill()
+        image.draw(in: rect, from: .zero, operation: .destinationIn, fraction: 1)
+        result.unlockFocus()
+        result.isTemplate = false
+        return result
+    }
+
     private static func drawIcon(_ spec: MenuBarIconSpec, in rect: NSRect, tintColor: NSColor) {
         switch spec.source {
         case .sfSymbol(let name):
             guard let symbol = NSImage(systemSymbolName: name, accessibilityDescription: nil) else { return }
-            symbol.isTemplate = spec.tint
-            if spec.tint { tintColor.set() }
-            symbol.draw(in: rect, from: .zero, operation: .sourceOver, fraction: 1)
+            let image: NSImage
+            if spec.tint {
+                let config = NSImage.SymbolConfiguration(paletteColors: [tintColor])
+                image = symbol.withSymbolConfiguration(config) ?? symbol
+            } else {
+                image = symbol
+            }
+            image.draw(in: rect, from: .zero, operation: .sourceOver, fraction: 1)
         case .asset(let name):
             guard let asset = NSImage(named: name) else { return }
-            asset.isTemplate = spec.tint
-            asset.draw(in: rect, from: .zero, operation: .sourceOver, fraction: 1)
+            let image = spec.tint ? tinted(asset, color: tintColor) : asset
+            image.draw(in: rect, from: .zero, operation: .sourceOver, fraction: 1)
         case .emoji(let emoji):
             let font = NSFont.systemFont(ofSize: rect.height)
             let attributed = NSAttributedString(string: emoji, attributes: [.font: font])
