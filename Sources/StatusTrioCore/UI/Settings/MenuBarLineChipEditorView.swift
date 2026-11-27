@@ -386,14 +386,11 @@ struct MenuBarLeadingIconPicker: View {
     let onChange: (MenuBarIconSpec?) -> Void
     var onSizeChange: ((Double) -> Void)? = nil
     var onColorChange: ((ColorValue?) -> Void)? = nil
-    var initialTab: Int = 0
     var dismissOnPick: Bool = true
     var titleKey: LocalizationKey = .menuBarEditorLeadingIcon
 
     @Environment(\.dismiss) private var dismiss
-    @State private var tab = 0
     @State private var search = ""
-    @State private var customEmoji = ""
     @State private var visibleCount = 240
 
     private static let pageSize = 240
@@ -464,37 +461,6 @@ struct MenuBarLeadingIconPicker: View {
         "info.circle", "questionmark.circle", "plus", "minus", "xmark", "ellipsis"
     ]
 
-    private static let emoji: [String] = [
-        // Arrows and transport
-        "⬆️", "⬇️", "⬅️", "➡️", "↗️", "↘️", "↙️", "↖️",
-        "🔄", "🔁", "🔃", "⏫", "⏬", "⏪", "⏩", "⏸️",
-        // Status and alerts
-        "✅", "❌", "⚠️", "ℹ️", "❓", "❔", "❗️", "‼️",
-        "💤", "🚫", "⛔️", "🔔", "🔕", "🔇", "🔊", "📢",
-        // Network and weather
-        "📶", "📡", "🌐", "☁️", "🌩️", "🌧️", "⛈️", "🌤️",
-        "⛅️", "☀️", "🌙", "⭐️", "✨", "💧", "❄️", "🌪️",
-        // Power and hardware
-        "⚡️", "🔥", "🔋", "🪫", "🔌", "💻", "🖥️", "💽",
-        "💾", "💿", "📀", "📱", "⌚️", "🎧", "🎤", "📷",
-        // Tools and data
-        "⚙️", "🔧", "🔨", "🛠️", "🧰", "🔩", "📊", "📈",
-        "📉", "📋", "📌", "📍", "🗂️", "📁", "📂", "🗑️",
-        // Time and misc
-        "⏱️", "⏲️", "⏰", "🕐", "🕑", "🕒", "🕓", "🕔",
-        "🕕", "🕖", "🕗", "🕘", "🕙", "🕚", "🕛", "🚀",
-        // Mood and hands
-        "😀", "😃", "😄", "😁", "😆", "😅", "😂", "🤣",
-        "😊", "🙂", "🙃", "😉", "😇", "🥰", "😍", "🤩",
-        "😘", "😎", "🤓", "🧐", "🤔", "🤗", "🤭", "🤫",
-        "😴", "😪", "😮", "😲", "😱", "😨", "😰", "😥",
-        "😢", "😭", "😤", "😡", "🤬", "👍", "👎", "👌",
-        "✌️", "🤞", "🫶", "👏", "🙌", "🙏", "💪", "🎉",
-        // Celebration and hearts
-        "🎊", "🎈", "🎯", "🏆", "🥇", "❤️", "🧡", "💛",
-        "💚", "💙", "💜", "🖤", "🤍", "🤎", "💔", "🔒"
-    ]
-
     private var filteredSymbols: [String] {
         let query = search.trimmingCharacters(in: .whitespaces)
         guard !query.isEmpty else { return Self.orderedSymbols }
@@ -513,18 +479,7 @@ struct MenuBarLeadingIconPicker: View {
         VStack(alignment: .leading, spacing: 12) {
             header
 
-            Picker("", selection: $tab) {
-                Text("SF Symbol").tag(0)
-                Text(L(.menuBarEditorIconEmoji)).tag(1)
-            }
-            .pickerStyle(.segmented)
-            .labelsHidden()
-
-            if tab == 0 {
-                symbolGrid
-            } else {
-                emojiGrid
-            }
+            symbolGrid
 
             iconOptions
 
@@ -541,7 +496,6 @@ struct MenuBarLeadingIconPicker: View {
         }
         .padding(14)
         .frame(width: 380)
-        .onAppear { tab = initialTab }
     }
 
     private var header: some View {
@@ -647,33 +601,6 @@ struct MenuBarLeadingIconPicker: View {
         }
     }
 
-    private var emojiGrid: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            ScrollView {
-                LazyVGrid(columns: gridColumns, spacing: 6) {
-                    ForEach(Self.emoji, id: \.self) { emoji in
-                        IconPickerTile(
-                            emoji: emoji,
-                            isSelected: isSelected(.emoji(emoji))
-                        ) {
-                            apply(MenuBarIconSpec(source: .emoji(emoji), tint: false))
-                        }
-                    }
-                }
-                .padding(2)
-            }
-            .frame(height: 236)
-
-            HStack(spacing: 8) {
-                TextField(L(.menuBarEditorIconEmoji), text: $customEmoji)
-                    .textFieldStyle(.roundedBorder)
-                    .onSubmit { addCustomEmoji() }
-                Button(L(.menuBarEditorAdd)) { addCustomEmoji() }
-                    .disabled(customEmoji.trimmingCharacters(in: .whitespaces).isEmpty)
-            }
-        }
-    }
-
     @ViewBuilder
     private var iconOptions: some View {
         if let size, let onSizeChange, let onColorChange {
@@ -770,12 +697,6 @@ struct MenuBarLeadingIconPicker: View {
         if dismissOnPick { dismiss() }
     }
 
-    private func addCustomEmoji() {
-        let value = customEmoji.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !value.isEmpty else { return }
-        apply(MenuBarIconSpec(source: .emoji(value), tint: false))
-    }
-
 }
 
 private struct IconPickerTile: View {
@@ -829,7 +750,6 @@ struct MenuBarElementPalette: View {
     @Binding var selectedElementID: UUID?
 
     @State private var showingIconPicker = false
-    @State private var iconPickerInitialTab = 0
 
     private func L(_ key: LocalizationKey) -> String { localization.string(key) }
 
@@ -873,13 +793,7 @@ struct MenuBarElementPalette: View {
                     paletteChip(.text(""), title: L(.menuBarEditorText), symbol: "textformat")
                     palettePickerChip(
                         title: L(.menuBarEditorCustomIcon),
-                        symbol: "square.grid.2x2",
-                        tab: 0
-                    )
-                    palettePickerChip(
-                        title: L(.menuBarEditorIconEmoji),
-                        symbol: "face.smiling",
-                        tab: 1
+                        symbol: "square.grid.2x2"
                     )
                     ForEach(["cpu", "memorychip", "gauge", "thermometer", "fan"], id: \.self) { name in
                         paletteChip(
@@ -902,7 +816,6 @@ struct MenuBarElementPalette: View {
                         add(.icon(icon))
                     }
                 },
-                initialTab: iconPickerInitialTab,
                 titleKey: .menuBarEditorChooseIcon
             )
         }
@@ -937,10 +850,9 @@ struct MenuBarElementPalette: View {
             .accessibilityAction { add(content) }
     }
 
-    private func palettePickerChip(title: String, symbol: String, tab: Int) -> some View {
+    private func palettePickerChip(title: String, symbol: String) -> some View {
         MenuBarEditorChipLabel(title: title, systemImage: symbol, compact: true)
             .onTapGesture {
-                iconPickerInitialTab = tab
                 showingIconPicker = true
             }
             .help(title)
