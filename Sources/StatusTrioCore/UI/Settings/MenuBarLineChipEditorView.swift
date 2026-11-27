@@ -364,7 +364,6 @@ struct MenuBarLeadingIconPicker: View {
     @State private var tab = 0
     @State private var search = ""
     @State private var customEmoji = ""
-    @State private var customAsset = ""
     @State private var visibleCount = 240
 
     private static let pageSize = 240
@@ -436,10 +435,34 @@ struct MenuBarLeadingIconPicker: View {
     ]
 
     private static let emoji: [String] = [
-        "⬆️", "⬇️", "⬅️", "➡️", "🔄", "⚡️", "🔥", "❤️",
-        "✅", "⚠️", "📶", "🔋", "🖥", "💻", "📱", "🎧",
-        "🔊", "🔇", "🌐", "☁️", "🌡", "💾", "📀", "⏱",
-        "🕐", "📊", "📈", "⏰", "🚀", "⭐️", "✨", "🎯"
+        // Arrows and transport
+        "⬆️", "⬇️", "⬅️", "➡️", "↗️", "↘️", "↙️", "↖️",
+        "🔄", "🔁", "🔃", "⏫", "⏬", "⏪", "⏩", "⏸️",
+        // Status and alerts
+        "✅", "❌", "⚠️", "ℹ️", "❓", "❔", "❗️", "‼️",
+        "💤", "🚫", "⛔️", "🔔", "🔕", "🔇", "🔊", "📢",
+        // Network and weather
+        "📶", "📡", "🌐", "☁️", "🌩️", "🌧️", "⛈️", "🌤️",
+        "⛅️", "☀️", "🌙", "⭐️", "✨", "💧", "❄️", "🌪️",
+        // Power and hardware
+        "⚡️", "🔥", "🔋", "🪫", "🔌", "💻", "🖥️", "💽",
+        "💾", "💿", "📀", "📱", "⌚️", "🎧", "🎤", "📷",
+        // Tools and data
+        "⚙️", "🔧", "🔨", "🛠️", "🧰", "🔩", "📊", "📈",
+        "📉", "📋", "📌", "📍", "🗂️", "📁", "📂", "🗑️",
+        // Time and misc
+        "⏱️", "⏲️", "⏰", "🕐", "🕑", "🕒", "🕓", "🕔",
+        "🕕", "🕖", "🕗", "🕘", "🕙", "🕚", "🕛", "🚀",
+        // Mood and hands
+        "😀", "😃", "😄", "😁", "😆", "😅", "😂", "🤣",
+        "😊", "🙂", "🙃", "😉", "😇", "🥰", "😍", "🤩",
+        "😘", "😎", "🤓", "🧐", "🤔", "🤗", "🤭", "🤫",
+        "😴", "😪", "😮", "😲", "😱", "😨", "😰", "😥",
+        "😢", "😭", "😤", "😡", "🤬", "👍", "👎", "👌",
+        "✌️", "🤞", "🫶", "👏", "🙌", "🙏", "💪", "🎉",
+        // Celebration and hearts
+        "🎊", "🎈", "🎯", "🏆", "🥇", "❤️", "🧡", "💛",
+        "💚", "💙", "💜", "🖤", "🤍", "🤎", "💔", "🔒"
     ]
 
     private var filteredSymbols: [String] {
@@ -463,15 +486,14 @@ struct MenuBarLeadingIconPicker: View {
             Picker("", selection: $tab) {
                 Text("SF Symbol").tag(0)
                 Text(L(.menuBarEditorIconEmoji)).tag(1)
-                Text(L(.menuBarEditorIconAsset)).tag(2)
             }
             .pickerStyle(.segmented)
             .labelsHidden()
 
-            switch tab {
-            case 0: symbolGrid
-            case 1: emojiGrid
-            default: assetEntry
+            if tab == 0 {
+                symbolGrid
+            } else {
+                emojiGrid
             }
 
             iconOptions
@@ -621,20 +643,6 @@ struct MenuBarLeadingIconPicker: View {
         }
     }
 
-    private var assetEntry: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack(spacing: 8) {
-                TextField(L(.menuBarEditorIconAsset), text: $customAsset)
-                    .textFieldStyle(.roundedBorder)
-                    .onSubmit { addCustomAsset() }
-                Button(L(.menuBarEditorAdd)) { addCustomAsset() }
-                    .disabled(customAsset.trimmingCharacters(in: .whitespaces).isEmpty)
-            }
-            Spacer(minLength: 0)
-                .frame(height: 236)
-        }
-    }
-
     private var iconOptions: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 8) {
@@ -734,11 +742,6 @@ struct MenuBarLeadingIconPicker: View {
         apply(MenuBarIconSpec(source: .emoji(value), tint: false))
     }
 
-    private func addCustomAsset() {
-        let name = customAsset.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !name.isEmpty else { return }
-        apply(MenuBarIconSpec(source: .asset(name)))
-    }
 }
 
 private struct IconPickerTile: View {

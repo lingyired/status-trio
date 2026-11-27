@@ -1475,6 +1475,12 @@
 "menubar.editor.iconColor" = "圖示顏色";
 "menubar.editor.matchTextColor" = "跟隨文字顏色";
 "menubar.editor.assetHint" = "Assets.xcassets 裡的資源名稱，不是檔案路徑";
+"menubar.editor.exportInstance" = "匯出實例…";
+"menubar.editor.importInstance" = "匯入實例…";
+"menubar.editor.imported" = "（匯入）";
+"menubar.editor.importFailed" = "無法匯入實例";
+"menubar.editor.exportFailed" = "無法匯出實例";
+"menubar.editor.instanceLimit" = "最多只能新增 20 個選單列實例。";
 "menubar.editor.paletteHint" = "把指标拖进任意一行，或点击添加到当前选中的行。";
 "menubar.editor.metrics" = "指标";
 "menubar.editor.textIcons" = "文字与图标";

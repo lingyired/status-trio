@@ -1475,6 +1475,12 @@
 "menubar.editor.iconColor" = "Icon color";
 "menubar.editor.matchTextColor" = "Match text color";
 "menubar.editor.assetHint" = "Asset catalog name, not a file path";
+"menubar.editor.exportInstance" = "Export Instance…";
+"menubar.editor.importInstance" = "Import Instance…";
+"menubar.editor.imported" = "(Imported)";
+"menubar.editor.importFailed" = "Couldn’t Import Instance";
+"menubar.editor.exportFailed" = "Couldn’t Export Instance";
+"menubar.editor.instanceLimit" = "You can add up to 20 menu-bar instances.";
 "menubar.editor.paletteHint" = "Drag a metric into any row, or click to add to the selected row.";
 "menubar.editor.metrics" = "Metrics";
 "menubar.editor.textIcons" = "Text & icons";

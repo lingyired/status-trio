@@ -1,4 +1,6 @@
+import AppKit
 import SwiftUI
+import UniformTypeIdentifiers
 
 /// Two-column editor for the app's own menu-bar items.
 ///
@@ -89,6 +91,14 @@ struct MenuBarInstancesSectionView: View {
                     }
                     .disabled(!listModel.canAdd)
                 }
+
+                Divider()
+                Button {
+                    importInstance()
+                } label: {
+                    Label(L(.menuBarEditorImportInstance), systemImage: "square.and.arrow.down")
+                }
+                .disabled(!listModel.canAdd)
             }
         }
         .listStyle(.sidebar)
@@ -143,6 +153,9 @@ struct MenuBarInstancesSectionView: View {
         return Menu {
             Button(L(.menuBarEditorDuplicate)) {
                 duplicateInstance(instance)
+            }
+            Button(L(.menuBarEditorExportInstance)) {
+                exportInstance(instance)
             }
             Divider()
             Button(L(.menuBarEditorMoveUp)) {
@@ -202,6 +215,58 @@ struct MenuBarInstancesSectionView: View {
     }
 
     // MARK: - Mutations
+
+    private func exportInstance(_ instance: MenuBarInstance) {
+        let panel = NSSavePanel()
+        panel.allowedContentTypes = [.json]
+        panel.canCreateDirectories = true
+        let base = displayName(for: instance)
+            .replacingOccurrences(of: "/", with: "-")
+            .replacingOccurrences(of: ":", with: "-")
+        panel.nameFieldStringValue = "\(base).statustrio-instance.json"
+        guard panel.runModal() == .OK, let url = panel.url else { return }
+        do {
+            let data = try MenuBarInstanceTransfer.encode(instance)
+            try data.write(to: url, options: .atomic)
+        } catch {
+            presentTransferError(title: L(.menuBarEditorExportFailed), error: error)
+        }
+    }
+
+    private func importInstance() {
+        guard listModel.canAdd else {
+            let alert = NSAlert()
+            alert.messageText = L(.menuBarEditorImportFailed)
+            alert.informativeText = L(.menuBarEditorInstanceLimit)
+            alert.alertStyle = .warning
+            alert.runModal()
+            return
+        }
+        let panel = NSOpenPanel()
+        panel.allowedContentTypes = [.json]
+        panel.allowsMultipleSelection = false
+        panel.canChooseDirectories = false
+        guard panel.runModal() == .OK, let url = panel.url else { return }
+        do {
+            let data = try Data(contentsOf: url)
+            var instance = try MenuBarInstanceTransfer.decode(data)
+            if store.menuBarInstances.instances.contains(where: { $0.name == instance.name && !instance.name.isEmpty }) {
+                instance.name += " " + L(.menuBarEditorImported)
+            }
+            guard let imported = listModel.importInstance(instance) else { return }
+            selectedID = imported.id
+        } catch {
+            presentTransferError(title: L(.menuBarEditorImportFailed), error: error)
+        }
+    }
+
+    private func presentTransferError(title: String, error: Error) {
+        let alert = NSAlert()
+        alert.messageText = title
+        alert.informativeText = error.localizedDescription
+        alert.alertStyle = .warning
+        alert.runModal()
+    }
 
     private func addBlankInstance() {
         guard listModel.canAdd else { return }

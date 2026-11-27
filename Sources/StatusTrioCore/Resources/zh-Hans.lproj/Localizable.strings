@@ -1475,6 +1475,12 @@
 "menubar.editor.iconColor" = "图标颜色";
 "menubar.editor.matchTextColor" = "跟随文字颜色";
 "menubar.editor.assetHint" = "Assets.xcassets 里的资源名称，不是文件路径";
+"menubar.editor.exportInstance" = "导出实例…";
+"menubar.editor.importInstance" = "导入实例…";
+"menubar.editor.imported" = "（导入）";
+"menubar.editor.importFailed" = "无法导入实例";
+"menubar.editor.exportFailed" = "无法导出实例";
+"menubar.editor.instanceLimit" = "最多只能添加 20 个菜单栏实例。";
 "menubar.editor.paletteHint" = "把指标拖进任意一行，或点击添加到当前选中的行。";
 "menubar.editor.metrics" = "指标";
 "menubar.editor.textIcons" = "文字与图标";

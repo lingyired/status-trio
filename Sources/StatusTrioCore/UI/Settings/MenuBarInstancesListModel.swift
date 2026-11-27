@@ -45,6 +45,17 @@ struct MenuBarInstancesListModel {
     var instances: [MenuBarInstance] { store.menuBarInstances.instances }
     var canAdd: Bool { instances.count < Self.limit }
 
+    /// Inserts a decoded/shared instance as a new item, assigning a fresh id so
+    /// importing the same file twice cannot collide with the source instance.
+    @discardableResult
+    func importInstance(_ instance: MenuBarInstance) -> MenuBarInstance? {
+        guard canAdd else { return nil }
+        var imported = instance
+        imported.id = UUID()
+        store.updateMenuBarInstance(imported)
+        return imported
+    }
+
     func addPreset(_ preset: MenuBarPreset) {
         guard canAdd else { return }
         store.updateMenuBarInstance(preset.makeInstance())
