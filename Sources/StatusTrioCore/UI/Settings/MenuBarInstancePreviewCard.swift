@@ -8,6 +8,9 @@ import SwiftUI
 /// shorthand stays visible while the editor scrolls underneath it.
 struct MenuBarInstancePreviewCard: View {
     let model: MenuBarInstanceEditorModel?
+    /// A hidden instance still renders, but dimmed, so the preview never
+    /// suggests an item that is not actually in the menu bar.
+    var isEnabled = true
     @Binding var isDarkBackground: Bool
     let localization: Localization
 
@@ -39,6 +42,7 @@ struct MenuBarInstancePreviewCard: View {
                     isDarkBackground: isDarkBackground,
                     localization: localization
                 )
+                .opacity(isEnabled ? 1 : 0.4)
             } else {
                 Text(localization.string(.menuBarEditorAddOrSelect))
                     .font(.system(size: 11))

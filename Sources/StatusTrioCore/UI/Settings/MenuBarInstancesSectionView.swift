@@ -23,6 +23,7 @@ struct MenuBarInstancesSectionView: View {
         SettingsPage(pinnedHeader: {
             MenuBarInstancePreviewCard(
                 model: model,
+                isEnabled: selectedInstanceIsEnabled,
                 isDarkBackground: $previewIsDark,
                 localization: localization
             )
@@ -56,74 +57,76 @@ struct MenuBarInstancesSectionView: View {
         }
     }
 
-    // MARK: - Instance list
+    // MARK: - Instance selection
+
+    private var currentInstance: MenuBarInstance? {
+        guard let selectedID else { return nil }
+        return listModel.instances.first { $0.id == selectedID }
+    }
+
+    private var selectedInstanceIsEnabled: Bool {
+        store.menuBarInstances.instances.first { $0.id == selectedID }?.isEnabled ?? true
+    }
 
     private var instancesGroup: some View {
-        SettingsGroup(L(.menuBarEditorInstances)) {
-            if listModel.instances.isEmpty {
-                SettingsHintRow(text: L(.menuBarEditorAddOrSelect))
-            } else {
-                List(selection: $selectedID) {
-                    ForEach(listModel.instances) { instance in
-                        instanceRow(instance)
-                            .tag(instance.id)
-                    }
-                    .onMove { offsets, destination in
-                        guard let source = offsets.first else { return }
-                        listModel.move(from: source, to: destination)
+        SettingsGroup {
+            if let instance = currentInstance {
+                SettingsRow("square.stack.3d.up", title: L(.menuBarEditorInstances)) {
+                    HStack(spacing: 6) {
+                        instancePicker
+                        addInstanceMenu
+                        instanceActions(instance)
                     }
                 }
-                .listStyle(.inset)
-                .scrollContentBackground(.hidden)
-                .environment(\.defaultMinListRowHeight, 40)
-                .frame(height: listHeight)
-            }
 
-            SettingsDivider()
-            addMenuRow
+                SettingsDivider()
+
+                SettingsToggleRow(
+                    symbol: "eye",
+                    title: L(.menuBarEditorShowInMenuBar),
+                    subtitle: summary(for: instance),
+                    isOn: Binding(
+                        get: { instance.isEnabled },
+                        set: { listModel.setEnabled($0, id: instance.id) }
+                    )
+                )
+            } else {
+                SettingsHintRow(text: L(.menuBarEditorAddOrSelect))
+                SettingsDivider()
+                addInstanceRow
+            }
         }
     }
 
-    private var listHeight: CGFloat {
-        let visibleRows = min(max(listModel.instances.count, 1), 4)
-        return CGFloat(visibleRows) * 44 + 16
-    }
-
-    private func instanceRow(_ instance: MenuBarInstance) -> some View {
-        HStack(spacing: 10) {
-            Toggle("", isOn: Binding(
-                get: { instance.isEnabled },
-                set: { listModel.setEnabled($0, id: instance.id) }
-            ))
-            .toggleStyle(.switch)
-            .controlSize(.small)
-            .labelsHidden()
-            .accessibilityLabel(L(.menuBarEditorShowInMenuBar))
-
-            VStack(alignment: .leading, spacing: 1) {
-                Text(instance.name.isEmpty ? L(.menuBarEditorUntitled) : instance.name)
-                    .font(.system(size: 12.5, weight: .medium))
-                    .lineLimit(1)
-
-                Text(summary(for: instance))
-                    .font(.system(size: 11))
-                    .foregroundStyle(.secondary)
-                    .lineLimit(1)
+    private var instancePicker: some View {
+        Picker("", selection: $selectedID) {
+            ForEach(listModel.instances) { instance in
+                Text(displayName(for: instance))
+                    .tag(Optional(instance.id))
             }
-
-            Spacer(minLength: 8)
-
-            instanceActions(instance)
         }
-        .padding(.vertical, 1)
+        .labelsHidden()
+        .frame(width: 150, alignment: .trailing)
+        .accessibilityLabel(L(.menuBarEditorInstances))
     }
 
-    private func summary(for instance: MenuBarInstance) -> String {
-        let layout = instance.layoutMode == .doubleLine
-            ? L(.menuBarEditorDoubleLine)
-            : L(.menuBarEditorSingleLine)
-        let count = instance.renderedLines.flatMap { $0.line.elements }.count
-        return "\(layout) · \(count) \(L(.menuBarEditorItems))"
+    private var addInstanceMenu: some View {
+        Menu {
+            Button(L(.menuBarEditorBlankInstance)) { addBlankInstance() }
+            Divider()
+            ForEach(MenuBarPreset.allCases) { preset in
+                Button(L(preset.titleKey)) { addPreset(preset) }
+            }
+        } label: {
+            Image(systemName: "plus")
+                .font(.system(size: 13, weight: .medium))
+        }
+        .menuStyle(.borderlessButton)
+        .menuIndicator(.hidden)
+        .fixedSize()
+        .disabled(!listModel.canAdd)
+        .accessibilityLabel(L(.menuBarEditorNew))
+        .help(L(.menuBarEditorNew))
     }
 
     private func instanceActions(_ instance: MenuBarInstance) -> some View {
@@ -159,7 +162,7 @@ struct MenuBarInstancesSectionView: View {
         .help(L(.menuMore))
     }
 
-    private var addMenuRow: some View {
+    private var addInstanceRow: some View {
         HStack(spacing: 8) {
             Menu {
                 Button(L(.menuBarEditorBlankInstance)) { addBlankInstance() }
@@ -180,6 +183,18 @@ struct MenuBarInstancesSectionView: View {
         }
         .padding(.horizontal, SettingsMetrics.rowPaddingH)
         .padding(.vertical, 8)
+    }
+
+    private func displayName(for instance: MenuBarInstance) -> String {
+        instance.name.isEmpty ? L(.menuBarEditorUntitled) : instance.name
+    }
+
+    private func summary(for instance: MenuBarInstance) -> String {
+        let layout = instance.layoutMode == .doubleLine
+            ? L(.menuBarEditorDoubleLine)
+            : L(.menuBarEditorSingleLine)
+        let count = instance.renderedLines.flatMap { $0.line.elements }.count
+        return "\(layout) · \(count) \(L(.menuBarEditorItems))"
     }
 
     // MARK: - Mutations

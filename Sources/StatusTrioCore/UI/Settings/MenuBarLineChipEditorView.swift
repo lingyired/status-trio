@@ -92,26 +92,26 @@ struct MenuBarRowCanvasView: View {
                 .buttonStyle(.borderless)
                 .controlSize(.small)
                 .help(L(.menuBarEditorAdd))
-                .popover(isPresented: $showingPicker, arrowEdge: .bottom) {
-                    MenuBarElementPicker(
-                        localization: localization,
-                        onAddText: { text in
-                            add(model.addTextElement(text, slot: slot))
-                        },
-                        onAddMetric: { metric in
-                            add(model.addMetricElement(metric, slot: slot))
-                        },
-                        onAddIcon: { icon in
-                            add(model.addIconElement(icon, slot: slot))
-                        }
-                    )
-                }
             }
 
             canvas
         }
         .padding(.horizontal, SettingsMetrics.rowPaddingH)
         .padding(.vertical, 10)
+        .popover(isPresented: $showingPicker, arrowEdge: .bottom) {
+            MenuBarElementPicker(
+                localization: localization,
+                onAddText: { text in
+                    add(model.addTextElement(text, slot: slot))
+                },
+                onAddMetric: { metric in
+                    add(model.addMetricElement(metric, slot: slot))
+                },
+                onAddIcon: { icon in
+                    add(model.addIconElement(icon, slot: slot))
+                }
+            )
+        }
     }
 
     private var canvas: some View {
@@ -329,33 +329,20 @@ struct MenuBarElementPicker: View {
             ScrollView {
                 LazyVStack(spacing: 0) {
                     ForEach(filteredMetrics) { metric in
-                        Button {
+                        MenuBarMetricPickerRow(
+                            title: L(MenuBarMetricRegistry.titleKey(for: metric)),
+                            symbol: metric.editorSymbol
+                        ) {
                             onAddMetric(metric)
                             dismiss()
-                        } label: {
-                            HStack(spacing: 8) {
-                                Image(systemName: metric.editorSymbol)
-                                    .frame(width: 16)
-                                    .foregroundStyle(.secondary)
-                                Text(L(MenuBarMetricRegistry.titleKey(for: metric)))
-                                    .font(.system(size: 12))
-                                    .lineLimit(1)
-                                Spacer(minLength: 6)
-                                Image(systemName: "plus")
-                                    .font(.system(size: 10, weight: .semibold))
-                                    .foregroundStyle(.tertiary)
-                            }
-                            .padding(.horizontal, 7)
-                            .padding(.vertical, 5)
-                            .contentShape(Rectangle())
                         }
-                        .buttonStyle(.borderless)
 
                         if metric.id != filteredMetrics.last?.id {
                             Divider()
                         }
                     }
                 }
+                .padding(.trailing, 10)
             }
             .frame(height: 250)
         }
@@ -427,6 +414,40 @@ struct MenuBarElementPicker: View {
         }
         onAddIcon(MenuBarIconSpec(source: source, tint: iconKind != 1))
         dismiss()
+    }
+}
+
+private struct MenuBarMetricPickerRow: View {
+    let title: String
+    let symbol: String
+    let action: () -> Void
+
+    @State private var isHovering = false
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 8) {
+                Image(systemName: symbol)
+                    .frame(width: 16)
+                    .foregroundStyle(.secondary)
+                Text(title)
+                    .font(.system(size: 12))
+                    .lineLimit(1)
+                Spacer(minLength: 8)
+                Image(systemName: "plus.circle.fill")
+                    .font(.system(size: 11))
+                    .foregroundStyle(.tertiary)
+            }
+            .padding(.horizontal, 8)
+            .padding(.vertical, 6)
+            .background(
+                RoundedRectangle(cornerRadius: 6, style: .continuous)
+                    .fill(isHovering ? Color.primary.opacity(0.06) : Color.clear)
+            )
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .onHover { isHovering = $0 }
     }
 }
 

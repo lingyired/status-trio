@@ -57,7 +57,7 @@ struct MenuBarInstanceEditorView: View {
                 }
                 .pickerStyle(.segmented)
                 .labelsHidden()
-                .frame(width: 160)
+                .frame(width: 160, alignment: .trailing)
             }
         }
     }
@@ -273,7 +273,7 @@ struct MenuBarInstanceEditorView: View {
                     }
                     .pickerStyle(.segmented)
                     .labelsHidden()
-                    .frame(width: 160)
+                    .frame(width: 160, alignment: .trailing)
                     .accessibilityLabel(L(.menuBarEditorApplyTo))
                 }
 
@@ -304,14 +304,14 @@ struct MenuBarInstanceEditorView: View {
                     Text(L(.menuBarEditorTrailing)).tag(LineAlignment.trailing)
                 }
                 .labelsHidden()
-                .frame(width: 120)
+                .frame(width: 120, alignment: .trailing)
                 .accessibilityLabel(L(.menuBarEditorAlignment))
             }
 
             SettingsDivider()
 
             SettingsRow("paintpalette", title: L(.menuBarEditorColor)) {
-                Menu(L(.menuBarEditorColor)) {
+                Menu {
                     Button(L(.menuBarEditorInherit)) { model.setColor(.inheritSource, slot: selectedSlot) }
                     Button(L(.menuBarEditorFixedBlue)) {
                         model.setColor(.fixed(ColorValue(red: 0.2, green: 0.45, blue: 1)), slot: selectedSlot)
@@ -322,9 +322,20 @@ struct MenuBarInstanceEditorView: View {
                     Button(L(.menuBarEditorFixedRed)) {
                         model.setColor(.fixed(ColorValue(red: 0.95, green: 0.25, blue: 0.2)), slot: selectedSlot)
                     }
+                } label: {
+                    HStack(spacing: 6) {
+                        Circle()
+                            .fill(lineColorSwatch)
+                            .frame(width: 10, height: 10)
+                            .overlay(
+                                Circle().strokeBorder(Color.primary.opacity(0.15), lineWidth: 1)
+                            )
+                        Text(lineColorName)
+                    }
                 }
                 .menuStyle(.borderlessButton)
-                .frame(maxWidth: 150)
+                .fixedSize()
+                .accessibilityLabel(L(.menuBarEditorColor))
             }
         }
     }
@@ -334,6 +345,36 @@ struct MenuBarInstanceEditorView: View {
         case .top: return model.instance.top
         case .bottom: return model.instance.bottom
         }
+    }
+
+    private var lineColorName: String {
+        switch currentLine?.color ?? .inheritSource {
+        case .inheritSource:
+            return L(.menuBarEditorInherit)
+        case .fixed(let value):
+            if matches(value, red: 0.2, green: 0.45, blue: 1) { return L(.menuBarEditorFixedBlue) }
+            if matches(value, red: 0.2, green: 0.75, blue: 0.35) { return L(.menuBarEditorFixedGreen) }
+            if matches(value, red: 0.95, green: 0.25, blue: 0.2) { return L(.menuBarEditorFixedRed) }
+            return String(
+                format: "#%02X%02X%02X",
+                Int((value.red * 255).rounded()),
+                Int((value.green * 255).rounded()),
+                Int((value.blue * 255).rounded())
+            )
+        }
+    }
+
+    private var lineColorSwatch: Color {
+        switch currentLine?.color ?? .inheritSource {
+        case .inheritSource:
+            return Color.secondary.opacity(0.35)
+        case .fixed(let value):
+            return Color(red: value.red, green: value.green, blue: value.blue, opacity: value.alpha)
+        }
+    }
+
+    private func matches(_ value: ColorValue, red: Double, green: Double, blue: Double) -> Bool {
+        abs(value.red - red) < 0.01 && abs(value.green - green) < 0.01 && abs(value.blue - blue) < 0.01
     }
 
     // MARK: - Spacing and interaction
@@ -435,7 +476,7 @@ struct MenuBarInstanceEditorView: View {
             }
         }
         .menuStyle(.borderlessButton)
-        .frame(maxWidth: 150)
+        .fixedSize()
     }
 
     private func activationLabel(_ activation: InstanceActivation) -> String {
