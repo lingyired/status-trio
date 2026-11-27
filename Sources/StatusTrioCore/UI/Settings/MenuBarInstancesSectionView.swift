@@ -171,7 +171,6 @@ struct MenuBarInstancesSectionView: View {
                 VStack(alignment: .leading, spacing: SettingsMetrics.groupSpacing) {
                     MenuBarInstancePreviewCard(
                         model: model,
-                        isEnabled: selectedInstanceIsEnabled,
                         isDarkBackground: $previewIsDark,
                         localization: localization
                     )
@@ -193,10 +192,6 @@ struct MenuBarInstancesSectionView: View {
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
-    }
-
-    private var selectedInstanceIsEnabled: Bool {
-        store.menuBarInstances.instances.first { $0.id == selectedID }?.isEnabled ?? true
     }
 
     // MARK: - Mutations
