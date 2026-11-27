@@ -8,7 +8,6 @@ import SwiftUI
 /// shorthand stays visible while the editor scrolls underneath it.
 struct MenuBarInstancePreviewCard: View {
     let model: MenuBarInstanceEditorModel?
-    @Binding var isDarkBackground: Bool
     let localization: Localization
 
     var body: some View {
@@ -32,7 +31,6 @@ struct MenuBarInstancePreviewCard: View {
             if let model {
                 MenuBarInstancePreviewImage(
                     model: model,
-                    isDarkBackground: isDarkBackground,
                     localization: localization
                 )
             } else {
@@ -56,16 +54,11 @@ struct MenuBarInstancePreviewCard: View {
                 .fixedSize()
                 .accessibilityHidden(true)
 
-            PreviewAppearanceToggle(
-                isDarkBackground: $isDarkBackground,
-                localization: localization,
-                compact: true
-            )
         }
-        .foregroundStyle(isDarkBackground ? Color.white : Color.black)
+        .foregroundStyle(Color.black)
         .padding(.horizontal, 7)
         .padding(.vertical, 5)
-        .background(MenuBarPreviewBackdrop(isDarkBackground: isDarkBackground))
+        .background(MenuBarPreviewBackdrop(isDarkBackground: false))
         .overlay(
             RoundedRectangle(cornerRadius: 6, style: .continuous)
                 .strokeBorder(Color.primary.opacity(0.1), lineWidth: 1)
@@ -76,11 +69,10 @@ struct MenuBarInstancePreviewCard: View {
 
 private struct MenuBarInstancePreviewImage: View {
     @ObservedObject var model: MenuBarInstanceEditorModel
-    let isDarkBackground: Bool
     let localization: Localization
 
     var body: some View {
-        if let image = model.previewImage(dark: isDarkBackground) {
+        if let image = model.previewImage(dark: false) {
             Image(nsImage: image)
                 .resizable()
                 .scaledToFit()

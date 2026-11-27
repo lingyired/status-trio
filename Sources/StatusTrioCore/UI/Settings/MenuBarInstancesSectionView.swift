@@ -9,7 +9,6 @@ import SwiftUI
 struct MenuBarInstancesSectionView: View {
     @ObservedObject var store: SettingsStore
     let localization: Localization
-    @Binding var previewIsDark: Bool
 
     @State private var selectedID: UUID?
     @State private var model: MenuBarInstanceEditorModel?
@@ -171,7 +170,6 @@ struct MenuBarInstancesSectionView: View {
                 VStack(alignment: .leading, spacing: SettingsMetrics.groupSpacing) {
                     MenuBarInstancePreviewCard(
                         model: model,
-                        isDarkBackground: $previewIsDark,
                         localization: localization
                     )
 
