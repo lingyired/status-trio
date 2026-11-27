@@ -38,13 +38,14 @@ Feature: `settings.tab.menuBarInstances` → 设置 › 菜单栏实例.
 
 ## Editor (v3)
 
-The pane is one scrolling Settings column: an instance list, then the selected
-instance's preview, basics, rows, element inspector, row style, and interaction
-settings. There is no palette column; each row owns its own "添加" button.
+The pane is one scrolling Settings column with a pinned live preview: an
+instance list, then the selected instance's basics, rows, element inspector,
+row style, and interaction settings. There is no palette column; each row owns
+its own "添加" button.
 
 | # | Case | Expected |
 |---|---|---|
-| E1 | 设置页布局 | 单列 Settings 卡片；实例列表在上，编辑区在下；默认窗口宽度（720）内不横向溢出，最小宽度（640）下也不裁切 |
+| E1 | 设置页布局 | 顶部固定实时预览；下方单列 Settings 卡片，实例列表在上、编辑区在下；默认窗口宽度（720）内不横向溢出，最小宽度（640）下也不裁切 |
 | E2 | 新建空白/预设实例 | “新建”菜单可建空白或预设；新建后自动选中并显示在编辑区 |
 | E3 | 行内添加指标 | 点该行的“添加”→指标→搜索→选中；只插入指标值（如 `35%`），不带指标名；新元素自动选中 |
 | E4 | 添加文字/图标 | 点“添加”→文字与图标；可加自定义文字、SF Symbol、Emoji、资源名 |
