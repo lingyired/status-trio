@@ -30,6 +30,7 @@ Generated from `SettingsSemanticCatalog`. Do not edit by hand.
 | `icon.outerRing.hardware.ringSlots` | 启用的硬件圆环 | `set` | — | enabledHardwareRingSlotsV1 |
 | `icon.outerRing.hardware.secondaryMetric` | 硬件外环次要指标 | `enumeration` | — | — |
 | `icon.outerRing.hardware.splitGapProgress` | 硬件环断口进度 | `boolean` | — | hardwareRingSplitGapProgress |
+| `icon.outerRing.hardware.topContent` | 硬件外环顶部标识 | `enumeration` | `automatic` | hardwareRingConfigurationV1 |
 | `icon.outerRing.source` | 外环来源 | `enumeration` | — | outerRingContent |
 | `icon.ring.monochromeCharging` | 单色充电环 | `boolean` | — | monochromeChargingRing |
 | `icon.ringStrokeStyle` | 圆环描边粗细 | `enumeration` | — | ringStrokeStyle |

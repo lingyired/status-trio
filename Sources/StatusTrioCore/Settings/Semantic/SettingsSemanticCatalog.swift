@@ -243,6 +243,19 @@ enum SettingsSemanticCatalog {
             d.accessPolicy = .profileSafe
             d.provider = "core"
         },
+        pref("icon.outerRing.hardware.topContent", "硬件外环顶部标识", "icon", .enumeration, "硬件外环顶部标识显示的内容（自动/隐藏/电量/充电/内存压力），供开发 Profile 把顶部标识直接置于要测试的状态。") { d in
+            d.uiPath = "设置 › 图标 › 硬件外环 › 顶部标识"
+            d.options = [
+                opt("automatic", "自动"), opt("hidden", "隐藏"),
+                opt("batteryPercentage", "电池电量"), opt("chargingIndicator", "充电指示"),
+                opt("memoryPressure", "内存压力"),
+            ]
+            d.defaultValue = s("automatic")
+            d.effectiveWhen = .equals(preference: "icon.outerRing.source", value: s("hardwareMonitor"))
+            d.storageKey = "hardwareRingConfigurationV1"
+            d.accessPolicy = .profileSafe
+            d.provider = "core"
+        },
         pref("icon.outerRing.hardware.primaryMetric", "硬件外环主要指标", "icon", .enumeration, "硬件外环的主指标。") { d in
             d.uiPath = "设置 › 图标 › 硬件外环 › 主要指标"
             d.optionsProvider = "hardware.ringMetrics"

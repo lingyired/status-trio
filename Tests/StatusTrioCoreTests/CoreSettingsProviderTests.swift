@@ -35,6 +35,18 @@ struct CoreSettingsProviderTests {
         #expect(provider.value(for: "icon.outerRing.hardware.layout") == .string("dual"))
     }
 
+    @Test("Top content can be set to memory pressure through a profile")
+    func hardwareRingTopContent() {
+        let (store, _) = makeStore()
+        let provider = CoreSettingsProvider(store: store)
+        provider.setValue(.string("memoryPressure"), for: "icon.outerRing.hardware.topContent")
+        #expect(store.hardwareRingConfiguration.topContent == .memoryPressure)
+        #expect(provider.value(for: "icon.outerRing.hardware.topContent") == .string("memoryPressure"))
+
+        provider.setValue(.string("value:cpuUsage"), for: "icon.outerRing.hardware.topContent")
+        #expect(store.hardwareRingConfiguration.topContent == .value(.cpuUsage))
+    }
+
     @Test("Ring slots use the domain setter")
     func ringSlots() {
         let (store, _) = makeStore()

@@ -2817,6 +2817,59 @@
         "externalWrite" : false,
         "requiresConfirmation" : false,
         "systemSideEffect" : false,
+        "transferable" : false,
+        "uiAccessible" : true
+      },
+      "category" : "icon",
+      "defaultValue" : "automatic",
+      "description" : "硬件外环顶部标识显示的内容（自动/隐藏/电量/充电/内存压力），供开发 Profile 把顶部标识直接置于要测试的状态。",
+      "effectiveWhen" : {
+        "preference" : "icon.outerRing.source",
+        "type" : "equals",
+        "value" : "hardwareMonitor"
+      },
+      "id" : "icon.outerRing.hardware.topContent",
+      "options" : [
+        {
+          "id" : "automatic",
+          "title" : "自动",
+          "value" : "automatic"
+        },
+        {
+          "id" : "hidden",
+          "title" : "隐藏",
+          "value" : "hidden"
+        },
+        {
+          "id" : "batteryPercentage",
+          "title" : "电池电量",
+          "value" : "batteryPercentage"
+        },
+        {
+          "id" : "chargingIndicator",
+          "title" : "充电指示",
+          "value" : "chargingIndicator"
+        },
+        {
+          "id" : "memoryPressure",
+          "title" : "内存压力",
+          "value" : "memoryPressure"
+        }
+      ],
+      "provider" : "core",
+      "storageKey" : "hardwareRingConfigurationV1",
+      "title" : "硬件外环顶部标识",
+      "type" : "enumeration",
+      "uiPath" : "设置 › 图标 › 硬件外环 › 顶部标识"
+    },
+    {
+      "accessPolicy" : {
+        "containsSensitiveInfo" : false,
+        "developmentProfile" : true,
+        "externalRead" : true,
+        "externalWrite" : false,
+        "requiresConfirmation" : false,
+        "systemSideEffect" : false,
         "transferable" : true,
         "uiAccessible" : true
       },
