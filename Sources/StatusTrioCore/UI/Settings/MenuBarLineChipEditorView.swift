@@ -835,18 +835,6 @@ struct MenuBarElementPalette: View {
             .padding(.horizontal, SettingsMetrics.rowPaddingH)
             .padding(.vertical, 10)
         }
-        .popover(isPresented: $showingIconPicker, arrowEdge: .bottom) {
-            MenuBarLeadingIconPicker(
-                spec: nil,
-                localization: localization,
-                onChange: { icon in
-                    if let icon {
-                        add(.icon(icon))
-                    }
-                },
-                titleKey: .menuBarEditorChooseIcon
-            )
-        }
     }
 
     private func section<Chips: View>(
@@ -880,13 +868,26 @@ struct MenuBarElementPalette: View {
     }
 
     private func palettePickerChip(title: String, symbol: String) -> some View {
-        MenuBarEditorChipLabel(title: title, systemImage: symbol, compact: true)
-            .onTapGesture {
-                showingIconPicker = true
-            }
-            .help(title)
-            .accessibilityLabel(title)
-            .accessibilityAddTraits(.isButton)
+        Button {
+            showingIconPicker = true
+        } label: {
+            MenuBarEditorChipLabel(title: title, systemImage: symbol, compact: true)
+        }
+        .buttonStyle(.plain)
+        .popover(isPresented: $showingIconPicker, arrowEdge: .bottom) {
+            MenuBarLeadingIconPicker(
+                spec: nil,
+                localization: localization,
+                onChange: { icon in
+                    if let icon {
+                        add(.icon(icon))
+                    }
+                },
+                titleKey: .menuBarEditorChooseIcon
+            )
+        }
+        .help(title)
+        .accessibilityLabel(title)
     }
 
     private func add(_ content: MenuBarElementContent) {
