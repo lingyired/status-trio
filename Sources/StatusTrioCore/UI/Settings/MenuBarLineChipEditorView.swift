@@ -61,6 +61,7 @@ struct MenuBarRowCanvasView: View {
 
     @State private var isDropTargeted = false
     @State private var showingLeadingIconPicker = false
+    @State private var editingIconElementID: UUID?
 
     private var elements: [MenuBarElement] { model.elements(slot: slot) }
     private var line: MenuBarLine? {
@@ -234,11 +235,32 @@ struct MenuBarRowCanvasView: View {
             elementID: element.id
         )))
         .onTapGesture {
-            if selected {
+            if case .icon = element.content {
+                selectedSlot = slot
+                selectedElementID = element.id
+                editingIconElementID = element.id
+            } else if selected {
                 selectedElementID = nil
             } else {
                 selectedSlot = slot
                 selectedElementID = element.id
+            }
+        }
+        .popover(isPresented: Binding(
+            get: { editingIconElementID == element.id },
+            set: { if !$0 { editingIconElementID = nil } }
+        )) {
+            if case .icon(let icon) = element.content {
+                MenuBarLeadingIconPicker(
+                    spec: icon,
+                    localization: localization,
+                    onChange: { newIcon in
+                        if let newIcon {
+                            model.updateIcon(newIcon, elementID: element.id, slot: slot)
+                        }
+                    },
+                    titleKey: .menuBarEditorChooseIcon
+                )
             }
         }
         .contextMenu {
@@ -265,7 +287,11 @@ struct MenuBarRowCanvasView: View {
         .accessibilityLabel(label(for: element))
         .accessibilityAddTraits(selected ? .isSelected : [])
         .accessibilityAction {
-            if selected {
+            if case .icon = element.content {
+                selectedSlot = slot
+                selectedElementID = element.id
+                editingIconElementID = element.id
+            } else if selected {
                 selectedElementID = nil
             } else {
                 selectedSlot = slot

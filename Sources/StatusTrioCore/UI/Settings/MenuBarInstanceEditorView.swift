@@ -14,7 +14,6 @@ struct MenuBarInstanceEditorView: View {
 
     @State private var selectedSlot: MenuBarLineSlot = .top
     @State private var selectedElementID: UUID?
-    @State private var showingElementIconPicker = false
 
     private func L(_ key: LocalizationKey) -> String { localization.string(key) }
 
@@ -163,8 +162,8 @@ struct MenuBarInstanceEditorView: View {
                 .font(.system(size: 12))
                 .foregroundStyle(.secondary)
 
-            case .icon(let icon):
-                iconEditor(icon: icon, elementID: element.id)
+            case .icon:
+                EmptyView()
             }
 
             elementActions(element)
@@ -197,102 +196,6 @@ struct MenuBarInstanceEditorView: View {
             }
         }
         .controlSize(.small)
-    }
-
-    private func iconEditor(icon: MenuBarIconSpec, elementID: UUID) -> some View {
-        Button {
-            showingElementIconPicker = true
-        } label: {
-            HStack(spacing: 8) {
-                iconPreview(icon)
-                    .frame(width: 20, height: 20)
-                Text(iconText(icon))
-                    .font(.system(size: 12))
-                    .foregroundStyle(.primary)
-                Spacer(minLength: 8)
-                Image(systemName: "chevron.up.chevron.down")
-                    .font(.system(size: 9, weight: .medium))
-                    .foregroundStyle(.tertiary)
-            }
-            .padding(.horizontal, 8)
-            .padding(.vertical, 5)
-            .background(
-                RoundedRectangle(cornerRadius: 6, style: .continuous)
-                    .fill(Color.primary.opacity(0.05))
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: 6, style: .continuous)
-                    .strokeBorder(Color.primary.opacity(0.1), lineWidth: 1)
-            )
-        }
-        .buttonStyle(.plain)
-        .accessibilityLabel(L(.menuBarEditorChooseIcon))
-        .popover(isPresented: $showingElementIconPicker, arrowEdge: .bottom) {
-            MenuBarLeadingIconPicker(
-                spec: icon,
-                localization: localization,
-                onChange: { newIcon in
-                    if let newIcon {
-                        model.updateIcon(newIcon, elementID: elementID, slot: selectedSlot)
-                    }
-                },
-                titleKey: .menuBarEditorChooseIcon
-            )
-        }
-    }
-
-    @ViewBuilder
-    private func iconPreview(_ icon: MenuBarIconSpec) -> some View {
-        switch icon.source {
-        case .sfSymbol(let name):
-            if NSImage(systemSymbolName: name, accessibilityDescription: nil) != nil {
-                Image(systemName: name)
-                    .font(.system(size: 13))
-            } else {
-                Image(systemName: "questionmark.square.dashed")
-                    .font(.system(size: 13))
-            }
-        case .emoji(let value):
-            Text(value).font(.system(size: 14))
-        case .asset(let name):
-            if let image = NSImage(named: name) {
-                Image(nsImage: image).resizable().scaledToFit()
-            } else {
-                Image(systemName: "photo").font(.system(size: 13))
-            }
-        }
-    }
-
-    private func iconKind(_ icon: MenuBarIconSpec) -> Int {
-        switch icon.source {
-        case .sfSymbol: return 0
-        case .emoji: return 1
-        case .asset: return 2
-        }
-    }
-
-    private func iconText(_ icon: MenuBarIconSpec) -> String {
-        switch icon.source {
-        case .sfSymbol(let name): return name
-        case .emoji(let value): return value
-        case .asset(let name): return name
-        }
-    }
-
-    private func iconPlaceholder(_ icon: MenuBarIconSpec) -> String {
-        switch icon.source {
-        case .sfSymbol: return L(.menuBarEditorIconSymbol)
-        case .emoji: return L(.menuBarEditorIconEmoji)
-        case .asset: return L(.menuBarEditorIconAsset)
-        }
-    }
-
-    private func iconWithKind(_ kind: Int, text: String, tint: Bool) -> MenuBarIconSpec {
-        switch kind {
-        case 0: return MenuBarIconSpec(source: .sfSymbol(text), tint: tint)
-        case 1: return MenuBarIconSpec(source: .emoji(text), tint: false)
-        default: return MenuBarIconSpec(source: .asset(text), tint: tint)
-        }
     }
 
     // MARK: - Row style
