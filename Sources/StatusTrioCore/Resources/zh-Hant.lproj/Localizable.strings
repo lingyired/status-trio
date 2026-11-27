@@ -1511,3 +1511,4 @@
 "menubar.editor.items" = "项";
 "menubar.editor.dragRemove" = "拖到这里删除";
 "menubar.editor.removeSelected" = "删除选中元素";
+"menubar.editor.name" = "名称";

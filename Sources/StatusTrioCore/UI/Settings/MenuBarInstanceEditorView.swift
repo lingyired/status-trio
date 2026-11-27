@@ -11,6 +11,16 @@ struct MenuBarInstanceEditorView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 14) {
+                SettingsGroup(L(.menuBarEditorName)) {
+                    TextField(L(.menuBarEditorUntitled), text: Binding(
+                        get: { model.instance.name },
+                        set: { model.setName($0) }
+                    ))
+                    .textFieldStyle(.roundedBorder)
+                    .padding(.horizontal, SettingsMetrics.rowPaddingH)
+                    .padding(.vertical, 8)
+                }
+
                 HStack {
                     Text(L(.menuBarEditorLayout)).font(.headline)
                     Picker("", selection: Binding(
