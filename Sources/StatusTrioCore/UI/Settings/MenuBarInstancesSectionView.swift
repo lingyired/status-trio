@@ -6,9 +6,19 @@ struct MenuBarInstancesSectionView: View {
     let localization: Localization
     @State private var selectedID: UUID?
     @State private var model: MenuBarInstanceEditorModel?
+    @State private var search = ""
 
     private var listModel: MenuBarInstancesListModel { MenuBarInstancesListModel(store: store) }
     private func L(_ key: LocalizationKey) -> String { localization.string(key) }
+
+    private var filteredMetrics: [MenuBarMetricID] {
+        let query = search.trimmingCharacters(in: .whitespaces)
+        guard !query.isEmpty else { return MenuBarMetricID.allCases }
+        return MenuBarMetricID.allCases.filter {
+            L(MenuBarMetricRegistry.titleKey(for: $0)).localizedCaseInsensitiveContains(query)
+                || $0.rawValue.localizedCaseInsensitiveContains(query)
+        }
+    }
 
     var body: some View {
         HSplitView {
@@ -21,44 +31,51 @@ struct MenuBarInstancesSectionView: View {
         .onChange(of: selectedID) { _ in rebuildModel() }
     }
 
+    // MARK: - Left
+
     private var instanceColumn: some View {
         List {
             Section(L(.menuBarEditorInstances)) {
                 ForEach(store.menuBarInstances.instances) { instance in
-                    HStack {
+                    HStack(spacing: 8) {
                         Toggle("", isOn: Binding(
                             get: { instance.isEnabled },
                             set: { listModel.setEnabled($0, id: instance.id) }
                         ))
                         .labelsHidden()
-                        Button {
-                            selectedID = instance.id
-                        } label: {
+                        VStack(alignment: .leading, spacing: 1) {
                             Text(instance.name.isEmpty ? L(.menuBarEditorUntitled) : instance.name)
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                                .contentShape(Rectangle())
+                                .lineLimit(1)
+                            Text("\(instance.layoutMode == .doubleLine ? L(.menuBarEditorDoubleLine) : L(.menuBarEditorSingleLine)) · \(instance.allMetrics.count) \(L(.menuBarEditorItems))")
+                                .font(.caption2).foregroundStyle(.secondary)
                         }
-                        .buttonStyle(.plain)
-                        .foregroundStyle(selectedID == instance.id ? Color.accentColor : .primary)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .contentShape(Rectangle())
+                        .onTapGesture { selectedID = instance.id }
+                        .contextMenu {
+                            Button(L(.menuBarEditorDuplicate)) { listModel.duplicate(id: instance.id) }
+                            Button(L(.menuBarEditorDelete), role: .destructive) { listModel.delete(id: instance.id) }
+                        }
                     }
-                    .contextMenu {
-                        Button(L(.menuBarEditorDuplicate)) { listModel.duplicate(id: instance.id) }
-                        Button(L(.menuBarEditorDelete), role: .destructive) { listModel.delete(id: instance.id) }
-                    }
+                    .listRowBackground(selectedID == instance.id ? Color.accentColor.opacity(0.12) : Color.clear)
                 }
                 .onMove { listModel.move(from: $0.first ?? 0, to: $1) }
             }
             Section(L(.menuBarEditorNew)) {
-                Button(L(.menuBarEditorBlankInstance)) {
+                Button {
                     let blank = MenuBarInstance(name: L(.menuBarEditorUntitled), top: MenuBarLine())
                     store.updateMenuBarInstance(blank)
                     selectedID = blank.id
+                } label: {
+                    Label(L(.menuBarEditorBlankInstance), systemImage: "plus.rectangle")
                 }
                 .disabled(!listModel.canAdd)
                 ForEach(MenuBarPreset.allCases) { preset in
-                    Button(L(preset.titleKey)) {
+                    Button {
                         listModel.addPreset(preset)
                         selectedID = store.menuBarInstances.instances.last?.id
+                    } label: {
+                        Label(L(preset.titleKey), systemImage: "square.grid.2x2")
                     }
                     .disabled(!listModel.canAdd)
                 }
@@ -67,45 +84,81 @@ struct MenuBarInstancesSectionView: View {
         .listStyle(.sidebar)
     }
 
+    // MARK: - Middle
+
     private var canvasColumn: some View {
         Group {
             if let model {
                 MenuBarInstanceEditorView(model: model, localization: localization)
             } else {
-                ContentUnavailableViewCompat(text: L(.menuBarEditorAddOrSelect))
+                VStack(spacing: 8) {
+                    Image(systemName: "menubar.rectangle").font(.largeTitle).foregroundStyle(.secondary)
+                    Text(L(.menuBarEditorAddOrSelect)).foregroundStyle(.secondary)
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
         }
     }
+
+    // MARK: - Right
 
     private var paletteColumn: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 12) {
-                Text(L(.menuBarEditorElements)).font(.headline)
-                Text(L(.menuBarEditorPaletteHint)).font(.caption).foregroundStyle(.secondary)
-                Text(L(.menuBarEditorMetrics)).font(.subheadline).foregroundStyle(.secondary)
-                ForEach(MenuBarMetricID.allCases) { metric in
-                    paletteRow(label: L(MenuBarMetricRegistry.titleKey(for: metric)), content: .metric(metric))
-                }
-                Text(L(.menuBarEditorTextIcons)).font(.subheadline).foregroundStyle(.secondary)
-                paletteRow(label: L(.menuBarEditorText), content: .text("Text"))
-                paletteRow(label: "🔥", content: .icon(MenuBarIconSpec(source: .emoji("🔥"))))
-                ForEach(["cpu", "memorychip", "gauge", "thermometer", "fan"], id: \.self) { symbol in
-                    paletteRow(label: "SF: \(symbol)", content: .icon(MenuBarIconSpec(source: .sfSymbol(symbol))))
+        VStack(alignment: .leading, spacing: 8) {
+            Text(L(.menuBarEditorElements)).font(.headline)
+            TextField(L(.menuBarEditorSearchPlaceholder), text: $search)
+                .textFieldStyle(.roundedBorder)
+            Text(L(.menuBarEditorPaletteHint)).font(.caption).foregroundStyle(.secondary)
+            Divider()
+            ScrollView {
+                LazyVStack(alignment: .leading, spacing: 5) {
+                    Text(L(.menuBarEditorMetrics)).font(.caption).foregroundStyle(.secondary)
+                    ForEach(filteredMetrics) { metric in
+                        paletteRow(label: L(MenuBarMetricRegistry.titleKey(for: metric)),
+                                   systemImage: symbol(for: metric),
+                                   content: .metric(metric))
+                    }
+                    Text(L(.menuBarEditorTextIcons)).font(.caption).foregroundStyle(.secondary).padding(.top, 6)
+                    paletteRow(label: L(.menuBarEditorText), systemImage: "textformat", content: .text("Text"))
+                    paletteRow(label: "Emoji", systemImage: "face.smiling", content: .icon(MenuBarIconSpec(source: .emoji("🔥"))))
+                    ForEach(["cpu", "memorychip", "gauge", "thermometer", "fan"], id: \.self) { symbol in
+                        paletteRow(label: "SF: \(symbol)", systemImage: symbol, content: .icon(MenuBarIconSpec(source: .sfSymbol(symbol))))
+                    }
                 }
             }
-            .padding(12)
         }
+        .padding(12)
     }
 
-    private func paletteRow(label: String, content: MenuBarElementContent) -> some View {
-        Text(label)
+    private func paletteRow(label: String, systemImage: String, content: MenuBarElementContent) -> some View {
+        Label(label, systemImage: systemImage)
             .font(.callout)
+            .lineLimit(1)
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(.horizontal, 8)
             .padding(.vertical, 5)
-            .background(Color.secondary.opacity(0.12), in: RoundedRectangle(cornerRadius: 6))
+            .background(Color.secondary.opacity(0.10), in: RoundedRectangle(cornerRadius: 6))
+            .contentShape(Rectangle())
             .draggable(MenuBarElementDragPayload(source: .palette(content)))
             .onTapGesture { addToTop(content) }
+            .help(label)
+    }
+
+    private func symbol(for metric: MenuBarMetricID) -> String {
+        switch metric {
+        case .cpuUsage: return "cpu"
+        case .cpuTemperature: return "thermometer.medium"
+        case .gpuUsage: return "cpu.fill"
+        case .gpuTemperature: return "thermometer.high"
+        case .memoryUsage: return "memorychip"
+        case .diskReadSpeed, .diskWriteSpeed: return "internaldrive"
+        case .networkDownload: return "arrow.down.circle"
+        case .networkUpload: return "arrow.up.circle"
+        case .fanRPM: return "fan"
+        case .batteryLevel: return "battery.100"
+        case .wifiConnectionStatus: return "wifi"
+        case .outputVolume: return "speaker.wave.2"
+        case .screenBrightness: return "sun.max"
+        }
     }
 
     private func addToTop(_ content: MenuBarElementContent) {
@@ -122,6 +175,8 @@ struct MenuBarInstancesSectionView: View {
         }
     }
 
+    // MARK: - Selection
+
     private func ensureSelection() {
         if let selectedID, store.menuBarInstances.instances.contains(where: { $0.id == selectedID }) { return }
         selectedID = store.menuBarInstances.instances.first?.id
@@ -133,16 +188,5 @@ struct MenuBarInstancesSectionView: View {
             model = nil; return
         }
         model = MenuBarInstanceEditorModel(instance: instance, store: store)
-    }
-}
-
-private struct ContentUnavailableViewCompat: View {
-    let text: String
-    var body: some View {
-        VStack(spacing: 8) {
-            Image(systemName: "menubar.rectangle")
-            Text(text).foregroundStyle(.secondary)
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 }

@@ -28,14 +28,21 @@ struct MenuBarInstanceEditorView: View {
 
                 GroupBox(L(.menuBarEditorPreview)) {
                     HStack {
-                        if let image = model.previewImage() {
-                            Image(nsImage: image).padding(4)
-                        } else {
-                            Text(L(.menuBarEditorNoContent)).foregroundStyle(.secondary)
+                        HStack {
+                            if let image = model.previewImage() {
+                                Image(nsImage: image)
+                                    .padding(.horizontal, 10)
+                                    .padding(.vertical, 6)
+                            } else {
+                                Text(L(.menuBarEditorNoContent)).foregroundStyle(.secondary)
+                                    .padding(.horizontal, 10).padding(.vertical, 6)
+                            }
                         }
+                        .background(RoundedRectangle(cornerRadius: 6).fill(Color.black.opacity(0.82)))
                         Spacer()
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.vertical, 2)
                 }
 
                 MenuBarRowCanvasView(

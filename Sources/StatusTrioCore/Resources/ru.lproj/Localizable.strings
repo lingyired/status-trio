@@ -1505,3 +1505,7 @@
 "menubar.editor.systemSettingsFormat" = "System Settings: %@";
 "menubar.editor.addOrSelect" = "Add or select an instance";
 "menubar.editor.textPlaceholder" = "(text)";
+"menubar.editor.moveLeft" = "Move left";
+"menubar.editor.moveRight" = "Move right";
+"menubar.editor.searchPlaceholder" = "Search metrics";
+"menubar.editor.items" = "items";
