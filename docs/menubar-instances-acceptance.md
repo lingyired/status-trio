@@ -36,6 +36,19 @@ Feature: `settings.tab.menuBarInstances` → 设置 › 菜单栏实例.
 | 21 | Hover action = Summary/CPU | Hovering the instance opens that panel; it stays until you click elsewhere |
 | 22 | Main icon untouched | Dock icon and main menu-bar icon behave exactly as before |
 
+## Editor (v2)
+
+| # | Case | Expected |
+|---|---|---|
+| E1 | 设置页三栏 | 左实例列表 / 中布局画布 / 右元素库 |
+| E2 | 新建空白实例 | 不选预设也能建，随后从右侧拖元素 |
+| E3 | 拖指标进上行 | 只插入该指标的值（如 `35%`），不自动带指标名 |
+| E4 | 拖文字/图标元素 | 可插入任意行、可改文字、可拖动排序 |
+| E5 | 元素跨行移动 | 从上行拖到下行正确移动；同一位置拖动无变化 |
+| E6 | 单/双行切换 | 切单行时下行内容保留但不渲染 |
+| E7 | 选中元素编辑 | 选中文字可改内容；行样式可改颜色/粗体/等宽/对齐 |
+| E8 | 删除元素 | 可删到空行 |
+
 ## Known limitations in this build (to verify/finish)
 
 - **Hover** opens the configured panel (panel-type only) and leaves it open until you click elsewhere; there is no auto-close on leave yet.
