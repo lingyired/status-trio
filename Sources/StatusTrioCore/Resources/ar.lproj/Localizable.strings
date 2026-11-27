@@ -525,7 +525,7 @@
 "settings.popup.panelScroll" = "تمرير اللوحة لضبط مستوى الصوت";
 "settings.popup.panelScroll.description" = "يؤدي التمرير فوق المناطق الفارغة في صفحة الملخص إلى تغيير مستوى صوت الإخراج. تُضبط أشرطة التمرير دائمًا بالتمرير.";
 "settings.popup.volumeScroll.natural" = "التمرير الطبيعي";
-"settings.popup.volumeScroll.natural.description" = "مرّر لأعلى لرفع القيمة تحت المؤشر؛ وعند الإيقاف يتبع اتجاه النظام. إذا بقي الاتجاه معكوسًا بعد تشغيل هذا الخيار، فأضف Status Trio إلى قائمة استثناءات/تجاهل في MOS أو Scroll Reverser أو LinearMouse.";
+"settings.popup.volumeScroll.natural.description" = "مرّر لأعلى لرفع القيمة تحت المؤشر؛ وعند الإيقاف يتبع اتجاه النظام. ينطبق على التمرير العمودي فقط: التمرير الأفقي يتبع شريط التمرير دائمًا، فاليمين يزيد واليسار يقلّل. إذا بقي الاتجاه معكوسًا بعد تشغيل هذا الخيار، فأضف Status Trio إلى قائمة استثناءات/تجاهل في MOS أو Scroll Reverser أو LinearMouse.";
 "settings.audio.volumeFeedbackTitle" = "التغذية الراجعة لمستوى الصوت";
 "settings.audio.volumeFeedback" = "تشغيل صوت عند تغيير مستوى الصوت بالتمرير";
 "settings.audio.volumeFeedbackDescription" = "يشغّل النقرة عند تغيير مستوى الصوت بالتمرير. الافتراضي يتبع إعداد macOS «تشغيل التغذية الراجعة عند تغيير مستوى الصوت»؛ التبديل هنا ينطبق على Status Trio فقط.";

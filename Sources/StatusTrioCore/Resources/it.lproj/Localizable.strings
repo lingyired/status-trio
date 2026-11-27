@@ -525,7 +525,7 @@
 "settings.popup.panelScroll" = "Scorri il pannello per regolare il volume";
 "settings.popup.panelScroll.description" = "Lo scorrimento sulle aree vuote della pagina di riepilogo regola il volume di uscita. I cursori si regolano sempre con lo scorrimento.";
 "settings.popup.volumeScroll.natural" = "Scorrimento naturale";
-"settings.popup.volumeScroll.natural.description" = "Scorri verso l’alto per aumentare il valore sotto il puntatore; disattivato segue la direzione di sistema. Se resta invertito dopo aver attivato questa opzione, aggiungi Status Trio all’elenco di eccezioni/ignorati di MOS, Scroll Reverser o LinearMouse.";
+"settings.popup.volumeScroll.natural.description" = "Scorri verso l’alto per aumentare il valore sotto il puntatore; disattivato segue la direzione di sistema. Si applica solo allo scorrimento verticale: quello orizzontale segue sempre il cursore, a destra aumenta e a sinistra diminuisce. Se resta invertito dopo aver attivato questa opzione, aggiungi Status Trio all’elenco di eccezioni/ignorati di MOS, Scroll Reverser o LinearMouse.";
 "settings.audio.volumeFeedbackTitle" = "Feedback del volume";
 "settings.audio.volumeFeedback" = "Riproduci un suono quando cambi il volume scorrendo";
 "settings.audio.volumeFeedbackDescription" = "Riproduce il suono quando cambi il volume scorrendo. Per impostazione predefinita segue l’impostazione di macOS «Riproduci feedback quando il volume cambia»; questa opzione vale solo per Status Trio.";

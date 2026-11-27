@@ -525,7 +525,7 @@
 "settings.popup.panelScroll" = "在面板中捲動調節音量";
 "settings.popup.panelScroll.description" = "在總覽頁面空白處捲動可調節輸出音量；滑桿始終支援捲動調節。";
 "settings.popup.volumeScroll.natural" = "自然捲動";
-"settings.popup.volumeScroll.natural.description" = "向上捲動即提高指標下的數值，關閉後跟隨系統方向。如果開啟後方向仍然相反，請在 MOS、Scroll Reverser 或 LinearMouse 的例外/忽略清單中加入 Status Trio。";
+"settings.popup.volumeScroll.natural.description" = "向上捲動即提高指標下的數值，關閉後跟隨系統方向。僅作用於垂直方向：水平捲動始終與滑桿一致，右滑增大、左滑減小。如果開啟後方向仍然相反，請在 MOS、Scroll Reverser 或 LinearMouse 的例外/忽略清單中加入 Status Trio。";
 "settings.audio.volumeFeedbackTitle" = "音量回饋";
 "settings.audio.volumeFeedback" = "滾動調節音量時播放提示音";
 "settings.audio.volumeFeedbackDescription" = "滾動調節音量時播放提示音。預設跟隨 macOS「音量更改時播放回饋」設定；在此切換後僅對 Status Trio 生效。";

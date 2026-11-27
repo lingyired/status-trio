@@ -525,7 +525,7 @@
 "settings.popup.panelScroll" = "Rolar o painel para ajustar o volume";
 "settings.popup.panelScroll.description" = "Rolar sobre as áreas vazias da página de resumo altera o volume de saída. Os controles deslizantes sempre se ajustam ao rolar.";
 "settings.popup.volumeScroll.natural" = "Rolagem natural";
-"settings.popup.volumeScroll.natural.description" = "Role para cima para aumentar o valor sob o ponteiro; desativado segue a direção do sistema. Se continuar invertido depois de ativar esta opção, adicione Status Trio à lista de exceções/ignorados do MOS, Scroll Reverser ou LinearMouse.";
+"settings.popup.volumeScroll.natural.description" = "Role para cima para aumentar o valor sob o ponteiro; desativado segue a direção do sistema. Aplica-se apenas à rolagem vertical: a horizontal sempre segue o controle, direita aumenta e esquerda diminui. Se continuar invertido depois de ativar esta opção, adicione Status Trio à lista de exceções/ignorados do MOS, Scroll Reverser ou LinearMouse.";
 "settings.audio.volumeFeedbackTitle" = "Feedback de volume";
 "settings.audio.volumeFeedback" = "Reproduzir som ao ajustar o volume com a rolagem";
 "settings.audio.volumeFeedbackDescription" = "Reproduz o som ao ajustar o volume com a rolagem. Por padrão, segue a configuração do macOS “Reproduzir feedback ao alterar o volume”; alternar aqui vale apenas para o Status Trio.";

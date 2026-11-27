@@ -525,7 +525,7 @@
 "settings.popup.panelScroll" = "Desplazar el panel para ajustar el volumen";
 "settings.popup.panelScroll.description" = "Desplazarse por las zonas vacías de la página de resumen cambia el volumen de salida. Los controles deslizantes siempre se ajustan al desplazarse.";
 "settings.popup.volumeScroll.natural" = "Desplazamiento natural";
-"settings.popup.volumeScroll.natural.description" = "Desplázate hacia arriba para subir el valor bajo el puntero; desactivado sigue la dirección del sistema. Si sigue al revés tras activar esta opción, añade Status Trio a la lista de excepciones/omisiones de MOS, Scroll Reverser o LinearMouse.";
+"settings.popup.volumeScroll.natural.description" = "Desplázate hacia arriba para subir el valor bajo el puntero; desactivado sigue la dirección del sistema. Se aplica solo al desplazamiento vertical: el horizontal siempre sigue el control, derecha aumenta e izquierda reduce. Si sigue al revés tras activar esta opción, añade Status Trio a la lista de excepciones/omisiones de MOS, Scroll Reverser o LinearMouse.";
 "settings.audio.volumeFeedbackTitle" = "Comentarios de volumen";
 "settings.audio.volumeFeedback" = "Reproducir un sonido al cambiar el volumen con el desplazamiento";
 "settings.audio.volumeFeedbackDescription" = "Reproduce el sonido al cambiar el volumen con el desplazamiento. De forma predeterminada sigue el ajuste de macOS «reproducir sonido al cambiar el volumen»; este interruptor solo afecta a Status Trio.";
