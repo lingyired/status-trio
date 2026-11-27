@@ -3,27 +3,27 @@ import SwiftUI
 /// Three-column editor: instance list | layout canvas | element palette.
 struct MenuBarInstancesSectionView: View {
     @ObservedObject var store: SettingsStore
+    let localization: Localization
     @State private var selectedID: UUID?
     @State private var model: MenuBarInstanceEditorModel?
 
     private var listModel: MenuBarInstancesListModel { MenuBarInstancesListModel(store: store) }
+    private func L(_ key: LocalizationKey) -> String { localization.string(key) }
 
     var body: some View {
         HSplitView {
-            instanceColumn.frame(minWidth: 190, idealWidth: 210, maxWidth: 260)
-            canvasColumn.frame(minWidth: 380)
-            paletteColumn.frame(minWidth: 200, idealWidth: 220, maxWidth: 260)
+            instanceColumn.frame(minWidth: 170, idealWidth: 200, maxWidth: 260)
+            canvasColumn.frame(minWidth: 320)
+            paletteColumn.frame(minWidth: 190, idealWidth: 210, maxWidth: 260)
         }
         .onAppear { ensureSelection() }
         .onChange(of: store.menuBarInstances) { _ in ensureSelection() }
         .onChange(of: selectedID) { _ in rebuildModel() }
     }
 
-    // MARK: - Left column
-
     private var instanceColumn: some View {
         List {
-            Section("Instances") {
+            Section(L(.menuBarEditorInstances)) {
                 ForEach(store.menuBarInstances.instances) { instance in
                     HStack {
                         Toggle("", isOn: Binding(
@@ -34,7 +34,7 @@ struct MenuBarInstancesSectionView: View {
                         Button {
                             selectedID = instance.id
                         } label: {
-                            Text(instance.name.isEmpty ? "Untitled" : instance.name)
+                            Text(instance.name.isEmpty ? L(.menuBarEditorUntitled) : instance.name)
                                 .frame(maxWidth: .infinity, alignment: .leading)
                                 .contentShape(Rectangle())
                         }
@@ -42,21 +42,21 @@ struct MenuBarInstancesSectionView: View {
                         .foregroundStyle(selectedID == instance.id ? Color.accentColor : .primary)
                     }
                     .contextMenu {
-                        Button("Duplicate") { listModel.duplicate(id: instance.id) }
-                        Button("Delete", role: .destructive) { listModel.delete(id: instance.id) }
+                        Button(L(.menuBarEditorDuplicate)) { listModel.duplicate(id: instance.id) }
+                        Button(L(.menuBarEditorDelete), role: .destructive) { listModel.delete(id: instance.id) }
                     }
                 }
                 .onMove { listModel.move(from: $0.first ?? 0, to: $1) }
             }
-            Section("New") {
-                Button("Blank instance") {
-                    let blank = MenuBarInstance(name: "New", top: MenuBarLine())
+            Section(L(.menuBarEditorNew)) {
+                Button(L(.menuBarEditorBlankInstance)) {
+                    let blank = MenuBarInstance(name: L(.menuBarEditorUntitled), top: MenuBarLine())
                     store.updateMenuBarInstance(blank)
                     selectedID = blank.id
                 }
                 .disabled(!listModel.canAdd)
                 ForEach(MenuBarPreset.allCases) { preset in
-                    Button(preset.titleKey.rawValue) {
+                    Button(L(preset.titleKey)) {
                         listModel.addPreset(preset)
                         selectedID = store.menuBarInstances.instances.last?.id
                     }
@@ -67,35 +67,28 @@ struct MenuBarInstancesSectionView: View {
         .listStyle(.sidebar)
     }
 
-    // MARK: - Middle column
-
     private var canvasColumn: some View {
         Group {
             if let model {
-                MenuBarInstanceEditorView(model: model)
+                MenuBarInstanceEditorView(model: model, localization: localization)
             } else {
-                ContentUnavailableViewCompat()
+                ContentUnavailableViewCompat(text: L(.menuBarEditorAddOrSelect))
             }
         }
     }
 
-    // MARK: - Right column
-
     private var paletteColumn: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 12) {
-                Text("Elements").font(.headline)
-                Text("Drag a metric into a row, or click to add to the top row.")
-                    .font(.caption).foregroundStyle(.secondary)
-
-                Text("Metrics").font(.subheadline).foregroundStyle(.secondary)
+                Text(L(.menuBarEditorElements)).font(.headline)
+                Text(L(.menuBarEditorPaletteHint)).font(.caption).foregroundStyle(.secondary)
+                Text(L(.menuBarEditorMetrics)).font(.subheadline).foregroundStyle(.secondary)
                 ForEach(MenuBarMetricID.allCases) { metric in
-                    paletteRow(label: metric.rawValue, content: .metric(metric))
+                    paletteRow(label: L(MenuBarMetricRegistry.titleKey(for: metric)), content: .metric(metric))
                 }
-
-                Text("Text & icons").font(.subheadline).foregroundStyle(.secondary)
-                paletteRow(label: "Text", content: .text("Text"))
-                paletteRow(label: "🔥 (emoji)", content: .icon(MenuBarIconSpec(source: .emoji("🔥"))))
+                Text(L(.menuBarEditorTextIcons)).font(.subheadline).foregroundStyle(.secondary)
+                paletteRow(label: L(.menuBarEditorText), content: .text("Text"))
+                paletteRow(label: "🔥", content: .icon(MenuBarIconSpec(source: .emoji("🔥"))))
                 ForEach(["cpu", "memorychip", "gauge", "thermometer", "fan"], id: \.self) { symbol in
                     paletteRow(label: "SF: \(symbol)", content: .icon(MenuBarIconSpec(source: .sfSymbol(symbol))))
                 }
@@ -129,32 +122,26 @@ struct MenuBarInstancesSectionView: View {
         }
     }
 
-    // MARK: - Selection
-
     private func ensureSelection() {
-        if let selectedID, store.menuBarInstances.instances.contains(where: { $0.id == selectedID }) {
-            return
-        }
+        if let selectedID, store.menuBarInstances.instances.contains(where: { $0.id == selectedID }) { return }
         selectedID = store.menuBarInstances.instances.first?.id
         rebuildModel()
     }
 
     private func rebuildModel() {
-        guard let id = selectedID,
-              let instance = store.menuBarInstances.instances.first(where: { $0.id == id }) else {
-            model = nil
-            return
+        guard let id = selectedID, let instance = store.menuBarInstances.instances.first(where: { $0.id == id }) else {
+            model = nil; return
         }
         model = MenuBarInstanceEditorModel(instance: instance, store: store)
     }
 }
 
 private struct ContentUnavailableViewCompat: View {
+    let text: String
     var body: some View {
         VStack(spacing: 8) {
             Image(systemName: "menubar.rectangle")
-            Text("Add or select an instance")
-                .foregroundStyle(.secondary)
+            Text(text).foregroundStyle(.secondary)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }

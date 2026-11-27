@@ -6,6 +6,7 @@ struct MenuBarRowCanvasView: View {
     @ObservedObject var model: MenuBarInstanceEditorModel
     let slot: MenuBarLineSlot
     let title: String
+    let localization: Localization
     @Binding var selectedSlot: MenuBarLineSlot
     @Binding var selectedElementID: UUID?
     @State private var isTargeted = false
@@ -17,7 +18,7 @@ struct MenuBarRowCanvasView: View {
             Text(title).font(.caption).foregroundStyle(.secondary)
             HStack(spacing: 6) {
                 if elements.isEmpty {
-                    Text("Empty — drag an element here")
+                    Text(localization.string(.menuBarEditorEmptyRow))
                         .font(.caption).foregroundStyle(.secondary)
                 }
                 ForEach(Array(elements.enumerated()), id: \.element.id) { index, element in
