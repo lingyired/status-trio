@@ -362,6 +362,8 @@ enum LocalizationKey: String, CaseIterable, Hashable, Sendable {
     case menuBarEditorMoveRight = "menubar.editor.moveRight"
     case menuBarEditorSearchPlaceholder = "menubar.editor.searchPlaceholder"
     case menuBarEditorItems = "menubar.editor.items"
+    case menuBarEditorDragRemove = "menubar.editor.dragRemove"
+    case menuBarEditorRemoveSelected = "menubar.editor.removeSelected"
     case hardwareMonitorSignalStrength = "hardware.monitor.signalStrength"
     case hardwareMonitorSettingsGroupSampling = "hardware.monitor.settings.group.sampling"
     case hardwareMonitorSettingsGroupRings = "hardware.monitor.settings.group.rings"

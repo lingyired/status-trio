@@ -1509,3 +1509,5 @@
 "menubar.editor.moveRight" = "右移";
 "menubar.editor.searchPlaceholder" = "搜索指标";
 "menubar.editor.items" = "项";
+"menubar.editor.dragRemove" = "拖到这里删除";
+"menubar.editor.removeSelected" = "删除选中元素";

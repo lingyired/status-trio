@@ -56,11 +56,41 @@ struct MenuBarInstanceEditorView: View {
                     )
                 }
 
+                removeDropTarget
                 elementInspector
                 rowStyleControls
                 spacingAndInteraction
             }
             .padding(16)
+        }
+    }
+
+    private var removeDropTarget: some View {
+        let hasSelection = selectedElementID != nil
+        return HStack(spacing: 6) {
+            Image(systemName: "trash")
+            Text(hasSelection ? L(.menuBarEditorRemoveSelected) : L(.menuBarEditorDragRemove))
+        }
+        .font(.caption)
+        .foregroundStyle(hasSelection ? Color.primary : Color.secondary)
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 5)
+        .background(
+            RoundedRectangle(cornerRadius: 6, style: .continuous)
+                .fill(Color.secondary.opacity(hasSelection ? 0.12 : 0.06))
+        )
+        .contentShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
+        .onTapGesture {
+            if let id = selectedElementID {
+                model.removeElement(id: id, slot: selectedSlot)
+                selectedElementID = nil
+            }
+        }
+        .dropDestination(for: MenuBarElementDragPayload.self) { payloads, _ in
+            guard let payload = payloads.first, case let .placed(_, slot, id) = payload.source else { return false }
+            model.removeElement(id: id, slot: slot)
+            selectedElementID = nil
+            return true
         }
     }
 

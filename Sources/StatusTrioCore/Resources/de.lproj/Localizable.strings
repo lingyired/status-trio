@@ -1509,3 +1509,5 @@
 "menubar.editor.moveRight" = "Move right";
 "menubar.editor.searchPlaceholder" = "Search metrics";
 "menubar.editor.items" = "items";
+"menubar.editor.dragRemove" = "Drag here to remove";
+"menubar.editor.removeSelected" = "Remove selected element";

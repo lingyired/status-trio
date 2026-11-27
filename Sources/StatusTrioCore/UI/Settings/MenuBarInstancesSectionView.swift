@@ -110,18 +110,22 @@ struct MenuBarInstancesSectionView: View {
             Text(L(.menuBarEditorPaletteHint)).font(.caption).foregroundStyle(.secondary)
             Divider()
             ScrollView {
-                LazyVStack(alignment: .leading, spacing: 5) {
+                VStack(alignment: .leading, spacing: 10) {
                     Text(L(.menuBarEditorMetrics)).font(.caption).foregroundStyle(.secondary)
-                    ForEach(filteredMetrics) { metric in
-                        paletteRow(label: L(MenuBarMetricRegistry.titleKey(for: metric)),
-                                   systemImage: symbol(for: metric),
-                                   content: .metric(metric))
+                    LazyVGrid(columns: [GridItem(.adaptive(minimum: 118), spacing: 6)], alignment: .leading, spacing: 6) {
+                        ForEach(filteredMetrics) { metric in
+                            paletteChip(label: L(MenuBarMetricRegistry.titleKey(for: metric)),
+                                        systemImage: symbol(for: metric),
+                                        content: .metric(metric))
+                        }
                     }
-                    Text(L(.menuBarEditorTextIcons)).font(.caption).foregroundStyle(.secondary).padding(.top, 6)
-                    paletteRow(label: L(.menuBarEditorText), systemImage: "textformat", content: .text("Text"))
-                    paletteRow(label: "Emoji", systemImage: "face.smiling", content: .icon(MenuBarIconSpec(source: .emoji("🔥"))))
-                    ForEach(["cpu", "memorychip", "gauge", "thermometer", "fan"], id: \.self) { symbol in
-                        paletteRow(label: "SF: \(symbol)", systemImage: symbol, content: .icon(MenuBarIconSpec(source: .sfSymbol(symbol))))
+                    Text(L(.menuBarEditorTextIcons)).font(.caption).foregroundStyle(.secondary).padding(.top, 4)
+                    LazyVGrid(columns: [GridItem(.adaptive(minimum: 118), spacing: 6)], alignment: .leading, spacing: 6) {
+                        paletteChip(label: L(.menuBarEditorText), systemImage: "textformat", content: .text("Text"))
+                        paletteChip(label: "Emoji", systemImage: "face.smiling", content: .icon(MenuBarIconSpec(source: .emoji("🔥"))))
+                        ForEach(["cpu", "memorychip", "gauge", "thermometer", "fan"], id: \.self) { symbol in
+                            paletteChip(label: symbol, systemImage: symbol, content: .icon(MenuBarIconSpec(source: .sfSymbol(symbol))))
+                        }
                     }
                 }
             }
@@ -129,18 +133,12 @@ struct MenuBarInstancesSectionView: View {
         .padding(12)
     }
 
-    private func paletteRow(label: String, systemImage: String, content: MenuBarElementContent) -> some View {
-        Label(label, systemImage: systemImage)
-            .font(.callout)
-            .lineLimit(1)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.horizontal, 8)
-            .padding(.vertical, 5)
-            .background(Color.secondary.opacity(0.10), in: RoundedRectangle(cornerRadius: 6))
-            .contentShape(Rectangle())
+    private func paletteChip(label: String, systemImage: String, content: MenuBarElementContent) -> some View {
+        MenuBarEditorChipLabel(title: label, systemImage: systemImage)
             .draggable(MenuBarElementDragPayload(source: .palette(content)))
             .onTapGesture { addToTop(content) }
             .help(label)
+            .accessibilityLabel(label)
     }
 
     private func symbol(for metric: MenuBarMetricID) -> String {

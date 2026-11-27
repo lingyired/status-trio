@@ -1,8 +1,34 @@
 import SwiftUI
 
-/// One draggable row canvas. Chips are plain views (not buttons) so the drag
-/// session is not stolen by a tap gesture. Every chip also exposes a context
-/// menu (move / delete) as the single-pointer and keyboard alternative to drag.
+/// Draggable chip used by both the row canvas and the palette. Deliberately a
+/// plain view (not a Button): a button's gesture recognizer would claim the
+/// mouse-down and prevent the drag session from starting.
+struct MenuBarEditorChipLabel: View {
+    let title: String
+    let systemImage: String
+    var isSelected = false
+
+    var body: some View {
+        HStack(spacing: 4) {
+            Image(systemName: systemImage).font(.caption2)
+            Text(title).font(.callout).lineLimit(1)
+        }
+        .padding(.horizontal, 8)
+        .padding(.vertical, 4)
+        .background(
+            RoundedRectangle(cornerRadius: 7, style: .continuous)
+                .fill(isSelected ? Color.accentColor.opacity(0.22) : Color(nsColor: .controlBackgroundColor))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 7, style: .continuous)
+                .stroke(isSelected ? Color.accentColor : Color(nsColor: .separatorColor), lineWidth: 1)
+        )
+        .contentShape(RoundedRectangle(cornerRadius: 7, style: .continuous))
+    }
+}
+
+/// One draggable row canvas. Chips expose a context menu (move / delete) as the
+/// single-pointer and keyboard alternative to dragging.
 struct MenuBarRowCanvasView: View {
     @ObservedObject var model: MenuBarInstanceEditorModel
     let slot: MenuBarLineSlot
@@ -19,31 +45,31 @@ struct MenuBarRowCanvasView: View {
             HStack {
                 Text(title).font(.caption).fontWeight(.medium).foregroundStyle(.secondary)
                 Spacer()
-                Text("\(elements.count)")
-                    .font(.caption2)
-                    .foregroundStyle(.tertiary)
+                Text("\(elements.count)").font(.caption2).foregroundStyle(.tertiary)
             }
-            HStack(spacing: 6) {
-                if elements.isEmpty {
-                    Label(localization.string(.menuBarEditorEmptyRow), systemImage: "arrow.down.to.line")
-                        .font(.caption).foregroundStyle(.secondary)
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 5) {
+                    if elements.isEmpty {
+                        Label(localization.string(.menuBarEditorEmptyRow), systemImage: "arrow.down.to.line")
+                            .font(.caption).foregroundStyle(.secondary)
+                    }
+                    ForEach(Array(elements.enumerated()), id: \.element.id) { index, element in
+                        chip(element, index: index)
+                            .dropDestination(for: MenuBarElementDragPayload.self) { payloads, _ in
+                                guard let payload = payloads.first else { return false }
+                                return drop(payload, index: index)
+                            }
+                    }
+                    appendTarget
                 }
-                ForEach(Array(elements.enumerated()), id: \.element.id) { index, element in
-                    chip(element, index: index)
-                        .dropDestination(for: MenuBarElementDragPayload.self) { payloads, _ in
-                            guard let payload = payloads.first else { return false }
-                            return drop(payload, index: index)
-                        }
-                }
-                Spacer(minLength: 4)
+                .padding(8)
             }
-            .padding(8)
-            .frame(minHeight: 38, alignment: .leading)
+            .frame(minHeight: 40)
             .background(
-                RoundedRectangle(cornerRadius: 8)
-                    .fill(Color(nsColor: .controlBackgroundColor))
+                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    .fill(.background.opacity(0.75))
                     .overlay(
-                        RoundedRectangle(cornerRadius: 8)
+                        RoundedRectangle(cornerRadius: 8, style: .continuous)
                             .stroke(isTargeted ? Color.accentColor : Color(nsColor: .separatorColor),
                                     lineWidth: isTargeted ? 1.5 : 1)
                     )
@@ -52,34 +78,48 @@ struct MenuBarRowCanvasView: View {
                 guard let payload = payloads.first else { return false }
                 return drop(payload, index: elements.count)
             } isTargeted: { isTargeted = $0 }
+            .onDeleteCommand {
+                if let id = selectedElementID, selectedSlot == slot {
+                    model.removeElement(id: id, slot: slot)
+                    selectedElementID = nil
+                }
+            }
         }
+    }
+
+    private var appendTarget: some View {
+        Image(systemName: "plus")
+            .font(.caption)
+            .foregroundStyle(.secondary)
+            .frame(width: 26, height: 26)
+            .background(
+                RoundedRectangle(cornerRadius: 7, style: .continuous)
+                    .strokeBorder(style: StrokeStyle(lineWidth: 1, dash: [4, 3]))
+                    .foregroundStyle(Color.secondary.opacity(0.35))
+            )
+            .dropDestination(for: MenuBarElementDragPayload.self) { payloads, _ in
+                guard let payload = payloads.first else { return false }
+                return drop(payload, index: elements.count)
+            }
+            .accessibilityLabel(localization.string(.menuBarEditorEmptyRow))
     }
 
     private func chip(_ element: MenuBarElement, index: Int) -> some View {
         let selected = selectedElementID == element.id && selectedSlot == slot
-        return HStack(spacing: 4) {
-            Image(systemName: chipSymbol(element))
-                .font(.caption2)
-            Text(label(for: element))
-                .font(.callout)
-                .lineLimit(1)
-        }
-        .padding(.horizontal, 8)
-        .padding(.vertical, 4)
-        .background(selected ? Color.accentColor.opacity(0.22) : Color.secondary.opacity(0.12), in: Capsule())
-        .overlay(Capsule().stroke(selected ? Color.accentColor : Color.clear, lineWidth: 1))
-        .draggable(MenuBarElementDragPayload(source: .placed(instanceID: model.instance.id, slot: slot, elementID: element.id)))
-        .onTapGesture {
-            selectedSlot = slot
-            selectedElementID = element.id
-        }
-        .contextMenu {
-            Button(localization.string(.menuBarEditorMoveLeft)) { model.moveElement(id: element.id, to: index - 1, slot: slot) }
-            Button(localization.string(.menuBarEditorMoveRight)) { model.moveElement(id: element.id, to: index + 1, slot: slot) }
-            Divider()
-            Button(localization.string(.menuBarEditorDelete), role: .destructive) { model.removeElement(id: element.id, slot: slot) }
-        }
-        .accessibilityLabel(label(for: element))
+        return MenuBarEditorChipLabel(title: label(for: element), systemImage: chipSymbol(element), isSelected: selected)
+            .draggable(MenuBarElementDragPayload(source: .placed(instanceID: model.instance.id, slot: slot, elementID: element.id)))
+            .onTapGesture {
+                selectedSlot = slot
+                selectedElementID = element.id
+            }
+            .contextMenu {
+                Button(localization.string(.menuBarEditorMoveLeft)) { model.moveElement(id: element.id, to: index - 1, slot: slot) }
+                Button(localization.string(.menuBarEditorMoveRight)) { model.moveElement(id: element.id, to: index + 1, slot: slot) }
+                Divider()
+                Button(localization.string(.menuBarEditorDelete), role: .destructive) { model.removeElement(id: element.id, slot: slot) }
+            }
+            .accessibilityLabel(label(for: element))
+            .accessibilityAddTraits(selected ? .isSelected : [])
     }
 
     private func chipSymbol(_ element: MenuBarElement) -> String {
