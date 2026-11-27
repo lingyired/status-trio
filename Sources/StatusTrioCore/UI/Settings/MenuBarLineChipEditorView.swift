@@ -289,9 +289,9 @@ struct MenuBarRowCanvasView: View {
 
 /// Icon picker for a row's leading icon.
 ///
-/// SF Symbols and emoji are shown as a searchable grid so choosing an icon is
-/// visual rather than remembering its name; a name field remains for symbols
-/// that are not in the curated list.
+/// SF Symbols and emoji are shown as an even, searchable grid so choosing an
+/// icon is visual rather than remembering its name; a compact custom-name
+/// field remains for symbols outside the curated list.
 struct MenuBarLeadingIconPicker: View {
     let spec: MenuBarIconSpec?
     let localization: Localization
@@ -303,6 +303,7 @@ struct MenuBarLeadingIconPicker: View {
     @State private var customSymbol = ""
     @State private var customEmoji = ""
     @State private var customAsset = ""
+    @State private var showsCustomSymbol = false
 
     private func L(_ key: LocalizationKey) -> String { localization.string(key) }
 
@@ -349,10 +350,8 @@ struct MenuBarLeadingIconPicker: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text(L(.menuBarEditorLeadingIcon))
-                .font(.system(size: 11.5, weight: .semibold))
-                .foregroundStyle(.secondary)
+        VStack(alignment: .leading, spacing: 12) {
+            header
 
             Picker("", selection: $tab) {
                 Text("SF Symbol").tag(0)
@@ -370,43 +369,114 @@ struct MenuBarLeadingIconPicker: View {
 
             Divider()
 
-            HStack {
-                Button(L(.menuBarEditorNone)) {
-                    onChange(nil)
-                    dismiss()
-                }
-                Spacer(minLength: 0)
+            Button {
+                onChange(nil)
+                dismiss()
+            } label: {
+                Label(L(.menuBarEditorNone), systemImage: "xmark.circle")
+                    .font(.system(size: 11))
             }
+            .buttonStyle(.borderless)
         }
-        .padding(12)
-        .frame(width: 340)
+        .padding(14)
+        .frame(width: 380)
+    }
+
+    private var header: some View {
+        HStack(spacing: 10) {
+            ZStack {
+                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    .fill(Color.primary.opacity(0.06))
+                currentIconPreview
+            }
+            .frame(width: 36, height: 36)
+
+            VStack(alignment: .leading, spacing: 1) {
+                Text(L(.menuBarEditorLeadingIcon))
+                    .font(.system(size: 12, weight: .semibold))
+                Text(iconDescription)
+                    .font(.system(size: 10.5))
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+            }
+
+            Spacer(minLength: 0)
+        }
+    }
+
+    @ViewBuilder
+    private var currentIconPreview: some View {
+        switch spec?.source {
+        case .sfSymbol(let name):
+            Image(systemName: name)
+                .font(.system(size: 17))
+        case .emoji(let value):
+            Text(value).font(.system(size: 19))
+        case .asset:
+            Image(systemName: "photo")
+                .font(.system(size: 17))
+        case nil:
+            Image(systemName: "plus")
+                .font(.system(size: 15, weight: .medium))
+                .foregroundStyle(.tertiary)
+        }
+    }
+
+    private var iconDescription: String {
+        switch spec?.source {
+        case .sfSymbol(let name): return name
+        case .emoji(let value): return value
+        case .asset(let name): return name
+        case nil: return L(.menuBarEditorNone)
+        }
+    }
+
+    private var gridColumns: [GridItem] {
+        Array(repeating: GridItem(.fixed(34), spacing: 6), count: 8)
     }
 
     private var symbolGrid: some View {
         VStack(alignment: .leading, spacing: 8) {
-            TextField(L(.menuBarEditorSearchIcons), text: $search)
-                .textFieldStyle(.roundedBorder)
+            searchField
 
             ScrollView {
-                LazyVGrid(columns: Array(repeating: GridItem(.fixed(30), spacing: 7), count: 7), spacing: 7) {
-                    ForEach(filteredSymbols, id: \.self) { name in
-                        iconButton(systemImage: name, selected: isSelected(.sfSymbol(name))) {
-                            apply(MenuBarIconSpec(source: .sfSymbol(name)))
+                if filteredSymbols.isEmpty {
+                    Text(L(.menuBarEditorNoContent))
+                        .font(.system(size: 11))
+                        .foregroundStyle(.secondary)
+                        .frame(maxWidth: .infinity, alignment: .center)
+                        .padding(.vertical, 18)
+                } else {
+                    LazyVGrid(columns: gridColumns, spacing: 6) {
+                        ForEach(filteredSymbols, id: \.self) { name in
+                            IconPickerTile(
+                                symbol: name,
+                                isSelected: isSelected(.sfSymbol(name))
+                            ) {
+                                apply(MenuBarIconSpec(source: .sfSymbol(name)))
+                            }
+                            .help(name)
+                            .accessibilityLabel(name)
                         }
-                        .help(name)
-                        .accessibilityLabel(name)
                     }
+                    .padding(2)
                 }
-                .padding(2)
             }
-            .frame(height: 220)
+            .frame(height: 236)
 
-            HStack(spacing: 8) {
-                TextField(L(.menuBarEditorIconSymbol), text: $customSymbol)
-                    .textFieldStyle(.roundedBorder)
-                    .onSubmit { addCustomSymbol() }
-                Button(L(.menuBarEditorAdd)) { addCustomSymbol() }
-                    .disabled(customSymbol.trimmingCharacters(in: .whitespaces).isEmpty)
+            DisclosureGroup(isExpanded: $showsCustomSymbol) {
+                HStack(spacing: 8) {
+                    TextField(L(.menuBarEditorIconSymbol), text: $customSymbol)
+                        .textFieldStyle(.roundedBorder)
+                        .onSubmit { addCustomSymbol() }
+                    Button(L(.menuBarEditorAdd)) { addCustomSymbol() }
+                        .disabled(customSymbol.trimmingCharacters(in: .whitespaces).isEmpty)
+                }
+                .padding(.top, 4)
+            } label: {
+                Text(L(.menuBarEditorIconSymbol))
+                    .font(.system(size: 10.5))
+                    .foregroundStyle(.secondary)
             }
         }
     }
@@ -414,16 +484,19 @@ struct MenuBarLeadingIconPicker: View {
     private var emojiGrid: some View {
         VStack(alignment: .leading, spacing: 8) {
             ScrollView {
-                LazyVGrid(columns: Array(repeating: GridItem(.fixed(30), spacing: 8), count: 7), spacing: 8) {
+                LazyVGrid(columns: gridColumns, spacing: 6) {
                     ForEach(Self.emoji, id: \.self) { emoji in
-                        iconButton(title: emoji, selected: isSelected(.emoji(emoji))) {
+                        IconPickerTile(
+                            emoji: emoji,
+                            isSelected: isSelected(.emoji(emoji))
+                        ) {
                             apply(MenuBarIconSpec(source: .emoji(emoji), tint: false))
                         }
                     }
                 }
                 .padding(2)
             }
-            .frame(height: 220)
+            .frame(height: 236)
 
             HStack(spacing: 8) {
                 TextField(L(.menuBarEditorIconEmoji), text: $customEmoji)
@@ -445,46 +518,29 @@ struct MenuBarLeadingIconPicker: View {
                     .disabled(customAsset.trimmingCharacters(in: .whitespaces).isEmpty)
             }
             Spacer(minLength: 0)
-                .frame(height: 220)
+                .frame(height: 236)
         }
     }
 
-    private func iconButton(
-        systemImage: String,
-        selected: Bool,
-        action: @escaping () -> Void
-    ) -> some View {
-        Button(action: action) {
-            Image(systemName: systemImage)
-                .font(.system(size: 15, weight: .regular))
-                .frame(width: 30, height: 30)
-                .background(iconBackground(selected: selected))
+    private var searchField: some View {
+        HStack(spacing: 6) {
+            Image(systemName: "magnifyingglass")
+                .font(.system(size: 11))
+                .foregroundStyle(.secondary)
+            TextField(L(.menuBarEditorSearchIcons), text: $search)
+                .textFieldStyle(.plain)
+                .font(.system(size: 12))
         }
-        .buttonStyle(.plain)
-    }
-
-    private func iconButton(
-        title: String,
-        selected: Bool,
-        action: @escaping () -> Void
-    ) -> some View {
-        Button(action: action) {
-            Text(title)
-                .font(.system(size: 17))
-                .frame(width: 30, height: 30)
-                .background(iconBackground(selected: selected))
-        }
-        .buttonStyle(.plain)
-        .accessibilityLabel(title)
-    }
-
-    private func iconBackground(selected: Bool) -> some View {
-        RoundedRectangle(cornerRadius: 6, style: .continuous)
-            .fill(selected ? Color.accentColor.opacity(0.22) : Color.clear)
-            .overlay(
-                RoundedRectangle(cornerRadius: 6, style: .continuous)
-                    .strokeBorder(selected ? Color.accentColor : Color.clear, lineWidth: 1)
-            )
+        .padding(.horizontal, 8)
+        .padding(.vertical, 6)
+        .background(
+            RoundedRectangle(cornerRadius: 6, style: .continuous)
+                .fill(Color(nsColor: .textBackgroundColor).opacity(0.5))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 6, style: .continuous)
+                .strokeBorder(Color.primary.opacity(0.1), lineWidth: 1)
+        )
     }
 
     private func isSelected(_ source: MenuBarIconSource) -> Bool {
@@ -515,7 +571,46 @@ struct MenuBarLeadingIconPicker: View {
     }
 }
 
-/// Element library shown under the menu-bar strip.
+private struct IconPickerTile: View {
+    var symbol: String? = nil
+    var emoji: String? = nil
+    let isSelected: Bool
+    let action: () -> Void
+
+    @State private var isHovering = false
+
+    var body: some View {
+        Button(action: action) {
+            Group {
+                if let symbol {
+                    Image(systemName: symbol)
+                        .font(.system(size: 15, weight: .regular))
+                } else if let emoji {
+                    Text(emoji)
+                        .font(.system(size: 18))
+                }
+            }
+            .frame(width: 34, height: 34)
+            .background(
+                RoundedRectangle(cornerRadius: 7, style: .continuous)
+                    .fill(
+                        isSelected
+                            ? Color.accentColor.opacity(0.22)
+                            : Color.primary.opacity(isHovering ? 0.08 : 0)
+                    )
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 7, style: .continuous)
+                    .strokeBorder(isSelected ? Color.accentColor : Color.clear, lineWidth: 1)
+            )
+            .contentShape(RoundedRectangle(cornerRadius: 7, style: .continuous))
+        }
+        .buttonStyle(.plain)
+        .onHover { isHovering = $0 }
+    }
+}
+
+/// Element library shown under the menu-bar strip./// Element library shown under the menu-bar strip.
 ///
 /// Clicking a chip adds it to the chosen row; chips can also be dragged into
 /// either row. The explicit "add to" picker keeps the target visible instead of
