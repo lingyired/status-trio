@@ -29,11 +29,11 @@ enum HardwareRingMapper {
     /// The memory-pressure dot is a compact status marker, not a full-size top
     /// glyph: at the usual top-symbol scale it overflows the ring gap and clips
     /// against the menu-bar edge, so it uses its own smaller base (#398).
-    static let memoryPressureDotScale: Double = 0.5
+    static let memoryPressureDotScale: Double = 0.75
     /// The dual (left/right) ring sizes its top marker through the battery
     /// indicator's text scale, which is much smaller per unit; this base keeps
     /// the pressure dot visually matched to the single-ring dot.
-    static let memoryPressureDualDotScale: Double = 1.0
+    static let memoryPressureDualDotScale: Double = 1.5
     /// Top glyph scale for a single ring. The standard-ring accessory path sizes
     /// symbols from the centre-symbol base point size, so it needs a smaller
     /// multiplier than the dual path to match the percentage numerals' height.
