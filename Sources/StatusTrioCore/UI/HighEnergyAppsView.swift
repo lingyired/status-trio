@@ -40,11 +40,27 @@ struct HighEnergyAppsView: View {
         self.iconCache = iconCache
     }
 
+    private var titleKey: LocalizationKey {
+        guard ranking.effectiveDuration > 0 else { return .batteryEnergyAppsTitle }
+        return ApplicationEnergyPresentation.titleKey(for: ranking.basis)
+    }
+
+    private var windowProgress: some View {
+        Text(localization.format(.batteryEnergyWindowBuilding,
+                                 Int(min(ranking.effectiveDuration, ranking.windowCapacity).rounded())))
+            .font(.caption2)
+            .foregroundStyle(.secondary)
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 5) {
-            Text(localization.string(.batteryHighEnergyApps)).font(.caption.weight(panelBoldText ? .semibold : .regular))
+            Text(localization.string(titleKey))
+                .font(.caption.weight(panelBoldText ? .semibold : .regular))
             if ranking.phase == .sampling {
                 Text(localization.string(.batteryDetailsCollecting)).foregroundStyle(.secondary)
+                if ranking.effectiveDuration > 0 {
+                    windowProgress
+                }
             } else if ranking.phase == .unavailable {
                 Text(localization.string(.batteryDetailsUnavailable)).foregroundStyle(.secondary)
             } else if ranking.apps.isEmpty {
@@ -52,6 +68,15 @@ struct HighEnergyAppsView: View {
             } else {
                 ForEach(displayApps) { app in
                     row(for: app, ranking: ranking)
+                }
+                if !ranking.isWindowComplete && ranking.effectiveDuration > 0 {
+                    windowProgress
+                }
+                if ranking.phase == .partial {
+                    Text(localization.string(.batteryEnergyPartialNote))
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
                 if let failedQuitName {
                     Text(localization.format(.appForceQuitFailed, failedQuitName))
@@ -100,6 +125,13 @@ struct HighEnergyAppsView: View {
                             .lineLimit(1)
                             .fixedSize(horizontal: true, vertical: false)
                     }
+                    if ranking.coverage(for: app).contains(.gpuEnergy),
+                       !ranking.coverage(for: app).contains(.cpuEnergy) {
+                        Text("GPU")
+                            .font(.caption2)
+                            .foregroundStyle(.tertiary)
+                            .lineLimit(1)
+                    }
                 }
                 .contentShape(Rectangle())
                 .accessibilityElement(children: .combine)
@@ -145,7 +177,8 @@ struct HighEnergyAppsView: View {
             armed = nil
             return
         }
-        guard let target = AppQuitter.target(forApplicationPath: app.id, name: app.name,
+        guard ranking.isApplication(app),
+              let target = AppQuitter.target(forApplicationPath: app.id, name: app.name,
                                              running: AppQuitter.currentRunningApps()) else {
             armed = nil
             return

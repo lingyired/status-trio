@@ -61,8 +61,18 @@ struct SystemProcessMetadataReader: ProcessMetadataReading {
             identity: ProcessIdentity(pid: pid, startedAt: Self.startTime(for: pid)),
             name: name.isEmpty ? fallbackName : name,
             executablePath: Self.executablePath(for: pid),
-            responsiblePID: Self.responsiblePID(for: pid)
+            responsiblePID: Self.responsiblePID(for: pid),
+            parentPID: Self.parentPID(for: pid)
         )
+    }
+
+    static func parentPID(for pid: Int32) -> Int32? {
+        var info = proc_bsdinfo()
+        let size = MemoryLayout<proc_bsdinfo>.size
+        let read = proc_pidinfo(pid, PROC_PIDTBSDINFO, 0, &info, Int32(size))
+        guard read == Int32(size) else { return nil }
+        let value = Int32(bitPattern: info.pbi_ppid)
+        return value > 0 ? value : nil
     }
 
     static func startTime(for pid: Int32) -> UInt64? {

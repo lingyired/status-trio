@@ -258,7 +258,7 @@ bash scripts/build-worktree.sh release
 ## 文档
 
 - [已知限制](docs/known-limitations.md)
-- [电池功率流向与 CPU 能耗影响](docs/battery-power-flow.md)
+- [电池功率流向与应用能耗排行](docs/battery-power-flow.md)
 - [立即充满电：行为与验证](docs/charge-to-full-now-poc.md)
 - [全局快捷键](docs/status-panel-global-shortcut.md)
 - [GitHub Actions 自动发布](docs/github-actions-release.md)

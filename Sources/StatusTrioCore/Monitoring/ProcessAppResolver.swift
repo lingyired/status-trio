@@ -9,7 +9,8 @@ import Foundation
 /// shared fallback bucket.
 enum ProcessAppResolver {
     static func resolve(_ metadata: ProcessMetadata,
-                        applications: [ProcessApplication]) -> ProcessAppResolution {
+                        applications: [ProcessApplication],
+                        parentMetadata: ((Int32) -> ProcessMetadata?)? = nil) -> ProcessAppResolution {
         let byPID = Dictionary(applications.map { ($0.pid, $0) }, uniquingKeysWith: { first, _ in first })
 
         if let responsiblePID = metadata.responsiblePID,
@@ -30,6 +31,23 @@ enum ProcessAppResolver {
                 name: applicationName(fromBundlePath: bundlePath),
                 applicationPath: bundlePath
             )
+        }
+        if let parentMetadata {
+            var parent = metadata.parentPID
+            var seen: Set<Int32> = []
+            for _ in 0..<4 {
+                guard let pid = parent, pid > 0, seen.insert(pid).inserted,
+                      let parentInfo = parentMetadata(pid),
+                      parentInfo.identity.startedAt != nil else { break }
+                if let app = byPID[pid] {
+                    return resolution(for: app)
+                }
+                if let bundlePath = owningApplicationPath(for: parentInfo.executablePath),
+                   let app = applications.first(where: { canonicalPath($0.path) == bundlePath }) {
+                    return resolution(for: app)
+                }
+                parent = parentInfo.parentPID
+            }
         }
         return ProcessAppResolution(identity: .process(metadata.identity),
                                     name: metadata.name,

@@ -44,7 +44,23 @@ final class ApplicationEnergyPresentationTests: XCTestCase {
         )
     }
 
-    func testListTitleNamesCPUEnergyImpact() throws {
+    func testBasisTitlesAreExplicit() throws {
+        let suite = "ApplicationEnergyPresentationTests.BasisTitles.\(UUID().uuidString)"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
+        defer { defaults.removeTestSuite(named: suite) }
+        let localization = Localization(defaults: defaults, preferredLanguages: ["en"])
+        localization.setPreference(.language(.english))
+        XCTAssertEqual(localization.string(ApplicationEnergyPresentation.titleKey(for: .cpuAndGPU)),
+                       "App Energy · Last 1 Minute")
+        XCTAssertEqual(localization.string(ApplicationEnergyPresentation.titleKey(for: .cpuEnergy)),
+                       "CPU Energy · Last 1 Minute")
+        XCTAssertEqual(localization.string(ApplicationEnergyPresentation.titleKey(for: .gpuEnergy)),
+                       "GPU Energy · Last 1 Minute")
+        XCTAssertEqual(localization.string(ApplicationEnergyPresentation.titleKey(for: .cpuActivity)),
+                       "CPU Activity")
+    }
+
+    func testListTitleNamesAppEnergyImpact() throws {
         let suite = "ApplicationEnergyPresentationTests.Title.\(UUID().uuidString)"
         let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
         defer { defaults.removeTestSuite(named: suite) }
@@ -53,13 +69,13 @@ final class ApplicationEnergyPresentationTests: XCTestCase {
         localization.setPreference(.language(.english))
         XCTAssertEqual(
             localization.string(.batteryHighEnergyApps),
-            "CPU Energy Impact"
+            "App Energy Impact"
         )
 
         localization.setPreference(.language(.simplifiedChinese))
         XCTAssertEqual(
             localization.string(.batteryHighEnergyApps),
-            "CPU 能耗影响"
+            "应用能耗影响"
         )
     }
 }

@@ -24,6 +24,20 @@ struct ProcessMetadata: Sendable, Equatable {
     let name: String
     let executablePath: String?
     let responsiblePID: Int32?
+    /// Used only for the energy reader's verified parent-chain fallback.
+    let parentPID: Int32?
+
+    init(identity: ProcessIdentity,
+         name: String,
+         executablePath: String?,
+         responsiblePID: Int32?,
+         parentPID: Int32? = nil) {
+        self.identity = identity
+        self.name = name
+        self.executablePath = executablePath
+        self.responsiblePID = responsiblePID
+        self.parentPID = parentPID
+    }
 }
 
 /// A running application as reported by NSWorkspace.
@@ -55,6 +69,11 @@ struct ProcessAppResolution: Equatable, Sendable {
     let identity: TopAppIdentity
     let name: String
     let applicationPath: String?
+
+    var isApplication: Bool {
+        if case .application = identity { return true }
+        return false
+    }
 }
 
 /// One ranked row. Network rows use `value` for download bytes/second and
