@@ -391,54 +391,42 @@ struct MenuBarInstanceEditorView: View {
 
     private var spacingAndInteractionGroup: some View {
         SettingsGroup(L(.menuBarEditorSpacing)) {
-            SettingsRow("rectangle.inset.filled", title: L(.menuBarEditorInnerPadding)) {
-                HStack(spacing: 8) {
-                    Slider(value: Binding(
-                        get: { model.instance.innerPadding },
-                        set: { model.setPadding(inner: $0, outer: model.instance.outerMargin) }
-                    ), in: 0...24, step: 1)
-                    .frame(width: 150)
-                    .accessibilityLabel(L(.menuBarEditorInnerPadding))
-
-                    Text("\(Int(model.instance.innerPadding))")
-                        .monospacedDigit()
-                        .frame(width: 24, alignment: .trailing)
-                }
-            }
+            spacingSliderRow(
+                symbol: "rectangle.inset.filled",
+                title: L(.menuBarEditorInnerPadding),
+                value: Binding(
+                    get: { model.instance.innerPadding },
+                    set: { model.setPadding(inner: $0.rounded(), outer: model.instance.outerMargin) }
+                ),
+                range: 0...24,
+                display: "\(Int(model.instance.innerPadding))"
+            )
 
             SettingsDivider()
 
-            SettingsRow("rectangle.expand.vertical", title: L(.menuBarEditorOuterMargin)) {
-                HStack(spacing: 8) {
-                    Slider(value: Binding(
-                        get: { model.instance.outerMargin },
-                        set: { model.setPadding(inner: model.instance.innerPadding, outer: $0) }
-                    ), in: 0...24, step: 1)
-                    .frame(width: 150)
-                    .accessibilityLabel(L(.menuBarEditorOuterMargin))
-
-                    Text("\(Int(model.instance.outerMargin))")
-                        .monospacedDigit()
-                        .frame(width: 24, alignment: .trailing)
-                }
-            }
+            spacingSliderRow(
+                symbol: "rectangle.expand.vertical",
+                title: L(.menuBarEditorOuterMargin),
+                value: Binding(
+                    get: { model.instance.outerMargin },
+                    set: { model.setPadding(inner: model.instance.innerPadding, outer: $0.rounded()) }
+                ),
+                range: 0...24,
+                display: "\(Int(model.instance.outerMargin))"
+            )
 
             SettingsDivider()
 
-            SettingsRow("arrow.left.and.right", title: L(.menuBarEditorMinimumWidth)) {
-                HStack(spacing: 8) {
-                    Slider(value: Binding(
-                        get: { model.instance.minimumWidth ?? 0 },
-                        set: { model.setMinimumWidth($0) }
-                    ), in: 0...400, step: 10)
-                    .frame(width: 150)
-                    .accessibilityLabel(L(.menuBarEditorMinimumWidth))
-
-                    Text("\(Int(model.instance.minimumWidth ?? 0))")
-                        .monospacedDigit()
-                        .frame(width: 28, alignment: .trailing)
-                }
-            }
+            spacingSliderRow(
+                symbol: "arrow.left.and.right",
+                title: L(.menuBarEditorMinimumWidth),
+                value: Binding(
+                    get: { model.instance.minimumWidth ?? 0 },
+                    set: { model.setMinimumWidth(($0 / 10).rounded() * 10) }
+                ),
+                range: 0...400,
+                display: "\(Int(model.instance.minimumWidth ?? 0))"
+            )
 
             SettingsDivider()
 
@@ -462,6 +450,29 @@ struct MenuBarInstanceEditorView: View {
                         rightClick: model.instance.rightClick
                     )
                 }
+            }
+        }
+    }
+
+    private func spacingSliderRow(
+        symbol: String,
+        title: String,
+        value: Binding<Double>,
+        range: ClosedRange<Double>,
+        display: String
+    ) -> some View {
+        SettingsRow(symbol, title: title) {
+            HStack(spacing: 8) {
+                // No `step:` here: the default macOS slider draws a dotted
+                // tick track when it has discrete steps. Round in the setter
+                // instead, so the three rows share one clean 150 + 32 layout.
+                Slider(value: value, in: range)
+                    .frame(width: 150)
+                    .accessibilityLabel(title)
+
+                Text(display)
+                    .monospacedDigit()
+                    .frame(width: 32, alignment: .trailing)
             }
         }
     }

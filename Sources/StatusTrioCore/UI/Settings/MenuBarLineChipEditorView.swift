@@ -290,6 +290,7 @@ struct MenuBarElementPalette: View {
                 }
 
                 section(title: L(.menuBarEditorTextIcons)) {
+                    paletteChip(.text(" "), title: L(.menuBarEditorSpace), symbol: "rectangle.dashed")
                     paletteChip(.text(""), title: L(.menuBarEditorText), symbol: "textformat")
                     paletteChip(
                         .icon(MenuBarIconSpec(source: .emoji("🔥"))),
