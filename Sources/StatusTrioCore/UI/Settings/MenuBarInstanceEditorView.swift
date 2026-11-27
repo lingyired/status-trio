@@ -1,3 +1,4 @@
+import AppKit
 import SwiftUI
 
 /// Edits the selected menu-bar instance.
@@ -321,31 +322,35 @@ struct MenuBarInstanceEditorView: View {
             SettingsDivider()
 
             SettingsRow("paintpalette", title: L(.menuBarEditorColor)) {
-                Menu {
-                    Button(L(.menuBarEditorInherit)) { model.setColor(.inheritSource, slot: selectedSlot) }
-                    Button(L(.menuBarEditorFixedBlue)) {
-                        model.setColor(.fixed(ColorValue(red: 0.2, green: 0.45, blue: 1)), slot: selectedSlot)
-                    }
-                    Button(L(.menuBarEditorFixedGreen)) {
-                        model.setColor(.fixed(ColorValue(red: 0.2, green: 0.75, blue: 0.35)), slot: selectedSlot)
-                    }
-                    Button(L(.menuBarEditorFixedRed)) {
-                        model.setColor(.fixed(ColorValue(red: 0.95, green: 0.25, blue: 0.2)), slot: selectedSlot)
-                    }
-                } label: {
-                    HStack(spacing: 6) {
-                        Circle()
-                            .fill(lineColorSwatch)
-                            .frame(width: 10, height: 10)
-                            .overlay(
-                                Circle().strokeBorder(Color.primary.opacity(0.15), lineWidth: 1)
-                            )
+                HStack(spacing: 8) {
+                    Menu {
+                        Button(L(.menuBarEditorInherit)) { model.setColor(.inheritSource, slot: selectedSlot) }
+                        Button(L(.menuBarEditorFixedBlue)) {
+                            model.setColor(.fixed(ColorValue(red: 0.2, green: 0.45, blue: 1)), slot: selectedSlot)
+                        }
+                        Button(L(.menuBarEditorFixedGreen)) {
+                            model.setColor(.fixed(ColorValue(red: 0.2, green: 0.75, blue: 0.35)), slot: selectedSlot)
+                        }
+                        Button(L(.menuBarEditorFixedRed)) {
+                            model.setColor(.fixed(ColorValue(red: 0.95, green: 0.25, blue: 0.2)), slot: selectedSlot)
+                        }
+                    } label: {
                         Text(lineColorName)
                     }
+                    .menuStyle(.borderlessButton)
+                    .fixedSize()
+                    .accessibilityLabel(L(.menuBarEditorColor))
+
+                    ColorPicker(
+                        "",
+                        selection: customColorBinding,
+                        supportsOpacity: false
+                    )
+                    .labelsHidden()
+                    .frame(width: 36)
+                    .accessibilityLabel(L(.menuBarEditorCustomColor))
+                    .help(L(.menuBarEditorCustomColor))
                 }
-                .menuStyle(.borderlessButton)
-                .fixedSize()
-                .accessibilityLabel(L(.menuBarEditorColor))
             }
         }
     }
@@ -372,6 +377,24 @@ struct MenuBarInstanceEditorView: View {
                 Int((value.blue * 255).rounded())
             )
         }
+    }
+
+    private var customColorBinding: Binding<Color> {
+        Binding(
+            get: { lineColorSwatch },
+            set: { color in
+                let resolved = NSColor(color).usingColorSpace(.sRGB) ?? .systemBlue
+                model.setColor(
+                    .fixed(ColorValue(
+                        red: Double(resolved.redComponent),
+                        green: Double(resolved.greenComponent),
+                        blue: Double(resolved.blueComponent),
+                        alpha: Double(resolved.alphaComponent)
+                    )),
+                    slot: selectedSlot
+                )
+            }
+        )
     }
 
     private var lineColorSwatch: Color {

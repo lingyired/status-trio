@@ -1466,6 +1466,7 @@
 "menubar.editor.library" = "元素庫";
 "menubar.editor.addTo" = "加入到";
 "menubar.editor.space" = "空格";
+"menubar.editor.customColor" = "自訂顏色";
 "menubar.editor.paletteHint" = "把指标拖进任意一行，或点击添加到当前选中的行。";
 "menubar.editor.metrics" = "指标";
 "menubar.editor.textIcons" = "文字与图标";
