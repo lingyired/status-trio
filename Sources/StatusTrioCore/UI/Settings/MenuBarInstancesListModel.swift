@@ -1,10 +1,5 @@
 import Foundation
 
-enum MenuBarLineSlot: Equatable, Sendable {
-    case top
-    case bottom
-}
-
 enum MenuBarPreset: String, CaseIterable, Identifiable, Sendable {
     case cpu
     case temperature
@@ -27,15 +22,15 @@ enum MenuBarPreset: String, CaseIterable, Identifiable, Sendable {
     func makeInstance() -> MenuBarInstance {
         switch self {
         case .cpu:
-            return MenuBarInstance(name: "CPU", top: MenuBarLine(segments: [.text("CPU "), .metric(.cpuUsage)]))
+            return MenuBarInstance(name: "CPU", top: MenuBarLine(elements: [MenuBarElement(content: .text("CPU ")), MenuBarElement(content: .metric(.cpuUsage))]))
         case .temperature:
-            return MenuBarInstance(name: "CPU Temp", top: MenuBarLine(segments: [.metric(.cpuTemperature)]))
+            return MenuBarInstance(name: "CPU Temp", top: MenuBarLine(elements: [MenuBarElement(content: .metric(.cpuTemperature))]))
         case .memory:
-            return MenuBarInstance(name: "Memory", top: MenuBarLine(segments: [.metric(.memoryUsage)]))
+            return MenuBarInstance(name: "Memory", top: MenuBarLine(elements: [MenuBarElement(content: .metric(.memoryUsage))]))
         case .network:
-            return MenuBarInstance(name: "Network", top: MenuBarLine(segments: [.metric(.networkDownload)]))
+            return MenuBarInstance(name: "Network", top: MenuBarLine(elements: [MenuBarElement(content: .metric(.networkDownload))]))
         case .battery:
-            return MenuBarInstance(name: "Battery", top: MenuBarLine(segments: [.metric(.batteryLevel)]))
+            return MenuBarInstance(name: "Battery", top: MenuBarLine(elements: [MenuBarElement(content: .metric(.batteryLevel))]))
         }
     }
 }

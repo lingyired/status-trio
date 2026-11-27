@@ -100,14 +100,14 @@ final class MenuBarInstancesRuntime: NSObject {
     private func renderAll() {
         guard items != nil else { return }
         let appearance = NSApp.effectiveAppearance
-        for instance in configuration.instances where instance.hasVisibleContent {
+        for instance in configuration.instances where instance.hasVisibleContent && instance.isEnabled {
             guard items.item(for: instance.id) != nil else { continue }
             let readings = provider.readings(
                 for: instance.allMetrics,
                 hardware: latestHardware,
                 status: latestStatus
             )
-            let input = MenuBarRenderInput(instance: instance, readings: readings)
+            let input = MenuBarRenderInput(instance: instance, readings: readings, colorOverrides: settings.hardwareMonitorMetricColors)
             let measurement = MenuBarInstanceRenderer.measure(input, appearance: appearance)
             let image = MenuBarInstanceRenderer.render(input, appearance: appearance, scale: 2)
             items.update(

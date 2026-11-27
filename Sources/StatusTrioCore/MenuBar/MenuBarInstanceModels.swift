@@ -1,8 +1,9 @@
 import Foundation
 
-// Menu-bar custom instances: persisted, display-only configuration models.
-// These types are intentionally free of AppKit so they stay testable and
-// Codable. Rendering/interaction live in the sibling files.
+// Menu-bar custom instances: persisted, display-only configuration models (v2).
+// A line is now an ordered list of independent elements (metric / text / icon),
+// each with a stable id so the editor can drag and reorder them. Legacy v1
+// (`segments` + line `icon`) still decodes into elements.
 
 struct ColorValue: Codable, Equatable, Sendable {
     var red: Double
@@ -46,8 +47,6 @@ struct MenuBarIconSpec: Codable, Equatable, Sendable {
     }
 }
 
-/// The built-in monitoring metrics a menu-bar line may show.
-/// Version 1 covers the product list; Wi-Fi is a text metric (connected state).
 enum MenuBarMetricID: String, Codable, CaseIterable, Identifiable, Sendable {
     case cpuUsage
     case cpuTemperature
@@ -67,59 +66,76 @@ enum MenuBarMetricID: String, Codable, CaseIterable, Identifiable, Sendable {
     var id: String { rawValue }
 }
 
-enum MenuBarLineSegment: Equatable, Sendable {
-    case text(String)
-    case metric(MenuBarMetricID)
+/// Explicit single/double line choice. Switching to single line keeps the other
+/// line's elements so the user does not lose work.
+enum MenuBarLayoutMode: String, Codable, CaseIterable, Identifiable, Sendable {
+    case singleLine
+    case doubleLine
+
+    var id: String { rawValue }
 }
 
-extension MenuBarLineSegment: Codable {
-    private enum CodingKeys: String, CodingKey {
-        case type
-        case text
-        case metric
-    }
+enum MenuBarElementContent: Equatable, Sendable {
+    case metric(MenuBarMetricID)
+    case text(String)
+    case icon(MenuBarIconSpec)
+}
 
-    private enum Kind: String, Codable {
-        case text
-        case metric
+struct MenuBarElement: Equatable, Identifiable, Sendable {
+    var id: UUID
+    var content: MenuBarElementContent
+
+    init(id: UUID = UUID(), content: MenuBarElementContent) {
+        self.id = id
+        self.content = content
     }
+}
+
+extension MenuBarElementContent: Codable {
+    private enum CodingKeys: String, CodingKey { case type, metric, text, icon }
+    private enum Kind: String, Codable { case metric, text, icon }
 
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         let kind = try container.decode(Kind.self, forKey: .type)
         switch kind {
-        case .text:
-            self = .text(try container.decode(String.self, forKey: .text))
         case .metric:
             let raw = try container.decode(String.self, forKey: .metric)
             guard let metric = MenuBarMetricID(rawValue: raw) else {
-                throw DecodingError.dataCorruptedError(
-                    forKey: .metric, in: container,
-                    debugDescription: "Unknown menu-bar metric: \(raw)"
-                )
+                throw DecodingError.dataCorruptedError(forKey: .metric, in: container,
+                                                       debugDescription: "Unknown menu-bar metric: \(raw)")
             }
             self = .metric(metric)
+        case .text:
+            self = .text(try container.decode(String.self, forKey: .text))
+        case .icon:
+            self = .icon(try container.decode(MenuBarIconSpec.self, forKey: .icon))
         }
     }
 
     func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         switch self {
-        case .text(let value):
-            try container.encode(Kind.text, forKey: .type)
-            try container.encode(value, forKey: .text)
         case .metric(let metric):
             try container.encode(Kind.metric, forKey: .type)
             try container.encode(metric.rawValue, forKey: .metric)
+        case .text(let text):
+            try container.encode(Kind.text, forKey: .type)
+            try container.encode(text, forKey: .text)
+        case .icon(let icon):
+            try container.encode(Kind.icon, forKey: .type)
+            try container.encode(icon, forKey: .icon)
         }
     }
 }
 
-/// A single line of a menu-bar instance: an ordered list of text/metric
-/// segments plus line-level styling.
+extension MenuBarElement: Codable {
+    private enum CodingKeys: String, CodingKey { case id, content }
+}
+
+/// A single line: an ordered list of elements plus line-level styling.
 struct MenuBarLine: Equatable, Sendable {
-    var segments: [MenuBarLineSegment]
-    var icon: MenuBarIconSpec?
+    var elements: [MenuBarElement]
     var color: LineColor
     var isBold: Bool
     var fontSize: Double?
@@ -127,16 +143,14 @@ struct MenuBarLine: Equatable, Sendable {
     var alignment: LineAlignment
 
     init(
-        segments: [MenuBarLineSegment] = [],
-        icon: MenuBarIconSpec? = nil,
+        elements: [MenuBarElement] = [],
         color: LineColor = .inheritSource,
         isBold: Bool = false,
         fontSize: Double? = nil,
         usesMonospacedDigits: Bool = true,
         alignment: LineAlignment = .leading
     ) {
-        self.segments = segments
-        self.icon = icon
+        self.elements = elements
         self.color = color
         self.isBold = isBold
         self.fontSize = fontSize
@@ -144,43 +158,85 @@ struct MenuBarLine: Equatable, Sendable {
         self.alignment = alignment
     }
 
-    /// True when the line would render nothing.
     var isEmpty: Bool {
-        segments.allSatisfy { segment in
-            if case .text(let text) = segment { return text.isEmpty }
+        elements.allSatisfy { element in
+            if case .text(let text) = element.content { return text.isEmpty }
             return false
-        } && icon == nil
+        }
+    }
+
+    var metrics: [MenuBarMetricID] {
+        elements.compactMap { element in
+            if case .metric(let metric) = element.content { return metric }
+            return nil
+        }
     }
 }
 
 extension MenuBarLine: Codable {
     private enum CodingKeys: String, CodingKey {
-        case segments, icon, color, isBold, fontSize, usesMonospacedDigits, alignment
+        case elements, color, isBold, fontSize, usesMonospacedDigits, alignment
+    }
+    // Legacy v1 keys.
+    private enum LegacyKeys: String, CodingKey {
+        case segments, icon
     }
 
+    private enum LegacySegmentKind: String, Codable { case text, metric }
+    private struct LegacySegment: Decodable {
+        let kind: LegacySegmentKind
+        let text: String?
+        let metric: String?
+        init(from decoder: Decoder) throws {
+            let container = try decoder.container(keyedBy: CodingKeys.self)
+            kind = try container.decode(LegacySegmentKind.self, forKey: .type)
+            text = try container.decodeIfPresent(String.self, forKey: .text)
+            metric = try container.decodeIfPresent(String.self, forKey: .metric)
+        }
+        enum CodingKeys: String, CodingKey { case type, text, metric }
+    }
     private struct Failable<T: Decodable>: Decodable {
         let value: T?
-        init(from decoder: Decoder) throws {
-            value = try? T(from: decoder)
-        }
+        init(from decoder: Decoder) throws { value = try? T(from: decoder) }
     }
 
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
-        let wrapped = try container.decodeIfPresent([Failable<MenuBarLineSegment>].self, forKey: .segments) ?? []
-        self.segments = wrapped.compactMap(\.value)
-        self.icon = try container.decodeIfPresent(MenuBarIconSpec.self, forKey: .icon)
         self.color = try container.decodeIfPresent(LineColor.self, forKey: .color) ?? .inheritSource
         self.isBold = try container.decodeIfPresent(Bool.self, forKey: .isBold) ?? false
         self.fontSize = try container.decodeIfPresent(Double.self, forKey: .fontSize)
         self.usesMonospacedDigits = try container.decodeIfPresent(Bool.self, forKey: .usesMonospacedDigits) ?? true
         self.alignment = try container.decodeIfPresent(LineAlignment.self, forKey: .alignment) ?? .leading
+
+        if container.contains(.elements) {
+            let wrapped = (try? container.decodeIfPresent([Failable<MenuBarElement>].self, forKey: .elements)) ?? nil
+            self.elements = (wrapped ?? []).compactMap(\.value)
+        } else {
+            // Legacy v1 migration.
+            let legacy = try decoder.container(keyedBy: LegacyKeys.self)
+            var migrated: [MenuBarElement] = []
+            if let icon = try legacy.decodeIfPresent(MenuBarIconSpec.self, forKey: .icon) {
+                migrated.append(MenuBarElement(content: .icon(icon)))
+            }
+            let wrapped = (try? legacy.decodeIfPresent([Failable<LegacySegment>].self, forKey: .segments)) ?? nil
+            for item in wrapped ?? [] {
+                guard let segment = item.value else { continue }
+                switch segment.kind {
+                case .text:
+                    migrated.append(MenuBarElement(content: .text(segment.text ?? "")))
+                case .metric:
+                    if let raw = segment.metric, let metric = MenuBarMetricID(rawValue: raw) {
+                        migrated.append(MenuBarElement(content: .metric(metric)))
+                    }
+                }
+            }
+            self.elements = migrated
+        }
     }
 
     func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
-        try container.encode(segments, forKey: .segments)
-        try container.encodeIfPresent(icon, forKey: .icon)
+        try container.encode(elements, forKey: .elements)
         try container.encode(color, forKey: .color)
         try container.encode(isBold, forKey: .isBold)
         try container.encodeIfPresent(fontSize, forKey: .fontSize)
@@ -189,36 +245,61 @@ extension MenuBarLine: Codable {
     }
 }
 
-/// System Settings panes a click may open. Wi-Fi uses its own extension route
-/// first, matching the project's System Settings routing rule.
-enum SystemSettingsPane: String, Codable, CaseIterable, Sendable {
-    case wifi
-    case bluetooth
-    case battery
-    case sound
-    case network
+/// Convenience shim kept for tests/callers that still describe a line as a
+/// simple text/metric run. New code should use `MenuBarElement` directly.
+enum MenuBarLineSegment: Equatable, Sendable {
+    case text(String)
+    case metric(MenuBarMetricID)
 }
 
-/// What a left-click or hover on an instance does.
+extension MenuBarLine {
+    init(
+        segments: [MenuBarLineSegment],
+        color: LineColor = .inheritSource,
+        isBold: Bool = false,
+        fontSize: Double? = nil,
+        usesMonospacedDigits: Bool = true,
+        alignment: LineAlignment = .leading
+    ) {
+        self.init(
+            elements: segments.map { segment in
+                switch segment {
+                case .text(let text): return MenuBarElement(content: .text(text))
+                case .metric(let metric): return MenuBarElement(content: .metric(metric))
+                }
+            },
+            color: color,
+            isBold: isBold,
+            fontSize: fontSize,
+            usesMonospacedDigits: usesMonospacedDigits,
+            alignment: alignment
+        )
+    }
+}
+
+enum SystemSettingsPane: String, Codable, CaseIterable, Sendable {
+    case wifi, bluetooth, battery, sound, network
+}
+
 enum InstanceActivation: Codable, Equatable, Sendable {
     case none
     case sameAsMainIcon
-    case panel(String) // StatusPanelRoute raw value
+    case panel(String)
     case openAppSettings
     case openActivityMonitor
     case openSystemSettings(SystemSettingsPane)
 }
 
-/// What a right-click on an instance does (disable is always appended).
 enum InstanceRightClick: Codable, Equatable, Sendable {
     case sameAsMainIcon
-    case quickAction(String) // MenuBarRightClickOutcome identifier
+    case quickAction(String)
 }
 
 struct MenuBarInstance: Equatable, Identifiable, Sendable {
     var id: UUID
     var name: String
     var isEnabled: Bool
+    var layoutMode: MenuBarLayoutMode
     var top: MenuBarLine?
     var bottom: MenuBarLine?
     var leadingIcon: MenuBarIconSpec?
@@ -232,6 +313,7 @@ struct MenuBarInstance: Equatable, Identifiable, Sendable {
         id: UUID = UUID(),
         name: String = "",
         isEnabled: Bool = true,
+        layoutMode: MenuBarLayoutMode = .singleLine,
         top: MenuBarLine? = nil,
         bottom: MenuBarLine? = nil,
         leadingIcon: MenuBarIconSpec? = nil,
@@ -244,6 +326,7 @@ struct MenuBarInstance: Equatable, Identifiable, Sendable {
         self.id = id
         self.name = name
         self.isEnabled = isEnabled
+        self.layoutMode = layoutMode
         self.top = top
         self.bottom = bottom
         self.leadingIcon = leadingIcon
@@ -254,38 +337,49 @@ struct MenuBarInstance: Equatable, Identifiable, Sendable {
         self.rightClick = rightClick
     }
 
-    /// Default instance used by presets/tests: top "CPU 45%", no bottom line.
     static func `default`() -> MenuBarInstance {
         MenuBarInstance(
-            top: MenuBarLine(segments: [.text("CPU "), .metric(.cpuUsage)])
+            layoutMode: .singleLine,
+            top: MenuBarLine(elements: [
+                MenuBarElement(content: .text("CPU ")),
+                MenuBarElement(content: .metric(.cpuUsage)),
+            ])
         )
     }
 
-    var hasVisibleContent: Bool {
-        [top, bottom].contains { line in
-            guard let line else { return false }
-            return !line.isEmpty
+    /// Lines actually rendered for the current layout mode.
+    var renderedLines: [(slot: MenuBarLineSlot, line: MenuBarLine)] {
+        switch layoutMode {
+        case .singleLine:
+            return top.map { [(.top, $0)] } ?? []
+        case .doubleLine:
+            return [top, bottom].compactMap { $0 }.enumerated().map { index, line in
+                (index == 0 ? .top : .bottom, line)
+            }
         }
     }
 
-    var allMetrics: Set<MenuBarMetricID> {
-        Set([top, bottom].compactMap { $0 }.flatMap { line in
-            line.segments.compactMap { segment -> MenuBarMetricID? in
-                if case .metric(let metric) = segment { return metric }
-                return nil
-            }
-        })
+    var hasVisibleContent: Bool {
+        renderedLines.contains { !$0.line.isEmpty }
     }
 
-    /// Metrics on enabled instances only (drives sampling demand).
+    var allMetrics: Set<MenuBarMetricID> {
+        Set(renderedLines.flatMap { $0.line.metrics })
+    }
+
     var demandedMetrics: Set<MenuBarMetricID> {
         isEnabled && hasVisibleContent ? allMetrics : []
     }
 }
 
+enum MenuBarLineSlot: Equatable, Sendable {
+    case top
+    case bottom
+}
+
 extension MenuBarInstance: Codable {
     private enum CodingKeys: String, CodingKey {
-        case id, name, isEnabled, top, bottom, leadingIcon
+        case id, name, isEnabled, layoutMode, top, bottom, leadingIcon
         case innerPadding, outerMargin, clickAction, hoverAction, rightClick
     }
 
@@ -296,6 +390,12 @@ extension MenuBarInstance: Codable {
         self.isEnabled = try container.decodeIfPresent(Bool.self, forKey: .isEnabled) ?? true
         self.top = try container.decodeIfPresent(MenuBarLine.self, forKey: .top)
         self.bottom = try container.decodeIfPresent(MenuBarLine.self, forKey: .bottom)
+        if let mode = try container.decodeIfPresent(MenuBarLayoutMode.self, forKey: .layoutMode) {
+            self.layoutMode = mode
+        } else {
+            // v1 had no explicit mode; two non-nil lines meant two rows.
+            self.layoutMode = self.bottom == nil ? .singleLine : .doubleLine
+        }
         self.leadingIcon = try container.decodeIfPresent(MenuBarIconSpec.self, forKey: .leadingIcon)
         self.innerPadding = try container.decodeIfPresent(Double.self, forKey: .innerPadding) ?? 0
         self.outerMargin = try container.decodeIfPresent(Double.self, forKey: .outerMargin) ?? 4
@@ -309,6 +409,7 @@ extension MenuBarInstance: Codable {
         try container.encode(id, forKey: .id)
         try container.encode(name, forKey: .name)
         try container.encode(isEnabled, forKey: .isEnabled)
+        try container.encode(layoutMode, forKey: .layoutMode)
         try container.encodeIfPresent(top, forKey: .top)
         try container.encodeIfPresent(bottom, forKey: .bottom)
         try container.encodeIfPresent(leadingIcon, forKey: .leadingIcon)
@@ -324,20 +425,17 @@ struct MenuBarInstancesConfiguration: Codable, Equatable, Sendable {
     var schemaVersion: Int
     var instances: [MenuBarInstance]
 
-    init(schemaVersion: Int = 1, instances: [MenuBarInstance] = []) {
+    init(schemaVersion: Int = 2, instances: [MenuBarInstance] = []) {
         self.schemaVersion = schemaVersion
         self.instances = instances
     }
 
     static let empty = MenuBarInstancesConfiguration()
 
-    /// Normalizes a configuration to the shipped limits. Never throws; drops or
-    /// clamps invalid parts and returns human-readable warnings instead.
     func validated(limit: Int = 20) -> (config: MenuBarInstancesConfiguration, warnings: [String]) {
         var warnings: [String] = []
         var seen = Set<UUID>()
         var kept: [MenuBarInstance] = []
-
         for var instance in instances {
             guard seen.insert(instance.id).inserted else {
                 warnings.append("Dropped duplicate instance id \(instance.id.uuidString).")
@@ -347,39 +445,39 @@ struct MenuBarInstancesConfiguration: Codable, Equatable, Sendable {
             instance.outerMargin = instance.outerMargin.clamped(to: 0...24)
             instance.top = instance.top.map { Self.normalize(line: $0, warnings: &warnings) }
             instance.bottom = instance.bottom.map { Self.normalize(line: $0, warnings: &warnings) }
-            if !instance.hasVisibleContent {
-                instance.isEnabled = false
+            if instance.layoutMode == .singleLine && instance.top == nil {
+                instance.top = instance.bottom
             }
+            if !instance.hasVisibleContent { instance.isEnabled = false }
             kept.append(instance)
         }
-
         if kept.count > limit {
             warnings.append("Too many menu-bar instances (\(kept.count)); kept the first \(limit).")
             kept = Array(kept.prefix(limit))
         }
-        return (MenuBarInstancesConfiguration(schemaVersion: max(1, schemaVersion), instances: kept), warnings)
+        return (MenuBarInstancesConfiguration(schemaVersion: max(2, schemaVersion), instances: kept), warnings)
     }
 
     private static func normalize(line: MenuBarLine, warnings: inout [String]) -> MenuBarLine {
         var line = line
-        var segments: [MenuBarLineSegment] = []
-        for segment in line.segments.prefix(32) {
-            switch segment {
+        var elements: [MenuBarElement] = []
+        for element in line.elements.prefix(32) {
+            switch element.content {
             case .text(var text):
                 if text.count > 64 { text = String(text.prefix(64)) }
-                segments.append(.text(text))
+                elements.append(MenuBarElement(id: element.id, content: .text(text)))
             case .metric(let metric):
                 if MenuBarMetricID.allCases.contains(metric) {
-                    segments.append(.metric(metric))
+                    elements.append(element)
                 } else {
                     warnings.append("Dropped unsupported metric \(metric.rawValue).")
                 }
+            case .icon:
+                elements.append(element)
             }
         }
-        if line.segments.count > 32 {
-            warnings.append("Line truncated to 32 segments.")
-        }
-        line.segments = segments
+        if line.elements.count > 32 { warnings.append("Line truncated to 32 elements.") }
+        line.elements = elements
         return line
     }
 }

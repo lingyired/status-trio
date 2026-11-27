@@ -1,10 +1,9 @@
 import AppKit
 
-/// Everything needed to render one instance: the persisted configuration plus
-/// the current readings for the metrics it shows.
 struct MenuBarRenderInput: Equatable {
     var instance: MenuBarInstance
     var readings: [MenuBarMetricID: MenuBarMetricReading]
+    var colorOverrides: [HardwareMonitorMetric: IconRGBA] = [:]
 }
 
 struct MenuBarInstanceMeasurement: Equatable {
@@ -15,13 +14,9 @@ struct MenuBarInstanceMeasurement: Equatable {
     var totalHeight: Double
 }
 
-/// Pure(ish) renderer: measurement is deterministic; drawing only reads AppKit
-/// fonts/colours and never touches a status item or sampling.
 enum MenuBarInstanceRenderer {
     static let columnGap: CGFloat = 3
-    static let rowIconGap: CGFloat = 3
-
-    // MARK: - Fonts
+    static let elementIconGap: CGFloat = 2
 
     struct LineStyle: Equatable {
         var font: NSFont
@@ -45,8 +40,8 @@ enum MenuBarInstanceRenderer {
 
     static func measure(_ input: MenuBarRenderInput, appearance: NSAppearance) -> MenuBarInstanceMeasurement {
         let instance = input.instance
-        let twoLine = instance.top != nil && instance.bottom != nil
-        let lines = [instance.top, instance.bottom]
+        let twoLine = instance.layoutMode == .doubleLine && instance.top != nil && instance.bottom != nil
+        let lines: [MenuBarLine?] = twoLine ? [instance.top, instance.bottom] : [instance.top, nil]
         var lineWidths: [Double] = []
         var lineHeights: [Double] = []
 
@@ -57,17 +52,11 @@ enum MenuBarInstanceRenderer {
                 continue
             }
             let style = style(for: line, twoLine: twoLine)
-            var width: CGFloat = 0
-            if let icon = line.icon {
-                width += style.height + rowIconGap
-                _ = icon
-            }
-            width += textWidth(of: line, style: style, readings: input.readings)
-            lineWidths.append(Double(width))
+            lineWidths.append(Double(elementWidths(line: line, style: style, readings: input.readings).reduce(0, +)))
             lineHeights.append(Double(style.height))
         }
 
-        let columnWidth: CGFloat = instance.leadingIcon == nil ? 0 : (twoLine ? 18 : 18) + columnGap
+        let columnWidth: CGFloat = instance.leadingIcon == nil ? 0 : 18 + columnGap
         let contentWidth = (lineWidths.max() ?? 0).cgFloat + columnWidth
         let totalWidth = contentWidth + CGFloat(instance.innerPadding * 2) + CGFloat(instance.outerMargin * 2)
         let totalHeight = max(1, lineHeights.reduce(0, +))
@@ -80,26 +69,28 @@ enum MenuBarInstanceRenderer {
         )
     }
 
-    static func textWidth(of line: MenuBarLine, style: LineStyle, readings: [MenuBarMetricID: MenuBarMetricReading]) -> CGFloat {
+    static func elementWidths(line: MenuBarLine, style: LineStyle, readings: [MenuBarMetricID: MenuBarMetricReading]) -> [CGFloat] {
         let attributes: [NSAttributedString.Key: Any] = [.font: style.font]
-        var width: CGFloat = 0
-        for segment in line.segments {
-            let text = displayText(for: segment, readings: readings)
-            guard !text.isEmpty else { continue }
-            width += (text as NSString).size(withAttributes: attributes).width
+        return line.elements.map { element in
+            switch element.content {
+            case .metric, .text:
+                let text = displayText(for: element.content, readings: readings)
+                guard !text.isEmpty else { return 0 }
+                return (text as NSString).size(withAttributes: attributes).width
+            case .icon:
+                return style.height + elementIconGap
+            }
         }
-        return width
     }
 
     static func displayText(
-        for segment: MenuBarLineSegment,
+        for content: MenuBarElementContent,
         readings: [MenuBarMetricID: MenuBarMetricReading]
     ) -> String {
-        switch segment {
-        case .text(let text):
-            return text
-        case .metric(let metric):
-            return readings[metric]?.text ?? "--"
+        switch content {
+        case .text(let text): return text
+        case .metric(let metric): return readings[metric]?.text ?? "--"
+        case .icon: return ""
         }
     }
 
@@ -114,106 +105,80 @@ enum MenuBarInstanceRenderer {
         let size = NSSize(width: CGFloat(measurement.totalWidth), height: CGFloat(measurement.totalHeight))
         guard size.width > 0, size.height > 0 else { return nil }
         let instance = input.instance
-        let twoLine = instance.top != nil && instance.bottom != nil
+        let twoLine = instance.layoutMode == .doubleLine && instance.top != nil && instance.bottom != nil
+        let lines: [MenuBarLine?] = twoLine ? [instance.top, instance.bottom] : [instance.top, nil]
 
         let image = NSImage(size: size)
         image.lockFocusFlipped(false)
         defer { image.unlockFocus() }
-
         appearance.performAsCurrentDrawingAppearance {
             guard let context = NSGraphicsContext.current else { return }
             context.imageInterpolation = .high
+            let columnWidth: CGFloat = instance.leadingIcon == nil ? 0 : 18 + columnGap
             let inner = CGFloat(instance.innerPadding)
-            let contentRect = NSRect(
-                x: inner,
-                y: 0,
-                width: size.width - inner * 2,
-                height: size.height
-            )
-            let lines = [instance.top, instance.bottom]
+            let contentX = inner + columnWidth
+            let contentWidth = size.width - inner * 2 - columnWidth
             var y = size.height
             for line in lines {
                 guard let line, !line.isEmpty else { continue }
                 let style = style(for: line, twoLine: twoLine)
                 y -= style.height
-                let lineRect = NSRect(x: contentRect.minX, y: y, width: contentRect.width, height: style.height)
-                draw(line: line, in: lineRect, style: style, input: input, appearance: appearance)
+                let lineRect = NSRect(x: contentX, y: y, width: contentWidth, height: style.height)
+                draw(line: line, in: lineRect, style: style, input: input)
             }
             if let leading = instance.leadingIcon {
                 let box = NSSize(width: 18, height: 18)
-                let rect = NSRect(
-                    x: contentRect.minX,
-                    y: (size.height - box.height) / 2,
-                    width: box.width,
-                    height: box.height
-                )
+                let rect = NSRect(x: inner, y: (size.height - box.height) / 2, width: box.width, height: box.height)
                 drawIcon(leading, in: rect, tintColor: NSColor.labelColor)
             }
         }
         return image
     }
 
-    private static func draw(
-        line: MenuBarLine,
-        in rect: NSRect,
-        style: LineStyle,
-        input: MenuBarRenderInput,
-        appearance: NSAppearance
-    ) {
+    private static func draw(line: MenuBarLine, in rect: NSRect, style: LineStyle, input: MenuBarRenderInput) {
+        let widths = elementWidths(line: line, style: style, readings: input.readings)
+        let totalWidth = widths.reduce(0, +)
         var cursor = rect.minX
-        let rowIconHeight = style.height
-        if let icon = line.icon {
-            let rect = NSRect(x: cursor, y: rect.minY, width: rowIconHeight, height: rowIconHeight)
-            drawIcon(icon, in: rect, tintColor: NSColor.labelColor)
-            cursor += rowIconHeight + rowIconGap
-        }
-
-        let attributes: [NSAttributedString.Key: Any] = [.font: style.font]
-        let totalTextWidth = textWidth(of: line, style: style, readings: input.readings)
-        let available = rect.maxX - cursor
         switch line.alignment {
-        case .leading:
-            break
-        case .center:
-            cursor += max(0, (available - totalTextWidth) / 2)
-        case .trailing:
-            cursor += max(0, available - totalTextWidth)
+        case .leading: break
+        case .center: cursor += max(0, (rect.width - totalWidth) / 2)
+        case .trailing: cursor += max(0, rect.width - totalWidth)
         }
-
-        for segment in line.segments {
-            let text = displayText(for: segment, readings: input.readings)
-            guard !text.isEmpty else { continue }
-            let color = color(for: segment, line: line, readings: input.readings)
-            let attributed = NSAttributedString(string: text, attributes: attributes.merging([.foregroundColor: color]) { _, new in new })
-            let size = attributed.size()
-            attributed.draw(at: NSPoint(x: cursor, y: rect.minY + (rect.height - size.height) / 2))
-            cursor += size.width
+        let attributes: [NSAttributedString.Key: Any] = [.font: style.font]
+        for (index, element) in line.elements.enumerated() {
+            let width = widths[index]
+            switch element.content {
+            case .metric, .text:
+                let text = displayText(for: element.content, readings: input.readings)
+                guard !text.isEmpty else { continue }
+                let color = color(for: element, line: line, input: input)
+                let attributed = NSAttributedString(string: text, attributes: attributes.merging([.foregroundColor: color]) { _, new in new })
+                let textSize = attributed.size()
+                attributed.draw(at: NSPoint(x: cursor, y: rect.minY + (rect.height - textSize.height) / 2))
+            case .icon(let icon):
+                let iconRect = NSRect(x: cursor, y: rect.minY, width: style.height, height: style.height)
+                drawIcon(icon, in: iconRect, tintColor: color(for: element, line: line, input: input))
+            }
+            cursor += width
         }
-        _ = appearance
     }
 
-    private static func color(
-        for segment: MenuBarLineSegment,
-        line: MenuBarLine,
-        readings: [MenuBarMetricID: MenuBarMetricReading]
-    ) -> NSColor {
-        guard case .metric(let metric) = segment else {
+    private static func color(for element: MenuBarElement, line: MenuBarLine, input: MenuBarRenderInput) -> NSColor {
+        switch element.content {
+        case .text:
             return nsColor(for: MenuBarMetricColorResolver.appliedColor(line: line.color, source: nil)) ?? NSColor.labelColor
+        case .icon:
+            return nsColor(for: MenuBarMetricColorResolver.appliedColor(line: line.color, source: nil)) ?? NSColor.labelColor
+        case .metric(let metric):
+            let level = input.readings[.batteryLevel]?.value
+            let source = MenuBarMetricColorResolver.sourceColor(for: metric, overrides: input.colorOverrides, batteryLevel: level)
+            return nsColor(for: MenuBarMetricColorResolver.appliedColor(line: line.color, source: source)) ?? NSColor.labelColor
         }
-        let level = readings[.batteryLevel]?.value
-        let source = MenuBarMetricColorResolver.sourceColor(for: metric, overrides: [:], batteryLevel: level)
-        let applied = MenuBarMetricColorResolver.appliedColor(line: line.color, source: source)
-        return nsColor(for: applied) ?? NSColor.labelColor
     }
 
     static func nsColor(for rgba: IconRGBA?) -> NSColor? {
         guard let rgba else { return nil }
-        return NSColor(
-            srgbRed: CGFloat(rgba.red),
-            green: CGFloat(rgba.green),
-            blue: CGFloat(rgba.blue),
-            alpha: CGFloat(rgba.alpha)
-        )
+        return NSColor(srgbRed: CGFloat(rgba.red), green: CGFloat(rgba.green), blue: CGFloat(rgba.blue), alpha: CGFloat(rgba.alpha))
     }
 
     private static func drawIcon(_ spec: MenuBarIconSpec, in rect: NSRect, tintColor: NSColor) {
@@ -222,7 +187,7 @@ enum MenuBarInstanceRenderer {
             guard let symbol = NSImage(systemSymbolName: name, accessibilityDescription: nil) else { return }
             symbol.isTemplate = spec.tint
             if spec.tint { tintColor.set() }
-            symbol.draw(in: rect, from: .zero, operation: spec.tint ? .sourceOver : .sourceOver, fraction: 1)
+            symbol.draw(in: rect, from: .zero, operation: .sourceOver, fraction: 1)
         case .asset(let name):
             guard let asset = NSImage(named: name) else { return }
             asset.isTemplate = spec.tint

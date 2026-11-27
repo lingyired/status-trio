@@ -13,44 +13,62 @@ final class MenuBarInstanceEditorModelTests: XCTestCase {
     private func makeModel() -> (MenuBarInstanceEditorModel, SettingsStore) {
         let store = scratchStore()
         var instance = MenuBarInstance(name: "t")
-        instance.top = MenuBarLine(segments: [])
+        instance.top = MenuBarLine(elements: [])
         store.updateMenuBarInstance(instance)
         return (MenuBarInstanceEditorModel(instance: instance, store: store), store)
     }
 
-    func testAddMetricSegmentOrder() {
-        let (model, _) = makeModel()
-        model.addTextSegment("CPU ", slot: .top)
-        model.addMetricSegment(.cpuUsage, slot: .top)
-        XCTAssertEqual(model.instance.top?.segments, [.text("CPU "), .metric(.cpuUsage)])
+    private func contents(_ model: MenuBarInstanceEditorModel, _ slot: MenuBarLineSlot) -> [MenuBarElementContent] {
+        model.elements(slot: slot).map(\.content)
     }
 
-    func testMoveSegment() {
+    func testAddElementsOrder() {
         let (model, _) = makeModel()
-        model.addTextSegment("A", slot: .top)
-        model.addMetricSegment(.cpuUsage, slot: .top)
-        model.moveSegment(from: 1, to: 0, slot: .top)
-        XCTAssertEqual(model.instance.top?.segments, [.metric(.cpuUsage), .text("A")])
+        model.addTextElement("CPU ", slot: .top)
+        model.addMetricElement(.cpuUsage, slot: .top)
+        XCTAssertEqual(contents(model, .top), [.text("CPU "), .metric(.cpuUsage)])
     }
 
-    func testRemoveSegment() {
+    func testMoveElement() {
         let (model, _) = makeModel()
-        model.addTextSegment("A", slot: .top)
-        model.addTextSegment("B", slot: .top)
-        model.removeSegment(at: 0, slot: .top)
-        XCTAssertEqual(model.instance.top?.segments, [.text("B")])
+        model.addTextElement("A", slot: .top)
+        let id = model.addMetricElement(.cpuUsage, slot: .top)!
+        model.moveElement(id: id, to: 0, slot: .top)
+        XCTAssertEqual(contents(model, .top), [.metric(.cpuUsage), .text("A")])
+    }
+
+    func testRemoveElement() {
+        let (model, _) = makeModel()
+        let id = model.addTextElement("A", slot: .top)!
+        model.addTextElement("B", slot: .top)
+        model.removeElement(id: id, slot: .top)
+        XCTAssertEqual(contents(model, .top), [.text("B")])
+    }
+
+    func testMoveElementAcrossLines() {
+        let (model, _) = makeModel()
+        let id = model.addMetricElement(.cpuUsage, slot: .top)!
+        model.moveElement(id: id, from: .top, to: .bottom)
+        XCTAssertEqual(contents(model, .top), [])
+        XCTAssertEqual(contents(model, .bottom), [.metric(.cpuUsage)])
+    }
+
+    func testIconElement() {
+        let (model, _) = makeModel()
+        model.addIconElement(MenuBarIconSpec(source: .emoji("🔥")), slot: .top)
+        guard case .icon? = model.elements(slot: .top).first?.content else { return XCTFail("expected icon") }
     }
 
     func testPreviewUsesRenderer() {
         let (model, _) = makeModel()
-        model.addMetricSegment(.cpuUsage, slot: .top)
+        model.addMetricElement(.cpuUsage, slot: .top)
         XCTAssertNotNil(model.previewImage())
     }
 
     func testEditWritesStore() {
         let (model, store) = makeModel()
-        model.addTextSegment("X", slot: .top)
-        XCTAssertEqual(store.menuBarInstances.instances.first?.top?.segments, [.text("X")])
+        model.addTextElement("X", slot: .top)
+        XCTAssertEqual(store.menuBarInstances.instances.first?.top?.elements.map(\.content), [.text("X")])
     }
 
     func testPaddingClamped() {
@@ -58,5 +76,14 @@ final class MenuBarInstanceEditorModelTests: XCTestCase {
         model.setPadding(inner: 99, outer: -5)
         XCTAssertEqual(model.instance.innerPadding, 24)
         XCTAssertEqual(model.instance.outerMargin, 0)
+    }
+
+    func testLayoutModeSwitchKeepsBottom() {
+        let (model, _) = makeModel()
+        model.addMetricElement(.gpuUsage, slot: .bottom)
+        model.setLayoutMode(.doubleLine)
+        model.setLayoutMode(.singleLine)
+        XCTAssertNotNil(model.instance.bottom)
+        XCTAssertEqual(contents(model, .bottom), [.metric(.gpuUsage)])
     }
 }

@@ -13,7 +13,7 @@ final class MenuBarInstancesStoreTests: XCTestCase {
     func testDefaultEmpty() {
         let store = SettingsStore(defaults: scratchDefaults())
         XCTAssertTrue(store.menuBarInstances.instances.isEmpty)
-        XCTAssertEqual(store.menuBarInstances.schemaVersion, 1)
+        XCTAssertEqual(store.menuBarInstances.schemaVersion, 2)
     }
 
     func testPersistAndReload() {

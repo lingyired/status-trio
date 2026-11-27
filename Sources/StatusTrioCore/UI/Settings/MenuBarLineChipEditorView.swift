@@ -5,31 +5,26 @@ struct MenuBarLineChipEditorView: View {
     let slot: MenuBarLineSlot
     let title: String
 
-    private var segments: [MenuBarLineSegment] {
-        switch slot {
-        case .top: return model.instance.top?.segments ?? []
-        case .bottom: return model.instance.bottom?.segments ?? []
-        }
-    }
+    private var elements: [MenuBarElement] { model.elements(slot: slot) }
 
     var body: some View {
         GroupBox(title) {
             VStack(alignment: .leading, spacing: 8) {
-                if segments.isEmpty {
+                if elements.isEmpty {
                     Text("Empty").foregroundStyle(.secondary)
                 }
                 HStack(spacing: 6) {
-                    ForEach(Array(segments.enumerated()), id: \.offset) { index, segment in
-                        chip(segment, index: index)
+                    ForEach(Array(elements.enumerated()), id: \.element.id) { index, element in
+                        chip(element, index: index)
                     }
                 }
                 HStack {
                     Menu("Add data source") {
                         ForEach(MenuBarMetricID.allCases) { metric in
-                            Button(metric.rawValue) { model.addMetricSegment(metric, slot: slot) }
+                            Button(metric.rawValue) { model.addMetricElement(metric, slot: slot) }
                         }
                     }
-                    Button("Add text") { model.addTextSegment("Text", slot: slot) }
+                    Button("Add text") { model.addTextElement("Text", slot: slot) }
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -37,11 +32,17 @@ struct MenuBarLineChipEditorView: View {
     }
 
     @ViewBuilder
-    private func chip(_ segment: MenuBarLineSegment, index: Int) -> some View {
+    private func chip(_ element: MenuBarElement, index: Int) -> some View {
         let label: String = {
-            switch segment {
+            switch element.content {
             case .text(let text): return text.isEmpty ? "(text)" : text
-            case .metric(let metric): return "{\(MenuBarMetricRegistry.titleKey(for: metric).rawValue)}"
+            case .metric(let metric): return "{\(metric.rawValue)}"
+            case .icon(let icon):
+                switch icon.source {
+                case .sfSymbol(let name): return "icon:\(name)"
+                case .emoji(let value): return value
+                case .asset(let name): return "asset:\(name)"
+                }
             }
         }()
         Text(label)
@@ -50,10 +51,10 @@ struct MenuBarLineChipEditorView: View {
             .padding(.vertical, 4)
             .background(Color.secondary.opacity(0.15), in: Capsule())
             .contextMenu {
-                Button("Move left") { model.moveSegment(from: index, to: index - 1, slot: slot) }
-                Button("Move right") { model.moveSegment(from: index, to: index + 1, slot: slot) }
+                Button("Move left") { model.moveElement(id: element.id, to: index - 1, slot: slot) }
+                Button("Move right") { model.moveElement(id: element.id, to: index + 1, slot: slot) }
                 Divider()
-                Button("Delete", role: .destructive) { model.removeSegment(at: index, slot: slot) }
+                Button("Delete", role: .destructive) { model.removeElement(id: element.id, slot: slot) }
             }
     }
 }

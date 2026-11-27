@@ -17,55 +17,88 @@ final class MenuBarInstanceEditorModel: ObservableObject {
         store.updateMenuBarInstance(instance)
     }
 
-    // MARK: - Segment editing
+    // MARK: - Layout
 
-    func addTextSegment(_ text: String = "Text", slot: MenuBarLineSlot) {
-        mutateLine(slot) { $0.segments.append(.text(text)) }
+    func setLayoutMode(_ mode: MenuBarLayoutMode) {
+        instance.layoutMode = mode
+        persist()
     }
 
-    func addMetricSegment(_ metric: MenuBarMetricID, slot: MenuBarLineSlot) {
-        mutateLine(slot) { $0.segments.append(.metric(metric)) }
+    // MARK: - Element editing
+
+    @discardableResult
+    func addTextElement(_ text: String = "Text", slot: MenuBarLineSlot) -> UUID? {
+        append(MenuBarElement(content: .text(text)), slot: slot)
     }
 
-    func removeSegment(at index: Int, slot: MenuBarLineSlot) {
+    @discardableResult
+    func addMetricElement(_ metric: MenuBarMetricID, slot: MenuBarLineSlot) -> UUID? {
+        append(MenuBarElement(content: .metric(metric)), slot: slot)
+    }
+
+    @discardableResult
+    func addIconElement(_ icon: MenuBarIconSpec, slot: MenuBarLineSlot) -> UUID? {
+        append(MenuBarElement(content: .icon(icon)), slot: slot)
+    }
+
+    private func append(_ element: MenuBarElement, slot: MenuBarLineSlot) -> UUID? {
+        guard elements(slot: slot).count < 32 else { return nil }
+        mutateLine(slot) { $0.elements.append(element) }
+        return element.id
+    }
+
+    func removeElement(id: UUID, slot: MenuBarLineSlot) {
+        mutateLine(slot) { $0.elements.removeAll { $0.id == id } }
+    }
+
+    func moveElement(id: UUID, to destination: Int, slot: MenuBarLineSlot) {
         mutateLine(slot) { line in
-            guard line.segments.indices.contains(index) else { return }
-            line.segments.remove(at: index)
+            guard let current = line.elements.firstIndex(where: { $0.id == id }) else { return }
+            let element = line.elements.remove(at: current)
+            let target = min(max(0, destination), line.elements.count)
+            line.elements.insert(element, at: target)
         }
     }
 
-    func moveSegment(from source: Int, to destination: Int, slot: MenuBarLineSlot) {
+    func updateText(_ text: String, elementID: UUID, slot: MenuBarLineSlot) {
         mutateLine(slot) { line in
-            guard line.segments.indices.contains(source) else { return }
-            let item = line.segments.remove(at: source)
-            let target = min(max(0, destination), line.segments.count)
-            line.segments.insert(item, at: target)
+            guard let index = line.elements.firstIndex(where: { $0.id == elementID }) else { return }
+            line.elements[index].content = .text(text)
         }
     }
 
-    func updateText(_ text: String, at index: Int, slot: MenuBarLineSlot) {
-        mutateLine(slot) { line in
-            guard line.segments.indices.contains(index) else { return }
-            line.segments[index] = .text(text)
+    /// Moves an element between lines (also used by cross-row drag/drop).
+    func moveElement(id: UUID, from: MenuBarLineSlot, to: MenuBarLineSlot, index: Int = Int.max) {
+        guard from != to else { return }
+        var moved: MenuBarElement?
+        mutateLine(from, persist: false) { line in
+            guard let current = line.elements.firstIndex(where: { $0.id == id }) else { return }
+            moved = line.elements.remove(at: current)
+        }
+        guard let element = moved else { persist(); return }
+        mutateLine(to) { line in
+            let target = min(max(0, index), line.elements.count)
+            line.elements.insert(element, at: target)
+        }
+    }
+
+    func elements(slot: MenuBarLineSlot) -> [MenuBarElement] {
+        switch slot {
+        case .top: return instance.top?.elements ?? []
+        case .bottom: return instance.bottom?.elements ?? []
         }
     }
 
     // MARK: - Line / instance styling
 
-    func setColor(_ color: LineColor, slot: MenuBarLineSlot) {
-        mutateLine(slot) { $0.color = color }
-    }
+    func setColor(_ color: LineColor, slot: MenuBarLineSlot) { mutateLine(slot) { $0.color = color } }
+    func setAlignment(_ alignment: LineAlignment, slot: MenuBarLineSlot) { mutateLine(slot) { $0.alignment = alignment } }
+    func setBold(_ bold: Bool, slot: MenuBarLineSlot) { mutateLine(slot) { $0.isBold = bold } }
+    func setMonospacedDigits(_ on: Bool, slot: MenuBarLineSlot) { mutateLine(slot) { $0.usesMonospacedDigits = on } }
 
-    func setAlignment(_ alignment: LineAlignment, slot: MenuBarLineSlot) {
-        mutateLine(slot) { $0.alignment = alignment }
-    }
-
-    func setBold(_ bold: Bool, slot: MenuBarLineSlot) {
-        mutateLine(slot) { $0.isBold = bold }
-    }
-
-    func setIcon(_ icon: MenuBarIconSpec?, slot: MenuBarLineSlot) {
-        mutateLine(slot) { $0.icon = icon }
+    func setLeadingIcon(_ icon: MenuBarIconSpec?) {
+        instance.leadingIcon = icon
+        persist()
     }
 
     func setPadding(inner: Double, outer: Double) {
@@ -88,8 +121,6 @@ final class MenuBarInstanceEditorModel: ObservableObject {
 
     // MARK: - Preview
 
-    /// Renders a preview with a mock snapshot. Never creates a status item and
-    /// never registers sampling demand.
     func previewImage() -> NSImage? {
         var readings: [MenuBarMetricID: MenuBarMetricReading] = [:]
         for metric in instance.allMetrics {
@@ -103,14 +134,18 @@ final class MenuBarInstanceEditorModel: ObservableObject {
                 )
             }
         }
-        let input = MenuBarRenderInput(instance: instance, readings: readings)
+        let input = MenuBarRenderInput(
+            instance: instance,
+            readings: readings,
+            colorOverrides: store.hardwareMonitorMetricColors
+        )
         let appearance = NSAppearance(named: .darkAqua) ?? NSAppearance(named: .aqua)!
         return MenuBarInstanceRenderer.render(input, appearance: appearance, scale: 2)
     }
 
     // MARK: - Helpers
 
-    private func mutateLine(_ slot: MenuBarLineSlot, _ body: (inout MenuBarLine) -> Void) {
+    private func mutateLine(_ slot: MenuBarLineSlot, persist shouldPersist: Bool = true, _ body: (inout MenuBarLine) -> Void) {
         switch slot {
         case .top:
             var line = instance.top ?? MenuBarLine()
@@ -121,6 +156,6 @@ final class MenuBarInstanceEditorModel: ObservableObject {
             body(&line)
             instance.bottom = line
         }
-        persist()
+        if shouldPersist { persist() }
     }
 }

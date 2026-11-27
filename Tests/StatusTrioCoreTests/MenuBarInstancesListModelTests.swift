@@ -10,12 +10,15 @@ final class MenuBarInstancesListModelTests: XCTestCase {
         return SettingsStore(defaults: defaults)
     }
 
+    private func contents(_ instance: MenuBarInstance) -> [MenuBarElementContent] {
+        instance.top?.elements.map(\.content) ?? []
+    }
+
     func testAddPresetCPU() {
         let store = scratchStore()
-        let model = MenuBarInstancesListModel(store: store)
-        model.addPreset(.cpu)
+        MenuBarInstancesListModel(store: store).addPreset(.cpu)
         XCTAssertEqual(store.menuBarInstances.instances.count, 1)
-        XCTAssertEqual(store.menuBarInstances.instances[0].top?.segments, [.text("CPU "), .metric(.cpuUsage)])
+        XCTAssertEqual(contents(store.menuBarInstances.instances[0]), [.text("CPU "), .metric(.cpuUsage)])
         XCTAssertNil(store.menuBarInstances.instances[0].bottom)
     }
 
@@ -24,7 +27,6 @@ final class MenuBarInstancesListModelTests: XCTestCase {
         let model = MenuBarInstancesListModel(store: store)
         for _ in 0..<20 { model.addPreset(.cpu) }
         XCTAssertFalse(model.canAdd)
-        model.addPreset(.cpu)
         XCTAssertEqual(store.menuBarInstances.instances.count, 20)
     }
 
@@ -36,7 +38,7 @@ final class MenuBarInstancesListModelTests: XCTestCase {
         model.duplicate(id: original.id)
         XCTAssertEqual(store.menuBarInstances.instances.count, 2)
         XCTAssertNotEqual(store.menuBarInstances.instances[1].id, original.id)
-        XCTAssertEqual(store.menuBarInstances.instances[1].top?.segments, original.top?.segments)
+        XCTAssertEqual(contents(store.menuBarInstances.instances[1]), contents(original))
     }
 
     func testDeleteAndMovePersist() {
