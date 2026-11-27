@@ -14,6 +14,7 @@ struct MenuBarInstanceEditorView: View {
 
     @State private var selectedSlot: MenuBarLineSlot = .top
     @State private var selectedElementID: UUID?
+    @State private var showingElementIconPicker = false
 
     private func L(_ key: LocalizationKey) -> String { localization.string(key) }
 
@@ -198,39 +199,67 @@ struct MenuBarInstanceEditorView: View {
         .controlSize(.small)
     }
 
-    @ViewBuilder
     private func iconEditor(icon: MenuBarIconSpec, elementID: UUID) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Picker("", selection: Binding(
-                get: { iconKind(icon) },
-                set: { kind in
-                    model.updateIcon(
-                        iconWithKind(kind, text: iconText(icon), tint: icon.tint),
-                        elementID: elementID,
-                        slot: selectedSlot
-                    )
-                }
-            )) {
-                Text("SF Symbol").tag(0)
-                Text(L(.menuBarEditorIconEmoji)).tag(1)
-                Text(L(.menuBarEditorIconAsset)).tag(2)
+        Button {
+            showingElementIconPicker = true
+        } label: {
+            HStack(spacing: 8) {
+                iconPreview(icon)
+                    .frame(width: 20, height: 20)
+                Text(iconText(icon))
+                    .font(.system(size: 12))
+                    .foregroundStyle(.primary)
+                Spacer(minLength: 8)
+                Image(systemName: "chevron.up.chevron.down")
+                    .font(.system(size: 9, weight: .medium))
+                    .foregroundStyle(.tertiary)
             }
-            .pickerStyle(.segmented)
-            .labelsHidden()
-            .accessibilityLabel(L(.menuBarEditorIconType))
+            .padding(.horizontal, 8)
+            .padding(.vertical, 5)
+            .background(
+                RoundedRectangle(cornerRadius: 6, style: .continuous)
+                    .fill(Color.primary.opacity(0.05))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 6, style: .continuous)
+                    .strokeBorder(Color.primary.opacity(0.1), lineWidth: 1)
+            )
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(L(.menuBarEditorChooseIcon))
+        .popover(isPresented: $showingElementIconPicker, arrowEdge: .bottom) {
+            MenuBarLeadingIconPicker(
+                spec: icon,
+                localization: localization,
+                onChange: { newIcon in
+                    if let newIcon {
+                        model.updateIcon(newIcon, elementID: elementID, slot: selectedSlot)
+                    }
+                },
+                titleKey: .menuBarEditorChooseIcon
+            )
+        }
+    }
 
-            TextField(iconPlaceholder(icon), text: Binding(
-                get: { iconText(icon) },
-                set: { text in
-                    model.updateIcon(
-                        iconWithKind(iconKind(icon), text: text, tint: icon.tint),
-                        elementID: elementID,
-                        slot: selectedSlot
-                    )
-                }
-            ))
-            .textFieldStyle(.roundedBorder)
-            .accessibilityLabel(L(.menuBarEditorIconType))
+    @ViewBuilder
+    private func iconPreview(_ icon: MenuBarIconSpec) -> some View {
+        switch icon.source {
+        case .sfSymbol(let name):
+            if NSImage(systemSymbolName: name, accessibilityDescription: nil) != nil {
+                Image(systemName: name)
+                    .font(.system(size: 13))
+            } else {
+                Image(systemName: "questionmark.square.dashed")
+                    .font(.system(size: 13))
+            }
+        case .emoji(let value):
+            Text(value).font(.system(size: 14))
+        case .asset(let name):
+            if let image = NSImage(named: name) {
+                Image(nsImage: image).resizable().scaledToFit()
+            } else {
+                Image(systemName: "photo").font(.system(size: 13))
+            }
         }
     }
 

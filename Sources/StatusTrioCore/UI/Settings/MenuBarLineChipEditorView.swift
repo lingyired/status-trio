@@ -110,7 +110,8 @@ struct MenuBarRowCanvasView: View {
                         },
                         onColorChange: { color in
                             model.setLeadingIconColor(color, slot: slot)
-                        }
+                        },
+                        dismissOnPick: false
                     )
                 }
 
@@ -353,12 +354,15 @@ struct MenuBarRowCanvasView: View {
 /// field remains for symbols outside the curated list.
 struct MenuBarLeadingIconPicker: View {
     let spec: MenuBarIconSpec?
-    let size: Double
-    let color: ColorValue?
+    var size: Double? = nil
+    var color: ColorValue? = nil
     let localization: Localization
     let onChange: (MenuBarIconSpec?) -> Void
-    let onSizeChange: (Double) -> Void
-    let onColorChange: (ColorValue?) -> Void
+    var onSizeChange: ((Double) -> Void)? = nil
+    var onColorChange: ((ColorValue?) -> Void)? = nil
+    var initialTab: Int = 0
+    var dismissOnPick: Bool = true
+    var titleKey: LocalizationKey = .menuBarEditorLeadingIcon
 
     @Environment(\.dismiss) private var dismiss
     @State private var tab = 0
@@ -511,6 +515,7 @@ struct MenuBarLeadingIconPicker: View {
         }
         .padding(14)
         .frame(width: 380)
+        .onAppear { tab = initialTab }
     }
 
     private var header: some View {
@@ -523,7 +528,7 @@ struct MenuBarLeadingIconPicker: View {
             .frame(width: 36, height: 36)
 
             VStack(alignment: .leading, spacing: 1) {
-                Text(L(.menuBarEditorLeadingIcon))
+                Text(L(titleKey))
                     .font(.system(size: 12, weight: .semibold))
                 Text(iconDescription)
                     .font(.system(size: 10.5))
@@ -643,46 +648,49 @@ struct MenuBarLeadingIconPicker: View {
         }
     }
 
+    @ViewBuilder
     private var iconOptions: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack(spacing: 8) {
-                Text(L(.menuBarEditorIconSize))
-                    .font(.system(size: 10.5))
-                    .foregroundStyle(.secondary)
-                    .frame(width: 44, alignment: .leading)
-                Slider(
-                    value: Binding(
-                        get: { size },
-                        set: { onSizeChange($0.rounded()) }
-                    ),
-                    in: 10...16
-                )
-                Text("\(Int(size))")
-                    .font(.system(size: 10.5))
-                    .monospacedDigit()
-                    .frame(width: 24, alignment: .trailing)
-            }
-
-            HStack(spacing: 8) {
-                Text(L(.menuBarEditorIconColor))
-                    .font(.system(size: 10.5))
-                    .foregroundStyle(.secondary)
-                    .frame(width: 44, alignment: .leading)
-                Menu {
-                    Button(L(.menuBarEditorMatchTextColor)) { onColorChange(nil) }
-                } label: {
-                    Text(color == nil ? L(.menuBarEditorMatchTextColor) : L(.menuBarEditorCustomColor))
+        if let size, let onSizeChange, let onColorChange {
+            VStack(alignment: .leading, spacing: 8) {
+                HStack(spacing: 8) {
+                    Text(L(.menuBarEditorIconSize))
+                        .font(.system(size: 10.5))
+                        .foregroundStyle(.secondary)
+                        .frame(width: 44, alignment: .leading)
+                    Slider(
+                        value: Binding(
+                            get: { size },
+                            set: { onSizeChange($0.rounded()) }
+                        ),
+                        in: 10...16
+                    )
+                    Text("\(Int(size))")
+                        .font(.system(size: 10.5))
+                        .monospacedDigit()
+                        .frame(width: 24, alignment: .trailing)
                 }
-                .menuStyle(.borderlessButton)
-                .fixedSize()
-                ColorPicker("", selection: iconColorBinding, supportsOpacity: false)
-                    .labelsHidden()
-                    .frame(width: 36)
-                    .help(L(.menuBarEditorIconColor))
+
+                HStack(spacing: 8) {
+                    Text(L(.menuBarEditorIconColor))
+                        .font(.system(size: 10.5))
+                        .foregroundStyle(.secondary)
+                        .frame(width: 44, alignment: .leading)
+                    Menu {
+                        Button(L(.menuBarEditorMatchTextColor)) { onColorChange(nil) }
+                    } label: {
+                        Text(color == nil ? L(.menuBarEditorMatchTextColor) : L(.menuBarEditorCustomColor))
+                    }
+                    .menuStyle(.borderlessButton)
+                    .fixedSize()
+                    ColorPicker("", selection: iconColorBinding, supportsOpacity: false)
+                        .labelsHidden()
+                        .frame(width: 36)
+                        .help(L(.menuBarEditorIconColor))
+                }
             }
+            .disabled(spec == nil)
+            .opacity(spec == nil ? 0.45 : 1)
         }
-        .disabled(spec == nil)
-        .opacity(spec == nil ? 0.45 : 1)
     }
 
     private var iconColorBinding: Binding<Color> {
@@ -694,6 +702,7 @@ struct MenuBarLeadingIconPicker: View {
                 return Color(nsColor: .labelColor)
             },
             set: { newColor in
+                guard let onColorChange else { return }
                 let resolved = NSColor(newColor).usingColorSpace(.sRGB) ?? .systemBlue
                 onColorChange(ColorValue(
                     red: Double(resolved.redComponent),
@@ -731,9 +740,8 @@ struct MenuBarLeadingIconPicker: View {
     }
 
     private func apply(_ icon: MenuBarIconSpec) {
-        // Keep the popover open so the size/colour controls below the grid can
-        // be adjusted immediately after picking an icon.
         onChange(icon)
+        if dismissOnPick { dismiss() }
     }
 
     private func addCustomEmoji() {
@@ -794,6 +802,9 @@ struct MenuBarElementPalette: View {
     @Binding var selectedSlot: MenuBarLineSlot
     @Binding var selectedElementID: UUID?
 
+    @State private var showingIconPicker = false
+    @State private var iconPickerInitialTab = 0
+
     private func L(_ key: LocalizationKey) -> String { localization.string(key) }
 
     private var isDoubleLine: Bool { model.instance.layoutMode == .doubleLine }
@@ -834,10 +845,15 @@ struct MenuBarElementPalette: View {
                 section(title: L(.menuBarEditorTextIcons)) {
                     paletteChip(.text(" "), title: L(.menuBarEditorSpace), symbol: "rectangle.dashed")
                     paletteChip(.text(""), title: L(.menuBarEditorText), symbol: "textformat")
-                    paletteChip(
-                        .icon(MenuBarIconSpec(source: .emoji("🔥"))),
-                        title: "Emoji",
-                        symbol: "face.smiling"
+                    palettePickerChip(
+                        title: L(.menuBarEditorCustomIcon),
+                        symbol: "square.grid.2x2",
+                        tab: 0
+                    )
+                    palettePickerChip(
+                        title: L(.menuBarEditorIconEmoji),
+                        symbol: "face.smiling",
+                        tab: 1
                     )
                     ForEach(["cpu", "memorychip", "gauge", "thermometer", "fan"], id: \.self) { name in
                         paletteChip(
@@ -850,6 +866,19 @@ struct MenuBarElementPalette: View {
             }
             .padding(.horizontal, SettingsMetrics.rowPaddingH)
             .padding(.vertical, 10)
+        }
+        .popover(isPresented: $showingIconPicker, arrowEdge: .bottom) {
+            MenuBarLeadingIconPicker(
+                spec: nil,
+                localization: localization,
+                onChange: { icon in
+                    if let icon {
+                        add(.icon(icon))
+                    }
+                },
+                initialTab: iconPickerInitialTab,
+                titleKey: .menuBarEditorChooseIcon
+            )
         }
     }
 
@@ -880,6 +909,17 @@ struct MenuBarElementPalette: View {
             .help(title)
             .accessibilityLabel(title)
             .accessibilityAction { add(content) }
+    }
+
+    private func palettePickerChip(title: String, symbol: String, tab: Int) -> some View {
+        MenuBarEditorChipLabel(title: title, systemImage: symbol, compact: true)
+            .onTapGesture {
+                iconPickerInitialTab = tab
+                showingIconPicker = true
+            }
+            .help(title)
+            .accessibilityLabel(title)
+            .accessibilityAddTraits(.isButton)
     }
 
     private func add(_ content: MenuBarElementContent) {

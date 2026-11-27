@@ -1469,6 +1469,8 @@
 "menubar.editor.customColor" = "自定义颜色";
 "menubar.editor.systemDefault" = "系统默认";
 "menubar.editor.leadingIcon" = "行首图标";
+"menubar.editor.customIcon" = "自定义图标";
+"menubar.editor.chooseIcon" = "选择图标";
 "menubar.editor.searchIcons" = "搜索图标";
 "menubar.editor.fixedWidth" = "固定宽度";
 "menubar.editor.iconSize" = "图标大小";
