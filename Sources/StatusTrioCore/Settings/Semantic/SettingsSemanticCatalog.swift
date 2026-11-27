@@ -303,7 +303,6 @@ enum SettingsSemanticCatalog {
             d.uiPath = "设置 › 图标 › 硬件外环 › 内存压力颜色"
             d.storageKey = "hardwareRingConfigurationV1"
             d.accessPolicy = describedNotWritable
-            d.provider = "core"
         },
         pref("icon.center.source", "中间槽来源", "icon", .enumeration, "菜单栏与 Dock 共享的中间槽内容来源。") { d in
             d.uiPath = "设置 › 图标 › 中间来源"

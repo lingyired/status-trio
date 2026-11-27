@@ -108,6 +108,7 @@ final class CoreSettingsProvider: SettingsStateProvider {
         "icon.outerRing.hardware.primaryMetric",
         "icon.outerRing.hardware.ringSlots",
         "icon.outerRing.hardware.secondaryMetric",
+        "icon.outerRing.hardware.topContent",
         "icon.outerRing.hardware.splitGapProgress",
         "icon.outerRing.source",
         "icon.ring.monochromeCharging",
