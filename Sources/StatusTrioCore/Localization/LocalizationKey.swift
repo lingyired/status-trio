@@ -362,6 +362,8 @@ enum LocalizationKey: String, CaseIterable, Hashable, Sendable {
     case menuBarEditorBold = "menubar.editor.bold"
     case menuBarEditorMonospaced = "menubar.editor.monospaced"
     case menuBarEditorFontSize = "menubar.editor.fontSize"
+    case menuBarEditorCharacter = "menubar.editor.character"
+    case menuBarEditorCharacterHint = "menubar.editor.characterHint"
     case menuBarEditorAlignment = "menubar.editor.alignment"
     case menuBarEditorLeading = "menubar.editor.leading"
     case menuBarEditorCenter = "menubar.editor.center"

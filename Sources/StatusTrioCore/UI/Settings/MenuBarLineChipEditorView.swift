@@ -214,6 +214,8 @@ struct MenuBarRowCanvasView: View {
             } else {
                 Image(systemName: "questionmark.square.dashed").font(.system(size: 12))
             }
+        case .character(let value):
+            Text(String(value.prefix(1))).font(.system(size: 12, weight: .medium))
         case .emoji(let emoji):
             Text(emoji).font(.system(size: 13))
         case .asset(let name):
@@ -318,6 +320,7 @@ struct MenuBarRowCanvasView: View {
         guard let icon = line?.leadingIcon else { return "plus.circle" }
         switch icon.source {
         case .sfSymbol(let name): return name
+        case .character: return "character"
         case .emoji: return "face.smiling"
         case .asset: return "photo"
         }
@@ -377,6 +380,7 @@ struct MenuBarRowCanvasView: View {
         case .icon(let icon):
             switch icon.source {
             case .sfSymbol(let name): return name
+            case .character(let value): return value
             case .emoji(let value): return value
             case .asset(let name): return name
             }
@@ -392,6 +396,7 @@ struct MenuBarRowCanvasView: View {
         case .icon(let icon):
             switch icon.source {
             case .sfSymbol(let name): return name
+            case .character: return "character"
             case .emoji: return "face.smiling"
             case .asset: return "photo"
             }
@@ -416,7 +421,9 @@ struct MenuBarLeadingIconPicker: View {
     var titleKey: LocalizationKey = .menuBarEditorLeadingIcon
 
     @Environment(\.dismiss) private var dismiss
+    @State private var tab = 0
     @State private var search = ""
+    @State private var characterText = ""
     @State private var visibleCount = 240
 
     private static let pageSize = 240
@@ -505,7 +512,18 @@ struct MenuBarLeadingIconPicker: View {
         VStack(alignment: .leading, spacing: 12) {
             header
 
-            symbolGrid
+            Picker("", selection: $tab) {
+                Text("SF Symbol").tag(0)
+                Text(L(.menuBarEditorCharacter)).tag(1)
+            }
+            .pickerStyle(.segmented)
+            .labelsHidden()
+
+            if tab == 0 {
+                symbolGrid
+            } else {
+                characterEntry
+            }
 
             iconOptions
 
@@ -522,6 +540,12 @@ struct MenuBarLeadingIconPicker: View {
         }
         .padding(14)
         .frame(width: 380)
+        .onAppear {
+            if case .character(let value) = spec?.source {
+                characterText = value
+                tab = 1
+            }
+        }
     }
 
     private var header: some View {
@@ -557,6 +581,8 @@ struct MenuBarLeadingIconPicker: View {
                 Image(systemName: "questionmark.square.dashed")
                     .font(.system(size: 17))
             }
+        case .character(let value):
+            Text(String(value.prefix(1))).font(.system(size: 18, weight: .medium))
         case .emoji(let value):
             Text(value).font(.system(size: 19))
         case .asset:
@@ -572,6 +598,7 @@ struct MenuBarLeadingIconPicker: View {
     private var iconDescription: String {
         switch spec?.source {
         case .sfSymbol(let name): return name
+        case .character(let value): return value
         case .emoji(let value): return value
         case .asset(let name): return name
         case nil: return L(.menuBarEditorNone)
@@ -691,6 +718,36 @@ struct MenuBarLeadingIconPicker: View {
                 ))
             }
         )
+    }
+
+    private var characterEntry: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(L(.menuBarEditorCharacterHint))
+                .font(.system(size: 10.5))
+                .foregroundStyle(.secondary)
+
+            TextField(L(.menuBarEditorCharacter), text: $characterText)
+                .textFieldStyle(.roundedBorder)
+                .onChange(of: characterText) { value in
+                    if value.count > 1 {
+                        characterText = String(value.prefix(1))
+                    }
+                }
+                .onSubmit {
+                    if !characterText.isEmpty {
+                        apply(MenuBarIconSpec(source: .character(characterText)))
+                    }
+                }
+
+            HStack {
+                Spacer(minLength: 0)
+                Button(L(.menuBarEditorAdd)) {
+                    apply(MenuBarIconSpec(source: .character(characterText)))
+                }
+                .disabled(characterText.isEmpty)
+            }
+        }
+        .frame(height: 236, alignment: .top)
     }
 
     private var searchField: some View {

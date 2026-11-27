@@ -1509,6 +1509,8 @@
 "menubar.editor.bold" = "粗体";
 "menubar.editor.monospaced" = "等宽数字";
 "menubar.editor.fontSize" = "字体大小";
+"menubar.editor.character" = "字符";
+"menubar.editor.characterHint" = "输入一个字符作为图标";
 "menubar.editor.alignment" = "对齐";
 "menubar.editor.leading" = "左对齐";
 "menubar.editor.center" = "居中";

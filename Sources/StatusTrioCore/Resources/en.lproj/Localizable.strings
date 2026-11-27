@@ -1508,6 +1508,8 @@
 "menubar.editor.bold" = "Bold";
 "menubar.editor.monospaced" = "Monospaced digits";
 "menubar.editor.fontSize" = "Font Size";
+"menubar.editor.character" = "Character";
+"menubar.editor.characterHint" = "Enter one character to use as the icon";
 "menubar.editor.alignment" = "Alignment";
 "menubar.editor.leading" = "Leading";
 "menubar.editor.center" = "Center";

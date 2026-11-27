@@ -132,6 +132,18 @@ final class MenuBarInstanceRendererTests: XCTestCase {
         XCTAssertEqual(measurement.totalWidth, measurement.lineWidths[0] + 16 + 3, accuracy: 0.6)
     }
 
+    func testCharacterIconMeasures() {
+        let line = MenuBarLine(
+            elements: [MenuBarElement(content: .icon(MenuBarIconSpec(source: .character("A"))))]
+        )
+        let result = MenuBarInstanceRenderer.measure(
+            input(top: line),
+            appearance: appearance
+        )
+        XCTAssertGreaterThan(result.totalWidth, 0)
+        XCTAssertGreaterThan(result.lineHeights[0], 0)
+    }
+
     func testMetricShowsDashWhenMissing() {
         let result = MenuBarInstanceRenderer.measure(
             input(top: MenuBarLine(segments: [.metric(.gpuUsage)])),

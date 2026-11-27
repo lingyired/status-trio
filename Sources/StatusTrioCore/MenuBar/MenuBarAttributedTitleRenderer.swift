@@ -102,7 +102,7 @@ enum MenuBarAttributedTitleRenderer {
             return image
         case .asset(let name):
             return NSImage(named: name)
-        case .emoji:
+        case .character, .emoji:
             return nil
         }
     }

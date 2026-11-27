@@ -36,13 +36,15 @@ enum LineAlignment: String, Codable, CaseIterable, Sendable {
 
 enum MenuBarIconSource: Codable, Equatable, Sendable {
     case sfSymbol(String)
+    case character(String)
     case emoji(String)
     case asset(String)
 }
 
 struct MenuBarIconSpec: Codable, Equatable, Sendable {
     var source: MenuBarIconSource
-    /// Only meaningful for SF Symbols and template assets; emoji ignore it.
+    /// Only meaningful for SF Symbols, characters and template assets; emoji
+    /// ignore it.
     var tint: Bool
 
     init(source: MenuBarIconSource, tint: Bool = true) {

@@ -254,6 +254,14 @@ enum MenuBarInstanceRenderer {
             guard let asset = NSImage(named: name) else { return }
             let image = spec.tint ? tinted(asset, color: tintColor) : asset
             image.draw(in: rect, from: .zero, operation: .sourceOver, fraction: 1)
+        case .character(let value):
+            let font = NSFont.systemFont(ofSize: rect.height)
+            let attributed = NSAttributedString(
+                string: String(value.prefix(1)),
+                attributes: [.font: font, .foregroundColor: tintColor]
+            )
+            let size = attributed.size()
+            attributed.draw(at: NSPoint(x: rect.midX - size.width / 2, y: rect.midY - size.height / 2))
         case .emoji(let emoji):
             let font = NSFont.systemFont(ofSize: rect.height)
             let attributed = NSAttributedString(string: emoji, attributes: [.font: font])
