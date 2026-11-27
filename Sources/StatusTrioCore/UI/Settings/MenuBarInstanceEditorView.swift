@@ -237,6 +237,32 @@ struct MenuBarInstanceEditorView: View {
 
             SettingsDivider()
 
+            SettingsRow("textformat.size", title: L(.menuBarEditorFontSize)) {
+                HStack(spacing: 8) {
+                    Slider(
+                        value: Binding(
+                            get: { fontSizeValue },
+                            set: { model.setFontSize($0.rounded(), slot: selectedSlot) }
+                        ),
+                        in: 8...18
+                    )
+                    .frame(width: 130)
+                    .accessibilityLabel(L(.menuBarEditorFontSize))
+
+                    Text("\(Int(fontSizeValue))")
+                        .monospacedDigit()
+                        .frame(width: 24, alignment: .trailing)
+
+                    Button(L(.iconDesignerControlAutomatic)) {
+                        model.setFontSize(nil, slot: selectedSlot)
+                    }
+                    .buttonStyle(.borderless)
+                    .disabled(currentLine?.fontSize == nil)
+                }
+            }
+
+            SettingsDivider()
+
             SettingsRow("text.alignleft", title: L(.menuBarEditorAlignment)) {
                 Picker("", selection: Binding(
                     get: { currentLine?.alignment ?? .leading },
@@ -286,6 +312,10 @@ struct MenuBarInstanceEditorView: View {
                 }
             }
         }
+    }
+
+    private var fontSizeValue: Double {
+        currentLine?.fontSize ?? (model.instance.layoutMode == .doubleLine ? 9 : 12)
     }
 
     private var currentLine: MenuBarLine? {

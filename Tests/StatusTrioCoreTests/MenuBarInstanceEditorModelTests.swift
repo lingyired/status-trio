@@ -59,6 +59,15 @@ final class MenuBarInstanceEditorModelTests: XCTestCase {
         guard case .icon? = model.elements(slot: .top).first?.content else { return XCTFail("expected icon") }
     }
 
+    func testSetFontSizeAndResetToAutomatic() {
+        let (model, _) = makeModel()
+        model.setFontSize(14, slot: .top)
+        XCTAssertEqual(model.instance.top?.fontSize, 14)
+        XCTAssertNil(model.instance.bottom?.fontSize)
+        model.setFontSize(nil, slot: .top)
+        XCTAssertNil(model.instance.top?.fontSize)
+    }
+
     func testSetLeadingIconOnOneRowOnly() {
         let (model, _) = makeModel()
         let icon = MenuBarIconSpec(source: .sfSymbol("arrow.up"))

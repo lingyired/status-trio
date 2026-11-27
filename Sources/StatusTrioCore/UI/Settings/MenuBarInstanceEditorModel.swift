@@ -121,6 +121,12 @@ final class MenuBarInstanceEditorModel: ObservableObject {
     func setAlignment(_ alignment: LineAlignment, slot: MenuBarLineSlot) { mutateLine(slot) { $0.alignment = alignment } }
     func setBold(_ bold: Bool, slot: MenuBarLineSlot) { mutateLine(slot) { $0.isBold = bold } }
     func setMonospacedDigits(_ on: Bool, slot: MenuBarLineSlot) { mutateLine(slot) { $0.usesMonospacedDigits = on } }
+    func setFontSize(_ size: Double?, slot: MenuBarLineSlot) {
+        mutateLine(slot) { line in
+            line.fontSize = size.map { min(18, max(8, $0)) }
+        }
+    }
+
 
     func setLeadingIcon(_ icon: MenuBarIconSpec?) {
         instance.leadingIcon = icon

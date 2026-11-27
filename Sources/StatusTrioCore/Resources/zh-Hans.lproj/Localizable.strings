@@ -1508,6 +1508,7 @@
 "menubar.editor.rowStyle" = "行样式";
 "menubar.editor.bold" = "粗体";
 "menubar.editor.monospaced" = "等宽数字";
+"menubar.editor.fontSize" = "字体大小";
 "menubar.editor.alignment" = "对齐";
 "menubar.editor.leading" = "左对齐";
 "menubar.editor.center" = "居中";
