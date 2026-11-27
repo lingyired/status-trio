@@ -322,6 +322,7 @@ enum LocalizationKey: String, CaseIterable, Hashable, Sendable {
     case menuBarEditorCustomColor = "menubar.editor.customColor"
     case menuBarEditorSystemDefault = "menubar.editor.systemDefault"
     case menuBarEditorLeadingIcon = "menubar.editor.leadingIcon"
+    case menuBarEditorSearchIcons = "menubar.editor.searchIcons"
     case menuBarEditorPaletteHint = "menubar.editor.paletteHint"
     case menuBarEditorMetrics = "menubar.editor.metrics"
     case menuBarEditorTextIcons = "menubar.editor.textIcons"

@@ -1469,6 +1469,7 @@
 "menubar.editor.customColor" = "自定义颜色";
 "menubar.editor.systemDefault" = "系统默认";
 "menubar.editor.leadingIcon" = "行首图标";
+"menubar.editor.searchIcons" = "搜索图标";
 "menubar.editor.paletteHint" = "把指标拖进任意一行，或点击添加到当前选中的行。";
 "menubar.editor.metrics" = "指标";
 "menubar.editor.textIcons" = "文字与图标";

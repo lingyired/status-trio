@@ -287,40 +287,65 @@ struct MenuBarRowCanvasView: View {
     }
 }
 
-/// Small popover for picking (or clearing) a row's leading icon.
+/// Icon picker for a row's leading icon.
+///
+/// SF Symbols and emoji are shown as a searchable grid so choosing an icon is
+/// visual rather than remembering its name; a name field remains for symbols
+/// that are not in the curated list.
 struct MenuBarLeadingIconPicker: View {
     let spec: MenuBarIconSpec?
     let localization: Localization
     let onChange: (MenuBarIconSpec?) -> Void
 
     @Environment(\.dismiss) private var dismiss
-    @State private var kind: Int
-    @State private var value: String
+    @State private var tab = 0
+    @State private var search = ""
+    @State private var customSymbol = ""
+    @State private var customEmoji = ""
+    @State private var customAsset = ""
 
     private func L(_ key: LocalizationKey) -> String { localization.string(key) }
 
-    init(spec: MenuBarIconSpec?, localization: Localization, onChange: @escaping (MenuBarIconSpec?) -> Void) {
-        self.spec = spec
-        self.localization = localization
-        self.onChange = onChange
-        let initialKind: Int
-        let initialValue: String
-        switch spec?.source {
-        case .sfSymbol(let name):
-            initialKind = 0
-            initialValue = name
-        case .emoji(let emoji):
-            initialKind = 1
-            initialValue = emoji
-        case .asset(let name):
-            initialKind = 2
-            initialValue = name
-        case nil:
-            initialKind = 0
-            initialValue = ""
-        }
-        _kind = State(initialValue: initialKind)
-        _value = State(initialValue: initialValue)
+    private static let symbols: [String] = [
+        // Arrows and navigation
+        "arrow.up", "arrow.down", "arrow.left", "arrow.right",
+        "arrow.up.circle", "arrow.down.circle", "arrow.left.arrow.right",
+        "arrow.up.arrow.down", "arrow.triangle.up", "arrow.triangle.down",
+        "chevron.up", "chevron.down", "chevron.left", "chevron.right",
+        "arrow.up.right", "arrow.down.left", "arrow.clockwise", "arrow.triangle.2.circlepath",
+        // Network
+        "wifi", "wifi.exclamationmark", "wifi.slash", "network", "globe",
+        "antenna.radiowaves.left.and.right", "dot.radiowaves.left.and.right",
+        "ethernet", "cable.connector", "cloud", "cloud.fill",
+        // System and power
+        "power", "bolt.fill", "bolt.slash", "sleep", "moon.fill", "sun.max.fill",
+        "battery.100", "battery.75", "battery.50", "battery.25", "battery.0",
+        "display", "desktopcomputer", "laptopcomputer", "iphone", "ipad",
+        "applewatch", "airpods", "headphones", "speaker.wave.2", "speaker.slash",
+        // Hardware and metrics
+        "cpu", "cpu.fill", "memorychip", "internaldrive", "externaldrive",
+        "gauge", "gauge.with.dots.needle.50percent", "thermometer.low",
+        "thermometer.medium", "thermometer.high", "fan", "fan.fill",
+        "chart.bar.fill", "chart.line.uptrend.xyaxis", "chart.pie.fill",
+        // Media and misc
+        "play.fill", "pause.fill", "backward.fill", "forward.fill",
+        "music.note", "microphone", "video", "camera",
+        "gearshape", "gearshape.fill", "star.fill", "heart.fill", "bell.fill",
+        "clock", "calendar", "checkmark.circle", "exclamationmark.triangle",
+        "info.circle", "questionmark.circle", "plus", "minus", "xmark", "ellipsis"
+    ]
+
+    private static let emoji: [String] = [
+        "⬆️", "⬇️", "⬅️", "➡️", "🔄", "⚡️", "🔥", "❤️",
+        "✅", "⚠️", "📶", "🔋", "🖥", "💻", "📱", "🎧",
+        "🔊", "🔇", "🌐", "☁️", "🌡", "💾", "📀", "⏱",
+        "🕐", "📊", "📈", "⏰", "🚀", "⭐️", "✨", "🎯"
+    ]
+
+    private var filteredSymbols: [String] {
+        let query = search.trimmingCharacters(in: .whitespaces)
+        guard !query.isEmpty else { return Self.symbols }
+        return Self.symbols.filter { $0.localizedCaseInsensitiveContains(query) }
     }
 
     var body: some View {
@@ -329,7 +354,7 @@ struct MenuBarLeadingIconPicker: View {
                 .font(.system(size: 11.5, weight: .semibold))
                 .foregroundStyle(.secondary)
 
-            Picker("", selection: $kind) {
+            Picker("", selection: $tab) {
                 Text("SF Symbol").tag(0)
                 Text(L(.menuBarEditorIconEmoji)).tag(1)
                 Text(L(.menuBarEditorIconAsset)).tag(2)
@@ -337,50 +362,156 @@ struct MenuBarLeadingIconPicker: View {
             .pickerStyle(.segmented)
             .labelsHidden()
 
-            TextField(placeholder, text: $value)
-                .textFieldStyle(.roundedBorder)
+            switch tab {
+            case 0: symbolGrid
+            case 1: emojiGrid
+            default: assetEntry
+            }
 
-            HStack(spacing: 8) {
+            Divider()
+
+            HStack {
                 Button(L(.menuBarEditorNone)) {
                     onChange(nil)
                     dismiss()
                 }
-
                 Spacer(minLength: 0)
-
-                Button(L(.menuBarEditorAdd)) {
-                    apply()
-                }
-                .keyboardShortcut(.defaultAction)
             }
         }
         .padding(12)
-        .frame(width: 260)
+        .frame(width: 340)
     }
 
-    private var placeholder: String {
-        switch kind {
-        case 1: return L(.menuBarEditorIconEmoji)
-        case 2: return L(.menuBarEditorIconAsset)
-        default: return L(.menuBarEditorIconSymbol)
+    private var symbolGrid: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            TextField(L(.menuBarEditorSearchIcons), text: $search)
+                .textFieldStyle(.roundedBorder)
+
+            ScrollView {
+                LazyVGrid(columns: Array(repeating: GridItem(.fixed(30), spacing: 7), count: 7), spacing: 7) {
+                    ForEach(filteredSymbols, id: \.self) { name in
+                        iconButton(systemImage: name, selected: isSelected(.sfSymbol(name))) {
+                            apply(MenuBarIconSpec(source: .sfSymbol(name)))
+                        }
+                        .help(name)
+                        .accessibilityLabel(name)
+                    }
+                }
+                .padding(2)
+            }
+            .frame(height: 220)
+
+            HStack(spacing: 8) {
+                TextField(L(.menuBarEditorIconSymbol), text: $customSymbol)
+                    .textFieldStyle(.roundedBorder)
+                    .onSubmit { addCustomSymbol() }
+                Button(L(.menuBarEditorAdd)) { addCustomSymbol() }
+                    .disabled(customSymbol.trimmingCharacters(in: .whitespaces).isEmpty)
+            }
         }
     }
 
-    private func apply() {
-        let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else {
-            onChange(nil)
-            dismiss()
-            return
+    private var emojiGrid: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            ScrollView {
+                LazyVGrid(columns: Array(repeating: GridItem(.fixed(30), spacing: 8), count: 7), spacing: 8) {
+                    ForEach(Self.emoji, id: \.self) { emoji in
+                        iconButton(title: emoji, selected: isSelected(.emoji(emoji))) {
+                            apply(MenuBarIconSpec(source: .emoji(emoji), tint: false))
+                        }
+                    }
+                }
+                .padding(2)
+            }
+            .frame(height: 220)
+
+            HStack(spacing: 8) {
+                TextField(L(.menuBarEditorIconEmoji), text: $customEmoji)
+                    .textFieldStyle(.roundedBorder)
+                    .onSubmit { addCustomEmoji() }
+                Button(L(.menuBarEditorAdd)) { addCustomEmoji() }
+                    .disabled(customEmoji.trimmingCharacters(in: .whitespaces).isEmpty)
+            }
         }
-        let source: MenuBarIconSource
-        switch kind {
-        case 1: source = .emoji(trimmed)
-        case 2: source = .asset(trimmed)
-        default: source = .sfSymbol(trimmed)
+    }
+
+    private var assetEntry: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 8) {
+                TextField(L(.menuBarEditorIconAsset), text: $customAsset)
+                    .textFieldStyle(.roundedBorder)
+                    .onSubmit { addCustomAsset() }
+                Button(L(.menuBarEditorAdd)) { addCustomAsset() }
+                    .disabled(customAsset.trimmingCharacters(in: .whitespaces).isEmpty)
+            }
+            Spacer(minLength: 0)
+                .frame(height: 220)
         }
-        onChange(MenuBarIconSpec(source: source, tint: kind != 1))
+    }
+
+    private func iconButton(
+        systemImage: String,
+        selected: Bool,
+        action: @escaping () -> Void
+    ) -> some View {
+        Button(action: action) {
+            Image(systemName: systemImage)
+                .font(.system(size: 15, weight: .regular))
+                .frame(width: 30, height: 30)
+                .background(iconBackground(selected: selected))
+        }
+        .buttonStyle(.plain)
+    }
+
+    private func iconButton(
+        title: String,
+        selected: Bool,
+        action: @escaping () -> Void
+    ) -> some View {
+        Button(action: action) {
+            Text(title)
+                .font(.system(size: 17))
+                .frame(width: 30, height: 30)
+                .background(iconBackground(selected: selected))
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(title)
+    }
+
+    private func iconBackground(selected: Bool) -> some View {
+        RoundedRectangle(cornerRadius: 6, style: .continuous)
+            .fill(selected ? Color.accentColor.opacity(0.22) : Color.clear)
+            .overlay(
+                RoundedRectangle(cornerRadius: 6, style: .continuous)
+                    .strokeBorder(selected ? Color.accentColor : Color.clear, lineWidth: 1)
+            )
+    }
+
+    private func isSelected(_ source: MenuBarIconSource) -> Bool {
+        spec?.source == source
+    }
+
+    private func apply(_ icon: MenuBarIconSpec) {
+        onChange(icon)
         dismiss()
+    }
+
+    private func addCustomSymbol() {
+        let name = customSymbol.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !name.isEmpty else { return }
+        apply(MenuBarIconSpec(source: .sfSymbol(name)))
+    }
+
+    private func addCustomEmoji() {
+        let value = customEmoji.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !value.isEmpty else { return }
+        apply(MenuBarIconSpec(source: .emoji(value), tint: false))
+    }
+
+    private func addCustomAsset() {
+        let name = customAsset.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !name.isEmpty else { return }
+        apply(MenuBarIconSpec(source: .asset(name)))
     }
 }
 
