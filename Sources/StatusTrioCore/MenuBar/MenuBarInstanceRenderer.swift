@@ -58,7 +58,11 @@ enum MenuBarInstanceRenderer {
 
         let columnWidth: CGFloat = instance.leadingIcon == nil ? 0 : 18 + columnGap
         let contentWidth = (lineWidths.max() ?? 0).cgFloat + columnWidth
-        var totalWidth = contentWidth + CGFloat(instance.innerPadding * 2) + CGFloat(instance.outerMargin * 2)
+        // `outerMargin` is no longer exposed in the editor: at render time it
+        // only widened the item asymmetrically instead of separating it from
+        // neighbouring status items. Keep the stored field for compatibility,
+        // but do not let it inflate the measured width.
+        var totalWidth = contentWidth + CGFloat(instance.innerPadding * 2)
         if let minimum = instance.minimumWidth { totalWidth = max(totalWidth, CGFloat(minimum)) }
         let totalHeight = max(1, lineHeights.reduce(0, +))
         return MenuBarInstanceMeasurement(

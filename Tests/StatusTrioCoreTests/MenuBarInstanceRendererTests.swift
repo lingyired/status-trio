@@ -18,15 +18,28 @@ final class MenuBarInstanceRendererTests: XCTestCase {
         )
     }
 
-    func testSharedWidthIsMaxPlusPadding() {
+    func testSharedWidthIsMaxPlusInnerPadding() {
         let top = MenuBarLine(segments: [.text("CPU")])
         let bottom = MenuBarLine(segments: [.text("CPU CPU CPU CPU")])
         let result = MenuBarInstanceRenderer.measure(
             input(top: top, bottom: bottom, innerPadding: 6, outerMargin: 4),
             appearance: appearance
         )
-        let expected = max(result.lineWidths[0], result.lineWidths[1]) + 12 + 8
+        let expected = max(result.lineWidths[0], result.lineWidths[1]) + 12
         XCTAssertEqual(result.totalWidth, expected, accuracy: 0.6)
+    }
+
+    func testOuterMarginDoesNotChangeMeasuredWidth() {
+        let top = MenuBarLine(segments: [.text("CPU 45%")])
+        let without = MenuBarInstanceRenderer.measure(
+            input(top: top, innerPadding: 0, outerMargin: 0),
+            appearance: appearance
+        )
+        let with = MenuBarInstanceRenderer.measure(
+            input(top: top, innerPadding: 0, outerMargin: 24),
+            appearance: appearance
+        )
+        XCTAssertEqual(with.totalWidth, without.totalWidth, accuracy: 0.1)
     }
 
     func testLongerTextWider() {
