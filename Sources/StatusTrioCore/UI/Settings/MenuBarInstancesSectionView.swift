@@ -54,40 +54,39 @@ struct MenuBarInstancesSectionView: View {
     // MARK: - Left column
 
     private var instanceColumn: some View {
-        VStack(spacing: 0) {
-            HStack {
-                Text(L(.menuBarEditorInstances))
-                    .font(.system(size: 11.5, weight: .semibold))
-                    .foregroundStyle(.secondary)
-                Spacer(minLength: 0)
-            }
-            .padding(.horizontal, 14)
-            .padding(.top, 20)
-            .padding(.bottom, 6)
-
-            if listModel.instances.isEmpty {
-                SettingsHintRow(text: L(.menuBarEditorAddOrSelect))
-                    .padding(.horizontal, 10)
-                Spacer(minLength: 0)
-            } else {
-                List(selection: $selectedID) {
-                    ForEach(listModel.instances) { instance in
-                        instanceRow(instance)
-                            .tag(instance.id)
-                    }
-                    .onMove { offsets, destination in
-                        guard let source = offsets.first else { return }
-                        listModel.move(from: source, to: destination)
-                    }
+        List(selection: $selectedID) {
+            Section(L(.menuBarEditorInstances)) {
+                ForEach(listModel.instances) { instance in
+                    instanceRow(instance)
+                        .tag(instance.id)
                 }
-                .listStyle(.sidebar)
-                .scrollContentBackground(.hidden)
-                .environment(\.defaultMinListRowHeight, 40)
+                .onMove { offsets, destination in
+                    guard let source = offsets.first else { return }
+                    listModel.move(from: source, to: destination)
+                }
             }
 
-            Divider()
-            addMenuRow
+            Section(L(.menuBarEditorNew)) {
+                Button {
+                    addBlankInstance()
+                } label: {
+                    Label(L(.menuBarEditorBlankInstance), systemImage: "plus.rectangle")
+                }
+                .disabled(!listModel.canAdd)
+
+                ForEach(MenuBarPreset.allCases) { preset in
+                    Button {
+                        addPreset(preset)
+                    } label: {
+                        Label(L(preset.titleKey), systemImage: "square.grid.2x2")
+                    }
+                    .disabled(!listModel.canAdd)
+                }
+            }
         }
+        .listStyle(.sidebar)
+        .scrollContentBackground(.hidden)
+        .environment(\.defaultMinListRowHeight, 38)
         .background(Color(nsColor: .windowBackgroundColor))
     }
 
@@ -161,29 +160,6 @@ struct MenuBarInstancesSectionView: View {
         .fixedSize()
         .accessibilityLabel(L(.menuMore))
         .help(L(.menuMore))
-    }
-
-    private var addMenuRow: some View {
-        HStack(spacing: 8) {
-            Menu {
-                Button(L(.menuBarEditorBlankInstance)) { addBlankInstance() }
-                Divider()
-                ForEach(MenuBarPreset.allCases) { preset in
-                    Button(L(preset.titleKey)) { addPreset(preset) }
-                }
-            } label: {
-                Label(L(.menuBarEditorNew), systemImage: "plus")
-                    .font(.system(size: 12))
-            }
-            .menuStyle(.borderlessButton)
-            .menuIndicator(.hidden)
-            .fixedSize()
-            .disabled(!listModel.canAdd)
-
-            Spacer(minLength: 0)
-        }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 8)
     }
 
     // MARK: - Right column
