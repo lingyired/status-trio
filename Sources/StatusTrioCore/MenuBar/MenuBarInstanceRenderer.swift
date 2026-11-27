@@ -46,7 +46,12 @@ enum MenuBarInstanceRenderer {
         var lineHeights: [Double] = []
 
         for line in lines {
-            guard let line, !line.isEmpty else {
+            guard let line else {
+                lineWidths.append(0)
+                lineHeights.append(0)
+                continue
+            }
+            if line.isEmpty && line.leadingIcon == nil {
                 lineWidths.append(0)
                 lineHeights.append(0)
                 continue
@@ -56,7 +61,8 @@ enum MenuBarInstanceRenderer {
             lineHeights.append(Double(style.height))
         }
 
-        let columnWidth: CGFloat = instance.leadingIcon == nil ? 0 : 18 + columnGap
+        let hasLeadingIcon = lines.contains { $0?.leadingIcon != nil }
+        let columnWidth: CGFloat = hasLeadingIcon ? 18 + columnGap : 0
         let contentWidth = (lineWidths.max() ?? 0).cgFloat + columnWidth
         // `outerMargin` is no longer exposed in the editor: at render time it
         // only widened the item asymmetrically instead of separating it from
@@ -119,22 +125,33 @@ enum MenuBarInstanceRenderer {
         appearance.performAsCurrentDrawingAppearance {
             guard let context = NSGraphicsContext.current else { return }
             context.imageInterpolation = .high
-            let columnWidth: CGFloat = instance.leadingIcon == nil ? 0 : 18 + columnGap
+            let hasLeadingIcon = lines.contains { $0?.leadingIcon != nil }
+            let columnWidth: CGFloat = hasLeadingIcon ? 18 + columnGap : 0
             let inner = CGFloat(instance.innerPadding)
             let contentX = inner + columnWidth
             let contentWidth = size.width - inner * 2 - columnWidth
             var y = size.height
             for line in lines {
-                guard let line, !line.isEmpty else { continue }
+                guard let line else { continue }
+                if line.isEmpty && line.leadingIcon == nil { continue }
                 let style = style(for: line, twoLine: twoLine)
                 y -= style.height
+
+                if let leading = line.leadingIcon {
+                    let box = min(18, style.height)
+                    let rect = NSRect(
+                        x: inner,
+                        y: y + (style.height - box) / 2,
+                        width: box,
+                        height: box
+                    )
+                    let tint = nsColor(for: MenuBarMetricColorResolver.appliedColor(line: line.color, source: nil))
+                        ?? NSColor.labelColor
+                    drawIcon(leading, in: rect, tintColor: tint)
+                }
+
                 let lineRect = NSRect(x: contentX, y: y, width: contentWidth, height: style.height)
                 draw(line: line, in: lineRect, style: style, input: input)
-            }
-            if let leading = instance.leadingIcon {
-                let box = NSSize(width: 18, height: 18)
-                let rect = NSRect(x: inner, y: (size.height - box.height) / 2, width: box.width, height: box.height)
-                drawIcon(leading, in: rect, tintColor: NSColor.labelColor)
             }
         }
         return image

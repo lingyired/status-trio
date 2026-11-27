@@ -59,14 +59,38 @@ struct MenuBarRowCanvasView: View {
     @Binding var selectedElementID: UUID?
 
     @State private var isDropTargeted = false
+    @State private var showingLeadingIconPicker = false
 
     private var elements: [MenuBarElement] { model.elements(slot: slot) }
+    private var line: MenuBarLine? {
+        slot == .top ? model.instance.top : model.instance.bottom
+    }
 
     private func L(_ key: LocalizationKey) -> String { localization.string(key) }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
             HStack(spacing: 6) {
+                Button {
+                    showingLeadingIconPicker = true
+                } label: {
+                    Image(systemName: leadingIconSymbol)
+                        .font(.system(size: 11, weight: .medium))
+                        .frame(width: 16, height: 16)
+                        .foregroundStyle(line?.leadingIcon == nil ? .tertiary : .secondary)
+                }
+                .buttonStyle(.plain)
+                .help(L(.menuBarEditorLeadingIcon))
+                .accessibilityLabel(L(.menuBarEditorLeadingIcon))
+                .popover(isPresented: $showingLeadingIconPicker, arrowEdge: .bottom) {
+                    MenuBarLeadingIconPicker(
+                        spec: line?.leadingIcon,
+                        localization: localization
+                    ) { icon in
+                        model.setLeadingIcon(icon, slot: slot)
+                    }
+                }
+
                 Text(title)
                     .font(.system(size: 11.5, weight: .semibold))
                     .foregroundStyle(.secondary)
@@ -187,6 +211,15 @@ struct MenuBarRowCanvasView: View {
         }
     }
 
+    private var leadingIconSymbol: String {
+        guard let icon = line?.leadingIcon else { return "plus.circle" }
+        switch icon.source {
+        case .sfSymbol(let name): return name
+        case .emoji: return "face.smiling"
+        case .asset: return "photo"
+        }
+    }
+
     private func drop(_ payload: MenuBarElementDragPayload?, at index: Int) -> Bool {
         guard let payload else { return false }
 
@@ -238,6 +271,103 @@ struct MenuBarRowCanvasView: View {
             case .asset: return "photo"
             }
         }
+    }
+}
+
+/// Small popover for picking (or clearing) a row's leading icon.
+struct MenuBarLeadingIconPicker: View {
+    let spec: MenuBarIconSpec?
+    let localization: Localization
+    let onChange: (MenuBarIconSpec?) -> Void
+
+    @Environment(\.dismiss) private var dismiss
+    @State private var kind: Int
+    @State private var value: String
+
+    private func L(_ key: LocalizationKey) -> String { localization.string(key) }
+
+    init(spec: MenuBarIconSpec?, localization: Localization, onChange: @escaping (MenuBarIconSpec?) -> Void) {
+        self.spec = spec
+        self.localization = localization
+        self.onChange = onChange
+        let initialKind: Int
+        let initialValue: String
+        switch spec?.source {
+        case .sfSymbol(let name):
+            initialKind = 0
+            initialValue = name
+        case .emoji(let emoji):
+            initialKind = 1
+            initialValue = emoji
+        case .asset(let name):
+            initialKind = 2
+            initialValue = name
+        case nil:
+            initialKind = 0
+            initialValue = ""
+        }
+        _kind = State(initialValue: initialKind)
+        _value = State(initialValue: initialValue)
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text(L(.menuBarEditorLeadingIcon))
+                .font(.system(size: 11.5, weight: .semibold))
+                .foregroundStyle(.secondary)
+
+            Picker("", selection: $kind) {
+                Text("SF Symbol").tag(0)
+                Text(L(.menuBarEditorIconEmoji)).tag(1)
+                Text(L(.menuBarEditorIconAsset)).tag(2)
+            }
+            .pickerStyle(.segmented)
+            .labelsHidden()
+
+            TextField(placeholder, text: $value)
+                .textFieldStyle(.roundedBorder)
+
+            HStack(spacing: 8) {
+                Button(L(.menuBarEditorNone)) {
+                    onChange(nil)
+                    dismiss()
+                }
+
+                Spacer(minLength: 0)
+
+                Button(L(.menuBarEditorAdd)) {
+                    apply()
+                }
+                .keyboardShortcut(.defaultAction)
+            }
+        }
+        .padding(12)
+        .frame(width: 260)
+    }
+
+    private var placeholder: String {
+        switch kind {
+        case 1: return L(.menuBarEditorIconEmoji)
+        case 2: return L(.menuBarEditorIconAsset)
+        default: return L(.menuBarEditorIconSymbol)
+        }
+    }
+
+    private func apply() {
+        let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else {
+            onChange(nil)
+            dismiss()
+            return
+        }
+        let source: MenuBarIconSource
+        switch kind {
+        case 1: source = .emoji(trimmed)
+        case 2: source = .asset(trimmed)
+        default: source = .sfSymbol(trimmed)
+        }
+        onChange(MenuBarIconSpec(source: source, tint: kind != 1))
+        dismiss()
     }
 }
 

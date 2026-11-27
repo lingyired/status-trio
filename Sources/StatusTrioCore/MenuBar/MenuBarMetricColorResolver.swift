@@ -26,6 +26,8 @@ enum MenuBarMetricColorResolver {
     /// The colour actually painted for a line: fixed wins, otherwise inherit.
     static func appliedColor(line: LineColor, source: IconRGBA?) -> IconRGBA? {
         switch line {
+        case .systemDefault:
+            return nil
         case .fixed(let value):
             return IconRGBA(red: value.red, green: value.green, blue: value.blue, alpha: value.alpha)
         case .inheritSource:

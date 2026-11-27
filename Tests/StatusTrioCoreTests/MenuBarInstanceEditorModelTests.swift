@@ -59,6 +59,14 @@ final class MenuBarInstanceEditorModelTests: XCTestCase {
         guard case .icon? = model.elements(slot: .top).first?.content else { return XCTFail("expected icon") }
     }
 
+    func testSetLeadingIconOnOneRowOnly() {
+        let (model, _) = makeModel()
+        let icon = MenuBarIconSpec(source: .sfSymbol("arrow.up"))
+        model.setLeadingIcon(icon, slot: .top)
+        XCTAssertEqual(model.instance.top?.leadingIcon, icon)
+        XCTAssertNil(model.instance.bottom?.leadingIcon)
+    }
+
     func testEditorKeepsVisibilityChangedFromTheList() {
         let (model, store) = makeModel()
         var latest = store.menuBarInstances.instances[0]

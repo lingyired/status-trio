@@ -42,6 +42,23 @@ final class MenuBarInstanceRendererTests: XCTestCase {
         XCTAssertEqual(with.totalWidth, without.totalWidth, accuracy: 0.1)
     }
 
+    func testPerLineLeadingIconReservesOneSharedColumn() {
+        let top = MenuBarLine(
+            elements: [MenuBarElement(content: .text("13 KB/s"))],
+            leadingIcon: MenuBarIconSpec(source: .sfSymbol("arrow.up"))
+        )
+        let bottom = MenuBarLine(
+            elements: [MenuBarElement(content: .text("1.6 MB/s"))],
+            leadingIcon: MenuBarIconSpec(source: .sfSymbol("arrow.down"))
+        )
+        let result = MenuBarInstanceRenderer.measure(
+            input(top: top, bottom: bottom, innerPadding: 0),
+            appearance: appearance
+        )
+        let expected = max(result.lineWidths[0], result.lineWidths[1]) + 18 + 3
+        XCTAssertEqual(result.totalWidth, expected, accuracy: 0.6)
+    }
+
     func testLongerTextWider() {
         let short = MenuBarInstanceRenderer.measure(input(top: MenuBarLine(segments: [.text("CPU")])), appearance: appearance)
         let long = MenuBarInstanceRenderer.measure(input(top: MenuBarLine(segments: [.text("CPU CPU CPU")])), appearance: appearance)

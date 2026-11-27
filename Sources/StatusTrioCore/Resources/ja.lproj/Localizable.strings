@@ -1467,6 +1467,8 @@
 "menubar.editor.addTo" = "Add to";
 "menubar.editor.space" = "Space";
 "menubar.editor.customColor" = "Custom color";
+"menubar.editor.systemDefault" = "System default";
+"menubar.editor.leadingIcon" = "Leading icon";
 "menubar.editor.paletteHint" = "Drag a metric into any row, or click to add to the selected row.";
 "menubar.editor.metrics" = "Metrics";
 "menubar.editor.textIcons" = "Text & icons";

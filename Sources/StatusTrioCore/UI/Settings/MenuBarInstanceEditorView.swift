@@ -324,6 +324,7 @@ struct MenuBarInstanceEditorView: View {
             SettingsRow("paintpalette", title: L(.menuBarEditorColor)) {
                 HStack(spacing: 8) {
                     Menu {
+                        Button(L(.menuBarEditorSystemDefault)) { model.setColor(.systemDefault, slot: selectedSlot) }
                         Button(L(.menuBarEditorInherit)) { model.setColor(.inheritSource, slot: selectedSlot) }
                         Button(L(.menuBarEditorFixedBlue)) {
                             model.setColor(.fixed(ColorValue(red: 0.2, green: 0.45, blue: 1)), slot: selectedSlot)
@@ -363,7 +364,9 @@ struct MenuBarInstanceEditorView: View {
     }
 
     private var lineColorName: String {
-        switch currentLine?.color ?? .inheritSource {
+        switch currentLine?.color ?? .systemDefault {
+        case .systemDefault:
+            return L(.menuBarEditorSystemDefault)
         case .inheritSource:
             return L(.menuBarEditorInherit)
         case .fixed(let value):
@@ -398,7 +401,9 @@ struct MenuBarInstanceEditorView: View {
     }
 
     private var lineColorSwatch: Color {
-        switch currentLine?.color ?? .inheritSource {
+        switch currentLine?.color ?? .systemDefault {
+        case .systemDefault:
+            return Color(nsColor: .labelColor)
         case .inheritSource:
             return Color.secondary.opacity(0.35)
         case .fixed(let value):

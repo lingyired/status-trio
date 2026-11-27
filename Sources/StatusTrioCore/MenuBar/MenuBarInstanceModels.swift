@@ -20,6 +20,10 @@ struct ColorValue: Codable, Equatable, Sendable {
 }
 
 enum LineColor: Codable, Equatable, Sendable {
+    /// Paints with the system label colour, which follows the menu bar's
+    /// light/dark appearance.
+    case systemDefault
+    /// Paints with the data source colour of each metric.
     case inheritSource
     case fixed(ColorValue)
 }
@@ -136,6 +140,11 @@ extension MenuBarElement: Codable {
 /// A single line: an ordered list of elements plus line-level styling.
 struct MenuBarLine: Equatable, Sendable {
     var elements: [MenuBarElement]
+    /// Optional icon pinned to the row's leading edge. The row's elements stay
+    /// in the trailing alignment slot, so a two-line item can show e.g. an up
+    /// arrow with a right-aligned value on the first row and a down arrow with
+    /// a right-aligned value on the second.
+    var leadingIcon: MenuBarIconSpec?
     var color: LineColor
     var isBold: Bool
     var fontSize: Double?
@@ -144,13 +153,15 @@ struct MenuBarLine: Equatable, Sendable {
 
     init(
         elements: [MenuBarElement] = [],
-        color: LineColor = .inheritSource,
+        leadingIcon: MenuBarIconSpec? = nil,
+        color: LineColor = .systemDefault,
         isBold: Bool = false,
         fontSize: Double? = nil,
         usesMonospacedDigits: Bool = true,
         alignment: LineAlignment = .leading
     ) {
         self.elements = elements
+        self.leadingIcon = leadingIcon
         self.color = color
         self.isBold = isBold
         self.fontSize = fontSize
@@ -175,7 +186,7 @@ struct MenuBarLine: Equatable, Sendable {
 
 extension MenuBarLine: Codable {
     private enum CodingKeys: String, CodingKey {
-        case elements, color, isBold, fontSize, usesMonospacedDigits, alignment
+        case elements, leadingIcon, color, isBold, fontSize, usesMonospacedDigits, alignment
     }
     // Legacy v1 keys.
     private enum LegacyKeys: String, CodingKey {
@@ -202,7 +213,8 @@ extension MenuBarLine: Codable {
 
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
-        self.color = try container.decodeIfPresent(LineColor.self, forKey: .color) ?? .inheritSource
+        self.leadingIcon = try container.decodeIfPresent(MenuBarIconSpec.self, forKey: .leadingIcon)
+        self.color = try container.decodeIfPresent(LineColor.self, forKey: .color) ?? .systemDefault
         self.isBold = try container.decodeIfPresent(Bool.self, forKey: .isBold) ?? false
         self.fontSize = try container.decodeIfPresent(Double.self, forKey: .fontSize)
         self.usesMonospacedDigits = try container.decodeIfPresent(Bool.self, forKey: .usesMonospacedDigits) ?? true
@@ -237,6 +249,7 @@ extension MenuBarLine: Codable {
     func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(elements, forKey: .elements)
+        try container.encodeIfPresent(leadingIcon, forKey: .leadingIcon)
         try container.encode(color, forKey: .color)
         try container.encode(isBold, forKey: .isBold)
         try container.encodeIfPresent(fontSize, forKey: .fontSize)
@@ -255,7 +268,7 @@ enum MenuBarLineSegment: Equatable, Sendable {
 extension MenuBarLine {
     init(
         segments: [MenuBarLineSegment],
-        color: LineColor = .inheritSource,
+        color: LineColor = .systemDefault,
         isBold: Bool = false,
         fontSize: Double? = nil,
         usesMonospacedDigits: Bool = true,

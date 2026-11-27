@@ -47,5 +47,8 @@ final class MenuBarMetricColorResolverTests: XCTestCase {
             MenuBarMetricColorResolver.appliedColor(line: .inheritSource, source: source),
             source
         )
+        XCTAssertNil(
+            MenuBarMetricColorResolver.appliedColor(line: .systemDefault, source: source)
+        )
     }
 }
