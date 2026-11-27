@@ -190,7 +190,7 @@ struct SettingsView: View {
 
     /// App-wide panes pinned below the divider so they stay reachable when the
     /// window is short and the top list scrolls.
-    private static let pinnedSections: [Section] = [.general, .about]
+    private static let pinnedSections: [Section] = [.general, .menuBarInstances, .about]
 
     private var sidebar: some View {
         VStack(spacing: 0) {
