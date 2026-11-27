@@ -1,60 +1,89 @@
 import SwiftUI
 
-struct MenuBarLineChipEditorView: View {
+/// One draggable row canvas. Chips are plain views (not buttons) so the drag
+/// session is not stolen by a tap gesture. Dropping uses the pure mutation engine.
+struct MenuBarRowCanvasView: View {
     @ObservedObject var model: MenuBarInstanceEditorModel
     let slot: MenuBarLineSlot
     let title: String
+    @Binding var selectedSlot: MenuBarLineSlot
+    @Binding var selectedElementID: UUID?
+    @State private var isTargeted = false
 
     private var elements: [MenuBarElement] { model.elements(slot: slot) }
 
     var body: some View {
-        GroupBox(title) {
-            VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: 6) {
+            Text(title).font(.caption).foregroundStyle(.secondary)
+            HStack(spacing: 6) {
                 if elements.isEmpty {
-                    Text("Empty").foregroundStyle(.secondary)
+                    Text("Empty — drag an element here")
+                        .font(.caption).foregroundStyle(.secondary)
                 }
-                HStack(spacing: 6) {
-                    ForEach(Array(elements.enumerated()), id: \.element.id) { index, element in
-                        chip(element, index: index)
-                    }
-                }
-                HStack {
-                    Menu("Add data source") {
-                        ForEach(MenuBarMetricID.allCases) { metric in
-                            Button(metric.rawValue) { model.addMetricElement(metric, slot: slot) }
+                ForEach(Array(elements.enumerated()), id: \.element.id) { index, element in
+                    chip(element)
+                        .dropDestination(for: MenuBarElementDragPayload.self) { payloads, _ in
+                            guard let payload = payloads.first else { return false }
+                            return drop(payload, index: index)
                         }
-                    }
-                    Button("Add text") { model.addTextElement("Text", slot: slot) }
                 }
+                Spacer(minLength: 4)
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(8)
+            .background(
+                (isTargeted ? Color.accentColor.opacity(0.18) : Color.secondary.opacity(0.08)),
+                in: RoundedRectangle(cornerRadius: 8)
+            )
+            .dropDestination(for: MenuBarElementDragPayload.self) { payloads, _ in
+                guard let payload = payloads.first else { return false }
+                return drop(payload, index: elements.count)
+            } isTargeted: { isTargeted = $0 }
         }
     }
 
-    @ViewBuilder
-    private func chip(_ element: MenuBarElement, index: Int) -> some View {
-        let label: String = {
-            switch element.content {
-            case .text(let text): return text.isEmpty ? "(text)" : text
-            case .metric(let metric): return "{\(metric.rawValue)}"
-            case .icon(let icon):
-                switch icon.source {
-                case .sfSymbol(let name): return "icon:\(name)"
-                case .emoji(let value): return value
-                case .asset(let name): return "asset:\(name)"
-                }
-            }
-        }()
-        Text(label)
+    private func chip(_ element: MenuBarElement) -> some View {
+        Text(label(for: element))
             .font(.callout)
             .padding(.horizontal, 8)
             .padding(.vertical, 4)
-            .background(Color.secondary.opacity(0.15), in: Capsule())
-            .contextMenu {
-                Button("Move left") { model.moveElement(id: element.id, to: index - 1, slot: slot) }
-                Button("Move right") { model.moveElement(id: element.id, to: index + 1, slot: slot) }
-                Divider()
-                Button("Delete", role: .destructive) { model.removeElement(id: element.id, slot: slot) }
+            .background(
+                selectedElementID == element.id && selectedSlot == slot
+                    ? Color.accentColor.opacity(0.25)
+                    : Color.secondary.opacity(0.15),
+                in: Capsule()
+            )
+            .draggable(MenuBarElementDragPayload(source: .placed(instanceID: model.instance.id, slot: slot, elementID: element.id)))
+            .onTapGesture {
+                selectedSlot = slot
+                selectedElementID = element.id
             }
+    }
+
+    private func label(for element: MenuBarElement) -> String {
+        switch element.content {
+        case .text(let text): return text.isEmpty ? "(text)" : text
+        case .metric(let metric): return "{\(metric.rawValue)}"
+        case .icon(let icon):
+            switch icon.source {
+            case .sfSymbol(let name): return "icon:\(name)"
+            case .emoji(let value): return value
+            case .asset(let name): return "asset:\(name)"
+            }
+        }
+    }
+
+    private func drop(_ payload: MenuBarElementDragPayload, index: Int) -> Bool {
+        var instance = model.instance
+        let changed = MenuBarElementMutations.apply(
+            payload: payload,
+            to: &instance,
+            target: .line(instanceID: instance.id, slot: slot, index: index)
+        )
+        if changed {
+            model.instance = instance
+            model.persist()
+            selectedSlot = slot
+        }
+        return changed
     }
 }

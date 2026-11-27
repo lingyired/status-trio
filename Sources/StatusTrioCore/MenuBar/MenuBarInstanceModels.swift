@@ -372,7 +372,7 @@ struct MenuBarInstance: Equatable, Identifiable, Sendable {
     }
 }
 
-enum MenuBarLineSlot: Equatable, Sendable {
+enum MenuBarLineSlot: String, Codable, Equatable, Sendable {
     case top
     case bottom
 }
