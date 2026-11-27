@@ -147,9 +147,9 @@ struct HardwareMetricRingOptions: Codable, Equatable, Hashable, Sendable {
             return .init(displayMinimum: 0, displayMaximum: 1000, warningThreshold: 0, criticalThreshold: 0)
         case .uploadSpeed:
             return .init(displayMinimum: 0, displayMaximum: 100, warningThreshold: 0, criticalThreshold: 0)
-        case .volume, .wifiSignal, .batteryLevel:
-            // Status-snapshot readings are plain percentages. There is no
-            // higher-is-worse threshold for them, so the arc keeps its base colour.
+        case .volume, .wifiSignal, .batteryLevel, .memoryPressure:
+            // Status-snapshot / status readings are plain percentages. There is
+            // no higher-is-worse threshold for them, so the arc keeps its colour.
             return .init(displayMinimum: 0, displayMaximum: 100, warningThreshold: 0, criticalThreshold: 0)
         }
     }
@@ -312,6 +312,7 @@ struct HardwareRingColorConfiguration: Codable, Equatable, Hashable, Sendable {
         case .cpuUsage: cpuColor
         case .gpuUsage: gpuColor
         case .memoryUsage: memoryColor
+        case .memoryPressure: defaultMemoryPressureNormalColor
         case .cpuTemperature: cpuColor
         case .gpuTemperature: cpuTemperatureColor
         case .batteryTemperature: batteryTemperatureColor
@@ -496,6 +497,7 @@ extension HardwareMonitorMetric {
     var isPercentageMetric: Bool {
         switch self {
         case .cpuUsage, .gpuUsage, .memoryUsage: return true
+        case .memoryPressure: return false
         case .cpuTemperature, .gpuTemperature, .batteryTemperature, .fan: return false
         case .downloadSpeed, .uploadSpeed: return false
         case .volume, .wifiSignal, .batteryLevel: return true

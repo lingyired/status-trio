@@ -465,12 +465,18 @@ struct AppIconRingView: View {
             )
             .disabled(store.hardwareRingConfiguration.color.monochrome)
             if !store.hardwareRingConfiguration.color.monochrome {
-                SettingsDivider()
-                hardwareColorRowOrHint(
-                    title: .settingsHardwareRingLeftColor,
-                    metric: store.hardwareRingConfiguration.primaryMetric
-                )
-                if store.hardwareRingConfiguration.layout == .dual {
+                // Memory pressure has its own three-colour group; it has no
+                // per-metric colour well, so skip the row instead of showing an
+                // inert one.
+                if store.hardwareRingConfiguration.primaryMetric != .memoryPressure {
+                    SettingsDivider()
+                    hardwareColorRowOrHint(
+                        title: .settingsHardwareRingLeftColor,
+                        metric: store.hardwareRingConfiguration.primaryMetric
+                    )
+                }
+                if store.hardwareRingConfiguration.layout == .dual,
+                   hardwareSecondaryMetric != .memoryPressure {
                     SettingsDivider()
                     hardwareColorRowOrHint(
                         title: .settingsHardwareRingRightColor,
@@ -483,7 +489,9 @@ struct AppIconRingView: View {
 
     private var hardwareAdvancedGroup: some View {
         SettingsGroup(localization.string(.settingsHardwareRingGroupAdvanced)) {
-            ForEach(Array(store.hardwareRingConfiguration.referencedMetrics.filter { !$0.usesStatusSnapshot }.enumerated()), id: \.element) { index, metric in
+            ForEach(Array(store.hardwareRingConfiguration.referencedMetrics.filter {
+                !$0.usesStatusSnapshot && $0 != .memoryPressure
+            }.enumerated()), id: \.element) { index, metric in
                 if index > 0 { SettingsDivider() }
                 hardwareAdvancedRow(for: metric)
             }
@@ -757,7 +765,7 @@ struct AppIconRingView: View {
         case .batteryTemperature: return 20...80
         case .fan: return 0...10_000
         case .downloadSpeed, .uploadSpeed: return SettingsStore.hardwareSpeedCapRange
-        case .volume, .wifiSignal, .batteryLevel: return 0...100
+        case .volume, .wifiSignal, .batteryLevel, .memoryPressure: return 0...100
         }
     }
 
@@ -796,7 +804,7 @@ struct AppIconRingView: View {
             // Battery level already has its own dedicated top reading, so the
             // arc-only entry is dropped from the top-marker menu.
             let options = group.options
-                .filter { $0 != .batteryLevel }
+                .filter { $0 != .batteryLevel && $0 != .memoryPressure }
                 .map { HardwareTopReading.metric($0) }
             // Put battery level at the top of the Other group.
             if group.options.contains(.memoryUsage) {

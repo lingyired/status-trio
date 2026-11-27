@@ -75,7 +75,9 @@ struct HardwareMonitorSectionView: View {
     private var advancedThresholdGroup: some View {
         HardwareMetricAdvancedGroup(
             store: store,
-            metrics: HardwareMonitorMetric.allCases.filter { !$0.usesStatusSnapshot },
+            metrics: HardwareMonitorMetric.allCases.filter {
+                !$0.usesStatusSnapshot && $0 != .memoryPressure
+            },
             title: .settingsHardwareRingGroupAdvanced,
             showsReset: true
         )
