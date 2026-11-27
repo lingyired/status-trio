@@ -1,10 +1,10 @@
 ---
 name: ui-ux-pro-max
-description: "UI/UX design intelligence for web, mobile, and desktop. This skill should be used when designing, building, reviewing, or fixing interfaces, including pages, components, design systems, accessibility, interaction, responsive layout, typography, color, charts, and stack-specific UI implementation. Searchable local data: 79 searchable styles (50 active), 192 product palettes and reasoning profiles, 74 font pairings, 119 UX guidelines, 105 icons, 17 GSAP presets, 25 chart types, and 22 stacks."
+description: "UI/UX design intelligence for web, mobile, and desktop. This skill should be used when designing, building, reviewing, or fixing interfaces, including pages, components, design systems, accessibility, interaction, responsive layout, typography, color, charts, and stack-specific UI implementation. Searchable local data: 80 searchable styles (51 active), 194 product palettes and reasoning profiles, 74 font pairings, 141 UX guidelines, 105 icons, 20 GSAP presets, 25 chart types, and 23 stacks."
 ---
 # ui-ux-pro-max
 
-UI/UX design intelligence for web, mobile, and desktop. This skill should be used when designing, building, reviewing, or fixing interfaces, including pages, components, design systems, accessibility, interaction, responsive layout, typography, color, charts, and stack-specific UI implementation. Searchable local data: 79 searchable styles (50 active), 192 product palettes and reasoning profiles, 74 font pairings, 119 UX guidelines, 105 icons, 17 GSAP presets, 25 chart types, and 22 stacks.
+UI/UX design intelligence for web, mobile, and desktop. This skill should be used when designing, building, reviewing, or fixing interfaces, including pages, components, design systems, accessibility, interaction, responsive layout, typography, color, charts, and stack-specific UI implementation. Searchable local data: 80 searchable styles (51 active), 194 product palettes and reasoning profiles, 74 font pairings, 141 UX guidelines, 105 icons, 20 GSAP presets, 25 chart types, and 23 stacks.
 
 # Prerequisites
 
@@ -16,9 +16,17 @@ python3 --version || python --version
 
 If Python is not installed, **do not install it yourself**. Stop and ask the user to install Python 3 using their preferred method (e.g. from [python.org](https://www.python.org/downloads/) or their OS package manager), then continue once it is available. Never run package-manager or system-modifying commands (`sudo`, `brew`, `apt`, `winget`, etc.) on the user's machine for this skill.
 
-If the user prefers not to install Python, skip the CLI searches and rely on the Quick Reference sections above.
+If the user prefers not to install Python, skip the CLI searches and use the Search Reference, Common Rules, and Pre-Delivery Checklist in this skill.
 
 > **Note:** On Windows, use `python` instead of `python3` to run scripts (e.g., `python scripts/search.py` instead of `python3 scripts/search.py`).
+
+---
+
+## Using the Search Script (CLI)
+
+When invoked, this skill can run the bundled Python search script to query the catalogs. The script uses only the Python 3 standard library - no extra dependencies.
+
+The script lives in this skill's own `scripts/search.py`. The commands below use the install-rooted path so they resolve when run from the project root.
 
 ---
 
@@ -31,8 +39,8 @@ Use this skill when the user requests any of the following:
 | **New project / page** | "做一个 landing page"、"Build a dashboard" | Step 1 → Step 2 (design system) |
 | **New component** | "Create a pricing card"、"Fix modal focus" | Step 3 (one focused domain search) |
 | **Choose style / color / font** | "What style fits a fintech app?"、"推荐配色" | Step 2 (design system) |
-| **Review existing UI** | "Review this page for UX issues"、"检查无障碍" | Quick Reference checklist above |
-| **Fix a UI bug** | "Button hover is broken"、"Layout shifts on load" | Quick Reference → relevant section |
+| **Review existing UI** | "Review this page for UX issues"、"检查无障碍" | Step 3 (`ux` domain) + Common Rules |
+| **Fix a UI bug** | "Button hover is broken"、"Layout shifts on load" | Step 3 (relevant domain) |
 | **Improve / optimize** | "Reduce React list rerenders"、"Fix mobile touch targets" | Step 3 (explicit `react`, `ux`, or `web` domain) |
 | **Implement dark mode** | "Add dark mode support" | Step 3 (domain: style "dark mode") |
 | **Add charts / data viz** | "Add an analytics dashboard chart" | Step 3 (domain: chart) |
@@ -54,6 +62,8 @@ For accessibility work, search one observable outcome at a time and use explicit
 Do not accept a generic accessibility result for a specific interaction or WCAG criterion.
 
 For text-layout and compact-component bugs, search the **semantic UX outcome first, then the detected stack** for implementation details. Useful outcome queries include `"orphan heading line balance" --domain ux`, `"badge chip label wraps" --domain ux`, `"live badge count screen reader" --domain ux`, and `"rapid chip animation interrupted" --domain ux`. After choosing the applicable UX guidance, use a separate stack query such as `"chip badge overflow nowrap" --stack html-tailwind`; do not replace the outcome search with a framework keyword.
+
+For right-to-left interfaces (Arabic, Hebrew, Persian, Urdu, or an explicit `dir="rtl"` / `rtl:` request), add `--rtl` to the `style` and `product` searches and respect the returned `rtl_level`: `full` needs no directional rework, `partial` mirrors but requires per-component checks (icons, carousels, motion paths, charts), and `caveats` means the style or product encodes reading direction — say so before recommending it, and propose a mirrorable alternative when the user needs a strict RTL build. `--rtl=full` restricts the search to the safest rows; `--rtl` alone keeps every level.
 
 Before using a result, verify the returned domain/category, top result identity, and whether its guidance fits the user's product and platform. **Retry once** with a narrower rewrite or an explicit domain/stack when the result is empty or off-topic. If the retry still fails, state that no verified match was found and use clearly labeled general guidance instead. **Do not persist unverified output.**
 
@@ -111,7 +121,33 @@ python3 .agents/skills/ui-ux-pro-max/scripts/search.py "<query>" --design-system
 This also creates:
 - `design-system/<project-slug>/pages/dashboard.md` — Page-specific deviations from Master
 
+**Preview the generated system as a static page:**
+
+```bash
+python3 .agents/skills/ui-ux-pro-max/scripts/search.py "<query>" --design-system --persist --preview -p "Project Name" --output-dir "<project-root>"
+```
+
+`--preview` is valid only with `--design-system`. With `--persist` it writes `design-system/<project-slug>/preview.html` next to `MASTER.md`. Without `--persist`, pass `--output-dir` to write `preview.html` there, or omit it to get a temp file whose path is printed. Existing `preview.html` files are skipped unless `--force` is set, same as Master.
+
 If Master already exists, a new page file is created without changing Master. Existing Master and page files are skipped by default. Read an existing `MASTER.md` before deciding whether `--force` is justified; without explicit user authorization, keep existing files unchanged.
+
+### Step 2b-tokens: Export Design Tokens
+
+`--tokens` is valid only with `--design-system`. It prints a machine-readable token document so hex values and font names do not have to be copied by hand:
+
+```bash
+python3 .agents/skills/ui-ux-pro-max/scripts/search.py "<query>" --design-system --tokens dtcg
+python3 .agents/skills/ui-ux-pro-max/scripts/search.py "<query>" --design-system --tokens css
+```
+
+- `dtcg` prints W3C Design Tokens Community Group JSON (`$value` / `$type`, `color`, `font`, and a `semantic` layer such as `color.primary`, `color.on-primary`, `color.background`, `font.heading`).
+- `css` prints `:root` custom properties using the same names `../design-system/scripts/generate-tokens.cjs` emits (`--color-primary`, `--font-heading`, …).
+- Dark-mode results emit the resolved dark values and record the mode in `$description`.
+- With `--persist`, also write `tokens.json` next to `MASTER.md` (and `tokens.css` when `--tokens css`). Existing files follow the same `--force` / skip-if-exists rules. Token files are master-level only; `--page` overrides do not emit page-specific tokens.
+
+```bash
+python3 .agents/skills/ui-ux-pro-max/scripts/search.py "<query>" --design-system --persist --tokens dtcg -p "Project Name" --output-dir "<project-root>"
+```
 
 **How hierarchical retrieval works:**
 1. Read `design-system/<project-slug>/MASTER.md`
@@ -174,6 +210,7 @@ python3 .agents/skills/ui-ux-pro-max/scripts/search.py "<keyword>" --domain <dom
 | Icon suggestions | `icons` | `"decorative icon aria hidden" --domain icons` |
 | Individual Google Fonts | `google-fonts` | `"variable sans serif" --domain google-fonts` |
 | GSAP animation snippets | `gsap` | `"scroll reveal stagger" --domain gsap` |
+| RTL compatibility | `style`, `product` | `"dashboard" --domain style --rtl=full` |
 
 ### Step 4: Stack Guidelines
 
@@ -212,7 +249,7 @@ python3 .agents/skills/ui-ux-pro-max/scripts/search.py "virtualized list" --stac
 
 ### Available Stacks
 
-`react`, `nextjs`, `vue`, `svelte`, `astro`, `swiftui`, `react-native`, `flutter`, `nuxtjs`, `nuxt-ui`, `html-tailwind`, `shadcn`, `jetpack-compose`, `threejs`, `angular`, `laravel`, `javafx`, `wpf`, `winui`, `avalonia`, `uno`, `uwp`
+`react`, `nextjs`, `vue`, `svelte`, `astro`, `swiftui`, `react-native`, `flutter`, `nuxtjs`, `nuxt-ui`, `html-tailwind`, `shadcn`, `jetpack-compose`, `threejs`, `angular`, `laravel`, `javafx`, `wpf`, `winui`, `avalonia`, `uno`, `uwp`, `pyside6-qss`
 
 **JavaFX enterprise examples:**
 
@@ -263,7 +300,7 @@ python3 .agents/skills/ui-ux-pro-max/scripts/search.py "streaming suspense" --st
 
 ## Output Formats
 
-The `--design-system` flag supports two output formats:
+The `--design-system` flag supports ASCII, Markdown, JSON, and token export:
 
 ```bash
 # ASCII box (default) - best for terminal display
@@ -271,6 +308,10 @@ python3 .agents/skills/ui-ux-pro-max/scripts/search.py "fintech crypto" --design
 
 # Markdown - best for documentation
 python3 .agents/skills/ui-ux-pro-max/scripts/search.py "fintech crypto" --design-system -f markdown
+
+# Design tokens (requires --design-system)
+python3 .agents/skills/ui-ux-pro-max/scripts/search.py "fintech crypto" --design-system --tokens dtcg
+python3 .agents/skills/ui-ux-pro-max/scripts/search.py "fintech crypto" --design-system --tokens css
 ```
 
 ---
@@ -289,19 +330,19 @@ python3 .agents/skills/ui-ux-pro-max/scripts/search.py "fintech crypto" --design
 | Problem | What to Do |
 |---------|------------|
 | Can't decide on style/color | Verify the category, then retry once with one product and one tone |
-| Dark mode contrast issues | Quick Reference §6: `color-dark-mode` + `color-accessible-pairs` |
-| Animations feel unnatural | Quick Reference §7: `spring-physics` + `easing` + `exit-faster-than-enter` |
-| Form UX is poor | Quick Reference §8: `inline-validation` + `error-clarity` + `focus-management` |
-| Navigation feels confusing | Quick Reference §9: `nav-hierarchy` + `bottom-nav-limit` + `back-behavior` |
-| Layout breaks on small screens | Quick Reference §5: `mobile-first` + `breakpoint-consistency` |
-| Performance / jank | Quick Reference §3: `virtualize-lists` + `main-thread-budget` + `debounce-throttle` |
+| Dark mode contrast issues | `"color-dark-mode color-accessible-pairs" --domain ux` |
+| Animations feel unnatural | `"spring-physics easing" --domain ux` |
+| Form UX is poor | `"inline-validation error-clarity" --domain ux` |
+| Navigation feels confusing | `"nav-hierarchy back-behavior" --domain ux` |
+| Layout breaks on small screens | `"mobile-first breakpoint-consistency" --domain ux` |
+| Performance / jank | `"virtualize-lists debounce-throttle" --domain ux` |
 
 ### Pre-Delivery Checklist
 
-For web/desktop work, apply the relevant Quick Reference sections and focused searches. The device, Dynamic Type, touch-target, and safe-area checks below apply only to native/mobile app UI.
+For web/desktop work, apply focused domain searches and the Common Rules below. The device, Dynamic Type, touch-target, and safe-area checks below apply only to native/mobile app UI.
 
 - Run focused searches only for concerns present in the interface, for example `"keyboard focus modal" --domain ux`
-- Run through Quick Reference **§1–§3** (CRITICAL + HIGH) as a final review
+- Review the Common Rules and Pre-Delivery Checklist below (CRITICAL + HIGH first)
 - Test on 375px (small phone) and landscape orientation
 - Verify behavior with **reduced-motion** enabled and **Dynamic Type** at largest size
 - Check dark mode contrast independently (don't assume light mode values work)
@@ -316,7 +357,7 @@ Scope notice: The rules below are for App UI (iOS/Android/React Native/Flutter),
 
 ### Icons & Visual Elements
 
-- 默认图标库使用 **Phosphor (`@phosphor-icons/react`)**。`src/ui-ux-pro-max/data/icons.csv` 中列出的只是常用推荐图标，不是完整集合。
+- 默认图标库使用 **Phosphor (`@phosphor-icons/react`)**。`data/icons.csv` 中列出的只是常用推荐图标，不是完整集合。
 - 当推荐表中找不到合适的图标时：
   - **优先继续从 Phosphor 的完整图标集中选择任何语义更贴切的图标**；
   - 如果 Phosphor 也没有理想选项，可以使用 **Heroicons (`@heroicons/react`)** 作为备选，注意保持风格一致（线性/填充、笔画粗细、圆角风格）。
