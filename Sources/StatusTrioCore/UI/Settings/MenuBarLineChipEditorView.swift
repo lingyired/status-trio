@@ -17,11 +17,15 @@ struct MenuBarEditorChipLabel: View {
 
     var body: some View {
         HStack(spacing: 5) {
-            Image(systemName: systemImage)
-                .font(.system(size: compact ? 10 : 10.5, weight: .medium))
-            Text(title)
-                .font(.system(size: compact ? 11 : 11.5))
-                .lineLimit(1)
+            if !systemImage.isEmpty {
+                Image(systemName: systemImage)
+                    .font(.system(size: compact ? 10 : 10.5, weight: .medium))
+            }
+            if !title.isEmpty {
+                Text(title)
+                    .font(.system(size: compact ? 11 : 11.5))
+                    .lineLimit(1)
+            }
         }
         .foregroundStyle(.primary)
         .padding(.horizontal, compact ? 7 : 8)
@@ -225,8 +229,8 @@ struct MenuBarRowCanvasView: View {
         let selected = selectedElementID == element.id && selectedSlot == slot
 
         return MenuBarEditorChipLabel(
-            title: label(for: element),
-            systemImage: symbol(for: element),
+            title: displayTitle(for: element),
+            systemImage: displaySymbol(for: element),
             isSelected: selected
         )
         .draggable(MenuBarElementDragPayload(source: .placed(
@@ -339,6 +343,28 @@ struct MenuBarRowCanvasView: View {
             selectedSlot = slot
             selectedElementID = id
             return true
+        }
+    }
+
+    private func displayTitle(for element: MenuBarElement) -> String {
+        switch element.content {
+        case .metric:
+            return "{\(label(for: element))}"
+        case .icon:
+            return ""
+        case .text:
+            return label(for: element)
+        }
+    }
+
+    private func displaySymbol(for element: MenuBarElement) -> String {
+        switch element.content {
+        case .metric:
+            return ""
+        case .icon:
+            return symbol(for: element)
+        case .text:
+            return symbol(for: element)
         }
     }
 
@@ -782,8 +808,9 @@ struct MenuBarElementPalette: View {
                     ForEach(MenuBarMetricID.allCases) { metric in
                         paletteChip(
                             .metric(metric),
-                            title: L(MenuBarMetricRegistry.titleKey(for: metric)),
-                            symbol: metric.editorSymbol
+                            title: "{\(L(MenuBarMetricRegistry.titleKey(for: metric)))}",
+                            symbol: "",
+                            help: L(MenuBarMetricRegistry.titleKey(for: metric))
                         )
                     }
                 }
@@ -798,8 +825,9 @@ struct MenuBarElementPalette: View {
                     ForEach(["cpu", "memorychip", "gauge", "thermometer", "fan"], id: \.self) { name in
                         paletteChip(
                             .icon(MenuBarIconSpec(source: .sfSymbol(name))),
-                            title: name,
-                            symbol: name
+                            title: "",
+                            symbol: name,
+                            help: name
                         )
                     }
                 }
@@ -840,13 +868,14 @@ struct MenuBarElementPalette: View {
     private func paletteChip(
         _ content: MenuBarElementContent,
         title: String,
-        symbol: String
+        symbol: String,
+        help: String? = nil
     ) -> some View {
         MenuBarEditorChipLabel(title: title, systemImage: symbol, compact: true)
             .draggable(MenuBarElementDragPayload(source: .palette(content)))
             .onTapGesture { add(content) }
-            .help(title)
-            .accessibilityLabel(title)
+            .help(help ?? title)
+            .accessibilityLabel(help ?? title)
             .accessibilityAction { add(content) }
     }
 
