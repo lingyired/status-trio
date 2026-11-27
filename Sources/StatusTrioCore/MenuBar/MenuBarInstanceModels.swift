@@ -160,7 +160,7 @@ struct MenuBarLine: Equatable, Sendable {
     init(
         elements: [MenuBarElement] = [],
         leadingIcon: MenuBarIconSpec? = nil,
-        leadingIconSize: Double = 18,
+        leadingIconSize: Double = 16,
         leadingIconColor: ColorValue? = nil,
         color: LineColor = .systemDefault,
         isBold: Bool = false,
@@ -170,7 +170,7 @@ struct MenuBarLine: Equatable, Sendable {
     ) {
         self.elements = elements
         self.leadingIcon = leadingIcon
-        self.leadingIconSize = leadingIconSize
+        self.leadingIconSize = min(16, max(10, leadingIconSize))
         self.leadingIconColor = leadingIconColor
         self.color = color
         self.isBold = isBold
@@ -224,7 +224,8 @@ extension MenuBarLine: Codable {
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         self.leadingIcon = try container.decodeIfPresent(MenuBarIconSpec.self, forKey: .leadingIcon)
-        self.leadingIconSize = try container.decodeIfPresent(Double.self, forKey: .leadingIconSize) ?? 18
+        let decodedIconSize = try container.decodeIfPresent(Double.self, forKey: .leadingIconSize) ?? 16
+        self.leadingIconSize = min(16, max(10, decodedIconSize))
         self.leadingIconColor = try container.decodeIfPresent(ColorValue.self, forKey: .leadingIconColor)
         self.color = try container.decodeIfPresent(LineColor.self, forKey: .color) ?? .systemDefault
         self.isBold = try container.decodeIfPresent(Bool.self, forKey: .isBold) ?? false

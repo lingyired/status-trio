@@ -99,7 +99,7 @@ struct MenuBarRowCanvasView: View {
                 .popover(isPresented: $showingLeadingIconPicker, arrowEdge: .bottom) {
                     MenuBarLeadingIconPicker(
                         spec: line?.leadingIcon,
-                        size: line?.leadingIconSize ?? 18,
+                        size: line?.leadingIconSize ?? 16,
                         color: line?.leadingIconColor,
                         localization: localization,
                         onChange: { icon in
@@ -598,7 +598,7 @@ struct MenuBarLeadingIconPicker: View {
                         get: { size },
                         set: { onSizeChange($0.rounded()) }
                     ),
-                    in: 10...30
+                    in: 10...16
                 )
                 Text("\(Int(size))")
                     .font(.system(size: 10.5))

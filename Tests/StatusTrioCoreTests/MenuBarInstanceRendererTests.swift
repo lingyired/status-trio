@@ -55,7 +55,7 @@ final class MenuBarInstanceRendererTests: XCTestCase {
             input(top: top, bottom: bottom, innerPadding: 0),
             appearance: appearance
         )
-        let expected = max(result.lineWidths[0], result.lineWidths[1]) + 18 + 3
+        let expected = max(result.lineWidths[0], result.lineWidths[1]) + 16 + 3
         XCTAssertEqual(result.totalWidth, expected, accuracy: 0.6)
     }
 
@@ -122,14 +122,14 @@ final class MenuBarInstanceRendererTests: XCTestCase {
         let line = MenuBarLine(
             elements: [MenuBarElement(content: .text("13 KB/s"))],
             leadingIcon: MenuBarIconSpec(source: .sfSymbol("arrow.up")),
-            leadingIconSize: 24
+            leadingIconSize: 16
         )
         let measurement = MenuBarInstanceRenderer.measure(
             input(top: line),
             appearance: appearance
         )
-        XCTAssertEqual(measurement.lineHeights[0], 24, accuracy: 0.001)
-        XCTAssertEqual(measurement.totalWidth, measurement.lineWidths[0] + 24 + 3, accuracy: 0.6)
+        XCTAssertEqual(measurement.lineHeights[0], 16, accuracy: 0.001)
+        XCTAssertEqual(measurement.totalWidth, measurement.lineWidths[0] + 16 + 3, accuracy: 0.6)
     }
 
     func testMetricShowsDashWhenMissing() {

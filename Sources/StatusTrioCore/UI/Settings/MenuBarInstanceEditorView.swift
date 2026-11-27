@@ -437,7 +437,7 @@ struct MenuBarInstanceEditorView: View {
                 title: L(.menuBarEditorFixedWidth),
                 value: Binding(
                     get: { model.instance.minimumWidth ?? 0 },
-                    set: { model.setMinimumWidth(($0 / 10).rounded() * 10) }
+                    set: { model.setMinimumWidth(($0 / 2).rounded() * 2) }
                 ),
                 range: 0...400,
                 display: "\(Int(model.instance.minimumWidth ?? 0))"
