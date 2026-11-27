@@ -101,6 +101,11 @@ final class MenuBarInstanceEditorModel: ObservableObject {
         persist()
     }
 
+    func setMinimumWidth(_ width: Double) {
+        instance.minimumWidth = width <= 0 ? nil : min(400, max(20, width))
+        persist()
+    }
+
     func setPadding(inner: Double, outer: Double) {
         instance.innerPadding = min(24, max(0, inner))
         instance.outerMargin = min(24, max(0, outer))

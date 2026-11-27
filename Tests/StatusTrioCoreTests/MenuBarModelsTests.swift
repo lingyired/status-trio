@@ -11,7 +11,8 @@ final class MenuBarModelsTests: XCTestCase {
             name: "CPU",
             layoutMode: .doubleLine,
             top: MenuBarLine(elements: [MenuBarElement(content: .text("CPU ")), MenuBarElement(content: .metric(.cpuUsage))], color: .fixed(ColorValue(red: 0.2, green: 0.4, blue: 1))),
-            bottom: MenuBarLine(elements: [MenuBarElement(content: .metric(.cpuTemperature))], alignment: .trailing)
+            bottom: MenuBarLine(elements: [MenuBarElement(content: .metric(.cpuTemperature))], alignment: .trailing),
+            minimumWidth: 120
         )
         let config = MenuBarInstancesConfiguration(instances: [instance])
         let data = try JSONEncoder().encode(config)
@@ -66,6 +67,14 @@ final class MenuBarModelsTests: XCTestCase {
             .replacingOccurrences(of: "\"cpuUsage\"", with: "\"bogusMetric\"")
         let decoded = try JSONDecoder().decode(MenuBarInstancesConfiguration.self, from: Data(json.utf8))
         XCTAssertEqual(contents(decoded.instances[0].top), [.text("CPU ")])
+    }
+
+    func testMinimumWidthValidation() {
+        var instance = MenuBarInstance.default()
+        instance.minimumWidth = 10
+        XCTAssertEqual(MenuBarInstancesConfiguration(instances: [instance]).validated().config.instances[0].minimumWidth, 20)
+        instance.minimumWidth = 999
+        XCTAssertEqual(MenuBarInstancesConfiguration(instances: [instance]).validated().config.instances[0].minimumWidth, 400)
     }
 
     func testEmptyInstanceIsDisabledByValidation() {

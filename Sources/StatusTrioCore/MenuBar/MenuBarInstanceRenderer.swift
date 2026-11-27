@@ -58,7 +58,8 @@ enum MenuBarInstanceRenderer {
 
         let columnWidth: CGFloat = instance.leadingIcon == nil ? 0 : 18 + columnGap
         let contentWidth = (lineWidths.max() ?? 0).cgFloat + columnWidth
-        let totalWidth = contentWidth + CGFloat(instance.innerPadding * 2) + CGFloat(instance.outerMargin * 2)
+        var totalWidth = contentWidth + CGFloat(instance.innerPadding * 2) + CGFloat(instance.outerMargin * 2)
+        if let minimum = instance.minimumWidth { totalWidth = max(totalWidth, CGFloat(minimum)) }
         let totalHeight = max(1, lineHeights.reduce(0, +))
         return MenuBarInstanceMeasurement(
             lineWidths: lineWidths,

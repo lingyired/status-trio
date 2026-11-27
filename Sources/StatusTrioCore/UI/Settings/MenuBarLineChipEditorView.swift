@@ -7,14 +7,15 @@ struct MenuBarEditorChipLabel: View {
     let title: String
     let systemImage: String
     var isSelected = false
+    var compact = false
 
     var body: some View {
         HStack(spacing: 4) {
             Image(systemName: systemImage).font(.caption2)
-            Text(title).font(.callout).lineLimit(1)
+            Text(title).font(compact ? .caption : .callout).lineLimit(1)
         }
-        .padding(.horizontal, 8)
-        .padding(.vertical, 4)
+        .padding(.horizontal, compact ? 6 : 8)
+        .padding(.vertical, compact ? 3 : 4)
         .background(
             RoundedRectangle(cornerRadius: 7, style: .continuous)
                 .fill(isSelected ? Color.accentColor.opacity(0.22) : Color(nsColor: .controlBackgroundColor))

@@ -115,7 +115,7 @@ struct MenuBarInstancesSectionView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 10) {
                     Text(L(.menuBarEditorMetrics)).font(.caption).foregroundStyle(.secondary)
-                    LazyVGrid(columns: [GridItem(.adaptive(minimum: 118), spacing: 6)], alignment: .leading, spacing: 6) {
+                    LazyVGrid(columns: [GridItem(.adaptive(minimum: 92), spacing: 4)], alignment: .leading, spacing: 6) {
                         ForEach(filteredMetrics) { metric in
                             paletteChip(label: L(MenuBarMetricRegistry.titleKey(for: metric)),
                                         systemImage: symbol(for: metric),
@@ -123,7 +123,7 @@ struct MenuBarInstancesSectionView: View {
                         }
                     }
                     Text(L(.menuBarEditorTextIcons)).font(.caption).foregroundStyle(.secondary).padding(.top, 4)
-                    LazyVGrid(columns: [GridItem(.adaptive(minimum: 118), spacing: 6)], alignment: .leading, spacing: 6) {
+                    LazyVGrid(columns: [GridItem(.adaptive(minimum: 92), spacing: 4)], alignment: .leading, spacing: 6) {
                         paletteChip(label: L(.menuBarEditorText), systemImage: "textformat", content: .text("Text"))
                         paletteChip(label: "Emoji", systemImage: "face.smiling", content: .icon(MenuBarIconSpec(source: .emoji("🔥"))))
                         ForEach(["cpu", "memorychip", "gauge", "thermometer", "fan"], id: \.self) { symbol in
@@ -137,7 +137,7 @@ struct MenuBarInstancesSectionView: View {
     }
 
     private func paletteChip(label: String, systemImage: String, content: MenuBarElementContent) -> some View {
-        MenuBarEditorChipLabel(title: label, systemImage: systemImage)
+        MenuBarEditorChipLabel(title: label, systemImage: systemImage, compact: true)
             .draggable(MenuBarElementDragPayload(source: .palette(content)))
             .onTapGesture { addToSlot(content) }
             .help(label)

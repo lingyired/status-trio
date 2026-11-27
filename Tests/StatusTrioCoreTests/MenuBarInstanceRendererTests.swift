@@ -66,6 +66,16 @@ final class MenuBarInstanceRendererTests: XCTestCase {
         XCTAssertEqual(result.totalHeight, result.lineHeights[0], accuracy: 0.001)
     }
 
+    func testMinimumWidthWidensMeasurement() {
+        var instance = MenuBarInstance(top: MenuBarLine(segments: [.text("CPU")]))
+        instance.minimumWidth = 220
+        let measurement = MenuBarInstanceRenderer.measure(
+            MenuBarRenderInput(instance: instance, readings: [:]),
+            appearance: appearance
+        )
+        XCTAssertGreaterThanOrEqual(measurement.totalWidth, 220)
+    }
+
     func testMetricShowsDashWhenMissing() {
         let result = MenuBarInstanceRenderer.measure(
             input(top: MenuBarLine(segments: [.metric(.gpuUsage)])),

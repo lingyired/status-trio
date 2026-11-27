@@ -188,6 +188,17 @@ struct MenuBarInstanceEditorView: View {
                 }
             }
             SettingsDivider()
+            SettingsRow("arrow.left.and.right", title: L(.menuBarEditorMinimumWidth)) {
+                HStack(spacing: 8) {
+                    Slider(value: Binding(
+                        get: { model.instance.minimumWidth ?? 0 },
+                        set: { model.setMinimumWidth($0) }
+                    ), in: 0...400, step: 10).frame(width: 150)
+                    Text(model.instance.minimumWidth.map { "\(Int($0))" } ?? "—")
+                        .monospacedDigit().frame(width: 34, alignment: .trailing)
+                }
+            }
+            SettingsDivider()
             SettingsRow("cursorarrow.click", title: L(.menuBarEditorClick)) {
                 activationMenu(current: model.instance.clickAction, allowExternal: true) {
                     model.setActivation(click: $0, hover: model.instance.hoverAction, rightClick: model.instance.rightClick)

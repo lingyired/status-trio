@@ -305,6 +305,7 @@ struct MenuBarInstance: Equatable, Identifiable, Sendable {
     var leadingIcon: MenuBarIconSpec?
     var innerPadding: Double
     var outerMargin: Double
+    var minimumWidth: Double?
     var clickAction: InstanceActivation
     var hoverAction: InstanceActivation
     var rightClick: InstanceRightClick
@@ -319,6 +320,7 @@ struct MenuBarInstance: Equatable, Identifiable, Sendable {
         leadingIcon: MenuBarIconSpec? = nil,
         innerPadding: Double = 0,
         outerMargin: Double = 4,
+        minimumWidth: Double? = nil,
         clickAction: InstanceActivation = .panel("summary"),
         hoverAction: InstanceActivation = .none,
         rightClick: InstanceRightClick = .sameAsMainIcon
@@ -332,6 +334,7 @@ struct MenuBarInstance: Equatable, Identifiable, Sendable {
         self.leadingIcon = leadingIcon
         self.innerPadding = innerPadding
         self.outerMargin = outerMargin
+        self.minimumWidth = minimumWidth
         self.clickAction = clickAction
         self.hoverAction = hoverAction
         self.rightClick = rightClick
@@ -380,7 +383,7 @@ enum MenuBarLineSlot: String, Codable, Equatable, Sendable {
 extension MenuBarInstance: Codable {
     private enum CodingKeys: String, CodingKey {
         case id, name, isEnabled, layoutMode, top, bottom, leadingIcon
-        case innerPadding, outerMargin, clickAction, hoverAction, rightClick
+        case innerPadding, outerMargin, minimumWidth, clickAction, hoverAction, rightClick
     }
 
     init(from decoder: Decoder) throws {
@@ -399,6 +402,7 @@ extension MenuBarInstance: Codable {
         self.leadingIcon = try container.decodeIfPresent(MenuBarIconSpec.self, forKey: .leadingIcon)
         self.innerPadding = try container.decodeIfPresent(Double.self, forKey: .innerPadding) ?? 0
         self.outerMargin = try container.decodeIfPresent(Double.self, forKey: .outerMargin) ?? 4
+        self.minimumWidth = try container.decodeIfPresent(Double.self, forKey: .minimumWidth)
         self.clickAction = try container.decodeIfPresent(InstanceActivation.self, forKey: .clickAction) ?? .panel("summary")
         self.hoverAction = try container.decodeIfPresent(InstanceActivation.self, forKey: .hoverAction) ?? .none
         self.rightClick = try container.decodeIfPresent(InstanceRightClick.self, forKey: .rightClick) ?? .sameAsMainIcon
@@ -415,6 +419,7 @@ extension MenuBarInstance: Codable {
         try container.encodeIfPresent(leadingIcon, forKey: .leadingIcon)
         try container.encode(innerPadding, forKey: .innerPadding)
         try container.encode(outerMargin, forKey: .outerMargin)
+        try container.encodeIfPresent(minimumWidth, forKey: .minimumWidth)
         try container.encode(clickAction, forKey: .clickAction)
         try container.encode(hoverAction, forKey: .hoverAction)
         try container.encode(rightClick, forKey: .rightClick)
@@ -443,6 +448,9 @@ struct MenuBarInstancesConfiguration: Codable, Equatable, Sendable {
             }
             instance.innerPadding = instance.innerPadding.clamped(to: 0...24)
             instance.outerMargin = instance.outerMargin.clamped(to: 0...24)
+            if let width = instance.minimumWidth {
+                instance.minimumWidth = width.clamped(to: 20...400)
+            }
             instance.top = instance.top.map { Self.normalize(line: $0, warnings: &warnings) }
             instance.bottom = instance.bottom.map { Self.normalize(line: $0, warnings: &warnings) }
             if instance.layoutMode == .singleLine && instance.top == nil {

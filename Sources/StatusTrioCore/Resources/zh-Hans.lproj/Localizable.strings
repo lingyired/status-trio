@@ -1512,3 +1512,4 @@
 "menubar.editor.dragRemove" = "拖到这里删除";
 "menubar.editor.removeSelected" = "删除选中元素";
 "menubar.editor.name" = "名称";
+"menubar.editor.minimumWidth" = "最小宽度";

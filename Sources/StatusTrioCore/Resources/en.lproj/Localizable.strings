@@ -1511,3 +1511,4 @@
 "menubar.editor.dragRemove" = "Drag here to remove";
 "menubar.editor.removeSelected" = "Remove selected element";
 "menubar.editor.name" = "Name";
+"menubar.editor.minimumWidth" = "Minimum width";
