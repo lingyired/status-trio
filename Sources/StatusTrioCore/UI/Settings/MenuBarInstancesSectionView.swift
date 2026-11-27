@@ -1,11 +1,11 @@
 import SwiftUI
 
-/// Settings page for the app's own menu-bar items.
+/// Two-column editor for the app's own menu-bar items.
 ///
-/// The page follows the rest of Settings: one scrolling column of grouped
-/// cards. The instance list is a native, selectable `List`; the selected item
-/// is edited in the cards below instead of a bespoke three-column split that
-/// could not fit the Settings window.
+/// The left column is the instance list; the right column is the selected
+/// instance's editor. The element library lives inside the editor, under the
+/// menu-bar strip, so the whole page fits the Settings window without a third
+/// column.
 struct MenuBarInstancesSectionView: View {
     @ObservedObject var store: SettingsStore
     let localization: Localization
@@ -20,20 +20,14 @@ struct MenuBarInstancesSectionView: View {
     private func L(_ key: LocalizationKey) -> String { localization.string(key) }
 
     var body: some View {
-        SettingsPage(pinnedHeader: {
-            MenuBarInstancePreviewCard(
-                model: model,
-                isEnabled: selectedInstanceIsEnabled,
-                isDarkBackground: $previewIsDark,
-                localization: localization
-            )
-        }) {
-            instancesGroup
-            if let model {
-                MenuBarInstanceEditorView(model: model, localization: localization)
-                    .id(model.instance.id)
-            }
+        HSplitView {
+            instanceColumn
+                .frame(width: 190)
+
+            editorColumn
+                .frame(minWidth: 300)
         }
+        .background(Color(nsColor: .windowBackgroundColor))
         .onAppear { synchronizeSelection() }
         .onChange(of: store.menuBarInstances) { _ in synchronizeSelection() }
         .onChange(of: selectedID) { _ in rebuildModel() }
@@ -57,76 +51,83 @@ struct MenuBarInstancesSectionView: View {
         }
     }
 
-    // MARK: - Instance selection
+    // MARK: - Left column
 
-    private var currentInstance: MenuBarInstance? {
-        guard let selectedID else { return nil }
-        return listModel.instances.first { $0.id == selectedID }
-    }
+    private var instanceColumn: some View {
+        VStack(spacing: 0) {
+            HStack {
+                Text(L(.menuBarEditorInstances))
+                    .font(.system(size: 11.5, weight: .semibold))
+                    .foregroundStyle(.secondary)
+                Spacer(minLength: 0)
+            }
+            .padding(.horizontal, 14)
+            .padding(.top, 20)
+            .padding(.bottom, 6)
 
-    private var selectedInstanceIsEnabled: Bool {
-        store.menuBarInstances.instances.first { $0.id == selectedID }?.isEnabled ?? true
-    }
-
-    private var instancesGroup: some View {
-        SettingsGroup {
-            if let instance = currentInstance {
-                SettingsRow("square.stack.3d.up", title: L(.menuBarEditorInstances)) {
-                    HStack(spacing: 6) {
-                        instancePicker
-                        addInstanceMenu
-                        instanceActions(instance)
+            if listModel.instances.isEmpty {
+                SettingsHintRow(text: L(.menuBarEditorAddOrSelect))
+                    .padding(.horizontal, 10)
+                Spacer(minLength: 0)
+            } else {
+                List(selection: $selectedID) {
+                    ForEach(listModel.instances) { instance in
+                        instanceRow(instance)
+                            .tag(instance.id)
+                    }
+                    .onMove { offsets, destination in
+                        guard let source = offsets.first else { return }
+                        listModel.move(from: source, to: destination)
                     }
                 }
-
-                SettingsDivider()
-
-                SettingsToggleRow(
-                    symbol: "eye",
-                    title: L(.menuBarEditorShowInMenuBar),
-                    subtitle: summary(for: instance),
-                    isOn: Binding(
-                        get: { instance.isEnabled },
-                        set: { listModel.setEnabled($0, id: instance.id) }
-                    )
-                )
-            } else {
-                SettingsHintRow(text: L(.menuBarEditorAddOrSelect))
-                SettingsDivider()
-                addInstanceRow
+                .listStyle(.sidebar)
+                .scrollContentBackground(.hidden)
+                .environment(\.defaultMinListRowHeight, 40)
             }
-        }
-    }
 
-    private var instancePicker: some View {
-        Picker("", selection: $selectedID) {
-            ForEach(listModel.instances) { instance in
-                Text(displayName(for: instance))
-                    .tag(Optional(instance.id))
-            }
-        }
-        .labelsHidden()
-        .frame(width: 150, alignment: .trailing)
-        .accessibilityLabel(L(.menuBarEditorInstances))
-    }
-
-    private var addInstanceMenu: some View {
-        Menu {
-            Button(L(.menuBarEditorBlankInstance)) { addBlankInstance() }
             Divider()
-            ForEach(MenuBarPreset.allCases) { preset in
-                Button(L(preset.titleKey)) { addPreset(preset) }
-            }
-        } label: {
-            Image(systemName: "plus")
-                .font(.system(size: 13, weight: .medium))
+            addMenuRow
         }
-        .menuStyle(.borderlessButton)
-        .menuIndicator(.hidden)
-        .fixedSize()
-        .disabled(!listModel.canAdd)
-        .accessibilityLabel(L(.menuBarEditorNew))
-        .help(L(.menuBarEditorNew))
+        .background(Color(nsColor: .windowBackgroundColor))
+    }
+
+    private func instanceRow(_ instance: MenuBarInstance) -> some View {
+        HStack(spacing: 8) {
+            Toggle("", isOn: Binding(
+                get: { instance.isEnabled },
+                set: { listModel.setEnabled($0, id: instance.id) }
+            ))
+            .toggleStyle(.switch)
+            .controlSize(.small)
+            .labelsHidden()
+            .accessibilityLabel(L(.menuBarEditorShowInMenuBar))
+
+            VStack(alignment: .leading, spacing: 1) {
+                Text(displayName(for: instance))
+                    .font(.system(size: 12.5, weight: .medium))
+                    .lineLimit(1)
+
+                Text(summary(for: instance))
+                    .font(.system(size: 11))
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+            }
+
+            Spacer(minLength: 4)
+
+            instanceActions(instance)
+        }
+        .padding(.vertical, 2)
+    }
+
+    private func displayName(for instance: MenuBarInstance) -> String {
+        instance.name.isEmpty ? L(.menuBarEditorUntitled) : instance.name
+    }
+
+    private func summary(for instance: MenuBarInstance) -> String {
+        instance.layoutMode == .doubleLine
+            ? L(.menuBarEditorDoubleLine)
+            : L(.menuBarEditorSingleLine)
     }
 
     private func instanceActions(_ instance: MenuBarInstance) -> some View {
@@ -152,7 +153,7 @@ struct MenuBarInstancesSectionView: View {
             }
         } label: {
             Image(systemName: "ellipsis.circle")
-                .font(.system(size: 14))
+                .font(.system(size: 13))
                 .foregroundStyle(.secondary)
         }
         .menuStyle(.borderlessButton)
@@ -162,7 +163,7 @@ struct MenuBarInstancesSectionView: View {
         .help(L(.menuMore))
     }
 
-    private var addInstanceRow: some View {
+    private var addMenuRow: some View {
         HStack(spacing: 8) {
             Menu {
                 Button(L(.menuBarEditorBlankInstance)) { addBlankInstance() }
@@ -181,20 +182,45 @@ struct MenuBarInstancesSectionView: View {
 
             Spacer(minLength: 0)
         }
-        .padding(.horizontal, SettingsMetrics.rowPaddingH)
+        .padding(.horizontal, 14)
         .padding(.vertical, 8)
     }
 
-    private func displayName(for instance: MenuBarInstance) -> String {
-        instance.name.isEmpty ? L(.menuBarEditorUntitled) : instance.name
+    // MARK: - Right column
+
+    @ViewBuilder
+    private var editorColumn: some View {
+        if let model {
+            ScrollView {
+                VStack(alignment: .leading, spacing: SettingsMetrics.groupSpacing) {
+                    MenuBarInstancePreviewCard(
+                        model: model,
+                        isEnabled: selectedInstanceIsEnabled,
+                        isDarkBackground: $previewIsDark,
+                        localization: localization
+                    )
+
+                    MenuBarInstanceEditorView(model: model, localization: localization)
+                        .id(model.instance.id)
+                }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 16)
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
+        } else {
+            VStack(spacing: 8) {
+                Image(systemName: "menubar.rectangle")
+                    .font(.largeTitle)
+                    .foregroundStyle(.secondary)
+                Text(L(.menuBarEditorAddOrSelect))
+                    .foregroundStyle(.secondary)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+        }
     }
 
-    private func summary(for instance: MenuBarInstance) -> String {
-        let layout = instance.layoutMode == .doubleLine
-            ? L(.menuBarEditorDoubleLine)
-            : L(.menuBarEditorSingleLine)
-        let count = instance.renderedLines.flatMap { $0.line.elements }.count
-        return "\(layout) · \(count) \(L(.menuBarEditorItems))"
+    private var selectedInstanceIsEnabled: Bool {
+        store.menuBarInstances.instances.first { $0.id == selectedID }?.isEnabled ?? true
     }
 
     // MARK: - Mutations
@@ -255,5 +281,4 @@ struct MenuBarInstancesSectionView: View {
         }
         model = MenuBarInstanceEditorModel(instance: instance, store: store)
     }
-
 }

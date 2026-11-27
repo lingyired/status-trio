@@ -58,6 +58,18 @@ final class MenuBarInstanceEditorModel: ObservableObject {
         mutateLine(slot) { $0.elements.removeAll { $0.id == id } }
     }
 
+    /// Inserts a new element from the library at a drop position.
+    @discardableResult
+    func insertElement(_ content: MenuBarElementContent, at index: Int, slot: MenuBarLineSlot) -> UUID? {
+        guard elements(slot: slot).count < 32 else { return nil }
+        let element = MenuBarElement(content: content)
+        mutateLine(slot) { line in
+            let target = min(max(0, index), line.elements.count)
+            line.elements.insert(element, at: target)
+        }
+        return element.id
+    }
+
     func moveElement(id: UUID, to destination: Int, slot: MenuBarLineSlot) {
         mutateLine(slot) { line in
             guard let current = line.elements.firstIndex(where: { $0.id == id }) else { return }

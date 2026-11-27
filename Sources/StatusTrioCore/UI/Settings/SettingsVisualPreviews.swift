@@ -322,6 +322,7 @@ struct RingStrokeStylePreview: View {
 struct PreviewAppearanceToggle: View {
     @Binding var isDarkBackground: Bool
     let localization: Localization
+    var compact = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
@@ -333,12 +334,14 @@ struct PreviewAppearanceToggle: View {
             HStack(spacing: 4) {
                 Image(systemName: isDarkBackground ? "moon.fill" : "sun.max.fill")
                     .font(.system(size: 10))
-                Text(localization.string(isDarkBackground ? .settingsPreviewDark : .settingsPreviewLight))
-                    .font(.system(size: 10.5, weight: .medium))
+                if !compact {
+                    Text(localization.string(isDarkBackground ? .settingsPreviewDark : .settingsPreviewLight))
+                        .font(.system(size: 10.5, weight: .medium))
+                }
             }
             .foregroundStyle(isDarkBackground ? Color.white.opacity(0.85) : Color.black.opacity(0.85))
-            .padding(.horizontal, 8)
-            .padding(.vertical, 4)
+            .padding(.horizontal, compact ? 6 : 8)
+            .padding(.vertical, compact ? 5 : 4)
             .background(
                 Capsule()
                     .fill(isDarkBackground ? Color.white.opacity(0.15) : Color.black.opacity(0.08))
@@ -346,5 +349,6 @@ struct PreviewAppearanceToggle: View {
         }
         .buttonStyle(.plain)
         .help(localization.string(.settingsPreviewToggleHelp))
+        .accessibilityLabel(localization.string(.settingsPreviewToggleHelp))
     }
 }

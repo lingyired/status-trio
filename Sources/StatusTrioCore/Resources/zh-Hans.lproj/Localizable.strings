@@ -1462,6 +1462,9 @@
 "menubar.editor.delete" = "删除";
 "menubar.editor.untitled" = "未命名";
 "menubar.editor.elements" = "元素";
+"menubar.editor.strip" = "菜单栏条带";
+"menubar.editor.library" = "元素库";
+"menubar.editor.addTo" = "添加到";
 "menubar.editor.paletteHint" = "把指标拖进任意一行，或点击添加到当前选中的行。";
 "menubar.editor.metrics" = "指标";
 "menubar.editor.textIcons" = "文字与图标";

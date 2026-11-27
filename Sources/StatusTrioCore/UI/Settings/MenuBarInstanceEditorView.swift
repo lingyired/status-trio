@@ -20,6 +20,7 @@ struct MenuBarInstanceEditorView: View {
         Group {
             basicsGroup
             contentGroup
+            paletteGroup
             rowStyleGroup
             spacingAndInteractionGroup
         }
@@ -35,7 +36,7 @@ struct MenuBarInstanceEditorView: View {
                     set: { model.setName($0) }
                 ))
                 .textFieldStyle(.roundedBorder)
-                .frame(width: 200)
+                .frame(minWidth: 120, maxWidth: 200)
                 .accessibilityLabel(L(.menuBarEditorName))
             }
 
@@ -66,7 +67,7 @@ struct MenuBarInstanceEditorView: View {
 
     private var contentGroup: some View {
         SettingsGroup(
-            L(.menuBarEditorElements),
+            L(.menuBarEditorStrip),
             footnote: selectedElement == nil ? L(.menuBarEditorSelectHint) : nil
         ) {
             MenuBarRowCanvasView(
@@ -108,6 +109,15 @@ struct MenuBarInstanceEditorView: View {
 
     private func selectedElement(in slot: MenuBarLineSlot) -> MenuBarElement? {
         model.elements(slot: slot).first { $0.id == selectedElementID }
+    }
+
+    private var paletteGroup: some View {
+        MenuBarElementPalette(
+            model: model,
+            localization: localization,
+            selectedSlot: $selectedSlot,
+            selectedElementID: $selectedElementID
+        )
     }
 
     private func elementInspector(_ element: MenuBarElement) -> some View {

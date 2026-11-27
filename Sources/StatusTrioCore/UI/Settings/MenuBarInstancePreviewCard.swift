@@ -25,16 +25,12 @@ struct MenuBarInstancePreviewCard: View {
     }
 
     private var bar: some View {
-        HStack(spacing: 6) {
+        HStack(spacing: 4) {
             Image(systemName: "apple.logo")
                 .font(.system(size: 12, weight: .medium))
                 .accessibilityHidden(true)
-            Text("Finder")
-                .font(.system(size: 11.5))
-                .lineLimit(1)
-                .accessibilityHidden(true)
 
-            Spacer(minLength: 10)
+            Spacer(minLength: 4)
 
             if let model {
                 MenuBarInstancePreviewImage(
@@ -52,23 +48,27 @@ struct MenuBarInstancePreviewCard: View {
 
             Image(systemName: "wifi")
                 .font(.system(size: 11.5))
+                .fixedSize()
                 .accessibilityHidden(true)
             Image(systemName: "battery.75")
                 .font(.system(size: 13))
+                .fixedSize()
                 .accessibilityHidden(true)
             Text("9:41")
-                .font(.system(size: 11))
+                .font(.system(size: 10.5))
                 .monospacedDigit()
+                .fixedSize()
                 .accessibilityHidden(true)
 
             PreviewAppearanceToggle(
                 isDarkBackground: $isDarkBackground,
-                localization: localization
+                localization: localization,
+                compact: true
             )
         }
         .foregroundStyle(isDarkBackground ? Color.white : Color.black)
-        .padding(.horizontal, 10)
-        .padding(.vertical, 6)
+        .padding(.horizontal, 7)
+        .padding(.vertical, 5)
         .background(MenuBarPreviewBackdrop(isDarkBackground: isDarkBackground))
         .overlay(
             RoundedRectangle(cornerRadius: 6, style: .continuous)
@@ -86,7 +86,9 @@ private struct MenuBarInstancePreviewImage: View {
     var body: some View {
         if let image = model.previewImage(dark: isDarkBackground) {
             Image(nsImage: image)
-                .interpolation(.high)
+                .resizable()
+                .scaledToFit()
+                .frame(maxWidth: 110, maxHeight: 18, alignment: .trailing)
                 .layoutPriority(1)
                 .accessibilityLabel(localization.string(.menuBarEditorPreview))
         } else {

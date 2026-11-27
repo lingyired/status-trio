@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// A chip in the row canvas or in the element picker.
+/// A chip in the menu-bar strip or the element library.
 ///
 /// Deliberately a plain view rather than a Button: a button's gesture
 /// recognizer would claim the mouse-down and prevent the drag session from
@@ -48,12 +48,8 @@ struct MenuBarEditorChipLabel: View {
     }
 }
 
-/// One editable row of the selected instance.
-///
-/// The row owns its own "add" button, so adding an element never depends on
-/// which row happened to be selected last. Chips can be dragged within the
-/// row, across rows, or moved from the context menu as the pointer-free
-/// alternative.
+/// One strip row. Elements are reordered by dragging or by the context menu;
+/// new elements come from the library card below the strip.
 struct MenuBarRowCanvasView: View {
     @ObservedObject var model: MenuBarInstanceEditorModel
     let slot: MenuBarLineSlot
@@ -62,7 +58,6 @@ struct MenuBarRowCanvasView: View {
     @Binding var selectedSlot: MenuBarLineSlot
     @Binding var selectedElementID: UUID?
 
-    @State private var showingPicker = false
     @State private var isDropTargeted = false
 
     private var elements: [MenuBarElement] { model.elements(slot: slot) }
@@ -82,36 +77,12 @@ struct MenuBarRowCanvasView: View {
                     .foregroundStyle(.tertiary)
 
                 Spacer(minLength: 8)
-
-                Button {
-                    showingPicker = true
-                } label: {
-                    Label(L(.menuBarEditorAdd), systemImage: "plus")
-                        .font(.system(size: 11.5))
-                }
-                .buttonStyle(.borderless)
-                .controlSize(.small)
-                .help(L(.menuBarEditorAdd))
             }
 
             canvas
         }
         .padding(.horizontal, SettingsMetrics.rowPaddingH)
         .padding(.vertical, 10)
-        .popover(isPresented: $showingPicker, arrowEdge: .bottom) {
-            MenuBarElementPicker(
-                localization: localization,
-                onAddText: { text in
-                    add(model.addTextElement(text, slot: slot))
-                },
-                onAddMetric: { metric in
-                    add(model.addMetricElement(metric, slot: slot))
-                },
-                onAddIcon: { icon in
-                    add(model.addIconElement(icon, slot: slot))
-                }
-            )
-        }
     }
 
     private var canvas: some View {
@@ -216,30 +187,28 @@ struct MenuBarRowCanvasView: View {
         }
     }
 
-    // MARK: - Adding and moving
-
-    private func add(_ id: UUID?) {
-        guard let id else { return }
-        selectedSlot = slot
-        selectedElementID = id
-    }
-
     private func drop(_ payload: MenuBarElementDragPayload?, at index: Int) -> Bool {
-        guard let payload, case let .placed(instanceID, fromSlot, elementID) = payload.source,
-              instanceID == model.instance.id
-        else { return false }
+        guard let payload else { return false }
 
-        if fromSlot == slot {
-            model.moveElement(id: elementID, to: index, slot: slot)
-        } else {
-            model.moveElement(id: elementID, from: fromSlot, to: slot, index: index)
+        switch payload.source {
+        case .placed(let instanceID, let fromSlot, let elementID):
+            guard instanceID == model.instance.id else { return false }
+            if fromSlot == slot {
+                model.moveElement(id: elementID, to: index, slot: slot)
+            } else {
+                model.moveElement(id: elementID, from: fromSlot, to: slot, index: index)
+            }
+            selectedSlot = slot
+            selectedElementID = elementID
+            return true
+
+        case .palette(let content):
+            guard let id = model.insertElement(content, at: index, slot: slot) else { return false }
+            selectedSlot = slot
+            selectedElementID = id
+            return true
         }
-        selectedSlot = slot
-        selectedElementID = elementID
-        return true
     }
-
-    // MARK: - Presentation
 
     private func label(for element: MenuBarElement) -> String {
         switch element.content {
@@ -272,187 +241,124 @@ struct MenuBarRowCanvasView: View {
     }
 }
 
-// MARK: - Element picker
-
-/// Searchable picker for the element types a row can hold.
+/// Element library shown under the menu-bar strip.
 ///
-/// A popover keeps the palette out of the page until it is needed, which is
-/// what lets the editor fit the Settings window without a third column.
-struct MenuBarElementPicker: View {
+/// Clicking a chip adds it to the chosen row; chips can also be dragged into
+/// either row. The explicit "add to" picker keeps the target visible instead of
+/// relying on whichever row happened to be selected last.
+struct MenuBarElementPalette: View {
+    @ObservedObject var model: MenuBarInstanceEditorModel
     let localization: Localization
-    let onAddText: (String) -> Void
-    let onAddMetric: (MenuBarMetricID) -> Void
-    let onAddIcon: (MenuBarIconSpec) -> Void
-
-    @Environment(\.dismiss) private var dismiss
-    @State private var tab = 0
-    @State private var search = ""
-    @State private var text = ""
-    @State private var iconKind = 0
-    @State private var iconValue = ""
+    @Binding var selectedSlot: MenuBarLineSlot
+    @Binding var selectedElementID: UUID?
 
     private func L(_ key: LocalizationKey) -> String { localization.string(key) }
 
-    private var filteredMetrics: [MenuBarMetricID] {
-        let query = search.trimmingCharacters(in: .whitespaces)
-        guard !query.isEmpty else { return MenuBarMetricID.allCases }
-        return MenuBarMetricID.allCases.filter {
-            L(MenuBarMetricRegistry.titleKey(for: $0)).localizedCaseInsensitiveContains(query)
-                || $0.rawValue.localizedCaseInsensitiveContains(query)
-        }
-    }
+    private var isDoubleLine: Bool { model.instance.layoutMode == .doubleLine }
+    private var targetSlot: MenuBarLineSlot { isDoubleLine ? selectedSlot : .top }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Picker("", selection: $tab) {
-                Text(L(.menuBarEditorMetrics)).tag(0)
-                Text(L(.menuBarEditorTextIcons)).tag(1)
-            }
-            .pickerStyle(.segmented)
-            .labelsHidden()
+        SettingsGroup(L(.menuBarEditorLibrary)) {
+            VStack(alignment: .leading, spacing: 12) {
+                if isDoubleLine {
+                    HStack(spacing: 8) {
+                        Text(L(.menuBarEditorAddTo))
+                            .font(.system(size: 11.5))
+                            .foregroundStyle(.secondary)
 
-            if tab == 0 {
-                metricsPicker
-            } else {
-                textAndIconPicker
-            }
-        }
-        .padding(12)
-        .frame(width: 300)
-    }
+                        Spacer(minLength: 8)
 
-    private var metricsPicker: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            TextField(L(.menuBarEditorSearchPlaceholder), text: $search)
-                .textFieldStyle(.roundedBorder)
-
-            ScrollView {
-                LazyVStack(spacing: 0) {
-                    ForEach(filteredMetrics) { metric in
-                        MenuBarMetricPickerRow(
-                            title: L(MenuBarMetricRegistry.titleKey(for: metric)),
-                            symbol: metric.editorSymbol
-                        ) {
-                            onAddMetric(metric)
-                            dismiss()
+                        Picker("", selection: $selectedSlot) {
+                            Text(L(.menuBarEditorTopRow)).tag(MenuBarLineSlot.top)
+                            Text(L(.menuBarEditorBottomRow)).tag(MenuBarLineSlot.bottom)
                         }
-
-                        if metric.id != filteredMetrics.last?.id {
-                            Divider()
-                        }
+                        .pickerStyle(.segmented)
+                        .labelsHidden()
+                        .frame(width: 140, alignment: .trailing)
+                        .accessibilityLabel(L(.menuBarEditorAddTo))
                     }
                 }
-                .padding(.trailing, 10)
+
+                section(title: L(.menuBarEditorMetrics)) {
+                    ForEach(MenuBarMetricID.allCases) { metric in
+                        paletteChip(
+                            .metric(metric),
+                            title: L(MenuBarMetricRegistry.titleKey(for: metric)),
+                            symbol: metric.editorSymbol
+                        )
+                    }
+                }
+
+                section(title: L(.menuBarEditorTextIcons)) {
+                    paletteChip(.text(""), title: L(.menuBarEditorText), symbol: "textformat")
+                    paletteChip(
+                        .icon(MenuBarIconSpec(source: .emoji("🔥"))),
+                        title: "Emoji",
+                        symbol: "face.smiling"
+                    )
+                    ForEach(["cpu", "memorychip", "gauge", "thermometer", "fan"], id: \.self) { name in
+                        paletteChip(
+                            .icon(MenuBarIconSpec(source: .sfSymbol(name))),
+                            title: name,
+                            symbol: name
+                        )
+                    }
+                }
             }
-            .frame(height: 250)
+            .padding(.horizontal, SettingsMetrics.rowPaddingH)
+            .padding(.vertical, 10)
         }
     }
 
-    private var textAndIconPicker: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text(L(.menuBarEditorText))
-                .font(.system(size: 11.5, weight: .semibold))
+    private func section<Chips: View>(
+        title: String,
+        @ViewBuilder chips: () -> Chips
+    ) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text(title)
+                .font(.system(size: 11, weight: .semibold))
                 .foregroundStyle(.secondary)
 
-            HStack(spacing: 8) {
-                TextField(L(.menuBarEditorTextPlaceholder), text: $text)
-                    .textFieldStyle(.roundedBorder)
-                    .onSubmit { addText() }
-
-                Button(L(.menuBarEditorAdd)) { addText() }
-                    .disabled(text.isEmpty)
+            WrappingHStack(spacing: 6, rowSpacing: 6) {
+                chips()
             }
-
-            Divider()
-
-            Text(L(.menuBarEditorIconType))
-                .font(.system(size: 11.5, weight: .semibold))
-                .foregroundStyle(.secondary)
-
-            Picker("", selection: $iconKind) {
-                Text("SF Symbol").tag(0)
-                Text(L(.menuBarEditorIconEmoji)).tag(1)
-                Text(L(.menuBarEditorIconAsset)).tag(2)
-            }
-            .pickerStyle(.segmented)
-            .labelsHidden()
-
-            HStack(spacing: 8) {
-                TextField(iconPlaceholder, text: $iconValue)
-                    .textFieldStyle(.roundedBorder)
-                    .onSubmit { addIcon() }
-
-                Button(L(.menuBarEditorAdd)) { addIcon() }
-                    .disabled(iconValue.isEmpty)
-            }
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
     }
 
-    private var iconPlaceholder: String {
-        switch iconKind {
-        case 1: return L(.menuBarEditorIconEmoji)
-        case 2: return L(.menuBarEditorIconAsset)
-        default: return L(.menuBarEditorIconSymbol)
-        }
+    private func paletteChip(
+        _ content: MenuBarElementContent,
+        title: String,
+        symbol: String
+    ) -> some View {
+        MenuBarEditorChipLabel(title: title, systemImage: symbol, compact: true)
+            .draggable(MenuBarElementDragPayload(source: .palette(content)))
+            .onTapGesture { add(content) }
+            .help(title)
+            .accessibilityLabel(title)
+            .accessibilityAction { add(content) }
     }
 
-    private func addText() {
-        let value = text.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !value.isEmpty else { return }
-        onAddText(value)
-        dismiss()
-    }
-
-    private func addIcon() {
-        let value = iconValue.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !value.isEmpty else { return }
-        let source: MenuBarIconSource
-        switch iconKind {
-        case 1: source = .emoji(value)
-        case 2: source = .asset(value)
-        default: source = .sfSymbol(value)
+    private func add(_ content: MenuBarElementContent) {
+        let slot = targetSlot
+        let id: UUID?
+        switch content {
+        case .metric(let metric):
+            id = model.addMetricElement(metric, slot: slot)
+        case .text(let text):
+            id = model.addTextElement(text, slot: slot)
+        case .icon(let icon):
+            id = model.addIconElement(icon, slot: slot)
         }
-        onAddIcon(MenuBarIconSpec(source: source, tint: iconKind != 1))
-        dismiss()
-    }
-}
-
-private struct MenuBarMetricPickerRow: View {
-    let title: String
-    let symbol: String
-    let action: () -> Void
-
-    @State private var isHovering = false
-
-    var body: some View {
-        Button(action: action) {
-            HStack(spacing: 8) {
-                Image(systemName: symbol)
-                    .frame(width: 16)
-                    .foregroundStyle(.secondary)
-                Text(title)
-                    .font(.system(size: 12))
-                    .lineLimit(1)
-                Spacer(minLength: 8)
-                Image(systemName: "plus.circle.fill")
-                    .font(.system(size: 11))
-                    .foregroundStyle(.tertiary)
-            }
-            .padding(.horizontal, 8)
-            .padding(.vertical, 6)
-            .background(
-                RoundedRectangle(cornerRadius: 6, style: .continuous)
-                    .fill(isHovering ? Color.primary.opacity(0.06) : Color.clear)
-            )
-            .contentShape(Rectangle())
+        if let id {
+            selectedSlot = slot
+            selectedElementID = id
         }
-        .buttonStyle(.plain)
-        .onHover { isHovering = $0 }
     }
 }
 
 extension MenuBarMetricID {
-    /// SF Symbol used by the editor and the metric picker.
+    /// SF Symbol used by the editor and the element library.
     var editorSymbol: String {
         switch self {
         case .cpuUsage: return "cpu"

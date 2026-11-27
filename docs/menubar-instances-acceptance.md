@@ -36,24 +36,26 @@ Feature: `settings.tab.menuBarInstances` → 设置 › 菜单栏实例.
 | 21 | Hover action = Summary/CPU | Hovering the instance opens that panel; it stays until you click elsewhere |
 | 22 | Main icon untouched | Dock icon and main menu-bar icon behave exactly as before |
 
-## Editor (v3)
+## Editor (v4)
 
-The pane is one scrolling Settings column with a pinned live preview: an
-instance picker with its visibility switch, then the selected instance's
-basics, rows, element inspector, row style, and interaction settings. There is
-no palette column; each row owns its own "添加" button.
+Two columns: the left column lists instances (visibility switch, name, menu);
+the right column is the selected instance's editor. The editor is one
+scrolling column: live preview, name/layout, menu-bar strip, the element
+library under the strip, the selected-element inspector, row style, and
+spacing/interaction.
 
 | # | Case | Expected |
 |---|---|---|
-| E1 | 设置页布局 | 顶部固定实时预览；下方单列 Settings 卡片，实例用弹出菜单选择、旁边是显示开关；默认窗口宽度（720）内不横向溢出，最小宽度（640）下也不裁切 |
-| E2 | 新建空白/预设实例 | “新建”菜单可建空白或预设；新建后自动选中并显示在编辑区 |
-| E3 | 行内添加指标 | 点该行的“添加”→指标→搜索→选中；只插入指标值（如 `35%`），不带指标名；新元素自动选中 |
-| E4 | 添加文字/图标 | 点“添加”→文字与图标；可加自定义文字、SF Symbol、Emoji、资源名 |
-| E5 | 拖动排序/跨行 | 同一行拖动排序；上行拖到下行正确移动；均有右键“左移/右移/删除”替代操作 |
-| E6 | 单/双行切换 | 切单行时下行内容保留但不渲染；选中下行元素时切单行，编辑焦点回到上行 |
-| E7 | 选中元素编辑 | 点 chip 选中并在该行下方出现“选中的元素”；可改文字/图标；可左移/右移/删除；再次点击取消选中 |
-| E8 | 行样式作用域 | “行样式”卡片顶部“应用到”明确选择上行/下行；颜色/粗体/等宽/对齐立即生效 |
-| E9 | 显示开关与编辑区一致 | 用“在菜单栏显示”关闭实例后，再在编辑区改名称/元素，实例仍保持隐藏；预览同时变暗 |
+| E1 | 两栏布局 | 左实例列表 / 右编辑区；默认窗口宽度（720）下右栏不横向裁切，最小宽度（640）下也能滚动使用 |
+| E2 | 新建空白/预设实例 | 左下“新建”菜单可建空白或预设；新建后自动选中并显示在右栏 |
+| E3 | 元素库添加 | 元素库在“菜单栏条带”下方；先选“添加到 上行/下行”，点指标/文字/图标 chip 即加入该行并自动选中 |
+| E4 | 元素库拖放 | 从元素库把 chip 拖进任一行，落在指定位置；行内/跨行拖动排序同样可用 |
+| E5 | 文字与图标 | 可加自定义文字、SF Symbol、Emoji；选中后在“选中的元素”里编辑 |
+| E6 | 单/双行切换 | 切单行时下行内容保留但不渲染；元素库的“添加到”只显示上行 |
+| E7 | 选中元素编辑 | 点 chip 选中并在条带下方出现“选中的元素”；可改文字/图标；可左移/右移/删除；再次点击取消选中 |
+| E8 | 行样式作用域 | “行样式”卡片顶部“应用到”明确选择上行/下行；颜色/粗体/等宽/对齐立即生效；颜色显示当前值 + 色点 |
+| E9 | 显示开关与编辑区一致 | 用左侧开关隐藏实例后，再在编辑区改名称/元素，实例仍保持隐藏；预览同时变暗 |
+| E10 | 列表管理 | 左列可切换、重命名后即时更新；复制/上移/下移/删除在行尾菜单，删除有确认 |
 
 ## Known limitations in this build (to verify/finish)
 
