@@ -42,6 +42,8 @@ struct MenuBarInstancesSectionView: View {
                             get: { instance.isEnabled },
                             set: { listModel.setEnabled($0, id: instance.id) }
                         ))
+                        .toggleStyle(.switch)
+                        .controlSize(.small)
                         .labelsHidden()
                         VStack(alignment: .leading, spacing: 1) {
                             Text(instance.name.isEmpty ? L(.menuBarEditorUntitled) : instance.name)
