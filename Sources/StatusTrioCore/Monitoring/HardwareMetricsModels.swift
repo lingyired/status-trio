@@ -3,8 +3,12 @@ import Foundation
 /// Stable identifier for a hardware metric, independent of any SMC key.
 enum HardwareMetricID: Hashable, Sendable {
     case cpuUsage
+    /// Estimated CPU performance-core frequency in GHz.
+    case cpuFrequency
     case gpuUsage
     case memoryUsage
+    case memoryUsedBytes
+    case memoryFreeBytes
     case memoryPressure
     case cpuTemperature
     case gpuTemperature
@@ -18,6 +22,12 @@ enum HardwareMetricID: Hashable, Sendable {
     case diskRead
     /// Aggregate write throughput across physical storage devices (bytes/second).
     case diskWrite
+    /// Aggregate read + write throughput across physical storage devices.
+    case diskTotal
+    case diskUsedBytes
+    case diskFreeBytes
+    case diskExternalTotalBytes
+    case diskExternalFreeBytes
     /// Output volume percentage. Read from the audio snapshot, never sampled by
     /// the hardware service; the identity keeps `HardwareMonitorMetric.metricID`
     /// total without inventing a hardware family.
@@ -194,6 +204,9 @@ struct HardwareMetricsSnapshot: Equatable, Sendable {
     var memoryPressure: MemoryPressureReading?
     var networkDetail: NetworkDetailReading?
     var diskDetail: DiskDetailReading?
+    /// Mounted local volumes, loaded when a menu-bar instance needs the
+    /// selected external total/free values.
+    var diskVolumes: [DiskVolumeReading]?
 
     static let empty = Self()
 
@@ -336,10 +349,13 @@ struct HardwareMetricsSnapshot: Equatable, Sendable {
     static func unit(for id: HardwareMetricID) -> HardwareMetricUnit {
         switch id {
         case .cpuUsage, .gpuUsage, .memoryUsage: .percent
-        case .memoryPressure: .none
+        case .cpuFrequency, .memoryUsedBytes, .memoryFreeBytes,
+             .diskUsedBytes, .diskFreeBytes,
+             .diskExternalTotalBytes, .diskExternalFreeBytes,
+             .memoryPressure: .none
         case .cpuTemperature, .gpuTemperature, .batteryTemperature: .celsius
         case .fanRPM: .rpm
-        case .networkDownload, .networkUpload, .diskRead, .diskWrite: .bytesPerSecond
+        case .networkDownload, .networkUpload, .diskRead, .diskWrite, .diskTotal: .bytesPerSecond
         case .volume, .wifiSignal, .batteryLevel: .percent
         }
     }
@@ -358,11 +374,13 @@ enum HardwareMetricFamily: Hashable, Sendable, CaseIterable {
         var result: Set<HardwareMetricFamily> = []
         for id in ids {
             switch id {
-            case .cpuUsage, .gpuUsage, .memoryUsage, .memoryPressure: result.insert(.usage)
+            case .cpuUsage, .cpuFrequency, .gpuUsage, .memoryUsage,
+                 .memoryUsedBytes, .memoryFreeBytes, .memoryPressure: result.insert(.usage)
             case .cpuTemperature, .gpuTemperature, .batteryTemperature: result.insert(.temperature)
             case .fanRPM: result.insert(.fan)
             case .networkDownload, .networkUpload: result.insert(.network)
-            case .diskRead, .diskWrite: result.insert(.disk)
+            case .diskRead, .diskWrite, .diskTotal, .diskUsedBytes, .diskFreeBytes,
+                 .diskExternalTotalBytes, .diskExternalFreeBytes: result.insert(.disk)
             case .volume, .wifiSignal, .batteryLevel: break
             }
         }

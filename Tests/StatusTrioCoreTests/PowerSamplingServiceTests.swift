@@ -126,6 +126,29 @@ final class PowerSamplingServiceTests: XCTestCase {
         service.end(.panel)
     }
 
+    func testMenuBarDemandReadsAuxRailsWithoutStealingTheInfoBarDemand() async {
+        let sampleDate = now
+        let input = SystemPowerSample(watts: 30.2, readAt: sampleDate)
+        let battery = BatteryPowerSample(volts: 12, amps: -0.5, updatedAt: sampleDate)
+        let service = makeService { _ in
+            PowerSamplingReading(system: SystemPowerSample(watts: 18, readAt: sampleDate),
+                                 input: input, battery: battery)
+        }
+
+        service.begin(.powerInfoBar)
+        service.begin(.menuBarInstance)
+        await waitFor { service.batteryPower != nil }
+        XCTAssertEqual(service.inputPower, input)
+
+        service.end(.menuBarInstance)
+        XCTAssertEqual(service.inputPower, input,
+                       "The info bar still owns the auxiliary rails")
+
+        service.end(.powerInfoBar)
+        XCTAssertNil(service.inputPower)
+        XCTAssertNil(service.batteryPower)
+    }
+
     func testEndingAuxiliaryDemandRejectsInFlightRailsButKeepsIconSystemPower() async {
         let initialSystem = SystemPowerSample(watts: 18, readAt: now)
         let nextSystem = SystemPowerSample(watts: 21, readAt: now)

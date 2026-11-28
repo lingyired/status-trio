@@ -40,6 +40,8 @@ final class PowerSamplingService: ObservableObject {
         case powerInfoBar
         /// The battery details page is open.
         case details
+        /// A menu-bar instance shows system, input or battery power.
+        case menuBarInstance
     }
 
     typealias Reader = @Sendable (_ includeAuxiliaryRails: Bool) -> PowerSamplingReading
@@ -116,10 +118,16 @@ final class PowerSamplingService: ObservableObject {
         guard demands.remove(demand) != nil else { return }
         if demands.isEmpty {
             stopLoop()
-        } else if demand == .powerInfoBar {
+        } else if !needsAuxiliaryRails {
             // Stop showing input/battery as soon as nothing displays them.
             clearAuxiliaryRails()
         }
+    }
+
+    /// Input/battery rails are needed by the panel's power info bar or a
+    /// menu-bar instance; either demand keeps them alive independently.
+    private var needsAuxiliaryRails: Bool {
+        demands.contains(.powerInfoBar) || demands.contains(.menuBarInstance)
     }
 
     func stopAll() {
@@ -155,7 +163,7 @@ final class PowerSamplingService: ObservableObject {
         needsRefresh = false
         let generation = generation
         let reader = reader
-        let includeAuxiliaryRails = demands.contains(.powerInfoBar)
+        let includeAuxiliaryRails = needsAuxiliaryRails
         Self.queue.async { [weak self] in
             let reading = reader(includeAuxiliaryRails)
             Task { @MainActor [weak self] in
@@ -163,7 +171,7 @@ final class PowerSamplingService: ObservableObject {
                 self.inFlight = false
                 if self.isRunning, self.generation == generation {
                     if self.systemPower != reading.system { self.systemPower = reading.system }
-                    if includeAuxiliaryRails, self.demands.contains(.powerInfoBar) {
+                    if includeAuxiliaryRails, self.needsAuxiliaryRails {
                         if self.inputPower != reading.input { self.inputPower = reading.input }
                         if self.batteryPower != reading.battery { self.batteryPower = reading.battery }
                     }

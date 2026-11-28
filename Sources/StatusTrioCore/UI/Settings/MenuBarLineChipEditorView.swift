@@ -1006,15 +1006,20 @@ extension MenuBarMetricID {
     var editorSymbol: String {
         switch self {
         case .cpuUsage: return "cpu"
+        case .cpuFrequency: return "speedometer"
         case .cpuTemperature: return "thermometer.medium"
         case .gpuUsage: return "cpu.fill"
         case .gpuTemperature: return "thermometer.high"
-        case .memoryUsage: return "memorychip"
-        case .diskReadSpeed, .diskWriteSpeed: return "internaldrive"
+        case .memoryUsage, .memoryUsed, .memoryFree: return "memorychip"
+        case .diskReadSpeed, .diskWriteSpeed, .diskTotalSpeed,
+             .diskUsed, .diskFree,
+             .diskExternalTotal, .diskExternalFree: return "internaldrive"
         case .networkDownload: return "arrow.down.circle"
         case .networkUpload: return "arrow.up.circle"
         case .fanRPM: return "fan"
         case .batteryLevel: return "battery.75"
+        case .systemPower, .inputPower: return "bolt"
+        case .batteryPower: return "battery.75"
         case .wifiConnectionStatus: return "wifi"
         case .outputVolume: return "speaker.wave.2"
         case .screenBrightness: return "sun.max"
