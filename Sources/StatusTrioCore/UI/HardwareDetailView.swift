@@ -26,6 +26,9 @@ struct HardwareDetailView: View {
     /// Opens the system Activity Monitor from the header shortcut. Injectable so
     /// tests can observe the tap without launching the app.
     var openActivityMonitor: () -> Void = { ActivityMonitorShortcut.open() }
+    /// The instance deep-link mode hides the back/title row; the page is the
+    /// only surface and is dismissed by closing the menu-bar panel.
+    var showsHeader: Bool = true
 
     @EnvironmentObject private var localization: Localization
     @StateObject private var history: HardwareDetailHistoryStore
@@ -40,7 +43,8 @@ struct HardwareDetailView: View {
          networkChartFixedScale: Bool = false,
          historyWindowSeconds: TimeInterval = HardwareDetailHistoryStore.window,
          previewHistory: [HardwareDetailHistoryPoint]? = nil,
-         openActivityMonitor: @escaping () -> Void = { ActivityMonitorShortcut.open() }) {
+         openActivityMonitor: @escaping () -> Void = { ActivityMonitorShortcut.open() },
+         showsHeader: Bool = true) {
         self.kind = kind
         _hardware = ObservedObject(wrappedValue: hardware)
         self.onBack = onBack
@@ -53,6 +57,7 @@ struct HardwareDetailView: View {
         self.historyWindowSeconds = historyWindowSeconds
         self.previewHistory = previewHistory
         self.openActivityMonitor = openActivityMonitor
+        self.showsHeader = showsHeader
         _history = StateObject(wrappedValue: HardwareDetailHistoryStore(seriesCount: kind.historySeriesCount,
                                                                         seeded: previewHistory,
                                                                         historyWindow: historyWindowSeconds))
@@ -63,10 +68,12 @@ struct HardwareDetailView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            NavigationBackRow(accessibilityLabel: localization.string(.hardwareDetailBack),
-                              title: localization.string(kind.titleKey),
-                              action: onBack) {
-                activityMonitorButton
+            if showsHeader {
+                NavigationBackRow(accessibilityLabel: localization.string(.hardwareDetailBack),
+                                  title: localization.string(kind.titleKey),
+                                  action: onBack) {
+                    activityMonitorButton
+                }
             }
             content
             if let topApps, let metric = kind.topAppMetric {

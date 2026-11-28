@@ -1030,6 +1030,22 @@ struct DetailEntryToggleDismissTests {
         #expect(panel.route == .hardwareDetail(.memory))
     }
 
+    @Test func instanceDetailOnlyModeHidesSummaryAndForcesInline() {
+        let fixture = PanelStoreFixture()
+        fixture.settings.setPopupSection(.hardwareMonitor, enabled: true)
+        let panel = fixture.makePanel()
+        defer { panel.stop(); fixture.store.stop() }
+
+        panel.showHardwareDetail(.memory)
+        panel.setDetailPresentation(.alongside)
+        #expect(panel.isSummaryVisible)
+
+        panel.setInstanceDetailOnly(true)
+        #expect(panel.detailPresentation == .inline)
+        #expect(!panel.isSummaryVisible)
+        #expect(panel.route == .hardwareDetail(.memory))
+    }
+
     @Test func menuBarInstanceDeepLinkOpensHardwareDetailWhenSectionIsHidden() {
         let fixture = PanelStoreFixture()
         fixture.settings.setPopupSection(.hardwareMonitor, enabled: false)

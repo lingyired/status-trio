@@ -128,6 +128,9 @@ final class StatusPanelViewModel: ObservableObject {
         }
     }
     @Published private(set) var detailPresentation: StatusPanelDetailPresentation = .inline
+    /// A menu-bar instance opened a hardware detail as its whole panel. The
+    /// page fills the primary popover, hides the summary/footer and the header.
+    @Published private(set) var isInstanceDetailOnly = false
 
     /// Called after `route` commits a new value, before the next render pass.
     /// The window owner places the attached detail from here; reading route
@@ -816,6 +819,12 @@ final class StatusPanelViewModel: ObservableObject {
     }
 
     /// Switches where the selected detail page is shown without closing it.
+    func setInstanceDetailOnly(_ enabled: Bool) {
+        guard isInstanceDetailOnly != enabled else { return }
+        isInstanceDetailOnly = enabled
+        if enabled { setDetailPresentation(.inline) }
+    }
+
     func setDetailPresentation(_ presentation: StatusPanelDetailPresentation) {
         guard detailPresentation != presentation else { return }
         detailPresentation = presentation

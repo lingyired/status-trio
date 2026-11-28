@@ -1000,6 +1000,11 @@ final class StatusBarController: NSObject {
             detailPanel.hideDetail()
             return
         }
+        if panelViewModel.isInstanceDetailOnly {
+            panelViewModel.setDetailPresentation(.inline)
+            detailPanel.hideDetail()
+            return
+        }
         let alongside = Self.detailAlongsidePreference(
             delivered: delivered,
             stored: settings.showsPanelDetailsAlongside
@@ -1129,6 +1134,7 @@ final class StatusBarController: NSObject {
 
     /// Opens the shared status panel anchored to a custom instance's button.
     func presentInstancePanel(routeRaw: String, anchorButton: NSStatusBarButton, presentedByHover: Bool) {
+        panelViewModel.setInstanceDetailOnly(HardwareDetailKind(rawValue: routeRaw) != nil)
         applyInstanceRoute(routeRaw)
         presentPopover(
             relativeTo: anchorButton.bounds,
@@ -1519,6 +1525,7 @@ final class StatusBarController: NSObject {
     private func closePopover() {
         guard !isPopoverClosing else { return }
         isPopoverClosing = true
+        panelViewModel.setInstanceDetailOnly(false)
         // Whole-group close keeps the route so the reopen preference can restore
         // it; the detail window must go first so focus never lands on it.
         if detailPanel.isShown {

@@ -177,7 +177,8 @@ struct StatusPopoverView: View {
                                    downloadCapMbps: panel.settings.hardwareDownloadCapMbps,
                                    uploadCapMbps: panel.settings.hardwareUploadCapMbps,
                                    networkChartFixedScale: panel.settings.hardwareNetworkChartFixedScale,
-                                   historyWindowSeconds: panel.settings.hardwareHistoryWindowSeconds)
+                                   historyWindowSeconds: panel.settings.hardwareHistoryWindowSeconds,
+                                   showsHeader: !(host == .primary && panel.isInstanceDetailOnly))
                     // Key the detail page by its kind. The detail window is a
                     // long-lived host that only swaps `kind` when the user picks
                     // another metric card in alongside mode, so without a fresh
