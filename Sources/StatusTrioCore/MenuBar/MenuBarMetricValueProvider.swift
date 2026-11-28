@@ -108,7 +108,9 @@ struct MenuBarMetricValueProvider: MenuBarMetricValueProviding {
                 $0.isExternal && selected.contains($0.mountPath)
             }
             guard !volumes.isEmpty else {
-                return MenuBarMetricReading(text: Self.dash, value: nil,
+                // External volumes are hot-pluggable; an absent volume should
+                // make the value disappear rather than reserve a "--" slot.
+                return MenuBarMetricReading(text: "", value: nil,
                                             availability: .temporarilyUnavailable)
             }
             let bytes = volumes.reduce(UInt64(0)) { result, volume in
@@ -131,7 +133,7 @@ struct MenuBarMetricValueProvider: MenuBarMetricValueProviding {
         case .diskExternalUsagePercent:
             guard !externalVolumePaths().isEmpty,
                   let external = selectedExternalDiskCapacity(in: hardware) else {
-                return MenuBarMetricReading(text: Self.dash, value: nil,
+                return MenuBarMetricReading(text: "", value: nil,
                                             availability: .temporarilyUnavailable)
             }
             let value = Self.percent(used: external.total - external.free,
@@ -143,16 +145,13 @@ struct MenuBarMetricValueProvider: MenuBarMetricValueProviding {
                                             availability: .collecting)
             }
             let selected = externalVolumePaths()
-            var externalTotal = 0.0
-            var externalFree = 0.0
-            if !selected.isEmpty {
-                guard let external = selectedExternalDiskCapacity(in: hardware) else {
-                    return MenuBarMetricReading(text: Self.dash, value: nil,
-                                                availability: .temporarilyUnavailable)
-                }
-                externalTotal = external.total
-                externalFree = external.free
+            guard !selected.isEmpty,
+                  let external = selectedExternalDiskCapacity(in: hardware) else {
+                return MenuBarMetricReading(text: "", value: nil,
+                                            availability: .temporarilyUnavailable)
             }
+            let externalTotal = external.total
+            let externalFree = external.free
             if metric == .diskCombinedFree {
                 let value = internalCapacity.free + externalFree
                 return MenuBarMetricReading(

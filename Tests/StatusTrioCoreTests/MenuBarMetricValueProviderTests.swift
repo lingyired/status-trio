@@ -124,7 +124,7 @@ final class MenuBarMetricValueProviderTests: XCTestCase {
         XCTAssertEqual(result[.diskCombinedFree]?.text, "775.0 GB")
     }
 
-    func testExternalDiskPercentShowsDashWithoutSelectedVolumes() {
+    func testExternalDiskPercentHidesWithoutSelectedVolumes() {
         var hardware = HardwareMetricsSnapshot()
         hardware.samples[.diskUsedBytes] = sample(600 * 1_000_000_000, .measured)
         hardware.samples[.diskFreeBytes] = sample(400 * 1_000_000_000, .measured)
@@ -138,8 +138,8 @@ final class MenuBarMetricValueProviderTests: XCTestCase {
             hardware: hardware,
             status: status()
         )
-        XCTAssertEqual(result[.diskExternalUsagePercent]?.text, "--")
-        XCTAssertEqual(result[.diskCombinedFree]?.text, "400.0 GB")
+        XCTAssertEqual(result[.diskExternalUsagePercent]?.text, "")
+        XCTAssertEqual(result[.diskCombinedFree]?.text, "")
     }
 
     func testPowerMetricsUseLiveSamplesAndBatterySign() {

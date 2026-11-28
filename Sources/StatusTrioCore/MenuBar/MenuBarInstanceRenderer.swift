@@ -59,6 +59,11 @@ enum MenuBarInstanceRenderer {
                 lineHeights.append(0)
                 continue
             }
+            guard lineHasVisibleContent(line, readings: input.readings) else {
+                lineWidths.append(0)
+                lineHeights.append(0)
+                continue
+            }
             let defaultSize = instance.layoutMode.defaultFontSize(isTopRow: index == 0)
             let style = style(for: line, baseSize: CGFloat(defaultSize))
             let iconHeight = line.leadingIcon == nil ? 0 : CGFloat(line.leadingIconSize)
@@ -104,6 +109,21 @@ enum MenuBarInstanceRenderer {
         }
     }
 
+    static func lineHasVisibleContent(
+        _ line: MenuBarLine,
+        readings: [MenuBarMetricID: MenuBarMetricReading]
+    ) -> Bool {
+        if line.leadingIcon != nil { return true }
+        return line.elements.contains { element in
+            switch element.content {
+            case .text(let text): return !text.isEmpty
+            case .metric(let metric):
+                return !displayText(for: .metric(metric), readings: readings).isEmpty
+            case .icon: return true
+            }
+        }
+    }
+
     static func displayText(
         for content: MenuBarElementContent,
         readings: [MenuBarMetricID: MenuBarMetricReading]
@@ -145,6 +165,7 @@ enum MenuBarInstanceRenderer {
             for (index, line) in lines.enumerated() {
                 guard let line else { continue }
                 if line.isEmpty && line.leadingIcon == nil { continue }
+                guard lineHasVisibleContent(line, readings: input.readings) else { continue }
                 let defaultSize = instance.layoutMode.defaultFontSize(isTopRow: index == 0)
                 let style = style(for: line, baseSize: CGFloat(defaultSize))
                 let iconSize = line.leadingIcon == nil ? 0 : CGFloat(line.leadingIconSize)

@@ -65,6 +65,24 @@ final class MenuBarInstanceRendererTests: XCTestCase {
         XCTAssertGreaterThan(long.lineWidths[0], short.lineWidths[0])
     }
 
+    func testEmptyExternalMetricCollapsesItsLine() {
+        let line = MenuBarLine(segments: [.metric(.diskExternalTotal)])
+        let result = MenuBarInstanceRenderer.measure(
+            input(
+                top: line,
+                readings: [.diskExternalTotal: MenuBarMetricReading(
+                    text: "",
+                    value: nil,
+                    availability: .temporarilyUnavailable
+                )]
+            ),
+            appearance: appearance
+        )
+        XCTAssertEqual(result.lineWidths[0], 0, accuracy: 0.001)
+        XCTAssertEqual(result.lineHeights[0], 0, accuracy: 0.001)
+        XCTAssertEqual(result.totalWidth, 0, accuracy: 0.001)
+    }
+
     func testSegmentConcatenation() {
         let segmented = MenuBarInstanceRenderer.measure(
             input(
