@@ -425,6 +425,8 @@ struct MenuBarLeadingIconPicker: View {
     @State private var tab = 0
     @State private var search = ""
     @State private var characterText = ""
+    @State private var characterFamily: String?
+    @State private var characterBold = false
     @State private var visibleCount = 240
 
     private static let pageSize = 240
@@ -544,6 +546,8 @@ struct MenuBarLeadingIconPicker: View {
         .onAppear {
             if case .character(let value) = spec?.source {
                 characterText = value
+                characterFamily = spec?.fontFamily
+                characterBold = spec?.isBold == true
                 tab = 1
             }
         }
@@ -734,18 +738,32 @@ struct MenuBarLeadingIconPicker: View {
                         characterText = String(value.prefix(1))
                     }
                 }
-                .onSubmit {
-                    if !characterText.isEmpty {
-                        apply(MenuBarIconSpec(source: .character(characterText)))
-                    }
+                .onSubmit { applyCharacter() }
+
+            HStack(spacing: 8) {
+                Text(L(.menuBarEditorFontFamily))
+                    .font(.system(size: 10.5))
+                    .foregroundStyle(.secondary)
+
+                Picker("", selection: $characterFamily) {
+                    Text(L(.menuBarEditorSystemDefault)).tag(String?.none)
+                    Text(L(.menuBarEditorRoundedFont)).tag(Optional("rounded"))
+                    Text(L(.menuBarEditorSerifFont)).tag(Optional("serif"))
+                    Text(L(.menuBarEditorMonospacedFont)).tag(Optional("monospaced"))
                 }
+                .pickerStyle(.menu)
+                .labelsHidden()
+                .fixedSize()
+            }
+
+            Toggle(L(.menuBarEditorBold), isOn: $characterBold)
+                .toggleStyle(.switch)
+                .controlSize(.small)
 
             HStack {
                 Spacer(minLength: 0)
-                Button(L(.menuBarEditorAdd)) {
-                    apply(MenuBarIconSpec(source: .character(characterText)))
-                }
-                .disabled(characterText.isEmpty)
+                Button(L(.menuBarEditorAdd)) { applyCharacter() }
+                    .disabled(characterText.isEmpty)
             }
         }
         .frame(height: 236, alignment: .top)
@@ -779,6 +797,15 @@ struct MenuBarLeadingIconPicker: View {
     private func apply(_ icon: MenuBarIconSpec) {
         onChange(icon)
         if dismissOnPick { dismiss() }
+    }
+
+    private func applyCharacter() {
+        guard !characterText.isEmpty else { return }
+        apply(MenuBarIconSpec(
+            source: .character(characterText),
+            fontFamily: characterFamily,
+            isBold: characterBold ? true : nil
+        ))
     }
 
 }

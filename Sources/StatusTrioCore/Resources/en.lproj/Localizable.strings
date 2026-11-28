@@ -1512,6 +1512,10 @@
 "menubar.editor.monospaced" = "Monospaced digits";
 "menubar.editor.fontSize" = "Font Size";
 "menubar.editor.character" = "Character";
+"menubar.editor.fontFamily" = "Font Family";
+"menubar.editor.roundedFont" = "Rounded";
+"menubar.editor.serifFont" = "Serif";
+"menubar.editor.monospacedFont" = "Monospaced";
 "menubar.editor.characterHint" = "Enter one character to use as the icon";
 "menubar.editor.refreshSummary" = "Data refresh: %@";
 "menubar.editor.refreshSecondsFormat" = "%@ %d s";

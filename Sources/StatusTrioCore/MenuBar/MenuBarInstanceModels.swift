@@ -46,10 +46,23 @@ struct MenuBarIconSpec: Codable, Equatable, Sendable {
     /// Only meaningful for SF Symbols, characters and template assets; emoji
     /// ignore it.
     var tint: Bool
+    /// Font family for `.character` icons. `nil` uses the system font; the
+    /// design names `rounded`, `serif` and `monospaced` map to system designs,
+    /// any other value is resolved as an installed family name.
+    var fontFamily: String?
+    /// Bold face for `.character` icons; optional so older files decode.
+    var isBold: Bool?
 
-    init(source: MenuBarIconSource, tint: Bool = true) {
+    init(
+        source: MenuBarIconSource,
+        tint: Bool = true,
+        fontFamily: String? = nil,
+        isBold: Bool? = nil
+    ) {
         self.source = source
         self.tint = tint
+        self.fontFamily = fontFamily
+        self.isBold = isBold
     }
 }
 

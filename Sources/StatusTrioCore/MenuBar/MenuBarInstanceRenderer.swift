@@ -243,6 +243,30 @@ enum MenuBarInstanceRenderer {
         return result
     }
 
+    private static func characterFont(for spec: MenuBarIconSpec, size: CGFloat) -> NSFont {
+        let bold = spec.isBold == true
+        let system = NSFont.systemFont(ofSize: size, weight: bold ? .bold : .regular)
+        guard let family = spec.fontFamily, !family.isEmpty else { return system }
+        switch family {
+        case "rounded", "serif", "monospaced":
+            let design: NSFontDescriptor.SystemDesign = switch family {
+            case "rounded": .rounded
+            case "serif": .serif
+            default: .monospaced
+            }
+            guard let descriptor = system.fontDescriptor.withDesign(design),
+                  let font = NSFont(descriptor: descriptor, size: size) else { return system }
+            return font
+        default:
+            return NSFontManager.shared.font(
+                withFamily: family,
+                traits: bold ? .boldFontMask : [],
+                weight: bold ? 9 : 5,
+                size: size
+            ) ?? system
+        }
+    }
+
     private static func drawIcon(_ spec: MenuBarIconSpec, in rect: NSRect, tintColor: NSColor) {
         switch spec.source {
         case .sfSymbol(let name):
@@ -260,7 +284,7 @@ enum MenuBarInstanceRenderer {
             let image = spec.tint ? tinted(asset, color: tintColor) : asset
             image.draw(in: rect, from: .zero, operation: .sourceOver, fraction: 1)
         case .character(let value):
-            let font = NSFont.systemFont(ofSize: rect.height)
+            let font = characterFont(for: spec, size: rect.height)
             let attributed = NSAttributedString(
                 string: String(value.prefix(1)),
                 attributes: [.font: font, .foregroundColor: tintColor]

@@ -1513,6 +1513,10 @@
 "menubar.editor.monospaced" = "等宽数字";
 "menubar.editor.fontSize" = "字體大小";
 "menubar.editor.character" = "字元";
+"menubar.editor.fontFamily" = "字體家族";
+"menubar.editor.roundedFont" = "圓體";
+"menubar.editor.serifFont" = "襯線";
+"menubar.editor.monospacedFont" = "等寬";
 "menubar.editor.characterHint" = "輸入一個字元作為圖示";
 "menubar.editor.refreshSummary" = "資料刷新：%@";
 "menubar.editor.refreshSecondsFormat" = "%@ %d 秒";
