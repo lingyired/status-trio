@@ -1496,6 +1496,15 @@
 "menubar.editor.matchTextColor" = "跟隨文字顏色";
 "menubar.editor.assetHint" = "Assets.xcassets 裡的資源名稱，不是檔案路徑";
 "menubar.editor.exportInstance" = "匯出實例…";
+"menubar.preset.network" = "網路";
+"menubar.preset.cpuTemperature" = "CPU 使用率+溫度";
+"menubar.preset.gpuTemperature" = "GPU 使用率+溫度";
+"menubar.preset.memory" = "記憶體";
+"menubar.preset.disk" = "磁碟速度";
+"menubar.preset.power" = "功耗";
+"menubar.preset.fan" = "風扇轉速";
+"menubar.preset.cpu" = "CPU 使用率";
+"menubar.preset.gpu" = "GPU 使用率";
 "menubar.editor.exportAllInstances" = "匯出全部實例…";
 "menubar.editor.importInvalidFiles" = "選取的檔案沒有可匯入的實例。";
 "menubar.editor.importSummary" = "匯入完成";

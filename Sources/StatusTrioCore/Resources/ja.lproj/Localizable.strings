@@ -1496,6 +1496,15 @@
 "menubar.editor.matchTextColor" = "Match text color";
 "menubar.editor.assetHint" = "Asset catalog name, not a file path";
 "menubar.editor.exportInstance" = "Export Instance…";
+"menubar.preset.network" = "ネットワーク";
+"menubar.preset.cpuTemperature" = "CPU 使用率+温度";
+"menubar.preset.gpuTemperature" = "GPU 使用率+温度";
+"menubar.preset.memory" = "メモリ";
+"menubar.preset.disk" = "ディスク速度";
+"menubar.preset.power" = "電力";
+"menubar.preset.fan" = "ファン回転数";
+"menubar.preset.cpu" = "CPU 使用率";
+"menubar.preset.gpu" = "GPU 使用率";
 "menubar.editor.exportAllInstances" = "すべてのインスタンスを書き出す…";
 "menubar.editor.importInvalidFiles" = "選択したファイルに読み込めるインスタンスがありません。";
 "menubar.editor.importSummary" = "読み込み完了";

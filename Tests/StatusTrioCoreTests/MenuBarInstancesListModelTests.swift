@@ -18,8 +18,19 @@ final class MenuBarInstancesListModelTests: XCTestCase {
         let store = scratchStore()
         MenuBarInstancesListModel(store: store).addPreset(.cpu)
         XCTAssertEqual(store.menuBarInstances.instances.count, 1)
-        XCTAssertEqual(contents(store.menuBarInstances.instances[0]), [.text("CPU "), .metric(.cpuUsage)])
-        XCTAssertNil(store.menuBarInstances.instances[0].bottom)
+        let instance = store.menuBarInstances.instances[0]
+        XCTAssertEqual(contents(instance), [.text("CPU ")])
+        XCTAssertEqual(instance.bottom?.elements.map(\.content), [.metric(.cpuUsage)])
+        XCTAssertEqual(instance.clickAction, .panel("cpu"))
+    }
+
+    func testPresetCatalogUsesUserTemplates() {
+        XCTAssertEqual(MenuBarPreset.allCases.count, 9)
+        for preset in MenuBarPreset.allCases {
+            let instance = preset.makeInstance()
+            XCTAssertNotNil(instance.top)
+            XCTAssertFalse(instance.name.isEmpty)
+        }
     }
 
     func testCanAddFalseAt20() {

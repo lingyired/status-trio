@@ -1,38 +1,58 @@
 import Foundation
 
 enum MenuBarPreset: String, CaseIterable, Identifiable, Sendable {
-    case cpu
-    case temperature
-    case memory
     case network
-    case battery
+    case cpuTemperature
+    case gpuTemperature
+    case memory
+    case disk
+    case power
+    case fan
+    case cpu
+    case gpu
 
     var id: String { rawValue }
 
     var titleKey: LocalizationKey {
         switch self {
-        case .cpu: return .hardwareMonitorCPU
-        case .temperature: return .hardwareMonitorTemperature
-        case .memory: return .hardwareMonitorMemory
-        case .network: return .hardwareMonitorDownload
-        case .battery: return .hardwareMonitorBattery
+        case .network: return .menuBarPresetNetwork
+        case .cpuTemperature: return .menuBarPresetCPUTemperature
+        case .gpuTemperature: return .menuBarPresetGPUTemperature
+        case .memory: return .menuBarPresetMemory
+        case .disk: return .menuBarPresetDisk
+        case .power: return .menuBarPresetPower
+        case .fan: return .menuBarPresetFan
+        case .cpu: return .menuBarPresetCPU
+        case .gpu: return .menuBarPresetGPU
         }
     }
 
     func makeInstance() -> MenuBarInstance {
-        switch self {
-        case .cpu:
-            return MenuBarInstance(name: "CPU", layoutMode: .doubleLine, top: MenuBarLine(elements: [MenuBarElement(content: .text("CPU ")), MenuBarElement(content: .metric(.cpuUsage))]))
-        case .temperature:
-            return MenuBarInstance(name: "CPU Temp", layoutMode: .doubleLine, top: MenuBarLine(elements: [MenuBarElement(content: .metric(.cpuTemperature))]))
-        case .memory:
-            return MenuBarInstance(name: "Memory", layoutMode: .doubleLine, top: MenuBarLine(elements: [MenuBarElement(content: .metric(.memoryUsage))]))
-        case .network:
-            return MenuBarInstance(name: "Network", layoutMode: .doubleLine, top: MenuBarLine(elements: [MenuBarElement(content: .metric(.networkDownload))]))
-        case .battery:
-            return MenuBarInstance(name: "Battery", layoutMode: .doubleLine, top: MenuBarLine(elements: [MenuBarElement(content: .metric(.batteryLevel))]))
+        let index = Self.allCases.firstIndex(of: self) ?? 0
+        guard Self.templates.indices.contains(index) else {
+            return MenuBarInstance(name: titleKey.rawValue, top: MenuBarLine())
         }
+        var instance = Self.templates[index]
+        instance.id = UUID()
+        // The exported source accidentally routed both GPU presets to the CPU
+        // detail page; the preset itself should always match its metric.
+        if self == .gpuTemperature || self == .gpu {
+            instance.clickAction = .panel("gpu")
+        }
+        return instance
     }
+
+    /// Templates live in the bundled JSON so the presets stay editable as data
+    /// rather than a large Swift literal. Instance names are replaced with the
+    /// localized title when the editor inserts one.
+    private static let templates: [MenuBarInstance] = {
+        guard let url = Bundle.module.url(forResource: "MenuBarInstancePresets",
+                                          withExtension: "json"),
+              let data = try? Data(contentsOf: url),
+              let document = try? MenuBarInstanceTransfer.decodeAll(data)
+        else { return [] }
+        return document
+    }()
 }
 
 /// Convenience layer over `SettingsStore` for the list screen. All mutations go

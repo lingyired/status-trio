@@ -1,0 +1,655 @@
+{
+  "format" : "status-trio.menu-bar-instances",
+  "instances" : [
+    {
+      "bottom" : {
+        "alignment" : "trailing",
+        "color" : {
+          "systemDefault" : {
+
+          }
+        },
+        "elements" : [
+          {
+            "content" : {
+              "metric" : "networkDownload",
+              "type" : "metric"
+            },
+            "id" : "0EAEB7B4-0B20-4BAA-80BD-DB43631C67CD"
+          }
+        ],
+        "fontSize" : 8,
+        "isBold" : true,
+        "leadingIcon" : {
+          "source" : {
+            "character" : {
+              "_0" : "↓"
+            }
+          },
+          "tint" : true
+        },
+        "leadingIconColor" : {
+          "alpha" : 1,
+          "blue" : 0,
+          "green" : 1,
+          "red" : 0
+        },
+        "leadingIconSize" : 9,
+        "usesMonospacedDigits" : true
+      },
+      "clickAction" : {
+        "panel" : {
+          "_0" : "network"
+        }
+      },
+      "hoverAction" : {
+        "none" : {
+
+        }
+      },
+      "id" : "5FF11569-DD4D-4638-9FEC-5D894EFCE2BD",
+      "innerPadding" : 0,
+      "isEnabled" : true,
+      "layoutMode" : "doubleLine",
+      "minimumWidth" : 54,
+      "name" : "网络",
+      "outerMargin" : 4,
+      "rightClick" : {
+        "sameAsMainIcon" : {
+
+        }
+      },
+      "top" : {
+        "alignment" : "trailing",
+        "color" : {
+          "systemDefault" : {
+
+          }
+        },
+        "elements" : [
+          {
+            "content" : {
+              "metric" : "networkUpload",
+              "type" : "metric"
+            },
+            "id" : "F72D64E0-9E52-4A66-A35A-1930C3436805"
+          }
+        ],
+        "fontSize" : 8,
+        "isBold" : true,
+        "leadingIcon" : {
+          "isBold" : true,
+          "source" : {
+            "character" : {
+              "_0" : "↑"
+            }
+          },
+          "tint" : true
+        },
+        "leadingIconColor" : {
+          "alpha" : 1,
+          "blue" : 0.1598779261112213,
+          "green" : 0.09872578829526901,
+          "red" : 1
+        },
+        "leadingIconSize" : 9,
+        "usesMonospacedDigits" : true
+      }
+    },
+    {
+      "bottom" : {
+        "alignment" : "center",
+        "color" : {
+          "systemDefault" : {
+
+          }
+        },
+        "elements" : [
+          {
+            "content" : {
+              "metric" : "cpuUsage",
+              "type" : "metric"
+            },
+            "id" : "7B1D1741-CFE2-43A4-B78B-FB67D6A7C8EC"
+          },
+          {
+            "content" : {
+              "text" : " ",
+              "type" : "text"
+            },
+            "id" : "B1E16F88-C94D-4B5D-AF15-771034079370"
+          },
+          {
+            "content" : {
+              "metric" : "cpuTemperature",
+              "type" : "metric"
+            },
+            "id" : "2265B92E-4B00-45DE-B27D-2A490C12F091"
+          }
+        ],
+        "fontSize" : 10,
+        "isBold" : true,
+        "leadingIconSize" : 16,
+        "usesMonospacedDigits" : true
+      },
+      "clickAction" : {
+        "panel" : {
+          "_0" : "cpu"
+        }
+      },
+      "hoverAction" : {
+        "none" : {
+
+        }
+      },
+      "id" : "81CDDED7-7D66-4814-96B8-9314B0A29033",
+      "innerPadding" : 0,
+      "isEnabled" : true,
+      "layoutMode" : "doubleLineLargeBottom",
+      "minimumWidth" : 46,
+      "name" : "CPU 占用+温度",
+      "outerMargin" : 4,
+      "rightClick" : {
+        "sameAsMainIcon" : {
+
+        }
+      },
+      "top" : {
+        "alignment" : "center",
+        "color" : {
+          "systemDefault" : {
+
+          }
+        },
+        "elements" : [
+          {
+            "content" : {
+              "text" : "CPU ",
+              "type" : "text"
+            },
+            "id" : "7A56FE64-15FD-4A20-B8EE-A22167D9F55B"
+          }
+        ],
+        "fontSize" : 8,
+        "isBold" : false,
+        "leadingIconSize" : 16,
+        "usesMonospacedDigits" : true
+      }
+    },
+    {
+      "bottom" : {
+        "alignment" : "center",
+        "color" : {
+          "systemDefault" : {
+
+          }
+        },
+        "elements" : [
+          {
+            "content" : {
+              "metric" : "gpuUsage",
+              "type" : "metric"
+            },
+            "id" : "C4A26B9A-E7CE-40DD-A85D-1C5E3D7C81C7"
+          },
+          {
+            "content" : {
+              "text" : " ",
+              "type" : "text"
+            },
+            "id" : "FC1955FF-E8D9-41ED-9092-6A03F9531E22"
+          },
+          {
+            "content" : {
+              "metric" : "gpuTemperature",
+              "type" : "metric"
+            },
+            "id" : "F7FE1660-FFC3-40EF-9B0B-AE39B52F84CF"
+          }
+        ],
+        "fontSize" : 10,
+        "isBold" : true,
+        "leadingIconSize" : 16,
+        "usesMonospacedDigits" : true
+      },
+      "clickAction" : {
+        "panel" : {
+          "_0" : "cpu"
+        }
+      },
+      "hoverAction" : {
+        "none" : {
+
+        }
+      },
+      "id" : "53FB9060-58AD-46AC-A58F-390E6AA3C3D7",
+      "innerPadding" : 0,
+      "isEnabled" : true,
+      "layoutMode" : "doubleLineLargeBottom",
+      "minimumWidth" : 46,
+      "name" : "GPU 占用+温度 ",
+      "outerMargin" : 4,
+      "rightClick" : {
+        "sameAsMainIcon" : {
+
+        }
+      },
+      "top" : {
+        "alignment" : "center",
+        "color" : {
+          "systemDefault" : {
+
+          }
+        },
+        "elements" : [
+          {
+            "content" : {
+              "text" : "GPU",
+              "type" : "text"
+            },
+            "id" : "E9E62906-68DB-41C4-B9B3-4128A8354302"
+          }
+        ],
+        "fontSize" : 8,
+        "isBold" : false,
+        "leadingIconSize" : 16,
+        "usesMonospacedDigits" : true
+      }
+    },
+    {
+      "bottom" : {
+        "alignment" : "center",
+        "color" : {
+          "systemDefault" : {
+
+          }
+        },
+        "elements" : [
+          {
+            "content" : {
+              "metric" : "memoryUsage",
+              "type" : "metric"
+            },
+            "id" : "3500D184-5F4A-4E15-8BA3-07E7739F26C1"
+          }
+        ],
+        "fontSize" : 10,
+        "isBold" : true,
+        "leadingIconSize" : 16,
+        "usesMonospacedDigits" : true
+      },
+      "clickAction" : {
+        "panel" : {
+          "_0" : "memory"
+        }
+      },
+      "hoverAction" : {
+        "none" : {
+
+        }
+      },
+      "id" : "BB8C3882-8CF0-4AB4-8A4B-E6F62339582B",
+      "innerPadding" : 0,
+      "isEnabled" : true,
+      "layoutMode" : "doubleLineLargeBottom",
+      "name" : "内存 ",
+      "outerMargin" : 4,
+      "rightClick" : {
+        "sameAsMainIcon" : {
+
+        }
+      },
+      "top" : {
+        "alignment" : "center",
+        "color" : {
+          "systemDefault" : {
+
+          }
+        },
+        "elements" : [
+          {
+            "content" : {
+              "text" : "RAM",
+              "type" : "text"
+            },
+            "id" : "20869138-08F8-49A3-AA01-3A672EB9BFE2"
+          }
+        ],
+        "isBold" : false,
+        "leadingIconSize" : 16,
+        "usesMonospacedDigits" : true
+      }
+    },
+    {
+      "bottom" : {
+        "alignment" : "center",
+        "color" : {
+          "systemDefault" : {
+
+          }
+        },
+        "elements" : [
+          {
+            "content" : {
+              "metric" : "diskCombinedUsagePercent",
+              "type" : "metric"
+            },
+            "id" : "8A278B6A-0F42-4115-9265-F3E47E49840C"
+          }
+        ],
+        "fontSize" : 10,
+        "isBold" : true,
+        "leadingIconSize" : 16,
+        "usesMonospacedDigits" : true
+      },
+      "clickAction" : {
+        "panel" : {
+          "_0" : "disk"
+        }
+      },
+      "hoverAction" : {
+        "none" : {
+
+        }
+      },
+      "id" : "95AD6D7B-36B2-46E1-8102-1EFAD38B512B",
+      "innerPadding" : 0,
+      "isEnabled" : true,
+      "layoutMode" : "doubleLineLargeBottom",
+      "name" : "硬盘速度",
+      "outerMargin" : 4,
+      "rightClick" : {
+        "sameAsMainIcon" : {
+
+        }
+      },
+      "top" : {
+        "alignment" : "center",
+        "color" : {
+          "systemDefault" : {
+
+          }
+        },
+        "elements" : [
+          {
+            "content" : {
+              "text" : "SSD",
+              "type" : "text"
+            },
+            "id" : "958AF656-9692-4CDB-A12F-5EA09B6F61EE"
+          }
+        ],
+        "isBold" : false,
+        "leadingIconSize" : 16,
+        "usesMonospacedDigits" : true
+      }
+    },
+    {
+      "bottom" : {
+        "alignment" : "center",
+        "color" : {
+          "systemDefault" : {
+
+          }
+        },
+        "elements" : [
+          {
+            "content" : {
+              "metric" : "systemPower",
+              "type" : "metric"
+            },
+            "id" : "7C00E1EF-6294-4035-957D-2B022EF17594"
+          }
+        ],
+        "fontSize" : 10,
+        "isBold" : true,
+        "leadingIconSize" : 16,
+        "usesMonospacedDigits" : true
+      },
+      "clickAction" : {
+        "panel" : {
+          "_0" : "battery"
+        }
+      },
+      "hoverAction" : {
+        "none" : {
+
+        }
+      },
+      "id" : "25053DFC-5D5E-4F0E-AB2F-462111E75068",
+      "innerPadding" : 0,
+      "isEnabled" : true,
+      "layoutMode" : "doubleLineLargeBottom",
+      "name" : "功耗",
+      "outerMargin" : 4,
+      "rightClick" : {
+        "sameAsMainIcon" : {
+
+        }
+      },
+      "top" : {
+        "alignment" : "center",
+        "color" : {
+          "systemDefault" : {
+
+          }
+        },
+        "elements" : [
+          {
+            "content" : {
+              "text" : "Power",
+              "type" : "text"
+            },
+            "id" : "E81F78EC-AC25-48C0-9D90-6B646CC00F0F"
+          }
+        ],
+        "isBold" : false,
+        "leadingIconSize" : 16,
+        "usesMonospacedDigits" : true
+      }
+    },
+    {
+      "bottom" : {
+        "alignment" : "center",
+        "color" : {
+          "systemDefault" : {
+
+          }
+        },
+        "elements" : [
+          {
+            "content" : {
+              "metric" : "fanRPM",
+              "type" : "metric"
+            },
+            "id" : "657EA105-0878-480A-8A0D-A3F24F7952AA"
+          }
+        ],
+        "fontSize" : 10,
+        "isBold" : true,
+        "leadingIconSize" : 16,
+        "usesMonospacedDigits" : true
+      },
+      "clickAction" : {
+        "panel" : {
+          "_0" : "fan"
+        }
+      },
+      "hoverAction" : {
+        "none" : {
+
+        }
+      },
+      "id" : "A9F4DDEE-4624-44B8-B8F7-3423807D5CD8",
+      "innerPadding" : 0,
+      "isEnabled" : true,
+      "layoutMode" : "doubleLineLargeBottom",
+      "minimumWidth" : 54,
+      "name" : "风扇转速",
+      "outerMargin" : 4,
+      "rightClick" : {
+        "sameAsMainIcon" : {
+
+        }
+      },
+      "top" : {
+        "alignment" : "center",
+        "color" : {
+          "systemDefault" : {
+
+          }
+        },
+        "elements" : [
+          {
+            "content" : {
+              "icon" : {
+                "source" : {
+                  "sfSymbol" : {
+                    "_0" : "fan.fill"
+                  }
+                },
+                "tint" : true
+              },
+              "type" : "icon"
+            },
+            "id" : "098F39D6-662B-4561-8BD9-76880B9F4FEF"
+          }
+        ],
+        "isBold" : false,
+        "leadingIconSize" : 16,
+        "usesMonospacedDigits" : true
+      }
+    },
+    {
+      "bottom" : {
+        "alignment" : "center",
+        "color" : {
+          "systemDefault" : {
+
+          }
+        },
+        "elements" : [
+          {
+            "content" : {
+              "metric" : "cpuUsage",
+              "type" : "metric"
+            },
+            "id" : "7B1D1741-CFE2-43A4-B78B-FB67D6A7C8EC"
+          }
+        ],
+        "fontSize" : 10,
+        "isBold" : true,
+        "leadingIconSize" : 16,
+        "usesMonospacedDigits" : true
+      },
+      "clickAction" : {
+        "panel" : {
+          "_0" : "cpu"
+        }
+      },
+      "hoverAction" : {
+        "none" : {
+
+        }
+      },
+      "id" : "8D46F3A1-66F5-465A-AB70-0798A0867CD9",
+      "innerPadding" : 0,
+      "isEnabled" : true,
+      "layoutMode" : "doubleLineLargeBottom",
+      "name" : "CPU 占用",
+      "outerMargin" : 4,
+      "rightClick" : {
+        "sameAsMainIcon" : {
+
+        }
+      },
+      "top" : {
+        "alignment" : "center",
+        "color" : {
+          "systemDefault" : {
+
+          }
+        },
+        "elements" : [
+          {
+            "content" : {
+              "text" : "CPU ",
+              "type" : "text"
+            },
+            "id" : "7A56FE64-15FD-4A20-B8EE-A22167D9F55B"
+          }
+        ],
+        "fontSize" : 8,
+        "isBold" : false,
+        "leadingIconSize" : 16,
+        "usesMonospacedDigits" : true
+      }
+    },
+    {
+      "bottom" : {
+        "alignment" : "center",
+        "color" : {
+          "systemDefault" : {
+
+          }
+        },
+        "elements" : [
+          {
+            "content" : {
+              "metric" : "gpuUsage",
+              "type" : "metric"
+            },
+            "id" : "C4A26B9A-E7CE-40DD-A85D-1C5E3D7C81C7"
+          }
+        ],
+        "fontSize" : 10,
+        "isBold" : true,
+        "leadingIconSize" : 16,
+        "usesMonospacedDigits" : true
+      },
+      "clickAction" : {
+        "panel" : {
+          "_0" : "cpu"
+        }
+      },
+      "hoverAction" : {
+        "none" : {
+
+        }
+      },
+      "id" : "3035C05C-AEB8-480C-85D9-27644C6197B7",
+      "innerPadding" : 0,
+      "isEnabled" : true,
+      "layoutMode" : "doubleLineLargeBottom",
+      "name" : "GPU 占用",
+      "outerMargin" : 4,
+      "rightClick" : {
+        "sameAsMainIcon" : {
+
+        }
+      },
+      "top" : {
+        "alignment" : "center",
+        "color" : {
+          "systemDefault" : {
+
+          }
+        },
+        "elements" : [
+          {
+            "content" : {
+              "text" : "GPU",
+              "type" : "text"
+            },
+            "id" : "E9E62906-68DB-41C4-B9B3-4128A8354302"
+          }
+        ],
+        "fontSize" : 8,
+        "isBold" : false,
+        "leadingIconSize" : 16,
+        "usesMonospacedDigits" : true
+      }
+    }
+  ],
+  "version" : 1
+}

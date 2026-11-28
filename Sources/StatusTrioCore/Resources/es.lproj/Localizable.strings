@@ -1496,6 +1496,15 @@
 "menubar.editor.matchTextColor" = "Match text color";
 "menubar.editor.assetHint" = "Asset catalog name, not a file path";
 "menubar.editor.exportInstance" = "Export Instance…";
+"menubar.preset.network" = "Red";
+"menubar.preset.cpuTemperature" = "Uso de CPU + temp.";
+"menubar.preset.gpuTemperature" = "Uso de GPU + temp.";
+"menubar.preset.memory" = "Memoria";
+"menubar.preset.disk" = "Velocidad del disco";
+"menubar.preset.power" = "Potencia";
+"menubar.preset.fan" = "Velocidad del ventilador";
+"menubar.preset.cpu" = "Uso de CPU";
+"menubar.preset.gpu" = "Uso de GPU";
 "menubar.editor.exportAllInstances" = "Exportar todas las instancias…";
 "menubar.editor.importInvalidFiles" = "Los archivos seleccionados no contienen instancias importables.";
 "menubar.editor.importSummary" = "Importación completada";

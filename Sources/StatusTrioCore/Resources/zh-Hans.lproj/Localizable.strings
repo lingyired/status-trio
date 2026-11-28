@@ -1496,6 +1496,15 @@
 "menubar.editor.matchTextColor" = "跟随文字颜色";
 "menubar.editor.assetHint" = "Assets.xcassets 里的资源名称，不是文件路径";
 "menubar.editor.exportInstance" = "导出实例…";
+"menubar.preset.network" = "网络";
+"menubar.preset.cpuTemperature" = "CPU 占用+温度";
+"menubar.preset.gpuTemperature" = "GPU 占用+温度";
+"menubar.preset.memory" = "内存";
+"menubar.preset.disk" = "硬盘速度";
+"menubar.preset.power" = "功耗";
+"menubar.preset.fan" = "风扇转速";
+"menubar.preset.cpu" = "CPU 占用";
+"menubar.preset.gpu" = "GPU 占用";
 "menubar.editor.exportAllInstances" = "导出全部实例…";
 "menubar.editor.importInvalidFiles" = "选中的文件没有可导入的实例。";
 "menubar.editor.importSummary" = "导入完成";

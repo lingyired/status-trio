@@ -1496,6 +1496,15 @@
 "menubar.editor.matchTextColor" = "Match text color";
 "menubar.editor.assetHint" = "Asset catalog name, not a file path";
 "menubar.editor.exportInstance" = "Export Instance…";
+"menubar.preset.network" = "الشبكة";
+"menubar.preset.cpuTemperature" = "استخدام CPU + الحرارة";
+"menubar.preset.gpuTemperature" = "استخدام GPU + الحرارة";
+"menubar.preset.memory" = "الذاكرة";
+"menubar.preset.disk" = "سرعة القرص";
+"menubar.preset.power" = "الطاقة";
+"menubar.preset.fan" = "سرعة المروحة";
+"menubar.preset.cpu" = "استخدام CPU";
+"menubar.preset.gpu" = "استخدام GPU";
 "menubar.editor.exportAllInstances" = "تصدير جميع النسخ…";
 "menubar.editor.importInvalidFiles" = "لم تحتوِ الملفات المحددة على نسخ قابلة للاستيراد.";
 "menubar.editor.importSummary" = "اكتمل الاستيراد";

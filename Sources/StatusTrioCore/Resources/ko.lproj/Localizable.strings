@@ -1496,6 +1496,15 @@
 "menubar.editor.matchTextColor" = "Match text color";
 "menubar.editor.assetHint" = "Asset catalog name, not a file path";
 "menubar.editor.exportInstance" = "Export Instance…";
+"menubar.preset.network" = "네트워크";
+"menubar.preset.cpuTemperature" = "CPU 사용률+온도";
+"menubar.preset.gpuTemperature" = "GPU 사용률+온도";
+"menubar.preset.memory" = "메모리";
+"menubar.preset.disk" = "디스크 속도";
+"menubar.preset.power" = "전력";
+"menubar.preset.fan" = "팬 속도";
+"menubar.preset.cpu" = "CPU 사용률";
+"menubar.preset.gpu" = "GPU 사용률";
 "menubar.editor.exportAllInstances" = "모든 인스턴스 내보내기…";
 "menubar.editor.importInvalidFiles" = "선택한 파일에 가져올 수 있는 인스턴스가 없습니다.";
 "menubar.editor.importSummary" = "가져오기 완료";
