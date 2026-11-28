@@ -143,13 +143,6 @@ struct HighEnergyAppsView: View {
                             .lineLimit(1)
                             .fixedSize(horizontal: true, vertical: false)
                     }
-                    if ranking.coverage(for: app).contains(.gpuEnergy),
-                       !ranking.coverage(for: app).contains(.cpuEnergy) {
-                        Text("GPU")
-                            .font(.caption2)
-                            .foregroundStyle(.tertiary)
-                            .lineLimit(1)
-                    }
                 }
                 .contentShape(Rectangle())
                 .accessibilityElement(children: .combine)
