@@ -134,12 +134,13 @@ final class MenuBarMetricValueProviderTests: XCTestCase {
                               isExternal: true, isReadOnly: false),
         ]
         let result = provider.readings(
-            for: [.diskExternalUsagePercent, .diskCombinedFree],
+            for: [.diskExternalUsagePercent, .diskCombinedUsagePercent, .diskCombinedFree],
             hardware: hardware,
             status: status()
         )
         XCTAssertEqual(result[.diskExternalUsagePercent]?.text, "")
-        XCTAssertEqual(result[.diskCombinedFree]?.text, "")
+        XCTAssertEqual(result[.diskCombinedUsagePercent]?.text, "60%")
+        XCTAssertEqual(result[.diskCombinedFree]?.text, "400.0 GB")
     }
 
     func testPowerMetricsUseLiveSamplesAndBatterySign() {

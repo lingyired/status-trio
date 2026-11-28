@@ -145,13 +145,15 @@ struct MenuBarMetricValueProvider: MenuBarMetricValueProviding {
                                             availability: .collecting)
             }
             let selected = externalVolumePaths()
-            guard !selected.isEmpty,
-                  let external = selectedExternalDiskCapacity(in: hardware) else {
-                return MenuBarMetricReading(text: "", value: nil,
-                                            availability: .temporarilyUnavailable)
+            var externalTotal = 0.0
+            var externalFree = 0.0
+            if !selected.isEmpty,
+               let external = selectedExternalDiskCapacity(in: hardware) {
+                externalTotal = external.total
+                externalFree = external.free
             }
-            let externalTotal = external.total
-            let externalFree = external.free
+            // Combined metrics intentionally fall back to the internal disk
+            // when no external volume is selected or currently attached.
             if metric == .diskCombinedFree {
                 let value = internalCapacity.free + externalFree
                 return MenuBarMetricReading(
