@@ -97,13 +97,14 @@ final class ApplicationEnergyWindowTests: XCTestCase {
         XCTAssertEqual(window.ranking().effectiveDuration, 5, accuracy: 0.001)
     }
 
-    func testTopFiveAndStableTieBreak() {
-        let apps = (0..<7).map { EnergyApplication(id: "/App\($0).app", name: "App\($0)") }
+    func testTopTenAndStableTieBreak() {
+        let apps = (0..<12).map { EnergyApplication(id: String(format: "/App%02d.app", $0), name: "App\($0)") }
         var window = ApplicationEnergyWindow(configuration: .init(minimumDuration: 1))
         window.append(contentsOf: apps.map { interval(0, 5, app: $0, cpuJoules: 5) })
         let ranking = window.ranking()
-        XCTAssertEqual(ranking.apps.count, 5)
-        XCTAssertEqual(ranking.apps.map(\.id), ["/App0.app", "/App1.app", "/App2.app", "/App3.app", "/App4.app"])
+        XCTAssertEqual(ranking.apps.count, 10)
+        XCTAssertEqual(ranking.apps.map(\.id),
+                       (0..<10).map { String(format: "/App%02d.app", $0) })
     }
 
     func testNoiseThresholdProducesEmptyState() {

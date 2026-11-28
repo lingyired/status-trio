@@ -12,13 +12,13 @@ struct ApplicationEnergyWindow: Sendable {
         var maximumGap: TimeInterval = 15
         /// 1 mW of energy, or 0.1 % activity, suppresses sampling noise.
         var noiseThreshold: Double = 0.001
-        var maximumRows: Int = 5
+        var maximumRows: Int = 10
 
         init(capacity: TimeInterval = 60,
              minimumDuration: TimeInterval = 15,
              maximumGap: TimeInterval = 15,
              noiseThreshold: Double = 0.001,
-             maximumRows: Int = 5) {
+             maximumRows: Int = 10) {
             self.capacity = capacity
             self.minimumDuration = minimumDuration
             self.maximumGap = maximumGap

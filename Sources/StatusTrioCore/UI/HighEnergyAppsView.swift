@@ -14,6 +14,9 @@ struct HighEnergyAppsView: View {
     @State private var armed: ArmedEnergy?
     @State private var pendingQuit: ForceQuitTarget?
     @State private var failedQuitName: String?
+    /// The list keeps ten rows but starts compact with five visible.
+    @State private var showsAllRows = false
+    private let collapsedRowLimit = 5
 
     private struct ArmedEnergy {
         let appID: String
@@ -68,6 +71,20 @@ struct HighEnergyAppsView: View {
             } else {
                 ForEach(displayApps) { app in
                     row(for: app, ranking: ranking)
+                }
+                if ranking.apps.count > collapsedRowLimit {
+                    Button {
+                        armed = nil
+                        showsAllRows.toggle()
+                    } label: {
+                        Text(localization.string(showsAllRows ? .commonCollapse : .commonExpand))
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                            .frame(maxWidth: .infinity, alignment: .trailing)
+                            .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel(localization.string(showsAllRows ? .commonCollapse : .commonExpand))
                 }
                 if !ranking.isWindowComplete && ranking.effectiveDuration > 0 {
                     windowProgress
@@ -227,8 +244,9 @@ struct HighEnergyAppsView: View {
     /// Live rows, with the armed row's frozen snapshot pinned at its original
     /// index. Only that one row is held still; the rest update in place.
     private var displayApps: [EnergyApplication] {
-        guard let armed else { return ranking.apps }
-        var result = ranking.apps.filter { $0.id != armed.appID }
+        let base = showsAllRows ? ranking.apps : Array(ranking.apps.prefix(collapsedRowLimit))
+        guard let armed else { return base }
+        var result = base.filter { $0.id != armed.appID }
         let index = min(max(armed.index, 0), result.count)
         result.insert(armed.app, at: index)
         return result
