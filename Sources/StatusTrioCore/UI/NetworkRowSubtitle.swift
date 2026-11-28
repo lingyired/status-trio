@@ -25,6 +25,22 @@ enum NetworkRowSubtitle {
         }
     }
 
+    /// Trails an address behind text that already names the link state.
+    static func appending(_ suffix: String?, to text: String?) -> String? {
+        let text = nonEmpty(text)
+        let suffix = nonEmpty(suffix)
+        switch (text, suffix) {
+        case let (text?, suffix?):
+            return text + separator + suffix
+        case let (text?, nil):
+            return text
+        case let (nil, suffix?):
+            return suffix
+        case (nil, nil):
+            return nil
+        }
+    }
+
     private static func nonEmpty(_ value: String?) -> String? {
         guard let value, !value.isEmpty else { return nil }
         return value

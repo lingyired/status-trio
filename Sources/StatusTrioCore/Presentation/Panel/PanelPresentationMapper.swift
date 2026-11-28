@@ -523,7 +523,12 @@ enum PanelPresentationMapper {
         let measurements: String?
         let intent: PanelSummaryIntent
         if permissionHidesName {
-            title = wifiSubtitle(wifi, localization: localization)
+            // The local address comes from getifaddrs and needs no Location
+            // permission, so withholding the name must not hide it too (#404).
+            // It trails the connection state because the first line is the row
+            // label, and the second line stays the access invitation.
+            let connectionState = wifiSubtitle(wifi, localization: localization)
+            title = NetworkRowSubtitle.appending(localIPAddress, to: connectionState) ?? connectionState
             subtitle = localization.string(.wifiSummaryNameAccessHint)
             measurements = nil
             intent = wifi.nameAccess == .denied || wifi.nameAccess == .restricted
