@@ -235,15 +235,14 @@ enum MenuBarInstanceRenderer {
     }
 
     private static func color(for element: MenuBarElement, line: MenuBarLine, input: MenuBarRenderInput) -> NSColor {
+        let lineColor = element.color ?? line.color
         switch element.content {
-        case .text:
-            return nsColor(for: MenuBarMetricColorResolver.appliedColor(line: line.color, source: nil)) ?? NSColor.labelColor
-        case .icon:
-            return nsColor(for: MenuBarMetricColorResolver.appliedColor(line: line.color, source: nil)) ?? NSColor.labelColor
+        case .text, .icon:
+            return nsColor(for: MenuBarMetricColorResolver.appliedColor(line: lineColor, source: nil)) ?? NSColor.labelColor
         case .metric(let metric):
             let level = input.readings[.batteryLevel]?.value
             let source = MenuBarMetricColorResolver.sourceColor(for: metric, overrides: input.colorOverrides, batteryLevel: level)
-            return nsColor(for: MenuBarMetricColorResolver.appliedColor(line: line.color, source: source)) ?? NSColor.labelColor
+            return nsColor(for: MenuBarMetricColorResolver.appliedColor(line: lineColor, source: source)) ?? NSColor.labelColor
         }
     }
 

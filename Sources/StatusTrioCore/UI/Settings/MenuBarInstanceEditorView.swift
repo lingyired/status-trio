@@ -188,6 +188,12 @@ struct MenuBarInstanceEditorView: View {
                 EmptyView()
             }
 
+            SettingsDivider()
+
+            SettingsRow("paintpalette", title: L(.menuBarEditorColor)) {
+                elementColorControl(element)
+            }
+
             elementActions(element)
         }
         .padding(.horizontal, SettingsMetrics.rowPaddingH)
@@ -298,41 +304,6 @@ struct MenuBarInstanceEditorView: View {
                 .frame(width: 120, alignment: .trailing)
                 .accessibilityLabel(L(.menuBarEditorAlignment))
             }
-
-            SettingsDivider()
-
-            SettingsRow("paintpalette", title: L(.menuBarEditorColor)) {
-                HStack(spacing: 8) {
-                    Menu {
-                        Button(L(.menuBarEditorSystemDefault)) { model.setColor(.systemDefault, slot: selectedSlot) }
-                        Button(L(.menuBarEditorInherit)) { model.setColor(.inheritSource, slot: selectedSlot) }
-                        Button(L(.menuBarEditorFixedBlue)) {
-                            model.setColor(.fixed(ColorValue(red: 0.2, green: 0.45, blue: 1)), slot: selectedSlot)
-                        }
-                        Button(L(.menuBarEditorFixedGreen)) {
-                            model.setColor(.fixed(ColorValue(red: 0.2, green: 0.75, blue: 0.35)), slot: selectedSlot)
-                        }
-                        Button(L(.menuBarEditorFixedRed)) {
-                            model.setColor(.fixed(ColorValue(red: 0.95, green: 0.25, blue: 0.2)), slot: selectedSlot)
-                        }
-                    } label: {
-                        Text(lineColorName)
-                    }
-                    .menuStyle(.borderlessButton)
-                    .fixedSize()
-                    .accessibilityLabel(L(.menuBarEditorColor))
-
-                    ColorPicker(
-                        "",
-                        selection: customColorBinding,
-                        supportsOpacity: false
-                    )
-                    .labelsHidden()
-                    .frame(width: 36)
-                    .accessibilityLabel(L(.menuBarEditorCustomColor))
-                    .help(L(.menuBarEditorCustomColor))
-                }
-            }
         }
     }
 
@@ -347,8 +318,12 @@ struct MenuBarInstanceEditorView: View {
         }
     }
 
-    private var lineColorName: String {
-        switch currentLine?.color ?? .systemDefault {
+    private func effectiveElementColor(_ element: MenuBarElement) -> LineColor {
+        element.color ?? currentLine?.color ?? .systemDefault
+    }
+
+    private func elementColorName(_ element: MenuBarElement) -> String {
+        switch effectiveElementColor(element) {
         case .systemDefault:
             return L(.menuBarEditorSystemDefault)
         case .inheritSource:
@@ -366,30 +341,70 @@ struct MenuBarInstanceEditorView: View {
         }
     }
 
-    private var customColorBinding: Binding<Color> {
+    private func elementColorControl(_ element: MenuBarElement) -> some View {
+        HStack(spacing: 8) {
+            Menu {
+                Button(L(.menuBarEditorSystemDefault)) {
+                    setElementColor(.systemDefault, for: element)
+                }
+                if case .metric = element.content {
+                    Button(L(.menuBarEditorInherit)) {
+                        setElementColor(.inheritSource, for: element)
+                    }
+                }
+                Button(L(.menuBarEditorFixedBlue)) {
+                    setElementColor(.fixed(ColorValue(red: 0.2, green: 0.45, blue: 1)), for: element)
+                }
+                Button(L(.menuBarEditorFixedGreen)) {
+                    setElementColor(.fixed(ColorValue(red: 0.2, green: 0.75, blue: 0.35)), for: element)
+                }
+                Button(L(.menuBarEditorFixedRed)) {
+                    setElementColor(.fixed(ColorValue(red: 0.95, green: 0.25, blue: 0.2)), for: element)
+                }
+            } label: {
+                Text(elementColorName(element))
+            }
+            .menuStyle(.borderlessButton)
+            .fixedSize()
+            .accessibilityLabel(L(.menuBarEditorColor))
+
+            ColorPicker(
+                "",
+                selection: elementCustomColorBinding(element),
+                supportsOpacity: false
+            )
+            .labelsHidden()
+            .frame(width: 36)
+            .accessibilityLabel(L(.menuBarEditorCustomColor))
+            .help(L(.menuBarEditorCustomColor))
+        }
+    }
+
+    private func setElementColor(_ color: LineColor, for element: MenuBarElement) {
+        model.setElementColor(color, elementID: element.id, slot: selectedSlot)
+    }
+
+    private func elementCustomColorBinding(_ element: MenuBarElement) -> Binding<Color> {
         Binding(
-            get: { lineColorSwatch },
+            get: { elementColorSwatch(element) },
             set: { color in
                 let resolved = NSColor(color).usingColorSpace(.sRGB) ?? .systemBlue
-                model.setColor(
-                    .fixed(ColorValue(
-                        red: Double(resolved.redComponent),
-                        green: Double(resolved.greenComponent),
-                        blue: Double(resolved.blueComponent),
-                        alpha: Double(resolved.alphaComponent)
-                    )),
-                    slot: selectedSlot
-                )
+                setElementColor(.fixed(ColorValue(
+                    red: Double(resolved.redComponent),
+                    green: Double(resolved.greenComponent),
+                    blue: Double(resolved.blueComponent),
+                    alpha: Double(resolved.alphaComponent)
+                )), for: element)
             }
         )
     }
 
-    private var lineColorSwatch: Color {
-        switch currentLine?.color ?? .systemDefault {
+    private func elementColorSwatch(_ element: MenuBarElement) -> Color {
+        switch effectiveElementColor(element) {
         case .systemDefault:
             return Color(nsColor: .labelColor)
         case .inheritSource:
-            if let value = model.dataSourceColor(for: selectedSlot) {
+            if let value = model.dataSourceColor(for: element) {
                 return Color(red: value.red, green: value.green, blue: value.blue, opacity: value.alpha)
             }
             return Color.secondary.opacity(0.35)

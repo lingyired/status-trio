@@ -29,6 +29,19 @@ final class MenuBarInstanceEditorModelTests: XCTestCase {
         XCTAssertEqual(contents(model, .top), [.text("CPU "), .metric(.cpuUsage)])
     }
 
+    func testElementColorIsIndependentPerElement() {
+        let (model, _) = makeModel()
+        let metricID = model.addMetricElement(.cpuUsage, slot: .top)!
+        let textID = model.addTextElement("CPU", slot: .top)!
+        model.setElementColor(.fixed(ColorValue(red: 1, green: 0.2, blue: 0.1)),
+                              elementID: metricID, slot: .top)
+
+        let elements = model.elements(slot: .top)
+        XCTAssertEqual(elements.first(where: { $0.id == metricID })?.color,
+                       .fixed(ColorValue(red: 1, green: 0.2, blue: 0.1)))
+        XCTAssertNil(elements.first(where: { $0.id == textID })?.color)
+    }
+
     func testMoveElement() {
         let (model, _) = makeModel()
         model.addTextElement("A", slot: .top)

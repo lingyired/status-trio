@@ -144,6 +144,23 @@ final class MenuBarInstanceEditorModel: ObservableObject {
         }
     }
 
+    func setElementColor(_ color: LineColor?, elementID: UUID, slot: MenuBarLineSlot) {
+        mutateLine(slot) { line in
+            guard let index = line.elements.firstIndex(where: { $0.id == elementID }) else { return }
+            line.elements[index].color = color
+        }
+    }
+
+    func dataSourceColor(for element: MenuBarElement) -> ColorValue? {
+        guard case .metric(let metric) = element.content else { return nil }
+        guard let color = MenuBarMetricColorResolver.sourceColor(
+            for: metric,
+            overrides: store.hardwareMonitorMetricColors,
+            batteryLevel: nil
+        ) else { return nil }
+        return ColorValue(red: color.red, green: color.green, blue: color.blue, alpha: color.alpha)
+    }
+
     /// Moves an element between lines (also used by cross-row drag/drop).
     func moveElement(
         id: UUID,

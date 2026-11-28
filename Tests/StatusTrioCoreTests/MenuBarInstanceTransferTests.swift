@@ -40,6 +40,19 @@ final class MenuBarInstanceTransferTests: XCTestCase {
         XCTAssertEqual(decoded.top?.alignment, .trailing)
     }
 
+    func testElementColorRoundTrips() throws {
+        var instance = MenuBarInstance(name: "Colored")
+        instance.top = MenuBarLine(elements: [
+            MenuBarElement(content: .metric(.cpuUsage),
+                           color: .fixed(ColorValue(red: 0.2, green: 0.4, blue: 0.9)))
+        ])
+        let decoded = try MenuBarInstanceTransfer.decode(
+            MenuBarInstanceTransfer.encode(instance)
+        )
+        XCTAssertEqual(decoded.top?.elements.first?.color,
+                       .fixed(ColorValue(red: 0.2, green: 0.4, blue: 0.9)))
+    }
+
     func testBatchRoundTripPreservesOrderAndCount() throws {
         let a = MenuBarInstance(name: "CPU", top: MenuBarLine(elements: [MenuBarElement(content: .metric(.cpuUsage))]))
         let b = MenuBarInstance(name: "Memory", top: MenuBarLine(elements: [MenuBarElement(content: .metric(.memoryUsage))]))

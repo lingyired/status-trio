@@ -134,10 +134,14 @@ enum MenuBarElementContent: Equatable, Sendable {
 struct MenuBarElement: Equatable, Identifiable, Sendable {
     var id: UUID
     var content: MenuBarElementContent
+    /// Per-element colour. `nil` falls back to the legacy line colour so old
+    /// instances keep their appearance; the editor writes this field.
+    var color: LineColor?
 
-    init(id: UUID = UUID(), content: MenuBarElementContent) {
+    init(id: UUID = UUID(), content: MenuBarElementContent, color: LineColor? = nil) {
         self.id = id
         self.content = content
+        self.color = color
     }
 }
 
@@ -180,7 +184,21 @@ extension MenuBarElementContent: Codable {
 }
 
 extension MenuBarElement: Codable {
-    private enum CodingKeys: String, CodingKey { case id, content }
+    private enum CodingKeys: String, CodingKey { case id, content, color }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decode(UUID.self, forKey: .id)
+        content = try container.decode(MenuBarElementContent.self, forKey: .content)
+        color = try container.decodeIfPresent(LineColor.self, forKey: .color)
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(id, forKey: .id)
+        try container.encode(content, forKey: .content)
+        try container.encodeIfPresent(color, forKey: .color)
+    }
 }
 
 /// A single line: an ordered list of elements plus line-level styling.

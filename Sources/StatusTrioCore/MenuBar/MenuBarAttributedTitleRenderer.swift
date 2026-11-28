@@ -80,9 +80,9 @@ enum MenuBarAttributedTitleRenderer {
         case .metric(let metric):
             let level = input.readings[.batteryLevel]?.value
             let source = MenuBarMetricColorResolver.sourceColor(for: metric, overrides: input.colorOverrides, batteryLevel: level)
-            return MenuBarInstanceRenderer.nsColor(for: MenuBarMetricColorResolver.appliedColor(line: line.color, source: source)) ?? NSColor.labelColor
+            return MenuBarInstanceRenderer.nsColor(for: MenuBarMetricColorResolver.appliedColor(line: element.color ?? line.color, source: source)) ?? NSColor.labelColor
         default:
-            return MenuBarInstanceRenderer.nsColor(for: MenuBarMetricColorResolver.appliedColor(line: line.color, source: nil)) ?? NSColor.labelColor
+            return MenuBarInstanceRenderer.nsColor(for: MenuBarMetricColorResolver.appliedColor(line: element.color ?? line.color, source: nil)) ?? NSColor.labelColor
         }
     }
 
