@@ -738,7 +738,8 @@ struct MenuBarLeadingIconPicker: View {
                         characterText = String(value.prefix(1))
                     }
                 }
-                .onSubmit { applyCharacter() }
+                .onSubmit { updateCharacter() }
+                .onChange(of: characterText) { _ in updateCharacter() }
 
             HStack(spacing: 8) {
                 Text(L(.menuBarEditorFontFamily))
@@ -754,17 +755,13 @@ struct MenuBarLeadingIconPicker: View {
                 .pickerStyle(.menu)
                 .labelsHidden()
                 .fixedSize()
+                .onChange(of: characterFamily) { _ in updateCharacter() }
             }
 
             Toggle(L(.menuBarEditorBold), isOn: $characterBold)
                 .toggleStyle(.switch)
                 .controlSize(.small)
-
-            HStack {
-                Spacer(minLength: 0)
-                Button(L(.menuBarEditorAdd)) { applyCharacter() }
-                    .disabled(characterText.isEmpty)
-            }
+                .onChange(of: characterBold) { _ in updateCharacter() }
         }
         .frame(height: 236, alignment: .top)
     }
@@ -799,9 +796,9 @@ struct MenuBarLeadingIconPicker: View {
         if dismissOnPick { dismiss() }
     }
 
-    private func applyCharacter() {
+    private func updateCharacter() {
         guard !characterText.isEmpty else { return }
-        apply(MenuBarIconSpec(
+        onChange(MenuBarIconSpec(
             source: .character(characterText),
             fontFamily: characterFamily,
             isBold: characterBold ? true : nil
@@ -861,6 +858,7 @@ struct MenuBarElementPalette: View {
     @Binding var selectedElementID: UUID?
 
     @State private var showingIconPicker = false
+    @State private var liveIconElementID: UUID?
 
     private func L(_ key: LocalizationKey) -> String { localization.string(key) }
 
@@ -965,17 +963,26 @@ struct MenuBarElementPalette: View {
                 localization: localization,
                 onChange: { icon in
                     if let icon {
-                        add(.icon(icon))
+                        if let liveIconElementID {
+                            model.updateIcon(icon, elementID: liveIconElementID, slot: targetSlot)
+                        } else {
+                            liveIconElementID = add(.icon(icon))
+                        }
+                    } else if let liveIconElementID {
+                        model.removeElement(id: liveIconElementID, slot: targetSlot)
+                        self.liveIconElementID = nil
                     }
                 },
                 titleKey: .menuBarEditorChooseIcon
             )
+            .onDisappear { liveIconElementID = nil }
         }
         .help(title)
         .accessibilityLabel(title)
     }
 
-    private func add(_ content: MenuBarElementContent) {
+    @discardableResult
+    private func add(_ content: MenuBarElementContent) -> UUID? {
         let slot = targetSlot
         let id: UUID?
         switch content {
@@ -990,6 +997,7 @@ struct MenuBarElementPalette: View {
             selectedSlot = slot
             selectedElementID = id
         }
+        return id
     }
 }
 
