@@ -91,7 +91,7 @@ models still need field validation before making broad accuracy claims.
 The high-energy apps section is a rolling one-minute estimate, not a
 last-interval snapshot. While the Battery page is visible the app samples every
 five seconds; with background monitoring enabled it keeps using the configured
-10–60 second interval instead. Each sample becomes an immutable interval with
+5–60 second interval instead. Each sample becomes an immutable interval with
 its real elapsed duration, so irregular ticks are weighted by time rather than
 by a fixed five-second assumption.
 
