@@ -384,6 +384,7 @@ enum LocalizationKey: String, CaseIterable, Hashable, Sendable {
     case menuBarEditorClick = "menubar.editor.click"
     case menuBarEditorHover = "menubar.editor.hover"
     case menuBarEditorNone = "menubar.editor.none"
+    case menuBarEditorRemoveIcon = "menubar.editor.removeIcon"
     case menuBarEditorSummaryPanel = "menubar.editor.summaryPanel"
     case menuBarEditorAppSettings = "menubar.editor.appSettings"
     case menuBarEditorActivityMonitor = "menubar.editor.activityMonitor"

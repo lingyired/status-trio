@@ -534,7 +534,7 @@ struct MenuBarLeadingIconPicker: View {
                 onChange(nil)
                 dismiss()
             } label: {
-                Label(L(.menuBarEditorNone), systemImage: "xmark.circle")
+                Label(L(.menuBarEditorRemoveIcon), systemImage: "xmark.circle")
                     .font(.system(size: 11))
             }
             .buttonStyle(.borderless)

@@ -1531,6 +1531,7 @@
 "menubar.editor.click" = "点击";
 "menubar.editor.hover" = "悬浮";
 "menubar.editor.none" = "无";
+"menubar.editor.removeIcon" = "移除圖示";
 "menubar.editor.summaryPanel" = "主面板";
 "menubar.editor.appSettings" = "App 设置";
 "menubar.editor.activityMonitor" = "活动监视器";

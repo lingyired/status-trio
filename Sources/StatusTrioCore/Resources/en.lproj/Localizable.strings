@@ -1530,6 +1530,7 @@
 "menubar.editor.click" = "Click";
 "menubar.editor.hover" = "Hover";
 "menubar.editor.none" = "None";
+"menubar.editor.removeIcon" = "Remove Icon";
 "menubar.editor.summaryPanel" = "Summary panel";
 "menubar.editor.appSettings" = "App Settings";
 "menubar.editor.activityMonitor" = "Activity Monitor";
