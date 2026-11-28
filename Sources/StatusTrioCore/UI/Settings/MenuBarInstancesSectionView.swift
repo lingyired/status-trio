@@ -10,6 +10,7 @@ import UniformTypeIdentifiers
 /// column.
 struct MenuBarInstancesSectionView: View {
     @ObservedObject var store: SettingsStore
+    @ObservedObject var statusStore: SystemStatusStore
     let localization: Localization
     @Binding var previewIsDark: Bool
     var consumePendingMenuBarInstance: () -> UUID? = { nil }
@@ -203,20 +204,25 @@ struct MenuBarInstancesSectionView: View {
     @ViewBuilder
     private var editorColumn: some View {
         if let model {
-            ScrollView {
-                VStack(alignment: .leading, spacing: SettingsMetrics.groupSpacing) {
-                    MenuBarInstancePreviewCard(
-                        model: model,
-                        isDarkBackground: $previewIsDark,
-                        localization: localization
-                    )
+            VStack(spacing: 0) {
+                MenuBarInstancePreviewCard(
+                    model: model,
+                    store: store,
+                    statusStore: statusStore,
+                    isDarkBackground: $previewIsDark,
+                    localization: localization
+                )
+                .padding(.horizontal, 16)
+                .padding(.top, 16)
+                .padding(.bottom, 6)
 
+                ScrollView {
                     MenuBarInstanceEditorView(model: model, localization: localization)
                         .id(model.instance.id)
+                        .padding(.horizontal, 16)
+                        .padding(.bottom, 16)
+                        .frame(maxWidth: .infinity, alignment: .leading)
                 }
-                .padding(.horizontal, 16)
-                .padding(.vertical, 16)
-                .frame(maxWidth: .infinity, alignment: .leading)
             }
         } else {
             VStack(spacing: 8) {

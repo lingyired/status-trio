@@ -83,6 +83,9 @@ struct MenuBarPreviewBar<TrailingAccessory: View>: View {
     var bottomIndicatorMetric: BottomIndicatorMetric = .cpuUsage
     var bottomIndicatorMetricColor: IconRGBA? = nil
     var bottomIndicatorStyle: VolumeDisplayStyle? = nil
+    /// Optional content placed immediately before the live status icon, e.g. a
+    /// custom menu-bar instance preview.
+    var leadingAccessory: (() -> AnyView)?
     /// Rendered after `rightContext` inside the same `HStack`, so a caller's
     /// control takes part in the bar's standard 14 pt element spacing instead of
     /// needing a reserved trailing inset that its localized width cannot match.
@@ -144,6 +147,7 @@ struct MenuBarPreviewBar<TrailingAccessory: View>: View {
         bottomIndicatorMetric: BottomIndicatorMetric = .cpuUsage,
         bottomIndicatorMetricColor: IconRGBA? = nil,
         bottomIndicatorStyle: VolumeDisplayStyle? = nil,
+        leadingAccessory: (() -> AnyView)? = nil,
         @ViewBuilder trailingAccessory: @escaping () -> TrailingAccessory
     ) {
         self.status = status
@@ -163,6 +167,7 @@ struct MenuBarPreviewBar<TrailingAccessory: View>: View {
         self.bottomIndicatorMetric = bottomIndicatorMetric
         self.bottomIndicatorMetricColor = bottomIndicatorMetricColor
         self.bottomIndicatorStyle = bottomIndicatorStyle
+        self.leadingAccessory = leadingAccessory
         self.trailingAccessory = trailingAccessory
     }
 
@@ -174,6 +179,10 @@ struct MenuBarPreviewBar<TrailingAccessory: View>: View {
                 leftContext
 
                 Spacer(minLength: 16)
+
+                if let leadingAccessory {
+                    leadingAccessory()
+                }
 
                 ZStack {
                     Image(nsImage: StatusIconPreviewCache.shared.image(

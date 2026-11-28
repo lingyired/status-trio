@@ -505,6 +505,7 @@ struct SettingsView: View {
         case .menuBarInstances:
             MenuBarInstancesSectionView(
                 store: store,
+                statusStore: statusStore,
                 localization: localization,
                 previewIsDark: previewIsDarkBinding,
                 consumePendingMenuBarInstance: consumePendingMenuBarInstance
