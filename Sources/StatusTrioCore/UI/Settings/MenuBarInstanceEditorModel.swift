@@ -56,6 +56,21 @@ final class MenuBarInstanceEditorModel: ObservableObject {
         }
     }
 
+    /// Representative data-source colour for a line, used by the colour well
+    /// when the line is set to 跟随数据源.
+    func dataSourceColor(for slot: MenuBarLineSlot) -> ColorValue? {
+        guard let metric = elements(slot: slot).compactMap({ element in
+            if case .metric(let metric) = element.content { return metric }
+            return nil
+        }).first else { return nil }
+        guard let color = MenuBarMetricColorResolver.sourceColor(
+            for: metric,
+            overrides: store.hardwareMonitorMetricColors,
+            batteryLevel: nil
+        ) else { return nil }
+        return ColorValue(red: color.red, green: color.green, blue: color.blue, alpha: color.alpha)
+    }
+
     // MARK: - Element editing
 
     @discardableResult

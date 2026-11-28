@@ -389,6 +389,9 @@ struct MenuBarInstanceEditorView: View {
         case .systemDefault:
             return Color(nsColor: .labelColor)
         case .inheritSource:
+            if let value = model.dataSourceColor(for: selectedSlot) {
+                return Color(red: value.red, green: value.green, blue: value.blue, opacity: value.alpha)
+            }
             return Color.secondary.opacity(0.35)
         case .fixed(let value):
             return Color(red: value.red, green: value.green, blue: value.blue, opacity: value.alpha)
