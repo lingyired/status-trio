@@ -1030,6 +1030,20 @@ struct DetailEntryToggleDismissTests {
         #expect(panel.route == .hardwareDetail(.memory))
     }
 
+    @Test func instanceDetailDeepLinkDoesNotToggleBackToSummaryOnReopen() {
+        let fixture = PanelStoreFixture()
+        fixture.settings.setPopupSection(.hardwareMonitor, enabled: true)
+        let panel = fixture.makePanel()
+        defer { panel.stop(); fixture.store.stop() }
+
+        panel.showHardwareDetail(.memory, fromMenuBarInstance: true)
+        #expect(panel.route == .hardwareDetail(.memory))
+        // Reopening the same instance while the retained route is still memory
+        // must not take the summary card's close-on-second-click path.
+        panel.showHardwareDetail(.memory, fromMenuBarInstance: true)
+        #expect(panel.route == .hardwareDetail(.memory))
+    }
+
     @Test func instanceDetailOnlyModeHidesSummaryAndForcesInline() {
         let fixture = PanelStoreFixture()
         fixture.settings.setPopupSection(.hardwareMonitor, enabled: true)

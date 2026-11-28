@@ -1152,6 +1152,10 @@ final class StatusBarController: NSObject {
         // `presentPopover` restores the user's alongside preference while
         // laying out the summary. Re-apply the instance's solo mode afterwards;
         // otherwise the attached detail window survives this presentation.
+        // `presentPopover` runs `prepareForPresentation`, which may restore the
+        // summary on open. Re-apply the instance's route after presentation so
+        // a rapid close/reopen cannot leave the summary in front.
+        applyInstanceRoute(routeRaw)
         if detailOnly {
             panelViewModel.setDetailPresentation(.inline)
             syncDetailPresentation()

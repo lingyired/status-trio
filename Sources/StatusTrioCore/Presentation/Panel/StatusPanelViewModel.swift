@@ -810,6 +810,15 @@ final class StatusPanelViewModel: ObservableObject {
             showSummaryPage()
             return
         }
+        if fromMenuBarInstance {
+            // An instance's click action is a deep link, not the summary card's
+            // "click the same entry again to close" toggle. Reopening after a
+            // panel close must land on the same detail, not the summary.
+            if route != .hardwareDetail(kind) {
+                _ = transition(to: .hardwareDetail(kind))
+            }
+            return
+        }
         guard !closeOpenDetailIfAlreadyShowing(.hardwareDetail(kind)) else { return }
         transition(to: .hardwareDetail(kind))
     }
