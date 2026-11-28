@@ -11,7 +11,7 @@ enum ApplicationEnergyPresentation {
         let locale = localization.resolvedLanguage.locale
 
         switch basis {
-        case .cpuEnergy:
+        case .cpuAndGPU, .cpuEnergy, .gpuEnergy:
             if value >= 1 {
                 return value.formatted(
                     .number.precision(.fractionLength(2)).locale(locale)
@@ -24,6 +24,15 @@ enum ApplicationEnergyPresentation {
             return (value * 100).formatted(
                 .number.precision(.fractionLength(1)).locale(locale)
             ) + "%"
+        }
+    }
+
+    static func titleKey(for basis: ApplicationEnergyRanking.Basis) -> LocalizationKey {
+        switch basis {
+        case .cpuAndGPU: return .batteryEnergyAppsTitle
+        case .cpuEnergy: return .batteryEnergyCPUAppsTitle
+        case .gpuEnergy: return .batteryEnergyGPUAppsTitle
+        case .cpuActivity: return .batteryEnergyActivityTitle
         }
     }
 }

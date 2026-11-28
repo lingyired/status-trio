@@ -211,12 +211,20 @@ struct BatteryDetailsView: View {
                     .fixedSize(horizontal: false, vertical: true)
             }
             if let ranking = state.energyApps {
-                Text(localization.string(ranking.basis == .cpuEnergy
-                    ? .batteryEnergyCPUExplanation : .batteryEnergyActivityExplanation))
+                Text(localization.string(explanationKey(for: ranking.basis)))
                     .fixedSize(horizontal: false, vertical: true)
             }
         }
         .font(.caption)
         .foregroundStyle(.secondary)
+    }
+
+    private func explanationKey(for basis: ApplicationEnergyRanking.Basis) -> LocalizationKey {
+        switch basis {
+        case .cpuAndGPU: return .batteryEnergyCPUAndGPUExplanation
+        case .cpuEnergy: return .batteryEnergyCPUExplanation
+        case .gpuEnergy: return .batteryEnergyGPUExplanation
+        case .cpuActivity: return .batteryEnergyActivityExplanation
+        }
     }
 }

@@ -14,6 +14,10 @@ struct HighEnergyAppsView: View {
     @State private var armed: ArmedEnergy?
     @State private var pendingQuit: ForceQuitTarget?
     @State private var failedQuitName: String?
+    /// The list keeps ten rows but starts compact with five visible. The
+    /// expanded state survives closing and reopening the panel.
+    @AppStorage("batteryHighEnergyAppsShowsAllRows") private var showsAllRows = false
+    private let collapsedRowLimit = 5
 
     private struct ArmedEnergy {
         let appID: String
@@ -40,11 +44,27 @@ struct HighEnergyAppsView: View {
         self.iconCache = iconCache
     }
 
+    private var titleKey: LocalizationKey {
+        guard ranking.effectiveDuration > 0 else { return .batteryEnergyAppsTitle }
+        return ApplicationEnergyPresentation.titleKey(for: ranking.basis)
+    }
+
+    private var windowProgress: some View {
+        Text(localization.format(.batteryEnergyWindowBuilding,
+                                 Int(min(ranking.effectiveDuration, ranking.windowCapacity).rounded())))
+            .font(.caption2)
+            .foregroundStyle(.secondary)
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 5) {
-            Text(localization.string(.batteryHighEnergyApps)).font(.caption.weight(panelBoldText ? .semibold : .regular))
+            Text(localization.string(titleKey))
+                .font(.caption.weight(panelBoldText ? .semibold : .regular))
             if ranking.phase == .sampling {
                 Text(localization.string(.batteryDetailsCollecting)).foregroundStyle(.secondary)
+                if ranking.effectiveDuration > 0 {
+                    windowProgress
+                }
             } else if ranking.phase == .unavailable {
                 Text(localization.string(.batteryDetailsUnavailable)).foregroundStyle(.secondary)
             } else if ranking.apps.isEmpty {
@@ -52,6 +72,29 @@ struct HighEnergyAppsView: View {
             } else {
                 ForEach(displayApps) { app in
                     row(for: app, ranking: ranking)
+                }
+                if ranking.apps.count > collapsedRowLimit {
+                    Button {
+                        armed = nil
+                        showsAllRows.toggle()
+                    } label: {
+                        Text(localization.string(showsAllRows ? .commonCollapse : .commonExpand))
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                            .frame(maxWidth: .infinity, alignment: .center)
+                            .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel(localization.string(showsAllRows ? .commonCollapse : .commonExpand))
+                }
+                if !ranking.isWindowComplete && ranking.effectiveDuration > 0 {
+                    windowProgress
+                }
+                if ranking.phase == .partial {
+                    Text(localization.string(.batteryEnergyPartialNote))
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
                 if let failedQuitName {
                     Text(localization.format(.appForceQuitFailed, failedQuitName))
@@ -145,7 +188,8 @@ struct HighEnergyAppsView: View {
             armed = nil
             return
         }
-        guard let target = AppQuitter.target(forApplicationPath: app.id, name: app.name,
+        guard ranking.isApplication(app),
+              let target = AppQuitter.target(forApplicationPath: app.id, name: app.name,
                                              running: AppQuitter.currentRunningApps()) else {
             armed = nil
             return
@@ -194,8 +238,9 @@ struct HighEnergyAppsView: View {
     /// Live rows, with the armed row's frozen snapshot pinned at its original
     /// index. Only that one row is held still; the rest update in place.
     private var displayApps: [EnergyApplication] {
-        guard let armed else { return ranking.apps }
-        var result = ranking.apps.filter { $0.id != armed.appID }
+        let base = showsAllRows ? ranking.apps : Array(ranking.apps.prefix(collapsedRowLimit))
+        guard let armed else { return base }
+        var result = base.filter { $0.id != armed.appID }
         let index = min(max(armed.index, 0), result.count)
         result.insert(armed.app, at: index)
         return result

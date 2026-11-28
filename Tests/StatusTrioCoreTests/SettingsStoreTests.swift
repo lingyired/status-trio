@@ -148,11 +148,11 @@ final class SettingsStoreTests: XCTestCase {
         defer { clear(suite) }
 
         let first = SettingsStore(defaults: suite.defaults)
-        XCTAssertEqual(SettingsStore.highEnergyAppsRefreshIntervalRange, 10...60)
+        XCTAssertEqual(SettingsStore.highEnergyAppsRefreshIntervalRange, 5...60)
         XCTAssertEqual(first.highEnergyAppsRefreshIntervalSeconds, 10, accuracy: 0.001)
 
         first.highEnergyAppsRefreshIntervalSeconds = 7
-        XCTAssertEqual(first.highEnergyAppsRefreshIntervalSeconds, 10, accuracy: 0.001)
+        XCTAssertEqual(first.highEnergyAppsRefreshIntervalSeconds, 5, accuracy: 0.001)
 
         first.highEnergyAppsRefreshIntervalSeconds = 307
         XCTAssertEqual(first.highEnergyAppsRefreshIntervalSeconds, 60, accuracy: 0.001)
