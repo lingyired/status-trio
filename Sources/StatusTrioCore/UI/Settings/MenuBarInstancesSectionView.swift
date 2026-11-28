@@ -210,6 +210,7 @@ struct MenuBarInstancesSectionView: View {
                     store: store,
                     statusStore: statusStore,
                     hardwareObservable: statusStore.hardwareMetrics.observable,
+                    powerSampling: statusStore.powerSampling,
                     isDarkBackground: $previewIsDark,
                     localization: localization
                 )
@@ -345,7 +346,13 @@ struct MenuBarInstancesSectionView: View {
             model = nil
             return
         }
-        let provider = MenuBarMetricValueProvider(localize: { localization.string($0) })
+        let provider = MenuBarMetricValueProvider(
+            localize: { localization.string($0) },
+            externalVolumePaths: { store.hardwareSSDExternalVolumePaths },
+            systemPower: { statusStore.powerSampling.systemPower },
+            inputPower: { statusStore.powerSampling.inputPower },
+            batteryPower: { statusStore.powerSampling.batteryPower }
+        )
         model = MenuBarInstanceEditorModel(
             instance: instance,
             store: store,

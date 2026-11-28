@@ -20,16 +20,27 @@ enum MenuBarMetricRegistry {
     static func titleKey(for metric: MenuBarMetricID) -> LocalizationKey {
         switch metric {
         case .cpuUsage: return .hardwareMonitorCPU
+        case .cpuFrequency: return .menuBarMetricCPUFrequency
         case .cpuTemperature: return .hardwareMonitorTemperature
         case .gpuUsage: return .hardwareMonitorGPU
         case .gpuTemperature: return .hardwareMonitorGPUTemperature
         case .memoryUsage: return .hardwareMonitorMemory
-        case .diskReadSpeed: return .hardwareMonitorDiskRead
-        case .diskWriteSpeed: return .hardwareMonitorDiskWrite
+        case .memoryUsed: return .menuBarMetricMemoryUsed
+        case .memoryFree: return .menuBarMetricMemoryFree
+        case .diskReadSpeed: return .menuBarMetricDiskRead
+        case .diskWriteSpeed: return .menuBarMetricDiskWrite
+        case .diskTotalSpeed: return .menuBarMetricDiskTotal
+        case .diskUsed: return .menuBarMetricDiskUsed
+        case .diskFree: return .menuBarMetricDiskFree
+        case .diskExternalTotal: return .menuBarMetricDiskExternalTotal
+        case .diskExternalFree: return .menuBarMetricDiskExternalFree
         case .networkDownload: return .hardwareMonitorDownload
         case .networkUpload: return .hardwareMonitorUpload
         case .fanRPM: return .hardwareMonitorFan
         case .batteryLevel: return .hardwareMonitorBattery
+        case .systemPower: return .menuBarMetricSystemPower
+        case .inputPower: return .menuBarMetricInputPower
+        case .batteryPower: return .menuBarMetricBatteryPower
         case .wifiConnectionStatus: return .menuBarMetricWifiConnected
         case .outputVolume: return .hardwareMonitorVolume
         case .screenBrightness: return .settingsTabBrightness
@@ -44,17 +55,20 @@ enum MenuBarMetricRegistry {
     /// or nil when it has no hardware colour (text metrics / disk / brightness).
     static func hardwareMonitorMetric(for metric: MenuBarMetricID) -> HardwareMonitorMetric? {
         switch metric {
-        case .cpuUsage: return .cpuUsage
+        case .cpuUsage, .cpuFrequency: return .cpuUsage
         case .cpuTemperature: return .cpuTemperature
         case .gpuUsage: return .gpuUsage
         case .gpuTemperature: return .gpuTemperature
-        case .memoryUsage: return .memoryUsage
+        case .memoryUsage, .memoryUsed, .memoryFree: return .memoryUsage
         case .networkDownload: return .downloadSpeed
         case .networkUpload: return .uploadSpeed
         case .fanRPM: return .fan
         case .batteryLevel: return .batteryLevel
         case .outputVolume: return .volume
-        case .diskReadSpeed, .diskWriteSpeed, .wifiConnectionStatus, .screenBrightness:
+        case .diskReadSpeed, .diskWriteSpeed, .diskTotalSpeed, .diskUsed, .diskFree,
+             .diskExternalTotal, .diskExternalFree,
+             .systemPower, .inputPower, .batteryPower,
+             .wifiConnectionStatus, .screenBrightness:
             return nil
         }
     }
@@ -63,17 +77,26 @@ enum MenuBarMetricRegistry {
     static func hardwareMetricID(for metric: MenuBarMetricID) -> HardwareMetricID? {
         switch metric {
         case .cpuUsage: return .cpuUsage
+        case .cpuFrequency: return .cpuFrequency
         case .cpuTemperature: return .cpuTemperature
         case .gpuUsage: return .gpuUsage
         case .gpuTemperature: return .gpuTemperature
         case .memoryUsage: return .memoryUsage
+        case .memoryUsed: return .memoryUsedBytes
+        case .memoryFree: return .memoryFreeBytes
         case .diskReadSpeed: return .diskRead
         case .diskWriteSpeed: return .diskWrite
+        case .diskTotalSpeed: return .diskTotal
+        case .diskUsed: return .diskUsedBytes
+        case .diskFree: return .diskFreeBytes
+        case .diskExternalTotal: return .diskExternalTotalBytes
+        case .diskExternalFree: return .diskExternalFreeBytes
         case .networkDownload: return .networkDownload
         case .networkUpload: return .networkUpload
         case .fanRPM: return .fanRPM(index: 0)
         // These come from snapshots, not the hardware sampler.
-        case .batteryLevel, .wifiConnectionStatus, .outputVolume, .screenBrightness:
+        case .batteryLevel, .systemPower, .inputPower, .batteryPower,
+             .wifiConnectionStatus, .outputVolume, .screenBrightness:
             return nil
         }
     }
@@ -82,11 +105,23 @@ enum MenuBarMetricRegistry {
         switch metric {
         case .cpuUsage, .gpuUsage, .memoryUsage, .batteryLevel, .outputVolume, .screenBrightness:
             return String(format: "%.0f%%", value)
+        case .cpuFrequency:
+            return HardwareDetailFormat.frequency(value)
+        case .memoryUsed, .memoryFree:
+            return HardwareDetailFormat.memoryBytes(value)
+        case .diskUsed, .diskFree, .diskExternalTotal, .diskExternalFree:
+            return HardwareDetailFormat.bytes(value)
         case .cpuTemperature, .gpuTemperature:
             return String(format: "%.0f°", value)
         case .fanRPM:
             return String(format: "%.0f RPM", value)
-        case .diskReadSpeed, .diskWriteSpeed, .networkDownload, .networkUpload:
+        case .systemPower, .inputPower:
+            return String(format: "%.1f W", max(0, value))
+        case .batteryPower:
+            if abs(value) < 0.05 { return "0.0 W" }
+            return String(format: "%+.1f W", value)
+        case .diskReadSpeed, .diskWriteSpeed, .diskTotalSpeed,
+             .networkDownload, .networkUpload:
             return NetworkSpeedFormatter.display(bytesPerSecond: value)
         case .wifiConnectionStatus:
             return ""

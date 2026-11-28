@@ -11,6 +11,7 @@ struct MenuBarInstancePreviewCard: View {
     @ObservedObject var store: SettingsStore
     @ObservedObject var statusStore: SystemStatusStore
     @ObservedObject var hardwareObservable: HardwareMonitorObservable
+    @ObservedObject var powerSampling: PowerSamplingService
     @Binding var isDarkBackground: Bool
     let localization: Localization
     @State private var hardwareRevision = 0

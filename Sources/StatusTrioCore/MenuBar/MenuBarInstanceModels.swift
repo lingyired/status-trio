@@ -68,16 +68,27 @@ struct MenuBarIconSpec: Codable, Equatable, Sendable {
 
 enum MenuBarMetricID: String, Codable, CaseIterable, Identifiable, Sendable {
     case cpuUsage
+    case cpuFrequency
     case cpuTemperature
     case gpuUsage
     case gpuTemperature
     case memoryUsage
+    case memoryUsed
+    case memoryFree
     case diskReadSpeed
     case diskWriteSpeed
+    case diskTotalSpeed
+    case diskUsed
+    case diskFree
+    case diskExternalTotal
+    case diskExternalFree
     case networkDownload
     case networkUpload
     case fanRPM
     case batteryLevel
+    case systemPower
+    case inputPower
+    case batteryPower
     case wifiConnectionStatus
     case outputVolume
     case screenBrightness

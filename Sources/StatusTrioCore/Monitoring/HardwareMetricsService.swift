@@ -151,6 +151,7 @@ final class HardwareMonitorObservable: ObservableObject {
             target.networkDetail = live.networkDetail
         case .disk:
             target.diskDetail = live.diskDetail
+            target.diskVolumes = live.diskVolumes
         case .temperature:
             target.fanCount = live.fanCount
         }
@@ -622,7 +623,9 @@ final class HardwareMetricsService: ObservableObject {
             if let injected { snapshot = await injected(due, date) }
             else {
                 snapshot = await sampler.read(ids: due, at: date,
-                                              includeCPUFrequency: includeDetail == .cpu || wantsRingFrequency,
+                                              includeCPUFrequency: includeDetail == .cpu
+                                                  || wantsRingFrequency
+                                                  || due.contains(.cpuFrequency),
                                               details: includeDetail.map { [$0] } ?? [])
             }
             guard let self else { return }
@@ -680,6 +683,7 @@ final class HardwareMetricsService: ObservableObject {
             }
             if let detail = snapshot.networkDetail { merged.networkDetail = detail }
             if let detail = snapshot.diskDetail { merged.diskDetail = detail }
+            if let volumes = snapshot.diskVolumes { merged.diskVolumes = volumes }
             self.observable.update(merged, now: self.now())
             self.refreshIfNeeded(forceFamilies: [])
             self.restartLoopAfterRead()
@@ -746,10 +750,12 @@ final class HardwareMetricsService: ObservableObject {
 
     private func defaultMetricInterval(for id: HardwareMetricID) -> TimeInterval {
         switch id {
-        case .cpuUsage, .gpuUsage, .memoryUsage, .memoryPressure: 2
+        case .cpuUsage, .cpuFrequency, .gpuUsage, .memoryUsage,
+             .memoryUsedBytes, .memoryFreeBytes, .memoryPressure: 2
         case .cpuTemperature, .gpuTemperature, .batteryTemperature, .fanRPM: 4
         case .networkDownload, .networkUpload: 1
-        case .diskRead, .diskWrite: 1
+        case .diskRead, .diskWrite, .diskTotal, .diskUsedBytes, .diskFreeBytes,
+             .diskExternalTotalBytes, .diskExternalFreeBytes: 1
         case .volume, .wifiSignal, .batteryLevel: 2
         }
     }

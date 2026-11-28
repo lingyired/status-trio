@@ -38,7 +38,13 @@ final class MenuBarInstancesRuntime: NSObject {
         self.localization = localization
         self.openSettings = openSettings
         self.openMenuBarInstanceSettings = openMenuBarInstanceSettings
-        self.provider = MenuBarMetricValueProvider(localize: { localization.string($0) })
+        self.provider = MenuBarMetricValueProvider(
+            localize: { localization.string($0) },
+            externalVolumePaths: { settings.hardwareSSDExternalVolumePaths },
+            systemPower: { store.powerSampling.systemPower },
+            inputPower: { store.powerSampling.inputPower },
+            batteryPower: { store.powerSampling.batteryPower }
+        )
         super.init()
     }
 
@@ -67,6 +73,16 @@ final class MenuBarInstancesRuntime: NSObject {
                 self?.renderAll()
             }
             .store(in: &cancellables)
+
+        store.powerSampling.$systemPower
+            .sink { [weak self] _ in self?.renderAll() }
+            .store(in: &cancellables)
+        store.powerSampling.$inputPower
+            .sink { [weak self] _ in self?.renderAll() }
+            .store(in: &cancellables)
+        store.powerSampling.$batteryPower
+            .sink { [weak self] _ in self?.renderAll() }
+            .store(in: &cancellables)
     }
 
     // MARK: - Configuration
@@ -88,15 +104,21 @@ final class MenuBarInstancesRuntime: NSObject {
     }
 
     private func updateDemand(_ config: MenuBarInstancesConfiguration) {
-        let merged = config.instances
+        let metrics = config.instances
             .filter { $0.isEnabled && $0.hasVisibleContent }
             .flatMap { $0.demandedMetrics }
-            .compactMap { MenuBarMetricRegistry.hardwareMetricID(for: $0) }
-        let ids = Set(merged)
+        let ids = Set(metrics.compactMap { MenuBarMetricRegistry.hardwareMetricID(for: $0) })
         if ids.isEmpty {
             store.hardwareMetrics.end(.menuBarCenter)
         } else {
             store.hardwareMetrics.begin(.menuBarCenter, metrics: ids)
+        }
+
+        let wantsPower = metrics.contains { $0 == .systemPower || $0 == .inputPower || $0 == .batteryPower }
+        if wantsPower {
+            store.powerSampling.begin(.menuBarInstance)
+        } else {
+            store.powerSampling.end(.menuBarInstance)
         }
     }
 
