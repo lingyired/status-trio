@@ -192,7 +192,12 @@ final class MenuBarInstancesRuntime: NSObject {
               let button = buttonByInstance[id] else { return }
         let work = DispatchWorkItem { [weak self] in
             guard let self, !self.statusBarController.isStatusPanelShown else { return }
-            self.statusBarController.presentInstancePanel(routeRaw: raw, anchorButton: button, presentedByHover: true)
+            self.statusBarController.presentInstancePanel(
+                instanceID: id,
+                routeRaw: raw,
+                anchorButton: button,
+                presentedByHover: true
+            )
             self.hoverOpenID = id
         }
         hoverWorkItems[id] = work
@@ -247,7 +252,21 @@ final class MenuBarInstancesRuntime: NSObject {
         case .followMainIcon:
             statusBarController.togglePopover()
         case .showPanel(let raw):
-            statusBarController.presentInstancePanel(routeRaw: raw, anchorButton: sender, presentedByHover: false)
+            if statusBarController.isStatusPanelShown,
+               statusBarController.presentedInstanceID == id {
+                if statusBarController.isInstancePanelPresentedByHover {
+                    statusBarController.pinInstancePanelFromHover()
+                } else {
+                    statusBarController.dismissInstancePanel()
+                }
+            } else {
+                statusBarController.presentInstancePanel(
+                    instanceID: id,
+                    routeRaw: raw,
+                    anchorButton: sender,
+                    presentedByHover: false
+                )
+            }
         case .openAppSettings:
             openSettings()
         case .openActivityMonitor:

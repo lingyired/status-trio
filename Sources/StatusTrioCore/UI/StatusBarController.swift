@@ -125,6 +125,13 @@ final class StatusBarController: NSObject {
     /// auto-hide form. Clicking the status item pins it into the normal,
     /// click-opened state instead of closing it.
     private var popoverPresentedByHover = false
+    /// The custom menu-bar instance whose click currently owns the visible
+    /// panel; nil for the main status-item click. A click on the same owner
+    /// toggles the panel closed instead of re-presenting it.
+    private(set) var presentedInstanceID: UUID?
+    /// Whether the current instance panel came from hover and a click should pin
+    /// it before the next click closes it.
+    var isInstancePanelPresentedByHover: Bool { popoverPresentedByHover }
     /// The reveal animation the current presentation actually uses, so the
     /// attached detail can fade for exactly as long as the summary.
     private var activeRevealStyle: AnchoredStatusPanel.RevealStyle = .fade
@@ -873,6 +880,12 @@ final class StatusBarController: NSObject {
         cancelHoverTransition()
     }
 
+    /// Called by a custom instance's click handler when its hover-opened panel
+    /// should survive as an ordinary click panel.
+    func pinInstancePanelFromHover() {
+        pinHoverPresentedPopover()
+    }
+
     private func performHoverShow() {
         guard isHoverPresentationEnabled,
               !popover.isShown,
@@ -1133,7 +1146,10 @@ final class StatusBarController: NSObject {
     var isStatusPanelShown: Bool { popover.isShown }
 
     /// Opens the shared status panel anchored to a custom instance's button.
-    func presentInstancePanel(routeRaw: String, anchorButton: NSStatusBarButton, presentedByHover: Bool) {
+    func presentInstancePanel(instanceID: UUID? = nil,
+                              routeRaw: String,
+                              anchorButton: NSStatusBarButton,
+                              presentedByHover: Bool) {
         let detailOnly = isInstanceDetailRoute(routeRaw)
         panelViewModel.setInstanceDetailOnly(detailOnly)
         if detailOnly {
@@ -1160,6 +1176,7 @@ final class StatusBarController: NSObject {
             panelViewModel.setDetailPresentation(.inline)
             syncDetailPresentation()
         }
+        presentedInstanceID = instanceID
     }
 
     private func isInstanceDetailRoute(_ raw: String) -> Bool {
@@ -1562,6 +1579,7 @@ final class StatusBarController: NSObject {
     private func closePopover() {
         guard !isPopoverClosing else { return }
         isPopoverClosing = true
+        presentedInstanceID = nil
         // Whole-group close keeps the route so the reopen preference can restore
         // it; the detail window must go first so focus never lands on it.
         if detailPanel.isShown {
