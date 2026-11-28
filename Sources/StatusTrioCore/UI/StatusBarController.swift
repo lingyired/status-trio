@@ -1134,7 +1134,7 @@ final class StatusBarController: NSObject {
 
     /// Opens the shared status panel anchored to a custom instance's button.
     func presentInstancePanel(routeRaw: String, anchorButton: NSStatusBarButton, presentedByHover: Bool) {
-        let detailOnly = HardwareDetailKind(rawValue: routeRaw) != nil
+        let detailOnly = isInstanceDetailRoute(routeRaw)
         panelViewModel.setInstanceDetailOnly(detailOnly)
         if detailOnly {
             panelViewModel.setDetailPresentation(.inline)
@@ -1162,13 +1162,27 @@ final class StatusBarController: NSObject {
         }
     }
 
+    private func isInstanceDetailRoute(_ raw: String) -> Bool {
+        switch raw {
+        case "battery", "wifi", "ethernet", "inputSource":
+            return true
+        default:
+            return HardwareDetailKind(rawValue: raw) != nil
+        }
+    }
+
     private func applyInstanceRoute(_ raw: String) {
         switch raw {
         case "summary": panelViewModel.showSummaryPage()
-        case "battery": panelViewModel.showBatteryPage()
-        case "wifi": panelViewModel.showWiFiPage(showsDetailsInitially: false)
-        case "ethernet": panelViewModel.showWiredPage()
-        case "inputSource": panelViewModel.showInputSourcePage()
+        case "battery":
+            panelViewModel.showBatteryPage(fromMenuBarInstance: true)
+        case "wifi":
+            panelViewModel.showWiFiPage(showsDetailsInitially: false,
+                                        fromMenuBarInstance: true)
+        case "ethernet":
+            panelViewModel.showWiredPage(fromMenuBarInstance: true)
+        case "inputSource":
+            panelViewModel.showInputSourcePage(fromMenuBarInstance: true)
         default:
             if let kind = HardwareDetailKind(rawValue: raw) {
                 panelViewModel.showHardwareDetail(kind, fromMenuBarInstance: true)

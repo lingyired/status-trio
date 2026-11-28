@@ -499,7 +499,7 @@ struct MenuBarInstanceEditorView: View {
         case "cpu": return L(.hardwareDetailTitleCPU)
         case "gpu": return L(.hardwareDetailTitleGPU)
         case "memory": return L(.hardwareDetailTitleMemory)
-        case "battery": return L(.hardwareMonitorBattery)
+        case "battery": return L(.batteryDetailsTitle)
         case "network": return L(.hardwareDetailTitleNetwork)
         case "disk": return L(.hardwareDetailTitleDisk)
         case "fan": return L(.hardwareMonitorFan)
@@ -508,7 +508,8 @@ struct MenuBarInstanceEditorView: View {
     }
 
     private func detailLabel(_ raw: String) -> String {
-        localization.format(.menuBarEditorDetailFormat, detailName(raw))
+        if raw == "battery" { return detailName(raw) }
+        return localization.format(.menuBarEditorDetailFormat, detailName(raw))
     }
 
     private func activationLabel(_ activation: InstanceActivation) -> String {

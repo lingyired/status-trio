@@ -1030,6 +1030,18 @@ struct DetailEntryToggleDismissTests {
         #expect(panel.route == .hardwareDetail(.memory))
     }
 
+    @Test func instanceBatteryDeepLinkDoesNotToggleBackToSummaryOnReopen() {
+        let fixture = PanelStoreFixture()
+        fixture.settings.setPopupSection(.battery, enabled: true)
+        let panel = fixture.makePanel()
+        defer { panel.stop(); fixture.store.stop() }
+
+        panel.showBatteryPage(fromMenuBarInstance: true)
+        #expect(panel.route == .battery)
+        panel.showBatteryPage(fromMenuBarInstance: true)
+        #expect(panel.route == .battery)
+    }
+
     @Test func instanceDetailDeepLinkDoesNotToggleBackToSummaryOnReopen() {
         let fixture = PanelStoreFixture()
         fixture.settings.setPopupSection(.hardwareMonitor, enabled: true)

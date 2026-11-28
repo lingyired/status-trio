@@ -751,24 +751,28 @@ final class StatusPanelViewModel: ObservableObject {
         cancellables.removeAll()
     }
 
-    func showBatteryPage() {
-        guard settings.visiblePopupSections.contains(.battery),
-              canOpenBatteryPage else {
+    func showBatteryPage(fromMenuBarInstance: Bool = false) {
+        guard canOpenBatteryPage,
+              fromMenuBarInstance || settings.visiblePopupSections.contains(.battery) else {
             showSummaryPage()
             return
         }
-        guard !closeOpenDetailIfAlreadyShowing(.battery) else { return }
+        if !fromMenuBarInstance {
+            guard !closeOpenDetailIfAlreadyShowing(.battery) else { return }
+        }
         guard transition(to: .battery) else { return }
         actions.batteryDetailsAppeared()
         refreshBatteryDetails()
     }
 
-    func showWiFiPage(showsDetailsInitially: Bool) {
-        guard settings.visiblePopupSections.contains(.network) else {
+    func showWiFiPage(showsDetailsInitially: Bool, fromMenuBarInstance: Bool = false) {
+        guard fromMenuBarInstance || settings.visiblePopupSections.contains(.network) else {
             showSummaryPage()
             return
         }
-        guard !closeOpenDetailIfAlreadyShowing(.wifi) else { return }
+        if !fromMenuBarInstance {
+            guard !closeOpenDetailIfAlreadyShowing(.wifi) else { return }
+        }
         let opensNewPage = route != .wifi
         if opensNewPage {
             wifiDisclosure = WiFiPanelDisclosureState(
@@ -781,23 +785,27 @@ final class StatusPanelViewModel: ObservableObject {
         refreshWiFiDetails()
     }
 
-    func showWiredPage() {
-        guard settings.visiblePopupSections.contains(.network) else {
+    func showWiredPage(fromMenuBarInstance: Bool = false) {
+        guard fromMenuBarInstance || settings.visiblePopupSections.contains(.network) else {
             showSummaryPage()
             return
         }
-        guard !closeOpenDetailIfAlreadyShowing(.ethernet) else { return }
+        if !fromMenuBarInstance {
+            guard !closeOpenDetailIfAlreadyShowing(.ethernet) else { return }
+        }
         guard transition(to: .ethernet) else { return }
         actions.wiredDetailsOpened()
         refreshWiredDetailsAndNetwork()
     }
 
-    func showInputSourcePage() {
-        guard settings.visiblePopupSections.contains(.inputSource) else {
+    func showInputSourcePage(fromMenuBarInstance: Bool = false) {
+        guard fromMenuBarInstance || settings.visiblePopupSections.contains(.inputSource) else {
             showSummaryPage()
             return
         }
-        guard !closeOpenDetailIfAlreadyShowing(.inputSource) else { return }
+        if !fromMenuBarInstance {
+            guard !closeOpenDetailIfAlreadyShowing(.inputSource) else { return }
+        }
         transition(to: .inputSource)
     }
 
