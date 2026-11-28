@@ -1254,10 +1254,14 @@ final class StatusPanelViewModel: ObservableObject {
         // `@Published` publishes in willSet, so a subscriber must pass the new
         // value in rather than read `store.isPopoverVisible` (still the old one).
         let sectionOn = visiblePopupSections.contains(.hardwareMonitor)
-        let panelOpen = isStarted && (popoverVisible ?? store.isPopoverVisible) && sectionOn
+        let popoverOpen = isStarted && (popoverVisible ?? store.isPopoverVisible)
         let detailKind = activeDetailKind
-        let summaryVisible = panelOpen && isSummaryVisible
-        let detailVisible = panelOpen && detailKind != nil
+        // Instance deep links intentionally open a hardware page even when the
+        // summary's hardware module is hidden; still register the detail demand
+        // so that page is live rather than blank.
+        let detailAllowed = sectionOn || (isInstanceDetailOnly && detailKind != nil)
+        let summaryVisible = popoverOpen && sectionOn && isSummaryVisible
+        let detailVisible = popoverOpen && detailAllowed && detailKind != nil
         // Per-group panel cadence: a metric is sampled at the fastest of all
         // active consumers, so icons stay fast and a panel-only metric slows to
         // its group's setting.
@@ -1303,7 +1307,8 @@ final class StatusPanelViewModel: ObservableObject {
     }
 
     private func updatePowerSamplingDemand(showsPowerInfoBar: Bool? = nil) {
-        let panelVisible = isStarted && visiblePopupSections.contains(.battery)
+        let panelVisible = isStarted && (visiblePopupSections.contains(.battery)
+            || (isInstanceDetailOnly && route == .battery))
         if panelVisible {
             store.powerSampling.begin(.panel)
         } else {

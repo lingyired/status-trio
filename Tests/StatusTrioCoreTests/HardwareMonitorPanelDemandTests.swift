@@ -203,6 +203,27 @@ final class HardwareMonitorPanelDemandTests: XCTestCase {
         XCTAssertNil(service.detailKind)
     }
 
+    func testInstanceHardwareDetailSamplesEvenWhenModuleIsHidden() {
+        let fixture = makeFixture()
+        fixture.settings.setPopupSection(.hardwareMonitor, enabled: false)
+        let panel = fixture.makePanel()
+        panel.start()
+        fixture.store.start()
+        fixture.store.setPopoverVisible(true)
+        defer {
+            panel.stop()
+            fixture.store.setPopoverVisible(false)
+            fixture.store.stop()
+        }
+
+        panel.setInstanceDetailOnly(true)
+        panel.showHardwareDetail(.memory, fromMenuBarInstance: true)
+        XCTAssertEqual(panel.route, .hardwareDetail(.memory))
+        XCTAssertEqual(fixture.store.hardwareMetrics.demands[.panel],
+                       HardwareMetricsService.detailMetricIDs(for: .memory))
+        XCTAssertEqual(fixture.store.hardwareMetrics.detailKind, .memory)
+    }
+
     func testClosingPanelOnDetailEndsDemandAndDetailPayload() {
         let fixture = makeFixture()
         let panel = startVisible(fixture)
