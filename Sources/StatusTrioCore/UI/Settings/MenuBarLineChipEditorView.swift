@@ -486,8 +486,8 @@ struct MenuBarLeadingIconPicker: View {
         "applewatch", "airpods", "headphones", "speaker.wave.2", "speaker.slash",
         // Hardware and metrics
         "cpu", "cpu.fill", "memorychip", "internaldrive", "externaldrive",
-        "gauge", "gauge.with.dots.needle.50percent", "thermometer.low",
-        "thermometer.medium", "thermometer.high", "fan", "fan.fill",
+        "gauge", "thermometer.low",
+        "thermometer.medium", "thermometer.high", "fan",
         "chart.bar.fill", "chart.line.uptrend.xyaxis", "chart.pie.fill",
         // Media and misc
         "play.fill", "pause.fill", "backward.fill", "forward.fill",

@@ -576,6 +576,7 @@ enum SettingsPreferenceCatalog {
 
     private static var menuBarInstancesPreference: Preference {
         let encoder = JSONEncoder()
+        encoder.outputFormatting = [.sortedKeys]
         let decoder = JSONDecoder()
         func encode(_ config: MenuBarInstancesConfiguration) -> Value {
             guard let data = try? encoder.encode(config), let text = String(data: data, encoding: .utf8) else {
