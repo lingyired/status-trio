@@ -68,7 +68,7 @@ enum MenuBarInstanceRenderer {
 
         let hasLeadingIcon = lines.contains { $0?.leadingIcon != nil }
         let maxIconSize = lines.compactMap { $0?.leadingIcon == nil ? nil : $0?.leadingIconSize }.max() ?? 16
-        let columnWidth: CGFloat = hasLeadingIcon ? CGFloat(max(10, maxIconSize)) + columnGap : 0
+        let columnWidth: CGFloat = hasLeadingIcon ? CGFloat(max(8, maxIconSize)) + columnGap : 0
         let contentWidth = (lineWidths.max() ?? 0).cgFloat + columnWidth
         // `outerMargin` is no longer exposed in the editor: at render time it
         // only widened the item asymmetrically instead of separating it from
@@ -137,7 +137,7 @@ enum MenuBarInstanceRenderer {
             context.imageInterpolation = .high
             let hasLeadingIcon = lines.contains { $0?.leadingIcon != nil }
             let maxIconSize = lines.compactMap { $0?.leadingIcon == nil ? nil : $0?.leadingIconSize }.max() ?? 16
-            let columnWidth: CGFloat = hasLeadingIcon ? CGFloat(max(10, maxIconSize)) + columnGap : 0
+            let columnWidth: CGFloat = hasLeadingIcon ? CGFloat(max(8, maxIconSize)) + columnGap : 0
             let inner = CGFloat(instance.innerPadding)
             let contentX = inner + columnWidth
             let contentWidth = size.width - inner * 2 - columnWidth

@@ -669,7 +669,7 @@ struct MenuBarLeadingIconPicker: View {
                             get: { size },
                             set: { onSizeChange($0.rounded()) }
                         ),
-                        in: 10...16
+                        in: 8...16
                     )
                     Text("\(Int(size))")
                         .font(.system(size: 10.5))
