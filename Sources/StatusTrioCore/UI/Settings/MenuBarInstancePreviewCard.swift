@@ -10,8 +10,10 @@ struct MenuBarInstancePreviewCard: View {
     let model: MenuBarInstanceEditorModel?
     @ObservedObject var store: SettingsStore
     @ObservedObject var statusStore: SystemStatusStore
+    @ObservedObject var hardwareObservable: HardwareMonitorObservable
     @Binding var isDarkBackground: Bool
     let localization: Localization
+    @State private var hardwareRevision = 0
 
     var body: some View {
         VStack(spacing: 8) {
@@ -40,6 +42,9 @@ struct MenuBarInstancePreviewCard: View {
                 .font(.system(size: 11))
                 .foregroundStyle(.tertiary)
         }
+        .onReceive(hardwareObservable.snapshotPublisher) { _ in
+            hardwareRevision &+= 1
+        }
     }
 
     @ViewBuilder
@@ -50,7 +55,8 @@ struct MenuBarInstancePreviewCard: View {
                 isDarkBackground: isDarkBackground,
                 localization: localization
             )
-            .frame(maxWidth: 130, maxHeight: 22)
+            .fixedSize()
+            .padding(.trailing, -8)
         } else {
             Text(localization.string(.menuBarEditorAddOrSelect))
                 .font(.system(size: 11))
@@ -71,7 +77,10 @@ private struct MenuBarInstancePreviewImage: View {
                 .resizable()
                 .interpolation(.high)
                 .scaledToFit()
-                .frame(maxWidth: 110, maxHeight: 18)
+                .frame(
+                    width: min(image.size.width, 110),
+                    height: min(image.size.height, 18)
+                )
                 .fixedSize()
                 .accessibilityLabel(localization.string(.menuBarEditorPreview))
         } else {

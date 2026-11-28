@@ -209,6 +209,7 @@ struct MenuBarInstancesSectionView: View {
                     model: model,
                     store: store,
                     statusStore: statusStore,
+                    hardwareObservable: statusStore.hardwareMetrics.observable,
                     isDarkBackground: $previewIsDark,
                     localization: localization
                 )
@@ -344,6 +345,17 @@ struct MenuBarInstancesSectionView: View {
             model = nil
             return
         }
-        model = MenuBarInstanceEditorModel(instance: instance, store: store)
+        let provider = MenuBarMetricValueProvider(localize: { localization.string($0) })
+        model = MenuBarInstanceEditorModel(
+            instance: instance,
+            store: store,
+            readingsProvider: { metrics in
+                provider.readings(
+                    for: metrics,
+                    hardware: statusStore.hardwareMetrics.observable.snapshot,
+                    status: statusStore.snapshot
+                )
+            }
+        )
     }
 }

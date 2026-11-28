@@ -7,10 +7,20 @@ import Foundation
 final class MenuBarInstanceEditorModel: ObservableObject {
     @Published var instance: MenuBarInstance
     private let store: SettingsStore
+    private let readingsProvider: (Set<MenuBarMetricID>) -> [MenuBarMetricID: MenuBarMetricReading]
 
-    init(instance: MenuBarInstance, store: SettingsStore) {
+    init(
+        instance: MenuBarInstance,
+        store: SettingsStore,
+        readingsProvider: @escaping (Set<MenuBarMetricID>) -> [MenuBarMetricID: MenuBarMetricReading] = { metrics in
+            Dictionary(uniqueKeysWithValues: metrics.map { metric in
+                (metric, MenuBarMetricReading(text: "42", value: 42, availability: .measured))
+            })
+        }
+    ) {
         self.instance = instance
         self.store = store
+        self.readingsProvider = readingsProvider
     }
 
     func persist() {
@@ -192,18 +202,7 @@ final class MenuBarInstanceEditorModel: ObservableObject {
     // MARK: - Preview
 
     func previewImage(dark: Bool = true) -> NSImage? {
-        var readings: [MenuBarMetricID: MenuBarMetricReading] = [:]
-        for metric in instance.allMetrics {
-            if metric == .wifiConnectionStatus {
-                readings[metric] = MenuBarMetricReading(text: "Connected", value: nil, availability: .measured)
-            } else {
-                readings[metric] = MenuBarMetricReading(
-                    text: MenuBarMetricRegistry.format(42, for: metric),
-                    value: 42,
-                    availability: .measured
-                )
-            }
-        }
+        let readings = readingsProvider(instance.allMetrics)
         let input = MenuBarRenderInput(
             instance: instance,
             readings: readings,
