@@ -1134,7 +1134,11 @@ final class StatusBarController: NSObject {
 
     /// Opens the shared status panel anchored to a custom instance's button.
     func presentInstancePanel(routeRaw: String, anchorButton: NSStatusBarButton, presentedByHover: Bool) {
-        panelViewModel.setInstanceDetailOnly(HardwareDetailKind(rawValue: routeRaw) != nil)
+        let detailOnly = HardwareDetailKind(rawValue: routeRaw) != nil
+        panelViewModel.setInstanceDetailOnly(detailOnly)
+        if detailOnly {
+            panelViewModel.setDetailPresentation(.inline)
+        }
         applyInstanceRoute(routeRaw)
         presentPopover(
             relativeTo: anchorButton.bounds,
@@ -1142,8 +1146,16 @@ final class StatusBarController: NSObject {
             preferredEdge: .minY,
             activatesApplication: false,
             revealStyle: presentedByHover ? .hoverDrop : .fade,
-            presentedByHover: presentedByHover
+            presentedByHover: presentedByHover,
+            instanceDetailOnly: detailOnly
         )
+        // `presentPopover` restores the user's alongside preference while
+        // laying out the summary. Re-apply the instance's solo mode afterwards;
+        // otherwise the attached detail window survives this presentation.
+        if detailOnly {
+            panelViewModel.setDetailPresentation(.inline)
+            syncDetailPresentation()
+        }
     }
 
     private func applyInstanceRoute(_ raw: String) {
@@ -1305,11 +1317,16 @@ final class StatusBarController: NSObject {
         dockInset: NSEdgeInsets = DockReveal.noInset,
         revealStyle: AnchoredStatusPanel.RevealStyle = .fade,
         presentedByHover: Bool = false,
-        presentedFromDock: Bool = false
+        presentedFromDock: Bool = false,
+        instanceDetailOnly: Bool = false
     ) {
         popoverPresentedByHover = presentedByHover
         isDockPresented = presentedFromDock
         cancelPopoverContentRelease()
+        panelViewModel.setInstanceDetailOnly(instanceDetailOnly)
+        if instanceDetailOnly {
+            panelViewModel.setDetailPresentation(.inline)
+        }
         // A fresh presentation is not the tail of a mouse-down dismissal.
         reopenSuppression.reset()
         store.setPopoverVisible(true)
@@ -1360,7 +1377,9 @@ final class StatusBarController: NSObject {
         // Render the summary on the first frame when a restored detail will be
         // hosted beside it; a geometry fallback corrects this right after show.
         panelViewModel.setDetailPresentation(
-            settings.showsPanelDetailsAlongside ? .alongside : .inline
+            instanceDetailOnly
+                ? .inline
+                : (settings.showsPanelDetailsAlongside ? .alongside : .inline)
         )
         // With the side detail visible, a summary frame animation would make
         // the detail chase it through layout notifications; use one shared fade
@@ -1525,7 +1544,6 @@ final class StatusBarController: NSObject {
     private func closePopover() {
         guard !isPopoverClosing else { return }
         isPopoverClosing = true
-        panelViewModel.setInstanceDetailOnly(false)
         // Whole-group close keeps the route so the reopen preference can restore
         // it; the detail window must go first so focus never lands on it.
         if detailPanel.isShown {
