@@ -59,9 +59,9 @@ struct MenuBarInstanceEditorView: View {
                     Text(L(.menuBarEditorDoubleLineLargeTop)).tag(MenuBarLayoutMode.doubleLineLargeTop)
                     Text(L(.menuBarEditorDoubleLineLargeBottom)).tag(MenuBarLayoutMode.doubleLineLargeBottom)
                 }
-                .pickerStyle(.menu)
+                .pickerStyle(.segmented)
                 .labelsHidden()
-                .frame(width: 170, alignment: .trailing)
+                .frame(minWidth: 300, maxWidth: 340, alignment: .trailing)
             }
         }
     }

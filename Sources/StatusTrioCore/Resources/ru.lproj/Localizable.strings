@@ -1491,8 +1491,8 @@
 "menubar.editor.layout" = "Layout";
 "menubar.editor.singleLine" = "Single line";
 "menubar.editor.doubleLine" = "Double line";
-"menubar.editor.doubleLineLargeTop" = "Double (Large Top)";
-"menubar.editor.doubleLineLargeBottom" = "Double (Large Bottom)";
+"menubar.editor.doubleLineLargeTop" = "Large Top";
+"menubar.editor.doubleLineLargeBottom" = "Large Bottom";
 "menubar.editor.preview" = "Preview";
 "menubar.editor.noContent" = "No content";
 "menubar.editor.selectedElement" = "Selected element";

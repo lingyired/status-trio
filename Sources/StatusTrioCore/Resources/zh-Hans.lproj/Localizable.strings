@@ -1491,8 +1491,8 @@
 "menubar.editor.layout" = "布局";
 "menubar.editor.singleLine" = "单行";
 "menubar.editor.doubleLine" = "双行";
-"menubar.editor.doubleLineLargeTop" = "双行-上大下小";
-"menubar.editor.doubleLineLargeBottom" = "双行-上小下大";
+"menubar.editor.doubleLineLargeTop" = "上大下小";
+"menubar.editor.doubleLineLargeBottom" = "上小下大";
 "menubar.editor.preview" = "预览";
 "menubar.editor.noContent" = "暂无内容";
 "menubar.editor.selectedElement" = "选中的元素";
