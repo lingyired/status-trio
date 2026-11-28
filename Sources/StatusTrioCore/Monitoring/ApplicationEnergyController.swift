@@ -4,12 +4,15 @@ import Foundation
 
 @MainActor
 final class ApplicationEnergyController: ObservableObject {
-    typealias Reader = @Sendable ([EnergyApplication]) -> ApplicationEnergySnapshot
+    typealias Reader = @Sendable ([ProcessApplication]) -> ApplicationEnergySnapshot
+
     @Published private(set) var ranking = ApplicationEnergyRanking()
-    private let reader: Reader
-    private let applications: @MainActor () -> [EnergyApplication]
-    private static let queue = DispatchQueue(label: "com.lingsmbp.StatusTrio.application-energy", qos: .utility)
-    private var previous: ApplicationEnergySnapshot?
+    private let reader: any ApplicationEnergyReading
+    private let applications: @MainActor () -> [ProcessApplication]
+    private static let queue = DispatchQueue(label: "com.lingsmbp.StatusTrio.application-energy",
+                                             qos: .utility)
+    private var window: ApplicationEnergyWindow
+    private var intervalBuilder: ApplicationEnergyIntervalBuilder
     private var monitorsInBackground = false
     private(set) var backgroundInterval: Duration
     private var isSuspended = false
@@ -20,21 +23,45 @@ final class ApplicationEnergyController: ObservableObject {
     private var needsRefresh = false
     private var refreshTask: Task<Void, Never>?
 
-    init(reader: @escaping Reader = { ApplicationEnergyReader().read(applications: $0) },
-         applications: @escaping @MainActor () -> [EnergyApplication] = {
-             NSWorkspace.shared.runningApplications.compactMap { app in
-                 guard !app.isTerminated, app.activationPolicy != .prohibited,
-                       let url = app.bundleURL, let name = app.localizedName else { return nil }
-                 return EnergyApplication(id: url.path, name: name)
-             }
-         },
-         backgroundInterval: Duration = .seconds(10)) {
+    convenience init() {
+        self.init(reader: ApplicationEnergyReader())
+    }
+
+    convenience init(reader: @escaping Reader,
+                     applications: @escaping @MainActor () -> [ProcessApplication] = ApplicationEnergyController.defaultApplications,
+                     backgroundInterval: Duration = .seconds(10),
+                     windowConfiguration: ApplicationEnergyWindow.Configuration = .init()) {
+        self.init(reader: ClosureEnergyReader(readBody: reader),
+                  applications: applications,
+                  backgroundInterval: backgroundInterval,
+                  windowConfiguration: windowConfiguration)
+    }
+
+    init(reader: any ApplicationEnergyReading,
+         applications: @escaping @MainActor () -> [ProcessApplication] = ApplicationEnergyController.defaultApplications,
+         backgroundInterval: Duration = .seconds(10),
+         windowConfiguration: ApplicationEnergyWindow.Configuration = .init()) {
         self.reader = reader
         self.applications = applications
         self.backgroundInterval = backgroundInterval
+        self.window = ApplicationEnergyWindow(configuration: windowConfiguration)
+        self.intervalBuilder = ApplicationEnergyIntervalBuilder(
+            configuration: .init(maximumGap: windowConfiguration.maximumGap)
+        )
     }
 
     deinit { refreshTask?.cancel() }
+
+    static func defaultApplications() -> [ProcessApplication] {
+        NSWorkspace.shared.runningApplications.compactMap { app in
+            guard !app.isTerminated, app.activationPolicy != .prohibited,
+                  let url = app.bundleURL, let name = app.localizedName else { return nil }
+            return ProcessApplication(pid: app.processIdentifier,
+                                      path: url.path,
+                                      bundleID: app.bundleIdentifier,
+                                      name: name)
+        }
+    }
 
     func activate() {
         guard !active else { return }
@@ -72,7 +99,11 @@ final class ApplicationEnergyController: ObservableObject {
     func setSuspended(_ suspended: Bool) {
         guard isSuspended != suspended else { return }
         isSuspended = suspended
-        if suspended { stopSampling(clearCache: true) } else { reconcileSampling(refreshImmediately: true) }
+        if suspended {
+            stopSampling(clearCache: true)
+        } else {
+            reconcileSampling(refreshImmediately: true)
+        }
     }
 
     func stop() {
@@ -82,8 +113,12 @@ final class ApplicationEnergyController: ObservableObject {
     }
 
     private func reconcileSampling(refreshImmediately: Bool = false) {
+        applySamplingTolerances()
         guard !isSuspended, active || monitorsInBackground else {
-            stopSampling(clearCache: false)
+            // Closing the page without background monitoring releases the GPU
+            // subscription, client cache and rolling window as required by the
+            // sampling lifecycle.
+            stopSampling(clearCache: true)
             return
         }
         let starting = !isSampling
@@ -96,7 +131,7 @@ final class ApplicationEnergyController: ObservableObject {
         let interval: Duration = active ? .seconds(5) : backgroundInterval
         // A cold start needs two counters. Warm once after 1 second; subsequent
         // work is low-frequency and never tied to opening the menu.
-        let firstDelay: Duration = ranking.phase == .sampling ? .seconds(1) : interval
+        let firstDelay: Duration = ranking.effectiveDuration == 0 ? .seconds(1) : interval
         refreshTask = Task { @MainActor [weak self] in
             var delay = firstDelay
             while !Task.isCancelled {
@@ -109,6 +144,16 @@ final class ApplicationEnergyController: ObservableObject {
         }
     }
 
+    private func applySamplingTolerances() {
+        let interval = active ? Duration.seconds(5) : backgroundInterval
+        let components = interval.components
+        let seconds = Double(components.seconds)
+            + Double(components.attoseconds) / 1_000_000_000_000_000_000
+        let gap = max(15, seconds + 5)
+        window.configuration.maximumGap = gap
+        intervalBuilder.setMaximumGap(gap)
+    }
+
     private func stopSampling(clearCache: Bool) {
         isSampling = false
         generation += 1
@@ -116,20 +161,25 @@ final class ApplicationEnergyController: ObservableObject {
         refreshTask = nil
         needsRefresh = false
         if clearCache {
-            previous = nil
+            window.reset()
+            intervalBuilder.reset()
             ranking = ApplicationEnergyRanking()
+            let reader = reader
+            Self.queue.async { reader.reset() }
         }
     }
 
     func refresh(now: TimeInterval = ProcessInfo.processInfo.systemUptime) {
         guard isSampling else { return }
-        if let previous, now - previous.readAt > 15 {
-            self.previous = nil
+        if let lastEnd = window.lastEnd, now - lastEnd > window.configuration.maximumGap {
+            window.reset()
+            intervalBuilder.reset()
             ranking = ApplicationEnergyRanking()
         }
-        // Visibility changes must not replace a valid ranking with a zero-length
-        // interval or schedule redundant IPC immediately after a background read.
-        if let previous, (0..<0.5).contains(now - previous.readAt) { return }
+        if let previous = intervalBuilder.previous,
+           (0..<0.5).contains(now - previous.readAt) {
+            return
+        }
         guard !inFlight else { needsRefresh = true; return }
         inFlight = true
         needsRefresh = false
@@ -138,22 +188,51 @@ final class ApplicationEnergyController: ObservableObject {
         let reader = reader
         Self.queue.async { [weak self] in
             guard self != nil else { return }
-            let snapshot = reader(applications)
+            let snapshot = reader.read(applications: applications)
             Task { @MainActor [weak self] in
                 guard let self else { return }
                 self.inFlight = false
-                if self.isSampling && self.generation == generation {
-                    // A blocked read must not publish a stale ranking.
-                    if (0...15).contains(ProcessInfo.processInfo.systemUptime - snapshot.readAt) {
-                        self.ranking = ApplicationEnergyRanking.rank(previous: self.previous, current: snapshot)
-                        self.previous = snapshot
-                    } else {
-                        self.previous = nil
-                        self.ranking = ApplicationEnergyRanking()
+                guard self.isSampling, self.generation == generation else {
+                    if self.needsRefresh {
+                        self.needsRefresh = false
+                        self.refresh()
                     }
+                    return
                 }
-                if self.needsRefresh { self.refresh() }
+                let freshness = ProcessInfo.processInfo.systemUptime - snapshot.readAt
+                guard (0...15).contains(freshness) else {
+                    self.window.reset()
+                    self.intervalBuilder.reset()
+                    self.ranking = ApplicationEnergyRanking()
+                    if self.needsRefresh {
+                        self.needsRefresh = false
+                        self.refresh()
+                    }
+                    return
+                }
+                let intervals = self.intervalBuilder.build(current: snapshot)
+                self.window.append(contentsOf: intervals)
+                self.ranking = self.window.ranking()
+                if self.needsRefresh {
+                    self.needsRefresh = false
+                    self.refresh()
+                }
             }
         }
     }
+}
+
+/// Adapts a test/legacy closure to the reader protocol.
+private final class ClosureEnergyReader: ApplicationEnergyReading, @unchecked Sendable {
+    let readBody: @Sendable ([ProcessApplication]) -> ApplicationEnergySnapshot
+
+    init(readBody: @escaping @Sendable ([ProcessApplication]) -> ApplicationEnergySnapshot) {
+        self.readBody = readBody
+    }
+
+    func read(applications: [ProcessApplication]) -> ApplicationEnergySnapshot {
+        readBody(applications)
+    }
+
+    func reset() {}
 }

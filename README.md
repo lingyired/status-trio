@@ -269,7 +269,7 @@ For the three icon regions, update timing, Swift examples, and extension boundar
 ## Documentation
 
 - [Known limitations](docs/known-limitations.md)
-- [Battery power flow and CPU energy impact](docs/battery-power-flow.md)
+- [Battery power flow and app energy ranking](docs/battery-power-flow.md)
 - [Charge to Full Now: behavior and verification](docs/charge-to-full-now-poc.md)
 - [Status panel global shortcut](docs/status-panel-global-shortcut.md)
 - [Automated GitHub Actions releases](docs/github-actions-release.md)

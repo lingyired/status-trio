@@ -9,12 +9,13 @@ private final class EnergyReadGate: @unchecked Sendable {
     private var reads = 0
     var count: Int { lock.withLock { reads } }
 
-    func read(_ apps: [EnergyApplication]) -> ApplicationEnergySnapshot {
+    func read(_ apps: [ProcessApplication]) -> ApplicationEnergySnapshot {
         let count = lock.withLock { reads += 1; return reads }
         let readAt = ProcessInfo.processInfo.systemUptime
         _ = gate.wait(timeout: .now() + 5)
         return ApplicationEnergySnapshot(readAt: readAt, processes: apps.map {
-            ProcessEnergySample(pid: 1, startedAt: 1, app: $0,
+            ProcessEnergySample(pid: 1, startedAt: 1,
+                app: EnergyApplication(id: $0.path, name: $0.name),
                 cpuNanoseconds: UInt64(count) * 1_000_000_000,
                 energyNanojoules: UInt64(count) * 1_000_000_000)
         })
@@ -25,10 +26,11 @@ private final class ImmediateEnergyReader: @unchecked Sendable {
     private let lock = NSLock()
     private var reads = 0
     var count: Int { lock.withLock { reads } }
-    func read(_ apps: [EnergyApplication]) -> ApplicationEnergySnapshot {
+    func read(_ apps: [ProcessApplication]) -> ApplicationEnergySnapshot {
         let count = lock.withLock { reads += 1; return reads }
         return ApplicationEnergySnapshot(readAt: ProcessInfo.processInfo.systemUptime, processes: apps.map {
-            ProcessEnergySample(pid: 1, startedAt: 1, app: $0,
+            ProcessEnergySample(pid: 1, startedAt: 1,
+                app: EnergyApplication(id: $0.path, name: $0.name),
                 cpuNanoseconds: UInt64(count) * 1_000_000_000,
                 energyNanojoules: UInt64(count) * 1_000_000_000)
         })
@@ -37,10 +39,17 @@ private final class ImmediateEnergyReader: @unchecked Sendable {
 
 @MainActor
 final class ApplicationEnergyControllerTests: XCTestCase {
+    private static let testApplications = [
+        ProcessApplication(pid: 1, path: "/App.app", bundleID: nil, name: "App")
+    ]
+    private static let testWindowConfiguration = ApplicationEnergyWindow.Configuration(
+        minimumDuration: 0.5
+    )
     func testOptInPreparesRankingBeforeThePanelOpensAndOptOutStopsIt() async {
         let reader = ImmediateEnergyReader()
         let controller = ApplicationEnergyController(reader: { reader.read($0) },
-            applications: { [EnergyApplication(id: "/App.app", name: "App")] })
+            applications: { Self.testApplications },
+            windowConfiguration: Self.testWindowConfiguration)
         controller.setBackgroundMonitoringEnabled(true)
         await waitUntil { controller.ranking.phase == .ready }
         XCTAssertEqual(controller.ranking.apps.map(\.name), ["App"])
@@ -60,7 +69,8 @@ final class ApplicationEnergyControllerTests: XCTestCase {
     func testSleepDropsLateReadsAndWakeStartsWithAFreshBaseline() async {
         let reader = EnergyReadGate()
         let controller = ApplicationEnergyController(reader: { reader.read($0) },
-            applications: { [EnergyApplication(id: "/App.app", name: "App")] })
+            applications: { Self.testApplications },
+            windowConfiguration: Self.testWindowConfiguration)
         controller.setBackgroundMonitoringEnabled(true)
         await waitUntil { reader.count == 1 }
         controller.setSuspended(true)
@@ -86,7 +96,8 @@ final class ApplicationEnergyControllerTests: XCTestCase {
         settings.highEnergyAppsRefreshIntervalSeconds = 30
         let reader = ImmediateEnergyReader()
         let controller = ApplicationEnergyController(reader: { reader.read($0) },
-            applications: { [EnergyApplication(id: "/App.app", name: "App")] })
+            applications: { Self.testApplications },
+            windowConfiguration: Self.testWindowConfiguration)
         let notifications = NotificationCenter()
         let store = SystemStatusStore(batteryMonitor: PanelBatteryMonitor(), wifiMonitor: PanelWiFiMonitor(),
             volumeMonitor: PanelVolumeMonitor(), wakeNotificationCenter: notifications,
@@ -145,8 +156,9 @@ final class ApplicationEnergyControllerTests: XCTestCase {
     func testChangingBackgroundIntervalReschedulesWithoutUsingTheOldCadence() async {
         let reader = ImmediateEnergyReader()
         let controller = ApplicationEnergyController(reader: { reader.read($0) },
-            applications: { [EnergyApplication(id: "/App.app", name: "App")] },
-            backgroundInterval: .milliseconds(20))
+            applications: { Self.testApplications },
+            backgroundInterval: .milliseconds(20),
+            windowConfiguration: Self.testWindowConfiguration)
         controller.setBackgroundMonitoringEnabled(true)
         await waitUntil { controller.ranking.phase == .ready }
         // Poll for the short cadence to keep producing samples instead of
@@ -163,10 +175,11 @@ final class ApplicationEnergyControllerTests: XCTestCase {
         controller.stop()
     }
 
-    func testRecentRankingIsAvailableImmediatelyWhenThePanelReopens() async {
+    func testClosingPageWithoutBackgroundMonitoringReleasesTheWindow() async {
         let gate = EnergyReadGate()
         let controller = ApplicationEnergyController(reader: { gate.read($0) },
-            applications: { [EnergyApplication(id: "/App.app", name: "App")] })
+            applications: { Self.testApplications },
+            windowConfiguration: Self.testWindowConfiguration)
         controller.activate()
         await waitUntil { gate.count == 1 }
         gate.gate.signal()
@@ -175,10 +188,13 @@ final class ApplicationEnergyControllerTests: XCTestCase {
         await waitUntil { gate.count == 2 }
         gate.gate.signal()
         await waitUntil { controller.ranking.phase == .ready }
-        let cached = controller.ranking
+        XCTAssertFalse(controller.ranking.apps.isEmpty)
         controller.deactivate()
+        XCTAssertEqual(controller.ranking, ApplicationEnergyRanking(),
+                       "Closing without background monitoring releases the window")
         controller.activate()
-        XCTAssertEqual(controller.ranking, cached, "Reopening must immediately present the recent real sample")
+        XCTAssertEqual(controller.ranking, ApplicationEnergyRanking(),
+                       "Reopening starts a new baseline instead of reusing a stopped window")
         controller.deactivate()
         gate.gate.signal()
     }
@@ -194,7 +210,8 @@ final class ApplicationEnergyControllerTests: XCTestCase {
     func testDisabledCollectorDoesNotReadAndClosingDropsLateResultsAndQueuedReads() async {
         let gate = EnergyReadGate()
         let controller = ApplicationEnergyController(reader: { gate.read($0) },
-            applications: { [EnergyApplication(id: "/App.app", name: "App")] })
+            applications: { Self.testApplications },
+            windowConfiguration: Self.testWindowConfiguration)
         controller.refresh()
         XCTAssertEqual(gate.count, 0)
         controller.activate()
@@ -213,7 +230,8 @@ final class ApplicationEnergyControllerTests: XCTestCase {
     func testReopeningNeverUsesThePreviousSessionBaseline() async {
         let gate = EnergyReadGate()
         let controller = ApplicationEnergyController(reader: { gate.read($0) },
-            applications: { [EnergyApplication(id: "/App.app", name: "App")] })
+            applications: { Self.testApplications },
+            windowConfiguration: Self.testWindowConfiguration)
         controller.activate()
         await waitUntil { gate.count == 1 }
         controller.deactivate()
@@ -230,7 +248,8 @@ final class ApplicationEnergyControllerTests: XCTestCase {
     func testPublishedRankingExpiresWhileTheNextReadIsBlocked() async {
         let gate = EnergyReadGate()
         let controller = ApplicationEnergyController(reader: { gate.read($0) },
-            applications: { [EnergyApplication(id: "/App.app", name: "App")] })
+            applications: { Self.testApplications },
+            windowConfiguration: Self.testWindowConfiguration)
         controller.activate()
         await waitUntil { gate.count == 1 }
         gate.gate.signal()

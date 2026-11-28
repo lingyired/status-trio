@@ -86,6 +86,47 @@ sample time rather than promising live per-second watts. Hardware validation so
 far covers one Apple silicon Mac on battery. Charging transitions and other Mac
 models still need field validation before making broad accuracy claims.
 
+## App energy ranking
+
+The high-energy apps section is a rolling one-minute estimate, not a
+last-interval snapshot. While the Battery page is visible the app samples every
+five seconds; with background monitoring enabled it keeps using the configured
+5–60 second interval instead. Each sample becomes an immutable interval with
+its real elapsed duration, so irregular ticks are weighted by time rather than
+by a fixed five-second assumption.
+
+- **CPU energy** comes from `proc_pid_rusage` with `RUSAGE_INFO_V6`'s
+  `ri_energy_nj` counter. The first sighting of a PID only establishes a
+  baseline. PID reuse, start-time changes, counter rollback, long gaps and
+  sleep/wake rebuild the baseline instead of producing a spike. Older kernels
+  that only provide `RUSAGE_INFO_V4` fall back to CPU time as an explicit
+  activity percentage.
+- **GPU clients** are enumerated without privileges from every
+  `IOAccelerator` service. `AppUsage[].accumulatedGPUTime` is summed per
+  registry entry and paired with `IOUserClientCreator`; clients whose creator
+  cannot be parsed still stay in the attribution denominator.
+- **GPU total energy** comes from the IOReport `Energy Model` group's
+  `GPU Energy` channel. IOReport is loaded with `dlopen`/`dlsym`, and only the
+  verified mJ/µJ/nJ unit labels are accepted. A missing channel, unknown unit,
+  counter rollback or stale sample makes GPU attribution unavailable rather
+  than zero.
+- GPU energy is apportioned by valid client GPU-time deltas. Any unreadable
+  client time stays in an unattributed bucket; it is never moved to a known app.
+  A disabled-by-default WindowServer correction stage exists for controlled
+  comparisons, but the first release reports raw proportional attribution.
+- The ranking is an **estimated CPU + GPU attributed average power** when both
+  sources are available. When GPU energy is unavailable the list is labelled
+  **CPU energy** and shows only CPU W. Only when no CPU energy counter is usable
+  does it fall back to **CPU activity**, shown as a percentage. Bases are never
+  mixed without a label.
+- The first 15 seconds stay in a collecting state. From 15 to 59 seconds the
+  partial window is shown with a progress note; after 60 seconds the window is
+  complete. An app that exits keeps its already-measured intervals until they
+  age out of the rolling window.
+- `WindowServer` and other system processes may appear as GPU-only rows and do
+  not offer Force Quit. No `powermetrics`, root authorization, privileged
+  helper, shell process or permanent high-frequency polling is added.
+
 ## No battery (desktop Macs)
 
 A Mac with no battery still opens this page when the runtime exposes a fresh

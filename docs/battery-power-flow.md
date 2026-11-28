@@ -1,9 +1,9 @@
-# 电池面板功率流向与 CPU 能耗影响
+# 电池面板功率流向与应用能耗排行
 
 在“设置 → 电池显示”中：
 
 - **功耗流向图**：在电池详情页显示输入 / 电池 / 系统功耗流向图，默认开启。原先的“充电器输入、充入电池、系统供电、按部件细分功耗”四个开关已合并为这一个。
-- **CPU 能耗影响**：按最近采样值从高到低显示最多五个应用，并标出 CPU 能耗（mW/W）；数据不足时显示 CPU 活跃度百分比。默认关闭。开启后可设置 10–60 秒的后台采样间隔，默认 10 秒。
+- **应用能耗排行**：按最近 60 秒滚动窗口显示最多十个应用的 CPU + GPU 归因估算功率（W），默认展示前五个、可展开其余；GPU 不可用时明确降级为 CPU 能耗，只有 CPU 能耗计数也不可用时才显示 CPU 活跃度百分比。默认关闭。开启后可设置 5–60 秒的后台采样间隔，默认 10 秒。
 
 这些选项作用于电池弹出面板。菜单栏和 Dock 图标共用同一套图标设置与渲染场景；中间槽可以选择显示实时整机功耗，采样由 `PowerSamplingService` 统一持有（各入口统一 2 秒，全部需求结束后停止），详见 [Power in the centre slot](power-center-slot.md)。
 
@@ -83,17 +83,19 @@ USB 供电不再合成一个数：每个达到 0.20 W 的通道单独画一条�
 
 打开电池面板且有功率选项开启时每 2 秒读取，关闭面板即停止。部分机型只能回退到较慢的系统电池遥测，即使重新读取，也可能约一分钟才产生新样本。图形为静态 SwiftUI 路径，无常驻动画。
 
-## CPU 能耗影响的口径
+## 应用能耗排行的口径
 
-开启该选项后，由运行中的应用持有采样：面板关闭时按设置的后台采样间隔读取（默认 10 秒，可选 10–60 秒）、详情页打开时固定每 5 秒读取当前用户有权限访问的进程累计计数。设置页会明确说明后台采样及暂停条件，修改间隔后立即生效。名单在进入详情页之前已准备，打开时同步呈现最近结果，再异步更新；关闭面板不清空近期结果。刚启动、刚开启功能或刚唤醒时，首个样本建立基线，约 1 秒后完成首次区间采样。超过 15 秒的旧样本不会继续当作近期数据展示。
+开启该选项后，由运行中的应用持有采样：面板关闭时按设置的后台采样间隔读取（默认 10 秒，可选 5–60 秒），详情页打开时固定每 5 秒读取。设置页会明确说明后台采样及暂停条件，修改间隔后立即生效。详情页关闭且后台监测未开启时，会停止采样并释放 IOReport 订阅、GPU client 缓存和 60 秒窗口；后台监测开启时继续按其配置间隔运行。
 
-使用 `proc_pid_rusage` 的 CPU 能耗计数增量排序。旧内核不支持该计数，或可比较进程的能耗覆盖不完整时，整体切换为 CPU 活跃度估算，并明确显示说明；不将两种量纲混排。这不是系统原生“使用大量能耗”名单的副本。Apple 的公开说明包含 CPU、磁盘 I/O、网络等多个因素，但未给出可直接复刻当前版本的完整公式或阈值。
+排行是最近 60 秒滚动窗口的平均估算功率。每个采样区间按实际单调时钟间隔计时，窗口越过 60 秒边界时对跨界样本按重叠时长比例分摊能量。不足 15 秒显示采集中；15–59 秒显示部分窗口并标注采集进度；60 秒后为完整窗口。应用在窗口中途退出时，已测得的区间保留到自然过期。
 
-同一应用包内的辅助进程归到外层应用，PID 复用、计数回退、过长采样间隔不会产生虚假峰值。列表不包含无法读取的进程，也不代表完整 GPU、ANE、系统进程或所有外置辅助进程的能耗。关闭选项、系统或屏幕休眠、应用退出时会清空基线、取消周期工作并丢弃迟到结果；唤醒时重新建立样本。阻塞读取时旧名单也会过期。仅功率读数继续由打开的详情页持有，应用名单的后台采样不读取 SMC 或电池功率传感器。
+CPU 能耗来自 `proc_pid_rusage` 的 `RUSAGE_INFO_V6.ri_energy_nj`，PID 复用、启动时间变化、计数回退、过长间隔和睡眠恢复都会重建基线。GPU 部分来自无特权的 `IOAccelerator` 客户端 `accumulatedGPUTime` 与 IOReport `Energy Model` 的 `GPU Energy` 通道；GPU 能量按有效 client GPU 时间比例分配，无法归属的部分保留为未归属桶，不挪给已知应用。`WindowServer` 修正阶段默认关闭，首版只报告原始比例分配。
 
-不启动 `powermetrics`，不申请 root、不扩展 Helper，不读取应用内容、命令行或文档。
+CPU + GPU 可用时显示「应用能耗 · 最近 1 分钟」的估算 W；GPU 通道不可用、冻结或读取失败时降级为「CPU 能耗」并明确标注；只有 CPU 能耗计数也不可用时才使用 CPU 活跃度百分比。不同量纲不混排。Apple 的公开说明包含 CPU、磁盘 I/O、网络等多个因素，但未给出可直接复刻当前版本的完整公式或阈值；这里不是 Activity Monitor 综合能耗评分的副本。
 
-数据口径依据：[Apple XNU Recount](https://github.com/apple-oss-distributions/xnu/blob/main/doc/observability/recount.md) 将该计数定义为 CPU 纳焦能量；[Apple 的适配器详情 API](https://developer.apple.com/documentation/iokit/1523866-iopscopyexternalpoweradapterdeta) 提供适配器属性；[Apple 的电池菜单说明](https://developer.apple.com/library/archive/documentation/Performance/Conceptual/power_efficiency_guidelines_osx/MonitoringBatteryUsage.html) 描述原生名单考虑的多种因素。SMC 键用途另对照 [Stats 的电池读取实现](https://github.com/exelban/stats/blob/master/Modules/Battery/readers.swift)。
+不启动 `powermetrics`，不申请 root、不扩展 Helper，不读取应用内容、命令行或文档，也不新增常驻高频轮询。
+
+数据口径依据：[Apple XNU Recount](https://github.com/apple-oss-distributions/xnu/blob/main/doc/observability/recount.md) 将 `ri_energy_nj` 定义为 CPU 纳焦能量；[Apple 的电源效率指南](https://developer.apple.com/library/archive/documentation/Performance/Conceptual/power_efficiency_guidelines_osx/MonitoringBatteryUsage.html) 说明原生「使用大量能耗」名单考虑 CPU、GPU、磁盘、网络等多种因素。GPU client 采集思路参考 [Stats](https://github.com/exelban/stats)（MIT）；与 wtop 的原始 GPU 时间比例相比，本实现额外保留未归属桶和归因覆盖率，但不宣称与 wtop 或 TermoBar 数值一致。
 
 ## 验证边界
 

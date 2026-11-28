@@ -96,7 +96,7 @@ final class SettingsStore: ObservableObject {
     static let autoDisableLidSleepOnLowBatteryDefaultsKey = "autoDisableLidSleepOnLowBattery"
     static let showsHighEnergyAppsDefaultsKey = "showsHighEnergyApps"
     static let highEnergyAppsRefreshIntervalDefaultsKey = "highEnergyAppsRefreshIntervalSeconds"
-    static let highEnergyAppsRefreshIntervalRange: ClosedRange<Double> = 10...60
+    static let highEnergyAppsRefreshIntervalRange: ClosedRange<Double> = 5...60
     static let defaultHighEnergyAppsRefreshIntervalSeconds: Double = 10
     static let showsChargeToFullNowButtonDefaultsKey = "showsChargeToFullNowButton"
     static let showsChargingIndicatorDefaultsKey = "showsChargingIndicator"
