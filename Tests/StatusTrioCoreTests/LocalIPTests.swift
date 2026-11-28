@@ -91,6 +91,17 @@ final class NetworkRowSubtitleTests: XCTestCase {
         XCTAssertNil(NetworkRowSubtitle.prepending(nil, to: nil))
         XCTAssertNil(NetworkRowSubtitle.prepending("", to: ""))
     }
+
+    func testTheAddressTrailsTheConnectionState() {
+        XCTAssertEqual(
+            NetworkRowSubtitle.appending("192.168.1.20", to: "Connected"),
+            "Connected · 192.168.1.20"
+        )
+        XCTAssertEqual(NetworkRowSubtitle.appending(nil, to: "Connected"), "Connected")
+        XCTAssertEqual(NetworkRowSubtitle.appending("", to: "Connected"), "Connected")
+        XCTAssertEqual(NetworkRowSubtitle.appending("192.168.1.20", to: nil), "192.168.1.20")
+        XCTAssertNil(NetworkRowSubtitle.appending(nil, to: nil))
+    }
 }
 
 @MainActor
