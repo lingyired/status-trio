@@ -1462,10 +1462,10 @@
 "menubar.metric.diskUsed" = "Disk Used";
 "menubar.metric.diskExternalTotal" = "External Disk Total";
 "menubar.metric.diskExternalFree" = "External Disk Free";
-"menubar.metric.diskUsagePercent" = "Disk %";
-"menubar.metric.diskExternalUsagePercent" = "External Disk %";
-"menubar.metric.diskCombinedUsagePercent" = "Total Disk %";
-"menubar.metric.diskCombinedFree" = "Total Free";
+"menubar.metric.diskUsagePercent" = "Disk Usage";
+"menubar.metric.diskExternalUsagePercent" = "External Disk Usage";
+"menubar.metric.diskCombinedUsagePercent" = "All Disks Usage";
+"menubar.metric.diskCombinedFree" = "All Disks Free";
 "menubar.metric.diskFree" = "Disk Free";
 "menubar.metric.wifiConnected" = "Connected";
 "menubar.metric.wifiDisconnected" = "Disconnected";

@@ -1461,12 +1461,12 @@
 "menubar.metric.memoryUsed" = "メモリ使用量";
 "menubar.metric.memoryFree" = "メモリ空き";
 "menubar.metric.diskUsed" = "ディスク使用量";
-"menubar.metric.diskExternalTotal" = "外付けディスク合計";
+"menubar.metric.diskExternalTotal" = "外付けディスク総容量";
 "menubar.metric.diskExternalFree" = "外付けディスク空き";
-"menubar.metric.diskUsagePercent" = "ディスク %";
-"menubar.metric.diskExternalUsagePercent" = "外付けディスク %";
-"menubar.metric.diskCombinedUsagePercent" = "全ディスク %";
-"menubar.metric.diskCombinedFree" = "合計空き容量";
+"menubar.metric.diskUsagePercent" = "ディスク使用率";
+"menubar.metric.diskExternalUsagePercent" = "外付けディスク使用率";
+"menubar.metric.diskCombinedUsagePercent" = "全ディスク使用率";
+"menubar.metric.diskCombinedFree" = "全ディスク空き容量";
 "menubar.metric.diskFree" = "ディスク空き";
 "menubar.metric.wifiConnected" = "Connected";
 "menubar.metric.wifiDisconnected" = "Disconnected";
