@@ -14,8 +14,9 @@ struct HighEnergyAppsView: View {
     @State private var armed: ArmedEnergy?
     @State private var pendingQuit: ForceQuitTarget?
     @State private var failedQuitName: String?
-    /// The list keeps ten rows but starts compact with five visible.
-    @State private var showsAllRows = false
+    /// The list keeps ten rows but starts compact with five visible. The
+    /// expanded state survives closing and reopening the panel.
+    @AppStorage("batteryHighEnergyAppsShowsAllRows") private var showsAllRows = false
     private let collapsedRowLimit = 5
 
     private struct ArmedEnergy {
