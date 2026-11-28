@@ -1450,7 +1450,7 @@
 "hardware.monitor.settings.refresh.topApps.description" = "How often the detail-page list refreshes. The memory list keeps its own 6 s floor and won't go faster.";
 "hardware.monitor.settings.group.sampling.footnote" = "The panel and the menu bar/Dock icons share one hardware sample. These intervals only control how often the panel refreshes; icons stay responsive and nothing is read twice.";
 "settings.hardwareRing.iconRefreshNote" = "The icon refreshes at each metric's fastest cadence (CPU/GPU about 2 s, network/disk about 1 s, temperature about 4 s) and only redraws when its displayed content changes, so it stays responsive. It is not affected by the panel update frequency.";
-"menubar.metric.systemPower" = "Total Power";
+"menubar.metric.systemPower" = "System Power";
 "menubar.metric.inputPower" = "Input Power";
 "menubar.metric.batteryPower" = "Battery Power";
 "menubar.metric.diskRead" = "Disk Read";

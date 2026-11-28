@@ -1451,7 +1451,7 @@
 "hardware.monitor.settings.refresh.topApps.description" = "詳細ページ下部のリストの更新間隔。メモリのリストは独自の下限6秒を保ちます。";
 "hardware.monitor.settings.group.sampling.footnote" = "パネルとメニューバー/Dockのアイコンは同じハードウェアサンプルを共有します。この間隔はパネルの更新頻度だけを決め、アイコンは機敏なまま、ハードウェアを二重に読みません。";
 "settings.hardwareRing.iconRefreshNote" = "アイコンは各指標の最も速い周期で更新され（CPU/GPU 約2秒、ネットワーク/ディスク約1秒、温度約4秒）、表示内容が変わったときだけ再描画して機敏さを保ちます。「パネルの更新頻度」の影響は受けません。";
-"menubar.metric.systemPower" = "合計電力";
+"menubar.metric.systemPower" = "システム電力";
 "menubar.metric.inputPower" = "電源入力電力";
 "menubar.metric.batteryPower" = "バッテリー電力";
 "menubar.metric.diskRead" = "ディスク読み取り";

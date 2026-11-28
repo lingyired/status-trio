@@ -1451,7 +1451,7 @@
 "hardware.monitor.settings.refresh.topApps.description" = "Com que frequência a lista da página de detalhes é atualizada. A lista de memória mantém seu limite de 6 s.";
 "hardware.monitor.settings.group.sampling.footnote" = "O painel e os ícones da barra de menus/Dock compartilham uma única amostra de hardware. Estes intervalos controlam apenas a frequência de atualização do painel; os ícones continuam ágeis e nada é lido duas vezes.";
 "settings.hardwareRing.iconRefreshNote" = "O ícone é atualizado no ritmo mais rápido de cada métrica (CPU/GPU cerca de 2 s, rede/disco cerca de 1 s, temperatura cerca de 4 s) e só é redesenhado quando o conteúdo muda, para continuar ágil. Ele não é afetado pela frequência de atualização do painel.";
-"menubar.metric.systemPower" = "Potência total";
+"menubar.metric.systemPower" = "Potência do sistema";
 "menubar.metric.inputPower" = "Potência de entrada";
 "menubar.metric.batteryPower" = "Potência da bateria";
 "menubar.metric.diskRead" = "Leitura do disco";
