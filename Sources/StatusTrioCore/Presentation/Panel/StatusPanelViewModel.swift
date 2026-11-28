@@ -799,9 +799,11 @@ final class StatusPanelViewModel: ObservableObject {
     }
 
     /// Opens one unified system-monitor detail page. Requires the hardware
-    /// monitor section to be visible (same gate as the summary).
-    func showHardwareDetail(_ kind: HardwareDetailKind) {
-        guard settings.visiblePopupSections.contains(.hardwareMonitor) else {
+    /// monitor section to be visible (same gate as the summary), unless a
+    /// menu-bar instance's explicit click action is the caller: that action is
+    /// an intentional deep link and must not silently fall back to the summary.
+    func showHardwareDetail(_ kind: HardwareDetailKind, fromMenuBarInstance: Bool = false) {
+        guard fromMenuBarInstance || settings.visiblePopupSections.contains(.hardwareMonitor) else {
             showSummaryPage()
             return
         }

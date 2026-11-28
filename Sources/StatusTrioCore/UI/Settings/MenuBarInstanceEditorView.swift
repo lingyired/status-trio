@@ -476,13 +476,13 @@ struct MenuBarInstanceEditorView: View {
         Menu(activationLabel(current)) {
             Button(L(.menuBarEditorNone)) { onSelect(.none) }
             Button(L(.menuBarEditorSummaryPanel)) { onSelect(.panel("summary")) }
-            Button(L(.hardwareMonitorCPU)) { onSelect(.panel("cpu")) }
-            Button(L(.hardwareMonitorGPU)) { onSelect(.panel("gpu")) }
-            Button(L(.hardwareMonitorMemory)) { onSelect(.panel("memory")) }
-            Button(L(.hardwareMonitorBattery)) { onSelect(.panel("battery")) }
-            Button(L(.hardwareDetailTitleNetwork)) { onSelect(.panel("network")) }
-            Button(L(.hardwareDetailTitleDisk)) { onSelect(.panel("disk")) }
-            Button(L(.hardwareMonitorFan)) { onSelect(.panel("fan")) }
+            Button(detailLabel("cpu")) { onSelect(.panel("cpu")) }
+            Button(detailLabel("gpu")) { onSelect(.panel("gpu")) }
+            Button(detailLabel("memory")) { onSelect(.panel("memory")) }
+            Button(detailLabel("battery")) { onSelect(.panel("battery")) }
+            Button(detailLabel("network")) { onSelect(.panel("network")) }
+            Button(detailLabel("disk")) { onSelect(.panel("disk")) }
+            Button(detailLabel("fan")) { onSelect(.panel("fan")) }
             if allowExternal {
                 Divider()
                 Button(L(.menuBarEditorAppSettings)) { onSelect(.openAppSettings) }
@@ -494,24 +494,32 @@ struct MenuBarInstanceEditorView: View {
         .fixedSize()
     }
 
+    private func detailName(_ raw: String) -> String {
+        switch raw {
+        case "cpu": return L(.hardwareDetailTitleCPU)
+        case "gpu": return L(.hardwareDetailTitleGPU)
+        case "memory": return L(.hardwareDetailTitleMemory)
+        case "battery": return L(.hardwareMonitorBattery)
+        case "network": return L(.hardwareDetailTitleNetwork)
+        case "disk": return L(.hardwareDetailTitleDisk)
+        case "fan": return L(.hardwareMonitorFan)
+        default: return raw
+        }
+    }
+
+    private func detailLabel(_ raw: String) -> String {
+        localization.format(.menuBarEditorDetailFormat, detailName(raw))
+    }
+
     private func activationLabel(_ activation: InstanceActivation) -> String {
         switch activation {
         case .none: return L(.menuBarEditorNone)
         case .sameAsMainIcon: return L(.menuBarEditorSameAsMain)
         case .panel(let raw):
-            let name: String
-            switch raw {
-            case "summary": name = L(.menuBarEditorSummaryPanel)
-            case "cpu": name = L(.hardwareMonitorCPU)
-            case "gpu": name = L(.hardwareMonitorGPU)
-            case "memory": name = L(.hardwareMonitorMemory)
-            case "battery": name = L(.hardwareMonitorBattery)
-            case "network": name = L(.hardwareDetailTitleNetwork)
-            case "disk": name = L(.hardwareDetailTitleDisk)
-            case "fan": name = L(.hardwareMonitorFan)
-            default: name = raw
+            if raw == "summary" {
+                return localization.format(.menuBarEditorPanelFormat, L(.menuBarEditorSummaryPanel))
             }
-            return localization.format(.menuBarEditorPanelFormat, name)
+            return detailLabel(raw)
         case .openAppSettings: return L(.menuBarEditorAppSettings)
         case .openActivityMonitor: return L(.menuBarEditorActivityMonitor)
         case .openSystemSettings(let pane):

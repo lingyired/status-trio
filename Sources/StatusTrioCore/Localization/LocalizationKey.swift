@@ -408,6 +408,7 @@ enum LocalizationKey: String, CaseIterable, Hashable, Sendable {
     case menuBarEditorWifiSettings = "menubar.editor.wifiSettings"
     case menuBarEditorSameAsMain = "menubar.editor.sameAsMain"
     case menuBarEditorPanelFormat = "menubar.editor.panelFormat"
+    case menuBarEditorDetailFormat = "menubar.editor.detailFormat"
     case menuBarEditorSystemSettingsFormat = "menubar.editor.systemSettingsFormat"
     case menuBarEditorAddOrSelect = "menubar.editor.addOrSelect"
     case menuBarEditorTextPlaceholder = "menubar.editor.textPlaceholder"

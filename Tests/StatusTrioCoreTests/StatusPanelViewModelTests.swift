@@ -1030,6 +1030,16 @@ struct DetailEntryToggleDismissTests {
         #expect(panel.route == .hardwareDetail(.memory))
     }
 
+    @Test func menuBarInstanceDeepLinkOpensHardwareDetailWhenSectionIsHidden() {
+        let fixture = PanelStoreFixture()
+        fixture.settings.setPopupSection(.hardwareMonitor, enabled: false)
+        let panel = fixture.makePanel()
+        defer { panel.stop(); fixture.store.stop() }
+
+        panel.showHardwareDetail(.cpu, fromMenuBarInstance: true)
+        #expect(panel.route == .hardwareDetail(.cpu))
+    }
+
     @Test func clickingOpenBatteryEntryAgainClosesDetailToSummary() {
         let fixture = PanelStoreFixture()
         let panel = fixture.makePanel()

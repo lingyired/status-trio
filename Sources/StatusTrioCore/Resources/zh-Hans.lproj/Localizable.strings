@@ -1555,6 +1555,7 @@
 "menubar.editor.wifiSettings" = "Wi-Fi 设置";
 "menubar.editor.sameAsMain" = "跟主图标一致";
 "menubar.editor.panelFormat" = "面板：%@";
+"menubar.editor.detailFormat" = "%@ 详情";
 "menubar.editor.systemSettingsFormat" = "系统设置：%@";
 "menubar.editor.addOrSelect" = "新建或选择一个实例";
 "menubar.editor.textPlaceholder" = "（文字）";

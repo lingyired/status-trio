@@ -1555,6 +1555,7 @@
 "menubar.editor.wifiSettings" = "Wi-Fi Settings";
 "menubar.editor.sameAsMain" = "Same as main icon";
 "menubar.editor.panelFormat" = "Panel: %@";
+"menubar.editor.detailFormat" = "%@ details";
 "menubar.editor.systemSettingsFormat" = "System Settings: %@";
 "menubar.editor.addOrSelect" = "Add or select an instance";
 "menubar.editor.textPlaceholder" = "(text)";

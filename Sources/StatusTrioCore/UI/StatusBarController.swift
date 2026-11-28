@@ -1149,7 +1149,7 @@ final class StatusBarController: NSObject {
         case "inputSource": panelViewModel.showInputSourcePage()
         default:
             if let kind = HardwareDetailKind(rawValue: raw) {
-                panelViewModel.showHardwareDetail(kind)
+                panelViewModel.showHardwareDetail(kind, fromMenuBarInstance: true)
             } else {
                 panelViewModel.showSummaryPage()
             }
