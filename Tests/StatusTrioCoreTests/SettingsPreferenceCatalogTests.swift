@@ -55,7 +55,7 @@ final class SettingsPreferenceCatalogTests: XCTestCase {
                 "maxVisibleBluetoothDevices", "hidesGhostBluetoothDevices", "popupSectionOrder",
                 "enabledPopupSections", "useBetterDisplayCombinedBrightness",
                 "popupPanelScrollAdjustsVolume", "returnsToSummaryOnOpen",
-                "popupVolumeNaturalScrolling", "popupVolumeScrollFeedbackOverride", "popupScrollWheelStepPercent", "menuBarInstances"
+                "popupVolumeNaturalScrolling", "popupVolumeScrollFeedbackOverride", "popupScrollWheelStepPercent"
             ]
             XCTAssertEqual(Set(snapshot.keys), expected)
         }

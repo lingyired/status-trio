@@ -1013,25 +1013,6 @@ final class StatusPanelViewModelTests: XCTestCase {
 /// switches pages.
 @MainActor
 struct DetailEntryToggleDismissTests {
-    @Test func explicitInstanceRouteOpensHardwareDetailEvenWhenSectionHidden() {
-        let fixture = PanelStoreFixture()
-        let panel = fixture.makePanel()
-        defer { panel.stop(); fixture.store.stop() }
-
-        #expect(!fixture.settings.visiblePopupSections.contains(.hardwareMonitor))
-        panel.showHardwareDetail(.cpu)
-        #expect(panel.route == .summary)
-
-        panel.showHardwareDetail(.cpu, forcing: true)
-        #expect(panel.route == .hardwareDetail(.cpu))
-
-        // A subsequent presentation must not close a route that was opened by
-        // an explicit instance click just because the summary card is hidden.
-        fixture.store.setPopoverVisible(true)
-        panel.prepareForPresentation()
-        #expect(panel.route == .hardwareDetail(.cpu))
-    }
-
     @Test func clickingOpenHardwareEntryAgainClosesDetailToSummary() {
         let fixture = PanelStoreFixture()
         fixture.settings.setPopupSection(.hardwareMonitor, enabled: true)

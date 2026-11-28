@@ -1121,41 +1121,6 @@ final class StatusBarController: NSObject {
         }
     }
 
-    /// Closes the shared status panel if visible.
-    func dismissInstancePanel() { if popover.isShown { closePopover() } }
-
-    /// Whether the shared status panel is currently visible.
-    var isStatusPanelShown: Bool { popover.isShown }
-
-    /// Opens the shared status panel anchored to a custom instance's button.
-    func presentInstancePanel(routeRaw: String, anchorButton: NSStatusBarButton, presentedByHover: Bool) {
-        presentPopover(
-            relativeTo: anchorButton.bounds,
-            of: anchorButton,
-            preferredEdge: .minY,
-            activatesApplication: false,
-            revealStyle: presentedByHover ? .hoverDrop : .fade,
-            presentedByHover: presentedByHover,
-            instanceRouteRaw: routeRaw
-        )
-    }
-
-    private func applyInstanceRoute(_ raw: String) {
-        switch raw {
-        case "summary": panelViewModel.showSummaryPage()
-        case "battery": panelViewModel.showBatteryPage()
-        case "wifi": panelViewModel.showWiFiPage(showsDetailsInitially: false)
-        case "ethernet": panelViewModel.showWiredPage()
-        case "inputSource": panelViewModel.showInputSourcePage()
-        default:
-            if let kind = HardwareDetailKind(rawValue: raw) {
-                panelViewModel.showHardwareDetail(kind, forcing: true)
-            } else {
-                panelViewModel.showSummaryPage()
-            }
-        }
-    }
-
     /// Shortcut activation uses the same open/close contract as the status item.
     func openPopoverFromShortcut() {
         switch StatusPanelShortcutPresentationPolicy.action(
@@ -1299,8 +1264,7 @@ final class StatusBarController: NSObject {
         dockInset: NSEdgeInsets = DockReveal.noInset,
         revealStyle: AnchoredStatusPanel.RevealStyle = .fade,
         presentedByHover: Bool = false,
-        presentedFromDock: Bool = false,
-        instanceRouteRaw: String? = nil
+        presentedFromDock: Bool = false
     ) {
         popoverPresentedByHover = presentedByHover
         isDockPresented = presentedFromDock
@@ -1312,9 +1276,6 @@ final class StatusBarController: NSObject {
         // installing or laying out content so the first frame uses fresh data.
         panelViewModel.start()
         panelViewModel.prepareForPresentation()
-        if let instanceRouteRaw {
-            applyInstanceRoute(instanceRouteRaw)
-        }
         installPopoverContentIfNeeded()
         // One bounded refresh per open covers a lost distributed notification
         // without any polling while the popover is closed.

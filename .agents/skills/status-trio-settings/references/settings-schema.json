@@ -3072,32 +3072,6 @@
         "transferable" : false,
         "uiAccessible" : true
       },
-      "category" : "menubar",
-      "description" : "用户自定义的菜单栏实例配置（菜单栏专用，独立于主图标，不影响 Dock）。",
-      "id" : "menubar.instances",
-      "keywords" : [
-        "menu bar",
-        "instance",
-        "菜单栏",
-        "实例"
-      ],
-      "provider" : "menubar",
-      "storageKey" : "menuBarInstances.v1",
-      "title" : "菜单栏实例",
-      "type" : "object",
-      "uiPath" : "设置 › 菜单栏实例"
-    },
-    {
-      "accessPolicy" : {
-        "containsSensitiveInfo" : false,
-        "developmentProfile" : true,
-        "externalRead" : true,
-        "externalWrite" : false,
-        "requiresConfirmation" : false,
-        "systemSideEffect" : false,
-        "transferable" : false,
-        "uiAccessible" : true
-      },
       "category" : "network",
       "description" : "网络速度图表使用固定刻度而非自适应。",
       "id" : "network.chart.fixedScale",

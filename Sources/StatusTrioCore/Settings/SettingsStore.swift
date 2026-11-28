@@ -55,41 +55,6 @@ final class SettingsStore: ObservableObject {
         }
     }
 
-    /// User-defined menu-bar instances (menu-bar only; never affects the Dock).
-    static let menuBarInstancesDefaultsKey = "menuBarInstances.v1"
-    @Published var menuBarInstances: MenuBarInstancesConfiguration = .empty {
-        didSet {
-            if let data = try? JSONEncoder().encode(menuBarInstances) {
-                defaults.set(data, forKey: Self.menuBarInstancesDefaultsKey)
-            }
-        }
-    }
-
-    func updateMenuBarInstance(_ instance: MenuBarInstance) {
-        var config = menuBarInstances
-        if let index = config.instances.firstIndex(where: { $0.id == instance.id }) {
-            config.instances[index] = instance
-        } else {
-            config.instances.append(instance)
-        }
-        menuBarInstances = config.validated().config
-    }
-
-    func deleteMenuBarInstance(id: UUID) {
-        var config = menuBarInstances
-        config.instances.removeAll { $0.id == id }
-        menuBarInstances = config.validated().config
-    }
-
-    func moveMenuBarInstance(from source: Int, to destination: Int) {
-        var config = menuBarInstances
-        guard config.instances.indices.contains(source) else { return }
-        let item = config.instances.remove(at: source)
-        let index = min(max(0, destination), config.instances.count)
-        config.instances.insert(item, at: index)
-        menuBarInstances = config.validated().config
-    }
-
     static let hasCompletedIconGuideOnboardingDefaultsKey = "hasCompletedIconGuideOnboarding.v1"
     static let hasSeenIconGuideDefaultsKey = "hasSeenIconGuide"
     static let sharesAnonymousAnalyticsDefaultsKey = "sharesAnonymousAnalytics"
@@ -3536,12 +3501,6 @@ final class SettingsStore: ObservableObject {
             // The old boolean "falls back to battery" (and its old "off" state)
             // both resolve to the battery fallback now that "no fallback" is gone.
             self.airPodsRingFallback = .battery
-        }
-        if let data = defaults.data(forKey: Self.menuBarInstancesDefaultsKey),
-           let decoded = try? JSONDecoder().decode(MenuBarInstancesConfiguration.self, from: data) {
-            self.menuBarInstances = decoded.validated().config
-        } else {
-            self.menuBarInstances = .empty
         }
         if let data = defaults.data(forKey: Self.hardwareRingConfigurationDefaultsKey),
            let decoded = try? JSONDecoder().decode(HardwareRingConfiguration.self, from: data) {

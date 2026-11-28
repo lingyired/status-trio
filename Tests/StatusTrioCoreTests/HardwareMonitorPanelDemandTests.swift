@@ -137,25 +137,6 @@ final class HardwareMonitorPanelDemandTests: XCTestCase {
         XCTAssertFalse(service.isRunning)
     }
 
-    func testExplicitHiddenHardwareDetailStillDemandsPanelSampling() {
-        let fixture = makeFixture()
-        let panel = startVisible(fixture)
-        defer {
-            panel.showSummaryPage()
-            panel.stop()
-            fixture.store.setPopoverVisible(false)
-            fixture.store.stop()
-        }
-        let service = fixture.store.hardwareMetrics
-        fixture.settings.setPopupSection(.hardwareMonitor, enabled: false)
-        XCTAssertNil(service.demands[.panel])
-
-        panel.showHardwareDetail(.cpu, forcing: true)
-        XCTAssertNotNil(service.demands[.panel])
-        panel.showSummaryPage()
-        XCTAssertNil(service.demands[.panel])
-    }
-
     func testPanelStopEndsDemand() {
         let fixture = makeFixture()
         let panel = startVisible(fixture)

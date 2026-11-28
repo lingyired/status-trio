@@ -10,26 +10,16 @@ import re
 from pathlib import Path
 from math import log
 from collections import defaultdict
-from itertools import islice
 
 # ============ CONFIGURATION ============
 DATA_DIR = Path(__file__).parent.parent / "data"
 MAX_RESULTS = 3
 
-# RTL compatibility levels carried by styles.csv and products.csv.
-#   full    - direction-agnostic: survives mirroring unchanged
-#   partial - mirrorable, but layout/motion needs per-component adjustments
-#   caveats - the style or product encodes reading direction (kinetic
-#             typography, LTR timelines, code/terminal surfaces, seat maps...)
-RTL_LEVELS = ("full", "partial", "caveats")
-RTL_LEVEL_CHOICES = ("all",) + RTL_LEVELS
-RTL_DOMAINS = frozenset({"style", "product"})
-
 CSV_CONFIG = {
     "style": {
         "file": "styles.csv",
         "search_cols": ["Style ID", "Style Category", "Aliases", "Keywords", "Best For", "Type", "AI Prompt Keywords"],
-        "output_cols": ["Style ID", "Style Category", "Aliases", "Status", "Parent Style ID", "Preferred Mode", "Type", "Keywords", "Primary Colors", "Effects & Animation", "Best For", "Light Mode ✓", "Dark Mode ✓", "Performance", "Accessibility", "Framework Compatibility", "Complexity", "AI Prompt Keywords", "CSS/Technical Keywords", "Implementation Checklist", "Design System Variables", "rtl_level"]
+        "output_cols": ["Style ID", "Style Category", "Aliases", "Status", "Parent Style ID", "Preferred Mode", "Type", "Keywords", "Primary Colors", "Effects & Animation", "Best For", "Light Mode ✓", "Dark Mode ✓", "Performance", "Accessibility", "Framework Compatibility", "Complexity", "AI Prompt Keywords", "CSS/Technical Keywords", "Implementation Checklist", "Design System Variables"]
     },
     "color": {
         "file": "colors.csv",
@@ -49,7 +39,7 @@ CSV_CONFIG = {
     "product": {
         "file": "products.csv",
         "search_cols": ["Product Type", "Keywords", "Primary Style Recommendation", "Key Considerations"],
-        "output_cols": ["Product Type", "Keywords", "Primary Style Recommendation", "Secondary Styles", "Landing Page Pattern", "Dashboard Style (if applicable)", "Color Palette Focus", "rtl_level"]
+        "output_cols": ["Product Type", "Keywords", "Primary Style Recommendation", "Secondary Styles", "Landing Page Pattern", "Dashboard Style (if applicable)", "Color Palette Focus"]
     },
     "ux": {
         "file": "ux-guidelines.csv",
@@ -119,7 +109,6 @@ STACK_CONFIG = {
     "avalonia":         {"file": "stacks/avalonia.csv"},
     "uno":              {"file": "stacks/uno.csv"},
     "uwp":              {"file": "stacks/uwp.csv"},
-    "pyside6-qss":      {"file": "stacks/pyside6-qss.csv"},
 }
 
 # Common columns for all stacks
@@ -155,7 +144,6 @@ STACK_CURRENT_VERSIONS = {
     "javafx": (26,),
     "threejs": (0, 185),
     "laravel": (13,),
-    "pyside6-qss": (6, 12),
 }
 LEGACY_ONLY_STACKS = frozenset({"uwp"})
 STACK_CURRENT_APPLICABILITY = {
@@ -181,7 +169,6 @@ STACK_CURRENT_APPLICABILITY = {
     "javafx": "javafx 26",
     "threejs": "threejs 0.185.1",
     "laravel": "laravel 13.x",
-    "pyside6-qss": "pyside6-qss 6.12",
 }
 
 _STACK_QUERY_NAMES = {
@@ -203,7 +190,6 @@ _STACK_QUERY_NAMES = {
     "javafx": r"javafx",
     "threejs": r"three(?:\.js|js)?",
     "laravel": r"laravel",
-    "pyside6-qss": r"(?:pyside6|pyqt6|qfluentwidgets|qt\s*qml)",
 }
 
 AVAILABLE_STACKS = list(STACK_CONFIG.keys())
@@ -276,56 +262,17 @@ _SYNONYMS = {
     "organisation": "organization",
     "behaviour": "behavior",
     "ux/ui": "ux ui",
-    # Arabic & MENA bilingual domain/style/product synonyms
-    "تداول": "trading crypto fintech",
-    "مالية": "fintech finance banking",
-    "مالي": "fintech finance banking",
-    "بنك": "banking fintech finance",
-    "مصرف": "banking fintech finance",
-    "ذكاء اصطناعي": "ai artificial intelligence",
-    "عيادة": "healthcare medical clinic",
-    "طبي": "healthcare medical clinic",
-    "طبية": "healthcare medical clinic",
-    "مستشفى": "healthcare hospital medical",
-    "متجر": "ecommerce store shopping",
-    "تجارة إلكترونية": "ecommerce shopping retail",
-    "لوحة تحكم": "dashboard analytics saas",
-    "تحليلات": "analytics dashboard data",
-    "عقارات": "real estate property",
-    "تعليم": "education learning course",
-    "أكاديمية": "education learning academy",
-    "تدريب": "education learning training",
-    "فندق": "hotel hospitality booking",
-    "سياحة": "travel hospitality booking",
-    "مطعم": "restaurant food delivery",
-    "أمن سيبراني": "cybersecurity security",
-    "ألعاب": "gaming game",
-    "معرض أعمال": "portfolio agency creative",
-    "داكن": "dark mode",
-    "مظلم": "dark mode",
-    "زجاجي": "glassmorphism glass",
-    "بسيط": "minimalism clean",
 }
-
-# Arabic-scoped diacritics (harakat/tashkeel) and tatweel; no-op on non-Arabic text.
-_ARABIC_DIACRITICS_RE = re.compile(r"[\u0617-\u061A\u064B-\u0652\u0640]")
 
 _SYNONYM_PATTERNS = [
     (re.compile(r"(?<!\w)" + re.escape(variant) + r"(?!\w)", re.IGNORECASE), canonical)
     for variant, canonical in sorted(_SYNONYMS.items(), key=lambda item: len(item[0]), reverse=True)
 ]
 
-_SYNONYM_CANDIDATE_RE = re.compile(
-    r"(?<!\w)(?:" + "|".join(map(re.escape, _SYNONYMS)) + r")(?!\w)",
-    re.IGNORECASE,
-)
-
 
 def _normalize(text):
-    """Apply Arabic diacritic stripping and longest-first synonym substitution at token boundaries."""
-    normalized = _ARABIC_DIACRITICS_RE.sub("", str(text))
-    if not _SYNONYM_CANDIDATE_RE.search(normalized):
-        return normalized
+    """Apply longest-first synonym substitution at token boundaries."""
+    normalized = str(text)
     for pattern, canonical in _SYNONYM_PATTERNS:
         normalized = pattern.sub(canonical, normalized)
     return normalized
@@ -466,13 +413,8 @@ def _query_coverage(index, query):
 
 def _search_csv_detailed(filepath, search_cols, output_cols, query, max_results,
                          threshold=None, routing_domain=None, row_filter=None,
-                         ranked_filter=None, cache_variant=""):
-    """Calibrated search returning results, index, and internal diagnostics.
-
-    row_filter drops rows before the index is fitted (corpus-level exclusion,
-    e.g. inactive styles). ranked_filter drops rows after scoring but before
-    max_results truncation, so a metadata filter cannot mask matching rows or
-    shift the fitted corpus."""
+                         cache_variant=""):
+    """Calibrated search returning results, index, and internal diagnostics."""
     if not filepath.exists():
         return [], None, {"reason": "missing-file"}
 
@@ -492,26 +434,9 @@ def _search_csv_detailed(filepath, search_cols, output_cols, query, max_results,
         if not data:
             return [], None, {"reason": "empty-data"}
 
-    if routing_domain == "color" and re.fullmatch(r"#[0-9a-fA-F]{6}", query.strip()):
-        hex_value = query.strip().lower()
-        color_columns = [col for col in output_cols if col not in ("Product Type", "Notes")]
-        matches = (
-            row for row in data
-            if any((row.get(col) or "").strip().lower() == hex_value for col in color_columns)
-        )
-        results = [_project_row(row, output_cols) for row in islice(matches, max_results)]
-        reason = "exact-color" if results else "no-exact-color"
-        diagnostic = _exact_match_diagnostic(query, reason)
-        if not results:
-            diagnostic.update(abstained=True, token_coverage=0.0)
-        return results, None, diagnostic
-
     bm25 = _get_bm25(filepath, search_cols, data, signature, cache_variant)
     search_query, rewrites = _rewrite_query_for_domain(query, routing_domain, bm25)
     ranked = bm25.score(search_query)
-    if ranked_filter is not None:
-        ranked = [(idx, score) for idx, score in ranked
-                  if ranked_filter(data[idx])]
     threshold = threshold or _NO_THRESHOLD
     top_score = ranked[0][1] if ranked else 0.0
     runner_up_score = ranked[1][1] if len(ranked) > 1 else 0.0
@@ -827,42 +752,10 @@ def _style_search_destination(rows, matched):
     return None, None
 
 
-def _normalize_rtl_level(rtl, domain):
-    """Validate an rtl request. Returns None when RTL filtering is off."""
-    if rtl is None:
-        return None
-    level = str(rtl).strip().casefold()
-    if level not in RTL_LEVEL_CHOICES:
-        raise ValueError(
-            f"unsupported rtl level {rtl!r}; expected one of "
-            f"{', '.join(RTL_LEVEL_CHOICES)}"
-        )
-    if domain not in RTL_DOMAINS:
-        raise ValueError(
-            "--rtl is only supported with --domain style or --domain product; "
-            f"got {domain or 'no explicit domain'}"
-        )
-    return level
-
-
-def _rtl_row_filter(level):
-    """Row predicate for a validated rtl level ('all' accepts every level)."""
-    if level == "all":
-        return lambda row: row.get("rtl_level") in RTL_LEVELS
-    return lambda row: row.get("rtl_level") == level
-
-
-def search(query, domain=None, max_results=MAX_RESULTS, diagnostics=False, rtl=None):
-    """Main search function with auto-domain detection.
-
-    rtl: None (off) or one of "all", "full", "partial", "caveats". When set,
-    only styles/products whose rtl_level matches are ranked and returned; the
-    filter runs before max_results truncation, so a narrow level cannot mask
-    matching rows. Requires an explicit style/product domain.
-    """
+def search(query, domain=None, max_results=MAX_RESULTS, diagnostics=False):
+    """Main search function with auto-domain detection"""
     if not _valid_max_results(max_results):
         return {"error": "max_results must be an integer from 1 to 20", "domain": domain}
-    rtl_level = _normalize_rtl_level(rtl, domain)
     auto_detected = domain is None
     runner_up = None
     style_rows = None
@@ -896,12 +789,6 @@ def search(query, domain=None, max_results=MAX_RESULTS, diagnostics=False, rtl=N
         exact_style = _exact_row_identity(
             landing_rows, query, _LANDING_IDENTITY_FIELDS)
 
-    if rtl_level is not None and exact_style is not None:
-        # An explicit identity lookup still has to respect the RTL filter;
-        # otherwise --rtl=full could return a caveats row.
-        if not _rtl_row_filter(rtl_level)(exact_style):
-            exact_style = None
-
     if exact_style is not None:
         results = [_project_row(exact_style, config["output_cols"])]
         bm25 = None
@@ -923,11 +810,6 @@ def search(query, domain=None, max_results=MAX_RESULTS, diagnostics=False, rtl=N
             row_filter=(
                 (lambda row: row.get("Status", "active") == "active")
                 if search_domain == "style" else None
-            ),
-            # RTL is metadata, not a ranking signal: score the full corpus,
-            # then drop non-matching rows before max_results truncation.
-            ranked_filter=(
-                _rtl_row_filter(rtl_level) if rtl_level is not None else None
             ),
             cache_variant="active-only" if search_domain == "style" else "",
         )

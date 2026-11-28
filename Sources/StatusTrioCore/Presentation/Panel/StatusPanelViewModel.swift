@@ -260,10 +260,6 @@ final class StatusPanelViewModel: ObservableObject {
     }
 
     /// The open system-monitor detail page, if the route is one.
-    /// Set only by an explicit menu-bar instance click so a CPU/GPU/etc. route
-    /// can open without the summary hardware card being enabled.
-    private var allowsHiddenHardwareDetail = false
-
     private var activeDetailKind: HardwareDetailKind? {
         if case let .hardwareDetail(kind) = route { return kind }
         return nil
@@ -803,11 +799,9 @@ final class StatusPanelViewModel: ObservableObject {
     }
 
     /// Opens one unified system-monitor detail page. Requires the hardware
-    /// monitor section to be visible (same gate as the summary) unless an
-    /// explicit menu-bar instance click forces the route.
-    func showHardwareDetail(_ kind: HardwareDetailKind, forcing: Bool = false) {
-        allowsHiddenHardwareDetail = forcing
-        guard forcing || settings.visiblePopupSections.contains(.hardwareMonitor) else {
+    /// monitor section to be visible (same gate as the summary).
+    func showHardwareDetail(_ kind: HardwareDetailKind) {
+        guard settings.visiblePopupSections.contains(.hardwareMonitor) else {
             showSummaryPage()
             return
         }
@@ -1232,15 +1226,10 @@ final class StatusPanelViewModel: ObservableObject {
         // `@Published` publishes in willSet, so a subscriber must pass the new
         // value in rather than read `store.isPopoverVisible` (still the old one).
         let sectionOn = visiblePopupSections.contains(.hardwareMonitor)
-        let visible = isStarted && (popoverVisible ?? store.isPopoverVisible)
-        let panelOpen = visible && sectionOn
+        let panelOpen = isStarted && (popoverVisible ?? store.isPopoverVisible) && sectionOn
         let detailKind = activeDetailKind
         let summaryVisible = panelOpen && isSummaryVisible
-        // An explicit menu-bar instance click can open a hardware detail even
-        // when the summary card is hidden; ordinary detail entries still stop
-        // sampling when the section is switched off.
-        let detailVisible = visible && detailKind != nil
-            && (sectionOn || allowsHiddenHardwareDetail)
+        let detailVisible = panelOpen && detailKind != nil
         // Per-group panel cadence: a metric is sampled at the fastest of all
         // active consumers, so icons stay fast and a panel-only metric slows to
         // its group's setting.
@@ -1652,7 +1641,6 @@ final class StatusPanelViewModel: ObservableObject {
     private func closeCurrentPage() {
         guard route != .summary else { return }
         endCurrentPageActions()
-        allowsHiddenHardwareDetail = false
         route = .summary
         updateHardwareMetricsDemand()
     }
@@ -1687,7 +1675,7 @@ final class StatusPanelViewModel: ObservableObject {
         case .inputSource:
             return sections.contains(.inputSource)
         case .hardwareDetail:
-            return sections.contains(.hardwareMonitor) || allowsHiddenHardwareDetail
+            return sections.contains(.hardwareMonitor)
         }
     }
 

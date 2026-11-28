@@ -24,8 +24,6 @@ struct SettingsView: View {
     /// The optional leaf within `consumePendingSection`'s tab, for deep links
     /// that target a specific subpage.
     var consumePendingSubtopic: () -> SettingsSubtopic? = { nil }
-    /// The instance to select when the menu-bar instances tab opens.
-    var consumePendingMenuBarInstance: () -> UUID? = { nil }
 
     @StateObject private var navigation = SettingsNavigationModel()
     /// Kept above the category switch so leaving General does not discard undo or preview.
@@ -40,8 +38,7 @@ struct SettingsView: View {
         chargeToFullNow: ChargeToFullNowController? = nil,
         onShowIconGuide: @escaping () -> Void,
         consumePendingSection: @escaping () -> Section? = { nil },
-        consumePendingSubtopic: @escaping () -> SettingsSubtopic? = { nil },
-        consumePendingMenuBarInstance: @escaping () -> UUID? = { nil }
+        consumePendingSubtopic: @escaping () -> SettingsSubtopic? = { nil }
     ) {
         self.store = store
         self.statusStore = statusStore
@@ -52,7 +49,6 @@ struct SettingsView: View {
         self.onShowIconGuide = onShowIconGuide
         self.consumePendingSection = consumePendingSection
         self.consumePendingSubtopic = consumePendingSubtopic
-        self.consumePendingMenuBarInstance = consumePendingMenuBarInstance
         _transferSession = StateObject(wrappedValue: SettingsTransferSession(store: store, localization: localization))
     }
     /// The live system appearance, so the menu bar preview starts in the same
@@ -74,7 +70,6 @@ struct SettingsView: View {
         case monitor
         case popover
         case general
-        case menuBarInstances
         case about
 
         var id: String { rawValue }
@@ -96,7 +91,6 @@ struct SettingsView: View {
             case .monitor: return .symbol(SymbolFallback.name("gauge.with.dots.needle.bottom.50percent", "gauge"))
             case .popover: return .symbol("list.bullet.rectangle")
             case .general: return .symbol("gearshape.fill")
-            case .menuBarInstances: return .symbol("menubar.rectangle")
             case .about:   return .symbol("info.circle.fill")
             }
         }
@@ -115,7 +109,6 @@ struct SettingsView: View {
             case .monitor: return .teal
             case .popover: return .purple
             case .general: return .gray
-            case .menuBarInstances: return .teal
             case .about:   return .orange
             }
         }
@@ -133,7 +126,6 @@ struct SettingsView: View {
             case .monitor: return localization.string(.settingsTabMonitor)
             case .popover: return localization.string(.settingsTabPanel)
             case .general: return localization.string(.settingsPageGeneral)
-            case .menuBarInstances: return localization.string(.settingsTabMenuBarInstances)
             case .about:   return localization.string(.settingsTabAbout)
             }
         }
@@ -194,7 +186,7 @@ struct SettingsView: View {
 
     /// App-wide panes pinned below the divider so they stay reachable when the
     /// window is short and the top list scrolls.
-    private static let pinnedSections: [Section] = [.general, .menuBarInstances, .about]
+    private static let pinnedSections: [Section] = [.general, .about]
 
     private var sidebar: some View {
         VStack(spacing: 0) {
@@ -501,14 +493,6 @@ struct SettingsView: View {
                 statusStore: statusStore,
                 chargeToFullNow: chargeToFullNow,
                 transferSession: transferSession
-            )
-        case .menuBarInstances:
-            MenuBarInstancesSectionView(
-                store: store,
-                statusStore: statusStore,
-                localization: localization,
-                previewIsDark: previewIsDarkBinding,
-                consumePendingMenuBarInstance: consumePendingMenuBarInstance
             )
         case .about:
             AboutSectionView()

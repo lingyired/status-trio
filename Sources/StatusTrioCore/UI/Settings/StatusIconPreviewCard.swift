@@ -178,10 +178,7 @@ struct StatusIconPreviewCard: View {
             bottomIndicatorPressureColors: store.hardwareRingConfiguration.color,
             bottomIndicatorStyle: store.effectiveBottomIndicatorStyle
         ) {
-            PreviewAppearanceToggle(
-                isDarkBackground: $isDarkBackground,
-                localization: localization
-            )
+            appearanceToggle
         }
         .animation(reduceMotion ? nil : .easeInOut(duration: 0.15), value: store.iconSize)
         .animation(reduceMotion ? nil : .easeInOut(duration: 0.15), value: store.batteryIconOptions)
@@ -204,6 +201,30 @@ struct StatusIconPreviewCard: View {
         } else {
             chargingEffectClock.endAnimationPreview(clockConsumerToken)
         }
+    }
+
+    private var appearanceToggle: some View {
+        Button {
+            withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.2)) {
+                isDarkBackground.toggle()
+            }
+        } label: {
+            HStack(spacing: 4) {
+                Image(systemName: isDarkBackground ? "moon.fill" : "sun.max.fill")
+                    .font(.system(size: 10))
+                Text(localization.string(isDarkBackground ? .settingsPreviewDark : .settingsPreviewLight))
+                    .font(.system(size: 10.5, weight: .medium))
+            }
+            .foregroundStyle(isDarkBackground ? Color.white.opacity(0.85) : Color.black.opacity(0.85))
+            .padding(.horizontal, 8)
+            .padding(.vertical, 4)
+            .background(
+                Capsule()
+                    .fill(isDarkBackground ? Color.white.opacity(0.15) : Color.black.opacity(0.08))
+            )
+        }
+        .buttonStyle(.plain)
+        .help(localization.string(.settingsPreviewToggleHelp))
     }
 }
 
