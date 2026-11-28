@@ -129,6 +129,9 @@ final class StatusBarController: NSObject {
     /// panel; nil for the main status-item click. A click on the same owner
     /// toggles the panel closed instead of re-presenting it.
     private(set) var presentedInstanceID: UUID?
+    /// The last instance that owned a presentation, retained across the
+    /// mouse-down close so the matching mouse-up can be recognised as a toggle.
+    private(set) var lastPresentedInstanceID: UUID?
     /// Whether the current instance panel came from hover and a click should pin
     /// it before the next click closes it.
     var isInstancePanelPresentedByHover: Bool { popoverPresentedByHover }
@@ -1150,6 +1153,16 @@ final class StatusBarController: NSObject {
                               routeRaw: String,
                               anchorButton: NSStatusBarButton,
                               presentedByHover: Bool) {
+        // Clicking a custom status item while its panel is open closes the panel
+        // on mouse-down through the outside-click monitor. Do not let the same
+        // click's mouse-up reopen it (the main status item already suppresses
+        // this); a different instance is still allowed to take over.
+        if !presentedByHover, let instanceID,
+           !popover.isShown,
+           lastPresentedInstanceID == instanceID,
+           reopenSuppression.shouldSuppressReopen(at: Date()) {
+            return
+        }
         let detailOnly = isInstanceDetailRoute(routeRaw)
         panelViewModel.setInstanceDetailOnly(detailOnly)
         if detailOnly {
@@ -1177,6 +1190,7 @@ final class StatusBarController: NSObject {
             syncDetailPresentation()
         }
         presentedInstanceID = instanceID
+        lastPresentedInstanceID = instanceID
     }
 
     private func isInstanceDetailRoute(_ raw: String) -> Bool {
