@@ -106,6 +106,24 @@ final class MenuBarInstanceEditorModelTests: XCTestCase {
         XCTAssertEqual(model.instance.outerMargin, 0)
     }
 
+    func testAsymmetricLayoutSwitchResetsBothRowFonts() {
+        let (model, _) = makeModel()
+        model.addMetricElement(.cpuUsage, slot: .top)
+        model.addMetricElement(.memoryUsage, slot: .bottom)
+        model.setFontSize(15, slot: .top)
+        model.setFontSize(14, slot: .bottom)
+
+        model.setLayoutMode(.doubleLineLargeTop)
+        XCTAssertNil(model.instance.top?.fontSize)
+        XCTAssertNil(model.instance.bottom?.fontSize)
+
+        model.setFontSize(15, slot: .top)
+        model.setFontSize(14, slot: .bottom)
+        model.setLayoutMode(.doubleLineLargeBottom)
+        XCTAssertNil(model.instance.top?.fontSize)
+        XCTAssertNil(model.instance.bottom?.fontSize)
+    }
+
     func testLayoutModeSwitchKeepsBottom() {
         let (model, _) = makeModel()
         model.addMetricElement(.gpuUsage, slot: .bottom)

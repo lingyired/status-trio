@@ -37,7 +37,18 @@ final class MenuBarInstanceEditorModel: ObservableObject {
     // MARK: - Layout
 
     func setLayoutMode(_ mode: MenuBarLayoutMode) {
+        let wasAsymmetric = instance.layoutMode == .doubleLineLargeTop
+            || instance.layoutMode == .doubleLineLargeBottom
+        let isAsymmetric = mode == .doubleLineLargeTop
+            || mode == .doubleLineLargeBottom
         instance.layoutMode = mode
+        // 上大下小/上小下大 define a font pair for both rows. Clear any explicit
+        // per-row sizes when entering or leaving those modes so neither row keeps
+        // the previous layout's size; the renderer then uses the new defaults.
+        if wasAsymmetric || isAsymmetric {
+            instance.top?.fontSize = nil
+            instance.bottom?.fontSize = nil
+        }
         persist()
     }
 
