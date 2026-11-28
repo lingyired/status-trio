@@ -31,6 +31,8 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
     /// The leaf within `pendingSection` when a caller wants a specific subpage
     /// rather than the category's default one.
     private var pendingSubtopic: SettingsSubtopic?
+    /// The menu-bar instance to select when opening the instances tab.
+    private var pendingMenuBarInstanceID: UUID?
 
     init(
         store: SettingsStore,
@@ -102,23 +104,28 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
         show(section: nil)
     }
 
+    func show(section: SettingsView.Section?, menuBarInstanceID: UUID?) {
+        show(section: section, subtopic: nil, menuBarInstanceID: menuBarInstanceID)
+    }
+
     /// Shows the window and, when requested, reveals one sidebar tab. The
     /// status panel uses this to open the app's own battery settings.
     func show(section: SettingsView.Section?) {
-        show(section: section, subtopic: nil)
+        show(section: section, subtopic: nil, menuBarInstanceID: nil)
     }
 
     /// Shows the window and opens one leaf subpage. Existing callers that only
     /// know the category keep using `show(section:)`, which maps to the
     /// category's default (or last visited) leaf.
     func show(subtopic: SettingsSubtopic) {
-        show(section: subtopic.section, subtopic: subtopic)
+        show(section: subtopic.section, subtopic: subtopic, menuBarInstanceID: nil)
     }
 
-    func show(section: SettingsView.Section?, subtopic: SettingsSubtopic?) {
+    func show(section: SettingsView.Section?, subtopic: SettingsSubtopic?, menuBarInstanceID: UUID? = nil) {
         if let section {
             pendingSection = section
             pendingSubtopic = subtopic?.section == section ? subtopic : nil
+            pendingMenuBarInstanceID = section == .menuBarInstances ? menuBarInstanceID : nil
         }
         dockActivationLogger.notice("Settings.show existing=\(self.window != nil)")
         let window = window ?? makeWindow()
@@ -150,6 +157,11 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
     }
 
     /// Called by `SettingsView` on appear and when the tab notification fires.
+    func takePendingMenuBarInstanceID() -> UUID? {
+        defer { pendingMenuBarInstanceID = nil }
+        return pendingMenuBarInstanceID
+    }
+
     func takePendingSection() -> SettingsView.Section? {
         defer { pendingSection = nil }
         return pendingSection
@@ -243,7 +255,8 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
                 chargeToFullNow: chargeToFullNow,
                 onShowIconGuide: showIconGuide,
                 consumePendingSection: { [weak self] in self?.takePendingSection() },
-                consumePendingSubtopic: { [weak self] in self?.takePendingSubtopic() }
+                consumePendingSubtopic: { [weak self] in self?.takePendingSubtopic() },
+                consumePendingMenuBarInstance: { [weak self] in self?.takePendingMenuBarInstanceID() }
             )
             .environmentObject(chargingEffectClock)
         }

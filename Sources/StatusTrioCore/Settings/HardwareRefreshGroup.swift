@@ -17,12 +17,13 @@ enum HardwareRefreshGroup: String, CaseIterable, Sendable {
     /// they map to `nil` and are ignored by the cadence providers.
     static func group(for id: HardwareMetricID) -> HardwareRefreshGroup? {
         switch id {
-        case .cpuUsage: return .cpuUsage
+        case .cpuUsage, .cpuFrequency: return .cpuUsage
         case .gpuUsage: return .gpuUsage
-        case .memoryUsage, .memoryPressure: return .memory
+        case .memoryUsage, .memoryUsedBytes, .memoryFreeBytes, .memoryPressure: return .memory
         case .networkDownload, .networkUpload: return .network
         case .cpuTemperature, .gpuTemperature, .batteryTemperature, .fanRPM: return .temperature
-        case .diskRead, .diskWrite: return .disk
+        case .diskRead, .diskWrite, .diskTotal, .diskUsedBytes, .diskFreeBytes,
+             .diskExternalTotalBytes, .diskExternalFreeBytes: return .disk
         case .volume, .wifiSignal, .batteryLevel: return nil
         }
     }

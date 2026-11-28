@@ -314,3 +314,41 @@ struct RingStrokeStylePreview: View {
         }
     }
 }
+
+/// The light/dark appearance control shared by every menu-bar preview card.
+///
+/// It lives inside the previewed bar, so it reads as part of the menu bar
+/// rather than as another settings control.
+struct PreviewAppearanceToggle: View {
+    @Binding var isDarkBackground: Bool
+    let localization: Localization
+    var compact = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    var body: some View {
+        Button {
+            withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.2)) {
+                isDarkBackground.toggle()
+            }
+        } label: {
+            HStack(spacing: 4) {
+                Image(systemName: isDarkBackground ? "moon.fill" : "sun.max.fill")
+                    .font(.system(size: 10))
+                if !compact {
+                    Text(localization.string(isDarkBackground ? .settingsPreviewDark : .settingsPreviewLight))
+                        .font(.system(size: 10.5, weight: .medium))
+                }
+            }
+            .foregroundStyle(isDarkBackground ? Color.white.opacity(0.85) : Color.black.opacity(0.85))
+            .padding(.horizontal, compact ? 6 : 8)
+            .padding(.vertical, compact ? 5 : 4)
+            .background(
+                Capsule()
+                    .fill(isDarkBackground ? Color.white.opacity(0.15) : Color.black.opacity(0.08))
+            )
+        }
+        .buttonStyle(.plain)
+        .help(localization.string(.settingsPreviewToggleHelp))
+        .accessibilityLabel(localization.string(.settingsPreviewToggleHelp))
+    }
+}

@@ -959,6 +959,13 @@ enum SettingsSemanticCatalog {
         pref("panel.modules.hardwareMonitor", "面板显示系统监控模块", "panel", .boolean, "在状态面板显示系统监控模块（CPU/GPU/内存/SSD 等）。") { d in
             d.uiPath = "设置 › 状态面板 › 模块 › 系统监控"; d.accessPolicy = .profileSafe; d.provider = "core"
         },
+        pref("menubar.instances", "菜单栏实例", "menubar", .object, "用户自定义的菜单栏实例配置（菜单栏专用，独立于主图标，不影响 Dock）。") { d in
+            d.uiPath = "设置 › 菜单栏实例"
+            d.keywords = ["menu bar", "instance", "菜单栏", "实例"]
+            d.storageKey = "menuBarInstances.v1"
+            d.accessPolicy = .profileSafe
+            d.provider = "menubar"
+        },
     ]
 
     // MARK: - Features

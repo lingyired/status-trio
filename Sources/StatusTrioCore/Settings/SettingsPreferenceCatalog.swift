@@ -241,6 +241,7 @@ enum SettingsPreferenceCatalog {
         [
             popupOrderPreference,
             enabledSectionsPreference,
+            menuBarInstancesPreference,
             boolean("popupPanelScrollAdjustsVolume", \.popupPanelScrollAdjustsVolume,
                     default: SettingsStore.defaultPopupPanelScrollAdjustsVolume),
             boolean("returnsToSummaryOnOpen", \.returnsToSummaryOnOpen, default: false),
@@ -571,6 +572,38 @@ enum SettingsPreferenceCatalog {
                            store.setPopupSection(section, enabled: enabled.contains(section))
                        }
                    })
+    }
+
+    private static var menuBarInstancesPreference: Preference {
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = [.sortedKeys]
+        let decoder = JSONDecoder()
+        func encode(_ config: MenuBarInstancesConfiguration) -> Value {
+            guard let data = try? encoder.encode(config), let text = String(data: data, encoding: .utf8) else {
+                return .string("")
+            }
+            return .string(text)
+        }
+        func decode(_ value: Value) -> MenuBarInstancesConfiguration? {
+            guard case .string(let text) = value,
+                  let data = text.data(using: .utf8),
+                  var config = try? decoder.decode(MenuBarInstancesConfiguration.self, from: data) else {
+                return nil
+            }
+            guard config.instances.count <= 20 else { return nil }
+            config = config.validated().config
+            return config
+        }
+        return Preference(
+            key: "menuBarInstances",
+            defaultValue: encode(.empty),
+            read: { encode($0.menuBarInstances) },
+            isValid: { decode($0) != nil },
+            write: { value, store in
+                guard let config = decode(value) else { return }
+                store.menuBarInstances = config
+            }
+        )
     }
 
     /// Per-ring visibility for the status-panel summary, exported so a transfer
