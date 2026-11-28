@@ -120,7 +120,7 @@ final class MenuBarInstancesRuntime: NSObject {
         let metrics = config.instances
             .filter { $0.isEnabled && $0.hasVisibleContent }
             .flatMap { $0.demandedMetrics }
-        let ids = Set(metrics.compactMap { MenuBarMetricRegistry.hardwareMetricID(for: $0) })
+        let ids = Set(metrics.flatMap { MenuBarMetricRegistry.hardwareMetricIDs(for: $0) })
         if ids.isEmpty {
             store.hardwareMetrics.end(.menuBarCenter)
         } else {

@@ -3,7 +3,7 @@ import XCTest
 
 final class MenuBarMetricRegistryTests: XCTestCase {
     func testAllIdsHaveTitleAndKind() {
-        XCTAssertEqual(MenuBarMetricID.allCases.count, 25)
+        XCTAssertEqual(MenuBarMetricID.allCases.count, 29)
         for metric in MenuBarMetricID.allCases {
             _ = MenuBarMetricRegistry.titleKey(for: metric)
         }
@@ -24,6 +24,10 @@ final class MenuBarMetricRegistryTests: XCTestCase {
         let total = MenuBarMetricRegistry.format(3_000_000, for: .diskTotalSpeed)
         XCTAssertTrue(total.contains("B"), "total \(total)")
         XCTAssertEqual(MenuBarMetricRegistry.format(42.44, for: .systemPower), "42.4 W")
+        XCTAssertEqual(MenuBarMetricRegistry.format(60, for: .diskUsagePercent), "60%")
+        XCTAssertEqual(MenuBarMetricRegistry.format(63, for: .diskExternalUsagePercent), "63%")
+        XCTAssertEqual(MenuBarMetricRegistry.format(61.2, for: .diskCombinedUsagePercent), "61%")
+        XCTAssertEqual(MenuBarMetricRegistry.format(784 * 1_000_000_000, for: .diskCombinedFree), "784.0 GB")
         XCTAssertEqual(MenuBarMetricRegistry.format(2.0, for: .batteryPower), "+2.0 W")
         XCTAssertEqual(MenuBarMetricRegistry.format(-8.25, for: .batteryPower), "-8.2 W")
         let speed = MenuBarMetricRegistry.format(1_200_000, for: .networkDownload)
@@ -44,6 +48,8 @@ final class MenuBarMetricRegistryTests: XCTestCase {
         XCTAssertEqual(MenuBarMetricRegistry.hardwareMetricID(for: .diskFree), .diskFreeBytes)
         XCTAssertEqual(MenuBarMetricRegistry.hardwareMetricID(for: .diskExternalTotal), .diskExternalTotalBytes)
         XCTAssertEqual(MenuBarMetricRegistry.hardwareMetricID(for: .diskTotalSpeed), .diskTotal)
+        XCTAssertEqual(MenuBarMetricRegistry.hardwareMetricIDs(for: .diskCombinedFree),
+                       [.diskUsedBytes, .diskFreeBytes, .diskExternalTotalBytes, .diskExternalFreeBytes])
         XCTAssertNil(MenuBarMetricRegistry.hardwareMetricID(for: .systemPower))
         XCTAssertNil(MenuBarMetricRegistry.hardwareMonitorMetric(for: .batteryPower))
         XCTAssertNil(MenuBarMetricRegistry.hardwareMetricID(for: .wifiConnectionStatus))

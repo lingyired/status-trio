@@ -1463,6 +1463,10 @@
 "menubar.metric.diskUsed" = "Использовано диска";
 "menubar.metric.diskExternalTotal" = "Общий объём внешнего диска";
 "menubar.metric.diskExternalFree" = "Свободно на внешнем диске";
+"menubar.metric.diskUsagePercent" = "Диск %";
+"menubar.metric.diskExternalUsagePercent" = "Внешний диск %";
+"menubar.metric.diskCombinedUsagePercent" = "Все диски %";
+"menubar.metric.diskCombinedFree" = "Всего свободно";
 "menubar.metric.diskFree" = "Свободно диска";
 "menubar.metric.wifiConnected" = "Connected";
 "menubar.metric.wifiDisconnected" = "Disconnected";

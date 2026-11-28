@@ -82,6 +82,10 @@ enum MenuBarMetricID: String, Codable, CaseIterable, Identifiable, Sendable {
     case diskFree
     case diskExternalTotal
     case diskExternalFree
+    case diskUsagePercent
+    case diskExternalUsagePercent
+    case diskCombinedUsagePercent
+    case diskCombinedFree
     case networkDownload
     case networkUpload
     case fanRPM

@@ -1014,6 +1014,9 @@ extension MenuBarMetricID {
         case .diskReadSpeed, .diskWriteSpeed, .diskTotalSpeed,
              .diskUsed, .diskFree,
              .diskExternalTotal, .diskExternalFree: return "internaldrive"
+        case .diskUsagePercent: return "internaldrive"
+        case .diskExternalUsagePercent, .diskCombinedUsagePercent,
+             .diskCombinedFree: return "externaldrive"
         case .networkDownload: return "arrow.down.circle"
         case .networkUpload: return "arrow.up.circle"
         case .fanRPM: return "fan"

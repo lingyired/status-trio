@@ -120,6 +120,50 @@ struct MenuBarMetricValueProvider: MenuBarMetricValueProviding {
                 value: value,
                 availability: .measured
             )
+        case .diskUsagePercent:
+            guard let internalCapacity = internalDiskCapacity(in: hardware) else {
+                return MenuBarMetricReading(text: Self.dash, value: nil,
+                                            availability: .collecting)
+            }
+            let value = Self.percent(used: internalCapacity.used,
+                                     total: internalCapacity.used + internalCapacity.free)
+            return Self.derivedReading(value, for: metric)
+        case .diskExternalUsagePercent:
+            guard !externalVolumePaths().isEmpty,
+                  let external = selectedExternalDiskCapacity(in: hardware) else {
+                return MenuBarMetricReading(text: Self.dash, value: nil,
+                                            availability: .temporarilyUnavailable)
+            }
+            let value = Self.percent(used: external.total - external.free,
+                                     total: external.total)
+            return Self.derivedReading(value, for: metric)
+        case .diskCombinedUsagePercent, .diskCombinedFree:
+            guard let internalCapacity = internalDiskCapacity(in: hardware) else {
+                return MenuBarMetricReading(text: Self.dash, value: nil,
+                                            availability: .collecting)
+            }
+            let selected = externalVolumePaths()
+            var externalTotal = 0.0
+            var externalFree = 0.0
+            if !selected.isEmpty {
+                guard let external = selectedExternalDiskCapacity(in: hardware) else {
+                    return MenuBarMetricReading(text: Self.dash, value: nil,
+                                                availability: .temporarilyUnavailable)
+                }
+                externalTotal = external.total
+                externalFree = external.free
+            }
+            if metric == .diskCombinedFree {
+                let value = internalCapacity.free + externalFree
+                return MenuBarMetricReading(
+                    text: MenuBarMetricRegistry.format(value, for: metric),
+                    value: value,
+                    availability: .measured
+                )
+            }
+            let used = internalCapacity.used + (externalTotal - externalFree)
+            let total = internalCapacity.used + internalCapacity.free + externalTotal
+            return Self.derivedReading(Self.percent(used: used, total: total), for: metric)
         default:
             guard let hardwareID = MenuBarMetricRegistry.hardwareMetricID(for: metric) else {
                 return MenuBarMetricReading(text: Self.dash, value: nil, availability: .collecting)
@@ -136,4 +180,50 @@ struct MenuBarMetricValueProvider: MenuBarMetricValueProviding {
             )
         }
     }
+    private func internalDiskCapacity(
+        in hardware: HardwareMetricsSnapshot
+    ) -> (used: Double, free: Double)? {
+        guard let used = hardware.samples[.diskUsedBytes],
+              used.availability == .measured,
+              let usedValue = used.value,
+              let free = hardware.samples[.diskFreeBytes],
+              free.availability == .measured,
+              let freeValue = free.value,
+              usedValue >= 0, freeValue >= 0 else { return nil }
+        return (usedValue, freeValue)
+    }
+
+    private func selectedExternalDiskCapacity(
+        in hardware: HardwareMetricsSnapshot
+    ) -> (total: Double, free: Double)? {
+        let selected = externalVolumePaths()
+        let volumes = (hardware.diskVolumes ?? []).filter {
+            $0.isExternal && selected.contains($0.mountPath)
+        }
+        guard !volumes.isEmpty else { return nil }
+        let total = volumes.reduce(UInt64(0)) { $0 + $1.totalBytes }
+        let free = volumes.reduce(UInt64(0)) { $0 + $1.freeBytes }
+        return (Double(total), Double(free))
+    }
+
+    private static func percent(used: Double, total: Double) -> Double? {
+        guard total > 0, used.isFinite, total.isFinite else { return nil }
+        return min(100, max(0, used / total * 100))
+    }
+
+    private static func derivedReading(
+        _ value: Double?,
+        for metric: MenuBarMetricID
+    ) -> MenuBarMetricReading {
+        guard let value else {
+            return MenuBarMetricReading(text: dash, value: nil,
+                                        availability: .temporarilyUnavailable)
+        }
+        return MenuBarMetricReading(
+            text: MenuBarMetricRegistry.format(value, for: metric),
+            value: value,
+            availability: .measured
+        )
+    }
+
 }

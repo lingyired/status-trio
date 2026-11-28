@@ -96,6 +96,52 @@ final class MenuBarMetricValueProviderTests: XCTestCase {
         XCTAssertEqual(result[.diskExternalFree]?.text, "384.0 GB")
     }
 
+    func testDiskPercentagesAndCombinedCapacity() {
+        var hardware = HardwareMetricsSnapshot()
+        hardware.samples[.diskUsedBytes] = sample(600 * 1_000_000_000, .measured)
+        hardware.samples[.diskFreeBytes] = sample(400 * 1_000_000_000, .measured)
+        hardware.diskVolumes = [
+            DiskVolumeReading(name: "Ext A", mountPath: "/Volumes/A", totalBytes: 512_000_000_000,
+                              freeBytes: 250_000_000_000, fileSystem: "APFS",
+                              isExternal: true, isReadOnly: false),
+            DiskVolumeReading(name: "Ext B", mountPath: "/Volumes/B", totalBytes: 512_000_000_000,
+                              freeBytes: 125_000_000_000, fileSystem: "APFS",
+                              isExternal: true, isReadOnly: false),
+        ]
+        let selected = MenuBarMetricValueProvider(
+            localize: { $0.rawValue },
+            externalVolumePaths: { ["/Volumes/A", "/Volumes/B"] }
+        )
+        let result = selected.readings(
+            for: [.diskUsagePercent, .diskExternalUsagePercent,
+                  .diskCombinedUsagePercent, .diskCombinedFree],
+            hardware: hardware,
+            status: status()
+        )
+        XCTAssertEqual(result[.diskUsagePercent]?.text, "60%")
+        XCTAssertEqual(result[.diskExternalUsagePercent]?.text, "63%")
+        XCTAssertEqual(result[.diskCombinedUsagePercent]?.text, "62%")
+        XCTAssertEqual(result[.diskCombinedFree]?.text, "775.0 GB")
+    }
+
+    func testExternalDiskPercentShowsDashWithoutSelectedVolumes() {
+        var hardware = HardwareMetricsSnapshot()
+        hardware.samples[.diskUsedBytes] = sample(600 * 1_000_000_000, .measured)
+        hardware.samples[.diskFreeBytes] = sample(400 * 1_000_000_000, .measured)
+        hardware.diskVolumes = [
+            DiskVolumeReading(name: "Ext", mountPath: "/Volumes/Ext", totalBytes: 100_000_000_000,
+                              freeBytes: 50_000_000_000, fileSystem: "APFS",
+                              isExternal: true, isReadOnly: false),
+        ]
+        let result = provider.readings(
+            for: [.diskExternalUsagePercent, .diskCombinedFree],
+            hardware: hardware,
+            status: status()
+        )
+        XCTAssertEqual(result[.diskExternalUsagePercent]?.text, "--")
+        XCTAssertEqual(result[.diskCombinedFree]?.text, "400.0 GB")
+    }
+
     func testPowerMetricsUseLiveSamplesAndBatterySign() {
         let now = Date()
         let power = MenuBarMetricValueProvider(

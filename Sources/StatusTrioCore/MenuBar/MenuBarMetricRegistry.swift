@@ -34,6 +34,10 @@ enum MenuBarMetricRegistry {
         case .diskFree: return .menuBarMetricDiskFree
         case .diskExternalTotal: return .menuBarMetricDiskExternalTotal
         case .diskExternalFree: return .menuBarMetricDiskExternalFree
+        case .diskUsagePercent: return .menuBarMetricDiskUsagePercent
+        case .diskExternalUsagePercent: return .menuBarMetricDiskExternalUsagePercent
+        case .diskCombinedUsagePercent: return .menuBarMetricDiskCombinedUsagePercent
+        case .diskCombinedFree: return .menuBarMetricDiskCombinedFree
         case .networkDownload: return .hardwareMonitorDownload
         case .networkUpload: return .hardwareMonitorUpload
         case .fanRPM: return .hardwareMonitorFan
@@ -67,6 +71,8 @@ enum MenuBarMetricRegistry {
         case .outputVolume: return .volume
         case .diskReadSpeed, .diskWriteSpeed, .diskTotalSpeed, .diskUsed, .diskFree,
              .diskExternalTotal, .diskExternalFree,
+             .diskUsagePercent, .diskExternalUsagePercent,
+             .diskCombinedUsagePercent, .diskCombinedFree,
              .systemPower, .inputPower, .batteryPower,
              .wifiConnectionStatus, .screenBrightness:
             return nil
@@ -91,6 +97,9 @@ enum MenuBarMetricRegistry {
         case .diskFree: return .diskFreeBytes
         case .diskExternalTotal: return .diskExternalTotalBytes
         case .diskExternalFree: return .diskExternalFreeBytes
+        case .diskUsagePercent: return .diskUsedBytes
+        case .diskExternalUsagePercent: return .diskExternalTotalBytes
+        case .diskCombinedUsagePercent, .diskCombinedFree: return .diskUsedBytes
         case .networkDownload: return .networkDownload
         case .networkUpload: return .networkUpload
         case .fanRPM: return .fanRPM(index: 0)
@@ -98,6 +107,22 @@ enum MenuBarMetricRegistry {
         case .batteryLevel, .systemPower, .inputPower, .batteryPower,
              .wifiConnectionStatus, .outputVolume, .screenBrightness:
             return nil
+        }
+    }
+
+    /// Every hardware sample a metric needs. Derived disk metrics depend on
+    /// more than one capacity/volume sample, so demand must register all of them.
+    static func hardwareMetricIDs(for metric: MenuBarMetricID) -> Set<HardwareMetricID> {
+        switch metric {
+        case .diskUsagePercent:
+            return [.diskUsedBytes, .diskFreeBytes]
+        case .diskExternalUsagePercent:
+            return [.diskExternalTotalBytes, .diskExternalFreeBytes]
+        case .diskCombinedUsagePercent, .diskCombinedFree:
+            return [.diskUsedBytes, .diskFreeBytes,
+                    .diskExternalTotalBytes, .diskExternalFreeBytes]
+        default:
+            return hardwareMetricID(for: metric).map { [$0] } ?? []
         }
     }
 
@@ -109,8 +134,11 @@ enum MenuBarMetricRegistry {
             return HardwareDetailFormat.frequency(value)
         case .memoryUsed, .memoryFree:
             return HardwareDetailFormat.memoryBytes(value)
-        case .diskUsed, .diskFree, .diskExternalTotal, .diskExternalFree:
+        case .diskUsed, .diskFree, .diskExternalTotal, .diskExternalFree,
+             .diskCombinedFree:
             return HardwareDetailFormat.bytes(value)
+        case .diskUsagePercent, .diskExternalUsagePercent, .diskCombinedUsagePercent:
+            return String(format: "%.0f%%", min(100, max(0, value)))
         case .cpuTemperature, .gpuTemperature:
             return String(format: "%.0f°", value)
         case .fanRPM:

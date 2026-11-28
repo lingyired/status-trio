@@ -1463,6 +1463,10 @@
 "menubar.metric.diskUsed" = "Datenträger belegt";
 "menubar.metric.diskExternalTotal" = "Externer Datenträger gesamt";
 "menubar.metric.diskExternalFree" = "Externer Datenträger frei";
+"menubar.metric.diskUsagePercent" = "Datenträger %";
+"menubar.metric.diskExternalUsagePercent" = "Externer Datenträger %";
+"menubar.metric.diskCombinedUsagePercent" = "Datenträger gesamt %";
+"menubar.metric.diskCombinedFree" = "Gesamt frei";
 "menubar.metric.diskFree" = "Datenträger frei";
 "menubar.metric.wifiConnected" = "Connected";
 "menubar.metric.wifiDisconnected" = "Disconnected";

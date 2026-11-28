@@ -55,6 +55,14 @@ final class MenuBarInstanceDemandCoordinatorTests: XCTestCase {
         XCTAssertNotNil(coordinator.registeredOwners[MenuBarInstanceDemandCoordinator.ownerID(for: b.id)])
     }
 
+    func testDerivedDiskMetricsRegisterEveryCapacitySample() {
+        let (coordinator, _) = makeCoordinator()
+        let combined = instance(.diskCombinedUsagePercent)
+        XCTAssertEqual(coordinator.metricSet(for: combined),
+                       [.diskUsedBytes, .diskFreeBytes,
+                        .diskExternalTotalBytes, .diskExternalFreeBytes])
+    }
+
     func testWiFiStatusNeedsNoHardwareDemand() {
         let (coordinator, _) = makeCoordinator()
         let wifi = instance(.wifiConnectionStatus)

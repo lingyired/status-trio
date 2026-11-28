@@ -1463,6 +1463,10 @@
 "menubar.metric.diskUsed" = "Disco usato";
 "menubar.metric.diskExternalTotal" = "Disco esterno totale";
 "menubar.metric.diskExternalFree" = "Disco esterno libero";
+"menubar.metric.diskUsagePercent" = "Disco %";
+"menubar.metric.diskExternalUsagePercent" = "Disco esterno %";
+"menubar.metric.diskCombinedUsagePercent" = "Disco totale %";
+"menubar.metric.diskCombinedFree" = "Spazio libero totale";
 "menubar.metric.diskFree" = "Disco libero";
 "menubar.metric.wifiConnected" = "Connected";
 "menubar.metric.wifiDisconnected" = "Disconnected";

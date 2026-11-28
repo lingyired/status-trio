@@ -1463,6 +1463,10 @@
 "menubar.metric.diskUsed" = "사용된 디스크";
 "menubar.metric.diskExternalTotal" = "외장 디스크 총용량";
 "menubar.metric.diskExternalFree" = "외장 디스크 남은 공간";
+"menubar.metric.diskUsagePercent" = "디스크 %";
+"menubar.metric.diskExternalUsagePercent" = "외장 디스크 %";
+"menubar.metric.diskCombinedUsagePercent" = "전체 디스크 %";
+"menubar.metric.diskCombinedFree" = "전체 여유 공간";
 "menubar.metric.diskFree" = "남은 디스크";
 "menubar.metric.wifiConnected" = "Connected";
 "menubar.metric.wifiDisconnected" = "Disconnected";

@@ -22,7 +22,9 @@ final class MenuBarInstanceDemandCoordinator {
     }
 
     func metricSet(for instance: MenuBarInstance) -> Set<HardwareMetricID> {
-        Set(instance.demandedMetrics.compactMap { MenuBarMetricRegistry.hardwareMetricID(for: $0) })
+        Set(instance.demandedMetrics.flatMap {
+            MenuBarMetricRegistry.hardwareMetricIDs(for: $0)
+        })
     }
 
     func setInstances(_ instances: [MenuBarInstance]) {

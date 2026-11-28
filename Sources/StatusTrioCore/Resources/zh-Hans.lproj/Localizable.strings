@@ -1463,6 +1463,10 @@
 "menubar.metric.diskUsed" = "已用磁盘";
 "menubar.metric.diskExternalTotal" = "外置磁盘总容量";
 "menubar.metric.diskExternalFree" = "外置磁盘可用";
+"menubar.metric.diskUsagePercent" = "磁盘百分比";
+"menubar.metric.diskExternalUsagePercent" = "外置磁盘百分比";
+"menubar.metric.diskCombinedUsagePercent" = "含外置磁盘百分比";
+"menubar.metric.diskCombinedFree" = "含外置磁盘可用";
 "menubar.metric.diskFree" = "可用磁盘";
 "menubar.metric.wifiConnected" = "已连接";
 "menubar.metric.wifiDisconnected" = "未连接";

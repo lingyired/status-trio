@@ -1463,6 +1463,10 @@
 "menubar.metric.diskUsed" = "مساحة القرص المستخدمة";
 "menubar.metric.diskExternalTotal" = "إجمالي القرص الخارجي";
 "menubar.metric.diskExternalFree" = "مساحة القرص الخارجي الحرة";
+"menubar.metric.diskUsagePercent" = "قرص %";
+"menubar.metric.diskExternalUsagePercent" = "قرص خارجي %";
+"menubar.metric.diskCombinedUsagePercent" = "إجمالي الأقراص %";
+"menubar.metric.diskCombinedFree" = "إجمالي المساحة الحرة";
 "menubar.metric.diskFree" = "مساحة القرص الحرة";
 "menubar.metric.wifiConnected" = "Connected";
 "menubar.metric.wifiDisconnected" = "Disconnected";
