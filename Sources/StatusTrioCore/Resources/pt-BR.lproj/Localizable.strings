@@ -1496,6 +1496,10 @@
 "menubar.editor.matchTextColor" = "Match text color";
 "menubar.editor.assetHint" = "Asset catalog name, not a file path";
 "menubar.editor.exportInstance" = "Export Instance…";
+"menubar.editor.exportAllInstances" = "Exportar todas as instâncias…";
+"menubar.editor.importInvalidFiles" = "Os arquivos selecionados não contêm instâncias importáveis.";
+"menubar.editor.importSummary" = "Importação concluída";
+"menubar.editor.importSummaryDetail" = "%d instâncias importadas; %d arquivos falharam; %d ignoradas pelo limite.";
 "menubar.editor.importInstance" = "Import Instance…";
 "menubar.editor.imported" = "(Imported)";
 "menubar.editor.importFailed" = "Couldn’t Import Instance";

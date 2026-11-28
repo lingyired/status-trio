@@ -1496,6 +1496,10 @@
 "menubar.editor.matchTextColor" = "跟随文字颜色";
 "menubar.editor.assetHint" = "Assets.xcassets 里的资源名称，不是文件路径";
 "menubar.editor.exportInstance" = "导出实例…";
+"menubar.editor.exportAllInstances" = "导出全部实例…";
+"menubar.editor.importInvalidFiles" = "选中的文件没有可导入的实例。";
+"menubar.editor.importSummary" = "导入完成";
+"menubar.editor.importSummaryDetail" = "已导入 %d 个实例；%d 个文件解析失败；%d 个因数量上限被跳过。";
 "menubar.editor.importInstance" = "导入实例…";
 "menubar.editor.imported" = "（导入）";
 "menubar.editor.importFailed" = "无法导入实例";

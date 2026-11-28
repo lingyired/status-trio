@@ -1496,6 +1496,10 @@
 "menubar.editor.matchTextColor" = "Match text color";
 "menubar.editor.assetHint" = "Asset catalog name, not a file path";
 "menubar.editor.exportInstance" = "Export Instance…";
+"menubar.editor.exportAllInstances" = "すべてのインスタンスを書き出す…";
+"menubar.editor.importInvalidFiles" = "選択したファイルに読み込めるインスタンスがありません。";
+"menubar.editor.importSummary" = "読み込み完了";
+"menubar.editor.importSummaryDetail" = "%d 個のインスタンスを読み込み、%d 個のファイルが失敗し、%d 個が上限のためスキップされました。";
 "menubar.editor.importInstance" = "Import Instance…";
 "menubar.editor.imported" = "(Imported)";
 "menubar.editor.importFailed" = "Couldn’t Import Instance";

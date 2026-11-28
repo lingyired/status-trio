@@ -40,6 +40,31 @@ final class MenuBarInstanceTransferTests: XCTestCase {
         XCTAssertEqual(decoded.top?.alignment, .trailing)
     }
 
+    func testBatchRoundTripPreservesOrderAndCount() throws {
+        let a = MenuBarInstance(name: "CPU", top: MenuBarLine(elements: [MenuBarElement(content: .metric(.cpuUsage))]))
+        let b = MenuBarInstance(name: "Memory", top: MenuBarLine(elements: [MenuBarElement(content: .metric(.memoryUsage))]))
+        let data = try MenuBarInstanceTransfer.encodeAll([a, b])
+        let decoded = try MenuBarInstanceTransfer.decodeAll(data)
+        XCTAssertEqual(decoded.map(\.name), ["CPU", "Memory"])
+        XCTAssertEqual(decoded.map(\.id), [a.id, b.id])
+    }
+
+    func testBatchDecodeAcceptsBareInstanceArray() throws {
+        let a = MenuBarInstance(name: "CPU")
+        let b = MenuBarInstance(name: "GPU")
+        let data = try JSONEncoder().encode([a, b])
+        let decoded = try MenuBarInstanceTransfer.decodeAll(data)
+        XCTAssertEqual(decoded.map(\.name), ["CPU", "GPU"])
+    }
+
+    func testBatchDecodeAcceptsSingleInstanceDocument() throws {
+        let original = makeInstance()
+        let data = try MenuBarInstanceTransfer.encode(original)
+        let decoded = try MenuBarInstanceTransfer.decodeAll(data)
+        XCTAssertEqual(decoded.count, 1)
+        XCTAssertEqual(decoded.first?.name, original.name)
+    }
+
     func testDecodesBareInstanceJSON() throws {
         let original = MenuBarInstance(name: "CPU", top: MenuBarLine(elements: [MenuBarElement(content: .text("CPU"))]))
         let data = try JSONEncoder().encode(original)

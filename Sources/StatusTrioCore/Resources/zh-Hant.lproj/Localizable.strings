@@ -1496,6 +1496,10 @@
 "menubar.editor.matchTextColor" = "跟隨文字顏色";
 "menubar.editor.assetHint" = "Assets.xcassets 裡的資源名稱，不是檔案路徑";
 "menubar.editor.exportInstance" = "匯出實例…";
+"menubar.editor.exportAllInstances" = "匯出全部實例…";
+"menubar.editor.importInvalidFiles" = "選取的檔案沒有可匯入的實例。";
+"menubar.editor.importSummary" = "匯入完成";
+"menubar.editor.importSummaryDetail" = "已匯入 %d 個實例；%d 個檔案解析失敗；%d 個因數量上限被略過。";
 "menubar.editor.importInstance" = "匯入實例…";
 "menubar.editor.imported" = "（匯入）";
 "menubar.editor.importFailed" = "無法匯入實例";

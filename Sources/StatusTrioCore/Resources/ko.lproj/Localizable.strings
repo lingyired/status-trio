@@ -1496,6 +1496,10 @@
 "menubar.editor.matchTextColor" = "Match text color";
 "menubar.editor.assetHint" = "Asset catalog name, not a file path";
 "menubar.editor.exportInstance" = "Export Instance…";
+"menubar.editor.exportAllInstances" = "모든 인스턴스 내보내기…";
+"menubar.editor.importInvalidFiles" = "선택한 파일에 가져올 수 있는 인스턴스가 없습니다.";
+"menubar.editor.importSummary" = "가져오기 완료";
+"menubar.editor.importSummaryDetail" = "인스턴스 %d개를 가져왔고 파일 %d개가 실패했으며 %d개가 한도로 건너뛰었습니다.";
 "menubar.editor.importInstance" = "Import Instance…";
 "menubar.editor.imported" = "(Imported)";
 "menubar.editor.importFailed" = "Couldn’t Import Instance";

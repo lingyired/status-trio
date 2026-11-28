@@ -108,11 +108,18 @@ struct MenuBarInstancesSectionView: View {
 
                 Divider()
                 Button {
-                    importInstance()
+                    importInstances()
                 } label: {
                     Label(L(.menuBarEditorImportInstance), systemImage: "square.and.arrow.down")
                 }
                 .disabled(!listModel.canAdd)
+
+                Button {
+                    exportAllInstances()
+                } label: {
+                    Label(L(.menuBarEditorExportAllInstances), systemImage: "square.and.arrow.up.on.square")
+                }
+                .disabled(listModel.instances.isEmpty)
             }
         }
         .listStyle(.sidebar)
@@ -260,7 +267,22 @@ struct MenuBarInstancesSectionView: View {
         }
     }
 
-    private func importInstance() {
+    private func exportAllInstances() {
+        guard !listModel.instances.isEmpty else { return }
+        let panel = NSSavePanel()
+        panel.allowedContentTypes = [.json]
+        panel.canCreateDirectories = true
+        panel.nameFieldStringValue = "Status Trio Menu Bar Instances.statustrio-instances.json"
+        guard panel.runModal() == .OK, let url = panel.url else { return }
+        do {
+            let data = try MenuBarInstanceTransfer.encodeAll(listModel.instances)
+            try data.write(to: url, options: .atomic)
+        } catch {
+            presentTransferError(title: L(.menuBarEditorExportFailed), error: error)
+        }
+    }
+
+    private func importInstances() {
         guard listModel.canAdd else {
             let alert = NSAlert()
             alert.messageText = L(.menuBarEditorImportFailed)
@@ -271,20 +293,77 @@ struct MenuBarInstancesSectionView: View {
         }
         let panel = NSOpenPanel()
         panel.allowedContentTypes = [.json]
-        panel.allowsMultipleSelection = false
+        panel.allowsMultipleSelection = true
         panel.canChooseDirectories = false
-        guard panel.runModal() == .OK, let url = panel.url else { return }
-        do {
-            let data = try Data(contentsOf: url)
-            var instance = try MenuBarInstanceTransfer.decode(data)
-            if store.menuBarInstances.instances.contains(where: { $0.name == instance.name && !instance.name.isEmpty }) {
-                instance.name += " " + L(.menuBarEditorImported)
+        guard panel.runModal() == .OK, !panel.urls.isEmpty else { return }
+
+        var decoded: [MenuBarInstance] = []
+        var failures = 0
+        for url in panel.urls {
+            do {
+                let data = try Data(contentsOf: url)
+                decoded.append(contentsOf: try MenuBarInstanceTransfer.decodeAll(data))
+            } catch {
+                failures += 1
             }
-            guard let imported = listModel.importInstance(instance) else { return }
-            selectedID = imported.id
-        } catch {
-            presentTransferError(title: L(.menuBarEditorImportFailed), error: error)
         }
+        if decoded.isEmpty {
+            let alert = NSAlert()
+            alert.messageText = L(.menuBarEditorImportFailed)
+            alert.informativeText = L(.menuBarEditorImportInvalidFiles)
+            alert.alertStyle = .warning
+            alert.runModal()
+            return
+        }
+
+        let remaining = max(0, MenuBarInstancesListModel.limit - listModel.instances.count)
+        let accepted = Array(decoded.prefix(remaining))
+        let skipped = max(0, decoded.count - accepted.count)
+        var existingNames = Set(store.menuBarInstances.instances.map(\.name))
+        var lastImportedID: UUID?
+        for var instance in accepted {
+            instance.id = UUID()
+            instance.name = uniqueImportedName(for: instance.name, existing: &existingNames)
+            if let imported = listModel.importInstance(instance) {
+                lastImportedID = imported.id
+            }
+        }
+        if let lastImportedID { selectedID = lastImportedID }
+
+        if failures > 0 || skipped > 0 {
+            let alert = NSAlert()
+            alert.messageText = L(.menuBarEditorImportSummary)
+            alert.informativeText = String(
+                format: L(.menuBarEditorImportSummaryDetail),
+                accepted.count,
+                failures,
+                skipped
+            )
+            alert.alertStyle = .informational
+            alert.runModal()
+        }
+    }
+
+    private func uniqueImportedName(for rawName: String, existing: inout Set<String>) -> String {
+        let base = rawName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            ? L(.menuBarEditorUntitled)
+            : rawName
+        if !existing.contains(base) {
+            existing.insert(base)
+            return base
+        }
+        let imported = "\(base) \(L(.menuBarEditorImported))"
+        if !existing.contains(imported) {
+            existing.insert(imported)
+            return imported
+        }
+        var index = 2
+        while existing.contains("\(imported) \(index)") {
+            index += 1
+        }
+        let unique = "\(imported) \(index)"
+        existing.insert(unique)
+        return unique
     }
 
     private func presentTransferError(title: String, error: Error) {
