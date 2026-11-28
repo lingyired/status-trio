@@ -19,6 +19,18 @@ final class MenuBarInstancesRuntime: NSObject {
     private var configuration = MenuBarInstancesConfiguration.empty
     private var latestHardware = HardwareMetricsSnapshot()
     private var latestStatus: StatusSnapshot = .placeholder
+    /// Avoid re-rendering an item when a status/hardware notification carries
+    /// exactly the inputs that produced its current image. Panel opens fire an
+    /// immediate status refresh, which often lands on top of a scheduled menu
+    /// bar refresh with unchanged readings.
+    private var renderedFingerprints: [UUID: RenderFingerprint] = [:]
+    private struct RenderFingerprint: Equatable {
+        var instance: MenuBarInstance
+        var readings: [MenuBarMetricID: MenuBarMetricReading]
+        var colors: [HardwareMonitorMetric: IconRGBA]
+        var appearance: String
+        var scale: CGFloat
+    }
     private var trackedButtons = Set<ObjectIdentifier>()
     private var buttonByInstance: [UUID: NSStatusBarButton] = [:]
     private var hoverWorkItems: [UUID: DispatchWorkItem] = [:]
@@ -90,6 +102,7 @@ final class MenuBarInstancesRuntime: NSObject {
     private func apply(_ config: MenuBarInstancesConfiguration) {
         configuration = config
         items.sync(config)
+        renderedFingerprints.removeAll()
         for id in items.itemIDs {
             guard let button = items.item(for: id)?.button else { continue }
             button.target = self
@@ -134,6 +147,14 @@ final class MenuBarInstancesRuntime: NSObject {
                 hardware: latestHardware,
                 status: latestStatus
             )
+            let fingerprint = RenderFingerprint(
+                instance: instance,
+                readings: readings,
+                colors: settings.hardwareMonitorMetricColors,
+                appearance: appearance.name.rawValue,
+                scale: 2
+            )
+            if renderedFingerprints[instance.id] == fingerprint { continue }
             let input = MenuBarRenderInput(instance: instance, readings: readings, colorOverrides: settings.hardwareMonitorMetricColors)
             let measurement = MenuBarInstanceRenderer.measure(input, appearance: appearance)
             let image = MenuBarInstanceRenderer.render(input, appearance: appearance, scale: 2)
@@ -141,6 +162,7 @@ final class MenuBarInstancesRuntime: NSObject {
                 id: instance.id,
                 renderState: MenuBarRenderState(image: image, width: CGFloat(measurement.totalWidth))
             )
+            renderedFingerprints[instance.id] = fingerprint
         }
     }
 
