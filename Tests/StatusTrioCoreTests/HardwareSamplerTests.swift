@@ -139,64 +139,6 @@ final class HardwareSamplerTests: XCTestCase {
         XCTAssertTrue(snapshot.samples.isEmpty)
     }
 
-    func testMemoryAndDiskCapacityMetricsUseSingleReaderValues() {
-        let memory = MemoryReader.Reading(percent: 25,
-                                          usedBytes: 2_000_000_000,
-                                          totalBytes: 8_000_000_000,
-                                          sampledAt: date)
-        let capacity = DiskCapacityReading(totalBytes: 1_000_000_000_000,
-                                           freeBytes: 400_000_000_000,
-                                           usedBytes: 600_000_000_000,
-                                           fileSystem: "APFS",
-                                           sampledAt: date)
-        let snapshot = HardwareSampler.collect(
-            ids: [.memoryUsedBytes, .memoryFreeBytes, .diskUsedBytes, .diskFreeBytes],
-            isFirstCPURead: true, at: date,
-            cpuProvider: { _ in XCTFail("capacity must not read CPU"); return nil },
-            gpuProvider: { _ in XCTFail("capacity must not read GPU"); return nil },
-            memoryProvider: { _ in memory },
-            sensorProvider: { _, _, _, _, _ in XCTFail("capacity must not read SMC"); return self.sensors() },
-            diskProvider: { _ in XCTFail("capacity must not read disk throughput"); return nil },
-            diskCapacity: capacity)
-        XCTAssertEqual(snapshot[.memoryUsedBytes].value, 2_000_000_000)
-        XCTAssertEqual(snapshot[.memoryFreeBytes].value, 6_000_000_000)
-        XCTAssertEqual(snapshot[.diskUsedBytes].value, 600_000_000_000)
-        XCTAssertEqual(snapshot[.diskFreeBytes].value, 400_000_000_000)
-    }
-
-    func testDiskTotalAddsReadAndWriteThroughput() {
-        let snapshot = HardwareSampler.collect(
-            ids: [.diskTotal], isFirstCPURead: true, at: date,
-            cpuProvider: { _ in XCTFail("disk total must not read CPU"); return nil },
-            gpuProvider: { _ in XCTFail("disk total must not read GPU"); return nil },
-            memoryProvider: { _ in XCTFail("disk total must not read memory"); return nil },
-            sensorProvider: { _, _, _, _, _ in XCTFail("disk total must not read SMC"); return self.sensors() },
-            diskProvider: { _ in
-                DiskThroughputReading(readBytesPerSecond: 1_200_000,
-                                      writeBytesPerSecond: 800_000,
-                                      sampledAt: self.date)
-            })
-        XCTAssertEqual(snapshot[.diskTotal].value, 2_000_000)
-        XCTAssertEqual(snapshot[.diskTotal].unit, .bytesPerSecond)
-    }
-
-    func testCPUFrequencyMetricReadsFrequencyWithoutUsageSample() {
-        let cpu = CPUReading(usage: 10, perCoreUsage: [], sampledAt: date)
-        let frequency = CPUFrequencyReading(efficiencyGHz: 2.0,
-                                            performanceGHz: 3.5,
-                                            superGHz: nil,
-                                            sampledAt: date)
-        let snapshot = HardwareSampler.collect(
-            ids: [.cpuFrequency], isFirstCPURead: false, at: date,
-            cpuProvider: { _ in cpu },
-            frequencyProvider: { _ in frequency },
-            includeCPUFrequency: true,
-            gpuProvider: { _ in XCTFail("frequency must not read GPU"); return nil },
-            memoryProvider: { _ in XCTFail("frequency must not read memory"); return nil },
-            sensorProvider: { _, _, _, _, _ in XCTFail("frequency must not read SMC"); return self.sensors() })
-        XCTAssertEqual(snapshot[.cpuFrequency].value, 3.5)
-    }
-
     func testMemoryOnlyDoesNotTouchCPUOrSMC() {
         let snapshot = HardwareSampler.collect(ids: [.memoryUsage], isFirstCPURead: true, at: date,
                                                cpuProvider: { _ in XCTFail("memory must not read CPU"); return nil },

@@ -44,9 +44,7 @@ enum MetricProgressMapper {
         case .fanRPM: rpm(sample)
         // Network/disk need a configured cap, so they are not drawn on the ring.
         case .networkDownload, .networkUpload: nil
-        case .diskRead, .diskWrite, .diskTotal, .diskUsedBytes, .diskFreeBytes,
-             .diskExternalTotalBytes, .diskExternalFreeBytes: nil
-        case .cpuFrequency, .memoryUsedBytes, .memoryFreeBytes: nil
+        case .diskRead, .diskWrite: nil
         // Top-marker-only readings never fill an arc, but a percentage is honest.
         case .volume, .wifiSignal, .batteryLevel: percent(sample)
         }

@@ -126,8 +126,7 @@ final class HardwareSampler: @unchecked Sendable {
         await withCheckedContinuation { continuation in
             queue.async {
                 let first = !self.hasAttemptedCPURead
-                let wantsFrequency = includeCPUFrequency
-                    && (ids.contains(.cpuUsage) || ids.contains(.cpuFrequency))
+                let wantsFrequency = includeCPUFrequency && ids.contains(.cpuUsage)
                 let detailKinds = Self.detailKindsToBuild(details, ids: ids)
                 // GPU utilisation counts render work over the interval since the
                 // last query; querying IOAccelerator twice in a row makes the
@@ -137,8 +136,6 @@ final class HardwareSampler: @unchecked Sendable {
                 let wantsGPUDetail = detailKinds.contains(.gpu)
                 let memorySnapshot = detailKinds.contains(.memory) && ids.contains(.memoryUsage)
                     ? self.memoryReader.readWithDetail(at: date) : nil
-                let diskCapacity = (ids.contains(.diskUsedBytes) || ids.contains(.diskFreeBytes))
-                    ? DiskCapacityReader.read(at: date) : nil
                 let gpuDetail: GPUDetailReading? = wantsGPUDetail
                     ? self.gpuReader.readDetail(at: date) : nil
                 let gpuReading: GPUReading? = gpuDetail.flatMap { detail in
@@ -169,8 +166,7 @@ final class HardwareSampler: @unchecked Sendable {
                                      includeFans: fans, at: date)
                 },
                                             networkProvider: { self.networkReader.read(at: $0) },
-                                            diskProvider: { self.diskReader.read(at: $0) },
-                                            diskCapacity: diskCapacity)
+                                            diskProvider: { self.diskReader.read(at: $0) })
                 if let gpuDetail {
                     snapshot.gpuDetail = gpuDetail
                 }
@@ -192,9 +188,6 @@ final class HardwareSampler: @unchecked Sendable {
                         sampledAt: date)
                 }
                 if ids.contains(.cpuUsage) { self.hasAttemptedCPURead = true }
-                if ids.contains(.diskExternalTotalBytes) || ids.contains(.diskExternalFreeBytes) {
-                    snapshot.diskVolumes = DiskCapacityReader.readVolumes()
-                }
                 continuation.resume(returning: snapshot)
             }
         }
@@ -310,28 +303,23 @@ final class HardwareSampler: @unchecked Sendable {
                         pressureProvider: () -> MemoryPressureLevel = { .unknown },
                         sensorProvider: (Bool, Bool, Bool, Bool, Date) -> SensorReading,
                         networkProvider: (Date) -> NetworkThroughputReading? = { _ in nil },
-                        diskProvider: (Date) -> DiskThroughputReading? = { _ in nil },
-                        diskCapacity: DiskCapacityReading? = nil) -> HardwareMetricsSnapshot {
+                        diskProvider: (Date) -> DiskThroughputReading? = { _ in nil }) -> HardwareMetricsSnapshot {
         let temperature = ids.contains(.cpuTemperature)
         let gpuTemperature = ids.contains(.gpuTemperature)
         let batteryTemperature = ids.contains(.batteryTemperature)
         let fans = ids.contains { if case .fanRPM = $0 { return true }; return false }
-        let cpu = (ids.contains(.cpuUsage) || ids.contains(.cpuFrequency))
-            ? cpuProvider(date) : nil
+        let cpu = ids.contains(.cpuUsage) ? cpuProvider(date) : nil
         let frequency = (cpu != nil && includeCPUFrequency) ? frequencyProvider(date) : nil
         let gpu = ids.contains(.gpuUsage) ? gpuProvider(date) : nil
-        let memory = (ids.contains(.memoryUsage)
-                      || ids.contains(.memoryUsedBytes)
-                      || ids.contains(.memoryFreeBytes)) ? memoryProvider(date) : nil
+        let memory = ids.contains(.memoryUsage) ? memoryProvider(date) : nil
         let needsNetwork = ids.contains(.networkDownload) || ids.contains(.networkUpload)
         let sensors = temperature || gpuTemperature || batteryTemperature || fans
             ? sensorProvider(temperature, gpuTemperature, batteryTemperature, fans, date) : nil
         let network = needsNetwork ? networkProvider(date) : nil
-        let needsDisk = ids.contains(.diskRead) || ids.contains(.diskWrite) || ids.contains(.diskTotal)
+        let needsDisk = ids.contains(.diskRead) || ids.contains(.diskWrite)
         let disk = needsDisk ? diskProvider(date) : nil
         var snapshot = map(ids: ids, cpu: cpu, gpu: gpu, memory: memory, sensors: sensors, network: network,
-                           disk: disk, diskCapacity: diskCapacity, cpuFrequency: frequency,
-                           includeCPUDetail: includeCPUDetail,
+                           disk: disk, cpuFrequency: frequency, includeCPUDetail: includeCPUDetail,
                            isFirstCPURead: isFirstCPURead, at: date)
         if ids.contains(.memoryPressure) {
             snapshot.memoryPressure = MemoryPressureReading(level: pressureProvider(), sampledAt: date)
@@ -347,7 +335,6 @@ final class HardwareSampler: @unchecked Sendable {
                     memory: MemoryReader.Reading? = nil, sensors: SensorReading?,
                     network: NetworkThroughputReading? = nil,
                     disk: DiskThroughputReading? = nil,
-                    diskCapacity: DiskCapacityReading? = nil,
                     cpuFrequency: CPUFrequencyReading? = nil,
                     includeCPUDetail: Bool = true,
                     isFirstCPURead: Bool, at date: Date) -> HardwareMetricsSnapshot {
@@ -359,34 +346,12 @@ final class HardwareSampler: @unchecked Sendable {
                 snapshot.samples[id] = HardwareMetricSample(
                     value: value, unit: .percent, sampledAt: cpu?.sampledAt ?? date, source: .mach,
                     availability: value != nil ? .measured : (isFirstCPURead ? .collecting : .temporarilyUnavailable))
-            case .cpuFrequency:
-                let value = cpuFrequency.flatMap { reading in
-                    [reading.performanceGHz, reading.efficiencyGHz, reading.superGHz]
-                        .compactMap { $0 }
-                        .first
-                }
-                snapshot.samples[id] = HardwareMetricSample(
-                    value: value, unit: .none, sampledAt: cpuFrequency?.sampledAt ?? date,
-                    source: .ioAccelerator,
-                    availability: value != nil ? .measured : .temporarilyUnavailable)
             case .gpuUsage:
                 let value = finite(gpu?.usage, in: 0...100)
                 snapshot.samples[id] = HardwareMetricSample(
                     value: value, unit: .percent, sampledAt: gpu?.sampledAt ?? date, source: .ioAccelerator,
                     availability: value != nil ? .measured : .temporarilyUnavailable,
                     sensorLabel: gpu?.deviceName)
-            case .memoryUsedBytes:
-                let used = memory.map { Double($0.usedBytes) }
-                snapshot.samples[id] = HardwareMetricSample(
-                    value: used, unit: .none, sampledAt: memory?.sampledAt ?? date,
-                    source: .mach,
-                    availability: used != nil ? .measured : .temporarilyUnavailable)
-            case .memoryFreeBytes:
-                let free = memory.map { Double($0.totalBytes > $0.usedBytes ? $0.totalBytes - $0.usedBytes : 0) }
-                snapshot.samples[id] = HardwareMetricSample(
-                    value: free, unit: .none, sampledAt: memory?.sampledAt ?? date,
-                    source: .mach,
-                    availability: free != nil ? .measured : .temporarilyUnavailable)
             case .memoryUsage:
                 let value = finite(memory?.percent, in: 0...100)
                 snapshot.samples[id] = HardwareMetricSample(
@@ -425,27 +390,6 @@ final class HardwareSampler: @unchecked Sendable {
                 snapshot.samples[id] = HardwareMetricSample(
                     value: value, unit: .bytesPerSecond, sampledAt: network?.sampledAt ?? date,
                     source: .network, availability: value != nil ? .measured : .collecting)
-            case .diskTotal:
-                let value = disk.map { max(0, $0.readBytesPerSecond) + max(0, $0.writeBytesPerSecond) }
-                snapshot.samples[id] = HardwareMetricSample(
-                    value: value, unit: .bytesPerSecond, sampledAt: disk?.sampledAt ?? date,
-                    source: .ioStorage, availability: value != nil ? .measured : .collecting)
-            case .diskUsedBytes:
-                let used = diskCapacity.map { Double($0.usedBytes) }
-                snapshot.samples[id] = HardwareMetricSample(
-                    value: used, unit: .none, sampledAt: diskCapacity?.sampledAt ?? date,
-                    source: .ioStorage,
-                    availability: used != nil ? .measured : .temporarilyUnavailable)
-            case .diskFreeBytes:
-                let free = diskCapacity.map { Double($0.freeBytes) }
-                snapshot.samples[id] = HardwareMetricSample(
-                    value: free, unit: .none, sampledAt: diskCapacity?.sampledAt ?? date,
-                    source: .ioStorage,
-                    availability: free != nil ? .measured : .temporarilyUnavailable)
-            case .diskExternalTotalBytes, .diskExternalFreeBytes:
-                // Summed from the selected external volumes by the menu-bar
-                // value provider; the raw volumes ride on the snapshot.
-                break
             case .diskRead, .diskWrite:
                 let value: Double? = disk.map { reading in
                     id == .diskRead
