@@ -1129,14 +1129,14 @@ final class StatusBarController: NSObject {
 
     /// Opens the shared status panel anchored to a custom instance's button.
     func presentInstancePanel(routeRaw: String, anchorButton: NSStatusBarButton, presentedByHover: Bool) {
-        applyInstanceRoute(routeRaw)
         presentPopover(
             relativeTo: anchorButton.bounds,
             of: anchorButton,
             preferredEdge: .minY,
             activatesApplication: false,
             revealStyle: presentedByHover ? .hoverDrop : .fade,
-            presentedByHover: presentedByHover
+            presentedByHover: presentedByHover,
+            instanceRouteRaw: routeRaw
         )
     }
 
@@ -1149,7 +1149,7 @@ final class StatusBarController: NSObject {
         case "inputSource": panelViewModel.showInputSourcePage()
         default:
             if let kind = HardwareDetailKind(rawValue: raw) {
-                panelViewModel.showHardwareDetail(kind)
+                panelViewModel.showHardwareDetail(kind, forcing: true)
             } else {
                 panelViewModel.showSummaryPage()
             }
@@ -1299,7 +1299,8 @@ final class StatusBarController: NSObject {
         dockInset: NSEdgeInsets = DockReveal.noInset,
         revealStyle: AnchoredStatusPanel.RevealStyle = .fade,
         presentedByHover: Bool = false,
-        presentedFromDock: Bool = false
+        presentedFromDock: Bool = false,
+        instanceRouteRaw: String? = nil
     ) {
         popoverPresentedByHover = presentedByHover
         isDockPresented = presentedFromDock
@@ -1311,6 +1312,9 @@ final class StatusBarController: NSObject {
         // installing or laying out content so the first frame uses fresh data.
         panelViewModel.start()
         panelViewModel.prepareForPresentation()
+        if let instanceRouteRaw {
+            applyInstanceRoute(instanceRouteRaw)
+        }
         installPopoverContentIfNeeded()
         // One bounded refresh per open covers a lost distributed notification
         // without any polling while the popover is closed.
