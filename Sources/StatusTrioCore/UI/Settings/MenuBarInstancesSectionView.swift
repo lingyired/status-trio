@@ -26,7 +26,7 @@ struct MenuBarInstancesSectionView: View {
     var body: some View {
         HSplitView {
             instanceColumn
-                .frame(width: 190)
+                .frame(minWidth: 214, idealWidth: 236, maxWidth: 280)
 
             editorColumn
                 .frame(minWidth: 300)
@@ -132,22 +132,25 @@ struct MenuBarInstancesSectionView: View {
             .labelsHidden()
             .accessibilityLabel(L(.menuBarEditorShowInMenuBar))
 
-            VStack(alignment: .leading, spacing: 1) {
+            VStack(alignment: .leading, spacing: 2) {
                 Text(displayName(for: instance))
                     .font(.system(size: 12.5, weight: .medium))
-                    .lineLimit(1)
+                    .multilineTextAlignment(.leading)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .layoutPriority(1)
+                    .help(displayName(for: instance))
 
                 Text(summary(for: instance))
-                    .font(.system(size: 11))
+                    .font(.system(size: 10.5))
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
             }
 
-            Spacer(minLength: 4)
+            Spacer(minLength: 0)
 
             instanceActions(instance)
         }
-        .padding(.vertical, 2)
+        .padding(.vertical, 3)
     }
 
     private func displayName(for instance: MenuBarInstance) -> String {
