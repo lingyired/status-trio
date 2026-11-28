@@ -214,7 +214,7 @@
       },
       "clickAction" : {
         "panel" : {
-          "_0" : "cpu"
+          "_0" : "gpu"
         }
       },
       "hoverAction" : {
@@ -292,6 +292,7 @@
       "innerPadding" : 0,
       "isEnabled" : true,
       "layoutMode" : "doubleLineLargeBottom",
+      "minimumWidth" : 28,
       "name" : "内存 ",
       "outerMargin" : 4,
       "rightClick" : {
@@ -356,6 +357,7 @@
       "innerPadding" : 0,
       "isEnabled" : true,
       "layoutMode" : "doubleLineLargeBottom",
+      "minimumWidth" : 26,
       "name" : "硬盘速度",
       "outerMargin" : 4,
       "rightClick" : {
@@ -420,6 +422,7 @@
       "innerPadding" : 0,
       "isEnabled" : true,
       "layoutMode" : "doubleLineLargeBottom",
+      "minimumWidth" : 40,
       "name" : "功耗",
       "outerMargin" : 4,
       "rightClick" : {
@@ -556,6 +559,7 @@
       "innerPadding" : 0,
       "isEnabled" : true,
       "layoutMode" : "doubleLineLargeBottom",
+      "minimumWidth" : 26,
       "name" : "CPU 占用",
       "outerMargin" : 4,
       "rightClick" : {
@@ -609,7 +613,7 @@
       },
       "clickAction" : {
         "panel" : {
-          "_0" : "cpu"
+          "_0" : "gpu"
         }
       },
       "hoverAction" : {
@@ -621,6 +625,7 @@
       "innerPadding" : 0,
       "isEnabled" : true,
       "layoutMode" : "doubleLineLargeBottom",
+      "minimumWidth" : 26,
       "name" : "GPU 占用",
       "outerMargin" : 4,
       "rightClick" : {
