@@ -117,3 +117,65 @@ struct DiskDetailReading: Equatable, Sendable {
     var volumeSpeeds: [String: DiskThroughputReading] = [:]
     var sampledAt: Date
 }
+
+/// Last structured payload built for one detail page, retained by the monitor
+/// after that page closes so reopening paints the previous reading instead of an
+/// empty card. Payloads are a few dozen numbers; they are refreshed only while
+/// their page is open, so retaining them adds no sampling work.
+enum HardwareDetailPayload: Equatable, Sendable {
+    case cpu(CPUDetailReading)
+    case gpu(GPUDetailReading)
+    case memory(MemoryDetailReading)
+    case network(NetworkDetailReading)
+    case disk(DiskDetailReading)
+
+    /// How long a retained payload may be restored on reopen. Matches the
+    /// summary sample cache: a bounded previous reading beats a blank page, and
+    /// the page refreshes immediately anyway; past this the value is dropped.
+    static let cacheLifetime: TimeInterval = 300
+
+    /// The payload this snapshot carries for `kind`, if it has one.
+    init?(snapshot: HardwareMetricsSnapshot, kind: HardwareDetailKind) {
+        switch kind {
+        case .cpu:
+            guard let detail = snapshot.cpuDetail else { return nil }
+            self = .cpu(detail)
+        case .gpu:
+            guard let detail = snapshot.gpuDetail else { return nil }
+            self = .gpu(detail)
+        case .memory:
+            guard let detail = snapshot.memoryDetail else { return nil }
+            self = .memory(detail)
+        case .network:
+            guard let detail = snapshot.networkDetail else { return nil }
+            self = .network(detail)
+        case .disk:
+            guard let detail = snapshot.diskDetail else { return nil }
+            self = .disk(detail)
+        case .fan:
+            // The fan page renders fan samples, not a structured payload.
+            return nil
+        }
+    }
+
+    var sampledAt: Date {
+        switch self {
+        case let .cpu(detail): return detail.sampledAt
+        case let .gpu(detail): return detail.sampledAt
+        case let .memory(detail): return detail.sampledAt
+        case let .network(detail): return detail.sampledAt
+        case let .disk(detail): return detail.sampledAt
+        }
+    }
+
+    /// Writes this payload into a snapshot, leaving other pages' fields alone.
+    func apply(to snapshot: inout HardwareMetricsSnapshot) {
+        switch self {
+        case let .cpu(detail): snapshot.cpuDetail = detail
+        case let .gpu(detail): snapshot.gpuDetail = detail
+        case let .memory(detail): snapshot.memoryDetail = detail
+        case let .network(detail): snapshot.networkDetail = detail
+        case let .disk(detail): snapshot.diskDetail = detail
+        }
+    }
+}

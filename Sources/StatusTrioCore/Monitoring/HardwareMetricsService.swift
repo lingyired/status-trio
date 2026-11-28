@@ -24,6 +24,10 @@ final class HardwareMonitorObservable: ObservableObject {
     /// Last measured (valued) sample per metric, retained across close/stale so
     /// the panel can show the previous reading instead of flashing an em dash.
     private var lastKnown: [HardwareMetricID: HardwareMetricSample] = [:]
+    /// Last structured payload per detail page, retained after that page closes
+    /// so opening it again paints immediately. Refreshed only by reads the open
+    /// page demanded; this never schedules sampling on its own.
+    private var detailCache: [HardwareDetailKind: HardwareDetailPayload] = [:]
     /// Panel-facing throttle state. The physical sampler stays live (`stored`) so
     /// icons keep their fast cadence; the panel reads a copy that only adopts a
     /// group's latest values once that group's cadence has elapsed ("到点取最近
@@ -127,7 +131,22 @@ final class HardwareMonitorObservable: ObservableObject {
             panelLastEmit[group] = now
             Self.merge(group: group, from: live, into: &merged)
         }
+        // Structured detail belongs to whichever page is open and is cleared on
+        // a page switch, so there is never another page's payload to guard
+        // against. Adopt it as soon as the read lands instead of waiting for the
+        // group's numeric cadence, which left disk/memory blank for up to one
+        // refresh interval after opening.
+        Self.adoptDetailPayloads(from: live, into: &merged)
         return merged
+    }
+
+    private static func adoptDetailPayloads(from live: HardwareMetricsSnapshot,
+                                            into target: inout HardwareMetricsSnapshot) {
+        target.cpuDetail = live.cpuDetail
+        target.gpuDetail = live.gpuDetail
+        target.memoryDetail = live.memoryDetail
+        target.networkDetail = live.networkDetail
+        target.diskDetail = live.diskDetail
     }
 
     /// Copies one group's sampled values and its structured detail fields from a
@@ -289,6 +308,44 @@ final class HardwareMonitorObservable: ObservableObject {
         objectWillChange.send()
         if liveChanged { snapshotSubject.send(stored) }
     }
+
+    /// The open page already has a payload (fresh, restored or prefetched).
+    func hasDetailPayload(_ kind: HardwareDetailKind) -> Bool {
+        HardwareDetailPayload(snapshot: stored, kind: kind) != nil
+    }
+
+    /// Retains the payloads a completed read produced, so returning to that page
+    /// can paint it before the next sample lands.
+    func rememberDetailPayloads(from snapshot: HardwareMetricsSnapshot) {
+        for kind in HardwareDetailKind.allCases {
+            if let payload = HardwareDetailPayload(snapshot: snapshot, kind: kind) {
+                detailCache[kind] = payload
+            }
+        }
+    }
+
+    /// Paints the retained payload for `kind` into both snapshots when it is
+    /// still within its cache lifetime. Returns whether anything was restored.
+    @discardableResult
+    func restoreDetailPayload(_ kind: HardwareDetailKind, at now: Date) -> Bool {
+        guard let payload = detailCache[kind] else { return false }
+        let age = now.timeIntervalSince(payload.sampledAt)
+        guard age >= -5, age <= HardwareDetailPayload.cacheLifetime else {
+            detailCache[kind] = nil
+            return false
+        }
+        applyDetailPayload(payload)
+        return true
+    }
+
+    /// Writes one payload straight into both copies, bypassing the panel's
+    /// per-group numeric cadence: its page is open and must not look empty.
+    func applyDetailPayload(_ payload: HardwareDetailPayload) {
+        payload.apply(to: &stored)
+        payload.apply(to: &panelStored)
+        objectWillChange.send()
+        snapshotSubject.send(stored)
+    }
 }
 
 /// One demand-driven schedule shared by all hardware consumers. Only `.panel`
@@ -428,9 +485,13 @@ final class HardwareMetricsService: ObservableObject {
     }
 
     /// Sets which detail payload the sampler should build. Clears the other
-    /// payloads immediately and stops the expensive per-page work it owned.
+    /// payloads immediately and stops the expensive per-page work it owned. A
+    /// page reopened after a switch paints its retained payload at once.
     func setDetailDemand(_ kind: HardwareDetailKind?) {
-        guard kind != detailKind else { return }
+        guard kind != detailKind else {
+            if let kind { restoreDetailIfMissing(kind) }
+            return
+        }
         let previous = detailKind
         detailKind = kind
         // A read already in flight captured the previous page. Invalidate its
@@ -439,8 +500,43 @@ final class HardwareMetricsService: ObservableObject {
         if previous == .cpu, kind != .cpu { sampler.releaseFrequencyReader() }
         if previous == .network, kind != .network { sampler.resetNetworkSession() }
         observable.clearDetailPayloads(except: kind)
+        if let kind {
+            restoreDetailIfMissing(kind)
+            prefetchCheapDetail(kind, at: now())
+        }
         if kind != nil, isRunning, !isAsleep {
             forcedIDs.formUnion(requestedIDs)
+        }
+    }
+
+    /// Re-paints the retained payload only when the open page has nothing to
+    /// show; a fresh payload is never replaced by the older cache.
+    private func restoreDetailIfMissing(_ kind: HardwareDetailKind) {
+        guard !observable.hasDetailPayload(kind) else { return }
+        observable.restoreDetailPayload(kind, at: now())
+    }
+
+    /// Fills a freshly opened page with data that costs one cheap read, so even
+    /// the first visit is not blank while the sampler builds the full payload.
+    /// Only memory and disk qualify; CPU/GPU/network need interval-based work.
+    private func prefetchCheapDetail(_ kind: HardwareDetailKind, at date: Date) {
+        guard !observable.hasDetailPayload(kind) else { return }
+        switch kind {
+        case .memory:
+            guard let detail = MemoryReader().readDetail(at: date) else { return }
+            observable.applyDetailPayload(.memory(detail))
+        case .disk:
+            guard let capacity = DiskCapacityReader.read(at: date) else { return }
+            let snapshot = observable.snapshot
+            observable.applyDetailPayload(.disk(DiskDetailReading(
+                capacity: capacity,
+                readBytesPerSecond: snapshot[.diskRead].value,
+                writeBytesPerSecond: snapshot[.diskWrite].value,
+                volumes: [],
+                volumeSpeeds: [:],
+                sampledAt: date)))
+        case .cpu, .gpu, .network, .fan:
+            break
         }
     }
 
@@ -522,6 +618,9 @@ final class HardwareMetricsService: ObservableObject {
         needReaderReset = true
         lastRead.removeAll()
         forcedIDs = requestedIDs
+        // Sleep cleared the visible payload; put the retained one back when the
+        // page is still open so it is not blank until the first read lands.
+        if let kind = detailKind { restoreDetailIfMissing(kind) }
         guard isRunning else { return }
         startLoopIfNeeded()
         refreshIfNeeded(forceFamilies: [])
@@ -680,6 +779,7 @@ final class HardwareMetricsService: ObservableObject {
             }
             if let detail = snapshot.networkDetail { merged.networkDetail = detail }
             if let detail = snapshot.diskDetail { merged.diskDetail = detail }
+            self.observable.rememberDetailPayloads(from: snapshot)
             self.observable.update(merged, now: self.now())
             self.refreshIfNeeded(forceFamilies: [])
             self.restartLoopAfterRead()

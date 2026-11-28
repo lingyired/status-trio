@@ -10,6 +10,24 @@ final class HardwareMetricsServiceTests: XCTestCase {
         func advance(_ interval: TimeInterval) { date = date.addingTimeInterval(interval) }
     }
 
+    /// Reader whose answer the test swaps between phases; the closure runs on the
+    /// sampler queue, so the value is lock-protected.
+    private final class SnapshotBox: @unchecked Sendable {
+        private let lock = NSLock()
+        private var stored: HardwareMetricsSnapshot
+
+        init(_ snapshot: HardwareMetricsSnapshot) { stored = snapshot }
+
+        var snapshot: HardwareMetricsSnapshot {
+            get { lock.lock(); defer { lock.unlock() }; return stored }
+            set { lock.lock(); stored = newValue; lock.unlock() }
+        }
+
+        func reader() -> HardwareMetricsService.Reader {
+            { _, _ in self.snapshot }
+        }
+    }
+
     /// Thread-safe recorder for reads and their continuations, so the @Sendable
     /// reader closure can hand control back to the test without capturing a
     /// mutable local.
@@ -93,6 +111,17 @@ final class HardwareMetricsServiceTests: XCTestCase {
 
     private func drain(_ count: Int = 40) async {
         for _ in 0..<count { await Task.yield() }
+    }
+
+    /// Lets the service's detached read task run until `condition` holds.
+    private func waitUntil(_ condition: @escaping () -> Bool,
+                           file: StaticString = #filePath,
+                           line: UInt = #line) async {
+        for _ in 0..<400 {
+            await Task.yield()
+            if condition() { return }
+        }
+        XCTFail("condition not met", file: file, line: line)
     }
 
     func testBackgroundSamplesPopulateHistoryAndSurvivePanelHandoff() async {
@@ -707,11 +736,13 @@ final class HardwareMetricsServiceTests: XCTestCase {
         let recorder = Recorder()
         let service = HardwareMetricsService(automaticScheduling: false, now: { clock.date },
                                              reader: recorder.waitingReader())
-        service.begin(.panel, metrics: [.gpuUsage, .memoryUsage])
+        service.begin(.panel, metrics: [.gpuUsage, .cpuUsage])
         await awaitReadingStarted(recorder)
 
+        // Switch to CPU: unlike memory it prefetches nothing, so the assertion
+        // isolates the late GPU payload.
         service.setDetailDemand(.gpu)
-        service.setDetailDemand(.memory)
+        service.setDetailDemand(.cpu)
         var late = HardwareMetricsSnapshot.empty
         late.gpuDetail = GPUDetailReading(deviceName: "Apple M3 Max", usage: 37,
                                           rendererUtilization: 42, tilerUtilization: 35,
@@ -721,7 +752,7 @@ final class HardwareMetricsServiceTests: XCTestCase {
 
         XCTAssertNil(service.observable.snapshot.gpuDetail,
                      "a read started for the previous detail must not restore its payload")
-        XCTAssertNil(service.observable.snapshot.memoryDetail)
+        XCTAssertNil(service.observable.snapshot.cpuDetail)
         if recorder.calls.count > 1, recorder.continuations.count > 1 {
             recorder.continuations[1].resume(returning: .empty)
             await drain()
@@ -771,5 +802,104 @@ final class HardwareMetricsServiceTests: XCTestCase {
         XCTAssertFalse(service.isRunning)
         XCTAssertTrue(service.demands.isEmpty)
         service.stopAll()
+    }
+
+    func testDetailPayloadCacheRestoresAcrossPageSwitches() async {
+        let clock = Clock()
+        let box = SnapshotBox(.empty)
+        let service = HardwareMetricsService(automaticScheduling: false,
+                                             now: { clock.date },
+                                             reader: box.reader())
+        service.begin(.panel, metrics: [.diskRead, .diskWrite, .memoryUsage])
+        await drain()
+
+        let disk = DiskDetailReading(capacity: nil,
+                                     readBytesPerSecond: 12,
+                                     writeBytesPerSecond: 34,
+                                     volumes: [],
+                                     volumeSpeeds: [:],
+                                     sampledAt: clock.date)
+        box.snapshot = HardwareMetricsSnapshot(diskDetail: disk)
+        service.setDetailDemand(.disk)
+        service.forceRefresh()
+        await waitUntil { service.observable.snapshot.diskDetail?.readBytesPerSecond == 12 }
+        XCTAssertEqual(service.observable.snapshot.diskDetail?.readBytesPerSecond, 12)
+
+        let memory = MemoryDetailReading(percent: 44.5,
+                                         usedBytes: 61,
+                                         totalBytes: 100,
+                                         appBytes: 31,
+                                         wiredBytes: 20,
+                                         compressedBytes: 10,
+                                         cachedBytes: 5,
+                                         swapUsedBytes: 1,
+                                         swapTotalBytes: 2,
+                                         pressure: .normal,
+                                         sampledAt: clock.date)
+        box.snapshot = HardwareMetricsSnapshot(memoryDetail: memory)
+        service.setDetailDemand(.memory)
+        XCTAssertNil(service.observable.snapshot.diskDetail,
+                     "switching pages must not leave the previous payload visible")
+        service.forceRefresh()
+        await waitUntil { service.observable.snapshot.memoryDetail?.percent == 44.5 }
+
+        service.setDetailDemand(.disk)
+        XCTAssertEqual(service.observable.snapshot.diskDetail?.readBytesPerSecond, 12,
+                       "switching back must paint the retained disk payload immediately")
+        XCTAssertEqual(service.observable.panelSnapshot.diskDetail?.readBytesPerSecond, 12,
+                       "the panel copy gets the same retained payload")
+    }
+
+    func testDetailCacheIsDroppedAfterItsLifetime() async {
+        let clock = Clock()
+        let box = SnapshotBox(.empty)
+        let service = HardwareMetricsService(automaticScheduling: false,
+                                             now: { clock.date },
+                                             reader: box.reader())
+        service.begin(.panel, metrics: [.diskRead, .diskWrite, .memoryUsage])
+        await drain()
+
+        box.snapshot = HardwareMetricsSnapshot(diskDetail: DiskDetailReading(
+            capacity: nil,
+            readBytesPerSecond: 12,
+            writeBytesPerSecond: 34,
+            volumes: [],
+            volumeSpeeds: [:],
+            sampledAt: clock.date))
+        service.setDetailDemand(.disk)
+        service.forceRefresh()
+        await waitUntil { service.observable.snapshot.diskDetail?.readBytesPerSecond == 12 }
+
+        service.setDetailDemand(.memory)
+        clock.advance(HardwareDetailPayload.cacheLifetime + 1)
+        service.setDetailDemand(.disk)
+        XCTAssertNotEqual(service.observable.snapshot.diskDetail?.readBytesPerSecond, 12,
+                          "a payload older than the cache lifetime must not be restored")
+    }
+
+    func testDetailPayloadAdoptsIntoPanelWithoutWaitingForCadence() async {
+        let clock = Clock()
+        let box = SnapshotBox(.empty)
+        let service = HardwareMetricsService(automaticScheduling: false,
+                                             now: { clock.date },
+                                             reader: box.reader())
+        // A long display cadence would otherwise delay the first payload by up
+        // to a minute, which is the blank page the cache work is fixing.
+        service.panelCadenceProvider = { _ in 60 }
+        service.begin(.panel, metrics: [.gpuUsage])
+        await drain()
+
+        let gpu = GPUDetailReading(deviceName: "Apple M3",
+                                   usage: 37,
+                                   rendererUtilization: nil,
+                                   tilerUtilization: nil,
+                                   inUseSystemMemoryBytes: nil,
+                                   sampledAt: clock.date)
+        box.snapshot = HardwareMetricsSnapshot(gpuDetail: gpu)
+        service.setDetailDemand(.gpu)
+        service.forceRefresh()
+        await waitUntil { service.observable.panelSnapshot.gpuDetail != nil }
+        XCTAssertEqual(service.observable.panelSnapshot.gpuDetail?.usage, 37,
+                       "a fresh detail payload must reach the panel immediately")
     }
 }
