@@ -80,7 +80,7 @@ struct HighEnergyAppsView: View {
                         Text(localization.string(showsAllRows ? .commonCollapse : .commonExpand))
                             .font(.caption2)
                             .foregroundStyle(.secondary)
-                            .frame(maxWidth: .infinity, alignment: .trailing)
+                            .frame(maxWidth: .infinity, alignment: .center)
                             .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
