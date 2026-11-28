@@ -139,7 +139,7 @@ struct HardwareMetricTilePresentation: Equatable {
             case .uploadSpeed:
                 return make(metric: .upload, sample: snapshot.networkUpload, localization: localization,
                             tint: tint, capMbps: speedCapsMbps[.uploadSpeed])
-            case .volume, .wifiSignal, .batteryLevel:
+            case .volume, .wifiSignal, .batteryLevel, .memoryPressure:
                 // Status-snapshot readings are never card tiles.
                 return nil
             }

@@ -82,6 +82,7 @@ struct MenuBarPreviewBar<TrailingAccessory: View>: View {
     var bottomIndicatorSource: BottomIndicatorSource = .volume
     var bottomIndicatorMetric: BottomIndicatorMetric = .cpuUsage
     var bottomIndicatorMetricColor: IconRGBA? = nil
+    var bottomIndicatorPressureColors = HardwareRingColorConfiguration()
     var bottomIndicatorStyle: VolumeDisplayStyle? = nil
     /// Optional content placed immediately before the live status icon, e.g. a
     /// custom menu-bar instance preview.
@@ -118,7 +119,8 @@ struct MenuBarPreviewBar<TrailingAccessory: View>: View {
                     metric: bottomIndicatorMetric,
                     style: style,
                     strokeScale: volumeOptions.ringStrokeScale,
-                    baseColor: bottomIndicatorMetricColor),
+                    baseColor: bottomIndicatorMetricColor,
+                    pressureColors: bottomIndicatorPressureColors),
                 statusColors: base.statusColors,
                 bluetoothIconColor: base.bluetoothIconColor,
                 bottomIndicatorSource: .metric
@@ -146,6 +148,7 @@ struct MenuBarPreviewBar<TrailingAccessory: View>: View {
         bottomIndicatorSource: BottomIndicatorSource = .volume,
         bottomIndicatorMetric: BottomIndicatorMetric = .cpuUsage,
         bottomIndicatorMetricColor: IconRGBA? = nil,
+        bottomIndicatorPressureColors: HardwareRingColorConfiguration = HardwareRingColorConfiguration(),
         bottomIndicatorStyle: VolumeDisplayStyle? = nil,
         leadingAccessory: (() -> AnyView)? = nil,
         @ViewBuilder trailingAccessory: @escaping () -> TrailingAccessory
@@ -166,6 +169,7 @@ struct MenuBarPreviewBar<TrailingAccessory: View>: View {
         self.bottomIndicatorSource = bottomIndicatorSource
         self.bottomIndicatorMetric = bottomIndicatorMetric
         self.bottomIndicatorMetricColor = bottomIndicatorMetricColor
+        self.bottomIndicatorPressureColors = bottomIndicatorPressureColors
         self.bottomIndicatorStyle = bottomIndicatorStyle
         self.leadingAccessory = leadingAccessory
         self.trailingAccessory = trailingAccessory

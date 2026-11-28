@@ -26,6 +26,14 @@ enum HardwareRingMapper {
     }
     /// Top glyph scale for a dual ring (drawn by the compact top-marker path).
     static let topSymbolScale: Double = 2.0
+    /// The memory-pressure dot is a compact status marker, not a full-size top
+    /// glyph: at the usual top-symbol scale it overflows the ring gap and clips
+    /// against the menu-bar edge, so it uses its own smaller base (#398).
+    static let memoryPressureDotScale: Double = 0.75
+    /// The dual (left/right) ring sizes its top marker through the battery
+    /// indicator's text scale, which is much smaller per unit; this base keeps
+    /// the pressure dot visually matched to the single-ring dot.
+    static let memoryPressureDualDotScale: Double = 1.5
     /// Top glyph scale for a single ring. The standard-ring accessory path sizes
     /// symbols from the centre-symbol base point size, so it needs a smaller
     /// multiplier than the dual path to match the percentage numerals' height.
@@ -106,6 +114,31 @@ enum HardwareRingMapper {
         batteryArcColor: IconColorRole,
         now: Date
     ) -> RingSegmentState {
+        // Memory pressure is a status, not a percentage sample: map the level to
+        // a fixed arc fraction and use the shared pressure colours (#398).
+        if metric == .memoryPressure {
+            let level = snapshot.memoryPressure.flatMap { $0.isFresh(at: now) ? $0.level : nil } ?? .unknown
+            let progress: Double
+            let color: IconColorRole
+            switch level {
+            case .normal:
+                progress = 0.5
+                color = .custom(configuration.color.memoryPressureNormalColor)
+            case .warning:
+                progress = 0.75
+                color = .custom(configuration.color.memoryPressureWarningColor)
+            case .critical:
+                progress = 1.0
+                color = .custom(configuration.color.memoryPressureCriticalColor)
+            case .unknown:
+                return RingSegmentState(progress: 0, color: .inactive, position: position)
+            }
+            return RingSegmentState(
+                progress: progress,
+                color: configuration.color.monochrome ? .primary : color,
+                position: position
+            )
+        }
         let options = configuration.options(for: metric)
         let sample = sample(for: metric, in: snapshot, auxiliary: auxiliarySamples)
         let capMbps = speedCapsMbps[metric]
@@ -155,7 +188,8 @@ enum HardwareRingMapper {
     ) -> FooterState? {
         guard let metric = selection.hardwareMetric else {
             return MemoryPressureFooterMapper.state(reading: snapshot.memoryPressure, now: now,
-                                                    style: style, strokeScale: strokeScale)
+                                                    style: style, strokeScale: strokeScale,
+                                                    colors: configuration.color)
         }
         let options = configuration.options(for: metric)
         let sample = sample(for: metric, in: snapshot, auxiliary: [:])
@@ -263,6 +297,9 @@ enum HardwareRingMapper {
         case .hidden:
             return nil
         case .automatic:
+            if configuration.layout == .single, configuration.primaryMetric == .memoryPressure {
+                return memoryPressureAccessory(configuration: configuration, snapshot: snapshot, now: now)
+            }
             switch configuration.layout {
             case .single:
                 return .symbol(symbolState(name: topMarkerSymbol(for: configuration.primaryMetric),
@@ -272,12 +309,18 @@ enum HardwareRingMapper {
                                            scale: Self.topSymbolScale * configuration.topMarkerScale))
             }
         case let .symbol(metric):
+            if metric == .memoryPressure {
+                return memoryPressureAccessory(configuration: configuration, snapshot: snapshot, now: now)
+            }
             let base = configuration.layout == .single ? Self.singleTopSymbolScale : Self.topSymbolScale
             return .symbol(symbolState(name: topMarkerSymbol(for: metric),
                                        color: topMarkerColor(for: metric, configuration: configuration,
                                                              metricColors: metricColors),
                                        scale: base * configuration.topMarkerScale))
         case let .value(metric):
+            if metric == .memoryPressure {
+                return memoryPressureAccessory(configuration: configuration, snapshot: snapshot, now: now)
+            }
             // Geometry is decided by the configuration, not by data availability:
             // a temporarily missing value must keep the top gap (and thus the ring
             // shape) stable and show a placeholder instead of collapsing the gap.
@@ -303,6 +346,10 @@ enum HardwareRingMapper {
                 configuration: configuration,
                 batteryOptions: batteryOptions
             )
+        case .memoryPressure:
+            return memoryPressureAccessory(configuration: configuration,
+                                           snapshot: snapshot,
+                                           now: now)
         }
     }
 
@@ -338,6 +385,46 @@ enum HardwareRingMapper {
         return .custom(base)
     }
 
+    /// Memory pressure is a status, not a number (#398). The top gap therefore
+    /// shows a level-coloured dot instead of text: it keeps the ring's gap
+    /// geometry stable, works in every language, and stays legible at menu-bar
+    /// size. `unknown`/stale uses an inactive dash so the slot never collapses.
+    private static func memoryPressureAccessory(
+        configuration: HardwareRingConfiguration,
+        snapshot: HardwareMetricsSnapshot,
+        now: Date
+    ) -> RingAccessoryState {
+        let level = snapshot.memoryPressure.flatMap { $0.isFresh(at: now) ? $0.level : nil } ?? .unknown
+        let base = configuration.layout == .single
+            ? Self.memoryPressureDotScale : Self.memoryPressureDualDotScale
+        let scale = base * configuration.topMarkerScale
+        let color: IconColorRole
+        switch level {
+        case .normal:
+            color = topPressureColor(configuration.color.memoryPressureNormalColor,
+                                     configuration: configuration)
+        case .warning:
+            color = topPressureColor(configuration.color.memoryPressureWarningColor,
+                                     configuration: configuration)
+        case .critical:
+            color = topPressureColor(configuration.color.memoryPressureCriticalColor,
+                                     configuration: configuration)
+        case .unknown:
+            return .symbol(symbolState(name: "minus", color: .inactive, scale: scale))
+        }
+        return .symbol(symbolState(
+            name: SymbolFallback.name("circle.fill", "circle"),
+            color: color,
+            scale: scale))
+    }
+
+    private static func topPressureColor(
+        _ rgba: IconRGBA,
+        configuration: HardwareRingConfiguration
+    ) -> IconColorRole {
+        configuration.color.monochrome ? .primary : .custom(rgba)
+    }
+
     /// Simpler, higher-contrast glyphs for the tiny ring top marker. The list and
     /// card keep the richer `metric.systemImage`; at menu-bar size the detailed
     /// chip/memory outlines turn to mud, so the top gap uses filled variants.
@@ -346,6 +433,7 @@ enum HardwareRingMapper {
         case .cpuUsage: SymbolFallback.name("cpu.fill", "cpu")
         case .gpuUsage: "display"
         case .memoryUsage: SymbolFallback.name("memorychip.fill", "memorychip")
+        case .memoryPressure: SymbolFallback.name("circle.fill", "circle")
         case .cpuTemperature: "thermometer.medium"
         case .gpuTemperature: "thermometer.medium"
         case .batteryTemperature: SymbolFallback.name("battery.100percent", "battery.100")

@@ -24,7 +24,7 @@ final class HardwareRingConfigurationTests: XCTestCase {
     func testTopContentTaggedCoding() throws {
         let cases: [HardwareRingTopContent] = [
             .automatic, .hidden, .symbol(.gpuUsage), .value(.fan),
-            .batteryPercentage, .chargingIndicator
+            .batteryPercentage, .chargingIndicator, .memoryPressure
         ]
         for content in cases {
             let data = try JSONEncoder().encode(content)
@@ -39,6 +39,8 @@ final class HardwareRingConfigurationTests: XCTestCase {
         XCTAssertTrue(HardwareRingTopContent.batteryPercentage.usesBatteryStatus)
         XCTAssertTrue(HardwareRingTopContent.chargingIndicator.usesBatteryStatus)
         XCTAssertFalse(HardwareRingTopContent.value(.cpuUsage).usesBatteryStatus)
+        XCTAssertNil(HardwareRingTopContent.memoryPressure.referencedMetric)
+        XCTAssertFalse(HardwareRingTopContent.memoryPressure.usesBatteryStatus)
     }
 
     func testMissingFieldsDecodeToDefaults() throws {
@@ -50,6 +52,28 @@ final class HardwareRingConfigurationTests: XCTestCase {
         XCTAssertFalse(decoded.color.monochrome)
         XCTAssertFalse(decoded.color.thresholdColors)
         XCTAssertTrue(decoded.overrides.isEmpty)
+    }
+
+    func testMissingPressureColorsDecodeToHistoricalDefaults() throws {
+        let json = Data(#"{"monochrome":false,"thresholdColors":true}"#.utf8)
+        let decoded = try JSONDecoder().decode(HardwareRingColorConfiguration.self, from: json)
+        XCTAssertEqual(decoded.memoryPressureNormalColor,
+                       IconRGBA(red: 52.0 / 255, green: 199.0 / 255, blue: 89.0 / 255, alpha: 1))
+        XCTAssertEqual(decoded.memoryPressureWarningColor, HardwareRingColorConfiguration.warningColor)
+        XCTAssertEqual(decoded.memoryPressureCriticalColor, HardwareRingColorConfiguration.criticalColor)
+    }
+
+    func testPressureColorsRoundTrip() throws {
+        let configuration = HardwareRingColorConfiguration(
+            monochrome: false,
+            thresholdColors: true,
+            memoryPressureNormalColor: .init(red: 0.1, green: 0.2, blue: 0.3, alpha: 1),
+            memoryPressureWarningColor: .init(red: 0.4, green: 0.5, blue: 0.6, alpha: 1),
+            memoryPressureCriticalColor: .init(red: 0.7, green: 0.8, blue: 0.9, alpha: 1)
+        )
+        let data = try JSONEncoder().encode(configuration)
+        let decoded = try JSONDecoder().decode(HardwareRingColorConfiguration.self, from: data)
+        XCTAssertEqual(decoded, configuration)
     }
 
     func testLegacyColorModeMigratesToTwoToggles() throws {

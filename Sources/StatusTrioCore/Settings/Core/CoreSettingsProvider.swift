@@ -108,6 +108,7 @@ final class CoreSettingsProvider: SettingsStateProvider {
         "icon.outerRing.hardware.primaryMetric",
         "icon.outerRing.hardware.ringSlots",
         "icon.outerRing.hardware.secondaryMetric",
+        "icon.outerRing.hardware.topContent",
         "icon.outerRing.hardware.splitGapProgress",
         "icon.outerRing.source",
         "icon.ring.monochromeCharging",
@@ -166,6 +167,8 @@ final class CoreSettingsProvider: SettingsStateProvider {
             return .string(store.hardwareRingConfiguration.primaryMetric.rawValue)
         case "icon.outerRing.hardware.secondaryMetric":
             return store.hardwareRingConfiguration.secondaryMetric.map { .string($0.rawValue) }
+        case "icon.outerRing.hardware.topContent":
+            return .string(Self.topContentTag(store.hardwareRingConfiguration.topContent))
         case "icon.outerRing.hardware.ringSlots":
             let values = store.enabledHardwareRingSlots.map(\.rawValue).sorted().map { SettingsTransferValue.string($0) }
             return .array(values)
@@ -419,6 +422,12 @@ final class CoreSettingsProvider: SettingsStateProvider {
                 if parsed == .single { configuration.secondaryMetric = nil }
                 store.hardwareRingConfiguration = configuration
             }
+        case "icon.outerRing.hardware.topContent":
+            if case .string(let raw) = value, let parsed = Self.topContent(from: raw) {
+                var configuration = store.hardwareRingConfiguration
+                configuration.topContent = parsed
+                store.hardwareRingConfiguration = configuration
+            }
         case "icon.outerRing.hardware.primaryMetric":
             if case .string(let raw) = value, let parsed = HardwareMonitorMetric(rawValue: raw) {
                 var configuration = store.hardwareRingConfiguration
@@ -663,6 +672,40 @@ final class CoreSettingsProvider: SettingsStateProvider {
     func isFeatureEnabled(_ id: String) -> Bool { false }
 
     // MARK: - Value helpers
+
+    /// Stable string tag for `HardwareRingTopContent` so a development profile can
+    /// put the top marker into a specific state (e.g. `memoryPressure`).
+    private static func topContentTag(_ content: HardwareRingTopContent) -> String {
+        switch content {
+        case .automatic: return "automatic"
+        case .hidden: return "hidden"
+        case .batteryPercentage: return "batteryPercentage"
+        case .chargingIndicator: return "chargingIndicator"
+        case .memoryPressure: return "memoryPressure"
+        case let .symbol(metric): return "symbol:\(metric.rawValue)"
+        case let .value(metric): return "value:\(metric.rawValue)"
+        }
+    }
+
+    private static func topContent(from raw: String) -> HardwareRingTopContent? {
+        switch raw {
+        case "automatic": return .automatic
+        case "hidden": return .hidden
+        case "batteryPercentage": return .batteryPercentage
+        case "chargingIndicator": return .chargingIndicator
+        case "memoryPressure": return .memoryPressure
+        default:
+            if raw.hasPrefix("value:"),
+               let metric = HardwareMonitorMetric(rawValue: String(raw.dropFirst("value:".count))) {
+                return .value(metric)
+            }
+            if raw.hasPrefix("symbol:"),
+               let metric = HardwareMonitorMetric(rawValue: String(raw.dropFirst("symbol:".count))) {
+                return .symbol(metric)
+            }
+            return nil
+        }
+    }
 
     private static func number(_ value: SettingsTransferValue) -> Double? {
         if case .number(let number) = value { return number }

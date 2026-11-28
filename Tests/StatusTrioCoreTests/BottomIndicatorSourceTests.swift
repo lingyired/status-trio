@@ -505,6 +505,29 @@ final class BottomIndicatorSourceTests: XCTestCase {
         }
     }
 
+    func testPressureFooterUsesConfiguredLevelColors() {
+        let now = Date(timeIntervalSince1970: 1_000)
+        let custom = IconRGBA(red: 0.12, green: 0.34, blue: 0.56, alpha: 1)
+        var configuration = IconConfigurationV1.classic
+        configuration.behaviors.hardwareRing.color.memoryPressureWarningColor = custom
+        let bindings = IconSlotBindingsV1.migrated(from: configuration, bottomIndicatorSource: .metric)
+        var sources = IconSourceSnapshot.empty
+        sources.hardwareMetrics.memoryPressure = MemoryPressureReading(level: .warning, sampledAt: now)
+        let inputs = IconPresentationInputs(snapshot: snapshot(), audioIcon: nil,
+                                            sources: sources, bottomIndicatorSource: .metric,
+                                            bottomIndicatorMetric: .memoryPressure,
+                                            bottomIndicatorStyle: .arc)
+        let resolution = IconCompositionResolver.resolve(
+            inputs: .init(system: inputs, sources: sources), configuration: configuration,
+            now: now, bindings: bindings)
+        guard case let .arc(arc)? = resolution.scene.footer else {
+            return XCTFail("expected pressure arc")
+        }
+        XCTAssertEqual(arc.color, .custom(custom))
+        XCTAssertEqual(MemoryPressureFooterMapper.color(
+            for: .warning, colors: configuration.behaviors.hardwareRing.color), custom)
+    }
+
     func testStalePressureShowsTheEmptyTrackWhileTopRingUsesMemoryUsage() {
         let now = Date(timeIntervalSince1970: 1_000)
         var configuration = IconConfigurationV1.classic
@@ -552,6 +575,24 @@ final class BottomIndicatorSourceTests: XCTestCase {
         let dependencies = registry.dependencies(for: binding, context: context)
         XCTAssertTrue(dependencies.requiresHardwareMonitor)
         XCTAssertEqual(dependencies.hardwareMetricIDs, [HardwareMetricID.gpuUsage])
+    }
+
+    func testMemoryPressureTopMarkerDemandsPressureSample() {
+        var configuration = IconConfigurationV1.classic
+        configuration.composition.outerRing = SlotSelection(primary: .hardwareMonitor)
+        configuration.behaviors.hardwareRing = HardwareRingConfiguration(
+            layout: .single, primaryMetric: .cpuUsage, topContent: .memoryPressure)
+        let registry = BuiltinIconPlugins.makeRegistry()
+        let binding = IconContentBinding(pluginID: "builtin.hardware-monitor",
+                                         presentationID: "ring")
+        let context = IconContentDependencyContext(
+            configuration: configuration,
+            targetIsAudio: false,
+            bottomIndicatorMetric: .cpuUsage)
+        let dependencies = registry.dependencies(for: binding, context: context)
+        XCTAssertTrue(dependencies.requiresHardwareMonitor)
+        XCTAssertTrue(dependencies.hardwareMetricIDs.contains(.memoryPressure))
+        XCTAssertTrue(dependencies.hardwareMetricIDs.contains(.cpuUsage))
     }
 
     func testCompositionResolvesMetricFooterAndDemandsIt() {

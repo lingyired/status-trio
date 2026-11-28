@@ -524,7 +524,7 @@
 "settings.popup.panelScroll" = "Scroll Panel to Adjust Volume";
 "settings.popup.panelScroll.description" = "Scroll over empty areas of the summary page to change the output volume. Sliders always adjust by scrolling.";
 "settings.popup.volumeScroll.natural" = "Natural Scrolling";
-"settings.popup.volumeScroll.natural.description" = "Scroll up to raise the value under the pointer; off follows the system direction. If it still moves the wrong way after turning this on, add Status Trio to the exception/ignore list of MOS, Scroll Reverser, or LinearMouse.";
+"settings.popup.volumeScroll.natural.description" = "Scroll up to raise the value under the pointer; off follows the system direction. Applies to vertical scrolling only: horizontal scrolling always matches the slider, right raises and left lowers. If it still moves the wrong way after turning this on, add Status Trio to the exception/ignore list of MOS, Scroll Reverser, or LinearMouse.";
 "settings.audio.volumeFeedbackTitle" = "Volume feedback";
 "settings.audio.volumeFeedback" = "Play a sound when scrolling to change the volume";
 "settings.audio.volumeFeedbackDescription" = "Plays the tick when you change the volume by scrolling. By default it follows the macOS “Play feedback when volume is changed” setting; toggling this here overrides it for Status Trio only.";

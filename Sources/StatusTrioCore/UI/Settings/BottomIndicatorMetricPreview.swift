@@ -35,10 +35,13 @@ enum BottomIndicatorMetricPreview {
         metric: BottomIndicatorMetric,
         style: VolumeDisplayStyle,
         strokeScale: Double,
-        baseColor: IconRGBA? = nil
+        baseColor: IconRGBA? = nil,
+        pressureColors: HardwareRingColorConfiguration = HardwareRingColorConfiguration()
     ) -> FooterState {
         guard let hardwareMetric = metric.hardwareMetric else {
-            return MemoryPressureFooterMapper.state(level: .normal, style: style, strokeScale: strokeScale)
+            return MemoryPressureFooterMapper.state(
+                level: .normal, style: style, strokeScale: strokeScale,
+                colors: pressureColors)
         }
         let color = IconColorRole.custom(
             baseColor ?? HardwareRingColorConfiguration.recommendedBaseColor(for: hardwareMetric))

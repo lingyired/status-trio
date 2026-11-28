@@ -175,6 +175,7 @@ struct StatusIconPreviewCard: View {
             bottomIndicatorSource: store.bottomIndicatorSource,
             bottomIndicatorMetric: store.bottomIndicatorMetric,
             bottomIndicatorMetricColor: store.bottomIndicatorMetric.hardwareMetric.map { store.hardwareColor(for: $0) },
+            bottomIndicatorPressureColors: store.hardwareRingConfiguration.color,
             bottomIndicatorStyle: store.effectiveBottomIndicatorStyle
         ) {
             PreviewAppearanceToggle(

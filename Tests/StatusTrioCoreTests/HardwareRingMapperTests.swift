@@ -570,5 +570,153 @@ final class HardwareRingMapperTests: XCTestCase {
         }
         XCTAssertEqual(symbol.source, .primitive(.bolt))
     }
-}
 
+    // MARK: - Memory pressure top marker (#398)
+
+    private func pressureSnapshot(_ level: MemoryPressureLevel?) -> HardwareMetricsSnapshot {
+        var snapshot = HardwareMetricsSnapshot()
+        if let level {
+            snapshot.memoryPressure = MemoryPressureReading(level: level, sampledAt: now)
+        }
+        return snapshot
+    }
+
+    private func pressureConfig(
+        monochrome: Bool = false,
+        normal: IconRGBA = HardwareRingColorConfiguration.defaultMemoryPressureNormalColor,
+        warning: IconRGBA = HardwareRingColorConfiguration.warningColor,
+        critical: IconRGBA = HardwareRingColorConfiguration.criticalColor
+    ) -> HardwareRingConfiguration {
+        HardwareRingConfiguration(
+            layout: .single,
+            primaryMetric: .memoryUsage,
+            topContent: .memoryPressure,
+            color: HardwareRingColorConfiguration(
+                monochrome: monochrome,
+                thresholdColors: true,
+                memoryPressureNormalColor: normal,
+                memoryPressureWarningColor: warning,
+                memoryPressureCriticalColor: critical
+            )
+        )
+    }
+
+    func testMemoryPressureTopMarkerUsesLevelGlyphAndConfiguredColor() {
+        let normal = IconRGBA(red: 0.11, green: 0.22, blue: 0.33, alpha: 1)
+        let warning = IconRGBA(red: 0.44, green: 0.55, blue: 0.66, alpha: 1)
+        let critical = IconRGBA(red: 0.77, green: 0.88, blue: 0.99, alpha: 1)
+        let cases: [(MemoryPressureLevel, IconRGBA)] = [
+            (.normal, normal),
+            (.warning, warning),
+            (.critical, critical),
+        ]
+        for (level, color) in cases {
+            let state = HardwareRingMapper.resolve(
+                snapshot: pressureSnapshot(level),
+                configuration: pressureConfig(normal: normal, warning: warning, critical: critical),
+                now: now
+            )
+            guard case let .symbol(symbol)? = state.accessory,
+                  case let .symbol(name, _, _) = symbol.source else {
+                return XCTFail("expected symbol accessory for \(level)")
+            }
+            XCTAssertEqual(name, "circle.fill")
+            XCTAssertEqual(symbol.color, .custom(color))
+        }
+    }
+
+    func testMemoryPressureTopMarkerUnknownAndStaleUseInactiveDash() {
+        var stale = HardwareMetricsSnapshot()
+        stale.memoryPressure = MemoryPressureReading(level: .critical,
+                                                     sampledAt: now.addingTimeInterval(-60))
+        for snapshot in [pressureSnapshot(nil), stale] {
+            let state = HardwareRingMapper.resolve(
+                snapshot: snapshot, configuration: pressureConfig(), now: now)
+            guard case let .symbol(symbol)? = state.accessory,
+                  case let .symbol(name, _, _) = symbol.source else {
+                return XCTFail("expected symbol accessory")
+            }
+            XCTAssertEqual(name, "minus")
+            XCTAssertEqual(symbol.color, .inactive)
+        }
+    }
+
+    func testMemoryPressureTopMarkerHonoursMonochrome() {
+        let state = HardwareRingMapper.resolve(
+            snapshot: pressureSnapshot(.critical),
+            configuration: pressureConfig(monochrome: true),
+            now: now
+        )
+        guard case let .symbol(symbol)? = state.accessory else {
+            return XCTFail("expected symbol accessory")
+        }
+        XCTAssertEqual(symbol.color, .primary)
+    }
+
+    func testMemoryPressureArcMapsLevelsToFixedProgressAndColor() {
+        let cases: [(MemoryPressureLevel, Double, IconRGBA)] = [
+            (.normal, 0.5, HardwareRingColorConfiguration.defaultMemoryPressureNormalColor),
+            (.warning, 0.75, HardwareRingColorConfiguration.warningColor),
+            (.critical, 1.0, HardwareRingColorConfiguration.criticalColor),
+        ]
+        for (level, progress, color) in cases {
+            let state = HardwareRingMapper.resolve(
+                snapshot: pressureSnapshot(level),
+                configuration: HardwareRingConfiguration(layout: .single, primaryMetric: .memoryPressure),
+                now: now
+            )
+            XCTAssertEqual(state.segments.count, 1)
+            XCTAssertEqual(state.segments[0].progress, progress, accuracy: 0.0001)
+            XCTAssertEqual(state.segments[0].color, .custom(color))
+        }
+        let unknown = HardwareRingMapper.resolve(
+            snapshot: pressureSnapshot(nil),
+            configuration: HardwareRingConfiguration(layout: .single, primaryMetric: .memoryPressure),
+            now: now
+        )
+        XCTAssertEqual(unknown.segments[0].progress, 0)
+        XCTAssertEqual(unknown.segments[0].color, .inactive)
+    }
+
+    func testMemoryPressureArcHonoursMonochromeAndCustomColour() {
+        var colors = HardwareRingColorConfiguration(monochrome: true)
+        colors.memoryPressureWarningColor = IconRGBA(red: 0.1, green: 0.2, blue: 0.3, alpha: 1)
+        let mono = HardwareRingMapper.resolve(
+            snapshot: pressureSnapshot(.warning),
+            configuration: HardwareRingConfiguration(layout: .single, primaryMetric: .memoryPressure,
+                                                     color: colors),
+            now: now
+        )
+        XCTAssertEqual(mono.segments[0].color, .primary)
+
+        colors.monochrome = false
+        let custom = HardwareRingMapper.resolve(
+            snapshot: pressureSnapshot(.warning),
+            configuration: HardwareRingConfiguration(layout: .single, primaryMetric: .memoryPressure,
+                                                     color: colors),
+            now: now
+        )
+        XCTAssertEqual(custom.segments[0].color,
+                       .custom(IconRGBA(red: 0.1, green: 0.2, blue: 0.3, alpha: 1)))
+    }
+
+    func testMemoryPressureTopDotUsesCompactScale() {
+        let single = HardwareRingMapper.resolve(
+            snapshot: pressureSnapshot(.normal),
+            configuration: pressureConfig(), now: now)
+        guard case let .symbol(singleSymbol)? = single.accessory else {
+            return XCTFail("expected symbol accessory")
+        }
+        XCTAssertEqual(singleSymbol.scale, HardwareRingMapper.memoryPressureDotScale, accuracy: 0.0001)
+
+        let dual = HardwareRingMapper.resolve(
+            snapshot: pressureSnapshot(.normal),
+            configuration: HardwareRingConfiguration(
+                layout: .dual, primaryMetric: .memoryUsage, secondaryMetric: .memoryPressure,
+                topContent: .memoryPressure), now: now)
+        guard case let .symbol(dualSymbol)? = dual.accessory else {
+            return XCTFail("expected symbol accessory")
+        }
+        XCTAssertEqual(dualSymbol.scale, HardwareRingMapper.memoryPressureDualDotScale, accuracy: 0.0001)
+    }
+}

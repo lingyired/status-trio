@@ -56,7 +56,7 @@ struct HardwareMetricAdvancedRow: View {
         case .batteryTemperature: return 20...80
         case .fan: return 0...10_000
         case .downloadSpeed, .uploadSpeed: return SettingsStore.hardwareSpeedCapRange
-        case .volume, .wifiSignal, .batteryLevel: return 0...100
+        case .volume, .wifiSignal, .batteryLevel, .memoryPressure: return 0...100
         }
     }
 

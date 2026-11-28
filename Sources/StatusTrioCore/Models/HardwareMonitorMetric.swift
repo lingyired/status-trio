@@ -9,6 +9,9 @@ enum HardwareMonitorMetric: String, Codable, CaseIterable, Identifiable, Sendabl
     case cpuUsage
     case gpuUsage
     case memoryUsage
+    /// System memory-pressure level. Non-numeric: an arc maps normal/warning/
+    /// critical to 50/75/100% and uses the shared pressure colours (#398).
+    case memoryPressure
     case cpuTemperature
     case gpuTemperature
     case batteryTemperature
@@ -38,14 +41,16 @@ enum HardwareMonitorMetric: String, Codable, CaseIterable, Identifiable, Sendabl
     /// Metrics offered in the ring's shared "Other" arc group. CPU and GPU are
     /// listed separately by the settings view.
     static let otherArcMetrics: [HardwareMonitorMetric] = [
-        .memoryUsage, .batteryTemperature, .batteryLevel, .fan,
+        .memoryUsage, .memoryPressure, .batteryTemperature, .batteryLevel, .fan,
         .downloadSpeed, .uploadSpeed, .volume, .wifiSignal,
     ]
 
     /// Arc metrics whose colour is user-editable. Battery follows the
     /// system-battery ring's status colour, so it is edited there, not here.
     static var colorEditableArcMetrics: [HardwareMonitorMetric] {
-        otherArcMetrics.filter { $0 != .batteryLevel }
+        // Battery and memory pressure follow their own status colours, edited in
+        // their dedicated colour rows rather than a per-metric colour well.
+        otherArcMetrics.filter { $0 != .batteryLevel && $0 != .memoryPressure }
     }
 
     /// Metrics shown by default on the card / enabled in the 监控 tab. Network
@@ -54,7 +59,10 @@ enum HardwareMonitorMetric: String, Codable, CaseIterable, Identifiable, Sendabl
     static var defaultCardMetrics: [HardwareMonitorMetric] {
         // GPU temperature is offered for the outer ring and colours, but the
         // legacy card keeps its original tile set.
-        allCases.filter { !$0.isSpeedMetric && $0 != .gpuTemperature && !$0.usesStatusSnapshot }
+        allCases.filter {
+            !$0.isSpeedMetric && $0 != .gpuTemperature
+                && $0 != .memoryPressure && !$0.usesStatusSnapshot
+        }
     }
 
     static var defaultEnabledMetrics: Set<HardwareMonitorMetric> {
@@ -74,6 +82,7 @@ enum HardwareMonitorMetric: String, Codable, CaseIterable, Identifiable, Sendabl
         case .cpuUsage: .cpuUsage
         case .gpuUsage: .gpuUsage
         case .memoryUsage: .memoryUsage
+        case .memoryPressure: .memoryPressure
         case .cpuTemperature: .cpuTemperature
         case .gpuTemperature: .gpuTemperature
         case .batteryTemperature: .batteryTemperature
@@ -91,6 +100,7 @@ enum HardwareMonitorMetric: String, Codable, CaseIterable, Identifiable, Sendabl
         case .cpuUsage: .hardwareMonitorCPU
         case .gpuUsage: .hardwareMonitorGPU
         case .memoryUsage: .hardwareMonitorMemory
+        case .memoryPressure: .hardwareDetailPressure
         case .cpuTemperature: .hardwareMonitorTemperature
         case .gpuTemperature: .hardwareMonitorGPUTemperature
         case .batteryTemperature: .hardwareMonitorBatteryTemperature
@@ -108,6 +118,7 @@ enum HardwareMonitorMetric: String, Codable, CaseIterable, Identifiable, Sendabl
         case .cpuUsage: "cpu"
         case .gpuUsage: "display"
         case .memoryUsage: "memorychip"
+        case .memoryPressure: "memorychip"
         case .cpuTemperature: "thermometer.medium"
         case .gpuTemperature: "thermometer.medium"
         case .batteryTemperature: SymbolFallback.name("battery.100percent", "battery.100")

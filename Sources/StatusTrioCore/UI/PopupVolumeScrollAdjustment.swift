@@ -54,11 +54,21 @@ struct PopupVolumeScrollAdjustment {
         guard deltaX.isFinite,
               let (delta, axis) = Self.dominantDelta(deltaX: deltaX, deltaY: deltaY)
         else { return nil }
-        // Both axes share one convention: positive is "right"/"up" and raises
-        // the level, so the same natural-scrolling handling applies to each.
-        let scrollUpDelta = usesNaturalScrolling
-            ? (isDirectionInverted ? -delta : delta)
-            : delta
+        // Horizontal scrolling is tied to the physical direction only: moving
+        // right always raises the level, independent of the system and app
+        // natural-scrolling preferences. AppKit's horizontal delta uses the
+        // opposite sign from the vertical axis, so the inversion is mirrored.
+        // Vertical keeps the existing handling, where the app preference
+        // decides which physical direction raises.
+        let scrollUpDelta: Double
+        switch axis {
+        case .horizontal:
+            scrollUpDelta = isDirectionInverted ? delta : -delta
+        case .vertical:
+            scrollUpDelta = usesNaturalScrolling
+                ? (isDirectionInverted ? -delta : delta)
+                : delta
+        }
         if isPrecise {
             pendingLines = 0
             lastTimestamp = nil

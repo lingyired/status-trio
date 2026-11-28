@@ -525,7 +525,7 @@
 "settings.popup.panelScroll" = "Durch Scrollen im Panel die Lautstärke ändern";
 "settings.popup.panelScroll.description" = "Scrollen über leere Bereiche der Übersichtsseite ändert die Ausgangslautstärke. Regler lassen sich immer per Scrollen einstellen.";
 "settings.popup.volumeScroll.natural" = "Natürliches Scrollen";
-"settings.popup.volumeScroll.natural.description" = "Nach oben scrollen erhöht den Wert unter dem Zeiger; aus folgt der Systemrichtung. Wenn es nach dem Aktivieren dieser Option immer noch falsch läuft, nimm Status Trio in die Ausnahme-/Ignorierliste von MOS, Scroll Reverser oder LinearMouse auf.";
+"settings.popup.volumeScroll.natural.description" = "Nach oben scrollen erhöht den Wert unter dem Zeiger; aus folgt der Systemrichtung. Gilt nur für vertikales Scrollen: Horizontales Scrollen folgt immer dem Regler – rechts erhöht, links verringert. Wenn es nach dem Aktivieren dieser Option immer noch falsch läuft, nimm Status Trio in die Ausnahme-/Ignorierliste von MOS, Scroll Reverser oder LinearMouse auf.";
 "settings.audio.volumeFeedbackTitle" = "Lautstärke-Feedback";
 "settings.audio.volumeFeedback" = "Ton beim Scrollen zur Lautstärkeänderung abspielen";
 "settings.audio.volumeFeedbackDescription" = "Spielt den Ton ab, wenn du die Lautstärke durch Scrollen änderst. Standardmäßig gilt die macOS-Einstellung „Feedback bei Lautstärkeänderung wiedergeben“; ein Umschalten hier gilt nur für Status Trio.";

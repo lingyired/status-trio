@@ -77,9 +77,15 @@ struct HardwareMonitorIconPlugin: IconContentPlugin {
         let configuration = context.configuration.behaviors.hardwareRing.normalized()
         // Top-marker-only readings (volume, Wi-Fi signal) ride the general status
         // snapshot, so they add no hardware-metric demand.
-        let metricIDs = Set(configuration.referencedMetrics
+        var metricIDs = Set(configuration.referencedMetrics
             .filter { !$0.usesStatusSnapshot }
             .map(\.metricID))
+        // Memory pressure is a top-marker-only status (#398): it is not a
+        // `HardwareMonitorMetric`, but it still needs the sampler's pressure
+        // reading, so demand it explicitly.
+        if configuration.topContent == .memoryPressure {
+            metricIDs.insert(.memoryPressure)
+        }
         // Battery readings (top marker or arc) come from the battery snapshot
         // instead of the hardware sampler, so they must demand that sample.
         var samples: Set<IconPreviewSampleSource> = [.hardwareMonitor]
